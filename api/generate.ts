@@ -85,8 +85,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 Analyze this clothing item photo(s).
 Respond *only* in **valid JSON** with two keys:
 {
-  "title": "Short Vinted title, formatted as in [Brand if you recognized it for certain] [Name of the item, try to be descriptive as to what kind of top/bottom/etc it is]",
-  "description": "Here is the description for the item. We want items to appeal to people to buy it. And at the end of the description also add hashtags to make the item searchable. (Add as many as you think is optimal for Vinted/Market Place listings)"
+  "title": "Short Vinted title, formatted as in [Brand if you recognized it for certain] [Color of the item] [Name of the item, try to be descriptive as to what kind of top/bottom/etc it is]",
+  "description": "Here is the description for the item. We want items to appeal to people to buy it. And at the end of the description also add hashtags to make the item searchable. (Add as many as you think is optimal for Vinted/Market Place listings). Make sure however the description itself is short. 1-2 phrases max."
 }
               `.trim(),
             },

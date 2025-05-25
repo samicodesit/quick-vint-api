@@ -72,7 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       messages: [
         {
           role: "system",
-          content: "You write Vinted listing titles & descriptions.",
+          content:
+            "You write Vinted/Market Place listing titles & descriptions.",
         },
         {
           role: "user",
@@ -81,11 +82,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             {
               type: "text",
               text: `
-Analyze this clothing item photo.
+Analyze this clothing item photo(s).
 Respond *only* in **valid JSON** with two keys:
 {
-  "title": "short Vinted title",
-  "description": "one-sentence stylish description"
+  "title": "Short Vinted title, formatted as in [Brand if you recognized it for certain] [Name of the item, try to be descriptive as to what kind of top/bottom/etc it is]",
+  "description": "Here is the description for the item. We want items to appeal to people to buy it. And at the end of the description also add hashtags to make the item searchable. (Add as many as you think is optimal for Vinted/Market Place listings)"
 }
               `.trim(),
             },

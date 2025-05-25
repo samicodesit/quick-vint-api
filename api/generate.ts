@@ -2,6 +2,7 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { OpenAI } from "openai";
+import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 import Cors from "cors";
 
 // 1) Read and parse allowed origins from env
@@ -58,15 +59,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Validate input
-  const { imageUrl } = req.body;
-  if (!imageUrl || typeof imageUrl !== "string" || !imageUrl.trim()) {
-    return res
-      .status(400)
-      .json({ error: "imageUrl is required and must be a non-empty string." });
+  const { imageUrls } = req.body;
+  if (
+    !Array.isArray(imageUrls) ||
+    imageUrls.length === 0 ||
+    !imageUrls.every((url) => typeof url === "string" && url.trim())
+  ) {
+    return res.status(400).json({
+      error: "imageUrls must be a non-empty array of non-empty strings.",
+    });
   }
 
   try {
-    // Call GPT-4o Vision
+    const imageParts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
+      type: "image_url",
+      image_url: { url },
+    }));
+
     const chat = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -78,19 +87,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         {
           role: "user",
           content: [
-            { type: "image_url", image_url: { url: imageUrl } },
+            ...imageParts,
             {
               type: "text",
               text: `
-Analyze this clothing item photo(s).
-Respond *only* in **valid JSON** with two keys:
-{
-  "title": "Short Vinted title, formatted as in [Brand if you recognized it for certain] [Color of the item] [Name of the item, try to be descriptive as to what kind of top/bottom/etc it is]",
-  "description": "Here is the description for the item. We want items to appeal to people to buy it. And at the end of the description also add hashtags to make the item searchable. (Add as many as you think is optimal for Vinted/Market Place listings). Make sure however the description itself is short. 1-2 phrases max."
-}
+    Analyze the clothing item based on the attached photo(s).
+    Respond *only* in **valid JSON** with two keys:
+    {
+      "title": "Short Vinted title, formatted as in [Brand if you recognized it for certain] [Color of the item] [Name of the item, try to be descriptive as to what kind of top/bottom/etc it is]",
+      "description": "Here is the description for the item. We want items to appeal to people to buy it. And at the end of the description also add hashtags to make the item searchable. (Add as many as you think is optimal for Vinted/Market Place listings). Make sure however the description itself is short. 1-2 phrases max."
+    }
               `.trim(),
             },
-          ],
+          ] as ChatCompletionContentPart[], // ✅ Force correct typing
         },
       ],
       max_tokens: 200,

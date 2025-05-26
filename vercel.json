@@ -1,9 +1,9 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "functions": {
-    "dist/api/generate.js": {
-      "memory": 512
+    "api/generate.js": {
+      "memory": 512,
+      "src": "dist/api/generate.js"
     }
   }
 }

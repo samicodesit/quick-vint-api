@@ -5,8 +5,11 @@ import { OpenAI } from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 import Cors from "cors";
 
+// allow any https://*.vinted.<tld> (e.g. vinted.com, fr.vinted.com, vinted.nl, etc)
+const vintedOriginPattern = /^https:\/\/(?:[a-z]{2}\.)?vinted\.[a-z]{2,3}$/;
+
 // 1) Read and parse allowed origins from env
-//    e.g. "https://www.vinted.nl,chrome-extension://<EXT_ID>"
+//    e.g. "chrome-extension://<EXT_ID>"
 const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
 const ALLOWED_ORIGINS = rawOrigins
   .split(",")
@@ -16,14 +19,23 @@ const ALLOWED_ORIGINS = rawOrigins
 // 2) Setup CORS middleware
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
-    // allow requests with no origin (e.g. curl, Postman)
-    if (!incomingOrigin) return callback(null, true);
-    if (
-      ALLOWED_ORIGINS.includes("*") ||
-      ALLOWED_ORIGINS.includes(incomingOrigin)
-    ) {
+    // allow server‐side calls (no Origin header)
+    if (!incomingOrigin) {
       return callback(null, true);
     }
+
+    // allow your explicit extension ID or any other origins you listed
+    if (ALLOWED_ORIGINS.includes(incomingOrigin)) {
+      return callback(null, true);
+    }
+
+    // allow all official Vinted sites
+    if (vintedOriginPattern.test(incomingOrigin)) {
+      return callback(null, true);
+    }
+
+    // otherwise block—and log for monitoring
+    console.warn("Blocked CORS from", incomingOrigin);
     return callback(new Error("CORS origin denied"), false);
   },
   methods: ["POST", "OPTIONS"],
@@ -97,11 +109,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               
               {
                 "title": "[Brand if clearly visible] [Color] [Type of item]",
-                "description": "1–2 phrases that help sell it. Mention condition if useful (e.g. barely worn). End with many relevant hashtags to boost search. No sizes."
+                "description": "1–2 phrases that help sell it. Mention condition if useful (e.g. barely worn). End with 5 relevant hashtags to boost search. No sizes."
               }
               `.trim(),
             },
-          ] as ChatCompletionContentPart[], // ✅ Force correct typing
+          ] as ChatCompletionContentPart[],
         },
       ],
       max_tokens: 150,
@@ -131,7 +143,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ title, description });
   } catch (error: any) {
     console.error("OpenAI API error:", error);
-    // Handle known OpenAI errors
     if (error.status && error.message) {
       return res.status(error.status).json({ error: error.message });
     }

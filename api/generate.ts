@@ -5,8 +5,8 @@ import { OpenAI } from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 import Cors from "cors";
 
-// allow any https://*.vinted.<tld> (e.g. vinted.com, fr.vinted.com, vinted.nl, etc)
-const vintedOriginPattern = /^https:\/\/(?:[a-z]{2}\.)?vinted\.[a-z]{2,3}$/;
+// allow any https://*.vinted.<tld> (e.g. www.vinted.com, fr.vinted.com, vinted.nl, etc)
+const vintedOriginPattern = /^https:\/\/(?:[\w-]+\.)?vinted\.[a-z]{2,3}$/;
 
 // 1) Read and parse allowed origins from env
 //    e.g. "chrome-extension://<EXT_ID>"
@@ -24,12 +24,12 @@ const cors = Cors({
       return callback(null, true);
     }
 
-    // allow your explicit extension ID or any other origins you listed
+    // allow your explicit extension ID(s)
     if (ALLOWED_ORIGINS.includes(incomingOrigin)) {
       return callback(null, true);
     }
 
-    // allow all official Vinted sites
+    // allow any official Vinted site (including www)
     if (vintedOriginPattern.test(incomingOrigin)) {
       return callback(null, true);
     }
@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Apply CORS
   try {
     await runCors(req, res);
-  } catch (err) {
+  } catch {
     return res.status(403).json({ error: "CORS check failed" });
   }
 

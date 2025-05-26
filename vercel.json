@@ -1,8 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "functions": {
-    "api/generate.js": {
-      "runtime": "nodejs18.x",
+    "dist/api/generate.js": {
       "memory": 512
     }
   }

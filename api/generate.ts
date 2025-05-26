@@ -35,7 +35,9 @@ const cors = Cors({
     }
 
     // otherwise block—and log for monitoring
-    console.warn("Blocked CORS from", incomingOrigin);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Blocked CORS from", incomingOrigin);
+    }
     return callback(new Error("CORS origin denied"), false);
   },
   methods: ["POST", "OPTIONS"],
@@ -133,7 +135,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       parsed = JSON.parse(gptContent);
     } catch (parseErr) {
-      console.error("Failed to JSON.parse GPT output:", gptContent, parseErr);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Failed to JSON.parse GPT output:", gptContent, parseErr);
+      }
     }
 
     // Fallback defaults
@@ -142,7 +146,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ title, description });
   } catch (error: any) {
-    console.error("OpenAI API error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("OpenAI API error:", error);
+    }
     if (error.status && error.message) {
       return res.status(error.status).json({ error: error.message });
     }

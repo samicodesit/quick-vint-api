@@ -1,0 +1,6 @@
+# ignore all generated bundles
+dist/
+
+# you can also skip other build artifacts
+node_modules/
+.vercel/

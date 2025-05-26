@@ -1,9 +1,19 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "functions": {
-    "api/generate.js": {
-      "memory": 512,
-      "src": "dist/api/generate.js"
+
+  "builds": [
+    {
+      "src": "api/generate.ts",
+      "use": "@vercel/node", 
+      "config": { "zeroConfig": true }
     }
-  }
+  ],
+
+  "routes": [
+    {
+      "src": "/api/generate", 
+      "dest": "/api/generate.js"
+    }
+  ]
 }

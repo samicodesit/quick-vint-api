@@ -7,6 +7,11 @@
       "src": "api/generate.ts",
       "use": "@vercel/node",
       "config": { "zeroConfig": true }
+    },
+    {
+      "src": "api/auth/magic-link.ts",
+      "use": "@vercel/node",
+      "config": { "zeroConfig": true }
     }
   ],
 

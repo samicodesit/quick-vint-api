@@ -202,11 +202,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             {
               type: "text",
               text: `
+<<<<<<< Updated upstream
               Analyze the clothing item in the photo(s).
+=======
+              Analyze the (clothing) item in the photo(s).
+              
+>>>>>>> Stashed changes
               Reply only with valid JSON:
               {
-                "title": "[Brand if clearly visible] [Color] [Type of item]",
-                "description": "1–2 phrases that help sell it. Mention condition if useful (e.g. barely worn). End with 5 relevant hashtags to boost search. No sizes."
+                "title": "[Brand if clearly visible] [Color if clothes or another type of item where color makes sense] [Item]",
+                "description": "1–2 phrases that help sell it. Mention condition if useful (e.g. barely worn for clothes, scratches for devices). End with 5 relevant hashtags to boost search. No sizes."
               }
               `.trim(),
             },

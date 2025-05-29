@@ -5,7 +5,7 @@ import type { ChatCompletionContentPart } from "openai/resources/chat/completion
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 
-const FREE_TIER_API_CALL_LIMIT = 2;
+const FREE_TIER_API_CALL_LIMIT = 50;
 
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern = /^https:\/\/(?:[\w-]+\.)?vinted\.[a-z]{2,3}$/;

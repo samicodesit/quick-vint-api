@@ -1,15 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.VERCEL_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.VERCEL_APP_SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseServiceRoleKey) {
   console.error(
-    "Supabase URL or Anon Key is missing. Check Vercel environment variables: VERCEL_APP_SUPABASE_URL and VERCEL_APP_SUPABASE_ANON_KEY"
+    "Supabase URL or Service Key is missing. Check Vercel environment variables: VERCEL_APP_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
   );
   // Throwing an error here will prevent functions from running without proper config.
   // Depending on deployment, this might cause server startup failure or function errors.
   throw new Error("Supabase configuration is incomplete.");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);

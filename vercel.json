@@ -5,41 +5,26 @@
   "builds": [
     {
       "src": "api/generate.ts",
-      "use": "@vercel/node",
-      "config": { "zeroConfig": true }
+      "use": "@vercel/node"
     },
     {
       "src": "api/auth/magic-link.ts",
-      "use": "@vercel/node",
-      "config": { "zeroConfig": true }
+      "use": "@vercel/node"
     },
     {
       "src": "api/gumroad/ping.ts",
-      "use": "@vercel/node",
-      "config": { "zeroConfig": true }
+      "use": "@vercel/node"
     }
   ],
 
   "routes": [
-    {
-      "src": "/api/generate",
-      "dest": "/api/generate.js"
-    },
-    {
-      "src": "/api/auth/magic-link",
-      "dest": "/api/auth/magic-link.js"
-    },
-    {
-      "src": "/api/gumroad/ping",
-      "dest": "/api/gumroad/ping.js"
-    },
-    {
-      "src": "/$",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
+    // 1) Any /api/... goes to the matching function
+    { "src": "/api/(.*)", "dest": "/api/$1.js" },
+
+    // 2) Let Vercel serve any file that actually exists under /public
+    { "handle": "filesystem" },
+
+    // 3) Otherwise (including “/”), serve public/index.html
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

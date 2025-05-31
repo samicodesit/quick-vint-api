@@ -1,4 +1,3 @@
-// api/generate.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { OpenAI } from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
@@ -58,9 +57,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: "Invalid or expired token" });
 
   // --- PROFILE & LIMITS ---
+  // Fetch profileData; may be null if not found
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
-    .select("api_calls_this_month, subscription_status, last_api_call_reset")
+    .select(
+      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset"
+    )
     .eq("id", user.id)
     .single();
 
@@ -72,11 +74,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .insert({
         id: user.id,
         subscription_status: "free",
+        subscription_tier: "free",
         api_calls_this_month: 0,
         last_api_call_reset: new Date().toISOString().split("T")[0],
       })
       .single();
-    if (createErr) {
+    if (createErr || !created) {
       console.error("Error creating profile:", createErr);
       return res
         .status(500)
@@ -86,6 +89,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } else if (profileError) {
     console.error("Error fetching profile:", profileError);
     return res.status(500).json({ error: "Could not retrieve profile." });
+  }
+
+  // At this point, profile is guaranteed non-null
+  if (!profile) {
+    return res.status(500).json({ error: "Profile unexpectedly missing." });
   }
 
   // reset monthly count if needed
@@ -107,8 +115,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     profile.api_calls_this_month = 0;
   }
 
+  // free-tier enforcement, now including subscription_tier logic
+  const isUnlimited =
+    profile.subscription_status === "active" &&
+    (profile.subscription_tier === "unlimited_monthly" ||
+      profile.subscription_tier === "unlimited_annual");
+
   if (
-    profile.subscription_status === "free" &&
+    !isUnlimited &&
     profile.api_calls_this_month >= FREE_TIER_API_CALL_LIMIT
   ) {
     return res.status(429).json({

@@ -12,6 +12,11 @@
       "src": "api/auth/magic-link.ts",
       "use": "@vercel/node",
       "config": { "zeroConfig": true }
+    },
+    {
+      "src": "api/gumroad/ping.ts",
+      "use": "@vercel/node",
+      "config": { "zeroConfig": true }
     }
   ],
 
@@ -23,6 +28,10 @@
     {
       "src": "/api/auth/magic-link",
       "dest": "/api/auth/magic-link.js"
+    },
+    {
+      "src": "/api/gumroad/ping",
+      "dest": "/api/gumroad/ping.js"
     }
   ]
 }

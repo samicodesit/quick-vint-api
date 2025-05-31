@@ -1,3 +1,4 @@
+// /api/gumroad/ping.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { buffer } from "micro";
 import qs from "querystring";
@@ -9,7 +10,6 @@ const VALID_SELLER_ID = "xpmFDK3dS74a7GHUC8CCiQ==";
 const PRODUCT_PERMALINK = "autolister-ai-unlimited";
 
 type Tier = "unlimited_monthly" | "unlimited_annual";
-
 function mapTier(recurrence?: string): Tier {
   return recurrence?.toLowerCase().startsWith("year")
     ? "unlimited_annual"
@@ -17,46 +17,35 @@ function mapTier(recurrence?: string): Tier {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 1) Log every incoming request, regardless of method, so we can see “test ping” hits
   console.log("→ /api/gumroad/ping incoming:", req.method, req.url);
 
-  // 2) If Gumroad “test ping” is a GET (no body), just return 200 OK so the test shows up
   if (req.method === "GET") {
-    console.log("→ Received GET (likely Gumroad test), returning 200");
+    console.log("→ Received GET (likely test ping), returning 200");
     return res.status(200).json({ ok: true, note: "GET received (test ping)" });
   }
-
-  // 3) Only accept POST from here on
   if (req.method !== "POST") {
     console.log("→ Rejecting non-POST:", req.method);
     return res.status(405).end("Method Not Allowed");
   }
 
-  // 4) Parse the x-www-form-urlencoded body
-  let raw: string;
-  try {
-    raw = (await buffer(req)).toString();
-  } catch (e) {
-    console.error("→ Error buffering request:", e);
-    return res.status(400).end("Bad Request");
-  }
+  // Parse body
+  const raw = (await buffer(req)).toString();
   const ping = qs.parse(raw) as Record<string, string>;
-
   console.log("→ Parsed ping payload:", ping);
 
-  // 5) Basic seller_id validation
+  // Validate seller_id
   if (ping.seller_id !== VALID_SELLER_ID) {
     console.warn("→ Invalid seller_id:", ping.seller_id);
     return res.status(401).end("Invalid seller_id");
   }
 
-  // 6) Product/permalink validation
-  if (ping.permalink !== PRODUCT_PERMALINK) {
-    console.warn("→ Unknown product permalink:", ping.permalink);
+  // **CHECK `product_permalink`** (not `permalink`)
+  if (ping.product_permalink !== PRODUCT_PERMALINK) {
+    console.warn("→ Unknown product_permalink:", ping.product_permalink);
     return res.status(400).end("Unknown product");
   }
 
-  // 7) Find the user’s profile by email
+  // Find user by email
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("id")
@@ -68,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).end("User not found");
   }
 
-  // 8) Build the update object
+  // Build update object
   const update: Record<string, unknown> = {
     gumroad_subscription_id: ping.subscription_id || null,
     subscription_tier: mapTier(ping.recurrence || ping.subscription_frequency),
@@ -78,7 +67,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     update.current_period_end = new Date(ping.next_charge_date).toISOString();
   }
 
-  // 9) Write back to Supabase
   try {
     await supabase.from("profiles").update(update).eq("id", profile.id);
     console.log("→ Updated profile:", profile.id, "with", update);

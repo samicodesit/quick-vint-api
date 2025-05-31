@@ -14,7 +14,7 @@
       "config": { "zeroConfig": true }
     },
     {
-      "src": "api/gumroad/ping.ts",
+      "src": "api/stripe/webhook.ts",
       "use": "@vercel/node",
       "config": { "zeroConfig": true }
     }
@@ -30,8 +30,8 @@
       "dest": "/api/auth/magic-link.js"
     },
     {
-      "src": "/api/gumroad/ping",
-      "dest": "/api/gumroad/ping.js"
+      "src": "/api/stripe/webhook",
+      "dest": "/api/stripe/webhook.js"
     }
   ]
 }

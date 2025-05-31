@@ -18,13 +18,10 @@
   ],
 
   "routes": [
-    // 1) Any /api/... goes to the matching function
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
 
-    // 2) Let Vercel serve any file that actually exists under /public
     { "handle": "filesystem" },
 
-    // 3) Otherwise (including “/”), serve public/index.html
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

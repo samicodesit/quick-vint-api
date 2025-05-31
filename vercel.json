@@ -32,6 +32,14 @@
     {
       "src": "/api/gumroad/ping",
       "dest": "/api/gumroad/ping.js"
+    },
+    {
+      "src": "/$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }

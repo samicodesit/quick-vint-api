@@ -5,8 +5,9 @@ import { supabase } from "../../utils/supabaseClient";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
-const LOOKUP_KEY_MONTHLY = process.env.PRICELOOKUP_KEY_MONTHLY!;
-const LOOKUP_KEY_ANNUAL = process.env.PRICE_LOOKUP_KEY_ANNUAL!;
+// These env vars should be your actual Price IDs from Stripe Dashboard
+const PRICE_ID_MONTHLY = process.env.STRIPE_PRICE_ID_MONTHLY!;
+const PRICE_ID_ANNUAL = process.env.STRIPE_PRICE_ID_ANNUAL!;
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
 
@@ -27,10 +28,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "A valid email is required." });
     }
 
-    // Choose lookup key
+    // Choose which Price ID to use
     const chosenInterval = interval === "annual" ? "annual" : "monthly";
-    const priceLookupKey =
-      chosenInterval === "annual" ? LOOKUP_KEY_ANNUAL : LOOKUP_KEY_MONTHLY;
+    const priceId =
+      chosenInterval === "annual" ? PRICE_ID_ANNUAL : PRICE_ID_MONTHLY;
 
     // 1) Look up existing stripe_customer_id in Supabase
     let customerId: string | null = null;
@@ -41,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .ilike("email", email)
         .single();
 
-      if (profileRow && profileRow.stripe_customer_id) {
+      if (profileRow?.stripe_customer_id) {
         customerId = profileRow.stripe_customer_id;
       }
     }
@@ -61,20 +62,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .ilike("email", email);
     }
 
-    // 3) Create Checkout Session (only pass `customer`, not `customer_email`)
+    // 3) Create Checkout Session using the chosen Price ID
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
         {
-          price: priceLookupKey,
+          price: priceId,
           quantity: 1,
         },
       ],
       customer: customerId,
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: CANCEL_URL,
-      // ← remove customer_email since we already set `customer`
     });
 
     return res.status(200).json({ url: session.url });

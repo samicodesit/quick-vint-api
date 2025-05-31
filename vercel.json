@@ -5,23 +5,33 @@
   "builds": [
     {
       "src": "api/generate.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": { "zeroConfig": true }
     },
     {
       "src": "api/auth/magic-link.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": { "zeroConfig": true }
     },
     {
       "src": "api/gumroad/ping.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": { "zeroConfig": true }
     }
   ],
 
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
-
-    { "handle": "filesystem" },
-
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/api/generate",
+      "dest": "/api/generate.js"
+    },
+    {
+      "src": "/api/auth/magic-link",
+      "dest": "/api/auth/magic-link.js"
+    },
+    {
+      "src": "/api/gumroad/ping",
+      "dest": "/api/gumroad/ping.js"
+    }
   ]
 }

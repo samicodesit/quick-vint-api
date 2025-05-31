@@ -1,13 +1,11 @@
-// api/stripe/create‐checkout.ts
+// api/stripe/create-checkout.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 
-// Initialize Stripe (no apiVersion needed)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
-// Now using lookup keys instead of raw Price IDs
-const LOOKUP_KEY_MONTHLY = process.env.PRICE_LOOKUP_KEY_MONTHLY!;
+const LOOKUP_KEY_MONTHLY = process.env.PRICELOOKUP_KEY_MONTHLY!;
 const LOOKUP_KEY_ANNUAL = process.env.PRICE_LOOKUP_KEY_ANNUAL!;
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
@@ -34,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const priceLookupKey =
       chosenInterval === "annual" ? LOOKUP_KEY_ANNUAL : LOOKUP_KEY_MONTHLY;
 
-    // 1) Look up existing Stripe Customer ID in Supabase (if any)
+    // 1) Look up existing stripe_customer_id in Supabase
     let customerId: string | null = null;
     {
       const { data: profileRow } = await supabase
@@ -63,25 +61,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .ilike("email", email);
     }
 
-    // 3) Create a Checkout Session using the lookup key
+    // 3) Create Checkout Session (only pass `customer`, not `customer_email`)
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
         {
-          price: priceLookupKey, // this is the lookup key (not a raw amount)
+          price: priceLookupKey,
           quantity: 1,
         },
       ],
       customer: customerId,
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: CANCEL_URL,
-      customer_email: email,
+      // ← remove customer_email since we already set `customer`
     });
 
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
-    console.error("❌ create‐checkout error:", err);
+    console.error("❌ create-checkout error:", err);
     return res.status(500).json({ error: err.message });
   }
 }

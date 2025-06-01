@@ -1,46 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-
   "builds": [
     {
-      "src": "api/generate.ts",
-      "use": "@vercel/node",
-      "config": { "zeroConfig": true }
-    },
-    {
-      "src": "api/auth/magic-link.ts",
-      "use": "@vercel/node",
-      "config": { "zeroConfig": true }
-    },
-    {
-      "src": "api/stripe/webhook.ts",
-      "use": "@vercel/node",
-      "config": { "zeroConfig": true }
-    },
-    {
-      "src": "api/stripe/create-checkout.ts",
+      "src": "api/**/*.ts",
       "use": "@vercel/node",
       "config": { "zeroConfig": true }
     }
   ],
-
   "routes": [
     {
-      "src": "/api/generate",
-      "dest": "/api/generate.js"
-    },
-    {
-      "src": "/api/auth/magic-link",
-      "dest": "/api/auth/magic-link.js"
-    },
-    {
-      "src": "/api/stripe/webhook",
-      "dest": "/api/stripe/webhook.js"
-    },
-    {
-      "src": "/api/stripe/crate-checkout",
-      "dest": "/api/stripe/crate-checkout.js"
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
     }
   ]
 }

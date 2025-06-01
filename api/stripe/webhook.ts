@@ -20,18 +20,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).end("Method Not Allowed");
   }
 
+  // 1) Retrieve raw body + signature header
   const buf = await buffer(req);
-  const sig = req.headers["stripe-signature"] as string;
+  const sigHeader = req.headers["stripe-signature"] as string;
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(buf, sig, WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(buf, sigHeader, WEBHOOK_SECRET);
     console.log(`✅ Stripe webhook signature OK. Event: ${event.type}`);
   } catch (err: any) {
     console.error("⚠️ Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  // 2) Handle event types
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -41,28 +43,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const email = session.customer_details?.email!;
 
         if (session.mode === "subscription" && session.subscription) {
-          // Fetch the full Subscription object
+          // Fetch the full Subscription
           const subscription = (await stripe.subscriptions.retrieve(
             session.subscription as string
           )) as any;
 
-          const interval = subscription.items.data[0].plan.interval as string;
+          // Pull interval from the first item’s plan
+          const interval = subscription.items.data[0]?.plan.interval as string;
           const tier = mapTier(interval);
           const status = subscription.status as string;
 
-          const rawEnd = (subscription as any).current_period_end;
+          // Pull current_period_end from items.data[0]
+          const rawEnd = subscription.items.data[0]?.current_period_end;
           let currentPeriodEnd: string | null = null;
           if (typeof rawEnd === "number") {
             currentPeriodEnd = new Date(rawEnd * 1000).toISOString();
           }
 
-          // Upsert stripe_customer_id on profiles
+          // 2a) Upsert stripe_customer_id
           await supabase
             .from("profiles")
             .update({ stripe_customer_id: customerId })
             .ilike("email", email);
 
-          // Find that user’s profile row by email
+          // 2b) Find the user’s profile row by email
           const { data: profileRow } = await supabase
             .from("profiles")
             .select("id")
@@ -92,24 +96,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subAny = subscription as any;
 
         const customerId = subAny.customer as string;
-        const interval = subAny.items.data[0].plan.interval as string;
+        // Same logic: interval from items.data[0].plan.interval
+        const interval = subAny.items.data[0]?.plan.interval as string;
         const tier = mapTier(interval);
         const status = subAny.status as string;
 
-        const rawEnd = subAny.current_period_end;
+        // Pull current_period_end from items.data[0]
+        const rawEnd = subAny.items.data[0]?.current_period_end as
+          | number
+          | undefined;
         let currentPeriodEnd: string | null = null;
         if (typeof rawEnd === "number") {
           currentPeriodEnd = new Date(rawEnd * 1000).toISOString();
         }
 
-        // Try to find profile by stripe_customer_id
+        // 1) Try find profile by stripe_customer_id
         let { data: profileRow } = await supabase
           .from("profiles")
           .select("id")
           .eq("stripe_customer_id", customerId)
           .single();
 
-        // Fallback: match by email
+        // 2) Fallback: match by email if no customer_id found
         if (!profileRow) {
           const customer = await stripe.customers.retrieve(customerId);
           const custAny = customer as any;
@@ -128,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           await supabase
             .from("profiles")
             .update({
-              stripe_subscription_id: subscription.id,
+              stripe_subscription_id: subAny.id,
               subscription_tier: tier,
               subscription_status: status,
               current_period_end: currentPeriodEnd,

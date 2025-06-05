@@ -2,13 +2,7 @@
   "name": "quick-vint-api",
   "version": "1.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint . --ext .ts,.js",
-    "type-check": "tsc --noEmit",
-    "format-check": "prettier --check .",
-    "dev:api": "esbuild api/generate.ts --bundle --platform=node --minify --outfile=dist/api/generate.js --watch",
-    "build:api": "esbuild api/generate.ts --bundle --platform=node --target=node18 --format=cjs --minify --outfile=dist/api/generate.js",
-    "vercel-build": "npm run build:api"
+    "dev": "vercel dev"
   },
   "keywords": [],
   "author": "",

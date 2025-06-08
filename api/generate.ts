@@ -153,7 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       messages: [
         {
           role: "system",
-          content: "You write Vinted listing titles & descriptions.",
+          content: "You write Vinted listing titles and descriptions.",
         },
         {
           role: "user",
@@ -162,10 +162,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             {
               type: "text",
               text: `
-Analyze the item in the photo(s).
-Reply ONLY with JSON:
-{"title":"...","description":"..."}
-`.trim(),
+From photo(s), detect brand (if clear), color, and item. Format title: [Brand] [Color] [Item]. In description, note condition (e.g. like new, stains), and end with 4-5 SEO hashtags.
+Reply only in JSON: {"title":"...","description":"..."}
+        `.trim(),
             },
           ],
         },

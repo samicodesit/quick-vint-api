@@ -4,7 +4,7 @@ import type { ChatCompletionContentPart } from "openai/resources/chat/completion
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 
-const FREE_TIER_API_CALL_LIMIT = 50;
+const FREE_TIER_API_CALL_LIMIT = 10;
 
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern = /^https:\/\/(?:[\w-]+\.)?vinted\.[a-z]{2,3}$/;
@@ -57,8 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: "Invalid or expired token" });
 
   // --- PROFILE & LIMITS ---
-  // Fetch profileData; may be null if not found
-  const { data: profileData, error: profileError } = await supabase
+  // This logic is now simplified to rely on the daily cron job for resets.
+
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
       "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset"
@@ -66,68 +67,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq("id", user.id)
     .single();
 
-  let profile = profileData;
-  if (profileError && profileError.code === "PGRST116") {
-    // missing profile → create it
-    const { data: created, error: createErr } = await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        subscription_status: "free",
-        subscription_tier: "free",
-        api_calls_this_month: 0,
-        last_api_call_reset: new Date().toISOString().split("T")[0],
-      })
-      .single();
-    if (createErr || !created) {
-      console.error("Error creating profile:", createErr);
-      return res
-        .status(500)
-        .json({ error: "Failed to initialize user profile." });
-    }
-    profile = created;
-  } else if (profileError) {
+  if (profileError && profileError.code !== "PGRST116") {
+    // An actual error occurred, other than the user not having a profile yet.
     console.error("Error fetching profile:", profileError);
     return res.status(500).json({ error: "Could not retrieve profile." });
   }
 
-  // At this point, profile is guaranteed non-null
-  if (!profile) {
-    return res.status(500).json({ error: "Profile unexpectedly missing." });
-  }
-
-  // reset monthly count if needed
-  const now = new Date();
-  const currentMonth = now.getFullYear() * 100 + now.getMonth();
-  let lastResetMonth = 0;
-  if (profile.last_api_call_reset) {
-    const lr = new Date(profile.last_api_call_reset);
-    lastResetMonth = lr.getFullYear() * 100 + lr.getMonth();
-  }
-  if (currentMonth > lastResetMonth) {
-    await supabase
-      .from("profiles")
-      .update({
-        api_calls_this_month: 0,
-        last_api_call_reset: now.toISOString().split("T")[0],
-      })
-      .eq("id", user.id);
-    profile.api_calls_this_month = 0;
-  }
-
-  // free-tier enforcement, now including subscription_tier logic
-  const isUnlimited =
-    profile.subscription_status === "active" &&
-    (profile.subscription_tier === "unlimited_monthly" ||
-      profile.subscription_tier === "unlimited_annual");
-
-  if (
-    !isUnlimited &&
-    profile.api_calls_this_month >= FREE_TIER_API_CALL_LIMIT
-  ) {
-    return res.status(429).json({
-      error: `Free tier limit (${FREE_TIER_API_CALL_LIMIT}/mo) reached.`,
+  // Case 1: New user, or an existing user making their first-ever call.
+  // Their profile doesn't exist, or their reset date has never been set.
+  if (!profile || !profile.last_api_call_reset) {
+    const { error: upsertError } = await supabase.from("profiles").upsert({
+      id: user.id,
+      api_calls_this_month: 1, // This is their first call.
+      last_api_call_reset: new Date().toISOString(), // Start their 30-day clock.
+      subscription_status: profile?.subscription_status || "free", // Use existing status or default to free
+      subscription_tier: profile?.subscription_tier || "free",
     });
+
+    if (upsertError) {
+      console.error("Error starting user's first period:", upsertError);
+      return res
+        .status(500)
+        .json({ error: "Failed to initialize user profile." });
+    }
+    // Since this is their first call, we don't need to check limits. We can proceed.
+  } else {
+    // Case 2: Existing user within an active 30-day period.
+    const isUnlimited =
+      profile.subscription_status === "active" &&
+      (profile.subscription_tier === "unlimited_monthly" ||
+        profile.subscription_tier === "unlimited_annual");
+
+    if (
+      !isUnlimited &&
+      profile.api_calls_this_month >= FREE_TIER_API_CALL_LIMIT
+    ) {
+      return res.status(429).json({
+        error: `30-day usage limit (${FREE_TIER_API_CALL_LIMIT}) reached.`,
+      });
+    }
+
+    // Increment the count for this call.
+    const { error: incrementError } = await supabase
+      .from("profiles")
+      .update({ api_calls_this_month: profile.api_calls_this_month + 1 })
+      .eq("id", user.id);
+
+    if (incrementError) {
+      // Log the error but allow the API call to proceed for better user experience.
+      console.error("Failed to increment API count:", incrementError);
+    }
   }
 
   // --- VALIDATE BODY ---
@@ -187,15 +176,14 @@ Reply only in JSON: {"title":"...","description":"..."}
     const description =
       parsed.description?.trim() || "No description available.";
 
-    // --- INCREMENT COUNT ---
-    await supabase
-      .from("profiles")
-      .update({ api_calls_this_month: profile.api_calls_this_month + 1 })
-      .eq("id", user.id);
+    // The increment is now handled *before* the OpenAI call.
+    // This is more accurate as it prevents users from getting a free call if OpenAI fails.
 
     return res.status(200).json({ title, description });
   } catch (err: any) {
     console.error("Generation error:", err);
+    // If OpenAI fails, we should ideally roll back the increment.
+    // For simplicity here, we accept that a failed call might still count.
     return res.status(500).json({ error: "Internal error during generation." });
   }
 }

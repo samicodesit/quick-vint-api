@@ -32,8 +32,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const chosenInterval = interval === "annual" ? "annual" : "monthly";
     const priceId =
       chosenInterval === "annual" ? PRICE_ID_ANNUAL : PRICE_ID_MONTHLY;
-    const otherPriceId =
-      priceId === PRICE_ID_ANNUAL ? PRICE_ID_MONTHLY : PRICE_ID_ANNUAL;
 
     // 3) Look up existing stripe_customer_id in Supabase
     let customerId: string | null = null;
@@ -93,10 +91,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       line_items: [
         {
           price: priceId,
-          quantity: 1,
-        },
-        {
-          price: otherPriceId,
           quantity: 1,
         },
       ],

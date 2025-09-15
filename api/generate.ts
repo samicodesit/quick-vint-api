@@ -4,7 +4,7 @@ import type { ChatCompletionContentPart } from "openai/resources/chat/completion
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 
-const FREE_TIER_API_CALL_LIMIT = 10;
+const FREE_TIER_API_CALL_LIMIT = 5;
 
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern = /^https:\/\/(?:[\w-]+\.)?vinted\.[a-z]{2,3}$/;
@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       profile.api_calls_this_month >= FREE_TIER_API_CALL_LIMIT
     ) {
       return res.status(429).json({
-        error: `30-day usage limit (${FREE_TIER_API_CALL_LIMIT}) reached.`,
+        error: `30-day free usage limit (${FREE_TIER_API_CALL_LIMIT}) reached.`,
       });
     }
 

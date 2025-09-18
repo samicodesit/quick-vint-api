@@ -3,55 +3,303 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Subscription Canceled</title>
+  <title>No Worries! Try AutoLister AI Free</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #fef2f2;
-      color: #991b1b; /* red-700 */
       margin: 0;
       padding: 40px;
       text-align: center;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
+    .cancel-container {
+      background: white;
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      max-width: 650px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .icon {
+      font-size: 3.5rem;
+      margin-bottom: 1.5rem;
+    }
+
     h1 {
-      font-size: 2rem;
-      color: #ef4444; /* red-500 */
-      margin-bottom: 0.5em;
+      font-size: 2.2rem;
+      color: #4f46e5;
+      margin-bottom: 1rem;
+      font-weight: 700;
     }
-    p {
-      font-size: 1rem;
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: #6b7280;
+      margin-bottom: 2rem;
       line-height: 1.5;
-      max-width: 600px;
-      margin: 0 auto 1em auto;
     }
-    a {
-      display: inline-block;
-      margin-top: 1em;
-      padding: 0.5em 1em;
-      background-color: #3b82f6; /* blue */
+
+    .free-offer {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      margin: 2rem 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .free-offer::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255,255,255,0.05) 10px,
+        rgba(255,255,255,0.05) 20px
+      );
+      animation: shine 3s linear infinite;
+    }
+
+    @keyframes shine {
+      0% { transform: translateX(-100%) translateY(-100%); }
+      100% { transform: translateX(100%) translateY(100%); }
+    }
+
+    .free-offer h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .free-offer p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+      line-height: 1.6;
+    }
+
+    .free-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .feature-card {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 2px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      border-color: #4f46e5;
+    }
+
+    .feature-card h3 {
+      color: #4f46e5;
+      margin-bottom: 0.8rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feature-card p {
+      color: #64748b;
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .cta-section {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 16px;
+      padding: 2rem;
+      margin: 2.5rem 0;
+    }
+
+    .cta-section h3 {
+      color: #92400e;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+
+    .cta-section p {
+      color: #92400e;
+      margin-bottom: 1.5rem;
+      font-size: 1rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.9rem 2.2rem;
       text-decoration: none;
-      border-radius: 4px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
     }
-    a:hover {
-      opacity: 0.9;
+
+    .btn-primary {
+      background: #4f46e5;
+      color: white;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
     }
+
+    .btn-primary:hover {
+      background: #3730a3;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      border: 2px solid #e5e7eb;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+      transform: translateY(-2px);
+    }
+
     footer {
-      margin-top: 3em;
+      margin-top: 3rem;
       font-size: 0.9rem;
       color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 2rem;
+    }
+
+    footer a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .cancel-container {
+        padding: 2rem 1.5rem;
+        margin: 0 1rem;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .free-features {
+        grid-template-columns: 1fr;
+      }
+      
+      .cta-buttons {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+        box-sizing: border-box;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>⚠️ Subscription Canceled</h1>
-  <p>
-    Your checkout was canceled. If you change your mind, feel free to try again anytime. Otherwise, you can continue browsing our free features.
-  </p>
-  <a href="/">Back to Home</a>
+  <div class="cancel-container">
+    <div class="icon">🤔</div>
+    <h1>No Problem at All!</h1>
+    <div class="subtitle">
+      Your checkout was canceled, but that doesn't mean you can't experience the magic of AutoLister AI. 
+      Why not try our free plan first?
+    </div>
 
-  <footer>
-    &copy; 2025 AutoLister AI · All rights reserved
-  </footer>
+    <div class="free-offer">
+      <h2>🎁 Start Free Today</h2>
+      <p>Get 2 AI-generated listings daily with our Free Trial. No payment required, no strings attached. Experience the quality that makes AutoLister AI special!</p>
+      <a href="https://chromewebstore.google.com/detail/mommklhpammnlojjobejddmidmdcalc" target="_blank" class="btn btn-success">
+        Try Free Now
+      </a>
+    </div>
+
+    <div class="free-features">
+      <div class="feature-card">
+        <h3>✨ AI-Powered Listings</h3>
+        <p>Experience the same high-quality AI that generates compelling titles and descriptions for your Vinted items.</p>
+      </div>
+      <div class="feature-card">
+        <h3>⚡ Instant Results</h3>
+        <p>See how AutoLister AI works in seconds. One click and your listing is optimized for maximum appeal.</p>
+      </div>
+      <div class="feature-card">
+        <h3>🎯 Perfect for Testing</h3>
+        <p>2 daily generations give you plenty of opportunities to test the quality and see the difference.</p>
+      </div>
+    </div>
+
+    <div class="cta-section">
+      <h3>💡 Ready When You Are</h3>
+      <p>Once you see the results, upgrading to a paid plan gives you higher limits and priority support. But there's no rush - start free and upgrade only when you're ready!</p>
+    </div>
+
+    <div class="cta-buttons">
+      <a href="https://chromewebstore.google.com/detail/mommklhpammnlojjobejddmidmdcalc" target="_blank" class="btn btn-primary">
+        Install Extension
+      </a>
+      <a href="/pricing.html" class="btn btn-secondary">
+        Compare All Plans
+      </a>
+    </div>
+
+    <footer>
+      &copy; 2025 AutoLister AI · All rights reserved
+      <br />
+      <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="mailto:support@autolister.ai">Support</a>
+    </footer>
+  </div>
 </body>
 </html>

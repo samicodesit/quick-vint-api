@@ -3,55 +3,232 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Subscription Successful</title>
+  <title>Welcome to AutoLister AI! 🎉</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f9fafb;
-      color: #111827;
       margin: 0;
       padding: 40px;
       text-align: center;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    h1 {
-      font-size: 2rem;
-      color: #10b981; /* green */
-      margin-bottom: 0.5em;
-    }
-    p {
-      font-size: 1rem;
-      line-height: 1.5;
+
+    .success-container {
+      background: white;
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
       max-width: 600px;
-      margin: 0 auto 1em auto;
+      width: 100%;
+      margin: 0 auto;
     }
-    a {
+
+    .success-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #10b981;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 1.3rem;
+      color: #4f46e5;
+      margin-bottom: 2rem;
+      font-weight: 600;
+    }
+
+    .description {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: #6b7280;
+      margin-bottom: 2.5rem;
+    }
+
+    .benefits {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 2rem;
+      margin: 2rem 0;
+      text-align: left;
+    }
+
+    .benefits h3 {
+      color: #4f46e5;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+
+    .benefit-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      font-size: 1rem;
+      color: #374151;
+    }
+
+    .benefit-item::before {
+      content: "✓";
+      color: #10b981;
+      font-weight: bold;
+      margin-right: 0.8rem;
+      font-size: 1.2rem;
+    }
+
+    .next-steps {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .next-steps h3 {
+      color: #92400e;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .next-steps p {
+      color: #92400e;
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+
+    .btn {
       display: inline-block;
-      margin-top: 1em;
-      padding: 0.5em 1em;
-      background-color: #3b82f6; /* blue */
-      color: white;
+      padding: 0.8rem 2rem;
       text-decoration: none;
-      border-radius: 4px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
     }
-    a:hover {
-      opacity: 0.9;
+
+    .btn-primary {
+      background: #4f46e5;
+      color: white;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
     }
+
+    .btn-primary:hover {
+      background: #3730a3;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      border: 2px solid #e5e7eb;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+      transform: translateY(-2px);
+    }
+
     footer {
-      margin-top: 3em;
+      margin-top: 3rem;
       font-size: 0.9rem;
       color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 2rem;
+    }
+
+    footer a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .success-container {
+        padding: 2rem 1.5rem;
+        margin: 0 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .cta-buttons {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+        box-sizing: border-box;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>✅ Subscription Successful!</h1>
-  <p>
-    Thank you for subscribing. Your subscription is now active. You can close this window or return to your dashboard to start using premium features immediately.
-  </p>
-  <a href="/">Return to Home</a>
+  <div class="success-container">
+    <div class="success-icon">🎉</div>
+    <h1>Welcome Aboard!</h1>
+    <div class="subtitle">Your AutoLister AI subscription is now active</div>
+    <div class="description">
+      You've just unlocked the power to create compelling Vinted listings in seconds. Your account has been upgraded and you can start using your enhanced limits immediately.
+    </div>
 
-  <footer>
-    &copy; 2025 AutoLister AI · All rights reserved
-  </footer>
+    <div class="benefits">
+      <h3>🚀 What's Available Now</h3>
+      <div class="benefit-item">Access to enhanced daily generation limits</div>
+      <div class="benefit-item">AI-powered titles and descriptions</div>
+      <div class="benefit-item">Instant listing optimization</div>
+      <div class="benefit-item">Priority customer support</div>
+      <div class="benefit-item">Future feature updates included</div>
+    </div>
+
+    <div class="next-steps">
+      <h3>⚡ Ready to Get Started?</h3>
+      <p>Head to any Vinted listing page and click the AutoLister AI extension icon to experience the magic. Your new limits are active immediately!</p>
+    </div>
+
+    <div class="cta-buttons">
+      <a href="https://chromewebstore.google.com/detail/mommklhpammnlojjobejddmidmdcalc" target="_blank" class="btn btn-primary">
+        Open Chrome Extension
+      </a>
+      <a href="/pricing.html" class="btn btn-secondary">
+        View All Plans
+      </a>
+    </div>
+
+    <footer>
+      &copy; 2025 AutoLister AI · All rights reserved
+      <br />
+      <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="mailto:support@autolister.ai">Support</a>
+    </footer>
+  </div>
 </body>
 </html>

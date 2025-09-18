@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoLister AI - Admin Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8fafc;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4f46e5;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .auth-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            margin-top: 0;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+        .big-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4f46e5;
+            margin: 10px 0;
+        }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .user-table th, .user-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .user-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        .tier-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .tier-free { background: #fee2e2; color: #991b1b; }
+        .tier-unlimited { background: #dbeafe; color: #1e40af; }
+        .tier-starter { background: #dcfce7; color: #166534; }
+        .tier-pro { background: #fef3c7; color: #92400e; }
+        .tier-business { background: #e0e7ff; color: #3730a3; }
+        .refresh-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover {
+            background: #4338ca;
+        }
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            padding: 20px;
+        }
+        .hidden { display: none; }
+        input[type="password"] {
+            width: 300px;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .timestamp {
+            color: #6b7280;
+            font-size: 0.875rem;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ AutoLister AI Admin Dashboard</h1>
+        
+        <div id="authSection" class="auth-section">
+            <h3>🔐 Admin Authentication</h3>
+            <input type="password" id="adminSecret" placeholder="Enter admin secret">
+            <button onclick="authenticate()">Access Dashboard</button>
+        </div>
+
+        <div id="dashboardSection" class="hidden">
+            <button class="refresh-btn" onclick="loadStats()">🔄 Refresh Data</button>
+            
+            <div id="errorMessage" class="error-message hidden"></div>
+            <div id="loadingMessage" class="loading hidden">Loading stats...</div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>📊 Today's Usage</h3>
+                    <div class="big-number" id="todayRequests">-</div>
+                    <div>Total API Requests</div>
+                    <div style="margin-top: 10px;">
+                        <strong>Estimated Cost:</strong> $<span id="todayCost">0.00</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>🔥 Top Users (This Month)</h3>
+                    <table class="user-table" id="topUsersTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Calls</th>
+                                <th>Tier</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>⚡ Active Rate Limits</h3>
+                <div id="rateLimitsContent">No active rate limits</div>
+            </div>
+
+            <div class="timestamp" id="lastUpdated"></div>
+        </div>
+    </div>
+
+    <script>
+        let adminSecret = '';
+
+        function authenticate() {
+            adminSecret = document.getElementById('adminSecret').value;
+            if (!adminSecret) {
+                alert('Please enter admin secret');
+                return;
+            }
+            
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            loadStats();
+        }
+
+        async function loadStats() {
+            const errorDiv = document.getElementById('errorMessage');
+            const loadingDiv = document.getElementById('loadingMessage');
+            
+            errorDiv.classList.add('hidden');
+            loadingDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/admin/usage-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${adminSecret}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayStats(data);
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loadingDiv.classList.add('hidden');
+            }
+        }
+
+        function displayStats(data) {
+            // Today's stats
+            document.getElementById('todayRequests').textContent = data.today.totalRequests;
+            document.getElementById('todayCost').textContent = data.today.estimatedCost.toFixed(2);
+
+            // Top users
+            const tbody = document.querySelector('#topUsersTable tbody');
+            tbody.innerHTML = '';
+            
+            data.topUsers.forEach(user => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td title="${user.id}">${user.email}</td>
+                    <td><strong>${user.api_calls_this_month}</strong></td>
+                    <td><span class="tier-badge tier-${user.subscription_tier.replace('_', '')}">${user.subscription_tier}</span></td>
+                `;
+            });
+
+            // Rate limits
+            const rateLimitsDiv = document.getElementById('rateLimitsContent');
+            if (data.activeRateLimits.length === 0) {
+                rateLimitsDiv.innerHTML = '<div style="color: #10b981;">✅ No active rate limits - all users within limits</div>';
+            } else {
+                let html = '<table class="user-table"><thead><tr><th>User</th><th>Type</th><th>Count</th><th>Expires</th></tr></thead><tbody>';
+                data.activeRateLimits.forEach(limit => {
+                    const expiry = new Date(limit.expires_at).toLocaleString();
+                    html += `<tr><td>${limit.user_id}</td><td>${limit.window_type}</td><td>${limit.count}</td><td>${expiry}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                rateLimitsDiv.innerHTML = html;
+            }
+
+            // Timestamp
+            document.getElementById('lastUpdated').textContent = `Last updated: ${new Date(data.timestamp).toLocaleString()}`;
+        }
+
+        // Auto-refresh every 5 minutes if authenticated
+        setInterval(() => {
+            if (!document.getElementById('dashboardSection').classList.contains('hidden')) {
+                loadStats();
+            }
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

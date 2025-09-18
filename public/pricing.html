@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AutoLister AI - Pricing & Plans</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            text-align: center;
+            color: #333;
+            background-color: #f9fafb;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #4f46e5;
+            margin-bottom: 0.5em;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #6b7280;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 2rem auto;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e5e7eb;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .pricing-card.popular {
+            border-color: #4f46e5;
+            transform: scale(1.05);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4f46e5;
+            color: white;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-description {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .plan-price {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price .period {
+            font-size: 1rem;
+            color: #6b7280;
+            font-weight: normal;
+        }
+
+        .features-list {
+            text-align: left;
+            margin: 2rem 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .features-list li {
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .features-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .limits-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+
+        .limits-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .limits-list {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0;
+            padding-left: 1rem;
+        }
+
+        .overage-note {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #92400e;
+        }
+
+        .cta-button {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background: #4338ca;
+        }
+
+        .cta-button.secondary {
+            background: #6b7280;
+        }
+
+        .cta-button.secondary:hover {
+            background: #374151;
+        }
+
+        footer {
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Choose Your Plan</h1>
+    <p class="subtitle">Pricing designed for real sellers - from hobby to business</p>
+
+    <div class="pricing-grid">
+        <!-- Free Trial -->
+        <div class="pricing-card">
+            <div class="plan-name">Free Trial</div>
+            <div class="plan-description">Get a taste of AutoLister AI</div>
+            <div class="plan-price">$0<span class="period">/forever</span></div>
+            
+            <div class="limits-section">
+                <div class="limits-title">Usage Limits</div>
+                <ul class="limits-list">
+                    <li>2 listings per day</li>
+                    <li>10 listings total</li>
+                    <li>Try before you buy</li>
+                </ul>
+            </div>
+
+            <ul class="features-list">
+                <li>AI-generated titles and descriptions</li>
+                <li>Basic support</li>
+                <li>See if you like it first</li>
+            </ul>
+
+            <button class="cta-button secondary">Try Free</button>
+        </div>
+
+        <!-- Starter -->
+        <div class="pricing-card popular">
+            <div class="popular-badge">Most Popular</div>
+            <div class="plan-name">Starter</div>
+            <div class="plan-description">Perfect for casual Vinted sellers</div>
+            <div class="plan-price">$3.99<span class="period">/month</span></div>
+            
+            <div class="limits-section">
+                <div class="limits-title">Usage Limits</div>
+                <ul class="limits-list">
+                    <li>15 listings per day</li>
+                    <li>300 listings per month</li>
+                    <li>10 per minute (quick retries)</li>
+                    <li>40 per hour (batch sessions)</li>
+                </ul>
+            </div>
+
+            <ul class="features-list">
+                <li>AI-generated titles and descriptions</li>
+                <li>Priority support</li>
+                <li>Perfect for weekend listing sessions</li>
+            </ul>
+
+            <button class="cta-button">Choose Starter</button>
+        </div>
+
+        <!-- Pro -->
+        <div class="pricing-card">
+            <div class="plan-name">Pro</div>
+            <div class="plan-description">For active sellers listing daily</div>
+            <div class="plan-price">$9.99<span class="period">/month</span></div>
+            
+            <div class="limits-section">
+                <div class="limits-title">Usage Limits</div>
+                <ul class="limits-list">
+                    <li>40 listings per day</li>
+                    <li>800 listings per month</li>
+                    <li>20 per minute (quick retries)</li>
+                    <li>80 per hour (batch sessions)</li>
+                </ul>
+            </div>
+
+            <ul class="features-list">
+                <li>Everything in Starter</li>
+                <li>Higher daily limits</li>
+                <li>Priority processing</li>
+            </ul>
+
+            <button class="cta-button">Choose Pro</button>
+        </div>
+
+        <!-- Business -->
+        <div class="pricing-card">
+            <div class="plan-name">Business</div>
+            <div class="plan-description">For resellers and high-volume sellers</div>
+            <div class="plan-price">$19.99<span class="period">/month</span></div>
+            
+            <div class="limits-section">
+                <div class="limits-title">Usage Limits</div>
+                <ul class="limits-list">
+                    <li>75 listings per day</li>
+                    <li>1,500 listings per month</li>
+                    <li>30 per minute (quick retries)</li>
+                    <li>120 per hour (batch sessions)</li>
+                </ul>
+            </div>
+
+            <div class="overage-note">
+                <strong>Overage Available:</strong> $0.05 per listing beyond daily limit (max 25/day)
+            </div>
+
+            <ul class="features-list">
+                <li>Everything in Pro</li>
+                <li>Highest daily limits</li>
+                <li>Dedicated support</li>
+                <li>Overage requests available</li>
+            </ul>
+
+            <button class="cta-button">Choose Business</button>
+        </div>
+    </div>
+
+    <footer>
+        <p><strong>Why so limited for free?</strong> Free trial gives you just enough to see the magic ✨. Most sellers need more than 2 listings/day, making paid plans excellent value.</p>
+        <p><strong>No surprises:</strong> All prices in USD. Cancel anytime. No setup fees.</p>
+        <p>&copy; 2025 AutoLister AI · All rights reserved · <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></p>
+    </footer>
+</body>
+
+</html>

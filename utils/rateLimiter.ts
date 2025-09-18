@@ -1,31 +1,50 @@
 // utils/rateLimiter.ts
 import { supabase } from "./supabaseClient";
 
-// Rate limiting configuration
-const RATE_LIMITS = {
-  FREE: {
-    perMinute: 2,
-    perHour: 10,
-    perDay: 20,
-    perMonth: 5,
-  },
-  UNLIMITED_MONTHLY: {
-    perMinute: 5,
-    perHour: 30,
-    perDay: 100,
-    perMonth: 1000,
-  },
-  UNLIMITED_ANNUAL: {
-    perMinute: 8,
-    perHour: 50,
-    perDay: 150,
-    perMonth: 1500,
-  },
-} as const;
+// Import tier configs if available, otherwise use fallback
+let TIER_CONFIGS: any;
+try {
+  TIER_CONFIGS = require("./tierConfig").TIER_CONFIGS;
+} catch {
+  // Fallback for backward compatibility
+  TIER_CONFIGS = {
+    free: {
+      limits: { daily: 2, monthly: 10, burst: { perMinute: 3, perHour: 5 } },
+      features: ["AI-generated titles and descriptions", "Basic support"]
+    },
+    starter: {
+      limits: { daily: 15, monthly: 300, burst: { perMinute: 10, perHour: 40 } },
+      features: ["AI-generated titles and descriptions", "Priority support", "Up to 15 listings per day"]
+    },
+    pro: {
+      limits: { daily: 40, monthly: 800, burst: { perMinute: 20, perHour: 80 } },
+      features: ["Everything in Starter", "Up to 40 listings per day", "Priority processing"]
+    },
+    business: {
+      limits: { daily: 75, monthly: 1500, burst: { perMinute: 30, perHour: 120 } },
+      features: ["Everything in Pro", "Up to 75 listings per day", "Dedicated support"],
+      overage: { enabled: true, pricePerRequest: 0.05, dailyOverageLimit: 25 }
+    }
+  };
+}
 
 // Global cost protection
-const GLOBAL_DAILY_BUDGET_USD = 50; // Maximum daily spend
-const OPENAI_COST_PER_REQUEST_USD = 0.02; // Estimated cost per GPT-4o request with images
+const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
+const OPENAI_COST_PER_REQUEST_USD = 0.0201; // Based on actual dashboard: $6.12/304 requests
+
+interface TierConfig {
+  limits: {
+    daily: number;
+    monthly: number;
+    burst: { perMinute: number; perHour: number; };
+  };
+  features: string[];
+  overage?: {
+    enabled: boolean;
+    pricePerRequest: number;
+    dailyOverageLimit: number;
+  };
+}
 
 interface RateLimitResult {
   allowed: boolean;
@@ -36,15 +55,40 @@ interface RateLimitResult {
     day: number;
     month: number;
   };
+  overage?: {
+    used: boolean;
+    remaining: number;
+    cost: number;
+  };
 }
 
 interface UserProfile {
   subscription_status: string;
   subscription_tier: string;
   api_calls_this_month: number;
+  overage_used_today?: number;
 }
 
 export class RateLimiter {
+  // Get user's tier configuration
+  private static getTierConfig(profile: UserProfile): TierConfig {
+    const isActive = profile.subscription_status === "active";
+    
+    if (!isActive) {
+      return TIER_CONFIGS.free;
+    }
+
+    // Map existing tier names to new ones (only unlimited_monthly exists)
+    const tierMapping: Record<string, string> = {
+      'unlimited_monthly': 'starter',  // €3.99 → 15/day (only existing tier)
+      'starter': 'starter', 
+      'pro': 'pro',
+      'business': 'business',
+    };
+
+    const tierKey = tierMapping[profile.subscription_tier] || 'free';
+    return TIER_CONFIGS[tierKey] || TIER_CONFIGS.free;
+  }
   private static async getTimeBasedKey(
     userId: string,
     window: string,
@@ -242,23 +286,11 @@ export class RateLimiter {
         };
       }
 
-      // 2. Determine user's rate limits based on subscription
-      let limits;
-      const isActive = profile.subscription_status === "active";
-
-      if (isActive && profile.subscription_tier === "unlimited_annual") {
-        limits = RATE_LIMITS.UNLIMITED_ANNUAL;
-      } else if (
-        isActive &&
-        profile.subscription_tier === "unlimited_monthly"
-      ) {
-        limits = RATE_LIMITS.UNLIMITED_MONTHLY;
-      } else {
-        limits = RATE_LIMITS.FREE;
-      }
+      // 2. Get user's tier configuration
+      const tierConfig = this.getTierConfig(profile);
 
       // 3. Check monthly limit (existing logic)
-      if (profile.api_calls_this_month >= limits.perMonth) {
+      if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
         return {
           allowed: false,
           error:
@@ -271,24 +303,59 @@ export class RateLimiter {
       const hourCount = await this.getCurrentCount(userId, "hour");
       const dayCount = await this.getCurrentCount(userId, "day");
 
-      if (minuteCount >= limits.perMinute) {
+      if (minuteCount >= tierConfig.limits.burst.perMinute) {
         return {
           allowed: false,
           error: "Too many requests. Please wait a moment before trying again.",
         };
       }
 
-      if (hourCount >= limits.perHour) {
+      if (hourCount >= tierConfig.limits.burst.perHour) {
         return {
           allowed: false,
           error: "Too many requests. Please try again later.",
         };
       }
 
-      if (dayCount >= limits.perDay) {
+      if (dayCount >= tierConfig.limits.daily) {
+        // Check if overage is available
+        if (tierConfig.overage?.enabled) {
+          const overageUsed = profile.overage_used_today || 0;
+          const overageLimit = tierConfig.overage.dailyOverageLimit || 0;
+          
+          if (overageUsed < overageLimit) {
+            // Allow overage usage
+            await Promise.all([
+              this.incrementCount(userId, "minute"),
+              this.incrementCount(userId, "hour"),
+              this.incrementCount(userId, "day"),
+              this.updateGlobalStats(),
+              this.incrementOverageCount(userId),
+            ]);
+
+            return {
+              allowed: true,
+              overage: {
+                used: true,
+                remaining: overageLimit - overageUsed - 1,
+                cost: tierConfig.overage.pricePerRequest,
+              },
+              remainingRequests: {
+                minute: Math.max(0, tierConfig.limits.burst.perMinute - minuteCount - 1),
+                hour: Math.max(0, tierConfig.limits.burst.perHour - hourCount - 1),
+                day: 0, // No regular requests left
+                month: Math.max(
+                  0,
+                  tierConfig.limits.monthly - profile.api_calls_this_month - 1,
+                ),
+              },
+            };
+          }
+        }
+        
         return {
           allowed: false,
-          error: "Daily usage limit reached. Please try again tomorrow.",
+          error: "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
         };
       }
 
@@ -303,12 +370,12 @@ export class RateLimiter {
       return {
         allowed: true,
         remainingRequests: {
-          minute: Math.max(0, limits.perMinute - minuteCount - 1),
-          hour: Math.max(0, limits.perHour - hourCount - 1),
-          day: Math.max(0, limits.perDay - dayCount - 1),
+          minute: Math.max(0, tierConfig.limits.burst.perMinute - minuteCount - 1),
+          hour: Math.max(0, tierConfig.limits.burst.perHour - hourCount - 1),
+          day: Math.max(0, tierConfig.limits.daily - dayCount - 1),
           month: Math.max(
             0,
-            limits.perMonth - profile.api_calls_this_month - 1,
+            tierConfig.limits.monthly - profile.api_calls_this_month - 1,
           ),
         },
       };
@@ -316,6 +383,43 @@ export class RateLimiter {
       console.error("Rate limiter error:", err);
       // On error, allow the request but log the issue
       return { allowed: true };
+    }
+  }
+
+  private static async incrementOverageCount(userId: string): Promise<void> {
+    try {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+      const now = new Date().toISOString();
+
+      // Track overage usage for billing
+      const { data: existing } = await supabase
+        .from("daily_overage")
+        .select("count")
+        .eq("user_id", userId)
+        .eq("date", todayStr)
+        .single();
+
+      if (existing) {
+        await supabase
+          .from("daily_overage")
+          .update({
+            count: existing.count + 1,
+            updated_at: now,
+          })
+          .eq("user_id", userId)
+          .eq("date", todayStr);
+      } else {
+        await supabase.from("daily_overage").insert({
+          user_id: userId,
+          date: todayStr,
+          count: 1,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+    } catch (err) {
+      console.error("Error tracking overage usage:", err);
     }
   }
 

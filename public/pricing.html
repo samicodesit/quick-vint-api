@@ -320,9 +320,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
-        // Initialize Supabase
-        const SUPABASE_URL = 'https://umcqwgylywsezfazbtry.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtY3F3Z3lseXdzZXpmYXpidHJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NTY5MzQsImV4cCI6MjA1MDUzMjkzNH0.kjX6fXi2-eXh0VTAuCGnQR6WLvdCyRUOWJ5H3pEPcqQ';
+        // Initialize Supabase with correct URL from extension
+        const SUPABASE_URL = 'https://jqloiovdwjaornnfvmyu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxbG9pb3Zkd2phb3JubmZ2bXl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODIwODMzMiwiZXhwIjoyMDYzNzg0MzMyfQ.Urz77RMqsJs8gJmA3yia_HhxaaeDrHURrF-fPeExRNQ';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // API Base URL
@@ -331,6 +331,7 @@
         // Current user state
         let currentUser = null;
         let currentPlan = null;
+        let extensionId = 'mommklhpammnlojjobejddmidmdcalcl'; // Your extension ID
 
         // Plan to price ID mapping
         const PLAN_PRICE_IDS = {
@@ -348,8 +349,14 @@
         // Check if user is authenticated and get their current plan
         async function checkUserStatus() {
             try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                currentUser = session?.user || null;
+                // Try to communicate with the extension to get user data
+                await checkExtensionAuth();
+                
+                // If no extension data, fall back to direct session check
+                if (!currentUser) {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    currentUser = session?.user || null;
+                }
                 
                 if (currentUser?.email) {
                     // Get user's current subscription plan
@@ -369,7 +376,37 @@
             }
         }
 
-        // Update UI based on user status and current plan
+        // Try to get authentication status from the extension
+        async function checkExtensionAuth() {
+            return new Promise((resolve) => {
+                // Check if extension is available
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    try {
+                        chrome.runtime.sendMessage(extensionId, { type: 'GET_USER_PROFILE' }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.log('Extension not available:', chrome.runtime.lastError.message);
+                                resolve();
+                                return;
+                            }
+                            
+                            if (response && response.user) {
+                                currentUser = response.user;
+                                if (response.profile && response.profile.subscription_tier) {
+                                    currentPlan = response.profile.subscription_tier;
+                                }
+                                console.log('Got user from extension:', currentUser, currentPlan);
+                            }
+                            resolve();
+                        });
+                    } catch (error) {
+                        console.log('Error communicating with extension:', error);
+                        resolve();
+                    }
+                } else {
+                    resolve();
+                }
+            });
+        }        // Update UI based on user status and current plan
         function updateUI() {
             const planCards = document.querySelectorAll('.pricing-card');
             
@@ -377,20 +414,35 @@
                 const button = card.querySelector('.cta-button');
                 const planName = card.querySelector('.plan-name').textContent.toLowerCase();
                 
+                // Remove any existing manage buttons
+                const existingManageBtn = card.querySelector('.manage-subscription-btn');
+                if (existingManageBtn) {
+                    existingManageBtn.remove();
+                }
+                
                 if (!currentUser) {
                     // User not logged in - show login prompts for paid plans
                     if (planName !== 'free trial') {
-                        button.textContent = 'Sign In to Subscribe';
+                        button.textContent = 'Install Extension to Subscribe';
                         button.onclick = () => showLoginMessage();
+                        button.disabled = false;
+                        button.classList.remove('current-plan');
+                        card.classList.remove('current');
                     }
                 } else {
                     // User is logged in - show appropriate status
                     if (planName === 'free trial') {
-                        if (currentPlan === 'free') {
+                        if (currentPlan === 'free' || !currentPlan) {
                             button.textContent = 'Current Plan';
                             button.disabled = true;
                             button.classList.add('current-plan');
                             card.classList.add('current');
+                        } else {
+                            button.textContent = 'Try Free';
+                            button.onclick = () => downloadExtension();
+                            button.disabled = false;
+                            button.classList.remove('current-plan');
+                            card.classList.remove('current');
                         }
                     } else {
                         const planKey = getPlanKey(planName);
@@ -403,20 +455,31 @@
                             // Add manage subscription button
                             const manageBtn = document.createElement('button');
                             manageBtn.textContent = 'Manage Subscription';
-                            manageBtn.className = 'cta-button secondary';
+                            manageBtn.className = 'cta-button secondary manage-subscription-btn';
                             manageBtn.style.marginTop = '10px';
                             manageBtn.onclick = () => openCustomerPortal();
                             button.parentNode.insertBefore(manageBtn, button.nextSibling);
                         } else if (isPlanUpgrade(planKey)) {
-                            button.textContent = `Upgrade to ${planName}`;
+                            const capitalizedPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                            button.textContent = `Upgrade to ${capitalizedPlan}`;
                             button.onclick = () => upgradeToPlan(planKey);
+                            button.disabled = false;
+                            button.classList.remove('current-plan');
+                            card.classList.remove('current');
                         } else {
-                            button.textContent = `Downgrade to ${planName}`;
+                            const capitalizedPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                            button.textContent = `Change to ${capitalizedPlan}`;
                             button.onclick = () => upgradeToPlan(planKey);
+                            button.disabled = false;
+                            button.classList.remove('current-plan');
+                            card.classList.remove('current');
                         }
                     }
                 }
             });
+            
+            // Log current state for debugging
+            console.log('UI Updated - User:', currentUser?.email, 'Plan:', currentPlan);
         }
 
         // Helper functions
@@ -435,7 +498,9 @@
         }
 
         function showLoginMessage() {
-            alert('Please install the AutoLister AI extension and sign in to subscribe to a plan.');
+            if (confirm('To subscribe to a plan, you need the AutoLister AI Chrome extension. Would you like to install it now?')) {
+                downloadExtension();
+            }
         }
 
         // Download extension for free trial

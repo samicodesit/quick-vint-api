@@ -188,7 +188,7 @@
         <div class="pricing-card">
             <div class="plan-name">Free Trial</div>
             <div class="plan-description">Get a taste of AutoLister AI</div>
-            <div class="plan-price">$0<span class="period">/forever</span></div>
+            <div class="plan-price">€0<span class="period">/forever</span></div>
             
             <div class="limits-section">
                 <div class="limits-title">Usage Limits</div>
@@ -205,7 +205,7 @@
                 <li>See if you like it first</li>
             </ul>
 
-            <button class="cta-button secondary">Try Free</button>
+            <button class="cta-button secondary" onclick="downloadExtension()">Try Free</button>
         </div>
 
         <!-- Starter -->
@@ -213,7 +213,7 @@
             <div class="popular-badge">Most Popular</div>
             <div class="plan-name">Starter</div>
             <div class="plan-description">Perfect for casual Vinted sellers</div>
-            <div class="plan-price">$3.99<span class="period">/month</span></div>
+            <div class="plan-price">€3.99<span class="period">/month</span></div>
             
             <div class="limits-section">
                 <div class="limits-title">Usage Limits</div>
@@ -231,14 +231,14 @@
                 <li>Perfect for weekend listing sessions</li>
             </ul>
 
-            <button class="cta-button">Choose Starter</button>
+            <button class="cta-button" onclick="upgradeToPlan('starter')">Choose Starter</button>
         </div>
 
         <!-- Pro -->
         <div class="pricing-card">
             <div class="plan-name">Pro</div>
             <div class="plan-description">For active sellers listing daily</div>
-            <div class="plan-price">$9.99<span class="period">/month</span></div>
+            <div class="plan-price">€9.99<span class="period">/month</span></div>
             
             <div class="limits-section">
                 <div class="limits-title">Usage Limits</div>
@@ -256,14 +256,14 @@
                 <li>Priority processing</li>
             </ul>
 
-            <button class="cta-button">Choose Pro</button>
+            <button class="cta-button" onclick="upgradeToPlan('pro')">Choose Pro</button>
         </div>
 
         <!-- Business -->
         <div class="pricing-card">
             <div class="plan-name">Business</div>
             <div class="plan-description">For resellers and high-volume sellers</div>
-            <div class="plan-price">$19.99<span class="period">/month</span></div>
+            <div class="plan-price">€19.99<span class="period">/month</span></div>
             
             <div class="limits-section">
                 <div class="limits-title">Usage Limits</div>
@@ -276,7 +276,7 @@
             </div>
 
             <div class="overage-note">
-                <strong>Overage Available:</strong> $0.05 per listing beyond daily limit (max 25/day)
+                <strong>Overage Available:</strong> €0.05 per listing beyond daily limit (max 25/day)
             </div>
 
             <ul class="features-list">
@@ -286,15 +286,64 @@
                 <li>Overage requests available</li>
             </ul>
 
-            <button class="cta-button">Choose Business</button>
+            <button class="cta-button" onclick="upgradeToPlan('business')">Choose Business</button>
         </div>
     </div>
 
     <footer>
         <p><strong>Why so limited for free?</strong> Free trial gives you just enough to see the magic ✨. Most sellers need more than 2 listings/day, making paid plans excellent value.</p>
-        <p><strong>No surprises:</strong> All prices in USD. Cancel anytime. No setup fees.</p>
+        <p><strong>No surprises:</strong> All prices in EUR. Cancel anytime. No setup fees.</p>
         <p>&copy; 2025 AutoLister AI · All rights reserved · <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></p>
     </footer>
+
+    <script>
+        // Download extension for free trial
+        function downloadExtension() {
+            // Chrome Web Store link for your extension
+            window.open('https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID', '_blank');
+        }
+
+        // Upgrade to paid plan
+        async function upgradeToPlan(tier) {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            // Show loading state
+            button.disabled = true;
+            button.textContent = 'Loading...';
+            
+            try {
+                // Call your Stripe checkout API
+                const response = await fetch('/api/stripe/create-checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tier: tier,
+                        interval: 'monthly'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.url) {
+                    // Redirect to Stripe checkout
+                    window.location.href = data.url;
+                } else {
+                    // Show error message
+                    alert('Unable to start checkout. Please try again or contact support.');
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                alert('Network error. Please check your connection and try again.');
+            } finally {
+                // Reset button state
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+    </script>
 </body>
 
 </html>

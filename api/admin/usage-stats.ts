@@ -39,10 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: topUsers } = await supabase
       .from("profiles")
       .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status",
+        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at",
       )
       .order("api_calls_this_month", { ascending: false })
-      .limit(10);
+      .limit(50); // Increased to 50 to show more users for growth analysis
 
     // Get current active rate limits
     const { data: activeLimits } = await supabase

@@ -77,6 +77,40 @@
         .tier-starter { background: #dcfce7; color: #166534; }
         .tier-pro { background: #fef3c7; color: #92400e; }
         .tier-business { background: #e0e7ff; color: #3730a3; }
+        .growth-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .growth-item {
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #f9fafb;
+        }
+        .growth-number {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-bottom: 5px;
+        }
+        .growth-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .status-active { background: #dcfce7; color: #166534; }
+        .status-free { background: #f3f4f6; color: #374151; }
         .refresh-btn {
             background: #4f46e5;
             color: white;
@@ -152,7 +186,29 @@
                 </div>
                 
                 <div class="stat-card">
-                    <h3>🔥 Top Users (This Month)</h3>
+                    <h3>� User Growth</h3>
+                    <div class="growth-stats">
+                        <div class="growth-item">
+                            <span class="growth-number" id="totalUsers">-</span>
+                            <span class="growth-label">Total Users</span>
+                        </div>
+                        <div class="growth-item">
+                            <span class="growth-number" id="newToday">-</span>
+                            <span class="growth-label">New Today</span>
+                        </div>
+                        <div class="growth-item">
+                            <span class="growth-number" id="newThisWeek">-</span>
+                            <span class="growth-label">This Week</span>
+                        </div>
+                        <div class="growth-item">
+                            <span class="growth-number" id="activePaid">-</span>
+                            <span class="growth-label">Paid Users</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>�🔥 Top Users (This Month)</h3>
                     <table class="user-table" id="topUsersTable">
                         <thead>
                             <tr>
@@ -163,6 +219,36 @@
                         </thead>
                         <tbody></tbody>
                     </table>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>📈 Recent Signups</h3>
+                    <table class="user-table" id="recentSignupsTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="stat-card">
+                    <h3>💰 Revenue Overview</h3>
+                    <div class="growth-stats">
+                        <div class="growth-item">
+                            <span class="growth-number" id="monthlyRevenue">-</span>
+                            <span class="growth-label">Monthly Revenue</span>
+                        </div>
+                        <div class="growth-item">
+                            <span class="growth-number" id="conversionRate">-</span>
+                            <span class="growth-label">Conversion Rate</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -225,16 +311,71 @@
             document.getElementById('todayRequests').textContent = data.today.totalRequests;
             document.getElementById('todayCost').textContent = data.today.estimatedCost.toFixed(2);
 
-            // Top users
+            // User growth stats
+            const totalUsers = data.topUsers.length;
+            const paidUsers = data.topUsers.filter(u => u.subscription_status === 'active').length;
+            const conversionRate = totalUsers > 0 ? ((paidUsers / totalUsers) * 100).toFixed(1) + '%' : '0%';
+            
+            document.getElementById('totalUsers').textContent = totalUsers;
+            document.getElementById('activePaid').textContent = paidUsers;
+            document.getElementById('conversionRate').textContent = conversionRate;
+            
+            // Calculate estimated monthly revenue
+            const monthlyRevenue = paidUsers * 3.99; // Assuming average €3.99 per user
+            document.getElementById('monthlyRevenue').textContent = '€' + monthlyRevenue.toFixed(0);
+
+            // New signups (show recent users based on creation date)
+            const sortedUsers = [...data.topUsers].sort((a, b) => new Date(b.created_at || '2024-01-01') - new Date(a.created_at || '2024-01-01'));
+            const recentUsers = sortedUsers.slice(0, 10);
+            
+            // Calculate new users today and this week
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            let newToday = 0;
+            let newThisWeek = 0;
+            
+            recentUsers.forEach(user => {
+                const userDate = new Date(user.created_at || '2024-01-01');
+                if (userDate.toDateString() === today.toDateString()) {
+                    newToday++;
+                }
+                if (userDate >= weekAgo) {
+                    newThisWeek++;
+                }
+            });
+            
+            document.getElementById('newToday').textContent = newToday;
+            document.getElementById('newThisWeek').textContent = newThisWeek;
+
+            // Top users table
             const tbody = document.querySelector('#topUsersTable tbody');
             tbody.innerHTML = '';
             
-            data.topUsers.forEach(user => {
+            data.topUsers.slice(0, 10).forEach(user => {
                 const row = tbody.insertRow();
                 row.innerHTML = `
                     <td title="${user.id}">${user.email}</td>
                     <td><strong>${user.api_calls_this_month}</strong></td>
                     <td><span class="tier-badge tier-${user.subscription_tier.replace('_', '')}">${user.subscription_tier}</span></td>
+                `;
+            });
+
+            // Recent signups table
+            const signupsBody = document.querySelector('#recentSignupsTable tbody');
+            signupsBody.innerHTML = '';
+            
+            recentUsers.forEach(user => {
+                const row = signupsBody.insertRow();
+                const userDate = new Date(user.created_at || '2024-01-01');
+                const dateStr = userDate.toLocaleDateString();
+                const statusClass = user.subscription_status === 'active' ? 'status-active' : 'status-free';
+                const statusText = user.subscription_status === 'active' ? 'Paid' : 'Free';
+                
+                row.innerHTML = `
+                    <td title="${user.id}">${user.email}</td>
+                    <td>${dateStr}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 `;
             });
 

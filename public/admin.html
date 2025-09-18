@@ -5,142 +5,226 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoLister AI - Admin Dashboard</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #f8fafc;
             color: #333;
+            line-height: 1.5;
         }
+        
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
+        
         h1 {
             color: #4f46e5;
             text-align: center;
             margin-bottom: 30px;
+            font-size: 2rem;
         }
+        
         .auth-section {
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        .stats-grid {
+        
+        .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
+        
+        .tables-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1024px) {
+            .tables-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         .stat-card {
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            overflow: hidden; /* Prevent content overflow */
         }
+        
         .stat-card h3 {
-            margin-top: 0;
+            margin: 0 0 15px 0;
             color: #374151;
             border-bottom: 2px solid #e5e7eb;
             padding-bottom: 10px;
+            font-size: 1.1rem;
         }
+        
         .big-number {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
             color: #4f46e5;
             margin: 10px 0;
         }
-        .user-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.85rem; /* Smaller font for better fit */
-        }
-        .user-table th, .user-table td {
-            padding: 6px 8px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-            word-break: break-word; /* Prevent text overflow */
-            max-width: 0; /* Enable text truncation */
-        }
-        .user-table th {
-            background-color: #f9fafb;
-            font-weight: 600;
-            font-size: 0.75rem;
-        }
-        .user-table .email-col {
-            max-width: 150px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .user-table .calls-col {
-            text-align: center;
-            width: 60px;
-        }
-        .user-table .tier-col {
-            width: 80px;
-        }
-        .tier-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .tier-free { background: #fee2e2; color: #991b1b; }
-        .tier-unlimited { background: #dbeafe; color: #1e40af; }
-        .tier-starter { background: #dcfce7; color: #166534; }
-        .tier-pro { background: #fef3c7; color: #92400e; }
-        .tier-business { background: #e0e7ff; color: #3730a3; }
+        
         .growth-stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
+        
         .growth-item {
             text-align: center;
-            padding: 10px;
+            padding: 15px 10px;
             border: 1px solid #e5e7eb;
             border-radius: 6px;
             background: #f9fafb;
         }
+        
         .growth-number {
             display: block;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
             color: #4f46e5;
             margin-bottom: 5px;
         }
+        
         .growth-label {
             display: block;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-        .status-badge {
-            padding: 2px 8px;
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .data-table th {
+            background-color: #f9fafb;
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 2px solid #e5e7eb;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #374151;
+        }
+        
+        .data-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+        
+        .data-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        .email-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .calls-cell {
+            text-align: center;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+        
+        .tier-badge {
+            display: inline-block;
+            padding: 4px 8px;
             border-radius: 4px;
             font-size: 0.7rem;
             font-weight: 500;
+            white-space: nowrap;
         }
-        .status-active { background: #dcfce7; color: #166534; }
-        .status-free { background: #f3f4f6; color: #374151; }
+        
+        .tier-free { 
+            background: #fee2e2; 
+            color: #991b1b; 
+        }
+        
+        .tier-unlimited { 
+            background: #dbeafe; 
+            color: #1e40af; 
+        }
+        
+        .tier-unlimitedmonthly { 
+            background: #dbeafe; 
+            color: #1e40af; 
+        }
+        
+        .tier-starter { 
+            background: #dcfce7; 
+            color: #166534; 
+        }
+        
+        .tier-pro { 
+            background: #fef3c7; 
+            color: #92400e; 
+        }
+        
+        .tier-business { 
+            background: #e0e7ff; 
+            color: #3730a3; 
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .status-active { 
+            background: #dcfce7; 
+            color: #166534; 
+        }
+        
+        .status-free { 
+            background: #f3f4f6; 
+            color: #374151; 
+        }
+        
         .refresh-btn {
             background: #4f46e5;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 6px;
             cursor: pointer;
             margin-bottom: 20px;
+            font-size: 0.95rem;
+            font-weight: 500;
         }
+        
         .refresh-btn:hover {
             background: #4338ca;
         }
+        
         .error-message {
             background: #fee2e2;
             color: #991b1b;
@@ -148,32 +232,53 @@
             border-radius: 6px;
             margin: 20px 0;
         }
+        
         .loading {
             text-align: center;
             color: #6b7280;
             padding: 20px;
         }
-        .hidden { display: none; }
+        
+        .hidden { 
+            display: none !important; 
+        }
+        
         input[type="password"] {
             width: 300px;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border: 1px solid #d1d5db;
             border-radius: 4px;
             margin-right: 10px;
+            font-size: 0.95rem;
         }
+        
         button {
             background: #4f46e5;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 0.95rem;
         }
+        
+        button:hover {
+            background: #4338ca;
+        }
+        
         .timestamp {
             color: #6b7280;
             font-size: 0.875rem;
             text-align: center;
             margin-top: 20px;
+        }
+        
+        .success-indicator {
+            color: #10b981;
+            background: #ecfdf5;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #a7f3d0;
         }
     </style>
 </head>
@@ -193,7 +298,8 @@
             <div id="errorMessage" class="error-message hidden"></div>
             <div id="loadingMessage" class="loading hidden">Loading stats...</div>
             
-            <div class="stats-grid">
+            <!-- Row 1: Key Metrics -->
+            <div class="stats-row">
                 <div class="stat-card">
                     <h3>📊 Today's Usage</h3>
                     <div class="big-number" id="todayRequests">-</div>
@@ -204,7 +310,7 @@
                 </div>
                 
                 <div class="stat-card">
-                    <h3>� User Growth</h3>
+                    <h3>👥 User Growth</h3>
                     <div class="growth-stats">
                         <div class="growth-item">
                             <span class="growth-number" id="totalUsers">-</span>
@@ -224,36 +330,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="stat-card">
-                    <h3>�🔥 Top Users (This Month)</h3>
-                    <table class="user-table" id="topUsersTable">
-                        <thead>
-                            <tr>
-                                <th class="email-col">Email</th>
-                                <th class="calls-col">Calls</th>
-                                <th class="tier-col">Tier</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>📈 Recent Signups</h3>
-                    <table class="user-table" id="recentSignupsTable">
-                        <thead>
-                            <tr>
-                                <th class="email-col">Email</th>
-                                <th class="calls-col">Date</th>
-                                <th class="tier-col">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
 
                 <div class="stat-card">
                     <h3>💰 Revenue Overview</h3>
@@ -270,9 +346,41 @@
                 </div>
             </div>
 
+            <!-- Row 2: User Tables -->
+            <div class="tables-row">
+                <div class="stat-card">
+                    <h3>🔥 Top Users (This Month)</h3>
+                    <table class="data-table" id="topUsersTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th style="width: 80px;">Calls</th>
+                                <th style="width: 120px;">Tier</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="stat-card">
+                    <h3>📈 Recent Signups</h3>
+                    <table class="data-table" id="recentSignupsTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th style="width: 80px;">Date</th>
+                                <th style="width: 80px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Row 3: Rate Limits -->
             <div class="stat-card">
                 <h3>⚡ Active Rate Limits</h3>
-                <div id="rateLimitsContent">No active rate limits</div>
+                <div id="rateLimitsContent">Loading...</div>
             </div>
 
             <div class="timestamp" id="lastUpdated"></div>
@@ -283,7 +391,7 @@
         let adminSecret = '';
 
         function authenticate() {
-            adminSecret = document.getElementById('adminSecret').value;
+            adminSecret = document.getElementById('adminSecret').value.trim();
             if (!adminSecret) {
                 alert('Please enter admin secret');
                 return;
@@ -342,7 +450,7 @@
             document.getElementById('conversionRate').textContent = conversionRate;
             
             // Calculate estimated monthly revenue
-            const monthlyRevenue = paidUsers * 3.99; // Assuming average €3.99 per user
+            const monthlyRevenue = paidUsers * 3.99;
             document.getElementById('monthlyRevenue').textContent = '€' + monthlyRevenue.toFixed(0);
 
             // New signups (show recent users based on creation date, excluding demo)
@@ -373,13 +481,13 @@
             const tbody = document.querySelector('#topUsersTable tbody');
             tbody.innerHTML = '';
             
-            filteredUsers.slice(0, 8).forEach(user => { // Show only 8 for better fit
+            filteredUsers.slice(0, 10).forEach(user => {
                 const row = tbody.insertRow();
-                const shortEmail = user.email.length > 20 ? user.email.substring(0, 17) + '...' : user.email;
+                const tierClass = user.subscription_tier.replace(/_/g, '').toLowerCase();
                 row.innerHTML = `
-                    <td class="email-col" title="${user.email}">${shortEmail}</td>
-                    <td class="calls-col"><strong>${user.api_calls_this_month}</strong></td>
-                    <td class="tier-col"><span class="tier-badge tier-${user.subscription_tier.replace('_', '')}">${user.subscription_tier.replace('_', ' ')}</span></td>
+                    <td class="email-cell" title="${user.email}">${user.email}</td>
+                    <td class="calls-cell">${user.api_calls_this_month}</td>
+                    <td><span class="tier-badge tier-${tierClass}">${user.subscription_tier.replace('_', ' ')}</span></td>
                 `;
             });
 
@@ -387,27 +495,26 @@
             const signupsBody = document.querySelector('#recentSignupsTable tbody');
             signupsBody.innerHTML = '';
             
-            recentUsers.slice(0, 8).forEach(user => { // Show only 8 for better fit
+            recentUsers.slice(0, 10).forEach(user => {
                 const row = signupsBody.insertRow();
                 const userDate = new Date(user.created_at || '2024-01-01');
                 const dateStr = userDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const statusClass = user.subscription_status === 'active' ? 'status-active' : 'status-free';
                 const statusText = user.subscription_status === 'active' ? 'Paid' : 'Free';
-                const shortEmail = user.email.length > 20 ? user.email.substring(0, 17) + '...' : user.email;
                 
                 row.innerHTML = `
-                    <td class="email-col" title="${user.email}">${shortEmail}</td>
-                    <td class="calls-col">${dateStr}</td>
-                    <td class="tier-col"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td class="email-cell" title="${user.email}">${user.email}</td>
+                    <td style="text-align: center;">${dateStr}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 `;
             });
 
             // Rate limits
             const rateLimitsDiv = document.getElementById('rateLimitsContent');
             if (data.activeRateLimits.length === 0) {
-                rateLimitsDiv.innerHTML = '<div style="color: #10b981;">✅ No active rate limits - all users within limits</div>';
+                rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No active rate limits - all users within limits</div>';
             } else {
-                let html = '<table class="user-table"><thead><tr><th>User</th><th>Type</th><th>Count</th><th>Expires</th></tr></thead><tbody>';
+                let html = '<table class="data-table"><thead><tr><th>User</th><th>Type</th><th>Count</th><th>Expires</th></tr></thead><tbody>';
                 data.activeRateLimits.forEach(limit => {
                     const expiry = new Date(limit.expires_at).toLocaleString();
                     html += `<tr><td>${limit.user_id}</td><td>${limit.window_type}</td><td>${limit.count}</td><td>${expiry}</td></tr>`;
@@ -426,6 +533,13 @@
                 loadStats();
             }
         }, 5 * 60 * 1000);
+
+        // Allow Enter key to authenticate
+        document.getElementById('adminSecret').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                authenticate();
+            }
+        });
     </script>
 </body>
 </html>

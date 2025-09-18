@@ -59,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset"
+      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset",
     )
     .eq("id", user.id)
     .single();
@@ -96,11 +96,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   // --- RATE LIMITING ---
-  const rateLimitResult = await RateLimiter.checkRateLimit(user.id, userProfile);
-  
+  const rateLimitResult = await RateLimiter.checkRateLimit(
+    user.id,
+    userProfile,
+  );
+
   if (!rateLimitResult.allowed) {
     return res.status(429).json({
-      error: "Too many requests. Please try again later."
+      error: "Too many requests. Please try again later.",
     });
   }
 
@@ -164,8 +167,8 @@ Reply only in JSON: {"title":"...","description":"..."}
     // Increment monthly API call count after successful generation
     const { error: incrementError } = await supabase
       .from("profiles")
-      .update({ 
-        api_calls_this_month: userProfile.api_calls_this_month + 1 
+      .update({
+        api_calls_this_month: userProfile.api_calls_this_month + 1,
       })
       .eq("id", user.id);
 
@@ -174,9 +177,9 @@ Reply only in JSON: {"title":"...","description":"..."}
       // Don't fail the request if we can't update the counter
     }
 
-    return res.status(200).json({ 
-      title, 
-      description
+    return res.status(200).json({
+      title,
+      description,
     });
   } catch (err: any) {
     console.error("Generation error:", err);

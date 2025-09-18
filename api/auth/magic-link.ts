@@ -24,7 +24,7 @@ const cors = Cors({
         "Blocked CORS for magic-link from:",
         incomingOrigin,
         "Allowed:",
-        ALLOWED_ORIGINS
+        ALLOWED_ORIGINS,
       );
     }
     return callback(new Error("CORS origin denied for magic-link"), false);
@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const appSiteUrl = process.env.VERCEL_APP_SITE_URL;
   if (!appSiteUrl || !appSiteUrl.startsWith("chrome-extension://")) {
     console.error(
-      "VERCEL_APP_SITE_URL is not correctly set for a Chrome Extension in environment variables."
+      "VERCEL_APP_SITE_URL is not correctly set for a Chrome Extension in environment variables.",
     );
     return res
       .status(500)

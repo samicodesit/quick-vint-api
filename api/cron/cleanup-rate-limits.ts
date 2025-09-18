@@ -11,17 +11,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await RateLimiter.cleanupExpiredRecords();
-    
+
     console.log("Rate limit cleanup cron job completed successfully");
-    return res.status(200).json({ 
-      success: true, 
-      message: "Rate limit records cleaned up successfully" 
+    return res.status(200).json({
+      success: true,
+      message: "Rate limit records cleaned up successfully",
     });
   } catch (error: any) {
     console.error("Rate limit cleanup cron job failed:", error);
-    return res.status(500).json({ 
-      success: false, 
-      error: error.message 
+    return res.status(500).json({
+      success: false,
+      error: error.message,
     });
   }
 }

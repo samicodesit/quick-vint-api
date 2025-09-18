@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   // Find and update all profiles whose current period started more than 30 days ago
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("profiles")
     .update({
       api_calls_this_month: 0,

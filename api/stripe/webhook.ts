@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (session.mode === "subscription" && session.subscription) {
           // Fetch the full Subscription
           const subscription = (await stripe.subscriptions.retrieve(
-            session.subscription as string
+            session.subscription as string,
           )) as any;
 
           // Pull interval from the first item’s plan

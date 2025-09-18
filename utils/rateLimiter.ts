@@ -45,103 +45,110 @@ interface UserProfile {
 }
 
 export class RateLimiter {
-  private static async getTimeBasedKey(userId: string, window: string): Promise<string> {
+  private static async getTimeBasedKey(
+    userId: string,
+    window: string,
+  ): Promise<string> {
     const now = new Date();
     let timeKey: string;
-    
+
     switch (window) {
-      case 'minute':
+      case "minute":
         timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
         break;
-      case 'hour':
+      case "hour":
         timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
         break;
-      case 'day':
+      case "day":
         timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
         break;
       default:
         throw new Error(`Invalid time window: ${window}`);
     }
-    
+
     return `rate_limit:${userId}:${window}:${timeKey}`;
   }
 
-  private static async getCurrentCount(userId: string, window: string): Promise<number> {
+  private static async getCurrentCount(
+    userId: string,
+    window: string,
+  ): Promise<number> {
     try {
       const key = await this.getTimeBasedKey(userId, window);
-      
+
       // For this implementation, we'll store rate limit data in the database
       // In production, you'd want to use Redis for better performance
       const { data, error } = await supabase
-        .from('rate_limits')
-        .select('count')
-        .eq('key', key)
-        .eq('user_id', userId)
+        .from("rate_limits")
+        .select("count")
+        .eq("key", key)
+        .eq("user_id", userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching rate limit:', error);
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching rate limit:", error);
         return 0;
       }
 
       return data?.count || 0;
     } catch (err) {
-      console.error('Error in getCurrentCount:', err);
+      console.error("Error in getCurrentCount:", err);
       return 0;
     }
   }
 
-  private static async incrementCount(userId: string, window: string): Promise<void> {
+  private static async incrementCount(
+    userId: string,
+    window: string,
+  ): Promise<void> {
     try {
       const key = await this.getTimeBasedKey(userId, window);
       const now = new Date().toISOString();
-      
+
       // Calculate expiry time based on window
       const expiryDate = new Date();
       switch (window) {
-        case 'minute':
+        case "minute":
           expiryDate.setMinutes(expiryDate.getMinutes() + 2); // 2 minute buffer
           break;
-        case 'hour':
+        case "hour":
           expiryDate.setHours(expiryDate.getHours() + 2); // 2 hour buffer
           break;
-        case 'day':
+        case "day":
           expiryDate.setDate(expiryDate.getDate() + 2); // 2 day buffer
           break;
       }
 
       // Upsert the count
       const { data: existing } = await supabase
-        .from('rate_limits')
-        .select('count')
-        .eq('key', key)
-        .eq('user_id', userId)
+        .from("rate_limits")
+        .select("count")
+        .eq("key", key)
+        .eq("user_id", userId)
         .single();
 
       if (existing) {
         await supabase
-          .from('rate_limits')
-          .update({ 
+          .from("rate_limits")
+          .update({
             count: existing.count + 1,
-            updated_at: now
+            updated_at: now,
           })
-          .eq('key', key)
-          .eq('user_id', userId);
+          .eq("key", key)
+          .eq("user_id", userId);
       } else {
-        await supabase
-          .from('rate_limits')
-          .insert({
-            key,
-            user_id: userId,
-            count: 1,
-            window_type: window,
-            expires_at: expiryDate.toISOString(),
-            created_at: now,
-            updated_at: now
-          });
+        await supabase.from("rate_limits").insert({
+          key,
+          user_id: userId,
+          count: 1,
+          window_type: window,
+          expires_at: expiryDate.toISOString(),
+          created_at: now,
+          updated_at: now,
+        });
       }
     } catch (err) {
-      console.error('Error incrementing rate limit count:', err);
+      console.error("Error incrementing rate limit count:", err);
       // Don't throw here to avoid blocking API calls due to rate limit tracking issues
     }
   }
@@ -150,22 +157,22 @@ export class RateLimiter {
     try {
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-      
+
       const { data, error } = await supabase
-        .from('daily_stats')
-        .select('total_api_calls, estimated_cost')
-        .eq('date', todayStr)
+        .from("daily_stats")
+        .select("total_api_calls, estimated_cost")
+        .eq("date", todayStr)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking global budget:', error);
+      if (error && error.code !== "PGRST116") {
+        console.error("Error checking global budget:", error);
         return true; // Allow on error to avoid blocking service
       }
 
       const currentCost = data?.estimated_cost || 0;
       return currentCost < GLOBAL_DAILY_BUDGET_USD;
     } catch (err) {
-      console.error('Error in checkGlobalBudget:', err);
+      console.error("Error in checkGlobalBudget:", err);
       return true; // Allow on error
     }
   }
@@ -175,51 +182,53 @@ export class RateLimiter {
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
       const now = new Date().toISOString();
-      
+
       const { data: existing } = await supabase
-        .from('daily_stats')
-        .select('total_api_calls, estimated_cost')
-        .eq('date', todayStr)
+        .from("daily_stats")
+        .select("total_api_calls, estimated_cost")
+        .eq("date", todayStr)
         .single();
 
       if (existing) {
         await supabase
-          .from('daily_stats')
+          .from("daily_stats")
           .update({
             total_api_calls: existing.total_api_calls + 1,
-            estimated_cost: existing.estimated_cost + OPENAI_COST_PER_REQUEST_USD,
-            updated_at: now
+            estimated_cost:
+              existing.estimated_cost + OPENAI_COST_PER_REQUEST_USD,
+            updated_at: now,
           })
-          .eq('date', todayStr);
+          .eq("date", todayStr);
       } else {
-        await supabase
-          .from('daily_stats')
-          .insert({
-            date: todayStr,
-            total_api_calls: 1,
-            estimated_cost: OPENAI_COST_PER_REQUEST_USD,
-            created_at: now,
-            updated_at: now
-          });
+        await supabase.from("daily_stats").insert({
+          date: todayStr,
+          total_api_calls: 1,
+          estimated_cost: OPENAI_COST_PER_REQUEST_USD,
+          created_at: now,
+          updated_at: now,
+        });
       }
     } catch (err) {
-      console.error('Error updating global stats:', err);
+      console.error("Error updating global stats:", err);
     }
   }
 
-  static async checkRateLimit(userId: string, profile: UserProfile): Promise<RateLimitResult> {
+  static async checkRateLimit(
+    userId: string,
+    profile: UserProfile,
+  ): Promise<RateLimitResult> {
     try {
       // 0. Check emergency brake first
       const { data: emergencyBrake } = await supabase
-        .from('system_settings')
-        .select('value, reason')
-        .eq('key', 'emergency_brake')
+        .from("system_settings")
+        .select("value, reason")
+        .eq("key", "emergency_brake")
         .single();
 
-      if (emergencyBrake?.value === 'true') {
+      if (emergencyBrake?.value === "true") {
         return {
           allowed: false,
-          error: "Service temporarily unavailable. Please try again later."
+          error: "Service temporarily unavailable. Please try again later.",
         };
       }
 
@@ -228,17 +237,21 @@ export class RateLimiter {
       if (!globalBudgetOk) {
         return {
           allowed: false,
-          error: "Service temporarily unavailable due to daily budget limits. Please try again later."
+          error:
+            "Service temporarily unavailable due to daily budget limits. Please try again later.",
         };
       }
 
       // 2. Determine user's rate limits based on subscription
       let limits;
       const isActive = profile.subscription_status === "active";
-      
+
       if (isActive && profile.subscription_tier === "unlimited_annual") {
         limits = RATE_LIMITS.UNLIMITED_ANNUAL;
-      } else if (isActive && profile.subscription_tier === "unlimited_monthly") {
+      } else if (
+        isActive &&
+        profile.subscription_tier === "unlimited_monthly"
+      ) {
         limits = RATE_LIMITS.UNLIMITED_MONTHLY;
       } else {
         limits = RATE_LIMITS.FREE;
@@ -248,42 +261,43 @@ export class RateLimiter {
       if (profile.api_calls_this_month >= limits.perMonth) {
         return {
           allowed: false,
-          error: "Monthly usage limit reached. Please upgrade your plan or try again next month."
+          error:
+            "Monthly usage limit reached. Please upgrade your plan or try again next month.",
         };
       }
 
       // 4. Check time-based limits
-      const minuteCount = await this.getCurrentCount(userId, 'minute');
-      const hourCount = await this.getCurrentCount(userId, 'hour');
-      const dayCount = await this.getCurrentCount(userId, 'day');
+      const minuteCount = await this.getCurrentCount(userId, "minute");
+      const hourCount = await this.getCurrentCount(userId, "hour");
+      const dayCount = await this.getCurrentCount(userId, "day");
 
       if (minuteCount >= limits.perMinute) {
         return {
           allowed: false,
-          error: "Too many requests. Please wait a moment before trying again."
+          error: "Too many requests. Please wait a moment before trying again.",
         };
       }
 
       if (hourCount >= limits.perHour) {
         return {
           allowed: false,
-          error: "Too many requests. Please try again later."
+          error: "Too many requests. Please try again later.",
         };
       }
 
       if (dayCount >= limits.perDay) {
         return {
           allowed: false,
-          error: "Daily usage limit reached. Please try again tomorrow."
+          error: "Daily usage limit reached. Please try again tomorrow.",
         };
       }
 
       // 5. All checks passed - increment counters
       await Promise.all([
-        this.incrementCount(userId, 'minute'),
-        this.incrementCount(userId, 'hour'),
-        this.incrementCount(userId, 'day'),
-        this.updateGlobalStats()
+        this.incrementCount(userId, "minute"),
+        this.incrementCount(userId, "hour"),
+        this.incrementCount(userId, "day"),
+        this.updateGlobalStats(),
       ]);
 
       return {
@@ -292,12 +306,14 @@ export class RateLimiter {
           minute: Math.max(0, limits.perMinute - minuteCount - 1),
           hour: Math.max(0, limits.perHour - hourCount - 1),
           day: Math.max(0, limits.perDay - dayCount - 1),
-          month: Math.max(0, limits.perMonth - profile.api_calls_this_month - 1)
-        }
+          month: Math.max(
+            0,
+            limits.perMonth - profile.api_calls_this_month - 1,
+          ),
+        },
       };
-
     } catch (err) {
-      console.error('Rate limiter error:', err);
+      console.error("Rate limiter error:", err);
       // On error, allow the request but log the issue
       return { allowed: true };
     }
@@ -307,14 +323,11 @@ export class RateLimiter {
   static async cleanupExpiredRecords(): Promise<void> {
     try {
       const now = new Date().toISOString();
-      await supabase
-        .from('rate_limits')
-        .delete()
-        .lt('expires_at', now);
-      
-      console.log('Cleaned up expired rate limit records');
+      await supabase.from("rate_limits").delete().lt("expires_at", now);
+
+      console.log("Cleaned up expired rate limit records");
     } catch (err) {
-      console.error('Error cleaning up rate limit records:', err);
+      console.error("Error cleaning up rate limit records:", err);
     }
   }
 }

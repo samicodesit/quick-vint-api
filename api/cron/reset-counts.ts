@@ -5,7 +5,8 @@ import { supabase } from "../../utils/supabaseClient";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Secure the endpoint
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

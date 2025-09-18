@@ -28,6 +28,61 @@
       margin: 0 auto;
     }
 
+    .loading-container {
+      text-align: center;
+      padding: 3rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4f46e5;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 2rem auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-container {
+      background: white;
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      border: 2px solid #ef4444;
+    }
+
+    .error-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      color: #ef4444;
+    }
+
+    .error-title {
+      font-size: 2rem;
+      color: #ef4444;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .error-message {
+      font-size: 1.1rem;
+      color: #6b7280;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .hidden {
+      display: none;
+    }
+
     .icon {
       font-size: 3.5rem;
       margin-bottom: 1.5rem;
@@ -225,7 +280,7 @@
     }
 
     @media (max-width: 640px) {
-      .cancel-container {
+      .cancel-container, .error-container {
         padding: 2rem 1.5rem;
         margin: 0 1rem;
       }
@@ -250,7 +305,33 @@
   </style>
 </head>
 <body>
-  <div class="cancel-container">
+  <!-- Loading State -->
+  <div id="loading" class="cancel-container loading-container">
+    <div class="spinner"></div>
+    <h2>Verifying session...</h2>
+    <p>Please wait while we check your session.</p>
+  </div>
+
+  <!-- Error State -->
+  <div id="error" class="error-container hidden">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title">Access Denied</div>
+    <div class="error-message">
+      This page is only accessible after a checkout session. If you'd like to try AutoLister AI, you can start with our free plan!
+    </div>
+    <div class="cta-buttons">
+      <a href="/pricing.html" class="btn btn-primary">View Pricing</a>
+      <a href="/" class="btn btn-secondary">Back to Home</a>
+    </div>
+    <footer>
+      &copy; 2025 AutoLister AI · All rights reserved
+      <br />
+      <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="mailto:support@autolister.ai">Support</a>
+    </footer>
+  </div>
+
+  <!-- Cancel State -->
+  <div id="cancel" class="cancel-container hidden">
     <div class="icon">🤔</div>
     <h1>No Problem at All!</h1>
     <div class="subtitle">
@@ -301,5 +382,94 @@
       <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="mailto:support@autolister.ai">Support</a>
     </footer>
   </div>
+
+  <script>
+    // Session validation and page protection
+    document.addEventListener('DOMContentLoaded', async function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      const devBypass = urlParams.get('dev');
+      const bypassKey = urlParams.get('key');
+
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const cancelEl = document.getElementById('cancel');
+
+      // Check for developer bypass first
+      if (devBypass === 'true' && bypassKey) {
+        try {
+          const bypassResponse = await fetch('/api/dev/verify-bypass', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ bypass_key: bypassKey })
+          });
+          
+          const bypassData = await bypassResponse.json();
+          
+          if (bypassData.valid && bypassData.bypass) {
+            // Developer bypass successful
+            loadingEl.classList.add('hidden');
+            cancelEl.classList.remove('hidden');
+            
+            // Add a dev indicator
+            const devIndicator = document.createElement('div');
+            devIndicator.style.cssText = `
+              position: fixed; 
+              top: 10px; 
+              right: 10px; 
+              background: #f59e0b; 
+              color: white; 
+              padding: 8px 16px; 
+              border-radius: 8px; 
+              font-size: 12px; 
+              font-weight: bold; 
+              z-index: 1000;
+              box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+            `;
+            devIndicator.textContent = '🛠️ DEV MODE';
+            document.body.appendChild(devIndicator);
+            
+            console.log('✅ Developer bypass activated');
+            return;
+          }
+        } catch (error) {
+          console.warn('Developer bypass failed:', error);
+          // Continue with normal validation
+        }
+      }
+
+      // If no session_id parameter and no valid bypass, show error immediately
+      if (!sessionId) {
+        loadingEl.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        // Verify the session with our backend
+        const response = await fetch(`/api/stripe/verify-session?session_id=${sessionId}`);
+        const data = await response.json();
+
+        // For cancel page, we still want to show the cancel content even if session is "invalid"
+        // because the user might have a valid session but just canceled the payment
+        loadingEl.classList.add('hidden');
+        cancelEl.classList.remove('hidden');
+        
+        // Log for debugging purposes
+        if (data.valid) {
+          console.log('Valid session but user canceled:', data.session);
+        } else {
+          console.log('Session verification result:', data.error);
+        }
+      } catch (error) {
+        // Even on error, show cancel page instead of error for better UX
+        loadingEl.classList.add('hidden');
+        cancelEl.classList.remove('hidden');
+        console.error('Failed to verify session:', error);
+      }
+    });
+  </script>
 </body>
 </html>

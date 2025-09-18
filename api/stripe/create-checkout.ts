@@ -96,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ],
       customer: customerId,
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: CANCEL_URL,
+      cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
     });
 
     return res.status(200).json({ url: session.url });

@@ -171,6 +171,26 @@
             background: #374151;
         }
 
+        .cta-button.current-plan {
+            background: #10b981;
+            cursor: default;
+        }
+
+        .cta-button.current-plan:hover {
+            background: #10b981;
+        }
+
+        .pricing-card.current {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+        }
+
+        .pricing-card.current .plan-name::after {
+            content: " ✓";
+            color: #10b981;
+            font-weight: bold;
+        }
+
         footer {
             margin-top: 3rem;
             font-size: 0.9rem;
@@ -296,15 +316,167 @@
         <p>&copy; 2025 AutoLister AI · All rights reserved · <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></p>
     </footer>
 
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://umcqwgylywsezfazbtry.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtY3F3Z3lseXdzZXpmYXpidHJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NTY5MzQsImV4cCI6MjA1MDUzMjkzNH0.kjX6fXi2-eXh0VTAuCGnQR6WLvdCyRUOWJ5H3pEPcqQ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // API Base URL
+        const API_BASE = window.location.origin;
+
+        // Current user state
+        let currentUser = null;
+        let currentPlan = null;
+
+        // Plan to price ID mapping
+        const PLAN_PRICE_IDS = {
+            'starter': 'price_starter',
+            'pro': 'price_pro', 
+            'business': 'price_business'
+        };
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkUserStatus();
+            updateUI();
+        });
+
+        // Check if user is authenticated and get their current plan
+        async function checkUserStatus() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                currentUser = session?.user || null;
+                
+                if (currentUser?.email) {
+                    // Get user's current subscription plan
+                    const response = await fetch(`${API_BASE}/api/stripe/verify-session`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: currentUser.email })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        currentPlan = data.tier || 'free';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking user status:', error);
+            }
+        }
+
+        // Update UI based on user status and current plan
+        function updateUI() {
+            const planCards = document.querySelectorAll('.pricing-card');
+            
+            planCards.forEach(card => {
+                const button = card.querySelector('.cta-button');
+                const planName = card.querySelector('.plan-name').textContent.toLowerCase();
+                
+                if (!currentUser) {
+                    // User not logged in - show login prompts for paid plans
+                    if (planName !== 'free trial') {
+                        button.textContent = 'Sign In to Subscribe';
+                        button.onclick = () => showLoginMessage();
+                    }
+                } else {
+                    // User is logged in - show appropriate status
+                    if (planName === 'free trial') {
+                        if (currentPlan === 'free') {
+                            button.textContent = 'Current Plan';
+                            button.disabled = true;
+                            button.classList.add('current-plan');
+                            card.classList.add('current');
+                        }
+                    } else {
+                        const planKey = getPlanKey(planName);
+                        if (currentPlan === planKey) {
+                            button.textContent = 'Current Plan';
+                            button.disabled = true;
+                            button.classList.add('current-plan');
+                            card.classList.add('current');
+                            
+                            // Add manage subscription button
+                            const manageBtn = document.createElement('button');
+                            manageBtn.textContent = 'Manage Subscription';
+                            manageBtn.className = 'cta-button secondary';
+                            manageBtn.style.marginTop = '10px';
+                            manageBtn.onclick = () => openCustomerPortal();
+                            button.parentNode.insertBefore(manageBtn, button.nextSibling);
+                        } else if (isPlanUpgrade(planKey)) {
+                            button.textContent = `Upgrade to ${planName}`;
+                            button.onclick = () => upgradeToPlan(planKey);
+                        } else {
+                            button.textContent = `Downgrade to ${planName}`;
+                            button.onclick = () => upgradeToPlan(planKey);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Helper functions
+        function getPlanKey(planName) {
+            if (planName.includes('starter')) return 'starter';
+            if (planName.includes('pro')) return 'pro';
+            if (planName.includes('business')) return 'business';
+            return 'free';
+        }
+
+        function isPlanUpgrade(targetPlan) {
+            const planHierarchy = ['free', 'starter', 'pro', 'business'];
+            const currentIndex = planHierarchy.indexOf(currentPlan || 'free');
+            const targetIndex = planHierarchy.indexOf(targetPlan);
+            return targetIndex > currentIndex;
+        }
+
+        function showLoginMessage() {
+            alert('Please install the AutoLister AI extension and sign in to subscribe to a plan.');
+        }
+
         // Download extension for free trial
         function downloadExtension() {
             // Chrome Web Store link for your extension
-            window.open('https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID', '_blank');
+            window.open('https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl', '_blank');
         }
 
-        // Upgrade to paid plan
+        // Open Stripe customer portal for subscription management
+        async function openCustomerPortal() {
+            if (!currentUser?.email) {
+                showLoginMessage();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentUser.email })
+                });
+
+                const data = await response.json();
+                if (data.url) {
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Unable to open customer portal. Please try again.');
+                }
+            } catch (error) {
+                console.error('Portal error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // Upgrade to paid plan - Fixed to match API expectations
         async function upgradeToPlan(tier) {
+            if (!currentUser?.email) {
+                showLoginMessage();
+                return;
+            }
+
             const button = event.target;
             const originalText = button.textContent;
             
@@ -313,26 +485,28 @@
             button.textContent = 'Loading...';
             
             try {
-                // Call your Stripe checkout API
-                const response = await fetch('/api/stripe/create-checkout', {
+                // Call your Stripe checkout API with correct parameters
+                const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        tier: tier,
-                        interval: 'monthly'
+                        email: currentUser.email,
+                        interval: 'monthly',
+                        priceId: PLAN_PRICE_IDS[tier] || `price_${tier}`
                     })
                 });
                 
                 const data = await response.json();
                 
-                if (data.url) {
+                if (response.ok && data.url) {
                     // Redirect to Stripe checkout
-                    window.location.href = data.url;
+                    window.open(data.url, '_blank');
                 } else {
                     // Show error message
-                    alert('Unable to start checkout. Please try again or contact support.');
+                    console.error('Checkout error:', data);
+                    alert(`Unable to start checkout: ${data.error || 'Please try again or contact support.'}`);
                 }
             } catch (error) {
                 console.error('Checkout error:', error);

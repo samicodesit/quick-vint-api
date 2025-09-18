@@ -251,18 +251,12 @@
         function detectCountryAndGetVintedUrl() {
           let countryCode;
           
-          // Try navigator.language first (e.g., 'fr-FR' -> 'FR')
-          if (navigator.language) {
-            const parts = navigator.language.split('-');
-            if (parts.length > 1) {
-              countryCode = parts[1].toUpperCase();
-            }
-          }
-          
-          // Try timezone detection as backup
-          if (!countryCode && typeof Intl !== 'undefined') {
+          // Method 1: Try timezone detection first (most reliable for actual location)
+          if (typeof Intl !== 'undefined') {
             try {
               const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+              console.log('Detected timezone:', timezone);
+              
               const timezoneToCountry = {
                 'Europe/Paris': 'FR',
                 'Europe/Berlin': 'DE',
@@ -270,7 +264,7 @@
                 'Europe/Madrid': 'ES',
                 'Europe/Rome': 'IT',
                 'Europe/Brussels': 'BE',
-                'Europe/Amsterdam': 'NL',
+                'Europe/Amsterdam': 'NL',  // This should fix Netherlands detection
                 'Europe/Vienna': 'AT',
                 'Europe/Warsaw': 'PL',
                 'Europe/Prague': 'CZ',
@@ -281,17 +275,53 @@
                 'America/New_York': 'US',
                 'America/Los_Angeles': 'US',
                 'America/Chicago': 'US',
+                'America/Denver': 'US',
                 'America/Toronto': 'CA',
-                'America/Vancouver': 'CA'
+                'America/Vancouver': 'CA',
+                'America/Montreal': 'CA'
               };
+              
               countryCode = timezoneToCountry[timezone];
+              if (countryCode) {
+                console.log('Country detected by timezone:', countryCode);
+              }
             } catch (e) {
-              // Fallback
+              console.warn('Timezone detection failed:', e);
+            }
+          }
+          
+          // Method 2: Only use language if timezone failed AND it's a valid Vinted country
+          if (!countryCode && navigator.language) {
+            const parts = navigator.language.split('-');
+            if (parts.length > 1) {
+              const langCountry = parts[1].toUpperCase();
+              // Only use if it's actually a supported Vinted country
+              if (VINTED_DOMAINS[langCountry]) {
+                countryCode = langCountry;
+                console.log('Country detected by language:', countryCode);
+              }
+            }
+          }
+          
+          // Method 3: Check all browser language preferences
+          if (!countryCode && navigator.languages) {
+            for (let lang of navigator.languages) {
+              const parts = lang.split('-');
+              if (parts.length > 1) {
+                const langCountry = parts[1].toUpperCase();
+                if (VINTED_DOMAINS[langCountry]) {
+                  countryCode = langCountry;
+                  console.log('Country detected from language list:', countryCode);
+                  break;
+                }
+              }
             }
           }
           
           const domain = VINTED_DOMAINS[countryCode] || VINTED_DOMAINS.DEFAULT;
-          return `https://www.${domain}/items/new`;
+          const url = `https://www.${domain}/items/new`;
+          console.log('Final Vinted URL:', url);
+          return url;
         }
 
         // Update the redirect button
@@ -308,6 +338,8 @@
           btn.textContent = 'Crear en Vinted';
         } else if (vintedUrl.includes('vinted.it')) {
           btn.textContent = 'Crea su Vinted';
+        } else if (vintedUrl.includes('vinted.nl')) {
+          btn.textContent = 'Maak op Vinted';
         }
       });
     </script>

@@ -30,7 +30,7 @@
         }
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -39,6 +39,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden; /* Prevent content overflow */
         }
         .stat-card h3 {
             margin-top: 0;
@@ -56,15 +57,32 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            font-size: 0.85rem; /* Smaller font for better fit */
         }
         .user-table th, .user-table td {
-            padding: 8px 12px;
+            padding: 6px 8px;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
+            word-break: break-word; /* Prevent text overflow */
+            max-width: 0; /* Enable text truncation */
         }
         .user-table th {
             background-color: #f9fafb;
             font-weight: 600;
+            font-size: 0.75rem;
+        }
+        .user-table .email-col {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .user-table .calls-col {
+            text-align: center;
+            width: 60px;
+        }
+        .user-table .tier-col {
+            width: 80px;
         }
         .tier-badge {
             padding: 4px 8px;
@@ -212,9 +230,9 @@
                     <table class="user-table" id="topUsersTable">
                         <thead>
                             <tr>
-                                <th>Email</th>
-                                <th>Calls</th>
-                                <th>Tier</th>
+                                <th class="email-col">Email</th>
+                                <th class="calls-col">Calls</th>
+                                <th class="tier-col">Tier</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -228,9 +246,9 @@
                     <table class="user-table" id="recentSignupsTable">
                         <thead>
                             <tr>
-                                <th>Email</th>
-                                <th>Date</th>
-                                <th>Status</th>
+                                <th class="email-col">Email</th>
+                                <th class="calls-col">Date</th>
+                                <th class="tier-col">Status</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -307,13 +325,16 @@
         }
 
         function displayStats(data) {
+            // Filter out demo account
+            const filteredUsers = data.topUsers.filter(user => user.email !== 'samicodesit@gmail.com');
+            
             // Today's stats
             document.getElementById('todayRequests').textContent = data.today.totalRequests;
             document.getElementById('todayCost').textContent = data.today.estimatedCost.toFixed(2);
 
-            // User growth stats
-            const totalUsers = data.topUsers.length;
-            const paidUsers = data.topUsers.filter(u => u.subscription_status === 'active').length;
+            // User growth stats (excluding demo account)
+            const totalUsers = filteredUsers.length;
+            const paidUsers = filteredUsers.filter(u => u.subscription_status === 'active').length;
             const conversionRate = totalUsers > 0 ? ((paidUsers / totalUsers) * 100).toFixed(1) + '%' : '0%';
             
             document.getElementById('totalUsers').textContent = totalUsers;
@@ -324,8 +345,8 @@
             const monthlyRevenue = paidUsers * 3.99; // Assuming average €3.99 per user
             document.getElementById('monthlyRevenue').textContent = '€' + monthlyRevenue.toFixed(0);
 
-            // New signups (show recent users based on creation date)
-            const sortedUsers = [...data.topUsers].sort((a, b) => new Date(b.created_at || '2024-01-01') - new Date(a.created_at || '2024-01-01'));
+            // New signups (show recent users based on creation date, excluding demo)
+            const sortedUsers = [...filteredUsers].sort((a, b) => new Date(b.created_at || '2024-01-01') - new Date(a.created_at || '2024-01-01'));
             const recentUsers = sortedUsers.slice(0, 10);
             
             // Calculate new users today and this week
@@ -348,34 +369,36 @@
             document.getElementById('newToday').textContent = newToday;
             document.getElementById('newThisWeek').textContent = newThisWeek;
 
-            // Top users table
+            // Top users table (exclude demo account)
             const tbody = document.querySelector('#topUsersTable tbody');
             tbody.innerHTML = '';
             
-            data.topUsers.slice(0, 10).forEach(user => {
+            filteredUsers.slice(0, 8).forEach(user => { // Show only 8 for better fit
                 const row = tbody.insertRow();
+                const shortEmail = user.email.length > 20 ? user.email.substring(0, 17) + '...' : user.email;
                 row.innerHTML = `
-                    <td title="${user.id}">${user.email}</td>
-                    <td><strong>${user.api_calls_this_month}</strong></td>
-                    <td><span class="tier-badge tier-${user.subscription_tier.replace('_', '')}">${user.subscription_tier}</span></td>
+                    <td class="email-col" title="${user.email}">${shortEmail}</td>
+                    <td class="calls-col"><strong>${user.api_calls_this_month}</strong></td>
+                    <td class="tier-col"><span class="tier-badge tier-${user.subscription_tier.replace('_', '')}">${user.subscription_tier.replace('_', ' ')}</span></td>
                 `;
             });
 
-            // Recent signups table
+            // Recent signups table (exclude demo account)
             const signupsBody = document.querySelector('#recentSignupsTable tbody');
             signupsBody.innerHTML = '';
             
-            recentUsers.forEach(user => {
+            recentUsers.slice(0, 8).forEach(user => { // Show only 8 for better fit
                 const row = signupsBody.insertRow();
                 const userDate = new Date(user.created_at || '2024-01-01');
-                const dateStr = userDate.toLocaleDateString();
+                const dateStr = userDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const statusClass = user.subscription_status === 'active' ? 'status-active' : 'status-free';
                 const statusText = user.subscription_status === 'active' ? 'Paid' : 'Free';
+                const shortEmail = user.email.length > 20 ? user.email.substring(0, 17) + '...' : user.email;
                 
                 row.innerHTML = `
-                    <td title="${user.id}">${user.email}</td>
-                    <td>${dateStr}</td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td class="email-col" title="${user.email}">${shortEmail}</td>
+                    <td class="calls-col">${dateStr}</td>
+                    <td class="tier-col"><span class="status-badge ${statusClass}">${statusText}</span></td>
                 `;
             });
 

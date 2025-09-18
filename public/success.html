@@ -212,17 +212,105 @@
 
     <div class="next-steps">
       <h3>⚡ Ready to Get Started?</h3>
-      <p>Head to any Vinted listing page and click the AutoLister AI extension icon to experience the magic. Your new limits are active immediately!</p>
+      <p>Your new limits are active immediately! Click below to go directly to Vinted and start creating your first AI-powered listing.</p>
     </div>
 
     <div class="cta-buttons">
-      <a href="https://chromewebstore.google.com/detail/mommklhpammnlojjobejddmidmdcalc" target="_blank" class="btn btn-primary">
-        Open Chrome Extension
+      <a href="#" target="_blank" class="btn btn-primary" id="vinted-redirect">
+        Start Creating on Vinted
       </a>
-      <a href="/pricing.html" class="btn btn-secondary">
-        View All Plans
+      <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn btn-secondary">
+        Open Extension
       </a>
     </div>
+
+    <script>
+      // Smart Vinted redirect based on user's country
+      document.addEventListener('DOMContentLoaded', function() {
+        const VINTED_DOMAINS = {
+          'FR': 'vinted.fr',
+          'DE': 'vinted.de', 
+          'GB': 'vinted.co.uk',
+          'UK': 'vinted.co.uk',
+          'ES': 'vinted.es',
+          'IT': 'vinted.it',
+          'BE': 'vinted.be',
+          'NL': 'vinted.nl',
+          'AT': 'vinted.at',
+          'PL': 'vinted.pl',
+          'CZ': 'vinted.cz',
+          'LT': 'vinted.lt',
+          'LV': 'vinted.lv',
+          'LU': 'vinted.lu',
+          'PT': 'vinted.pt',
+          'US': 'vinted.com',
+          'CA': 'vinted.ca',
+          'DEFAULT': 'vinted.com'
+        };
+
+        function detectCountryAndGetVintedUrl() {
+          let countryCode;
+          
+          // Try navigator.language first (e.g., 'fr-FR' -> 'FR')
+          if (navigator.language) {
+            const parts = navigator.language.split('-');
+            if (parts.length > 1) {
+              countryCode = parts[1].toUpperCase();
+            }
+          }
+          
+          // Try timezone detection as backup
+          if (!countryCode && typeof Intl !== 'undefined') {
+            try {
+              const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+              const timezoneToCountry = {
+                'Europe/Paris': 'FR',
+                'Europe/Berlin': 'DE',
+                'Europe/London': 'GB',
+                'Europe/Madrid': 'ES',
+                'Europe/Rome': 'IT',
+                'Europe/Brussels': 'BE',
+                'Europe/Amsterdam': 'NL',
+                'Europe/Vienna': 'AT',
+                'Europe/Warsaw': 'PL',
+                'Europe/Prague': 'CZ',
+                'Europe/Vilnius': 'LT',
+                'Europe/Riga': 'LV',
+                'Europe/Luxembourg': 'LU',
+                'Europe/Lisbon': 'PT',
+                'America/New_York': 'US',
+                'America/Los_Angeles': 'US',
+                'America/Chicago': 'US',
+                'America/Toronto': 'CA',
+                'America/Vancouver': 'CA'
+              };
+              countryCode = timezoneToCountry[timezone];
+            } catch (e) {
+              // Fallback
+            }
+          }
+          
+          const domain = VINTED_DOMAINS[countryCode] || VINTED_DOMAINS.DEFAULT;
+          return `https://www.${domain}/items/new`;
+        }
+
+        // Update the redirect button
+        const btn = document.getElementById('vinted-redirect');
+        const vintedUrl = detectCountryAndGetVintedUrl();
+        btn.href = vintedUrl;
+        
+        // Optional: Localize button text
+        if (vintedUrl.includes('vinted.fr')) {
+          btn.textContent = 'Créer sur Vinted';
+        } else if (vintedUrl.includes('vinted.de')) {
+          btn.textContent = 'Auf Vinted erstellen';
+        } else if (vintedUrl.includes('vinted.es')) {
+          btn.textContent = 'Crear en Vinted';
+        } else if (vintedUrl.includes('vinted.it')) {
+          btn.textContent = 'Crea su Vinted';
+        }
+      });
+    </script>
 
     <footer>
       &copy; 2025 AutoLister AI · All rights reserved

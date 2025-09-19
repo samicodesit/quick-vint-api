@@ -288,12 +288,27 @@
         
         <div id="authSection" class="auth-section">
             <h3>🔐 Admin Authentication</h3>
-            <input type="password" id="adminSecret" placeholder="Enter admin secret">
-            <button onclick="authenticate()">Access Dashboard</button>
+            <div style="margin-bottom: 15px;">
+                <input type="password" id="adminSecret" placeholder="Enter admin secret">
+                <button onclick="authenticate()">Access Dashboard</button>
+            </div>
+            <div style="margin-top: 10px;">
+                <label style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; color: #6b7280;">
+                    <input type="checkbox" id="rememberDevice" style="margin: 0;">
+                    Remember this device (stores key securely in browser)
+                </label>
+            </div>
+            <div id="authError" class="error-message hidden" style="margin-top: 10px;"></div>
         </div>
 
         <div id="dashboardSection" class="hidden">
-            <button class="refresh-btn" onclick="loadStats()">🔄 Refresh Data</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>Admin Dashboard</h1>
+                <div style="display: flex; gap: 10px;">
+                    <button class="refresh-btn" onclick="loadStats()">🔄 Refresh Data</button>
+                    <button onclick="logout()" class="btn-secondary">Logout</button>
+                </div>
+            </div>
             
             <div id="errorMessage" class="error-message hidden"></div>
             <div id="loadingMessage" class="loading hidden">Loading stats...</div>
@@ -390,16 +405,134 @@
     <script>
         let adminSecret = '';
 
+        // Security: Simple encryption for localStorage (basic obfuscation)
+        function encryptKey(key) {
+            return btoa(key.split('').reverse().join(''));
+        }
+
+        function decryptKey(encrypted) {
+            try {
+                return atob(encrypted).split('').reverse().join('');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Check for remembered key on page load
+        function checkRememberedAuth() {
+            const rememberedKey = localStorage.getItem('admin_auth_key');
+            if (rememberedKey) {
+                const decrypted = decryptKey(rememberedKey);
+                if (decrypted) {
+                    console.log('Found remembered auth key, attempting auto-login...');
+                    adminSecret = decrypted;
+                    document.getElementById('adminSecret').value = decrypted;
+                    document.getElementById('rememberDevice').checked = true;
+                    
+                    // Try to authenticate with remembered key
+                    testAuthAndLogin();
+                }
+            }
+        }
+
+        // Test authentication without showing UI changes
+        async function testAuthAndLogin() {
+            try {
+                const response = await fetch('/api/admin/usage-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${adminSecret}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Success - show dashboard
+                    document.getElementById('authSection').classList.add('hidden');
+                    document.getElementById('dashboardSection').classList.remove('hidden');
+                    loadStats();
+                } else {
+                    // Failed - clear remembered key and show auth form
+                    localStorage.removeItem('admin_auth_key');
+                    showAuthError('Stored authentication expired. Please re-enter your admin key.');
+                }
+            } catch (error) {
+                // Network error - show auth form but keep remembered key
+                console.log('Network error during auto-auth, showing login form');
+            }
+        }
+
+        function showAuthError(message) {
+            const errorDiv = document.getElementById('authError');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideAuthError() {
+            document.getElementById('authError').classList.add('hidden');
+        }
+
         function authenticate() {
-            adminSecret = document.getElementById('adminSecret').value.trim();
-            if (!adminSecret) {
-                alert('Please enter admin secret');
+            const inputSecret = document.getElementById('adminSecret').value.trim();
+            const rememberDevice = document.getElementById('rememberDevice').checked;
+            
+            if (!inputSecret) {
+                showAuthError('Please enter admin secret');
                 return;
             }
+
+            hideAuthError();
+            adminSecret = inputSecret;
             
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('dashboardSection').classList.remove('hidden');
-            loadStats();
+            // Test the key by making an API call
+            testAuthentication(rememberDevice);
+        }
+
+        async function testAuthentication(shouldRemember) {
+            try {
+                const response = await fetch('/api/admin/usage-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${adminSecret}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Success - save key if requested
+                    if (shouldRemember) {
+                        const encrypted = encryptKey(adminSecret);
+                        localStorage.setItem('admin_auth_key', encrypted);
+                        console.log('Admin key saved for future sessions');
+                    } else {
+                        // Clear any previously saved key if user unchecked remember
+                        localStorage.removeItem('admin_auth_key');
+                    }
+                    
+                    // Show dashboard
+                    document.getElementById('authSection').classList.add('hidden');
+                    document.getElementById('dashboardSection').classList.remove('hidden');
+                    loadStats();
+                } else {
+                    showAuthError('Invalid admin secret. Please try again.');
+                }
+            } catch (error) {
+                showAuthError('Network error. Please check your connection and try again.');
+            }
+        }
+
+        // Add logout functionality
+        function logout() {
+            // Clear session
+            adminSecret = '';
+            
+            // Clear remembered key
+            localStorage.removeItem('admin_auth_key');
+            
+            // Reset form
+            document.getElementById('adminSecret').value = '';
+            document.getElementById('rememberDevice').checked = false;
+            hideAuthError();
+            
+            // Show auth section
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
         }
 
         async function loadStats() {
@@ -453,23 +586,31 @@
             const monthlyRevenue = paidUsers * 3.99;
             document.getElementById('monthlyRevenue').textContent = '€' + monthlyRevenue.toFixed(0);
 
-            // New signups (show recent users based on creation date, excluding demo)
-            const sortedUsers = [...filteredUsers].sort((a, b) => new Date(b.created_at || '2024-01-01') - new Date(a.created_at || '2024-01-01'));
-            const recentUsers = sortedUsers.slice(0, 10);
+            // Sort users by creation date for recent signups (most recent first)
+            const sortedUsersByDate = [...filteredUsers].sort((a, b) => {
+                const dateA = new Date(a.created_at || '2020-01-01');
+                const dateB = new Date(b.created_at || '2020-01-01');
+                return dateB - dateA; // Most recent first
+            });
             
-            // Calculate new users today and this week
-            const today = new Date();
+            // Calculate new users today and this week with proper timezone handling
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
             
             let newToday = 0;
             let newThisWeek = 0;
             
-            recentUsers.forEach(user => {
-                const userDate = new Date(user.created_at || '2024-01-01');
-                if (userDate.toDateString() === today.toDateString()) {
+            sortedUsersByDate.forEach(user => {
+                if (!user.created_at) return;
+                
+                const userDate = new Date(user.created_at);
+                const userDateOnly = new Date(userDate.getFullYear(), userDate.getMonth(), userDate.getDate());
+                
+                if (userDateOnly.getTime() === today.getTime()) {
                     newToday++;
                 }
-                if (userDate >= weekAgo) {
+                if (userDateOnly >= weekAgo) {
                     newThisWeek++;
                 }
             });
@@ -477,11 +618,12 @@
             document.getElementById('newToday').textContent = newToday;
             document.getElementById('newThisWeek').textContent = newThisWeek;
 
-            // Top users table (exclude demo account)
+            // Top users table by API calls (exclude demo account)
+            const topUsersByUsage = [...filteredUsers].sort((a, b) => b.api_calls_this_month - a.api_calls_this_month);
             const tbody = document.querySelector('#topUsersTable tbody');
             tbody.innerHTML = '';
             
-            filteredUsers.slice(0, 10).forEach(user => {
+            topUsersByUsage.slice(0, 10).forEach(user => {
                 const row = tbody.insertRow();
                 const tierClass = user.subscription_tier.replace(/_/g, '').toLowerCase();
                 row.innerHTML = `
@@ -491,14 +633,31 @@
                 `;
             });
 
-            // Recent signups table (exclude demo account)
+            // Recent signups table (sorted by creation date, most recent first)
             const signupsBody = document.querySelector('#recentSignupsTable tbody');
             signupsBody.innerHTML = '';
             
-            recentUsers.slice(0, 10).forEach(user => {
+            sortedUsersByDate.slice(0, 15).forEach(user => { // Show more recent signups
                 const row = signupsBody.insertRow();
-                const userDate = new Date(user.created_at || '2024-01-01');
-                const dateStr = userDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                let dateStr = 'Unknown';
+                if (user.created_at) {
+                    const userDate = new Date(user.created_at);
+                    const now = new Date();
+                    const diffMs = now - userDate;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) {
+                        dateStr = 'Today';
+                    } else if (diffDays === 1) {
+                        dateStr = 'Yesterday';
+                    } else if (diffDays < 7) {
+                        dateStr = `${diffDays}d ago`;
+                    } else {
+                        dateStr = userDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }
+                }
+                
                 const statusClass = user.subscription_status === 'active' ? 'status-active' : 'status-free';
                 const statusText = user.subscription_status === 'active' ? 'Paid' : 'Free';
                 
@@ -527,7 +686,12 @@
             document.getElementById('lastUpdated').textContent = `Last updated: ${new Date(data.timestamp).toLocaleString()}`;
         }
 
-        // Auto-refresh every 5 minutes if authenticated
+                // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkRememberedAuth();
+        });
+
+        // Auto-refresh every 30 seconds if dashboard is visible
         setInterval(() => {
             if (!document.getElementById('dashboardSection').classList.contains('hidden')) {
                 loadStats();

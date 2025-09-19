@@ -14,9 +14,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Get today's stats
+    // Get today's stats with proper date formatting
     const today = new Date();
-    const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    today.setHours(0, 0, 0, 0); // Start of day
+    const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD format
 
     const { data: todayStats } = await supabase
       .from("daily_stats")
@@ -25,9 +26,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .single();
 
     // Get last 7 days stats
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = `${weekAgo.getFullYear()}-${weekAgo.getMonth()}-${weekAgo.getDate()}`;
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekAgoStr = weekAgo.toISOString().split("T")[0];
 
     const { data: weekStats } = await supabase
       .from("daily_stats")
@@ -35,14 +35,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .gte("date", weekAgoStr)
       .order("date", { ascending: false });
 
-    // Get top users by API calls this month
-    const { data: topUsers } = await supabase
+    // Get ALL users (or more users) to ensure we don't miss recent signups
+    const { data: allUsers } = await supabase
       .from("profiles")
       .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at",
+        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at"
+      )
+      .order("created_at", { ascending: false }) // Order by creation date first to get recent signups
+      .limit(200); // Increased limit to catch all recent users
+
+    // Also get top users by API calls for the usage table
+    const { data: topUsersByUsage } = await supabase
+      .from("profiles")
+      .select(
+        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at"
       )
       .order("api_calls_this_month", { ascending: false })
-      .limit(50); // Increased to 50 to show more users for growth analysis
+      .limit(50);
+
+    // Combine and deduplicate users
+    const allUserMap = new Map();
+    [...(allUsers || []), ...(topUsersByUsage || [])].forEach((user) => {
+      if (user.email) {
+        allUserMap.set(user.email, user);
+      }
+    });
+
+    const combinedUsers = Array.from(allUserMap.values());
 
     // Get current active rate limits
     const { data: activeLimits } = await supabase
@@ -59,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         estimatedCost: todayStats?.estimated_cost || 0,
       },
       lastWeek: weekStats || [],
-      topUsers: topUsers || [],
+      topUsers: combinedUsers || [],
       activeRateLimits: activeLimits || [],
       timestamp: new Date().toISOString(),
     });

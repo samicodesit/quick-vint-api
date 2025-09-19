@@ -334,7 +334,7 @@
                 <li>Perfect for weekend listing sessions</li>
             </ul>
 
-            <button class="cta-button" onclick="selectPlan('starter')">Choose Starter</button>
+            <button class="cta-button" onclick="selectPlan('starter')">Get Starter Plan</button>
         </div>
 
         <!-- Pro -->
@@ -359,7 +359,7 @@
                 <li>Priority processing</li>
             </ul>
 
-            <button class="cta-button" onclick="selectPlan('pro')">Choose Pro</button>
+            <button class="cta-button" onclick="selectPlan('pro')">Get Pro Plan</button>
         </div>
 
         <!-- Business -->
@@ -389,7 +389,7 @@
                 <li>Overage requests available</li>
             </ul>
 
-            <button class="cta-button" onclick="selectPlan('business')">Choose Business</button>
+            <button class="cta-button" onclick="selectPlan('business')">Get Business Plan</button>
         </div>
     </div>
 
@@ -428,7 +428,7 @@
             console.log('Pricing page loaded');
         });
 
-        // Simple function to handle plan selection
+        // Simple function to handle plan selection - redirect to Stripe Customer Portal
         async function selectPlan(planName) {
             const button = event.target;
             const originalText = button.textContent;
@@ -444,36 +444,33 @@
                     return;
                 }
                 
-                // For paid plans, collect email and create checkout session
-                const email = prompt('Enter your email to continue with checkout:');
+                // For all paid plans, collect email and open customer portal
+                const email = prompt('Enter your email to manage subscriptions:');
                 if (!email || !email.includes('@')) {
                     alert('Please enter a valid email address.');
                     return;
                 }
                 
-                const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
+                const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        email: email,
-                        interval: 'monthly'
-                    })
+                    body: JSON.stringify({ email: email })
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok && data.url) {
-                    // Redirect to Stripe checkout
+                    // Open Stripe Customer Portal
                     window.open(data.url, '_blank');
                 } else {
                     // Show error message
-                    console.error('Checkout error:', data);
-                    alert(`Unable to start checkout: ${data.error || 'Please try again or contact support.'}`);
+                    console.error('Portal error:', data);
+                    alert(`Unable to open customer portal: ${data.error || 'Please try again or contact support.'}`);
                 }
             } catch (error) {
-                console.error('Checkout error:', error);
+                console.error('Portal error:', error);
                 alert('Network error. Please check your connection and try again.');
             } finally {
                 // Reset button state

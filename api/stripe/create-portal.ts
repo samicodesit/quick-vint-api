@@ -34,11 +34,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const customerId = profileRow.stripe_customer_id;
 
-    // 2) Create a Customer Portal session
-    const portalSession = await stripe.billingPortal.sessions.create({
+    // Get the user's subscription ID to direct them to subscription management
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("stripe_subscription_id")
+      .ilike("email", email)
+      .single();
+
+    // 2) Create a Customer Portal session that lands on subscription management
+    const portalSessionConfig: any = {
       customer: customerId,
       return_url: RETURN_URL,
-    });
+    };
+
+    // If user has an active subscription, direct them to subscription management
+    if (profileData?.stripe_subscription_id) {
+      portalSessionConfig.flow_data = {
+        type: "subscription_update",
+        subscription_update: {
+          subscription: profileData.stripe_subscription_id,
+        },
+      };
+    }
+
+    const portalSession =
+      await stripe.billingPortal.sessions.create(portalSessionConfig);
 
     // 3) Return the URL to the popup
     return res.status(200).json({ url: portalSession.url });

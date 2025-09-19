@@ -216,13 +216,29 @@
             padding: 12px 24px;
             border-radius: 6px;
             cursor: pointer;
-            margin-bottom: 20px;
             font-size: 0.95rem;
             font-weight: 500;
+            transition: background-color 0.2s ease;
         }
         
         .refresh-btn:hover {
             background: #4338ca;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
         }
         
         .error-message {
@@ -569,6 +585,12 @@
             // Filter out demo account
             const filteredUsers = data.topUsers.filter(user => user.email !== 'samicodesit@gmail.com');
             
+            // Create user lookup map for rate limiting section
+            const userLookup = {};
+            data.topUsers.forEach(user => {
+                userLookup[user.id] = user.email;
+            });
+            
             // Today's stats
             document.getElementById('todayRequests').textContent = data.today.totalRequests;
             document.getElementById('todayCost').textContent = data.today.estimatedCost.toFixed(2);
@@ -676,7 +698,17 @@
                 let html = '<table class="data-table"><thead><tr><th>User</th><th>Type</th><th>Count</th><th>Expires</th></tr></thead><tbody>';
                 data.activeRateLimits.forEach(limit => {
                     const expiry = new Date(limit.expires_at).toLocaleString();
-                    html += `<tr><td>${limit.user_id}</td><td>${limit.window_type}</td><td>${limit.count}</td><td>${expiry}</td></tr>`;
+                    const userEmail = userLookup[limit.user_id] || 'Unknown';
+                    const userIdShort = limit.user_id.substring(0, 8) + '...';
+                    html += `<tr>
+                        <td>
+                            <div style="font-weight: 500;">${userEmail}</div>
+                            <div style="font-size: 0.75rem; color: #6b7280; font-family: monospace;">${userIdShort}</div>
+                        </td>
+                        <td>${limit.window_type}</td>
+                        <td>${limit.count}</td>
+                        <td>${expiry}</td>
+                    </tr>`;
                 });
                 html += '</tbody></table>';
                 rateLimitsDiv.innerHTML = html;

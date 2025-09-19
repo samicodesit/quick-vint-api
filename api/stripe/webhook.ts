@@ -48,6 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const priceId = subscription.items.data[0]?.price.id;
           const tierConfig = getTierByStripePriceId(priceId);
           const tier = tierConfig?.name || "free";
+          const status = subscription.status as string;
 
           // Pull current_period_end from items.data[0]
           const rawEnd = subscription.items.data[0]?.current_period_end;
@@ -96,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const priceId = subscription.items.data[0]?.price.id;
         const tierConfig = getTierByStripePriceId(priceId);
         const tier = tierConfig?.name || "free";
+        const status = subscription.status as string;
 
         // Pull current_period_end from items.data[0]
         const rawEnd = subAny.items.data[0]?.current_period_end as

@@ -157,6 +157,11 @@
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
         .cta-button:hover {
@@ -178,6 +183,41 @@
 
         .cta-button.current-plan:hover {
             background: #10b981;
+        }
+
+        /* New button states */
+        .cta-button.download-extension {
+            background: #059669;
+        }
+
+        .cta-button.download-extension:hover {
+            background: #047857;
+        }
+
+        .cta-button.sign-in {
+            background: #7c3aed;
+        }
+
+        .cta-button.sign-in:hover {
+            background: #6d28d9;
+        }
+
+        .cta-button.disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .cta-button.disabled:hover {
+            background: #9ca3af;
+        }
+
+        .btn-text {
+            flex: 1;
+        }
+
+        .btn-status {
+            font-size: 0.875rem;
+            opacity: 0.9;
         }
 
         .pricing-card.current {
@@ -308,7 +348,10 @@
                 <li>See if you like it first</li>
             </ul>
 
-            <button class="cta-button secondary" onclick="selectPlan('free')">Try Free</button>
+            <button class="cta-button secondary" data-plan="free" id="btn-free">
+                <span class="btn-text">Try Free</span>
+                <span class="btn-status"></span>
+            </button>
         </div>
 
         <!-- Starter -->
@@ -334,7 +377,10 @@
                 <li>Perfect for weekend listing sessions</li>
             </ul>
 
-            <button class="cta-button" onclick="selectPlan('starter')">Get Starter Plan</button>
+            <button class="cta-button" data-plan="starter" id="btn-starter">
+                <span class="btn-text">Get Starter Plan</span>
+                <span class="btn-status"></span>
+            </button>
         </div>
 
         <!-- Pro -->
@@ -359,7 +405,10 @@
                 <li>Priority processing</li>
             </ul>
 
-            <button class="cta-button" onclick="selectPlan('pro')">Get Pro Plan</button>
+            <button class="cta-button" data-plan="pro" id="btn-pro">
+                <span class="btn-text">Get Pro Plan</span>
+                <span class="btn-status"></span>
+            </button>
         </div>
 
         <!-- Business -->
@@ -389,7 +438,10 @@
                 <li>Overage requests available</li>
             </ul>
 
-            <button class="cta-button" onclick="selectPlan('business')">Get Business Plan</button>
+            <button class="cta-button" data-plan="business" id="btn-business">
+                <span class="btn-text">Get Business Plan</span>
+                <span class="btn-status"></span>
+            </button>
         </div>
     </div>
 
@@ -408,82 +460,293 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxbG9pb3Zkd2phb3JubmZ2bXl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODIwODMzMiwiZXhwIjoyMDYzNzg0MzMyfQ.Urz77RMqsJs8gJmA3yia_HhxaaeDrHURrF-fPeExRNQ';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // API Base URL - match your popup.js
+        // API Base URL
         const API_BASE = "https://quick-vint.vercel.app";
 
         // Current user state
         let currentUser = null;
-        let currentPlan = null;
+        let currentProfile = null;
+        let hasExtension = false;
 
-        // Plan to price ID mapping
-        const PLAN_PRICE_IDS = {
-            'starter': 'price_starter',
-            'pro': 'price_pro', 
-            'business': 'price_business'
+        // Plan configuration
+        const PLAN_CONFIG = {
+            free: { name: 'Free', price: 0 },
+            unlimited_monthly: { name: 'Starter', price: 3.99 }, // Legacy support
+            starter: { name: 'Starter', price: 3.99 },
+            pro: { name: 'Pro', price: 9.99 },
+            business: { name: 'Business', price: 19.99 }
         };
 
-        // Initialize on page load
-        window.addEventListener('DOMContentLoaded', async () => {
-            // No need to check user status, just show the pricing
-            console.log('Pricing page loaded');
-        });
+        // Check if extension is installed
+        async function checkExtensionInstalled() {
+            return new Promise((resolve) => {
+                // Try to communicate with extension
+                if (window.chrome && chrome.runtime) {
+                    try {
+                        chrome.runtime.sendMessage('mommklhpammnlojjobejddmidmdcalcl', { type: 'PING' }, (response) => {
+                            resolve(!!response);
+                        });
+                    } catch (e) {
+                        resolve(false);
+                    }
+                } else {
+                    resolve(false);
+                }
+                // Timeout after 1 second
+                setTimeout(() => resolve(false), 1000);
+            });
+        }
 
-        // Simple function to handle plan selection - redirect to Stripe Customer Portal
-        async function selectPlan(planName) {
-            const button = event.target;
-            const originalText = button.textContent;
+        // Get user data from extension
+        async function getUserFromExtension() {
+            return new Promise((resolve) => {
+                if (!hasExtension) {
+                    resolve(null);
+                    return;
+                }
+                
+                try {
+                    chrome.runtime.sendMessage('mommklhpammnlojjobejddmidmdcalcl', { type: 'GET_USER_PROFILE' }, (response) => {
+                        resolve(response);
+                    });
+                } catch (e) {
+                    resolve(null);
+                }
+                // Timeout after 2 seconds
+                setTimeout(() => resolve(null), 2000);
+            });
+        }
+
+        // Update button states based on user context
+        function updateButtonStates() {
+            const buttons = {
+                free: document.getElementById('btn-free'),
+                starter: document.getElementById('btn-starter'),
+                pro: document.getElementById('btn-pro'),
+                business: document.getElementById('btn-business')
+            };
+
+            const currentTier = currentProfile?.subscription_tier || 'free';
+            const isActive = currentProfile?.subscription_status === 'active';
+
+            Object.entries(buttons).forEach(([plan, button]) => {
+                if (!button) return;
+
+                const textSpan = button.querySelector('.btn-text');
+                const statusSpan = button.querySelector('.btn-status');
+                
+                // Reset classes
+                button.className = 'cta-button';
+                
+                if (plan === 'free') {
+                    button.classList.add('secondary');
+                }
+
+                if (!hasExtension) {
+                    // No extension installed
+                    textSpan.textContent = 'Download Extension';
+                    statusSpan.textContent = '';
+                    button.classList.add('download-extension');
+                } else if (!currentUser) {
+                    // Extension installed, not signed in
+                    if (plan === 'free') {
+                        textSpan.textContent = 'Sign In to Start';
+                        statusSpan.textContent = '';
+                        button.classList.add('sign-in');
+                    } else {
+                        textSpan.textContent = 'Sign In to Subscribe';
+                        statusSpan.textContent = '';
+                        button.classList.add('sign-in');
+                    }
+                } else if (isActive && (currentTier === plan || (currentTier === 'unlimited_monthly' && plan === 'starter'))) {
+                    // Current plan
+                    textSpan.textContent = 'Current Plan';
+                    statusSpan.textContent = '✓ Active';
+                    button.classList.add('current-plan');
+                } else {
+                    // Signed in, different plan or free user
+                    if (plan === 'free' && currentTier !== 'free') {
+                        textSpan.textContent = 'Downgrade';
+                        statusSpan.textContent = '';
+                        button.classList.add('disabled');
+                    } else if (plan === 'free') {
+                        textSpan.textContent = 'Current Plan';
+                        statusSpan.textContent = '✓ Active';
+                        button.classList.add('current-plan');
+                    } else {
+                        const planConfig = PLAN_CONFIG[plan];
+                        const currentPlanConfig = PLAN_CONFIG[currentTier];
+                        
+                        if (planConfig.price > currentPlanConfig.price) {
+                            textSpan.textContent = `Upgrade to ${planConfig.name}`;
+                        } else {
+                            textSpan.textContent = `Switch to ${planConfig.name}`;
+                        }
+                        statusSpan.textContent = '';
+                    }
+                }
+            });
+        }
+
+        // Handle button clicks
+        async function handlePlanClick(planName) {
+            const button = document.getElementById(`btn-${planName}`);
+            const textSpan = button.querySelector('.btn-text');
+            const originalText = textSpan.textContent;
             
             // Show loading state
             button.disabled = true;
-            button.textContent = 'Loading...';
+            textSpan.textContent = 'Loading...';
             
             try {
-                // For free plan, just redirect to extension
-                if (planName === 'free') {
+                if (!hasExtension) {
+                    // Download extension
                     downloadExtension();
                     return;
                 }
-                
-                // For all paid plans, collect email and open customer portal
-                const email = prompt('Enter your email to manage subscriptions:');
-                if (!email || !email.includes('@')) {
-                    alert('Please enter a valid email address.');
+
+                if (!currentUser) {
+                    // Prompt to sign in through extension
+                    alert('Please sign in through the AutoLister AI extension first, then return to this page.');
                     return;
                 }
-                
-                const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
+
+                if (planName === 'free') {
+                    // Already on free or trying to downgrade
+                    if (currentProfile?.subscription_tier === 'free') {
+                        alert('You are already on the free plan!');
+                        return;
+                    } else {
+                        // Redirect to customer portal to cancel
+                        await openCustomerPortal();
+                        return;
+                    }
+                }
+
+                // Handle paid plan selection
+                const currentTier = currentProfile?.subscription_tier || 'free';
+                const isActive = currentProfile?.subscription_status === 'active';
+
+                if (isActive && (currentTier === planName || (currentTier === 'unlimited_monthly' && planName === 'starter'))) {
+                    // Already on this plan - open customer portal
+                    await openCustomerPortal();
+                } else {
+                    // Upgrade/switch plan
+                    await handlePaidPlanSelection(planName);
+                }
+            } catch (error) {
+                console.error('Plan selection error:', error);
+                alert('An error occurred. Please try again.');
+            } finally {
+                // Reset button state
+                button.disabled = false;
+                textSpan.textContent = originalText;
+            }
+        }
+
+        // Handle paid plan selection (upgrade/switch)
+        async function handlePaidPlanSelection(planName) {
+            try {
+                const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email: email })
+                    body: JSON.stringify({
+                        email: currentUser.email,
+                        tier: planName
+                    })
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok && data.url) {
-                    // Open Stripe Customer Portal
                     window.open(data.url, '_blank');
                 } else {
-                    // Show error message
+                    console.error('Checkout error:', data);
+                    alert(`Unable to start checkout: ${data.error || 'Please try again.'}`);
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                alert('Network error. Please check your connection and try again.');
+            }
+        }
+
+        // Open customer portal for existing subscribers
+        async function openCustomerPortal() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: currentUser.email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.url) {
+                    window.open(data.url, '_blank');
+                } else {
                     console.error('Portal error:', data);
-                    alert(`Unable to open customer portal: ${data.error || 'Please try again or contact support.'}`);
+                    alert(`Unable to open customer portal: ${data.error || 'Please try again.'}`);
                 }
             } catch (error) {
                 console.error('Portal error:', error);
                 alert('Network error. Please check your connection and try again.');
-            } finally {
-                // Reset button state
-                button.disabled = false;
-                button.textContent = originalText;
             }
-        }        
-        
-        // Download extension for free trial
+        }
+
+        // Download extension
         function downloadExtension() {
-            // Chrome Web Store link for your extension
             window.open('https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl', '_blank');
         }
+
+        // Initialize page
+        async function initializePage() {
+            // Check if extension is installed
+            hasExtension = await checkExtensionInstalled();
+            
+            if (hasExtension) {
+                // Get user data from extension
+                const userData = await getUserFromExtension();
+                if (userData) {
+                    currentUser = userData.user;
+                    currentProfile = userData.profile;
+                }
+            }
+
+            // Update button states
+            updateButtonStates();
+
+            // Add event listeners
+            document.getElementById('btn-free').addEventListener('click', () => handlePlanClick('free'));
+            document.getElementById('btn-starter').addEventListener('click', () => handlePlanClick('starter'));
+            document.getElementById('btn-pro').addEventListener('click', () => handlePlanClick('pro'));
+            document.getElementById('btn-business').addEventListener('click', () => handlePlanClick('business'));
+
+            console.log('Pricing page initialized:', { hasExtension, currentUser: !!currentUser, currentProfile });
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', initializePage);
+
+        // Refresh user data when page gains focus (in case user signed in through extension)
+        window.addEventListener('focus', async () => {
+            if (hasExtension) {
+                const userData = await getUserFromExtension();
+                if (userData) {
+                    const userChanged = currentUser?.id !== userData.user?.id;
+                    const profileChanged = JSON.stringify(currentProfile) !== JSON.stringify(userData.profile);
+                    
+                    if (userChanged || profileChanged) {
+                        currentUser = userData.user;
+                        currentProfile = userData.profile;
+                        updateButtonStates();
+                    }
+                }
+            }
+        });
     </script>
 </body>
 

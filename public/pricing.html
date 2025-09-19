@@ -350,52 +350,15 @@
             try {
                 console.log('Checking user status...');
                 
-                // First try to get session from Supabase
+                // First try standard Supabase session (browser localStorage)
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-                console.log('Supabase session check:', { session, sessionError });
-                
-                // If no session, try to look for extension stored data
-                if (!session?.user) {
-                    console.log('No Supabase session, checking for extension data...');
-                    
-                    // Try to access chrome storage if available (when page is accessed from extension context)
-                    if (typeof chrome !== 'undefined' && chrome.storage) {
-                        try {
-                            const result = await new Promise((resolve) => {
-                                chrome.storage.local.get(['supabaseSession', 'userProfile'], resolve);
-                            });
-                            
-                            console.log('Chrome storage result:', result);
-                            
-                            if (result.supabaseSession) {
-                                // Try to restore the session to Supabase
-                                const { data: restoredSession, error: restoreError } = await supabaseClient.auth.setSession({
-                                    access_token: result.supabaseSession.access_token,
-                                    refresh_token: result.supabaseSession.refresh_token
-                                });
-                                
-                                console.log('Session restore attempt:', { restoredSession, restoreError });
-                                
-                                if (restoredSession?.session?.user) {
-                                    currentUser = restoredSession.session.user;
-                                    if (result.userProfile) {
-                                        currentPlan = result.userProfile.subscription_tier || 'free';
-                                        console.log('Got user from extension storage:', currentUser.email, currentPlan);
-                                        return;
-                                    }
-                                }
-                            }
-                        } catch (chromeError) {
-                            console.log('Chrome storage not accessible:', chromeError);
-                        }
-                    }
-                }
+                console.log('Standard Supabase session:', { session, sessionError });
                 
                 if (session?.user) {
+                    console.log('Found standard session, using it...');
                     currentUser = session.user;
-                    console.log('Found user session:', currentUser.email);
                     
-                    // Now get the profile data like your background.js does
+                    // Get profile using the session
                     const { data: profile, error: profileError } = await supabaseClient
                         .from("profiles")
                         .select("subscription_status, api_calls_this_month, subscription_tier, current_period_end, overage_used_today")
@@ -411,11 +374,85 @@
                         currentPlan = profile?.subscription_tier || 'free';
                         console.log('Set currentPlan to:', currentPlan);
                     }
+                    return;
+                }
+                
+                // Try to get stored session from localStorage
+                console.log('No standard session, checking localStorage...');
+                let storedSession = null;
+                
+                // Check different possible localStorage keys
+                const possibleKeys = [
+                    'supabase.auth.token',
+                    `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`,
+                    'supabaseSession'
+                ];
+                
+                for (const key of possibleKeys) {
+                    const stored = localStorage.getItem(key);
+                    console.log(`Checking localStorage key ${key}:`, !!stored);
+                    if (stored) {
+                        try {
+                            storedSession = JSON.parse(stored);
+                            console.log('Found stored session in key:', key);
+                            break;
+                        } catch (parseError) {
+                            console.log('Failed to parse stored session from', key);
+                        }
+                    }
+                }
+                
+                if (storedSession?.access_token) {
+                    console.log('Found stored session, creating authenticated client...');
+                    
+                    // Replicate background.js logic exactly
+                    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        global: {
+                            headers: {
+                                Authorization: `Bearer ${storedSession.access_token}`,
+                            },
+                        },
+                    });
+
+                    // Get user data using the access token (like background.js)
+                    const { data: userData, error: userError } = await _supabase.auth.getUser(
+                        storedSession.access_token
+                    );
+                    
+                    console.log('User fetch result:', { userData, userError });
+
+                    if (userError || !userData?.user) {
+                        console.error("User fetch failed:", userError);
+                        currentUser = null;
+                        currentPlan = null;
+                        return;
+                    }
+
+                    currentUser = userData.user;
+                    console.log('Found user:', currentUser.email);
+
+                    // Get profile data (like background.js)
+                    const { data: profile, error: profileError } = await _supabase
+                        .from("profiles")
+                        .select("subscription_status, api_calls_this_month, subscription_tier, current_period_end, overage_used_today")
+                        .eq("id", userData.user.id)
+                        .single();
+
+                    console.log('Profile fetch result:', { profile, profileError });
+
+                    if (profileError) {
+                        console.error("Profile fetch failed:", profileError);
+                        currentPlan = 'free';
+                    } else {
+                        currentPlan = profile?.subscription_tier || 'free';
+                        console.log('Set currentPlan to:', currentPlan);
+                    }
                 } else {
-                    console.log('No user session found - user needs to sign in');
+                    console.log('No stored session found anywhere');
                     currentUser = null;
                     currentPlan = null;
                 }
+                
             } catch (error) {
                 console.error('Error checking user status:', error);
                 currentUser = null;

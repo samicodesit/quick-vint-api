@@ -2,12 +2,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
+import { TIER_CONFIGS } from "../../utils/tierConfig";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
-// These should be your actual Price IDs from Stripe Dashboard:
-const PRICE_ID_MONTHLY = process.env.STRIPE_PRICE_ID_MONTHLY!;
-const PRICE_ID_ANNUAL = process.env.STRIPE_PRICE_ID_ANNUAL!;
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
 
@@ -18,9 +16,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { email, interval } = req.body as {
+    const { email, tier } = req.body as {
       email: string;
-      interval?: "monthly" | "annual";
+      tier: "starter" | "pro" | "business"; // No 'free' since it's not a paid tier
     };
 
     // 1) Validate email
@@ -28,10 +26,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "A valid email is required." });
     }
 
-    // 2) Decide which Price ID to use
-    const chosenInterval = interval === "annual" ? "annual" : "monthly";
-    const priceId =
-      chosenInterval === "annual" ? PRICE_ID_ANNUAL : PRICE_ID_MONTHLY;
+    // 2) Validate tier and get price ID
+    if (!tier || !TIER_CONFIGS[tier]) {
+      return res.status(400).json({ error: "Invalid tier specified." });
+    }
+
+    const tierConfig = TIER_CONFIGS[tier];
+    const priceId = tierConfig.stripe.priceId;
 
     // 3) Look up existing stripe_customer_id in Supabase
     let customerId: string | null = null;
@@ -58,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (stripeErr: any) {
         console.warn(
           "Stored customer not found, will create new:",
-          stripeErr.message,
+          stripeErr.message
         );
         customerId = null;
       }

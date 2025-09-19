@@ -3,17 +3,13 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { buffer } from "micro";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
+import { getTierByStripePriceId } from "../../utils/tierConfig";
 
 export const config = { api: { bodyParser: false } };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
-
-type Tier = "unlimited_monthly" | "unlimited_annual";
-function mapTier(interval: string): Tier {
-  return interval === "year" ? "unlimited_annual" : "unlimited_monthly";
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -45,13 +41,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (session.mode === "subscription" && session.subscription) {
           // Fetch the full Subscription
           const subscription = (await stripe.subscriptions.retrieve(
-            session.subscription as string,
+            session.subscription as string
           )) as any;
 
           // Pull interval from the first item’s plan
-          const interval = subscription.items.data[0]?.plan.interval as string;
-          const tier = mapTier(interval);
-          const status = subscription.status as string;
+          const priceId = subscription.items.data[0]?.price.id;
+          const tierConfig = getTierByStripePriceId(priceId);
+          const tier = tierConfig?.name || "free";
 
           // Pull current_period_end from items.data[0]
           const rawEnd = subscription.items.data[0]?.current_period_end;
@@ -96,10 +92,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subAny = subscription as any;
 
         const customerId = subAny.customer as string;
-        // Same logic: interval from items.data[0].plan.interval
-        const interval = subAny.items.data[0]?.plan.interval as string;
-        const tier = mapTier(interval);
-        const status = subAny.status as string;
+        // Same logic: price ID from items.data[0].price.id
+        const priceId = subscription.items.data[0]?.price.id;
+        const tierConfig = getTierByStripePriceId(priceId);
+        const tier = tierConfig?.name || "free";
 
         // Pull current_period_end from items.data[0]
         const rawEnd = subAny.items.data[0]?.current_period_end as

@@ -196,6 +196,89 @@
             font-size: 0.9rem;
             color: #666;
         }
+
+        .login-section {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e5e7eb;
+        }
+
+        .login-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .login-form input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        .login-form button {
+            padding: 0.75rem 1.5rem;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .login-form button:hover {
+            background: #4338ca;
+        }
+
+        .login-form button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .message.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .message.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .message.info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 
@@ -225,7 +308,7 @@
                 <li>See if you like it first</li>
             </ul>
 
-            <button class="cta-button secondary" onclick="downloadExtension()">Try Free</button>
+            <button class="cta-button secondary" onclick="selectPlan('free')">Try Free</button>
         </div>
 
         <!-- Starter -->
@@ -251,7 +334,7 @@
                 <li>Perfect for weekend listing sessions</li>
             </ul>
 
-            <button class="cta-button" onclick="upgradeToPlan('starter')">Choose Starter</button>
+            <button class="cta-button" onclick="selectPlan('starter')">Choose Starter</button>
         </div>
 
         <!-- Pro -->
@@ -276,7 +359,7 @@
                 <li>Priority processing</li>
             </ul>
 
-            <button class="cta-button" onclick="upgradeToPlan('pro')">Choose Pro</button>
+            <button class="cta-button" onclick="selectPlan('pro')">Choose Pro</button>
         </div>
 
         <!-- Business -->
@@ -306,7 +389,7 @@
                 <li>Overage requests available</li>
             </ul>
 
-            <button class="cta-button" onclick="upgradeToPlan('business')">Choose Business</button>
+            <button class="cta-button" onclick="selectPlan('business')">Choose Business</button>
         </div>
     </div>
 
@@ -341,261 +424,12 @@
 
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', async () => {
-            await checkUserStatus();
-            updateUI();
+            // No need to check user status, just show the pricing
+            console.log('Pricing page loaded');
         });
 
-        // Check if user is authenticated and get their current plan
-        async function checkUserStatus() {
-            try {
-                console.log('Checking user status...');
-                
-                // First try standard Supabase session (browser localStorage)
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-                console.log('Standard Supabase session:', { session, sessionError });
-                
-                if (session?.user) {
-                    console.log('Found standard session, using it...');
-                    currentUser = session.user;
-                    
-                    // Get profile using the session
-                    const { data: profile, error: profileError } = await supabaseClient
-                        .from("profiles")
-                        .select("subscription_status, api_calls_this_month, subscription_tier, current_period_end, overage_used_today")
-                        .eq("id", currentUser.id)
-                        .single();
-
-                    console.log('Profile fetch result:', { profile, profileError });
-
-                    if (profileError) {
-                        console.error('Profile fetch failed:', profileError);
-                        currentPlan = 'free';
-                    } else {
-                        currentPlan = profile?.subscription_tier || 'free';
-                        console.log('Set currentPlan to:', currentPlan);
-                    }
-                    return;
-                }
-                
-                // Try to get stored session from localStorage
-                console.log('No standard session, checking localStorage...');
-                let storedSession = null;
-                
-                // Check different possible localStorage keys
-                const possibleKeys = [
-                    'supabase.auth.token',
-                    `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`,
-                    'supabaseSession'
-                ];
-                
-                for (const key of possibleKeys) {
-                    const stored = localStorage.getItem(key);
-                    console.log(`Checking localStorage key ${key}:`, !!stored);
-                    if (stored) {
-                        try {
-                            storedSession = JSON.parse(stored);
-                            console.log('Found stored session in key:', key);
-                            break;
-                        } catch (parseError) {
-                            console.log('Failed to parse stored session from', key);
-                        }
-                    }
-                }
-                
-                if (storedSession?.access_token) {
-                    console.log('Found stored session, creating authenticated client...');
-                    
-                    // Replicate background.js logic exactly
-                    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                        global: {
-                            headers: {
-                                Authorization: `Bearer ${storedSession.access_token}`,
-                            },
-                        },
-                    });
-
-                    // Get user data using the access token (like background.js)
-                    const { data: userData, error: userError } = await _supabase.auth.getUser(
-                        storedSession.access_token
-                    );
-                    
-                    console.log('User fetch result:', { userData, userError });
-
-                    if (userError || !userData?.user) {
-                        console.error("User fetch failed:", userError);
-                        currentUser = null;
-                        currentPlan = null;
-                        return;
-                    }
-
-                    currentUser = userData.user;
-                    console.log('Found user:', currentUser.email);
-
-                    // Get profile data (like background.js)
-                    const { data: profile, error: profileError } = await _supabase
-                        .from("profiles")
-                        .select("subscription_status, api_calls_this_month, subscription_tier, current_period_end, overage_used_today")
-                        .eq("id", userData.user.id)
-                        .single();
-
-                    console.log('Profile fetch result:', { profile, profileError });
-
-                    if (profileError) {
-                        console.error("Profile fetch failed:", profileError);
-                        currentPlan = 'free';
-                    } else {
-                        currentPlan = profile?.subscription_tier || 'free';
-                        console.log('Set currentPlan to:', currentPlan);
-                    }
-                } else {
-                    console.log('No stored session found anywhere');
-                    currentUser = null;
-                    currentPlan = null;
-                }
-                
-            } catch (error) {
-                console.error('Error checking user status:', error);
-                currentUser = null;
-                currentPlan = null;
-            }
-        }        
-        
-        // Update UI based on user status and current plan
-        function updateUI() {
-            const planCards = document.querySelectorAll('.pricing-card');
-            
-            planCards.forEach(card => {
-                const button = card.querySelector('.cta-button');
-                const planName = card.querySelector('.plan-name').textContent.toLowerCase();
-                
-                // Remove any existing manage buttons
-                const existingManageBtn = card.querySelector('.manage-subscription-btn');
-                if (existingManageBtn) {
-                    existingManageBtn.remove();
-                }
-                
-                if (!currentUser) {
-                    // User not logged in - show login prompts for paid plans
-                    if (planName !== 'free trial') {
-                        button.textContent = 'Install Extension to Subscribe';
-                        button.onclick = () => showLoginMessage();
-                        button.disabled = false;
-                        button.classList.remove('current-plan');
-                        card.classList.remove('current');
-                    }
-                } else {
-                    // User is logged in - show appropriate status
-                    if (planName === 'free trial') {
-                        if (currentPlan === 'free' || !currentPlan) {
-                            button.textContent = 'Current Plan';
-                            button.disabled = true;
-                            button.classList.add('current-plan');
-                            card.classList.add('current');
-                        } else {
-                            button.textContent = 'Try Free';
-                            button.onclick = () => downloadExtension();
-                            button.disabled = false;
-                            button.classList.remove('current-plan');
-                            card.classList.remove('current');
-                        }
-                    } else {
-                        const planKey = getPlanKey(planName);
-                        if (currentPlan === planKey) {
-                            button.textContent = 'Current Plan';
-                            button.disabled = true;
-                            button.classList.add('current-plan');
-                            card.classList.add('current');
-                            
-                            // Add manage subscription button
-                            const manageBtn = document.createElement('button');
-                            manageBtn.textContent = 'Manage Subscription';
-                            manageBtn.className = 'cta-button secondary manage-subscription-btn';
-                            manageBtn.style.marginTop = '10px';
-                            manageBtn.onclick = () => openCustomerPortal();
-                            button.parentNode.insertBefore(manageBtn, button.nextSibling);
-                        } else if (isPlanUpgrade(planKey)) {
-                            const capitalizedPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                            button.textContent = `Upgrade to ${capitalizedPlan}`;
-                            button.onclick = () => upgradeToPlan(planKey);
-                            button.disabled = false;
-                            button.classList.remove('current-plan');
-                            card.classList.remove('current');
-                        } else {
-                            const capitalizedPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                            button.textContent = `Change to ${capitalizedPlan}`;
-                            button.onclick = () => upgradeToPlan(planKey);
-                            button.disabled = false;
-                            button.classList.remove('current-plan');
-                            card.classList.remove('current');
-                        }
-                    }
-                }
-            });
-            
-            // Log current state for debugging
-            console.log('UI Updated - User:', currentUser?.email, 'Plan:', currentPlan);
-        }
-
-        // Helper functions
-        function getPlanKey(planName) {
-            if (planName.includes('starter')) return 'starter';
-            if (planName.includes('pro')) return 'pro';
-            if (planName.includes('business')) return 'business';
-            return 'free';
-        }
-
-        function isPlanUpgrade(targetPlan) {
-            const planHierarchy = ['free', 'starter', 'pro', 'business'];
-            const currentIndex = planHierarchy.indexOf(currentPlan || 'free');
-            const targetIndex = planHierarchy.indexOf(targetPlan);
-            return targetIndex > currentIndex;
-        }
-
-        function showLoginMessage() {
-            if (confirm('To subscribe to a plan, you need the AutoLister AI Chrome extension. Would you like to install it now?')) {
-                downloadExtension();
-            }
-        }
-
-        // Download extension for free trial
-        function downloadExtension() {
-            // Chrome Web Store link for your extension
-            window.open('https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl', '_blank');
-        }
-
-        // Open Stripe customer portal for subscription management
-        async function openCustomerPortal() {
-            if (!currentUser?.email) {
-                showLoginMessage();
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: currentUser.email })
-                });
-
-                const data = await response.json();
-                if (data.url) {
-                    window.open(data.url, '_blank');
-                } else {
-                    alert('Unable to open customer portal. Please try again.');
-                }
-            } catch (error) {
-                console.error('Portal error:', error);
-                alert('Network error. Please try again.');
-            }
-        }
-
-        // Upgrade to paid plan - Fixed to match API expectations
-        async function upgradeToPlan(tier) {
-            if (!currentUser?.email) {
-                showLoginMessage();
-                return;
-            }
-
+        // Simple function to handle plan selection
+        async function selectPlan(planName) {
             const button = event.target;
             const originalText = button.textContent;
             
@@ -604,16 +438,27 @@
             button.textContent = 'Loading...';
             
             try {
-                // Call your Stripe checkout API with correct parameters
+                // For free plan, just redirect to extension
+                if (planName === 'free') {
+                    downloadExtension();
+                    return;
+                }
+                
+                // For paid plans, collect email and create checkout session
+                const email = prompt('Enter your email to continue with checkout:');
+                if (!email || !email.includes('@')) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
                 const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        email: currentUser.email,
-                        interval: 'monthly',
-                        priceId: PLAN_PRICE_IDS[tier] || `price_${tier}`
+                        email: email,
+                        interval: 'monthly'
                     })
                 });
                 
@@ -635,6 +480,12 @@
                 button.disabled = false;
                 button.textContent = originalText;
             }
+        }        
+        
+        // Download extension for free trial
+        function downloadExtension() {
+            // Chrome Web Store link for your extension
+            window.open('https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl', '_blank');
         }
     </script>
 </body>

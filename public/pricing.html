@@ -519,6 +519,13 @@
 
         // Update button states based on user context
         function updateButtonStates() {
+            console.log('updateButtonStates called with:', {
+                hasExtension,
+                currentUser: !!currentUser,
+                currentProfile,
+                userEmail: currentUser?.email
+            });
+
             const buttons = {
                 free: document.getElementById('btn-free'),
                 starter: document.getElementById('btn-starter'),
@@ -544,11 +551,13 @@
 
                 if (!hasExtension) {
                     // No extension installed
+                    console.log('Setting download extension for plan:', plan);
                     textSpan.textContent = 'Download Extension';
                     statusSpan.textContent = '';
                     button.classList.add('download-extension');
                 } else if (!currentUser) {
                     // Extension installed, not signed in
+                    console.log('Extension installed, not signed in for plan:', plan);
                     if (plan === 'free') {
                         textSpan.textContent = 'Sign In to Start';
                         statusSpan.textContent = '';
@@ -560,11 +569,13 @@
                     }
                 } else if (isActive && (currentTier === plan || (currentTier === 'unlimited_monthly' && plan === 'starter'))) {
                     // Current plan
+                    console.log('Current plan detected for plan:', plan);
                     textSpan.textContent = 'Current Plan';
                     statusSpan.textContent = '✓ Active';
                     button.classList.add('current-plan');
                 } else {
                     // Signed in, different plan or free user
+                    console.log('Signed in, setting upgrade options for plan:', plan, 'currentTier:', currentTier);
                     if (plan === 'free' && currentTier !== 'free') {
                         textSpan.textContent = 'Downgrade';
                         statusSpan.textContent = '';
@@ -704,16 +715,50 @@
 
         // Initialize page
         async function initializePage() {
-            // Check if extension is installed
-            hasExtension = await checkExtensionInstalled();
+            // Check URL parameters first (they have priority if coming from extension)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFromExtension = urlParams.get('source') === 'extension';
             
-            if (hasExtension) {
-                // Get user data from extension
-                const userData = await getUserFromExtension();
-                if (userData) {
-                    currentUser = userData.user;
-                    currentProfile = userData.profile;
+            if (isFromExtension) {
+                // Use URL parameters when coming from extension
+                hasExtension = true;
+                const isSignedIn = urlParams.get('signed_in') === 'true';
+                const userPlan = urlParams.get('plan') || 'free';
+                const userEmail = urlParams.get('email') || '';
+                
+                if (isSignedIn && userEmail) {
+                    // Create user object from URL params
+                    currentUser = { email: userEmail };
+                    currentProfile = {
+                        subscription_tier: userPlan,
+                        subscription_status: (userPlan !== 'free') ? 'active' : 'free'
+                    };
                 }
+                
+                console.log('Initialized from extension URL params:', {
+                    hasExtension,
+                    isSignedIn,
+                    userPlan,
+                    userEmail
+                });
+            } else {
+                // Fallback to extension detection for direct visits
+                hasExtension = await checkExtensionInstalled();
+                
+                if (hasExtension) {
+                    // Get user data from extension
+                    const userData = await getUserFromExtension();
+                    if (userData) {
+                        currentUser = userData.user;
+                        currentProfile = userData.profile;
+                    }
+                }
+                
+                console.log('Initialized from extension detection:', {
+                    hasExtension,
+                    currentUser: !!currentUser,
+                    currentProfile
+                });
             }
 
             // Update button states
@@ -724,8 +769,6 @@
             document.getElementById('btn-starter').addEventListener('click', () => handlePlanClick('starter'));
             document.getElementById('btn-pro').addEventListener('click', () => handlePlanClick('pro'));
             document.getElementById('btn-business').addEventListener('click', () => handlePlanClick('business'));
-
-            console.log('Pricing page initialized:', { hasExtension, currentUser: !!currentUser, currentProfile });
         }
 
         // Initialize on page load

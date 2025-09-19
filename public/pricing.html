@@ -325,13 +325,12 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxbG9pb3Zkd2phb3JubmZ2bXl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODIwODMzMiwiZXhwIjoyMDYzNzg0MzMyfQ.Urz77RMqsJs8gJmA3yia_HhxaaeDrHURrF-fPeExRNQ';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // API Base URL
-        const API_BASE = window.location.origin;
+        // API Base URL - match your popup.js
+        const API_BASE = "https://quick-vint.vercel.app";
 
         // Current user state
         let currentUser = null;
         let currentPlan = null;
-        let extensionId = 'mommklhpammnlojjobejddmidmdcalcl'; // Your extension ID
 
         // Plan to price ID mapping
         const PLAN_PRICE_IDS = {
@@ -349,64 +348,82 @@
         // Check if user is authenticated and get their current plan
         async function checkUserStatus() {
             try {
-                // Try to communicate with the extension to get user data
-                await checkExtensionAuth();
+                console.log('Checking user status...');
                 
-                // If no extension data, fall back to direct session check
-                if (!currentUser) {
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    currentUser = session?.user || null;
+                // First try to get session from Supabase
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                console.log('Supabase session check:', { session, sessionError });
+                
+                // If no session, try to look for extension stored data
+                if (!session?.user) {
+                    console.log('No Supabase session, checking for extension data...');
+                    
+                    // Try to access chrome storage if available (when page is accessed from extension context)
+                    if (typeof chrome !== 'undefined' && chrome.storage) {
+                        try {
+                            const result = await new Promise((resolve) => {
+                                chrome.storage.local.get(['supabaseSession', 'userProfile'], resolve);
+                            });
+                            
+                            console.log('Chrome storage result:', result);
+                            
+                            if (result.supabaseSession) {
+                                // Try to restore the session to Supabase
+                                const { data: restoredSession, error: restoreError } = await supabaseClient.auth.setSession({
+                                    access_token: result.supabaseSession.access_token,
+                                    refresh_token: result.supabaseSession.refresh_token
+                                });
+                                
+                                console.log('Session restore attempt:', { restoredSession, restoreError });
+                                
+                                if (restoredSession?.session?.user) {
+                                    currentUser = restoredSession.session.user;
+                                    if (result.userProfile) {
+                                        currentPlan = result.userProfile.subscription_tier || 'free';
+                                        console.log('Got user from extension storage:', currentUser.email, currentPlan);
+                                        return;
+                                    }
+                                }
+                            }
+                        } catch (chromeError) {
+                            console.log('Chrome storage not accessible:', chromeError);
+                        }
+                    }
                 }
                 
-                if (currentUser?.email) {
-                    // Get user's current subscription plan
-                    const response = await fetch(`${API_BASE}/api/stripe/verify-session`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: currentUser.email })
-                    });
+                if (session?.user) {
+                    currentUser = session.user;
+                    console.log('Found user session:', currentUser.email);
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        currentPlan = data.tier || 'free';
+                    // Now get the profile data like your background.js does
+                    const { data: profile, error: profileError } = await supabaseClient
+                        .from("profiles")
+                        .select("subscription_status, api_calls_this_month, subscription_tier, current_period_end, overage_used_today")
+                        .eq("id", currentUser.id)
+                        .single();
+
+                    console.log('Profile fetch result:', { profile, profileError });
+
+                    if (profileError) {
+                        console.error('Profile fetch failed:', profileError);
+                        currentPlan = 'free';
+                    } else {
+                        currentPlan = profile?.subscription_tier || 'free';
+                        console.log('Set currentPlan to:', currentPlan);
                     }
+                } else {
+                    console.log('No user session found - user needs to sign in');
+                    currentUser = null;
+                    currentPlan = null;
                 }
             } catch (error) {
                 console.error('Error checking user status:', error);
+                currentUser = null;
+                currentPlan = null;
             }
-        }
-
-        // Try to get authentication status from the extension
-        async function checkExtensionAuth() {
-            return new Promise((resolve) => {
-                // Check if extension is available
-                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-                    try {
-                        chrome.runtime.sendMessage(extensionId, { type: 'GET_USER_PROFILE' }, (response) => {
-                            if (chrome.runtime.lastError) {
-                                console.log('Extension not available:', chrome.runtime.lastError.message);
-                                resolve();
-                                return;
-                            }
-                            
-                            if (response && response.user) {
-                                currentUser = response.user;
-                                if (response.profile && response.profile.subscription_tier) {
-                                    currentPlan = response.profile.subscription_tier;
-                                }
-                                console.log('Got user from extension:', currentUser, currentPlan);
-                            }
-                            resolve();
-                        });
-                    } catch (error) {
-                        console.log('Error communicating with extension:', error);
-                        resolve();
-                    }
-                } else {
-                    resolve();
-                }
-            });
-        }        // Update UI based on user status and current plan
+        }        
+        
+        // Update UI based on user status and current plan
         function updateUI() {
             const planCards = document.querySelectorAll('.pricing-card');
             

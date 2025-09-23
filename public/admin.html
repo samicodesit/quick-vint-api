@@ -410,7 +410,7 @@
 
             <!-- Row 3: Rate Limits -->
             <div class="stat-card">
-                <h3>⚡ Active Rate Limits</h3>
+                <h3>Today's Daily Usage</h3>
                 <div id="rateLimitsContent">Loading...</div>
             </div>
 
@@ -693,20 +693,25 @@
             // Rate limits
             const rateLimitsDiv = document.getElementById('rateLimitsContent');
             if (data.activeRateLimits.length === 0) {
-                rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No active rate limits - all users within limits</div>';
+                rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No daily usage recorded yet today</div>';
             } else {
-                let html = '<table class="data-table"><thead><tr><th>User</th><th>Type</th><th>Count</th><th>Expires</th></tr></thead><tbody>';
+                let html = '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Usage</th><th>Status</th><th>Expires</th></tr></thead><tbody>';
                 data.activeRateLimits.forEach(limit => {
                     const expiry = new Date(limit.expires_at).toLocaleString();
-                    const userEmail = userLookup[limit.user_id] || 'Unknown';
+                    const userEmail = limit.email || 'Unknown';
                     const userIdShort = limit.user_id.substring(0, 8) + '...';
+                    const statusHtml = limit.is_blocked 
+                        ? `<span style="color: #dc2626; font-weight: 600;">Blocked</span>`
+                        : `<span style="color: #059669;">OK</span>`;
+                    
                     html += `<tr>
                         <td>
                             <div style="font-weight: 500;">${userEmail}</div>
                             <div style="font-size: 0.75rem; color: #6b7280; font-family: monospace;">${userIdShort}</div>
                         </td>
-                        <td>${limit.window_type}</td>
-                        <td>${limit.count}</td>
+                        <td><span style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; text-transform: capitalize;">${limit.tier}</span></td>
+                        <td><strong>${limit.count}</strong> / ${limit.daily_limit}</td>
+                        <td>${statusHtml}</td>
                         <td>${expiry}</td>
                     </tr>`;
                 });

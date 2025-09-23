@@ -63,13 +63,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const combinedUsers = Array.from(allUserMap.values());
 
-    // Get current active rate limits
-    const { data: activeLimits } = await supabase
+    // Get all of today's daily usage data
+    const { data: rateLimitData } = await supabase
       .from("rate_limits")
       .select("user_id, window_type, count, expires_at")
       .gt("expires_at", new Date().toISOString())
+      .eq("window_type", "day") // Focus only on daily limits
       .order("count", { ascending: false })
-      .limit(20);
+      .limit(200); // Get up to 200 records for today
+
+    // Enrich the usage data with user details and tier limits
+    const todaysUsage = [];
+    if (rateLimitData && combinedUsers) {
+      for (const limit of rateLimitData) {
+        const user = combinedUsers.find((u) => u.id === limit.user_id);
+        if (user) {
+          // Define tier limits
+          const tierLimits: Record<string, number> = {
+            free: 2,
+            unlimited_monthly: 15, // Legacy
+            starter: 15,
+            pro: 40,
+            business: 75,
+          };
+
+          const userTier = user.subscription_tier || "free";
+          const dailyLimit = tierLimits[userTier] || tierLimits.free;
+          const isBlocked = limit.count >= dailyLimit;
+
+          todaysUsage.push({
+            ...limit,
+            email: user.email,
+            tier: userTier,
+            daily_limit: dailyLimit,
+            is_blocked: isBlocked,
+          });
+        }
+      }
+    }
 
     return res.status(200).json({
       today: {
@@ -79,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       lastWeek: weekStats || [],
       topUsers: combinedUsers || [],
-      activeRateLimits: activeLimits || [],
+      activeRateLimits: todaysUsage || [], // Changed to todaysUsage
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {

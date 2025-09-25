@@ -915,8 +915,8 @@
 
         // Helper function to get image count with fallback to full_request_body
         function getImageCount(log) {
-            // First try the image_urls column
-            if (log.image_urls) {
+            // First try the image_urls column (check for non-empty string)
+            if (log.image_urls && log.image_urls.trim() !== '') {
                 try {
                     return JSON.parse(log.image_urls).length;
                 } catch (e) {
@@ -943,8 +943,8 @@
 
         // Helper function to get image URLs with fallback
         function getImageUrls(log) {
-            // First try the image_urls column
-            if (log.image_urls) {
+            // First try the image_urls column (check for non-empty string)
+            if (log.image_urls && log.image_urls.trim() !== '') {
                 try {
                     return JSON.parse(log.image_urls);
                 } catch (e) {

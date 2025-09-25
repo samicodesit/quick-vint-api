@@ -45,6 +45,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     fullRequestBody: req.body,
   };
 
+  // Extract imageUrls early for logging purposes (even if validation fails later)
+  if (req.body && Array.isArray(req.body.imageUrls)) {
+    logData.imageUrls = req.body.imageUrls;
+  }
+
   try {
     await runCors(req, res);
   } catch (corsError: any) {
@@ -179,9 +184,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .status(400)
       .json({ error: "imageUrls must be a non-empty array of strings." });
   }
-
-  // Add request data to log
-  logData.imageUrls = imageUrls;
 
   // Create the prompt for OpenAI
   const systemPrompt = "You write Vinted listing titles and descriptions.";

@@ -353,7 +353,7 @@
 
             try {
                 // Test the token by making a request to the logs API
-                const response = await fetch('/api/admin/view-logs?limit=1', {
+                const response = await fetch('/api/admin/logs?action=view-logs&limit=1', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -410,7 +410,7 @@
                     params.append('end_date', endDate);
                 }
 
-                const response = await fetch(`/api/admin/view-logs?${params}`, {
+                const response = await fetch(`/api/admin/logs?action=view-logs&${params}`, {
                     headers: {
                         'Authorization': `Bearer ${adminToken}`
                     }
@@ -529,7 +529,7 @@
 
         async function flagLog(logId, reason) {
             try {
-                const response = await fetch('/api/admin/flag-activity', {
+                const response = await fetch('/api/admin/logs?action=flag-activity', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -554,7 +554,7 @@
 
         async function unflagLog(logId, reason) {
             try {
-                const response = await fetch('/api/admin/flag-activity', {
+                const response = await fetch('/api/admin/logs?action=flag-activity', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

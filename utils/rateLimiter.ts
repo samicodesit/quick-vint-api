@@ -22,8 +22,7 @@ try {
     },
     business: {
       limits: { daily: 75, monthly: 1500, burst: { perMinute: 30, perHour: 120 } },
-      features: ["Everything in Pro", "Up to 75 listings per day", "Dedicated support"],
-      overage: { enabled: true, pricePerRequest: 0.05, dailyOverageLimit: 25 }
+      features: ["Everything in Pro", "Up to 75 listings per day", "Dedicated support"]
     }
   };
 }
@@ -39,11 +38,6 @@ interface TierConfig {
     burst: { perMinute: number; perHour: number; };
   };
   features: string[];
-  overage?: {
-    enabled: boolean;
-    pricePerRequest: number;
-    dailyOverageLimit: number;
-  };
 }
 
 interface RateLimitResult {
@@ -55,18 +49,12 @@ interface RateLimitResult {
     day: number;
     month: number;
   };
-  overage?: {
-    used: boolean;
-    remaining: number;
-    cost: number;
-  };
 }
 
 interface UserProfile {
   subscription_status: string;
   subscription_tier: string;
   api_calls_this_month: number;
-  overage_used_today?: number;
 }
 
 export class RateLimiter {
@@ -335,41 +323,6 @@ export class RateLimiter {
       }
 
       if (dayCount >= effectiveDailyLimit) {
-        // Check if overage is available (only for regular tiers, not custom limits)
-        if (tierConfig.overage?.enabled && effectiveDailyLimit === tierConfig.limits.daily) {
-          const overageUsed = profile.overage_used_today || 0;
-          const overageLimit = tierConfig.overage.dailyOverageLimit || 0;
-          
-          if (overageUsed < overageLimit) {
-            // Allow overage usage
-            await Promise.all([
-              this.incrementCount(userId, "minute"),
-              this.incrementCount(userId, "hour"),
-              this.incrementCount(userId, "day"),
-              this.updateGlobalStats(),
-              this.incrementOverageCount(userId),
-            ]);
-
-            return {
-              allowed: true,
-              overage: {
-                used: true,
-                remaining: overageLimit - overageUsed - 1,
-                cost: tierConfig.overage.pricePerRequest,
-              },
-              remainingRequests: {
-                minute: Math.max(0, tierConfig.limits.burst.perMinute - minuteCount - 1),
-                hour: Math.max(0, tierConfig.limits.burst.perHour - hourCount - 1),
-                day: 0, // No regular requests left
-                month: Math.max(
-                  0,
-                  tierConfig.limits.monthly - profile.api_calls_this_month - 1,
-                ),
-              },
-            };
-          }
-        }
-        
         return {
           allowed: false,
           error: "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
@@ -400,43 +353,6 @@ export class RateLimiter {
       console.error("Rate limiter error:", err);
       // On error, allow the request but log the issue
       return { allowed: true };
-    }
-  }
-
-  private static async incrementOverageCount(userId: string): Promise<void> {
-    try {
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-      const now = new Date().toISOString();
-
-      // Track overage usage for billing
-      const { data: existing } = await supabase
-        .from("daily_overage")
-        .select("count")
-        .eq("user_id", userId)
-        .eq("date", todayStr)
-        .single();
-
-      if (existing) {
-        await supabase
-          .from("daily_overage")
-          .update({
-            count: existing.count + 1,
-            updated_at: now,
-          })
-          .eq("user_id", userId)
-          .eq("date", todayStr);
-      } else {
-        await supabase.from("daily_overage").insert({
-          user_id: userId,
-          date: todayStr,
-          count: 1,
-          created_at: now,
-          updated_at: now,
-        });
-      }
-    } catch (err) {
-      console.error("Error tracking overage usage:", err);
     }
   }
 

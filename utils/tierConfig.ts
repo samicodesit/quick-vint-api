@@ -19,11 +19,6 @@ export interface TierConfig {
     };
   };
   features: string[];
-  overage?: {
-    enabled: boolean;
-    pricePerRequest: number;
-    dailyOverageLimit?: number;
-  };
 }
 
 // This will be stored in database and cached for performance
@@ -121,13 +116,8 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       "Everything in Pro",
       "Up to 75 listings per day",
       "Dedicated support",
-      "Overage requests available",
+      "Highest daily limits",
     ],
-    overage: {
-      enabled: true,
-      pricePerRequest: 0.05, // $0.05 vs $0.0201 cost = good margins
-      dailyOverageLimit: 25, // Max 25 overage requests per day
-    },
   },
 };
 

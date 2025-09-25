@@ -2,30 +2,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../../utils/supabaseClient";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // --- AUTH ---
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing or invalid Authorization" });
-  }
-  const token = authHeader.split(" ")[1];
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(token);
-  if (userError || !user) {
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
-
-  // Check if user is admin
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || profile?.role !== "admin") {
-    return res.status(403).json({ error: "Admin access required" });
+  // --- AUTH with ADMIN_SECRET (same as other admin endpoints) ---
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret || req.headers.authorization !== `Bearer ${adminSecret}`) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   // Route based on action query parameter
@@ -34,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (action === "view-logs" || !action) {
     return handleViewLogs(req, res);
   } else if (action === "flag-activity") {
-    return handleFlagActivity(req, res, user.id);
+    return handleFlagActivity(req, res, 'admin'); // Use 'admin' as user ID for admin actions
   } else {
     return res.status(400).json({ error: "Invalid action" });
   }
@@ -170,7 +150,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function handleFlagActivity(req: VercelRequest, res: VercelResponse, adminUserId: string) {
+async function handleFlagActivity(req: VercelRequest, res: VercelResponse, adminId: string) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST allowed for flag-activity" });
   }
@@ -191,7 +171,7 @@ async function handleFlagActivity(req: VercelRequest, res: VercelResponse, admin
         .update({
           suspicious_activity: true,
           flagged_reason: reason,
-          reviewed_by: adminUserId,
+          reviewed_by: null, // We don't have a user ID with ADMIN_SECRET auth
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", logId);
@@ -213,7 +193,7 @@ async function handleFlagActivity(req: VercelRequest, res: VercelResponse, admin
         .update({
           suspicious_activity: false,
           flagged_reason: `Previously flagged but reviewed by admin: ${reason}`,
-          reviewed_by: adminUserId,
+          reviewed_by: null,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", logId);
@@ -246,7 +226,7 @@ async function handleFlagActivity(req: VercelRequest, res: VercelResponse, admin
         .update({
           account_status: "blocked",
           blocked_reason: reason,
-          blocked_by: adminUserId,
+          blocked_by: null, // Admin secret user
           blocked_at: new Date().toISOString(),
         })
         .eq("id", logData.user_id);
@@ -262,7 +242,7 @@ async function handleFlagActivity(req: VercelRequest, res: VercelResponse, admin
         .update({
           suspicious_activity: true,
           flagged_reason: `User blocked: ${reason}`,
-          reviewed_by: adminUserId,
+          reviewed_by: null,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", logId);

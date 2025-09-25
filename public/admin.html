@@ -907,6 +907,68 @@
         let adminSecret = '';
         let currentLogsPage = 1;
 
+        // Helper functions must be defined before they're used in template strings
+        function truncate(text, maxLength) {
+            if (!text) return 'N/A';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        // Helper function to get image count with fallback to full_request_body
+        function getImageCount(log) {
+            // First try the image_urls column
+            if (log.image_urls) {
+                try {
+                    return JSON.parse(log.image_urls).length;
+                } catch (e) {
+                    console.warn('Failed to parse image_urls:', e);
+                }
+            }
+            
+            // Fallback: parse from full_request_body
+            if (log.full_request_body) {
+                try {
+                    const requestBody = typeof log.full_request_body === 'string' 
+                        ? JSON.parse(log.full_request_body) 
+                        : log.full_request_body;
+                    if (requestBody.imageUrls && Array.isArray(requestBody.imageUrls)) {
+                        return requestBody.imageUrls.length;
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse full_request_body:', e);
+                }
+            }
+            
+            return 0;
+        }
+
+        // Helper function to get image URLs with fallback
+        function getImageUrls(log) {
+            // First try the image_urls column
+            if (log.image_urls) {
+                try {
+                    return JSON.parse(log.image_urls);
+                } catch (e) {
+                    console.warn('Failed to parse image_urls:', e);
+                }
+            }
+            
+            // Fallback: parse from full_request_body
+            if (log.full_request_body) {
+                try {
+                    const requestBody = typeof log.full_request_body === 'string' 
+                        ? JSON.parse(log.full_request_body) 
+                        : log.full_request_body;
+                    if (requestBody.imageUrls && Array.isArray(requestBody.imageUrls)) {
+                        return requestBody.imageUrls;
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse full_request_body:', e);
+                }
+            }
+            
+            return [];
+        }
+
         // Tab Management
         function switchTab(tabName) {
             // Hide all tab contents
@@ -1180,67 +1242,6 @@
         function formatDate(dateString) {
             const date = new Date(dateString);
             return date.toLocaleString();
-        }
-
-        function truncate(text, maxLength) {
-            if (!text) return 'N/A';
-            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-        }
-
-        // Helper function to get image count with fallback to full_request_body
-        function getImageCount(log) {
-            // First try the image_urls column
-            if (log.image_urls) {
-                try {
-                    return JSON.parse(log.image_urls).length;
-                } catch (e) {
-                    console.warn('Failed to parse image_urls:', e);
-                }
-            }
-            
-            // Fallback: parse from full_request_body
-            if (log.full_request_body) {
-                try {
-                    const requestBody = typeof log.full_request_body === 'string' 
-                        ? JSON.parse(log.full_request_body) 
-                        : log.full_request_body;
-                    if (requestBody.imageUrls && Array.isArray(requestBody.imageUrls)) {
-                        return requestBody.imageUrls.length;
-                    }
-                } catch (e) {
-                    console.warn('Failed to parse full_request_body:', e);
-                }
-            }
-            
-            return 0;
-        }
-
-        // Helper function to get image URLs with fallback
-        function getImageUrls(log) {
-            // First try the image_urls column
-            if (log.image_urls) {
-                try {
-                    return JSON.parse(log.image_urls);
-                } catch (e) {
-                    console.warn('Failed to parse image_urls:', e);
-                }
-            }
-            
-            // Fallback: parse from full_request_body
-            if (log.full_request_body) {
-                try {
-                    const requestBody = typeof log.full_request_body === 'string' 
-                        ? JSON.parse(log.full_request_body) 
-                        : log.full_request_body;
-                    if (requestBody.imageUrls && Array.isArray(requestBody.imageUrls)) {
-                        return requestBody.imageUrls;
-                    }
-                } catch (e) {
-                    console.warn('Failed to parse full_request_body:', e);
-                }
-            }
-            
-            return [];
         }
 
         // Log Inspector Functions

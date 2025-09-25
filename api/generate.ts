@@ -4,6 +4,7 @@ import type { ChatCompletionContentPart } from "openai/resources/chat/completion
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 import { RateLimiter } from "../utils/rateLimiter";
+import { ApiLogger } from "../utils/apiLogger";
 
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern = /^https:\/\/(?:[\w-]+\.)?vinted\.[a-z]{2,3}$/;
@@ -34,26 +35,65 @@ function runCors(req: VercelRequest, res: VercelResponse) {
 const openai = new OpenAI({ apiKey: process.env.VERCEL_APP_OPENAI_API_KEY });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const startTime = Date.now();
+  const requestMetadata = ApiLogger.extractRequestMetadata(req);
+  
+  // Initialize log data
+  let logData: any = {
+    ...requestMetadata,
+    endpoint: '/api/generate',
+    fullRequestBody: req.body,
+  };
+
   try {
     await runCors(req, res);
   } catch (corsError: any) {
+    logData.responseStatus = 403;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = `CORS error: ${corsError.message}`;
+    await ApiLogger.logRequest(logData);
     return res.status(403).json({ error: corsError.message });
   }
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST")
+  
+  if (req.method === "OPTIONS") {
+    logData.responseStatus = 200;
+    logData.processingDurationMs = Date.now() - startTime;
+    await ApiLogger.logRequest(logData);
+    return res.status(200).end();
+  }
+  
+  if (req.method !== "POST") {
+    logData.responseStatus = 405;
+    logData.processingDurationMs = Date.now() - startTime;
+    await ApiLogger.logRequest(logData);
     return res.status(405).json({ error: "Only POST allowed" });
+  }
 
   // --- AUTH ---
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer "))
+  if (!authHeader?.startsWith("Bearer ")) {
+    logData.responseStatus = 401;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Missing or invalid Authorization header";
+    await ApiLogger.logRequest(logData);
     return res.status(401).json({ error: "Missing or invalid Authorization" });
+  }
   const token = authHeader.split(" ")[1];
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser(token);
-  if (userError || !user)
+  if (userError || !user) {
+    logData.responseStatus = 401;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Invalid or expired token";
+    await ApiLogger.logRequest(logData);
     return res.status(401).json({ error: "Invalid or expired token" });
+  }
+
+  // Add user info to log data
+  logData.userId = user.id;
+  logData.userEmail = user.email;
 
   // --- PROFILE & LIMITS ---
   const { data: profile, error: profileError } = await supabase
@@ -66,6 +106,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (profileError && profileError.code !== "PGRST116") {
     console.error("Error fetching profile:", profileError);
+    logData.responseStatus = 500;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Profile fetch error";
+    await ApiLogger.logRequest(logData);
     return res.status(500).json({ error: "Could not retrieve profile." });
   }
 
@@ -81,6 +125,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (upsertError) {
       console.error("Error initializing user profile:", upsertError);
+      logData.responseStatus = 500;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason = "Profile initialization error";
+      await ApiLogger.logRequest(logData);
       return res
         .status(500)
         .json({ error: "Failed to initialize user profile." });
@@ -95,6 +143,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     last_api_call_reset: new Date().toISOString(),
   };
 
+  // Add user profile info to log data
+  logData.subscriptionTier = userProfile.subscription_tier;
+  logData.subscriptionStatus = userProfile.subscription_status;
+  logData.apiCallsCount = userProfile.api_calls_this_month;
+
   // --- RATE LIMITING ---
   const rateLimitResult = await RateLimiter.checkRateLimit(
     user.id,
@@ -102,6 +155,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   );
 
   if (!rateLimitResult.allowed) {
+    logData.responseStatus = 429;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Rate limit exceeded";
+    await ApiLogger.logRequest(logData);
     return res.status(429).json({
       error: "Too many requests. Please try again later.",
     });
@@ -114,9 +171,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     imageUrls.length === 0 ||
     !imageUrls.every((u) => typeof u === "string" && u.trim())
   ) {
+    logData.responseStatus = 400;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Invalid imageUrls format";
+    await ApiLogger.logRequest(logData);
     return res
       .status(400)
       .json({ error: "imageUrls must be a non-empty array of strings." });
+  }
+
+  // Add request data to log
+  logData.imageUrls = imageUrls;
+
+  // Create the prompt for OpenAI
+  const systemPrompt = "You write Vinted listing titles and descriptions.";
+  const userPrompt = `
+From photo(s), detect brand (if clear), color, and item. Format title: [Brand] [Color] [Item]. In description, note condition (e.g. like new, stains), and end with 4-5 SEO hashtags.
+Reply only in JSON: {"title":"...","description":"..."}
+        `.trim();
+
+  // Log the full prompt being sent to OpenAI
+  logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)`;
+  logData.openaiModel = "gpt-4o";
+
+  // Check for suspicious activity
+  const suspiciousCheck = ApiLogger.detectSuspiciousActivity({
+    imageUrls,
+    rawPrompt: logData.rawPrompt,
+    userAgent: logData.userAgent,
+    requestFrequency: userProfile.api_calls_this_month
+  });
+
+  if (suspiciousCheck.suspicious) {
+    logData.suspiciousActivity = true;
+    logData.flaggedReason = suspiciousCheck.reasons.join('; ');
+    console.warn(`🚨 Suspicious activity detected for user ${user.id}:`, suspiciousCheck.reasons);
   }
 
   // --- GENERATE VIA OPENAI ---
@@ -130,7 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       messages: [
         {
           role: "system",
-          content: "You write Vinted listing titles and descriptions.",
+          content: systemPrompt,
         },
         {
           role: "user",
@@ -138,16 +227,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ...parts,
             {
               type: "text",
-              text: `
-From photo(s), detect brand (if clear), color, and item. Format title: [Brand] [Color] [Item]. In description, note condition (e.g. like new, stains), and end with 4-5 SEO hashtags.
-Reply only in JSON: {"title":"...","description":"..."}
-        `.trim(),
+              text: userPrompt,
             },
           ],
         },
       ],
       max_tokens: 150,
     });
+
+    // Log token usage
+    logData.openaiTokensUsed = chat.usage?.total_tokens;
 
     let content = chat.choices?.[0]?.message?.content?.trim() || "{}";
     const md = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(content);
@@ -163,6 +252,15 @@ Reply only in JSON: {"title":"...","description":"..."}
     const title = parsed.title?.trim() || "Untitled";
     const description =
       parsed.description?.trim() || "No description available.";
+
+    // Add generated content to log
+    logData.generatedTitle = title;
+    logData.generatedDescription = description;
+    logData.responseStatus = 200;
+    logData.processingDurationMs = Date.now() - startTime;
+
+    // Log the successful request
+    await ApiLogger.logRequest(logData);
 
     // Increment monthly API call count after successful generation
     const { error: incrementError } = await supabase
@@ -183,6 +281,13 @@ Reply only in JSON: {"title":"...","description":"..."}
     });
   } catch (err: any) {
     console.error("Generation error:", err);
+    
+    // Log the error
+    logData.responseStatus = 500;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = `OpenAI generation error: ${err.message}`;
+    await ApiLogger.logRequest(logData);
+    
     // If OpenAI fails, we should ideally roll back the increment.
     // For simplicity here, we accept that a failed call might still count.
     return res.status(500).json({ error: "Internal error during generation." });

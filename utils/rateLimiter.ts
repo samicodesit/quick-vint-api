@@ -286,8 +286,25 @@ export class RateLimiter {
         };
       }
 
-      // 2. Get user's tier configuration
-      const tierConfig = this.getTierConfig(profile);
+      // 2. Check for custom user limits first
+      const { data: customLimits } = await supabase
+        .from("profiles")
+        .select("custom_daily_limit, custom_limit_expires_at, custom_limit_reason")
+        .eq("id", userId)
+        .single();
+
+      let effectiveDailyLimit: number;
+      let tierConfig = this.getTierConfig(profile);
+
+      // Use custom limit if it exists and hasn't expired
+      if (customLimits?.custom_daily_limit && 
+          customLimits.custom_limit_expires_at && 
+          new Date(customLimits.custom_limit_expires_at) > new Date()) {
+        effectiveDailyLimit = customLimits.custom_daily_limit;
+        console.log(`Using custom daily limit for user ${userId}: ${effectiveDailyLimit} (reason: ${customLimits.custom_limit_reason})`);
+      } else {
+        effectiveDailyLimit = tierConfig.limits.daily;
+      }
 
       // 3. Check monthly limit (existing logic)
       if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
@@ -317,9 +334,9 @@ export class RateLimiter {
         };
       }
 
-      if (dayCount >= tierConfig.limits.daily) {
-        // Check if overage is available
-        if (tierConfig.overage?.enabled) {
+      if (dayCount >= effectiveDailyLimit) {
+        // Check if overage is available (only for regular tiers, not custom limits)
+        if (tierConfig.overage?.enabled && effectiveDailyLimit === tierConfig.limits.daily) {
           const overageUsed = profile.overage_used_today || 0;
           const overageLimit = tierConfig.overage.dailyOverageLimit || 0;
           
@@ -372,7 +389,7 @@ export class RateLimiter {
         remainingRequests: {
           minute: Math.max(0, tierConfig.limits.burst.perMinute - minuteCount - 1),
           hour: Math.max(0, tierConfig.limits.burst.perHour - hourCount - 1),
-          day: Math.max(0, tierConfig.limits.daily - dayCount - 1),
+          day: Math.max(0, effectiveDailyLimit - dayCount - 1),
           month: Math.max(
             0,
             tierConfig.limits.monthly - profile.api_calls_this_month - 1,

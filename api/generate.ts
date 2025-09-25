@@ -262,6 +262,9 @@ Reply only in JSON: {"title":"...","description":"..."}
     // Log the successful request
     await ApiLogger.logRequest(logData);
 
+    // Record successful request for rate limiting (increment counters)
+    await RateLimiter.recordSuccessfulRequest(user.id);
+
     // Increment monthly API call count after successful generation
     const { error: incrementError } = await supabase
       .from("profiles")

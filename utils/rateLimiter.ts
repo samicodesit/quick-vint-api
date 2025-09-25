@@ -329,14 +329,8 @@ export class RateLimiter {
         };
       }
 
-      // 5. All checks passed - increment counters
-      await Promise.all([
-        this.incrementCount(userId, "minute"),
-        this.incrementCount(userId, "hour"),
-        this.incrementCount(userId, "day"),
-        this.updateGlobalStats(),
-      ]);
-
+      // 5. All checks passed - return success but don't increment yet
+      // Counters will be incremented only after successful API generation
       return {
         allowed: true,
         remainingRequests: {
@@ -353,6 +347,21 @@ export class RateLimiter {
       console.error("Rate limiter error:", err);
       // On error, allow the request but log the issue
       return { allowed: true };
+    }
+  }
+
+  // Record successful API generation - only call this after OpenAI succeeds
+  static async recordSuccessfulRequest(userId: string): Promise<void> {
+    try {
+      await Promise.all([
+        this.incrementCount(userId, "minute"),
+        this.incrementCount(userId, "hour"),
+        this.incrementCount(userId, "day"),
+        this.updateGlobalStats(),
+      ]);
+    } catch (err) {
+      console.error("Error recording successful request:", err);
+      // Don't throw here to avoid failing the API response
     }
   }
 

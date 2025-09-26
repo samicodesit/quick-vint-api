@@ -103,7 +103,11 @@
             box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
         }
         
-        /* Mobile Menu Button (Hamburger) */
+        /* Mobile Menu Button (Hamburger) - visible on all widths for testing */
+        .mobile-menu-button {
+            display: block; /* show everywhere for debugging/testing */
+        }
+        /* Mobile Menu Button (Hamburger visuals) */
         .mobile-menu-button {
             display: block;
         }
@@ -113,19 +117,85 @@
             }
         }
 
-        /* Mobile Menu Panel */
+        /* Hamburger Icon */
+        .hamburger {
+            background: transparent;
+            border: none;
+            padding: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #111; /* darker for contrast */
+        }
+        .hamburger:focus {
+            outline: 2px solid rgba(79,70,229,0.25);
+            outline-offset: 2px;
+            border-radius: 6px;
+        }
+        /* SVG lines animation targets */
+        .hamburger svg line {
+            transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms ease;
+            transform-origin: center;
+        }
+        .hamburger.open svg #ham-top {
+            transform: translateY(6px) rotate(45deg);
+        }
+        .hamburger.open svg #ham-mid {
+            opacity: 0;
+            transform: scaleX(0);
+        }
+        .hamburger.open svg #ham-bot {
+            transform: translateY(-6px) rotate(-45deg);
+        }
+
+        /* Mobile Menu Panel (sliding) */
+        /* Right-side fixed drawer for mobile menu */
         .mobile-menu {
-            display: none; /* Hidden by default */
-            padding: 1rem;
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: 84%;
+            max-width: 360px;
             background: white;
-            border-bottom: 1px solid #e5e7eb;
+            box-shadow: -8px 0 24px rgba(16,24,40,0.12);
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 320ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease;
+            z-index: 100;
+            padding: 2.5rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .mobile-menu.open {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* Backdrop overlay */
+        .menu-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 220ms ease;
+            z-index: 90;
+        }
+        .menu-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
         }
         .mobile-menu a {
             display: block;
             padding: 0.75rem 0;
             color: #374151;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 700;
+            font-size: 1.05rem;
         }
         .mobile-menu a:hover {
             color: #4f46e5;
@@ -238,19 +308,29 @@
                 </div>
                 <!-- Mobile Menu Button -->
                 <div class="mobile-menu-button">
-                    <button id="hamburger-button">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    <button id="hamburger-button" class="hamburger" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open navigation menu">
+                        <!-- SVG-based hamburger that animates cleanly to an X -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <line id="ham-top" x1="3" y1="6" x2="21" y2="6"></line>
+                                <line id="ham-mid" x1="3" y1="12" x2="21" y2="12"></line>
+                                <line id="ham-bot" x1="3" y1="18" x2="21" y2="18"></line>
+                            </g>
+                        </svg>
                     </button>
                 </div>
             </nav>
-        </div>
-        <!-- Mobile Menu -->
+    </div>
+    <!-- Mobile Menu -->
+    <div class="mobile-menu-wrapper">
         <div id="mobile-menu" class="mobile-menu">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="mailto:hello@autolister.app">Contact</a>
             <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Get Extension</a>
         </div>
+    </div>
+    <div id="menu-backdrop" class="menu-backdrop" aria-hidden="true"></div>
     </header>
 
     <!-- Hero Section -->
@@ -418,17 +498,45 @@
     </footer>
 
     <script>
-        // JavaScript for the mobile menu
+        // JavaScript for the mobile menu (class toggles + aria)
         const hamburgerButton = document.getElementById('hamburger-button');
         const mobileMenu = document.getElementById('mobile-menu');
 
-        hamburgerButton.addEventListener('click', () => {
-            const isMenuOpen = mobileMenu.style.display === 'block';
-            if (isMenuOpen) {
-                mobileMenu.style.display = 'none';
+        function setMenuOpen(open) {
+            if (open) {
+                hamburgerButton.classList.add('open');
+                mobileMenu.classList.add('open');
+                hamburgerButton.setAttribute('aria-expanded', 'true');
+                hamburgerButton.setAttribute('aria-label', 'Close navigation menu');
             } else {
-                mobileMenu.style.display = 'block';
+                hamburgerButton.classList.remove('open');
+                mobileMenu.classList.remove('open');
+                hamburgerButton.setAttribute('aria-expanded', 'false');
+                hamburgerButton.setAttribute('aria-label', 'Open navigation menu');
             }
+        }
+
+        hamburgerButton.addEventListener('click', () => {
+            const isOpen = hamburgerButton.classList.contains('open');
+            setMenuOpen(!isOpen);
+        });
+
+        // Close mobile menu on outside click or escape key for usability
+        const backdrop = document.getElementById('menu-backdrop');
+        backdrop.addEventListener('click', () => setMenuOpen(false));
+
+        // Close drawer when any menu link is clicked (good UX)
+        document.querySelectorAll('#mobile-menu a').forEach((el) => {
+            el.addEventListener('click', () => setMenuOpen(false));
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!mobileMenu.contains(e.target) && !hamburgerButton.contains(e.target)) {
+                setMenuOpen(false);
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') setMenuOpen(false);
         });
     </script>
 </body>

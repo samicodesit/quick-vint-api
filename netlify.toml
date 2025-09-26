@@ -1,8 +1,0 @@
-# This file tells Netlify exactly how to build your site.
-
-[build]
-  # The directory with your website files (index.html, etc.)
-  publish = "public"
-
-# Netlify can now auto-detect the functions in the `api` directory
-# because the file structure is correct. No extra configuration is needed.

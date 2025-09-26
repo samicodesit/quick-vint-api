@@ -119,7 +119,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
 
         // Only include users with more than 0 usage across any returned limit
-        const totalUsage = (limits || []).reduce((sum: number, l: any) => sum + (l.count || 0), 0);
+        const totalUsage = (limits || []).reduce(
+          (sum: number, l: any) => sum + (l.count || 0),
+          0
+        );
         if (totalUsage <= 0) continue;
 
         usageWithLimits.push({

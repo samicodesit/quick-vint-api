@@ -4,33 +4,31 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    
-    <!-- SEO and Social Sharing Tags -->
+
     <title>AutoLister AI - AI-Powered Vinted Listings in Seconds</title>
     <meta name="description" content="Generate compelling Vinted listings instantly with AutoLister AI. Professional titles and descriptions that sell - powered by advanced AI technology.">
 
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://autolister.app/">
     <meta property="og:title" content="AutoLister AI - AI-Powered Vinted Listings in Seconds">
     <meta property="og:description" content="Stop wasting time writing descriptions. Generate compelling, sales-focused listings for Vinted from your photos in seconds.">
     <meta property="og:image" content="https://placehold.co/1200x630/667eea/ffffff?text=AutoLister AI&font=inter">
 
-    <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://autolister.app/">
     <meta property="twitter:title" content="AutoLister AI - AI-Powered Vinted Listings in Seconds">
     <meta property="twitter:description" content="Stop wasting time writing descriptions. Generate compelling, sales-focused listings for Vinted from your photos in seconds.">
     <meta property="twitter:image" content="https://placehold.co/1200x630/667eea/ffffff?text=AutoLister AI&font=inter">
-    
+
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
             color: #333;
-            background: #f9fafb; /* Lighter default background */
+            background: #f9fafb;
             line-height: 1.6;
+            transition: filter 360ms ease, transform 360ms ease;
         }
 
         .container {
@@ -48,6 +46,8 @@
             top: 0;
             z-index: 100;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 360ms cubic-bezier(.2, .9, .2, 1), filter 360ms ease;
+            transform-origin: top center;
         }
 
         .nav {
@@ -64,11 +64,11 @@
         }
 
         .nav-links {
-            display: none; /* Hidden by default, shown on medium screens up */
+            display: none;
             gap: 2rem;
             align-items: center;
         }
-        
+
         @media (min-width: 768px) {
             .nav-links {
                 display: flex;
@@ -102,15 +102,12 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
         }
-        
-        /* Mobile Menu Button (Hamburger) - visible on all widths for testing */
-        .mobile-menu-button {
-            display: block; /* show everywhere for debugging/testing */
-        }
-        /* Mobile Menu Button (Hamburger visuals) */
+
+        /* Mobile Menu Button (Hamburger) */
         .mobile-menu-button {
             display: block;
         }
+
         @media (min-width: 768px) {
             .mobile-menu-button {
                 display: none;
@@ -126,115 +123,150 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: #111; /* darker for contrast */
+            color: #111;
             transition: background 220ms ease, color 220ms ease, transform 220ms ease;
             border-radius: 8px;
+            z-index: 110;
         }
+
         .hamburger:focus {
-            outline: 2px solid rgba(79,70,229,0.25);
+            outline: 2px solid rgba(79, 70, 229, 0.25);
             outline-offset: 2px;
             border-radius: 6px;
         }
+
         /* SVG lines animation targets */
         .hamburger svg line {
-            transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms ease;
+            transition: transform 260ms cubic-bezier(.2, .9, .2, 1), opacity 200ms ease;
             transform-origin: center;
         }
-        .hamburger.open {
-            background: #111; /* dark circle to make X visible */
-            color: #fff;
-            transform: scale(1.02);
-        }
+
+        /* Open state for hamburger animates to X */
         .hamburger.open svg #ham-top {
             transform: translateY(6px) rotate(45deg);
         }
+
         .hamburger.open svg #ham-mid {
             opacity: 0;
             transform: scaleX(0);
         }
+
         .hamburger.open svg #ham-bot {
             transform: translateY(-6px) rotate(-45deg);
         }
-
-        /* Mobile Menu Panel (sliding) */
-        /* Top-sheet mobile menu (wow effect) */
-        .mobile-menu {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 0;
-            background: rgba(255,255,255,0.85);
-            backdrop-filter: blur(8px) saturate(120%);
-            transform-origin: top center;
-            transform: translateY(-100%);
-            opacity: 0;
-            pointer-events: none;
-            transition: transform 420ms cubic-bezier(.2,.9,.2,1), opacity 320ms ease, height 420ms ease;
-            z-index: 100;
-            padding: 2rem 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            align-items: center;
-        }
-        .mobile-menu.open {
-            transform: translateY(0);
-            opacity: 1;
-            pointer-events: auto;
-            height: auto; /* allow content height */
-        }
-        .mobile-menu.open {
-            box-shadow: 0 20px 60px rgba(16,24,40,0.28);
-            border-bottom-left-radius: 14px;
-            border-bottom-right-radius: 14px;
-        }
+        
         /* Backdrop overlay */
         .menu-backdrop {
             position: fixed;
             inset: 0;
-            background: linear-gradient(rgba(0,0,0,0.28), rgba(0,0,0,0.16));
-            backdrop-filter: blur(6px);
+            background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.62));
+            backdrop-filter: blur(6px) saturate(120%) brightness(0.9);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 280ms ease, transform 280ms ease;
+            transition: opacity 320ms cubic-bezier(.2, .9, .2, 1), transform 320ms ease;
             transform: scale(1.02);
-            z-index: 90;
+            z-index: 200;
         }
+
         .menu-backdrop.open {
             opacity: 1;
-            pointer-events: auto;
+            pointer-events: auto; /* IMPORTANT: Enables click outside menu */
             transform: scale(1);
         }
 
-        /* Staggered link animation */
-        @keyframes slideFadeUp {
-            from { transform: translateY(12px); opacity: 0; }
-            to   { transform: translateY(0); opacity: 1; }
+
+        /* Mobile Menu Panel (sliding) - Now fixed to viewport (no wrapper needed) */
+        .mobile-menu {
+            position: fixed; /* Changed from absolute to fixed */
+            top: 64px; /* sit below the header */
+            left: 12px;
+            right: 12px;
+            background: #fff;
+            transform-origin: top center;
+            transform: translateY(-120%);
+            opacity: 0;
+            pointer-events: none; /* Crucial for initial state */
+            transition: transform 420ms cubic-bezier(.2, .9, .2, 1), opacity 320ms ease;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            align-items: center;
+            border-radius: 12px;
+            box-shadow: 0 18px 60px rgba(16, 24, 40, 0.24);
+            z-index: 210; /* Above backdrop */
         }
+
+        .mobile-menu.open {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto; /* IMPORTANT: Enables menu interaction when open */
+            box-shadow: 0 20px 60px rgba(16, 24, 40, 0.28);
+        }
+        
+
+        /* Corrected: Apply dimming/scaling ONLY to main content sections when body has class */
+        body.menu-dim .header,
+        body.menu-dim .hero,
+        body.menu-dim .features,
+        body.menu-dim .how-it-works,
+        body.menu-dim .pricing-preview,
+        body.menu-dim .cta-section,
+        body.menu-dim .footer {
+            transform: scale(0.997);
+            filter: brightness(0.88) saturate(0.98);
+        }
+
+        /* Staggered link animation */
         .mobile-menu a {
             opacity: 0;
             transform: translateY(12px);
+            color: #111;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.05rem;
+            padding: 0.75rem 0;
+            width: 100%;
+            text-align: center;
+            border-radius: 8px;
+            transition: color 0.3s ease;
         }
-        .mobile-menu.open a { /* stagger using transition delays */
+
+        .mobile-menu a:hover {
+            color: #4f46e5;
+        }
+
+        .mobile-menu.open a {
             opacity: 1;
             transform: translateY(0);
         }
+
         .mobile-menu.open a:nth-child(1){ transition: all 360ms ease 80ms; }
         .mobile-menu.open a:nth-child(2){ transition: all 360ms ease 160ms; }
         .mobile-menu.open a:nth-child(3){ transition: all 360ms ease 240ms; }
         .mobile-menu.open a:nth-child(4){ transition: all 360ms ease 320ms; }
-        .mobile-menu a {
-            display: block;
-            padding: 0.75rem 0;
-            color: #374151;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.05rem;
+
+        /* close button inside sheet */
+        .sheet-close {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            background: #4f46e5;
+            border: none;
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.18);
+            transition: transform 180ms ease, box-shadow 180ms ease;
+            z-index: 220;
         }
-        .mobile-menu a:hover {
-            color: #4f46e5;
-        }
+        .sheet-close:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(79, 70, 229, 0.22); }
+        .sheet-close:focus { outline: 3px solid rgba(79, 70, 229, 0.18); }
 
         /* Hero Section */
         .hero {
@@ -242,6 +274,8 @@
             padding: 4rem 0 6rem 0;
             text-align: center;
             color: white;
+            transition: transform 360ms cubic-bezier(.2, .9, .2, 1), filter 360ms ease;
+            transform-origin: top center;
         }
 
         .hero h1 {
@@ -251,7 +285,8 @@
             line-height: 1.2;
             margin-top: 0;
         }
-         @media (min-width: 768px) {
+
+        @media (min-width: 768px) {
             .hero h1 {
                 font-size: 3.5rem;
                 margin-top: 0;
@@ -275,7 +310,7 @@
             align-items: center;
             margin-bottom: 4rem;
         }
-        
+
         @media (min-width: 768px) {
             .hero-cta {
                 flex-direction: row;
@@ -295,7 +330,7 @@
             width: 100%;
             max-width: 300px;
         }
-        
+
         @media (min-width: 768px) {
             .btn {
                 width: auto;
@@ -324,29 +359,41 @@
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-3px);
         }
-        
+
         /* Other styles remain the same... */
-        .social-proof{margin-top:3rem;color:rgba(255,255,255,0.8);font-size:1rem}.stats{display:flex;justify-content:center;gap:2rem;margin-top:2rem;flex-wrap:wrap}@media (min-width:768px){.stats{gap:3rem}}.stat{text-align:center}.stat-number{font-size:2rem;font-weight:700;color:white;display:block}.stat-label{font-size:0.9rem;color:rgba(255,255,255,0.7)}.features{background:white;padding:6rem 0}.section-header{text-align:center;margin-bottom:4rem}.section-header h2{font-size:2.5rem;color:#1f2937;margin-bottom:1rem;font-weight:700}.section-header p{font-size:1.2rem;color:#6b7280;max-width:600px;margin:0 auto}.features-grid{display:grid;grid-template-columns:1fr;gap:2rem;margin-top:4rem}@media (min-width:768px){.features-grid{grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:3rem}}.feature{text-align:center;padding:2rem;border-radius:20px;background:#f9fafb;border:2px solid #e5e7eb;transition:all 0.3s ease}.feature:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,0.1);border-color:#4f46e5}.feature-icon{font-size:3rem;margin-bottom:1.5rem;display:block}.feature h3{font-size:1.5rem;color:#1f2937;margin-bottom:1rem;font-weight:600}.feature p{color:#6b7280;line-height:1.6}.how-it-works{background:#f8fafc;padding:6rem 0}.steps{display:grid;grid-template-columns:1fr;gap:2rem;margin-top:4rem}@media (min-width:768px){.steps{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}}.step{background:white;padding:2.5rem 2rem;border-radius:16px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.05);position:relative}.step-number{position:absolute;top:-20px;left:50%;transform:translateX(-50%);background:#4f46e5;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem}.step h3{color:#1f2937;margin:1rem 0;font-size:1.3rem}.step p{color:#6b7280}.pricing-preview{background:white;padding:6rem 0}.pricing-cards{display:grid;grid-template-columns:1fr;gap:2.5rem;margin-top:3rem;max-width:1000px;margin-left:auto;margin-right:auto}@media (min-width:1024px){.pricing-cards{grid-template-columns:repeat(3,1fr);gap:2rem}}.pricing-card{background:white;border:2px solid #e5e7eb;border-radius:20px;padding:2rem;text-align:center;transition:all 0.3s ease;position:relative}.pricing-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,0.1);border-color:#4f46e5}.pricing-card.featured{border-color:#4f46e5;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:white;transform:scale(1.05)}.pricing-card.featured .badge{background:#fbbf24;color:#92400e;padding:0.3rem 1rem;border-radius:20px;font-size:0.8rem;font-weight:600;position:absolute;top:-10px;left:50%;transform:translateX(-50%)}.plan-name{font-size:1.3rem;font-weight:600;margin-bottom:1rem}.plan-price{font-size:2.5rem;font-weight:700;margin-bottom:0.5rem}.plan-period{opacity:0.7;margin-bottom:2rem}.plan-features{list-style:none;padding:0;margin:2rem 0;text-align:left}.plan-features li{padding:0.5rem 0;position:relative;padding-left:1.5rem}.plan-features li::before{content:"✓";position:absolute;left:0;color:#10b981;font-weight:bold}.pricing-card.featured .plan-features li::before{color:#fbbf24}.cta-section{background:linear-gradient(135deg,#1f2937 0%,#374151 100%);color:white;padding:6rem 0;text-align:center}.cta-section h2{font-size:2.5rem;margin-bottom:1.5rem;font-weight:700}.cta-section p{font-size:1.2rem;margin-bottom:3rem;opacity:0.9;max-width:600px;margin-left:auto;margin-right:auto}.footer{background:#1f2937;color:white;padding:3rem 0 2rem 0;text-align:center}.footer-links{display:flex;justify-content:center;gap:2rem;margin-bottom:2rem;flex-wrap:wrap}.footer-links a{color:#d1d5db;text-decoration:none;transition:color 0.3s ease}.footer-links a:hover{color:white}.footer-bottom{border-top:1px solid #374151;padding-top:2rem;color:#9ca3af}
+        .social-proof{margin-top:3rem;color:rgba(255,255,255,0.8);font-size:1rem}.stats{display:flex;justify-content:center;gap:2rem;margin-top:2rem;flex-wrap:wrap}@media (min-width:768px){.stats{gap:3rem}}.stat{text-align:center}.stat-number{font-size:2rem;font-weight:700;color:white;display:block}.stat-label{font-size:0.9rem;color:rgba(255,255,255,0.7)}.features{background:white;padding:6rem 0; transition: transform 360ms cubic-bezier(.2,.9,.2,1), filter 360ms ease; transform-origin: top center;}.section-header{text-align:center;margin-bottom:4rem}.section-header h2{font-size:2.5rem;color:#1f2937;margin-bottom:1rem;font-weight:700}.section-header p{font-size:1.2rem;color:#6b7280;max-width:600px;margin:0 auto}.features-grid{display:grid;grid-template-columns:1fr;gap:2rem;margin-top:4rem}@media (min-width:768px){.features-grid{grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:3rem}}.feature{text-align:center;padding:2rem;border-radius:20px;background:#f9fafb;border:2px solid #e5e7eb;transition:all 0.3s ease}.feature:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,0.1);border-color:#4f46e5}.feature-icon{font-size:3rem;margin-bottom:1.5rem;display:block}.feature h3{font-size:1.5rem;color:#1f2937;margin-bottom:1rem;font-weight:600}.feature p{color:#6b7280;line-height:1.6}.how-it-works{background:#f8fafc;padding:6rem 0; transition: transform 360ms cubic-bezier(.2,.9,.2,1), filter 360ms ease; transform-origin: top center;}.steps{display:grid;grid-template-columns:1fr;gap:2rem;margin-top:4rem}@media (min-width:768px){.steps{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}}.step{background:white;padding:2.5rem 2rem;border-radius:16px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.05);position:relative}.step-number{position:absolute;top:-20px;left:50%;transform:translateX(-50%);background:#4f46e5;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem}.step h3{color:#1f2937;margin:1rem 0;font-size:1.3rem}.step p{color:#6b7280}.pricing-preview{background:white;padding:6rem 0; transition: transform 360ms cubic-bezier(.2,.9,.2,1), filter 360ms ease; transform-origin: top center;}.pricing-cards{display:grid;grid-template-columns:1fr;gap:2.5rem;margin-top:3rem;max-width:1000px;margin-left:auto;margin-right:auto}@media (min-width:1024px){.pricing-cards{grid-template-columns:repeat(3,1fr);gap:2rem}}.pricing-card{background:white;border:2px solid #e5e7eb;border-radius:20px;padding:2rem;text-align:center;transition:all 0.3s ease;position:relative}.pricing-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,0.1);border-color:#4f46e5}.pricing-card.featured{border-color:#4f46e5;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:white;transform:scale(1.05)}.pricing-card.featured .badge{background:#fbbf24;color:#92400e;padding:0.3rem 1rem;border-radius:20px;font-size:0.8rem;font-weight:600;position:absolute;top:-10px;left:50%;transform:translateX(-50%)}.plan-name{font-size:1.3rem;font-weight:600;margin-bottom:1rem}.plan-price{font-size:2.5rem;font-weight:700;margin-bottom:0.5rem}.plan-period{opacity:0.7;margin-bottom:2rem}.plan-features{list-style:none;padding:0;margin:2rem 0;text-align:left}.plan-features li{padding:0.5rem 0;position:relative;padding-left:1.5rem}.plan-features li::before{content:"✓";position:absolute;left:0;color:#10b981;font-weight:bold}.pricing-card.featured .plan-features li::before{color:#fbbf24}.cta-section{background:linear-gradient(135deg,#1f2937 0%,#374151 100%);color:white;padding:6rem 0;text-align:center; transition: transform 360ms cubic-bezier(.2,.9,.2,1), filter 360ms ease; transform-origin: top center;}.cta-section h2{font-size:2.5rem;margin-bottom:1.5rem;font-weight:700}.cta-section p{font-size:1.2rem;margin-bottom:3rem;opacity:0.9;max-width:600px;margin-left:auto;margin-right:auto}.footer{background:#1f2937;color:white;padding:3rem 0 2rem 0;text-align:center; transition: transform 360ms cubic-bezier(.2,.9,.2,1), filter 360ms ease; transform-origin: top center;}.footer-links{display:flex;justify-content:center;gap:2rem;margin-bottom:2rem;flex-wrap:wrap}.footer-links a{color:#d1d5db;text-decoration:none;transition:color 0.3s ease}.footer-links a:hover{color:white}.footer-bottom{border-top:1px solid #374151;padding-top:2rem;color:#9ca3af}
     </style>
 </head>
 
 <body>
-    <!-- Header -->
+    <div id="menu-backdrop" class="menu-backdrop" aria-hidden="true"></div>
+
+    <div id="mobile-menu" class="mobile-menu">
+        <button id="sheet-close" class="sheet-close" aria-label="Close menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="mailto:hello@autolister.app">Contact</a>
+        <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Get Extension</a>
+    </div>
+
+
     <header class="header">
         <div class="container">
             <nav class="nav">
                 <a href="/" class="logo">AutoLister AI</a>
-                <!-- Desktop Nav -->
                 <div class="nav-links">
                     <a href="#features">Features</a>
                     <a href="#pricing">Pricing</a>
                     <a href="mailto:hello@autolister.app">Contact</a>
                     <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn-nav">Get Extension</a>
                 </div>
-                <!-- Mobile Menu Button -->
                 <div class="mobile-menu-button">
                     <button id="hamburger-button" class="hamburger" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open navigation menu">
-                        <!-- SVG-based hamburger that animates cleanly to an X -->
                         <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                 <line id="ham-top" x1="3" y1="6" x2="21" y2="6"></line>
@@ -357,25 +404,14 @@
                     </button>
                 </div>
             </nav>
-    </div>
-    <!-- Mobile Menu -->
-    <div class="mobile-menu-wrapper">
-        <div id="mobile-menu" class="mobile-menu">
-            <a href="#features">Features</a>
-            <a href="#pricing">Pricing</a>
-            <a href="mailto:hello@autolister.app">Contact</a>
-            <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Get Extension</a>
         </div>
-    </div>
-    <div id="menu-backdrop" class="menu-backdrop" aria-hidden="true"></div>
     </header>
 
-    <!-- Hero Section -->
     <section class="hero">
         <div class="container">
             <h1>Transform Your Vinted Sales<br>with AI-Powered Listings</h1>
             <p class="subtitle">
-                Generate compelling titles and descriptions for your Vinted items in seconds. 
+                Generate compelling titles and descriptions for your Vinted items in seconds.
                 Professional, conversion-focused content that sells - powered by advanced AI.
             </p>
             <div class="hero-cta">
@@ -406,7 +442,6 @@
         </div>
     </section>
 
-    <!-- Features Section -->
     <section id="features" class="features">
         <div class="container">
             <div class="section-header">
@@ -433,7 +468,6 @@
         </div>
     </section>
 
-    <!-- How It Works -->
     <section class="how-it-works">
         <div class="container">
             <div class="section-header">
@@ -460,7 +494,6 @@
         </div>
     </section>
 
-    <!-- Pricing Section -->
     <section id="pricing" class="pricing-preview">
         <div class="container">
             <div class="section-header">
@@ -468,7 +501,6 @@
                 <p>Start free, upgrade when ready. All plans include our powerful AI technology.</p>
             </div>
             <div class="pricing-cards">
-                <!-- Starter -->
                 <div class="pricing-card">
                     <div class="plan-name">Starter</div>
                     <div class="plan-price">€4.99</div>
@@ -479,7 +511,6 @@
                         <li>Standard support</li>
                     </ul>
                 </div>
-                <!-- Pro (Featured) -->
                 <div class="pricing-card featured">
                     <div class="badge">Most Popular</div>
                     <div class="plan-name">Pro</div>
@@ -491,7 +522,6 @@
                         <li>Priority support</li>
                     </ul>
                 </div>
-                <!-- Business -->
                 <div class="pricing-card">
                     <div class="plan-name">Business</div>
                     <div class="plan-price">€19.99</div>
@@ -506,7 +536,6 @@
         </div>
     </section>
 
-    <!-- CTA Section -->
     <section class="cta-section">
         <div class="container">
             <h2>Ready to Transform Your Vinted Sales?</h2>
@@ -519,7 +548,6 @@
         </div>
     </section>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-links">
@@ -538,42 +566,70 @@
         // JavaScript for the mobile menu (class toggles + aria)
         const hamburgerButton = document.getElementById('hamburger-button');
         const mobileMenu = document.getElementById('mobile-menu');
+        // const mobileMenuWrapper = document.getElementById('mobile-menu-wrapper'); // Removed wrapper
+        const backdrop = document.getElementById('menu-backdrop');
+        const sheetClose = document.getElementById('sheet-close');
 
         function setMenuOpen(open) {
             if (open) {
                 hamburgerButton.classList.add('open');
                 mobileMenu.classList.add('open');
+                backdrop.classList.add('open');
+                // mobileMenuWrapper.classList.add('open'); // Removed wrapper toggle
+
                 hamburgerButton.setAttribute('aria-expanded', 'true');
                 hamburgerButton.setAttribute('aria-label', 'Close navigation menu');
+
+                // focus close for accessibility
+                if (sheetClose) sheetClose.focus();
+
+                // dim the page behind the overlay for a polished look
+                document.body.classList.add('menu-dim');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
             } else {
                 hamburgerButton.classList.remove('open');
                 mobileMenu.classList.remove('open');
+                backdrop.classList.remove('open');
+                // mobileMenuWrapper.classList.remove('open'); // Removed wrapper toggle
+
                 hamburgerButton.setAttribute('aria-expanded', 'false');
                 hamburgerButton.setAttribute('aria-label', 'Open navigation menu');
+
+                document.body.classList.remove('menu-dim');
+                document.body.style.overflow = ''; // Restore scrolling
             }
         }
 
-        hamburgerButton.addEventListener('click', () => {
-            const isOpen = hamburgerButton.classList.contains('open');
+        hamburgerButton.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            const isOpen = mobileMenu.classList.contains('open'); // Check menu state directly
             setMenuOpen(!isOpen);
         });
-
-        // Close mobile menu on outside click or escape key for usability
-        const backdrop = document.getElementById('menu-backdrop');
-        backdrop.addEventListener('click', () => setMenuOpen(false));
 
         // Close drawer when any menu link is clicked (good UX)
         document.querySelectorAll('#mobile-menu a').forEach((el) => {
             el.addEventListener('click', () => setMenuOpen(false));
         });
 
-        document.addEventListener('click', (e) => {
-            if (!mobileMenu.contains(e.target) && !hamburgerButton.contains(e.target)) {
-                setMenuOpen(false);
+        // Sheet close button
+        if (sheetClose) {
+            sheetClose.addEventListener('click', () => setMenuOpen(false));
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (mobileMenu.classList.contains('open')) {
+                    setMenuOpen(false);
+                }
             }
         });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') setMenuOpen(false);
+
+        // FIX: Reliable Backdrop/Outside Click Handler
+        backdrop.addEventListener('click', (e) => {
+            // Because the backdrop is fixed, covers the screen, and has pointer-events: auto when open,
+            // this is the most reliable way to handle outside clicks.
+            setMenuOpen(false);
         });
     </script>
 </body>

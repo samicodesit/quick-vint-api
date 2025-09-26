@@ -76,14 +76,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // --- AUTH ---
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     logData.responseStatus = 401;
     logData.processingDurationMs = Date.now() - startTime;
-    logData.flaggedReason = "Missing or invalid Authorization header";
+    logData.flaggedReason = "Auth header missing or malformed";
     await ApiLogger.logRequest(logData);
     return res.status(401).json({ error: "Missing or invalid Authorization" });
   }
   const token = authHeader.split(" ")[1];
+  if (!token) {
+    logData.responseStatus = 401;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Auth token missing from header";
+    await ApiLogger.logRequest(logData);
+    return res.status(401).json({ error: "Missing or invalid Authorization" });
+  }
+
   const {
     data: { user },
     error: userError,
@@ -91,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (userError || !user) {
     logData.responseStatus = 401;
     logData.processingDurationMs = Date.now() - startTime;
-    logData.flaggedReason = "Invalid or expired token";
+    logData.flaggedReason = `Token validation failed: ${userError?.message || "No user found for token"}`;
     await ApiLogger.logRequest(logData);
     return res.status(401).json({ error: "Invalid or expired token" });
   }

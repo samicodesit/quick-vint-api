@@ -779,17 +779,39 @@
             <div class="tables-row">
                 <div class="stat-card">
                     <h3>Today's Daily Usage</h3>
-                    <div id="todaysUsageContent"></div>
+                    <div id="todaysUsageContent">
+                        <table id="recentSignupsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Signup Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="stat-card">
                     <h3>🏆 Top Users (All Time)</h3>
-                    <div id="topUsersContent"></div>
+                    <div id="topUsersContent">
+                        <table id="topUsersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>API Calls (This Month)</th>
+                                    <th>Tier</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
             <!-- Row 3: Rate Limits -->
             <div class="stat-card">
-                <h3>Today's Daily Usage</h3>
+                <h3>Rate Limited Users (Last Hour)</h3>
                 <div id="rateLimitsContent">Loading...</div>
             </div>
 

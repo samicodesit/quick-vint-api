@@ -63,16 +63,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const combinedUsers = Array.from(allUserMap.values());
 
-    // Get all of today's daily usage data
-    const { data: rateLimitData } = await supabase
+
+    // Get all active rate limits for all window types
+    const { data: allRateLimits } = await supabase
       .from("rate_limits")
       .select("user_id, window_type, count, expires_at")
       .gt("expires_at", new Date().toISOString())
-      .eq("window_type", "day") // Focus only on daily limits
       .order("count", { ascending: false })
-      .limit(200); // Get up to 200 records for today
+      .limit(500);
 
-    // Enrich the usage data with user details and tier limits
+    // Tier limits for daily window (for reference)
     const tierLimits: Record<string, number> = {
       free: 2,
       unlimited_monthly: 15, // Legacy
@@ -81,25 +81,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       business: 75,
     };
 
-    const todaysUsage = [];
+    // Build a map of userId -> array of active limits
+    const userLimitsMap: Record<string, Array<any>> = {};
+    if (allRateLimits) {
+      for (const limit of allRateLimits) {
+        if (!userLimitsMap[limit.user_id]) userLimitsMap[limit.user_id] = [];
+        userLimitsMap[limit.user_id].push(limit);
+      }
+    }
+
+    // For each user, attach all their active limits
+    const usageWithLimits = [];
     if (combinedUsers) {
       for (const user of combinedUsers) {
         const userTier = user.subscription_tier || "free";
         const dailyLimit = tierLimits[userTier] || tierLimits.free;
-        // Find today's rate limit record for this user
-        const limit = rateLimitData?.find((l) => l.user_id === user.id);
-        const count = limit?.count || 0;
-        const expires_at = limit?.expires_at || null;
-        const isBlocked = count >= dailyLimit;
-
-        todaysUsage.push({
+        const limits = userLimitsMap[user.id] || [];
+        usageWithLimits.push({
           user_id: user.id,
           email: user.email,
           tier: userTier,
           daily_limit: dailyLimit,
-          count,
-          is_blocked: isBlocked,
-          expires_at,
+          limits, // array of {window_type, count, expires_at}
         });
       }
     }
@@ -112,7 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       lastWeek: weekStats || [],
       topUsers: combinedUsers || [],
-      todaysUsage: todaysUsage || [],
+  todaysUsage: usageWithLimits || [],
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {

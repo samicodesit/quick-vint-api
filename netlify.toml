@@ -1,17 +1,8 @@
 # This file tells Netlify exactly how to build your site.
 
 [build]
-  # We no longer need a build command here.
   # The directory with your website files (index.html, etc.)
   publish = "public"
 
-# This new functions configuration is the key.
-[functions]
-  # Point directly to your SOURCE directory for functions.
-  directory = "api"
-  # Use the esbuild bundler, which handles TypeScript and subdirectories correctly.
-  node_bundler = "esbuild"
-  # IMPORTANT: This tells the bundler to include your shared utility files
-  # when it packages the functions.
-  included_files = ["utils/**"]
-
+# Netlify can now auto-detect the functions in the `api` directory
+# because the file structure is correct. No extra configuration is needed.

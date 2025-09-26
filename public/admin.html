@@ -1623,7 +1623,14 @@
             
             // Today's stats
             document.getElementById('todayRequests').textContent = data.today.totalRequests;
-            document.getElementById('todayCost').textContent = data.today.estimatedCost.toFixed(2);
+            const costElem = document.getElementById('todayCost');
+            if (typeof data.today.estimatedCost === 'number' && data.today.estimatedCost > 0) {
+                costElem.textContent = data.today.estimatedCost.toFixed(2);
+            } else {
+                costElem.textContent = '0.00';
+                costElem.style.color = '#dc2626';
+                costElem.title = 'No cost data for today. Check stats job.';
+            }
 
             // User growth stats (excluding demo account)
             const totalUsers = filteredUsers.length;
@@ -1742,9 +1749,15 @@
                 filteredUsers.forEach(user => {
                     const userEmail = user.email || 'Unknown';
                     const userIdShort = user.user_id ? (user.user_id.substring(0, 8) + '...') : '';
+                    // Deduplicate: keep only one limit per type (highest usage)
+                    const bestLimits = {};
                     user.limits.forEach(limit => {
+                        if (!bestLimits[limit.window_type] || limit.count > bestLimits[limit.window_type].count) {
+                            bestLimits[limit.window_type] = limit;
+                        }
+                    });
+                    Object.values(bestLimits).forEach(limit => {
                         const expiry = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : '-';
-                        // Get correct limit for window type
                         const maxLimit = windowTypeLimits[limit.window_type] ? windowTypeLimits[limit.window_type](user) : '?';
                         html += `<tr>
                             <td>

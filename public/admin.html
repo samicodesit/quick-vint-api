@@ -1835,7 +1835,7 @@
                     rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No users with active usage</div>';
                     return;
                 }
-                    let html = '<div class="legend"><div><strong>Legend:</strong> </div><div><span class="status-badge status-ok">OK</span> within limits</div><div><span class="status-badge status-limited">LIMITED</span> over limit</div><div class="small-note">Reset button copies safe SQL to clipboard • Expiry times are aligned to UTC boundaries</div></div>';
+                    let html = '<div class="legend"><div><strong>Legend:</strong> </div><div><span class="status-badge status-ok">OK</span> within limits</div><div><span class="status-badge status-limited">LIMITED</span> over limit</div><div class="small-note">UI shows monthly totals only. Per-minute burst is internal protection (not shown). Reset copies SQL • Expiry times are UTC-aligned</div></div>';
                         html += '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Usage</th><th>Status</th><th>Expires</th></tr></thead><tbody>';
 
                     // Render one row per user - aggregate window usage into a compact list
@@ -1858,23 +1858,29 @@
                         let anyOver = false;
                         let soonestExpiry = null;
 
-                        const windowOrder = ['minute', 'day', 'month'];
+                        // Show daily and monthly totals (daily displayed as 'N/A' for Business tier)
+                        const windowOrder = ['day','month'];
                         windowOrder.forEach(w => {
                             const limit = bestLimits[w];
                             if (!limit) return;
-                            const humanWindow = w === 'minute' ? 'Per minute' : (w === 'day' ? 'Daily' : 'Monthly');
+                            const humanWindow = w === 'day' ? 'Daily' : 'Monthly';
                             const maxLimit = user.max_limits ? user.max_limits[w] : null;
                             const count = limit.count || 0;
+                            // For business tier maxLimit will be null (exempt)
                             const isOver = (typeof maxLimit === 'number') && count > maxLimit;
                             if (isOver) anyOver = true;
-                            const usageText = (typeof maxLimit === 'number') ? `<span class="usage-count" style="color: ${isOver ? '#dc2626' : '#111827'}">${count} / ${maxLimit}</span>` : `<span class="usage-count">${count}</span>`;
+                            const usageText = (typeof maxLimit === 'number') ? `<span class="usage-count" style="color: ${isOver ? '#dc2626' : '#111827'}">${count} / ${maxLimit}</span>` : `<span class="usage-count">${count} / N/A</span>`;
 
                             const expiryText = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : 'persistent';
                             if (limit.expires_at) {
                                 if (!soonestExpiry || new Date(limit.expires_at) < new Date(soonestExpiry)) soonestExpiry = limit.expires_at;
                             }
 
-                            usageLines.push(`<div class="usage-line"><span class="limit-label">${humanWindow}</span>${usageText}<small style="color: #6b7280; margin-left: 8px; font-size: 0.85rem;">${expiryText}</small><button class="reset-small" onclick="copyResetSql('${user.user_id}', '${w}')">Reset</button></div>`);
+                            // Reset monthly counters only for month; daily reset also available if applicable
+                            const resetWindow = w === 'month' ? 'month' : (user.tier === 'business' ? '' : 'day');
+                            const resetButton = resetWindow ? `<button class="reset-small" onclick="copyResetSql('${user.user_id}', '${resetWindow}')">Reset</button>` : '';
+
+                            usageLines.push(`<div class="usage-line"><span class="limit-label">${humanWindow}</span>${usageText}<small style="color: #6b7280; margin-left: 8px; font-size: 0.85rem;">${expiryText}</small>${resetButton}</div>`);
                         });
 
                         const statusBadge = anyOver ? '<span class="status-badge status-limited">LIMITED</span>' : '<span class="status-badge status-ok">OK</span>';

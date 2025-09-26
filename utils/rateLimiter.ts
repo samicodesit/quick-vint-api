@@ -57,7 +57,7 @@ interface RateLimitResult {
   error?: string;
   remainingRequests?: {
     minute: number;
-    day: number;
+    day?: number | null;
     month: number;
   };
 }
@@ -176,7 +176,7 @@ export class RateLimiter {
           )
         );
       } else {
-        // fallback: short UTC buffer
+        // fallback short UTC buffer for unknown windows
         expiryDate = new Date(Date.now() + 5 * 60 * 1000);
       }
 
@@ -316,22 +316,7 @@ export class RateLimiter {
         .eq("id", userId)
         .single();
 
-      let effectiveDailyLimit: number;
-      let tierConfig = this.getTierConfig(profile);
-
-      // Use custom limit if it exists and hasn't expired
-      if (
-        customLimits?.custom_daily_limit &&
-        customLimits.custom_limit_expires_at &&
-        new Date(customLimits.custom_limit_expires_at) > new Date()
-      ) {
-        effectiveDailyLimit = customLimits.custom_daily_limit;
-        console.log(
-          `Using custom daily limit for user ${userId}: ${effectiveDailyLimit} (reason: ${customLimits.custom_limit_reason})`
-        );
-      } else {
-        effectiveDailyLimit = tierConfig.limits.daily;
-      }
+      const tierConfig = this.getTierConfig(profile);
 
       // 3. Check monthly limit (existing logic)
       if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
@@ -352,16 +337,30 @@ export class RateLimiter {
           error: "Too many requests. Please wait a moment before trying again.",
         };
       }
+      // 5. Check daily limits (if applicable)
+      // Business tier is exempt from daily limits
+      let effectiveDailyLimit: number | null = null;
+      if (profile.subscription_tier !== "business") {
+        if (
+          customLimits?.custom_daily_limit &&
+          customLimits.custom_limit_expires_at &&
+          new Date(customLimits.custom_limit_expires_at) > new Date()
+        ) {
+          effectiveDailyLimit = customLimits.custom_daily_limit;
+        } else {
+          effectiveDailyLimit = tierConfig.limits.daily;
+        }
 
-      if (dayCount >= effectiveDailyLimit) {
-        return {
-          allowed: false,
-          error:
-            "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
-        };
+        if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
+          return {
+            allowed: false,
+            error:
+              "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
+          };
+        }
       }
 
-      // 5. All checks passed - return success but don't increment yet
+      // 6. All checks passed - return success but don't increment yet
       // Counters will be incremented only after successful API generation
       return {
         allowed: true,
@@ -370,7 +369,10 @@ export class RateLimiter {
             0,
             tierConfig.limits.burst.perMinute - minuteCount - 1
           ),
-          day: Math.max(0, effectiveDailyLimit - dayCount - 1),
+          day:
+            effectiveDailyLimit !== null
+              ? Math.max(0, (effectiveDailyLimit || 0) - dayCount - 1)
+              : null,
           month: Math.max(
             0,
             tierConfig.limits.monthly - profile.api_calls_this_month - 1
@@ -387,11 +389,25 @@ export class RateLimiter {
   // Record successful API generation - only call this after OpenAI succeeds
   static async recordSuccessfulRequest(userId: string): Promise<void> {
     try {
-      await Promise.all([
+      // Fetch user's profile to determine if we should write a daily counter
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("subscription_tier")
+        .eq("id", userId)
+        .single();
+
+      const isBusiness = profile?.subscription_tier === "business";
+
+      const ops: Promise<any>[] = [
         this.incrementCount(userId, "minute"),
-        this.incrementCount(userId, "day"),
         this.updateGlobalStats(),
-      ]);
+      ];
+      // Only track daily counters for non-business users (business tier is exempt)
+      if (!isBusiness) {
+        ops.push(this.incrementCount(userId, "day"));
+      }
+
+      await Promise.all(ops);
     } catch (err) {
       console.error("Error recording successful request:", err);
       // Don't throw here to avoid failing the API response

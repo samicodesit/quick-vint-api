@@ -108,7 +108,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (combinedUsers) {
       for (const user of combinedUsers) {
         const userTier = user.subscription_tier || "free";
-        const limits = userLimitsMap[user.id] || [];
+        // Keep month windows and day windows (so admin can see daily usage), but per-minute remains internal
+        const rawLimits = userLimitsMap[user.id] || [];
+        const limits = rawLimits.filter(
+          (l: any) => l.window_type === "month" || l.window_type === "day"
+        );
 
         // Ensure monthly synthetic entry exists so UI can display monthly usage
         const hasMonth = limits.some((l) => l.window_type === "month");
@@ -142,11 +146,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const tierLimits = getTierLimits(userTier);
 
-        const maxLimits = {
-          minute: tierLimits.minute,
-          day: tierLimits.day,
-          month: tierLimits.month,
-        };
+        const maxLimits: any = { month: tierLimits.month };
+        // Business tier is exempt from daily limits
+        if (userTier !== "business") {
+          maxLimits.day = tierLimits.day;
+        } else {
+          maxLimits.day = null; // indicate exempt
+        }
 
         // Only include users with more than 0 usage across any returned limit
         const totalUsage = (limits || []).reduce(
@@ -159,7 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           user_id: user.id,
           email: user.email,
           tier: userTier,
-          daily_limit: tierLimits.day,
+          // daily_limit removed - system now enforces monthly + per-minute burst only
           limits, // array of {window_type, count, expires_at}
           max_limits: maxLimits,
         });

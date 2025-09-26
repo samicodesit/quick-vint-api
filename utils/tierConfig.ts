@@ -15,7 +15,6 @@ export interface TierConfig {
     monthly: number;
     burst: {
       perMinute: number;
-      perHour: number;
     };
   };
   features: string[];
@@ -38,7 +37,6 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       monthly: 10, // About 3 uses over 3-4 days max
       burst: {
         perMinute: 3, // Allow a couple quick tries
-        perHour: 5, // Very limited
       },
     },
     features: ["AI-generated titles and descriptions", "Basic support"],
@@ -59,7 +57,6 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       monthly: 300, // 10 requests/day average with burst capacity
       burst: {
         perMinute: 10,
-        perHour: 40,
       },
     },
     features: [
@@ -84,7 +81,6 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       monthly: 800, // 25+ requests/day average
       burst: {
         perMinute: 20,
-        perHour: 80,
       },
     },
     features: [
@@ -109,7 +105,6 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       monthly: 1500, // High ceiling
       burst: {
         perMinute: 30,
-        perHour: 120,
       },
     },
     features: [

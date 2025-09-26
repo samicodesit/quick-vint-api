@@ -63,7 +63,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const combinedUsers = Array.from(allUserMap.values());
 
-
     // Get all active rate limits for all window types
     const { data: allRateLimits } = await supabase
       .from("rate_limits")
@@ -81,10 +80,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       business: 75,
     };
 
+    // Burst limits (per-minute) for UI reference
+    const tierBursts: Record<string, number> = {
+      free: 3,
+      unlimited_monthly: 10, // Legacy mapping
+      starter: 10,
+      pro: 20,
+      business: 30,
+    };
+
     // Build a map of userId -> array of active limits
     const userLimitsMap: Record<string, Array<any>> = {};
     if (allRateLimits) {
       for (const limit of allRateLimits) {
+        if (limit.window_type === "hour") continue; // Skip hourly limits
         if (!userLimitsMap[limit.user_id]) userLimitsMap[limit.user_id] = [];
         userLimitsMap[limit.user_id].push(limit);
       }
@@ -97,12 +106,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const userTier = user.subscription_tier || "free";
         const dailyLimit = tierLimits[userTier] || tierLimits.free;
         const limits = userLimitsMap[user.id] || [];
+        const burstPerMinute = tierBursts[userTier] || tierBursts.free;
+
+        // Compute canonical max limits per window type (single source of truth)
+        const maxLimits = {
+          minute: burstPerMinute,
+          day: dailyLimit,
+          month: dailyLimit * 30,
+        };
+
         usageWithLimits.push({
           user_id: user.id,
           email: user.email,
           tier: userTier,
           daily_limit: dailyLimit,
           limits, // array of {window_type, count, expires_at}
+          max_limits: maxLimits,
         });
       }
     }
@@ -110,12 +129,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       today: {
         date: todayStr,
-        totalRequests: typeof todayStats?.total_api_calls === 'number' ? todayStats.total_api_calls : 0,
-        estimatedCost: typeof todayStats?.estimated_cost === 'number' ? todayStats.estimated_cost : 0,
+        totalRequests:
+          typeof todayStats?.total_api_calls === "number"
+            ? todayStats.total_api_calls
+            : 0,
+        estimatedCost:
+          typeof todayStats?.estimated_cost === "number"
+            ? todayStats.estimated_cost
+            : 0,
       },
       lastWeek: weekStats || [],
       topUsers: combinedUsers || [],
-  todaysUsage: usageWithLimits || [],
+      todaysUsage: usageWithLimits || [],
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {

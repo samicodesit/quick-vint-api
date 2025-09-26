@@ -1738,13 +1738,12 @@
                     rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No users with active limits</div>';
                     return;
                 }
-                let html = '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Limit Type</th><th>Usage</th><th>Expires</th></tr></thead><tbody>';
-                // Define window type limits
+                let html = '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Limit</th><th>Usage</th><th>Expires</th></tr></thead><tbody>';
+                // Use server-provided max_limits when available (single source of truth)
                 const windowTypeLimits = {
-                    day: user => user.daily_limit,
-                    hour: user => 5, // Example: set your actual hourly limit here
-                    minute: user => 2, // Example: set your actual minute limit here
-                    month: user => 1000, // Example: set your actual monthly limit here
+                    day: user => user.max_limits?.day ?? user.daily_limit,
+                    minute: user => user.max_limits?.minute ?? Math.max(1, Math.ceil(user.daily_limit / 24)),
+                    month: user => user.max_limits?.month ?? user.daily_limit * 30,
                 };
                 filteredUsers.forEach(user => {
                     const userEmail = user.email || 'Unknown';
@@ -1752,21 +1751,24 @@
                     // Deduplicate: keep only one limit per type (highest usage)
                     const bestLimits = {};
                     user.limits.forEach(limit => {
+                        if (limit.window_type === 'hour') return; // Skip hourly limits
                         if (!bestLimits[limit.window_type] || limit.count > bestLimits[limit.window_type].count) {
                             bestLimits[limit.window_type] = limit;
                         }
                     });
                     Object.values(bestLimits).forEach(limit => {
                         const expiry = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : '-';
-                        const maxLimit = windowTypeLimits[limit.window_type] ? windowTypeLimits[limit.window_type](user) : '?';
+                        const humanWindow = limit.window_type === 'minute' ? 'Per minute' : (limit.window_type === 'day' ? 'Daily' : (limit.window_type === 'month' ? 'Monthly' : limit.window_type));
+                        const maxLimit = windowTypeLimits[limit.window_type] ? windowTypeLimits[limit.window_type](user) : null;
+                        const usageText = (typeof maxLimit === 'number') ? `${limit.count} / ${maxLimit}` : `${limit.count} (limit unknown)`;
                         html += `<tr>
                             <td>
                                 <div style=\"font-weight: 500;\">${userEmail}</div>
                                 <div style=\"font-size: 0.75rem; color: #6b7280; font-family: monospace;\">${userIdShort}</div>
                             </td>
                             <td><span style=\"background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; text-transform: capitalize;\">${user.tier}</span></td>
-                            <td><strong>${limit.window_type}</strong></td>
-                            <td><strong>${limit.count} / ${maxLimit}</strong></td>
+                            <td><strong>${humanWindow}</strong></td>
+                            <td><strong>${usageText}</strong></td>
                             <td>${expiry}</td>
                         </tr>`;
                     });

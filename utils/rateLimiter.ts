@@ -9,21 +9,33 @@ try {
   // Fallback for backward compatibility
   TIER_CONFIGS = {
     free: {
-      limits: { daily: 2, monthly: 10, burst: { perMinute: 3, perHour: 5 } },
-      features: ["AI-generated titles and descriptions", "Basic support"]
+      limits: { daily: 2, monthly: 10, burst: { perMinute: 3 } },
+      features: ["AI-generated titles and descriptions", "Basic support"],
     },
     starter: {
-      limits: { daily: 15, monthly: 300, burst: { perMinute: 10, perHour: 40 } },
-      features: ["AI-generated titles and descriptions", "Priority support", "Up to 15 listings per day"]
+      limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
+      features: [
+        "AI-generated titles and descriptions",
+        "Priority support",
+        "Up to 15 listings per day",
+      ],
     },
     pro: {
-      limits: { daily: 40, monthly: 800, burst: { perMinute: 20, perHour: 80 } },
-      features: ["Everything in Starter", "Up to 40 listings per day", "Priority processing"]
+      limits: { daily: 40, monthly: 800, burst: { perMinute: 20 } },
+      features: [
+        "Everything in Starter",
+        "Up to 40 listings per day",
+        "Priority processing",
+      ],
     },
     business: {
-      limits: { daily: 75, monthly: 1500, burst: { perMinute: 30, perHour: 120 } },
-      features: ["Everything in Pro", "Up to 75 listings per day", "Dedicated support"]
-    }
+      limits: { daily: 75, monthly: 1500, burst: { perMinute: 30 } },
+      features: [
+        "Everything in Pro",
+        "Up to 75 listings per day",
+        "Dedicated support",
+      ],
+    },
   };
 }
 
@@ -35,7 +47,7 @@ interface TierConfig {
   limits: {
     daily: number;
     monthly: number;
-    burst: { perMinute: number; perHour: number; };
+    burst: { perMinute: number };
   };
   features: string[];
 }
@@ -45,7 +57,6 @@ interface RateLimitResult {
   error?: string;
   remainingRequests?: {
     minute: number;
-    hour: number;
     day: number;
     month: number;
   };
@@ -61,25 +72,25 @@ export class RateLimiter {
   // Get user's tier configuration
   private static getTierConfig(profile: UserProfile): TierConfig {
     const isActive = profile.subscription_status === "active";
-    
+
     if (!isActive) {
       return TIER_CONFIGS.free;
     }
 
     // Map existing tier names to new ones (only unlimited_monthly exists)
     const tierMapping: Record<string, string> = {
-      'unlimited_monthly': 'starter',  // €3.99 → 15/day (only existing tier)
-      'starter': 'starter', 
-      'pro': 'pro',
-      'business': 'business',
+      unlimited_monthly: "starter", // €3.99 → 15/day (only existing tier)
+      starter: "starter",
+      pro: "pro",
+      business: "business",
     };
 
-    const tierKey = tierMapping[profile.subscription_tier] || 'free';
+    const tierKey = tierMapping[profile.subscription_tier] || "free";
     return TIER_CONFIGS[tierKey] || TIER_CONFIGS.free;
   }
   private static async getTimeBasedKey(
     userId: string,
-    window: string,
+    window: string
   ): Promise<string> {
     const now = new Date();
     let timeKey: string;
@@ -87,9 +98,6 @@ export class RateLimiter {
     switch (window) {
       case "minute":
         timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
-        break;
-      case "hour":
-        timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
         break;
       case "day":
         timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
@@ -103,7 +111,7 @@ export class RateLimiter {
 
   private static async getCurrentCount(
     userId: string,
-    window: string,
+    window: string
   ): Promise<number> {
     try {
       const key = await this.getTimeBasedKey(userId, window);
@@ -131,7 +139,7 @@ export class RateLimiter {
 
   private static async incrementCount(
     userId: string,
-    window: string,
+    window: string
   ): Promise<void> {
     try {
       const key = await this.getTimeBasedKey(userId, window);
@@ -142,9 +150,6 @@ export class RateLimiter {
       switch (window) {
         case "minute":
           expiryDate.setMinutes(expiryDate.getMinutes() + 2); // 2 minute buffer
-          break;
-        case "hour":
-          expiryDate.setHours(expiryDate.getHours() + 2); // 2 hour buffer
           break;
         case "day":
           expiryDate.setDate(expiryDate.getDate() + 2); // 2 day buffer
@@ -188,7 +193,8 @@ export class RateLimiter {
   private static async checkGlobalBudget(): Promise<boolean> {
     try {
       const today = new Date();
-      const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+      // Use ISO YYYY-MM-DD to match other parts of the codebase
+      const todayStr = today.toISOString().split("T")[0];
 
       const { data, error } = await supabase
         .from("daily_stats")
@@ -212,7 +218,8 @@ export class RateLimiter {
   private static async updateGlobalStats(): Promise<void> {
     try {
       const today = new Date();
-      const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+      // Use ISO YYYY-MM-DD to match other parts of the codebase
+      const todayStr = today.toISOString().split("T")[0];
       const now = new Date().toISOString();
 
       const { data: existing } = await supabase
@@ -247,7 +254,7 @@ export class RateLimiter {
 
   static async checkRateLimit(
     userId: string,
-    profile: UserProfile,
+    profile: UserProfile
   ): Promise<RateLimitResult> {
     try {
       // 0. Check emergency brake first
@@ -277,7 +284,9 @@ export class RateLimiter {
       // 2. Check for custom user limits first
       const { data: customLimits } = await supabase
         .from("profiles")
-        .select("custom_daily_limit, custom_limit_expires_at, custom_limit_reason")
+        .select(
+          "custom_daily_limit, custom_limit_expires_at, custom_limit_reason"
+        )
         .eq("id", userId)
         .single();
 
@@ -285,11 +294,15 @@ export class RateLimiter {
       let tierConfig = this.getTierConfig(profile);
 
       // Use custom limit if it exists and hasn't expired
-      if (customLimits?.custom_daily_limit && 
-          customLimits.custom_limit_expires_at && 
-          new Date(customLimits.custom_limit_expires_at) > new Date()) {
+      if (
+        customLimits?.custom_daily_limit &&
+        customLimits.custom_limit_expires_at &&
+        new Date(customLimits.custom_limit_expires_at) > new Date()
+      ) {
         effectiveDailyLimit = customLimits.custom_daily_limit;
-        console.log(`Using custom daily limit for user ${userId}: ${effectiveDailyLimit} (reason: ${customLimits.custom_limit_reason})`);
+        console.log(
+          `Using custom daily limit for user ${userId}: ${effectiveDailyLimit} (reason: ${customLimits.custom_limit_reason})`
+        );
       } else {
         effectiveDailyLimit = tierConfig.limits.daily;
       }
@@ -305,7 +318,6 @@ export class RateLimiter {
 
       // 4. Check time-based limits
       const minuteCount = await this.getCurrentCount(userId, "minute");
-      const hourCount = await this.getCurrentCount(userId, "hour");
       const dayCount = await this.getCurrentCount(userId, "day");
 
       if (minuteCount >= tierConfig.limits.burst.perMinute) {
@@ -315,17 +327,11 @@ export class RateLimiter {
         };
       }
 
-      if (hourCount >= tierConfig.limits.burst.perHour) {
-        return {
-          allowed: false,
-          error: "Too many requests. Please try again later.",
-        };
-      }
-
       if (dayCount >= effectiveDailyLimit) {
         return {
           allowed: false,
-          error: "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
+          error:
+            "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
         };
       }
 
@@ -334,12 +340,14 @@ export class RateLimiter {
       return {
         allowed: true,
         remainingRequests: {
-          minute: Math.max(0, tierConfig.limits.burst.perMinute - minuteCount - 1),
-          hour: Math.max(0, tierConfig.limits.burst.perHour - hourCount - 1),
+          minute: Math.max(
+            0,
+            tierConfig.limits.burst.perMinute - minuteCount - 1
+          ),
           day: Math.max(0, effectiveDailyLimit - dayCount - 1),
           month: Math.max(
             0,
-            tierConfig.limits.monthly - profile.api_calls_this_month - 1,
+            tierConfig.limits.monthly - profile.api_calls_this_month - 1
           ),
         },
       };
@@ -355,7 +363,6 @@ export class RateLimiter {
     try {
       await Promise.all([
         this.incrementCount(userId, "minute"),
-        this.incrementCount(userId, "hour"),
         this.incrementCount(userId, "day"),
         this.updateGlobalStats(),
       ]);

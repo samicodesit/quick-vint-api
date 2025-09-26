@@ -110,8 +110,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       today: {
         date: todayStr,
-        totalRequests: todayStats?.total_api_calls || 0,
-        estimatedCost: todayStats?.estimated_cost || 0,
+        totalRequests: typeof todayStats?.total_api_calls === 'number' ? todayStats.total_api_calls : 0,
+        estimatedCost: typeof todayStats?.estimated_cost === 'number' ? todayStats.estimated_cost : 0,
       },
       lastWeek: weekStats || [],
       topUsers: combinedUsers || [],

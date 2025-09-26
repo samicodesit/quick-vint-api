@@ -811,7 +811,7 @@
 
             <!-- Row 3: Rate Limits -->
             <div class="stat-card">
-                <h3>Rate Limited Users (Last Hour)</h3>
+                <h3>Rate Limited Users</h3>
                 <div id="rateLimitsContent">Loading...</div>
             </div>
 
@@ -1732,11 +1732,20 @@
                     return;
                 }
                 let html = '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Limit Type</th><th>Usage</th><th>Expires</th></tr></thead><tbody>';
+                // Define window type limits
+                const windowTypeLimits = {
+                    day: user => user.daily_limit,
+                    hour: user => 5, // Example: set your actual hourly limit here
+                    minute: user => 2, // Example: set your actual minute limit here
+                    month: user => 1000, // Example: set your actual monthly limit here
+                };
                 filteredUsers.forEach(user => {
                     const userEmail = user.email || 'Unknown';
                     const userIdShort = user.user_id ? (user.user_id.substring(0, 8) + '...') : '';
                     user.limits.forEach(limit => {
                         const expiry = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : '-';
+                        // Get correct limit for window type
+                        const maxLimit = windowTypeLimits[limit.window_type] ? windowTypeLimits[limit.window_type](user) : '?';
                         html += `<tr>
                             <td>
                                 <div style=\"font-weight: 500;\">${userEmail}</div>
@@ -1744,7 +1753,7 @@
                             </td>
                             <td><span style=\"background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; text-transform: capitalize;\">${user.tier}</span></td>
                             <td><strong>${limit.window_type}</strong></td>
-                            <td><strong>${limit.count}</strong></td>
+                            <td><strong>${limit.count} / ${maxLimit}</strong></td>
                             <td>${expiry}</td>
                         </tr>`;
                     });

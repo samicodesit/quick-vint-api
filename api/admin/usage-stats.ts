@@ -65,10 +65,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const combinedUsers = Array.from(allUserMap.values());
 
     // Get all active rate limits for all window types
+    // Include active rate_limits that either have a future expires_at OR no expiry recorded (null)
+    const nowIso = new Date().toISOString();
     const { data: allRateLimits } = await supabase
       .from("rate_limits")
       .select("user_id, window_type, count, expires_at")
-      .gt("expires_at", new Date().toISOString())
+      .or(`expires_at.gte.${nowIso},expires_at.is.null`)
       .order("count", { ascending: false })
       .limit(500);
 
@@ -111,11 +113,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Ensure monthly synthetic entry exists so UI can display monthly usage
         const hasMonth = limits.some((l) => l.window_type === "month");
         if (!hasMonth) {
+          // Synthetic monthly entry: set expiry to start of next month for consistent UI
+          const now = new Date();
+          const nextMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            1,
+            0,
+            0,
+            0,
+            0
+          );
           limits.push({
             user_id: user.id,
             window_type: "month",
             count: user.api_calls_this_month || 0,
-            expires_at: null,
+            expires_at: nextMonth.toISOString(),
           });
         }
 

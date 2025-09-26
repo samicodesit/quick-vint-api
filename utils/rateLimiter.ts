@@ -145,21 +145,32 @@ export class RateLimiter {
       const key = await this.getTimeBasedKey(userId, window);
       const now = new Date().toISOString();
 
-      // Calculate expiry time based on window
-      const expiryDate = new Date();
-      switch (window) {
-        case "minute":
-          expiryDate.setMinutes(expiryDate.getMinutes() + 2); // 2 minute buffer
-          break;
-        case "day":
-          expiryDate.setDate(expiryDate.getDate() + 2); // 2 day buffer
-          break;
+      // Calculate expiry time based on window and align to natural boundaries
+      let expiryDate = new Date();
+      if (window === "minute") {
+        // expire at the start of the next minute
+        expiryDate.setSeconds(0, 0);
+        expiryDate.setMinutes(expiryDate.getMinutes() + 1);
+      } else if (window === "day") {
+        // expire at the start of the next day (midnight)
+        expiryDate = new Date(
+          expiryDate.getFullYear(),
+          expiryDate.getMonth(),
+          expiryDate.getDate() + 1,
+          0,
+          0,
+          0,
+          0
+        );
+      } else {
+        // fallback: keep a short buffer
+        expiryDate.setMinutes(expiryDate.getMinutes() + 5);
       }
 
       // Upsert the count
       const { data: existing } = await supabase
         .from("rate_limits")
-        .select("count")
+        .select("count, expires_at")
         .eq("key", key)
         .eq("user_id", userId)
         .single();
@@ -170,6 +181,8 @@ export class RateLimiter {
           .update({
             count: existing.count + 1,
             updated_at: now,
+            // If the existing row has no expiry, set one now (avoid permanent null expiry rows)
+            expires_at: existing.expires_at || expiryDate.toISOString(),
           })
           .eq("key", key)
           .eq("user_id", userId);

@@ -74,7 +74,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Use canonical tier config for limits (single source of truth)
     function getTierLimits(tierName: string) {
-      const tier = TIER_CONFIGS[tierName] || TIER_CONFIGS.free;
+      // Normalize legacy tier names to current keys
+      const tierMapping: Record<string, string> = {
+        unlimited_monthly: "starter",
+        starter: "starter",
+        pro: "pro",
+        business: "business",
+        free: "free",
+      };
+      const key = tierMapping[tierName] || "free";
+      const tier = TIER_CONFIGS[key] || TIER_CONFIGS.free;
       return {
         day: tier.limits.daily,
         month: tier.limits.monthly,

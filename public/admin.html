@@ -1835,7 +1835,7 @@
                     rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No users with active usage</div>';
                     return;
                 }
-                    let html = '<div class="legend"><div><strong>Legend:</strong> </div><div><span class="status-badge status-ok">OK</span> within limits</div><div><span class="status-badge status-limited">LIMITED</span> over limit</div><div class="small-note">Reset button copies safe SQL to clipboard</div></div>';
+                    let html = '<div class="legend"><div><strong>Legend:</strong> </div><div><span class="status-badge status-ok">OK</span> within limits</div><div><span class="status-badge status-limited">LIMITED</span> over limit</div><div class="small-note">Reset button copies safe SQL to clipboard • Expiry times are aligned to UTC boundaries</div></div>';
                         html += '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Usage</th><th>Status</th><th>Expires</th></tr></thead><tbody>';
 
                     // Render one row per user - aggregate window usage into a compact list
@@ -1869,12 +1869,12 @@
                             if (isOver) anyOver = true;
                             const usageText = (typeof maxLimit === 'number') ? `<span class="usage-count" style="color: ${isOver ? '#dc2626' : '#111827'}">${count} / ${maxLimit}</span>` : `<span class="usage-count">${count}</span>`;
 
-                            const expiry = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : '-';
+                            const expiryText = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : 'persistent';
                             if (limit.expires_at) {
                                 if (!soonestExpiry || new Date(limit.expires_at) < new Date(soonestExpiry)) soonestExpiry = limit.expires_at;
                             }
 
-                            usageLines.push(`<div class="usage-line"><span class="limit-label">${humanWindow}</span>${usageText}<button class="reset-small" onclick="copyResetSql('${user.user_id}', '${w}')">Reset</button></div>`);
+                            usageLines.push(`<div class="usage-line"><span class="limit-label">${humanWindow}</span>${usageText}<small style="color: #6b7280; margin-left: 8px; font-size: 0.85rem;">${expiryText}</small><button class="reset-small" onclick="copyResetSql('${user.user_id}', '${w}')">Reset</button></div>`);
                         });
 
                         const statusBadge = anyOver ? '<span class="status-badge status-limited">LIMITED</span>' : '<span class="status-badge status-ok">OK</span>';

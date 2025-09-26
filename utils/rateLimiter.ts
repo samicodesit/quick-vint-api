@@ -95,12 +95,13 @@ export class RateLimiter {
     const now = new Date();
     let timeKey: string;
 
+    // Use UTC components so keys and expiries align with UTC-based daily stats
     switch (window) {
       case "minute":
-        timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
+        timeKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}-${now.getUTCHours()}-${now.getUTCMinutes()}`;
         break;
       case "day":
-        timeKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+        timeKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}`;
         break;
       default:
         throw new Error(`Invalid time window: ${window}`);
@@ -146,25 +147,37 @@ export class RateLimiter {
       const now = new Date().toISOString();
 
       // Calculate expiry time based on window and align to natural boundaries
+      // Use UTC-aligned expiries so resets line up predictably
       let expiryDate = new Date();
       if (window === "minute") {
-        // expire at the start of the next minute
-        expiryDate.setSeconds(0, 0);
-        expiryDate.setMinutes(expiryDate.getMinutes() + 1);
-      } else if (window === "day") {
-        // expire at the start of the next day (midnight)
+        // expire at the start of the next UTC minute
         expiryDate = new Date(
-          expiryDate.getFullYear(),
-          expiryDate.getMonth(),
-          expiryDate.getDate() + 1,
-          0,
-          0,
-          0,
-          0
+          Date.UTC(
+            expiryDate.getUTCFullYear(),
+            expiryDate.getUTCMonth(),
+            expiryDate.getUTCDate(),
+            expiryDate.getUTCHours(),
+            expiryDate.getUTCMinutes() + 1,
+            0,
+            0
+          )
+        );
+      } else if (window === "day") {
+        // expire at the start of the next UTC day (00:00 UTC)
+        expiryDate = new Date(
+          Date.UTC(
+            expiryDate.getUTCFullYear(),
+            expiryDate.getUTCMonth(),
+            expiryDate.getUTCDate() + 1,
+            0,
+            0,
+            0,
+            0
+          )
         );
       } else {
-        // fallback: keep a short buffer
-        expiryDate.setMinutes(expiryDate.getMinutes() + 5);
+        // fallback: short UTC buffer
+        expiryDate = new Date(Date.now() + 5 * 60 * 1000);
       }
 
       // Upsert the count

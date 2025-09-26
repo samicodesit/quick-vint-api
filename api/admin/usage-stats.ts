@@ -16,9 +16,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Get today's stats with proper date formatting
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of day
-    const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD format
+    // Use UTC date string so daily_stats and rate limiter (which is UTC-aligned) match
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD (UTC)
 
     const { data: todayStats } = await supabase
       .from("daily_stats")
@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .single();
 
     // Get last 7 days stats
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const weekAgoStr = weekAgo.toISOString().split("T")[0];
 
     const { data: weekStats } = await supabase
@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: allUsers } = await supabase
       .from("profiles")
       .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at"
+        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end"
       )
       .order("created_at", { ascending: false }) // Order by creation date first to get recent signups
       .limit(200); // Increased limit to catch all recent users
@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: topUsersByUsage } = await supabase
       .from("profiles")
       .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at"
+        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end"
       )
       .order("api_calls_this_month", { ascending: false })
       .limit(50);
@@ -113,22 +113,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Ensure monthly synthetic entry exists so UI can display monthly usage
         const hasMonth = limits.some((l) => l.window_type === "month");
         if (!hasMonth) {
-          // Synthetic monthly entry: set expiry to start of next month for consistent UI
-          const now = new Date();
-          const nextMonth = new Date(
-            now.getFullYear(),
-            now.getMonth() + 1,
-            1,
-            0,
-            0,
-            0,
-            0
-          );
+          // Synthetic monthly entry: prefer the subscription's current_period_end (per-user billing period)
+          // Fall back to UTC start-of-next-month if no subscription period end is available
+          let syntheticExpiry = null;
+          if (user.current_period_end) {
+            syntheticExpiry = new Date(user.current_period_end).toISOString();
+          } else {
+            const now2 = new Date();
+            syntheticExpiry = new Date(
+              Date.UTC(
+                now2.getUTCFullYear(),
+                now2.getUTCMonth() + 1,
+                1,
+                0,
+                0,
+                0,
+                0
+              )
+            ).toISOString();
+          }
           limits.push({
             user_id: user.id,
             window_type: "month",
             count: user.api_calls_this_month || 0,
-            expires_at: nextMonth.toISOString(),
+            expires_at: syntheticExpiry,
           });
         }
 

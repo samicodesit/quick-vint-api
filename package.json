@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vercel dev",
+    "build": "node ./scripts/build-headers.js",
+    "vercel-build": "npm run build",
+    "check-placeholders": "node ./scripts/check-placeholders.js",
     "lint": "eslint api/ utils/ --ext .ts",
     "lint:fix": "eslint api/ utils/ --ext .ts --fix",
     "type-check": "tsc --noEmit",

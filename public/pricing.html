@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AutoLister AI - Pricing & Plans</title>
+    <link rel="stylesheet" href="/css/header.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -313,6 +314,52 @@
 </head>
 
 <body>
+    <!-- Shared header will be dynamically loaded here -->
+    <!-- Shared header partial - inlined at build time -->
+<header class="header">
+    <div class="container">
+        <nav class="nav">
+            <a href="/" class="logo">AutoLister.app</a>
+            <!-- Desktop Nav -->
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="mailto:hello@autolister.app">Contact</a>
+                <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn-nav">Get Extension</a>
+            </div>
+            <!-- Mobile Menu Button -->
+            <div class="mobile-menu-button">
+                <button id="hamburger-button" class="hamburger" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open navigation menu">
+                    <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <line id="ham-top" x1="3" y1="6" x2="21" y2="6"></line>
+                            <line id="ham-mid" x1="3" y1="12" x2="21" y2="12"></line>
+                            <line id="ham-bot" x1="3" y1="18" x2="21" y2="18"></line>
+                        </g>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </div>
+    <!-- Mobile Menu -->
+    <div class="mobile-menu-wrapper">
+        <div id="mobile-menu" class="mobile-menu">
+            <button id="sheet-close" class="sheet-close" aria-label="Close menu">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="mailto:hello@autolister.app">Contact</a>
+            <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Get Extension</a>
+        </div>
+    </div>
+    <div id="menu-backdrop" class="menu-backdrop" aria-hidden="true"></div>
+</header>
+
+
     <h1>Choose Your Plan</h1>
     <p class="subtitle">Pricing designed for real sellers - from hobby to business</p>
 

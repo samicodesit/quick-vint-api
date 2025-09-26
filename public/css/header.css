@@ -1,0 +1,213 @@
+/* Shared header + mobile menu styles for AutoLister */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4f46e5;
+  text-decoration: none;
+}
+.nav-links {
+  display: none;
+  gap: 2rem;
+  align-items: center;
+}
+@media (min-width: 768px) {
+  .nav-links {
+    display: flex;
+  }
+}
+.nav-links a {
+  color: #374151;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+.nav-links a:hover {
+  color: #4f46e5;
+}
+.btn-nav {
+  background: #4f46e5;
+  color: #fff;
+  padding: 0.6rem 1.8rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+.btn-nav:hover {
+  background: #3730a3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+}
+.mobile-menu-button {
+  display: block;
+}
+@media (min-width: 768px) {
+  .mobile-menu-button {
+    display: none;
+  }
+}
+.hamburger {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #111;
+  transition:
+    background 0.22s,
+    color 0.22s,
+    transform 0.22s;
+  border-radius: 8px;
+  z-index: 110;
+}
+.hamburger:focus {
+  outline: 2px solid rgba(79, 70, 229, 0.25);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.hamburger svg line {
+  transition:
+    transform 0.26s cubic-bezier(0.2, 0.9, 0.2, 1),
+    opacity 0.2s;
+  transform-origin: center;
+}
+.hamburger.open {
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+}
+.hamburger.open svg #ham-top {
+  transform: translateY(6px) rotate(45deg);
+}
+.hamburger.open svg #ham-mid {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburger.open svg #ham-bot {
+  transform: translateY(-6px) rotate(-45deg);
+}
+.mobile-menu-wrapper {
+  position: relative;
+  z-index: 210;
+}
+.mobile-menu {
+  position: fixed;
+  top: 64px;
+  left: 12px;
+  right: 12px;
+  background: #fff;
+  transform-origin: top center;
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.42s cubic-bezier(0.2, 0.9, 0.2, 1),
+    opacity 0.32s;
+  z-index: 210;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: center;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgba(16, 24, 40, 0.24);
+}
+.mobile-menu.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.42),
+    rgba(0, 0, 0, 0.62)
+  );
+  backdrop-filter: blur(6px) saturate(120%) brightness(0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.32s cubic-bezier(0.2, 0.9, 0.2, 1),
+    transform 0.32s;
+  transform: scale(1.02);
+  z-index: 200;
+}
+.menu-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+/* Keep the sheet unaffected by the page dim */
+body.menu-dim > *:not(.menu-backdrop):not(.mobile-menu-wrapper) {
+  transition:
+    transform 0.36s cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 0.36s;
+  transform-origin: top center;
+  transform: scale(0.997);
+  filter: brightness(0.88) saturate(0.98);
+  will-change: transform, filter;
+}
+body.menu-dim .mobile-menu-wrapper,
+body.menu-dim .mobile-menu,
+body.menu-dim .mobile-menu * {
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+.sheet-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: #4f46e5;
+  border: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.18);
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
+}
+.sheet-close:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.22);
+}
+.mobile-menu a {
+  display: block;
+  padding: 0.75rem 0;
+  color: #374151;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.mobile-menu a:hover {
+  color: #4f46e5;
+}

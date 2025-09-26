@@ -1,8 +1,8 @@
 // api/stripe/create-checkout.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { supabase } from "../../../utils/supabaseClient";
-import { TIER_CONFIGS } from "../../../utils/tierConfig";
+import { supabase } from "../../utils/supabaseClient";
+import { TIER_CONFIGS } from "../../utils/tierConfig";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 

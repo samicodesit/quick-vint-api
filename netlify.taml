@@ -1,14 +1,12 @@
 # This file tells Netlify exactly how to build your site.
 
 [build]
+  # This is the command Netlify will run to compile your TypeScript
+  command = "npm run build"
   # The directory with your website files (index.html, etc.)
   publish = "public"
 
-# This new section gives Netlify more specific instructions for your functions.
 [functions]
-  # This reinforces where your functions are located.
-  directory = "api"
-  
-  # This tells Netlify to use a more modern and powerful bundler (esbuild),
-  # which is better at finding all the function files in your subdirectories.
+  # This tells Netlify where to find the COMPILED JavaScript functions
+  directory = "dist/api"
   node_bundler = "esbuild"

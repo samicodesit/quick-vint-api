@@ -17,21 +17,19 @@ The previous system allowed unlimited API calls for paid subscribers, leading to
 **Free Tier:**
 
 - 2 requests per minute
-- 10 requests per hour
 - 20 requests per day
 - 5 requests per month
 
 **Unlimited Monthly:**
 
 - 5 requests per minute
-- 30 requests per hour
-- 100 requests per day
-- 1,000 requests per month (not truly unlimited anymore)
+-- 10 requests per minute
+-- 30 requests per minute
+-- 50 requests per minute
 
 **Unlimited Annual:**
 
 - 8 requests per minute
-- 50 requests per hour
 - 150 requests per day
 - 1,500 requests per month
 
@@ -88,12 +86,12 @@ You'll need to create these tables in Supabase:
 
 ```sql
 -- Rate limiting storage
-CREATE TABLE rate_limits (
+  CREATE TABLE rate_limits (
   id SERIAL PRIMARY KEY,
   key TEXT NOT NULL,
   user_id UUID NOT NULL,
   count INTEGER DEFAULT 0,
-  window_type TEXT NOT NULL, -- 'minute', 'hour', 'day'
+  window_type TEXT NOT NULL, -- 'minute', 'day', 'month'
   expires_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

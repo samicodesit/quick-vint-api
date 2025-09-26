@@ -115,6 +115,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           month: dailyLimit * 30,
         };
 
+        // Add a synthetic monthly limit entry (using api_calls_this_month) so the UI can display monthly usage
+        // Only add if not already present
+        const hasMonth = limits.some((l) => l.window_type === "month");
+        if (!hasMonth) {
+          limits.push({
+            user_id: user.id,
+            window_type: "month",
+            count: user.api_calls_this_month || 0,
+            expires_at: null,
+          });
+        }
+
         usageWithLimits.push({
           user_id: user.id,
           email: user.email,

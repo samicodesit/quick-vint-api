@@ -194,9 +194,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Create the prompt for OpenAI
-  const systemPrompt = "You write Vinted listing titles and descriptions.";
+  const systemPrompt =
+    "You are an expert Vinted seller creating a listing. Your goal is to sell.";
   const userPrompt = `
-From photo(s), detect brand (if clear), color, and item. Format title: [Brand] [Color] [Item]. In description, note condition (e.g. like new, stains), and end with 4-5 SEO hashtags. Never mention anything negative like wrinkles or creasing or whatever, only appealing. Reply only in JSON: {"title":"...","description":"..."}
+Analyze the image(s) and generate a title and description.
+- Title format: [Brand] [Color] [Item].
+- Description: Note a positive condition (e.g., "Excellent condition," "Like new"). Highlight the item's best feature or style. End with 4-5 SEO hashtags.
+Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
   // Log the full prompt being sent to OpenAI

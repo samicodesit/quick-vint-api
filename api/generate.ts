@@ -196,7 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Create the prompt for OpenAI
   const systemPrompt = "You write Vinted listing titles and descriptions.";
   const userPrompt = `
-From photo(s), detect brand (if clear), color, and item. Format title: [Brand] [Color] [Item]. In description, note condition (e.g. like new, stains), and end with 4-5 SEO hashtags. Never mention anything negative like wrinkles or whatever. Reply only in JSON: {"title":"...","description":"..."}
+From photo(s), detect brand (if clear), color, and item. Format title: [Brand] [Color] [Item]. In description, note condition (e.g. like new, stains), and end with 4-5 SEO hashtags. Never mention anything negative like wrinkles or creasing or whatever, only appealing. Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
   // Log the full prompt being sent to OpenAI

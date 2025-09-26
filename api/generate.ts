@@ -37,11 +37,11 @@ const openai = new OpenAI({ apiKey: process.env.VERCEL_APP_OPENAI_API_KEY });
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startTime = Date.now();
   const requestMetadata = ApiLogger.extractRequestMetadata(req);
-  
+
   // Initialize log data
   let logData: any = {
     ...requestMetadata,
-    endpoint: '/api/generate',
+    endpoint: "/api/generate",
     fullRequestBody: req.body,
   };
 
@@ -59,14 +59,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await ApiLogger.logRequest(logData);
     return res.status(403).json({ error: corsError.message });
   }
-  
+
   if (req.method === "OPTIONS") {
     logData.responseStatus = 200;
     logData.processingDurationMs = Date.now() - startTime;
     await ApiLogger.logRequest(logData);
     return res.status(200).end();
   }
-  
+
   if (req.method !== "POST") {
     logData.responseStatus = 405;
     logData.processingDurationMs = Date.now() - startTime;
@@ -104,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset",
+      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset"
     )
     .eq("id", user.id)
     .single();
@@ -156,7 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- RATE LIMITING ---
   const rateLimitResult = await RateLimiter.checkRateLimit(
     user.id,
-    userProfile,
+    userProfile
   );
 
   if (!rateLimitResult.allowed) {
@@ -200,13 +200,16 @@ Reply only in JSON: {"title":"...","description":"..."}
   const suspiciousCheck = ApiLogger.detectSuspiciousActivity({
     imageUrls,
     rawPrompt: logData.rawPrompt,
-    userAgent: logData.userAgent
+    userAgent: logData.userAgent,
   });
 
   if (suspiciousCheck.suspicious) {
     logData.suspiciousActivity = true;
-    logData.flaggedReason = suspiciousCheck.reasons.join('; ');
-    console.warn(`🚨 Suspicious activity detected for user ${user.id}:`, suspiciousCheck.reasons);
+    logData.flaggedReason = suspiciousCheck.reasons.join("; ");
+    console.warn(
+      `🚨 Suspicious activity detected for user ${user.id}:`,
+      suspiciousCheck.reasons
+    );
   }
 
   // --- GENERATE VIA OPENAI ---
@@ -285,13 +288,13 @@ Reply only in JSON: {"title":"...","description":"..."}
     });
   } catch (err: any) {
     console.error("Generation error:", err);
-    
+
     // Log the error
     logData.responseStatus = 500;
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = `OpenAI generation error: ${err.message}`;
     await ApiLogger.logRequest(logData);
-    
+
     // If OpenAI fails, we should ideally roll back the increment.
     // For simplicity here, we accept that a failed call might still count.
     return res.status(500).json({ error: "Internal error during generation." });

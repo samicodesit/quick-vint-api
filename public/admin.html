@@ -340,6 +340,33 @@
             color: #374151;
         }
 
+        .limit-label {
+            display: inline-block;
+            min-width: 70px;
+            color: #6b7280;
+            font-size: 0.85rem;
+            text-transform: capitalize;
+        }
+
+        .usage-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .usage-count { font-weight: 700; }
+
+        .reset-small {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+
         .btn-reset {
             background: #f3f4f6;
             border: 1px solid #e5e7eb;
@@ -1809,46 +1836,63 @@
                     return;
                 }
                     let html = '<div class="legend"><div><strong>Legend:</strong> </div><div><span class="status-badge status-ok">OK</span> within limits</div><div><span class="status-badge status-limited">LIMITED</span> over limit</div><div class="small-note">Reset button copies safe SQL to clipboard</div></div>';
-                    html += '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Limit</th><th>Usage</th><th>Status</th><th>Expires</th></tr></thead><tbody>';
-                // Use server-provided max_limits when available (single source of truth)
-                const windowTypeLimits = {
-                    day: user => user.max_limits?.day ?? user.daily_limit,
-                    minute: user => user.max_limits?.minute ?? Math.max(1, Math.ceil(user.daily_limit / 24)),
-                    month: user => user.max_limits?.month ?? user.daily_limit * 30,
-                };
-                filteredUsers.forEach(user => {
-                    const userEmail = user.email || 'Unknown';
-                    const userIdShort = user.user_id ? (user.user_id.substring(0, 8) + '...') : '';
-                    // Deduplicate: keep only one limit per type (highest usage)
-                    const bestLimits = {};
-                    user.limits.forEach(limit => {
-                        if (limit.window_type === 'hour') return; // Skip hourly limits
-                        if (!bestLimits[limit.window_type] || limit.count > bestLimits[limit.window_type].count) {
-                            bestLimits[limit.window_type] = limit;
-                        }
-                    });
-                    Object.values(bestLimits).forEach(limit => {
-                        const expiry = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : '-';
-                        const humanWindow = limit.window_type === 'minute' ? 'Per minute' : (limit.window_type === 'day' ? 'Daily' : (limit.window_type === 'month' ? 'Monthly' : limit.window_type));
-                        const maxLimit = windowTypeLimits[limit.window_type] ? windowTypeLimits[limit.window_type](user) : null;
-                        const isOver = (typeof maxLimit === 'number') && limit.count > maxLimit;
-                        const usageText = (typeof maxLimit === 'number') ? `${limit.count} / ${maxLimit}` : `${limit.count} (limit unknown)`;
-                        const statusBadge = isOver ? '<span class="status-badge status-limited">LIMITED</span>' : '<span class="status-badge status-ok">OK</span>';
+                        html += '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Usage</th><th>Status</th><th>Expires</th></tr></thead><tbody>';
+
+                    // Render one row per user - aggregate window usage into a compact list
+                    filteredUsers.forEach(user => {
+                        const userEmail = user.email || 'Unknown';
+                        const userIdShort = user.user_id ? (user.user_id.substring(0, 8) + '...') : '';
+
+                        // Deduplicate: keep only one limit per type (highest usage)
+                        const bestLimits = {};
+                        user.limits.forEach(limit => {
+                            if (limit.window_type === 'hour') return; // Skip hourly limits
+                            const key = limit.window_type;
+                            if (!bestLimits[key] || (limit.count || 0) > (bestLimits[key].count || 0)) {
+                                bestLimits[key] = limit;
+                            }
+                        });
+
+                        // Determine per-window status and overall status
+                        const usageLines = [];
+                        let anyOver = false;
+                        let soonestExpiry = null;
+
+                        const windowOrder = ['minute', 'day', 'month'];
+                        windowOrder.forEach(w => {
+                            const limit = bestLimits[w];
+                            if (!limit) return;
+                            const humanWindow = w === 'minute' ? 'Per minute' : (w === 'day' ? 'Daily' : 'Monthly');
+                            const maxLimit = user.max_limits ? user.max_limits[w] : null;
+                            const count = limit.count || 0;
+                            const isOver = (typeof maxLimit === 'number') && count > maxLimit;
+                            if (isOver) anyOver = true;
+                            const usageText = (typeof maxLimit === 'number') ? `<span class="usage-count" style="color: ${isOver ? '#dc2626' : '#111827'}">${count} / ${maxLimit}</span>` : `<span class="usage-count">${count}</span>`;
+
+                            const expiry = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : '-';
+                            if (limit.expires_at) {
+                                if (!soonestExpiry || new Date(limit.expires_at) < new Date(soonestExpiry)) soonestExpiry = limit.expires_at;
+                            }
+
+                            usageLines.push(`<div class="usage-line"><span class="limit-label">${humanWindow}</span>${usageText}<button class="reset-small" onclick="copyResetSql('${user.user_id}', '${w}')">Reset</button></div>`);
+                        });
+
+                        const statusBadge = anyOver ? '<span class="status-badge status-limited">LIMITED</span>' : '<span class="status-badge status-ok">OK</span>';
+
                         html += `<tr>
                             <td>
-                                <div style=\"font-weight: 500;\">${userEmail}</div>
-                                <div style=\"font-size: 0.75rem; color: #6b7280; font-family: monospace;\">${userIdShort}</div>
+                                <div style="font-weight: 600;">${userEmail}</div>
+                                <div style="font-size: 0.75rem; color: #6b7280; font-family: monospace;">${userIdShort}</div>
                             </td>
-                            <td><span style=\"background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; text-transform: capitalize;\">${user.tier}</span></td>
-                            <td><strong>${humanWindow}</strong></td>
-                            <td><strong style=\"color: ${isOver ? '#dc2626' : '#111827'}\">${usageText}</strong></td>
-                            <td>${statusBadge}<button class=\"btn-reset\" onclick=\"copyResetSql('${user.user_id}', '${limit.window_type}')\">Reset</button></td>
-                            <td>${expiry}</td>
+                            <td><span style="background: #f3f4f6; padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; text-transform: capitalize;">${user.tier}</span></td>
+                            <td style="min-width: 320px;">${usageLines.join('')}</td>
+                            <td style="text-align: center;">${statusBadge}</td>
+                            <td style="text-align: center;">${soonestExpiry ? new Date(soonestExpiry).toLocaleString() : '-'}</td>
                         </tr>`;
                     });
-                });
-                html += '</tbody></table>';
-                rateLimitsDiv.innerHTML = html;
+
+                    html += '</tbody></table>';
+                    rateLimitsDiv.innerHTML = html;
             }
 
             // Timestamp

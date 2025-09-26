@@ -127,6 +127,8 @@
             justify-content: center;
             cursor: pointer;
             color: #111; /* darker for contrast */
+            transition: background 220ms ease, color 220ms ease, transform 220ms ease;
+            border-radius: 8px;
         }
         .hamburger:focus {
             outline: 2px solid rgba(79,70,229,0.25);
@@ -137,6 +139,11 @@
         .hamburger svg line {
             transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms ease;
             transform-origin: center;
+        }
+        .hamburger.open {
+            background: #111; /* dark circle to make X visible */
+            color: #fff;
+            transform: scale(1.02);
         }
         .hamburger.open svg #ham-top {
             transform: translateY(6px) rotate(45deg);
@@ -150,45 +157,73 @@
         }
 
         /* Mobile Menu Panel (sliding) */
-        /* Right-side fixed drawer for mobile menu */
+        /* Top-sheet mobile menu (wow effect) */
         .mobile-menu {
             position: fixed;
             top: 0;
+            left: 0;
             right: 0;
-            height: 100vh;
-            width: 84%;
-            max-width: 360px;
-            background: white;
-            box-shadow: -8px 0 24px rgba(16,24,40,0.12);
-            transform: translateX(100%);
+            height: 0;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(8px) saturate(120%);
+            transform-origin: top center;
+            transform: translateY(-100%);
             opacity: 0;
             pointer-events: none;
-            transition: transform 320ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease;
+            transition: transform 420ms cubic-bezier(.2,.9,.2,1), opacity 320ms ease, height 420ms ease;
             z-index: 100;
-            padding: 2.5rem 1.5rem;
+            padding: 2rem 1.5rem;
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            align-items: center;
         }
         .mobile-menu.open {
-            transform: translateX(0);
+            transform: translateY(0);
             opacity: 1;
             pointer-events: auto;
+            height: auto; /* allow content height */
+        }
+        .mobile-menu.open {
+            box-shadow: 0 20px 60px rgba(16,24,40,0.28);
+            border-bottom-left-radius: 14px;
+            border-bottom-right-radius: 14px;
         }
         /* Backdrop overlay */
         .menu-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.3);
+            background: linear-gradient(rgba(0,0,0,0.28), rgba(0,0,0,0.16));
+            backdrop-filter: blur(6px);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 220ms ease;
+            transition: opacity 280ms ease, transform 280ms ease;
+            transform: scale(1.02);
             z-index: 90;
         }
         .menu-backdrop.open {
             opacity: 1;
             pointer-events: auto;
+            transform: scale(1);
         }
+
+        /* Staggered link animation */
+        @keyframes slideFadeUp {
+            from { transform: translateY(12px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+        .mobile-menu a {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        .mobile-menu.open a { /* stagger using transition delays */
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .mobile-menu.open a:nth-child(1){ transition: all 360ms ease 80ms; }
+        .mobile-menu.open a:nth-child(2){ transition: all 360ms ease 160ms; }
+        .mobile-menu.open a:nth-child(3){ transition: all 360ms ease 240ms; }
+        .mobile-menu.open a:nth-child(4){ transition: all 360ms ease 320ms; }
         .mobile-menu a {
             display: block;
             padding: 0.75rem 0;
@@ -214,10 +249,12 @@
             font-weight: 800;
             margin-bottom: 1.5rem;
             line-height: 1.2;
+            margin-top: 0;
         }
          @media (min-width: 768px) {
             .hero h1 {
                 font-size: 3.5rem;
+                margin-top: 0;
             }
         }
 

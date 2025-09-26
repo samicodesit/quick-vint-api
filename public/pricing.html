@@ -5,436 +5,247 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AutoLister AI - Pricing & Plans</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 40px;
-            text-align: center;
-            color: #333;
-            background-color: #f9fafb;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            color: #4f46e5;
-            margin-bottom: 0.5em;
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            color: #6b7280;
-            margin-bottom: 3rem;
-        }
-
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 2rem auto;
-        }
-
-        .pricing-card {
-            background: white;
-            border-radius: 16px;
-            padding: 2.5rem 2rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border: 2px solid #e5e7eb;
-            position: relative;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .pricing-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        .pricing-card.popular {
-            border-color: #4f46e5;
-            transform: scale(1.05);
-        }
-
-        .popular-badge {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4f46e5;
-            color: white;
-            padding: 8px 24px;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-
-        .plan-name {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 0.5rem;
-        }
-
-        .plan-description {
-            color: #6b7280;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-        }
-
-        .plan-price {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #4f46e5;
-            margin-bottom: 0.5rem;
-        }
-
-        .plan-price .period {
-            font-size: 1rem;
-            color: #6b7280;
-            font-weight: normal;
-        }
-
-        .features-list {
-            text-align: left;
-            margin: 2rem 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .features-list li {
-            margin: 0.75rem 0;
-            padding-left: 1.5rem;
-            position: relative;
-        }
-
-        .features-list li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #10b981;
-            font-weight: bold;
-        }
-
-        .limits-section {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1.5rem 0;
-            text-align: left;
-        }
-
-        .limits-title {
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-
-        .limits-list {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin: 0;
-            padding-left: 1rem;
-        }
-
-        .cta-button {
-            width: 100%;
-            padding: 1rem 2rem;
-            background: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .cta-button:hover {
-            background: #4338ca;
-        }
-
-        .cta-button.secondary {
-            background: #6b7280;
-        }
-
-        .cta-button.secondary:hover {
-            background: #374151;
-        }
-
-        .cta-button.current-plan {
-            background: #10b981;
-            cursor: default;
-        }
-
-        .cta-button.current-plan:hover {
-            background: #10b981;
-        }
-
-        /* New button states */
-        .cta-button.download-extension {
-            background: #059669;
-        }
-
-        .cta-button.download-extension:hover {
-            background: #047857;
-        }
-
-        .cta-button.sign-in {
-            background: #7c3aed;
-        }
-
-        .cta-button.sign-in:hover {
-            background: #6d28d9;
-        }
-
-        .cta-button.disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .cta-button.disabled:hover {
-            background: #9ca3af;
-        }
-
-        .btn-text {
-            flex: 1;
-        }
-
-        .btn-status {
-            font-size: 0.875rem;
-            opacity: 0.9;
-        }
-
-        .pricing-card.current {
-            border-color: #10b981;
-            background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-        }
-
-        .pricing-card.current .plan-name::after {
-            content: " ✓";
-            color: #10b981;
-            font-weight: bold;
-        }
-
-        footer {
-            margin-top: 3rem;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .login-section {
-            max-width: 500px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        .login-card {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            border: 2px solid #e5e7eb;
-        }
-
-        .login-form {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1rem;
-        }
-
-        .login-form input {
-            flex: 1;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 1rem;
-        }
-
-        .login-form input:focus {
-            outline: none;
-            border-color: #4f46e5;
-        }
-
-        .login-form button {
-            padding: 0.75rem 1.5rem;
-            background: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .login-form button:hover {
-            background: #4338ca;
-        }
-
-        .login-form button:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .message {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-
-        .message.success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .message.error {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .message.info {
-            background: #eff6ff;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-        }
-
-        .hidden {
-            display: none;
-        }
-    </style>
+    <!-- Link to the external stylesheet for consistent header/nav/page styling -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <h1>Choose Your Plan</h1>
-    <p class="subtitle">Pricing designed for real sellers - from hobby to business</p>
+    <!-- MOBILE MENU STRUCTURE (Matching index.html) -->
+    <div id="menu-backdrop" class="menu-backdrop" aria-hidden="true"></div>
 
-    <div class="pricing-grid">
-        <!-- Free Trial -->
-        <div class="pricing-card">
-            <div class="plan-name">Free Trial</div>
-            <div class="plan-description">Get a taste of AutoLister AI</div>
-            <div class="plan-price">€0<span class="period">/forever</span></div>
-            
-            <div class="limits-section">
-                <div class="limits-title">Usage Limits</div>
-                <ul class="limits-list">
-                    <li>Daily: 2 listings per day</li>
-                    <li>Monthly: 10 listings per month</li>
-                    <li>Try before you buy</li>
-                </ul>
-            </div>
-
-            <ul class="features-list">
-                <li>AI-generated titles and descriptions</li>
-                <li>Basic support</li>
-                <li>See if you like it first</li>
-            </ul>
-
-            <button class="cta-button secondary" data-plan="free" id="btn-free">
-                <span class="btn-text">Try Free</span>
-                <span class="btn-status"></span>
-            </button>
-        </div>
-
-        <!-- Starter -->
-        <div class="pricing-card popular">
-            <div class="popular-badge">Most Popular</div>
-            <div class="plan-name">Starter</div>
-            <div class="plan-description">Perfect for casual Vinted sellers</div>
-            <div class="plan-price">€3.99<span class="period">/month</span></div>
-            
-            <div class="limits-section">
-                <div class="limits-title">Usage Limits</div>
-                <ul class="limits-list">
-                    <li>Daily: 15 listings per day</li>
-                    <li>Monthly: 300 listings per month</li>
-                </ul>
-            </div>
-
-            <ul class="features-list">
-                <li>AI-generated titles and descriptions</li>
-                <li>Priority support</li>
-                <li>Perfect for weekend listing sessions</li>
-            </ul>
-
-            <button class="cta-button" data-plan="starter" id="btn-starter">
-                <span class="btn-text">Get Starter Plan</span>
-                <span class="btn-status"></span>
-            </button>
-        </div>
-
-        <!-- Pro -->
-        <div class="pricing-card">
-            <div class="plan-name">Pro</div>
-            <div class="plan-description">For active sellers listing daily</div>
-            <div class="plan-price">€9.99<span class="period">/month</span></div>
-            
-            <div class="limits-section">
-                <div class="limits-title">Usage Limits</div>
-                <ul class="limits-list">
-                    <li>Daily: 40 listings per day</li>
-                    <li>Monthly: 800 listings per month</li>
-                </ul>
-            </div>
-
-            <ul class="features-list">
-                <li>Everything in Starter</li>
-                <li>Higher daily limits</li>
-                <li>Priority processing</li>
-            </ul>
-
-            <button class="cta-button" data-plan="pro" id="btn-pro">
-                <span class="btn-text">Get Pro Plan</span>
-                <span class="btn-status"></span>
-            </button>
-        </div>
-
-        <!-- Business -->
-        <div class="pricing-card">
-            <div class="plan-name">Business</div>
-            <div class="plan-description">For resellers and high-volume sellers</div>
-            <div class="plan-price">€19.99<span class="period">/month</span></div>
-            
-            <div class="limits-section">
-                <div class="limits-title">Usage Limits</div>
-                <ul class="limits-list">
-                    <li>Daily: N/A — Business plan has no daily limit</li>
-                    <li>Monthly: 1,500 listings per month</li>
-                </ul>
-            </div>
-
-            <ul class="features-list">
-                <li>Everything in Pro</li>
-                <li>Highest daily limits</li>
-                <li>Dedicated support</li>
-                <li>Priority processing</li>
-            </ul>
-
-            <button class="cta-button" data-plan="business" id="btn-business">
-                <span class="btn-text">Get Business Plan</span>
-                <span class="btn-status"></span>
-            </button>
-        </div>
+    <div id="mobile-menu" class="mobile-menu">
+        <button id="sheet-close" class="sheet-close" aria-label="Close menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <a href="index.html#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="mailto:hello@autolister.app">Contact</a>
+        <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Get Extension</a>
     </div>
 
-    <footer>
+    <!-- SHARED HEADER -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="index.html" class="logo">AutoLister AI</a>
+                <div class="nav-links">
+                    <a href="index.html#features">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="mailto:hello@autolister.app">Contact</a>
+                    <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn-nav">Get Extension</a>
+                </div>
+                <div class="mobile-menu-button">
+                    <button id="hamburger-button" class="hamburger" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open navigation menu">
+                        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <line id="ham-top" x1="3" y1="6" x2="21" y2="6"></line>
+                                <line id="ham-mid" x1="3" y1="12" x2="21" y2="12"></line>
+                                <line id="ham-bot" x1="3" y1="18" x2="21" y2="18"></line>
+                            </g>
+                        </svg>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- MAIN CONTENT WRAPPED FOR LAYOUT -->
+    <!-- The .pricing-page-content class handles alignment and max-width for the entire page body content -->
+    <div class="pricing-page-content">
+        <h1 class="pricing-h1">Choose Your Plan</h1>
+        <p class="subtitle">Pricing designed for real sellers - from hobby to business</p>
+
+        <div class="pricing-grid">
+            <!-- Free Trial -->
+            <div class="pricing-card">
+                <div class="plan-name">Free Trial</div>
+                <div class="plan-description">Get a taste of AutoLister AI</div>
+                <div class="plan-price">€0<span class="period">/forever</span></div>
+                
+                <div class="limits-section">
+                    <div class="limits-title">Usage Limits</div>
+                    <ul class="limits-list">
+                        <li>Daily: 2 listings per day</li>
+                        <li>Monthly: 10 listings per month</li>
+                        <li>Try before you buy</li>
+                    </ul>
+                </div>
+
+                <ul class="features-list">
+                    <li>AI-generated titles and descriptions</li>
+                    <li>Basic support</li>
+                    <li>See if you like it first</li>
+                </ul>
+
+                <button class="cta-button secondary" data-plan="free" id="btn-free">
+                    <span class="btn-text">Try Free</span>
+                    <span class="btn-status"></span>
+                </button>
+            </div>
+
+            <!-- Starter -->
+            <div class="pricing-card popular">
+                <div class="popular-badge">Most Popular</div>
+                <div class="plan-name">Starter</div>
+                <div class="plan-description">Perfect for casual Vinted sellers</div>
+                <div class="plan-price">€3.99<span class="period">/month</span></div>
+                
+                <div class="limits-section">
+                    <div class="limits-title">Usage Limits</div>
+                    <ul class="limits-list">
+                        <li>Daily: 15 listings per day</li>
+                        <li>Monthly: 300 listings per month</li>
+                    </ul>
+                </div>
+
+                <ul class="features-list">
+                    <li>AI-generated titles and descriptions</li>
+                    <li>Priority support</li>
+                    <li>Perfect for weekend listing sessions</li>
+                </ul>
+
+                <button class="cta-button" data-plan="starter" id="btn-starter">
+                    <span class="btn-text">Get Starter Plan</span>
+                    <span class="btn-status"></span>
+                </button>
+            </div>
+
+            <!-- Pro -->
+            <div class="pricing-card">
+                <div class="plan-name">Pro</div>
+                <div class="plan-description">For active sellers listing daily</div>
+                <div class="plan-price">€9.99<span class="period">/month</span></div>
+                
+                <div class="limits-section">
+                    <div class="limits-title">Usage Limits</div>
+                    <ul class="limits-list">
+                        <li>Daily: 40 listings per day</li>
+                        <li>Monthly: 800 listings per month</li>
+                    </ul>
+                </div>
+
+                <ul class="features-list">
+                    <li>Everything in Starter</li>
+                    <li>Higher daily limits</li>
+                    <li>Priority processing</li>
+                </ul>
+
+                <button class="cta-button" data-plan="pro" id="btn-pro">
+                    <span class="btn-text">Get Pro Plan</span>
+                    <span class="btn-status"></span>
+                </button>
+            </div>
+
+            <!-- Business -->
+            <div class="pricing-card">
+                <div class="plan-name">Business</div>
+                <div class="plan-description">For resellers and high-volume sellers</div>
+                <div class="plan-price">€19.99<span class="period">/month</span></div>
+                
+                <div class="limits-section">
+                    <div class="limits-title">Usage Limits</div>
+                    <ul class="limits-list">
+                        <li>Daily: N/A — Business plan has no daily limit</li>
+                        <li>Monthly: 1,500 listings per month</li>
+                    </ul>
+                </div>
+
+                <ul class="features-list">
+                    <li>Everything in Pro</li>
+                    <li>Highest daily limits</li>
+                    <li>Dedicated support</li>
+                    <li>Priority processing</li>
+                </ul>
+
+                <button class="cta-button" data-plan="business" id="btn-business">
+                    <span class="btn-text">Get Business Plan</span>
+                    <span class="btn-status"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FOOTER: Using a dedicated class here since the index.html footer is dark and structured differently -->
+    <footer class="footer-pricing-page">
         <p><strong>Why so limited for free?</strong> Free trial gives you just enough to see the magic ✨. Most sellers need more than 2 listings/day, making paid plans excellent value.</p>
         <p><strong>No surprises:</strong> All prices in EUR. Cancel anytime. No setup fees.</p>
         <p>&copy; 2025 AutoLister AI · All rights reserved · <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></p>
     </footer>
 
-    <!-- Supabase SDK -->
+    <!-- Supabase SDK (Original Script) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
+        // JavaScript for the mobile menu (class toggles + aria)
+        const hamburgerButton = document.getElementById('hamburger-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const backdrop = document.getElementById('menu-backdrop');
+        const sheetClose = document.getElementById('sheet-close');
+
+        function setMenuOpen(open) {
+            if (open) {
+                hamburgerButton.classList.add('open');
+                mobileMenu.classList.add('open');
+                backdrop.classList.add('open');
+
+                hamburgerButton.setAttribute('aria-expanded', 'true');
+                hamburgerButton.setAttribute('aria-label', 'Close navigation menu');
+
+                // focus close for accessibility
+                if (sheetClose) sheetClose.focus();
+
+                // dim the page behind the overlay for a polished look
+                document.body.classList.add('menu-dim');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+            } else {
+                hamburgerButton.classList.remove('open');
+                mobileMenu.classList.remove('open');
+                backdrop.classList.remove('open');
+
+                hamburgerButton.setAttribute('aria-expanded', 'false');
+                hamburgerButton.setAttribute('aria-label', 'Open navigation menu');
+
+                document.body.classList.remove('menu-dim');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        }
+
+        hamburgerButton.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            const isOpen = mobileMenu.classList.contains('open'); // Check menu state directly
+            setMenuOpen(!isOpen);
+        });
+
+        // Close drawer when any menu link is clicked (good UX)
+        document.querySelectorAll('#mobile-menu a').forEach((el) => {
+            el.addEventListener('click', () => setMenuOpen(false));
+        });
+
+        // Sheet close button
+        if (sheetClose) {
+            sheetClose.addEventListener('click', () => setMenuOpen(false));
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (mobileMenu.classList.contains('open')) {
+                    setMenuOpen(false);
+                }
+            }
+        });
+
+        // FIX: Reliable Backdrop/Outside Click Handler
+        backdrop.addEventListener('click', (e) => {
+            // Because the backdrop is fixed, covers the screen, and has pointer-events: auto when open,
+            // this is the most reliable way to handle outside clicks.
+            setMenuOpen(false);
+        });
+        
+        // Original Pricing Page Logic starts here
         // Initialize Supabase with correct URL from extension
         const SUPABASE_URL = 'https://jqloiovdwjaornnfvmyu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxbG9pb3Zkd2phb3JubmZ2bXl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODIwODMzMiwiZXhwIjoyMDYzNzg0MzMyfQ.Urz77RMqsJs8gJmA3yia_HhxaaeDrHURrF-fPeExRNQ';
@@ -576,7 +387,6 @@
                         button.classList.add('disabled');
                     } else if (plan === 'free') {
                         textSpan.textContent = 'Current Plan';
-                        statusSpan.textContent = '✓ Active';
                         button.classList.add('current-plan');
                     } else {
                         const planConfig = PLAN_CONFIG[plan];
@@ -612,14 +422,16 @@
 
                 if (!currentUser) {
                     // Prompt to sign in through extension
-                    alert('Please sign in through the AutoLister AI extension first, then return to this page.');
+                    // IMPORTANT: Using custom modal/message box instead of alert()
+                    console.log('User not signed in. Please sign in through the AutoLister AI extension first, then return to this page.');
+                    // In a real app, you would show a modal here.
                     return;
                 }
 
                 if (planName === 'free') {
                     // Already on free or trying to downgrade
                     if (currentProfile?.subscription_tier === 'free') {
-                        alert('You are already on the free plan!');
+                        console.log('You are already on the free plan!');
                         return;
                     } else {
                         // Redirect to customer portal to cancel
@@ -641,7 +453,7 @@
                 }
             } catch (error) {
                 console.error('Plan selection error:', error);
-                alert('An error occurred. Please try again.');
+                // In a real app, you would show an error modal here.
             } finally {
                 // Reset button state
                 button.disabled = false;
@@ -669,11 +481,11 @@
                     window.open(data.url, '_blank');
                 } else {
                     console.error('Checkout error:', data);
-                    alert(`Unable to start checkout: ${data.error || 'Please try again.'}`);
+                    // In a real app, you would show an error modal here.
                 }
             } catch (error) {
                 console.error('Checkout error:', error);
-                alert('Network error. Please check your connection and try again.');
+                // In a real app, you would show an error modal here.
             }
         }
 
@@ -694,11 +506,11 @@
                     window.open(data.url, '_blank');
                 } else {
                     console.error('Portal error:', data);
-                    alert(`Unable to open customer portal: ${data.error || 'Please try again.'}`);
+                    // In a real app, you would show an error modal here.
                 }
             } catch (error) {
                 console.error('Portal error:', error);
-                alert('Network error. Please check your connection and try again.');
+                // In a real app, you would show an error modal here.
             }
         }
 

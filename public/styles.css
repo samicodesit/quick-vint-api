@@ -1,0 +1,992 @@
+/* ---------------------------------------------------------------------------------- */
+/* --- GLOBAL BASE STYLES --- */
+/* ---------------------------------------------------------------------------------- */
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #333;
+  background: #f9fafb;
+  line-height: 1.6;
+  /* transition is kept here to affect the whole body/page when menu is open */
+  transition:
+    filter 360ms ease,
+    transform 360ms ease;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Base link styling */
+a {
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------------------------- */
+/* --- HEADER, NAVIGATION, & MOBILE MENU (Shared) --- */
+/* ---------------------------------------------------------------------------------- */
+
+/* --- Header Styles --- */
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+/* Desktop Navigation Links */
+.nav-links {
+  display: none;
+  gap: 2rem;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .nav-links {
+    display: flex;
+  }
+}
+
+.nav-links a {
+  color: #374151;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: #4f46e5;
+}
+
+.btn-nav {
+  background: #4f46e5;
+  color: white !important;
+  padding: 0.6rem 1.8rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.btn-nav:hover {
+  background: #3730a3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+}
+
+/* --- Mobile Menu (Hamburger) and Drawer Styles --- */
+
+/* Mobile Menu Button Container */
+.mobile-menu-button {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .mobile-menu-button {
+    display: none;
+  }
+}
+
+/* Hamburger Icon Styling */
+.hamburger {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #111;
+  transition:
+    background 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+  border-radius: 8px;
+  z-index: 110;
+}
+
+.hamburger:focus {
+  outline: 2px solid rgba(79, 70, 229, 0.25);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Hamburger SVG Lines Animation */
+.hamburger svg line {
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    opacity 200ms ease;
+  transform-origin: center;
+}
+
+.hamburger.open svg #ham-top {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.hamburger.open svg #ham-mid {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.hamburger.open svg #ham-bot {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Backdrop overlay */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.42),
+    rgba(0, 0, 0, 0.62)
+  );
+  backdrop-filter: blur(6px) saturate(120%) brightness(0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 320ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    transform 320ms ease;
+  transform: scale(1.02);
+  z-index: 200;
+}
+
+.menu-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+/* Mobile Menu Panel (sliding) */
+.mobile-menu {
+  position: fixed;
+  top: 64px; /* Sit below the header */
+  left: 12px;
+  right: 12px;
+  background: #fff;
+  transform-origin: top center;
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 420ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    opacity 320ms ease;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: center;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgba(16, 24, 40, 0.24);
+  z-index: 210;
+}
+
+.mobile-menu.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 20px 60px rgba(16, 24, 40, 0.28);
+}
+
+/* Page Dimming Effect when Menu is Open */
+body.menu-dim .header,
+body.menu-dim .hero,
+body.menu-dim .features,
+body.menu-dim .how-it-works,
+body.menu-dim .pricing-page-content, /* Include pricing-page-content */
+body.menu-dim .cta-section,
+body.menu-dim .footer {
+  transform: scale(0.997);
+  filter: brightness(0.88) saturate(0.98);
+}
+
+/* Mobile menu links and staggered animation */
+.mobile-menu a {
+  opacity: 0;
+  transform: translateY(12px);
+  color: #111;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 0.75rem 0;
+  width: 100%;
+  text-align: center;
+  border-radius: 8px;
+  transition: color 0.3s ease;
+}
+
+.mobile-menu a:hover {
+  color: #4f46e5;
+}
+
+.mobile-menu.open a {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mobile-menu.open a:nth-child(1) {
+  transition: all 360ms ease 80ms;
+}
+.mobile-menu.open a:nth-child(2) {
+  transition: all 360ms ease 160ms;
+}
+.mobile-menu.open a:nth-child(3) {
+  transition: all 360ms ease 240ms;
+}
+.mobile-menu.open a:nth-child(4) {
+  transition: all 360ms ease 320ms;
+}
+
+/* Close button inside sheet */
+.sheet-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: #4f46e5;
+  border: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.18);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+  z-index: 220;
+}
+.sheet-close:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.22);
+}
+.sheet-close:focus {
+  outline: 3px solid rgba(79, 70, 229, 0.18);
+}
+
+/* ---------------------------------------------------------------------------------- */
+/* --- INDEX.HTML SECTION STYLES (Specific to index page layout) --- */
+/* ---------------------------------------------------------------------------------- */
+
+.hero {
+  /* Targets the hero section in index.html */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 4rem 0 6rem 0;
+  text-align: center;
+  color: white;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+/* FIX 1: Restore text color for Hero content (H1, P, social proof) in index.html */
+.hero h1,
+.hero .subtitle,
+.hero .social-proof,
+.hero .stats .stat-number,
+.hero .stats .stat-label {
+  color: white; /* Ensure all hero text is white for contrast */
+}
+.hero .subtitle {
+  color: rgba(255, 255, 255, 0.9);
+}
+.hero .social-proof {
+  color: rgba(255, 255, 255, 0.8);
+}
+/* Restore missing Hero CTA button styles (these were likely lost when merging styles) */
+.btn {
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  width: 100%;
+  max-width: 300px;
+}
+@media (min-width: 768px) {
+  .btn {
+    width: auto;
+  }
+}
+.btn-primary {
+  background: white;
+  color: #4f46e5;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px);
+}
+/* End of restored Hero CTA button styles */
+
+.hero h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+  margin-top: 0;
+}
+
+@media (min-width: 768px) {
+  .hero h1 {
+    font-size: 3.5rem;
+    margin-top: 0;
+  }
+}
+
+.hero .subtitle {
+  font-size: 1.2rem;
+  margin-bottom: 3rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+  .hero-cta {
+    flex-direction: row;
+  }
+}
+
+.social-proof {
+  margin-top: 3rem;
+  font-size: 1rem;
+}
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+@media (min-width: 768px) {
+  .stats {
+    gap: 3rem;
+  }
+}
+.stat {
+  text-align: center;
+}
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  display: block;
+}
+.stat-label {
+  font-size: 0.9rem;
+}
+.features {
+  background: white;
+  padding: 6rem 0;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+.section-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+.section-header h2 {
+  font-size: 2.5rem;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+.section-header p {
+  font-size: 1.2rem;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-top: 4rem;
+}
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 3rem;
+  }
+}
+.feature {
+  text-align: center;
+  padding: 2rem;
+  border-radius: 20px;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+.feature:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: #4f46e5;
+}
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+.feature h3 {
+  font-size: 1.5rem;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+.feature p {
+  color: #6b7280;
+  line-height: 1.6;
+}
+.how-it-works {
+  background: #f8fafc;
+  padding: 6rem 0;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-top: 4rem;
+}
+@media (min-width: 768px) {
+  .steps {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+.step {
+  background: white;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+.step-number {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4f46e5;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+.step h3 {
+  color: #1f2937;
+  margin: 1rem 0;
+  font-size: 1.3rem;
+}
+.step p {
+  color: #6b7280;
+}
+.pricing-preview {
+  background: white;
+  padding: 6rem 0;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+.pricing-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  margin-top: 3rem;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 1024px) {
+  .pricing-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+.pricing-card {
+  /* Moved common card styles here for both index/pricing pages */
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.pricing-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: #4f46e5;
+}
+
+.pricing-card.featured {
+  border-color: #4f46e5;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  transform: scale(1.05);
+}
+/* FIX 2: Explicitly style elements inside the featured card that need to be white */
+.pricing-card.featured .plan-name,
+.pricing-card.featured .plan-price,
+.pricing-card.featured .plan-period {
+  color: white;
+}
+.pricing-card.featured .plan-features li {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pricing-card.featured .badge {
+  background: #fbbf24;
+  color: #92400e;
+  padding: 0.3rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.plan-period {
+  opacity: 0.7;
+  margin-bottom: 2rem;
+}
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0;
+  text-align: left;
+}
+.plan-features li {
+  padding: 0.5rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+}
+.plan-features li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #10b981;
+  font-weight: bold;
+}
+.pricing-card.featured .plan-features li::before {
+  color: #fbbf24;
+}
+.cta-section {
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  color: white;
+  padding: 6rem 0;
+  text-align: center;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+.cta-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+.cta-section p {
+  font-size: 1.2rem;
+  margin-bottom: 3rem;
+  opacity: 0.9;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.footer {
+  background: #1f2937;
+  color: white;
+  padding: 3rem 0 2rem 0;
+  text-align: center;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  color: #d1d5db;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+.footer-links a:hover {
+  color: white;
+}
+.footer-bottom {
+  border-top: 1px solid #374151;
+  padding-top: 2rem;
+  color: #9ca3af;
+}
+
+/* ---------------------------------------------------------------------------------- */
+/* --- PRICING.HTML SPECIFIC STYLES --- */
+/* ---------------------------------------------------------------------------------- */
+
+.pricing-page-content {
+  text-align: center; /* Center main page content */
+  max-width: 1200px; /* Use max-width for consistency */
+  margin: 0 auto;
+  padding: 0 20px 40px 20px;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 360ms ease;
+  transform-origin: top center;
+}
+
+.pricing-h1 {
+  font-size: 2.5rem;
+  color: #4f46e5;
+  margin-bottom: 0.5em;
+  margin-top: 2rem;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #6b7280;
+  margin-bottom: 3rem;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 2rem auto;
+}
+
+/* Note: .pricing-card styles defined in Index section above for sharing */
+/* .pricing-card is defined above to allow sharing */
+
+.pricing-card.popular {
+  border-color: #4f46e5;
+  transform: scale(1.05);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4f46e5;
+  color: white;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.plan-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.plan-description {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.plan-price {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #4f46e5;
+  margin-bottom: 0.5rem;
+}
+
+.plan-price .period {
+  font-size: 1rem;
+  color: #6b7280;
+  font-weight: normal;
+}
+
+.features-list {
+  text-align: left;
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.features-list li {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.features-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #10b981;
+  font-weight: bold;
+}
+
+.limits-section {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.limits-title {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.limits-list {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.cta-button {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.cta-button:hover {
+  background: #4338ca;
+}
+
+.cta-button.secondary {
+  background: #6b7280;
+}
+
+.cta-button.secondary:hover {
+  background: #374151;
+}
+
+.cta-button.current-plan {
+  background: #10b981;
+  cursor: default;
+}
+
+.cta-button.current-plan:hover {
+  background: #10b981;
+}
+
+/* New button states */
+.cta-button.download-extension {
+  background: #059669;
+}
+
+.cta-button.download-extension:hover {
+  background: #047857;
+}
+
+.cta-button.sign-in {
+  background: #7c3aed;
+}
+
+.cta-button.sign-in:hover {
+  background: #6d28d9;
+}
+
+.cta-button.disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.cta-button.disabled:hover {
+  background: #9ca3af;
+}
+
+.btn-text {
+  flex: 1;
+}
+
+.btn-status {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.pricing-card.current {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.pricing-card.current .plan-name::after {
+  content: " ✓";
+  color: #10b981;
+  font-weight: bold;
+}
+
+.login-section {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.login-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e5e7eb;
+}
+
+.login-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.login-form input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: #4f46e5;
+}
+
+.login-form button {
+  padding: 0.75rem 1.5rem;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.login-form button:hover {
+  background: #4338ca;
+}
+
+.login-form button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.message.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.message.error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.message.info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Redefine footer styling for the pricing page structure (since it's not the dark index footer) */
+.footer-pricing-page {
+  margin-top: 3rem;
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+}
+.footer-pricing-page p {
+  margin: 0.5rem 0;
+}

@@ -1720,20 +1720,19 @@
                 `;
             });
 
-            // Rate limits
+            // Rate limits (show all users)
             const rateLimitsDiv = document.getElementById('rateLimitsContent');
-            if (data.activeRateLimits.length === 0) {
-                rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No daily usage recorded yet today</div>';
+            if (!data.todaysUsage || data.todaysUsage.length === 0) {
+                rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No users found</div>';
             } else {
                 let html = '<table class="data-table"><thead><tr><th>User</th><th>Tier</th><th>Usage</th><th>Status</th><th>Expires</th></tr></thead><tbody>';
-                data.activeRateLimits.forEach(limit => {
-                    const expiry = new Date(limit.expires_at).toLocaleString();
+                data.todaysUsage.forEach(limit => {
+                    const expiry = limit.expires_at ? new Date(limit.expires_at).toLocaleString() : '-';
                     const userEmail = limit.email || 'Unknown';
-                    const userIdShort = limit.user_id.substring(0, 8) + '...';
+                    const userIdShort = limit.user_id ? (limit.user_id.substring(0, 8) + '...') : '';
                     const statusHtml = limit.is_blocked 
                         ? `<span style="color: #dc2626; font-weight: 600;">Blocked</span>`
                         : `<span style="color: #059669;">OK</span>`;
-                    
                     html += `<tr>
                         <td>
                             <div style="font-weight: 500;">${userEmail}</div>

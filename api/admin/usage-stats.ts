@@ -73,32 +73,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .limit(200); // Get up to 200 records for today
 
     // Enrich the usage data with user details and tier limits
+    const tierLimits: Record<string, number> = {
+      free: 2,
+      unlimited_monthly: 15, // Legacy
+      starter: 15,
+      pro: 40,
+      business: 75,
+    };
+
     const todaysUsage = [];
-    if (rateLimitData && combinedUsers) {
-      for (const limit of rateLimitData) {
-        const user = combinedUsers.find((u) => u.id === limit.user_id);
-        if (user) {
-          // Define tier limits
-          const tierLimits: Record<string, number> = {
-            free: 2,
-            unlimited_monthly: 15, // Legacy
-            starter: 15,
-            pro: 40,
-            business: 75,
-          };
+    if (combinedUsers) {
+      for (const user of combinedUsers) {
+        const userTier = user.subscription_tier || "free";
+        const dailyLimit = tierLimits[userTier] || tierLimits.free;
+        // Find today's rate limit record for this user
+        const limit = rateLimitData?.find((l) => l.user_id === user.id);
+        const count = limit?.count || 0;
+        const expires_at = limit?.expires_at || null;
+        const isBlocked = count >= dailyLimit;
 
-          const userTier = user.subscription_tier || "free";
-          const dailyLimit = tierLimits[userTier] || tierLimits.free;
-          const isBlocked = limit.count >= dailyLimit;
-
-          todaysUsage.push({
-            ...limit,
-            email: user.email,
-            tier: userTier,
-            daily_limit: dailyLimit,
-            is_blocked: isBlocked,
-          });
-        }
+        todaysUsage.push({
+          user_id: user.id,
+          email: user.email,
+          tier: userTier,
+          daily_limit: dailyLimit,
+          count,
+          is_blocked: isBlocked,
+          expires_at,
+        });
       }
     }
 

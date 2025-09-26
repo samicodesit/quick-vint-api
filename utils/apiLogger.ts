@@ -186,11 +186,6 @@ export class ApiLogger {
       reasons.push('Potential bot/automated traffic detected');
     }
 
-    // Check for high frequency requests (if provided)
-    if (data.requestFrequency && data.requestFrequency > 10) {
-      reasons.push(`High request frequency: ${data.requestFrequency} requests`);
-    }
-
     return {
       suspicious: reasons.length > 0,
       reasons

@@ -110,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       lastWeek: weekStats || [],
       topUsers: combinedUsers || [],
-      activeRateLimits: todaysUsage || [], // Changed to todaysUsage
+      todaysUsage: todaysUsage || [],
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {

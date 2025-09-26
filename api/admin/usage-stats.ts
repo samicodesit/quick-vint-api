@@ -1,6 +1,7 @@
 // api/admin/usage-stats.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../../utils/supabaseClient";
+import { TIER_CONFIGS } from "../../utils/tierConfig";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Secure the endpoint with admin secret
@@ -71,23 +72,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .order("count", { ascending: false })
       .limit(500);
 
-    // Tier limits for daily window (for reference)
-    const tierLimits: Record<string, number> = {
-      free: 2,
-      unlimited_monthly: 15, // Legacy
-      starter: 15,
-      pro: 40,
-      business: 75,
-    };
-
-    // Burst limits (per-minute) for UI reference
-    const tierBursts: Record<string, number> = {
-      free: 3,
-      unlimited_monthly: 10, // Legacy mapping
-      starter: 10,
-      pro: 20,
-      business: 30,
-    };
+    // Use canonical tier config for limits (single source of truth)
+    function getTierLimits(tierName: string) {
+      const tier = TIER_CONFIGS[tierName] || TIER_CONFIGS.free;
+      return {
+        day: tier.limits.daily,
+        month: tier.limits.monthly,
+        minute: tier.limits.burst.perMinute,
+      };
+    }
 
     // Build a map of userId -> array of active limits
     const userLimitsMap: Record<string, Array<any>> = {};
@@ -99,24 +92,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // For each user, attach all their active limits
-    const usageWithLimits = [];
+    // For each user, attach all their active limits and compute canonical max limits
+    const usageWithLimits: Array<any> = [];
     if (combinedUsers) {
       for (const user of combinedUsers) {
         const userTier = user.subscription_tier || "free";
-        const dailyLimit = tierLimits[userTier] || tierLimits.free;
         const limits = userLimitsMap[user.id] || [];
-        const burstPerMinute = tierBursts[userTier] || tierBursts.free;
 
-        // Compute canonical max limits per window type (single source of truth)
-        const maxLimits = {
-          minute: burstPerMinute,
-          day: dailyLimit,
-          month: dailyLimit * 30,
-        };
-
-        // Add a synthetic monthly limit entry (using api_calls_this_month) so the UI can display monthly usage
-        // Only add if not already present
+        // Ensure monthly synthetic entry exists so UI can display monthly usage
         const hasMonth = limits.some((l) => l.window_type === "month");
         if (!hasMonth) {
           limits.push({
@@ -127,11 +110,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
         }
 
+        const tierLimits = getTierLimits(userTier);
+
+        const maxLimits = {
+          minute: tierLimits.minute,
+          day: tierLimits.day,
+          month: tierLimits.month,
+        };
+
+        // Only include users with more than 0 usage across any returned limit
+        const totalUsage = (limits || []).reduce((sum: number, l: any) => sum + (l.count || 0), 0);
+        if (totalUsage <= 0) continue;
+
         usageWithLimits.push({
           user_id: user.id,
           email: user.email,
           tier: userTier,
-          daily_limit: dailyLimit,
+          daily_limit: tierLimits.day,
           limits, // array of {window_type, count, expires_at}
           max_limits: maxLimits,
         });

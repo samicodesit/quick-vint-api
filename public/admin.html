@@ -1798,10 +1798,14 @@
             if (!data.todaysUsage || data.todaysUsage.length === 0) {
                 rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No users found</div>';
             } else {
-                // Only show users with at least one active limit
-                const filteredUsers = data.todaysUsage.filter(user => user.limits && user.limits.length > 0);
+                // Only show users that have positive usage across their returned limits
+                const filteredUsers = (data.todaysUsage || []).filter(user => {
+                    if (!user || !user.limits || user.limits.length === 0) return false;
+                    const total = user.limits.reduce((s, l) => s + (l.count || 0), 0);
+                    return total > 0;
+                });
                 if (filteredUsers.length === 0) {
-                    rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No users with active limits</div>';
+                    rateLimitsDiv.innerHTML = '<div class="success-indicator">✅ No users with active usage</div>';
                     return;
                 }
                     let html = '<div class="legend"><div><strong>Legend:</strong> </div><div><span class="status-badge status-ok">OK</span> within limits</div><div><span class="status-badge status-limited">LIMITED</span> over limit</div><div class="small-note">Reset button copies safe SQL to clipboard</div></div>';

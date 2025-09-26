@@ -4,15 +4,32 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AutoLister AI - Transform Your Vinted Sales with AI-Powered Listings</title>
-    <meta name="description" content="Generate compelling Vinted listings instantly with AutoLister AI. Professional titles and descriptions that sell - powered by advanced AI technology.">
+    
+    <!-- SEO and Social Sharing Tags -->
+    <title>AutoLister.app - AI-Powered Vinted Listings in Seconds</title>
+    <meta name="description" content="Generate compelling Vinted listings instantly with AutoLister.app. Professional titles and descriptions that sell - powered by advanced AI technology.">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://autolister.app/">
+    <meta property="og:title" content="AutoLister.app - AI-Powered Vinted Listings in Seconds">
+    <meta property="og:description" content="Stop wasting time writing descriptions. Generate compelling, sales-focused listings for Vinted from your photos in seconds.">
+    <meta property="og:image" content="https://placehold.co/1200x630/667eea/ffffff?text=AutoLister.app&font=inter">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://autolister.app/">
+    <meta property="twitter:title" content="AutoLister.app - AI-Powered Vinted Listings in Seconds">
+    <meta property="twitter:description" content="Stop wasting time writing descriptions. Generate compelling, sales-focused listings for Vinted from your photos in seconds.">
+    <meta property="twitter:image" content="https://placehold.co/1200x630/667eea/ffffff?text=AutoLister.app&font=inter">
+    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f9fafb; /* Lighter default background */
             line-height: 1.6;
         }
 
@@ -30,7 +47,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .nav {
@@ -47,9 +64,15 @@
         }
 
         .nav-links {
-            display: flex;
+            display: none; /* Hidden by default, shown on medium screens up */
             gap: 2rem;
             align-items: center;
+        }
+        
+        @media (min-width: 768px) {
+            .nav-links {
+                display: flex;
+            }
         }
 
         .nav-links a {
@@ -72,33 +95,64 @@
             font-weight: 700;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
-            border: 2px solid transparent;
         }
 
         .btn-nav:hover {
             background: #3730a3;
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
-            color: white !important;
+        }
+        
+        /* Mobile Menu Button (Hamburger) */
+        .mobile-menu-button {
+            display: block;
+        }
+        @media (min-width: 768px) {
+            .mobile-menu-button {
+                display: none;
+            }
+        }
+
+        /* Mobile Menu Panel */
+        .mobile-menu {
+            display: none; /* Hidden by default */
+            padding: 1rem;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .mobile-menu a {
+            display: block;
+            padding: 0.75rem 0;
+            color: #374151;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .mobile-menu a:hover {
+            color: #4f46e5;
         }
 
         /* Hero Section */
         .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 4rem 0 6rem 0;
             text-align: center;
             color: white;
         }
 
         .hero h1 {
-            font-size: 3.5rem;
+            font-size: 2.5rem;
             font-weight: 800;
             margin-bottom: 1.5rem;
             line-height: 1.2;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+         @media (min-width: 768px) {
+            .hero h1 {
+                font-size: 3.5rem;
+            }
         }
 
         .hero .subtitle {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             margin-bottom: 3rem;
             color: rgba(255, 255, 255, 0.9);
             max-width: 600px;
@@ -108,11 +162,19 @@
 
         .hero-cta {
             display: flex;
+            flex-direction: column;
             gap: 1.5rem;
             justify-content: center;
-            flex-wrap: wrap;
+            align-items: center;
             margin-bottom: 4rem;
         }
+        
+        @media (min-width: 768px) {
+            .hero-cta {
+                flex-direction: row;
+            }
+        }
+
 
         .btn {
             display: inline-block;
@@ -123,7 +185,16 @@
             font-size: 1.1rem;
             transition: all 0.3s ease;
             cursor: pointer;
+            width: 100%;
+            max-width: 300px;
         }
+        
+        @media (min-width: 768px) {
+            .btn {
+                width: auto;
+            }
+        }
+
 
         .btn-primary {
             background: white;
@@ -140,339 +211,15 @@
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
         }
 
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-3px);
         }
-
-        .social-proof {
-            margin-top: 3rem;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 1rem;
-        }
-
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 3rem;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .stat {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: white;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Features Section */
-        .features {
-            background: white;
-            padding: 6rem 0;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
-        .section-header h2 {
-            font-size: 2.5rem;
-            color: #1f2937;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-
-        .section-header p {
-            font-size: 1.2rem;
-            color: #6b7280;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 3rem;
-            margin-top: 4rem;
-        }
-
-        .feature {
-            text-align: center;
-            padding: 2rem;
-            border-radius: 20px;
-            background: #f9fafb;
-            border: 2px solid #e5e7eb;
-            transition: all 0.3s ease;
-        }
-
-        .feature:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            border-color: #4f46e5;
-        }
-
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            display: block;
-        }
-
-        .feature h3 {
-            font-size: 1.5rem;
-            color: #1f2937;
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-
-        .feature p {
-            color: #6b7280;
-            line-height: 1.6;
-        }
-
-        /* How It Works */
-        .how-it-works {
-            background: #f8fafc;
-            padding: 6rem 0;
-        }
-
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 4rem;
-        }
-
-        .step {
-            background: white;
-            padding: 2.5rem 2rem;
-            border-radius: 16px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            position: relative;
-        }
-
-        .step-number {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4f46e5;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.2rem;
-        }
-
-        .step h3 {
-            color: #1f2937;
-            margin: 1rem 0;
-            font-size: 1.3rem;
-        }
-
-        .step p {
-            color: #6b7280;
-        }
-
-        /* Pricing Preview */
-        .pricing-preview {
-            background: white;
-            padding: 6rem 0;
-        }
-
-        .pricing-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-            max-width: 1000px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .pricing-card {
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 20px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .pricing-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            border-color: #4f46e5;
-        }
-
-        .pricing-card.featured {
-            border-color: #4f46e5;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            transform: scale(1.05);
-        }
-
-        .pricing-card.featured .badge {
-            background: #fbbf24;
-            color: #92400e;
-            padding: 0.3rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .plan-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .plan-price {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .plan-period {
-            opacity: 0.7;
-            margin-bottom: 2rem;
-        }
-
-        .plan-features {
-            list-style: none;
-            padding: 0;
-            margin: 2rem 0;
-        }
-
-        .plan-features li {
-            padding: 0.5rem 0;
-            position: relative;
-            padding-left: 1.5rem;
-        }
-
-        .plan-features li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #10b981;
-            font-weight: bold;
-        }
-
-        .pricing-card.featured .plan-features li::before {
-            color: #fbbf24;
-        }
-
-        /* CTA Section */
-        .cta-section {
-            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-            color: white;
-            padding: 6rem 0;
-            text-align: center;
-        }
-
-        .cta-section h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 700;
-        }
-
-        .cta-section p {
-            font-size: 1.2rem;
-            margin-bottom: 3rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Footer */
-        .footer {
-            background: #1f2937;
-            color: white;
-            padding: 3rem 0 2rem 0;
-            text-align: center;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: #d1d5db;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .footer-links a:hover {
-            color: white;
-        }
-
-        .footer-bottom {
-            border-top: 1px solid #374151;
-            padding-top: 2rem;
-            color: #9ca3af;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-            
-            .hero .subtitle {
-                font-size: 1.2rem;
-            }
-            
-            .hero-cta {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .btn {
-                width: 100%;
-                max-width: 300px;
-            }
-            
-            .stats {
-                gap: 2rem;
-            }
-            
-            .nav-links {
-                display: none;
-            }
-            
-            .features-grid,
-            .steps {
-                grid-template-columns: 1fr;
-            }
-        }
+        
+        /* Other styles remain the same... */
+        .social-proof{margin-top:3rem;color:rgba(255,255,255,0.8);font-size:1rem}.stats{display:flex;justify-content:center;gap:2rem;margin-top:2rem;flex-wrap:wrap}@media (min-width:768px){.stats{gap:3rem}}.stat{text-align:center}.stat-number{font-size:2rem;font-weight:700;color:white;display:block}.stat-label{font-size:0.9rem;color:rgba(255,255,255,0.7)}.features{background:white;padding:6rem 0}.section-header{text-align:center;margin-bottom:4rem}.section-header h2{font-size:2.5rem;color:#1f2937;margin-bottom:1rem;font-weight:700}.section-header p{font-size:1.2rem;color:#6b7280;max-width:600px;margin:0 auto}.features-grid{display:grid;grid-template-columns:1fr;gap:2rem;margin-top:4rem}@media (min-width:768px){.features-grid{grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:3rem}}.feature{text-align:center;padding:2rem;border-radius:20px;background:#f9fafb;border:2px solid #e5e7eb;transition:all 0.3s ease}.feature:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,0.1);border-color:#4f46e5}.feature-icon{font-size:3rem;margin-bottom:1.5rem;display:block}.feature h3{font-size:1.5rem;color:#1f2937;margin-bottom:1rem;font-weight:600}.feature p{color:#6b7280;line-height:1.6}.how-it-works{background:#f8fafc;padding:6rem 0}.steps{display:grid;grid-template-columns:1fr;gap:2rem;margin-top:4rem}@media (min-width:768px){.steps{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}}.step{background:white;padding:2.5rem 2rem;border-radius:16px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.05);position:relative}.step-number{position:absolute;top:-20px;left:50%;transform:translateX(-50%);background:#4f46e5;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem}.step h3{color:#1f2937;margin:1rem 0;font-size:1.3rem}.step p{color:#6b7280}.pricing-preview{background:white;padding:6rem 0}.pricing-cards{display:grid;grid-template-columns:1fr;gap:2.5rem;margin-top:3rem;max-width:1000px;margin-left:auto;margin-right:auto}@media (min-width:1024px){.pricing-cards{grid-template-columns:repeat(3,1fr);gap:2rem}}.pricing-card{background:white;border:2px solid #e5e7eb;border-radius:20px;padding:2rem;text-align:center;transition:all 0.3s ease;position:relative}.pricing-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,0.1);border-color:#4f46e5}.pricing-card.featured{border-color:#4f46e5;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:white;transform:scale(1.05)}.pricing-card.featured .badge{background:#fbbf24;color:#92400e;padding:0.3rem 1rem;border-radius:20px;font-size:0.8rem;font-weight:600;position:absolute;top:-10px;left:50%;transform:translateX(-50%)}.plan-name{font-size:1.3rem;font-weight:600;margin-bottom:1rem}.plan-price{font-size:2.5rem;font-weight:700;margin-bottom:0.5rem}.plan-period{opacity:0.7;margin-bottom:2rem}.plan-features{list-style:none;padding:0;margin:2rem 0;text-align:left}.plan-features li{padding:0.5rem 0;position:relative;padding-left:1.5rem}.plan-features li::before{content:"✓";position:absolute;left:0;color:#10b981;font-weight:bold}.pricing-card.featured .plan-features li::before{color:#fbbf24}.cta-section{background:linear-gradient(135deg,#1f2937 0%,#374151 100%);color:white;padding:6rem 0;text-align:center}.cta-section h2{font-size:2.5rem;margin-bottom:1.5rem;font-weight:700}.cta-section p{font-size:1.2rem;margin-bottom:3rem;opacity:0.9;max-width:600px;margin-left:auto;margin-right:auto}.footer{background:#1f2937;color:white;padding:3rem 0 2rem 0;text-align:center}.footer-links{display:flex;justify-content:center;gap:2rem;margin-bottom:2rem;flex-wrap:wrap}.footer-links a{color:#d1d5db;text-decoration:none;transition:color 0.3s ease}.footer-links a:hover{color:white}.footer-bottom{border-top:1px solid #374151;padding-top:2rem;color:#9ca3af}
     </style>
 </head>
 
@@ -481,14 +228,28 @@
     <header class="header">
         <div class="container">
             <nav class="nav">
-                <a href="/" class="logo">AutoLister AI</a>
+                <a href="/" class="logo">AutoLister.app</a>
+                <!-- Desktop Nav -->
                 <div class="nav-links">
-                    <a href="/pricing.html">Pricing</a>
-                    <a href="/terms.html">Terms</a>
-                    <a href="/privacy.html">Privacy</a>
+                    <a href="#features">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="mailto:hello@autolister.app">Contact</a>
                     <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn-nav">Get Extension</a>
                 </div>
+                <!-- Mobile Menu Button -->
+                <div class="mobile-menu-button">
+                    <button id="hamburger-button">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
             </nav>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="mobile-menu">
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="mailto:hello@autolister.app">Contact</a>
+            <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Get Extension</a>
         </div>
     </header>
 
@@ -504,7 +265,7 @@
                 <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn btn-primary">
                     Get Started Free
                 </a>
-                <a href="/pricing.html" class="btn btn-secondary">
+                <a href="#pricing" class="btn btn-secondary">
                     View Plans & Pricing
                 </a>
             </div>
@@ -529,10 +290,10 @@
     </section>
 
     <!-- Features Section -->
-    <section class="features">
+    <section id="features" class="features">
         <div class="container">
             <div class="section-header">
-                <h2>Why Choose AutoLister AI?</h2>
+                <h2>Why Choose AutoLister.app?</h2>
                 <p>Our advanced AI technology creates listings that stand out and sell faster</p>
             </div>
             <div class="features-grid">
@@ -551,21 +312,6 @@
                     <h3>Smart AI Technology</h3>
                     <p>Powered by advanced language models that understand fashion trends, buyer psychology, and Vinted best practices.</p>
                 </div>
-                <div class="feature">
-                    <span class="feature-icon">📈</span>
-                    <h3>Boost Your Sales</h3>
-                    <p>Professional listings get more views, interest, and sales. Stand out from amateur-looking descriptions.</p>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🎨</span>
-                    <h3>Brand Consistency</h3>
-                    <p>Maintain a professional tone across all your listings while highlighting unique selling points.</p>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🔄</span>
-                    <h3>Always Improving</h3>
-                    <p>Our AI continuously learns and updates to deliver even better results and stay current with trends.</p>
-                </div>
             </div>
         </div>
     </section>
@@ -581,12 +327,12 @@
                 <div class="step">
                     <div class="step-number">1</div>
                     <h3>Install Extension</h3>
-                    <p>Add AutoLister AI to Chrome in seconds. It's completely free to get started.</p>
+                    <p>Add AutoLister to your Chrome browser in seconds. It's free to get started.</p>
                 </div>
                 <div class="step">
                     <div class="step-number">2</div>
                     <h3>Click to Generate</h3>
-                    <p>On any Vinted listing page, click the AutoLister AI icon to instantly generate professional content.</p>
+                    <p>On any Vinted listing page, click the AutoLister icon to instantly generate professional content.</p>
                 </div>
                 <div class="step">
                     <div class="step-number">3</div>
@@ -597,50 +343,48 @@
         </div>
     </section>
 
-    <!-- Pricing Preview -->
-    <section class="pricing-preview">
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing-preview">
         <div class="container">
             <div class="section-header">
                 <h2>Choose Your Plan</h2>
                 <p>Start free, upgrade when ready. All plans include our powerful AI technology.</p>
             </div>
             <div class="pricing-cards">
+                <!-- Starter -->
                 <div class="pricing-card">
-                    <div class="plan-name">Free Trial</div>
-                    <div class="plan-price">€0</div>
-                    <div class="plan-period">forever</div>
-                    <ul class="plan-features">
-                        <li>2 listings per day</li>
-                        <li>AI-powered generation</li>
-                        <li>Basic support</li>
-                    </ul>
-                </div>
-                <div class="pricing-card featured">
-                    <div class="badge">Most Popular</div>
                     <div class="plan-name">Starter</div>
-                    <div class="plan-price">€3.99</div>
+                    <div class="plan-price">€4.99</div>
                     <div class="plan-period">per month</div>
                     <ul class="plan-features">
-                        <li>15 listings per day</li>
-                        <li>Priority generation</li>
-                        <li>Email support</li>
-                        <li>Cancel anytime</li>
+                        <li>300 listings / month</li>
+                        <li>AI-powered generation</li>
+                        <li>Standard support</li>
                     </ul>
                 </div>
-                <div class="pricing-card">
+                <!-- Pro (Featured) -->
+                <div class="pricing-card featured">
+                    <div class="badge">Most Popular</div>
                     <div class="plan-name">Pro</div>
                     <div class="plan-price">€9.99</div>
                     <div class="plan-period">per month</div>
                     <ul class="plan-features">
-                        <li>40 listings per day</li>
-                        <li>Higher generation limits</li>
+                        <li>800 listings / month</li>
+                        <li>Priority generation</li>
                         <li>Priority support</li>
-                        <li>Future features first</li>
                     </ul>
                 </div>
-            </div>
-            <div style="text-align: center; margin-top: 3rem;">
-                <a href="/pricing.html" class="btn btn-primary">See All Plans & Features</a>
+                <!-- Business -->
+                <div class="pricing-card">
+                    <div class="plan-name">Business</div>
+                    <div class="plan-price">€19.99</div>
+                    <div class="plan-period">per month</div>
+                    <ul class="plan-features">
+                        <li>1500 listings / month</li>
+                        <li>No daily limits</li>
+                        <li>Dedicated support</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </section>
@@ -649,13 +393,10 @@
     <section class="cta-section">
         <div class="container">
             <h2>Ready to Transform Your Vinted Sales?</h2>
-            <p>Join thousands of successful sellers who use AutoLister AI to create professional listings that sell faster.</p>
+            <p>Join thousands of successful sellers who use AutoLister to create professional listings that sell faster.</p>
             <div class="hero-cta">
                 <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn btn-primary">
                     Start Free Today
-                </a>
-                <a href="/pricing.html" class="btn btn-secondary">
-                    Choose Your Plan
                 </a>
             </div>
         </div>
@@ -665,17 +406,30 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-links">
-                <a href="/pricing.html">Pricing</a>
+                <a href="#pricing">Pricing</a>
                 <a href="/privacy.html">Privacy Policy</a>
                 <a href="/terms.html">Terms of Service</a>
-                <a href="mailto:support@autolister.ai">Support</a>
-                <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Chrome Extension</a>
+                <a href="mailto:hello@autolister.app">Support</a>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2025 AutoLister AI. All rights reserved.</p>
-                <p>Transform your Vinted listings with the power of AI</p>
+                <p>&copy; 2025 AutoLister.app. All rights reserved.</p>
             </div>
         </div>
     </footer>
+
+    <script>
+        // JavaScript for the mobile menu
+        const hamburgerButton = document.getElementById('hamburger-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        hamburgerButton.addEventListener('click', () => {
+            const isMenuOpen = mobileMenu.style.display === 'block';
+            if (isMenuOpen) {
+                mobileMenu.style.display = 'none';
+            } else {
+                mobileMenu.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>

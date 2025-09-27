@@ -7,8 +7,10 @@ export const languageMap: { [key: string]: string } = {
   pt: "Portuguese",
   nl: "Dutch",
   pl: "Polish",
+  hu: "Hungarian",
+  sk: "Slovak",
   cz: "Czech",
   lt: "Lithuanian",
   lv: "Latvian",
-  lu: "Luxembourgish",
+  ro: "Romanian",
 };

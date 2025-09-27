@@ -204,7 +204,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [Brand] [Color] [Item].
-- Description: Note a positive condition (e.g., "Excellent condition," "Like new"). Highlight the item's best feature or style. End with 4-5 SEO hashtags.
+- Description: Note a positive condition (e.g., "Excellent condition," "Like new"). No negative remarks related to wrinkles or creasing, etc. Highlight the item's best feature or style. End with 4-5 SEO hashtags.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
@@ -252,7 +252,7 @@ Reply only in JSON: {"title":"...","description":"..."}
           ],
         },
       ],
-      max_tokens: 150,
+      max_tokens: 165,
     });
 
     // Log token usage

@@ -5,7 +5,9 @@ import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 import { RateLimiter } from "../utils/rateLimiter";
 import { ApiLogger } from "../utils/apiLogger";
+import { languageMap } from "../utils/languageMap";
 
+const OPEN_AI_MODEL = "gpt-4o-mini";
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern = /^https:\/\/(?:[\w-]+\.)?vinted\.[a-z]{2,3}$/;
 
@@ -178,7 +180,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // --- VALIDATE BODY ---
-  const { imageUrls } = req.body;
+  const { imageUrls, languageCode } = req.body;
+  const languageCodeStr = String(languageCode || "en").toLowerCase();
+  const language = languageMap[languageCodeStr] || "English";
+
   if (
     !Array.isArray(imageUrls) ||
     imageUrls.length === 0 ||
@@ -197,7 +202,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const systemPrompt =
     "You are an expert Vinted seller creating a listing. Your goal is to sell.";
   const userPrompt = `
-Analyze the image(s) and generate a title and description.
+Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [Brand] [Color] [Item].
 - Description: Note a positive condition (e.g., "Excellent condition," "Like new"). Highlight the item's best feature or style. End with 4-5 SEO hashtags.
 Reply only in JSON: {"title":"...","description":"..."}
@@ -205,7 +210,7 @@ Reply only in JSON: {"title":"...","description":"..."}
 
   // Log the full prompt being sent to OpenAI
   logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)`;
-  logData.openaiModel = "gpt-4o-mini";
+  logData.openaiModel = OPEN_AI_MODEL;
 
   // Check for suspicious activity
   const suspiciousCheck = ApiLogger.detectSuspiciousActivity({
@@ -230,7 +235,7 @@ Reply only in JSON: {"title":"...","description":"..."}
       image_url: { url },
     }));
     const chat = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: OPEN_AI_MODEL,
       messages: [
         {
           role: "system",

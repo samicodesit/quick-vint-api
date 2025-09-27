@@ -200,11 +200,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are a savvy and friendly Vinted seller. Your goal is to create listings that are appealing, trustworthy, and get items sold.";
+    "You are a savvy Vinted seller. Your goal is to create listings that are appealing, trustworthy, and get items sold.";
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [Brand] [Color] [Item].
-- Description: Note a positive condition (e.g., "Excellent condition," "Like new"). Write in a friendly, casual tone, as if describing it to a friend. No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags.
+- Description: Note a positive condition (e.g., excellent condition, Like new). Write in a friendly, casual tone but not overboard. No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

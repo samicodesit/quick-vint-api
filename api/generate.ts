@@ -9,7 +9,8 @@ import { languageMap } from "../utils/languageMap";
 
 const OPEN_AI_MODEL = "gpt-4o-mini";
 // allow vinted page origins (so extension fetch from page context works)
-const vintedOriginPattern = /^https:\/\/(?:[\w-]+\.)?vinted\.[a-z]{2,3}$/;
+const vintedOriginPattern =
+  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
 
 const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
 const ALLOWED_ORIGINS = rawOrigins

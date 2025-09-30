@@ -4,6 +4,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F2QL50WB6M"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-F2QL50WB6M');
+    </script>
+
     <title>AutoLister AI - Pricing & Plans</title>
     <!-- Link to the external stylesheet for consistent header/nav/page styling -->
     <link rel="stylesheet" href="styles.css">
@@ -15,7 +25,8 @@
 
     <div id="mobile-menu" class="mobile-menu">
         <button id="sheet-close" class="sheet-close" aria-label="Close menu">
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -23,7 +34,8 @@
         <a href="index.html#features">Features</a>
         <a href="#pricing">Pricing</a>
         <a href="mailto:hello@autolister.app">Contact</a>
-        <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank">Get Extension</a>
+        <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
+            target="_blank">Get Extension</a>
     </div>
 
     <!-- SHARED HEADER -->
@@ -35,10 +47,12 @@
                     <a href="index.html#features">Features</a>
                     <a href="#pricing">Pricing</a>
                     <a href="mailto:hello@autolister.app">Contact</a>
-                    <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn-nav">Get Extension</a>
+                    <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
+                        target="_blank" class="btn-nav">Get Extension</a>
                 </div>
                 <div class="mobile-menu-button">
-                    <button id="hamburger-button" class="hamburger" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open navigation menu">
+                    <button id="hamburger-button" class="hamburger" aria-expanded="false" aria-controls="mobile-menu"
+                        aria-label="Open navigation menu">
                         <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                 <line id="ham-top" x1="3" y1="6" x2="21" y2="6"></line>
@@ -51,7 +65,7 @@
             </nav>
         </div>
     </header>
-    
+
     <!-- MAIN CONTENT WRAPPED FOR LAYOUT -->
     <!-- The .pricing-page-content class handles alignment and max-width for the entire page body content -->
     <div class="pricing-page-content">
@@ -64,7 +78,7 @@
                 <div class="plan-name">Free Trial</div>
                 <div class="plan-description">Get a taste of AutoLister AI</div>
                 <div class="plan-price">€0<span class="period">/forever</span></div>
-                
+
                 <div class="limits-section">
                     <div class="limits-title">Usage Limits</div>
                     <ul class="limits-list">
@@ -92,7 +106,7 @@
                 <div class="plan-name">Starter</div>
                 <div class="plan-description">Perfect for casual Vinted sellers</div>
                 <div class="plan-price">€3.99<span class="period">/month</span></div>
-                
+
                 <div class="limits-section">
                     <div class="limits-title">Usage Limits</div>
                     <ul class="limits-list">
@@ -118,7 +132,7 @@
                 <div class="plan-name">Pro</div>
                 <div class="plan-description">For active sellers listing daily</div>
                 <div class="plan-price">€9.99<span class="period">/month</span></div>
-                
+
                 <div class="limits-section">
                     <div class="limits-title">Usage Limits</div>
                     <ul class="limits-list">
@@ -144,7 +158,7 @@
                 <div class="plan-name">Business</div>
                 <div class="plan-description">For resellers and high-volume sellers</div>
                 <div class="plan-price">€19.99<span class="period">/month</span></div>
-                
+
                 <div class="limits-section">
                     <div class="limits-title">Usage Limits</div>
                     <ul class="limits-list">
@@ -167,17 +181,19 @@
             </div>
         </div>
     </div>
-    
+
     <!-- FOOTER: Using a dedicated class here since the index.html footer is dark and structured differently -->
     <footer class="footer-pricing-page">
-        <p><strong>Why so limited for free?</strong> Free trial gives you just enough to see the magic ✨. Most sellers need more than 2 listings/day, making paid plans excellent value.</p>
+        <p><strong>Why so limited for free?</strong> Free trial gives you just enough to see the magic ✨. Most sellers
+            need more than 2 listings/day, making paid plans excellent value.</p>
         <p><strong>No surprises:</strong> All prices in EUR. Cancel anytime. No setup fees.</p>
-        <p>&copy; 2025 AutoLister AI · All rights reserved · <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></p>
+        <p>&copy; 2025 AutoLister AI · All rights reserved · <a href="/privacy.html">Privacy Policy</a> · <a
+                href="/terms.html">Terms of Service</a></p>
     </footer>
 
     <!-- Supabase SDK (Original Script) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <script>
         // JavaScript for the mobile menu (class toggles + aria)
         const hamburgerButton = document.getElementById('hamburger-button');
@@ -214,7 +230,7 @@
         }
 
         hamburgerButton.addEventListener('click', (e) => {
-            e.stopPropagation(); 
+            e.stopPropagation();
             const isOpen = mobileMenu.classList.contains('open'); // Check menu state directly
             setMenuOpen(!isOpen);
         });
@@ -244,7 +260,7 @@
             // this is the most reliable way to handle outside clicks.
             setMenuOpen(false);
         });
-        
+
         // Original Pricing Page Logic starts here
         // Initialize Supabase with correct URL from extension
         const SUPABASE_URL = 'https://jqloiovdwjaornnfvmyu.supabase.co';
@@ -295,7 +311,7 @@
                     resolve(null);
                     return;
                 }
-                
+
                 try {
                     chrome.runtime.sendMessage('mommklhpammnlojjobejddmidmdcalcl', { type: 'GET_USER_PROFILE' }, (response) => {
                         resolve(response);
@@ -313,19 +329,19 @@
             try {
                 const jsonString = atob(token);
                 const data = JSON.parse(jsonString);
-                
+
                 // Validate token freshness (within 10 minutes)
                 if (data.timestamp && Date.now() - data.timestamp > 10 * 60 * 1000) {
                     console.warn('Token expired');
                     return null;
                 }
-                
+
                 // Validate required fields
                 if (data.source !== 'extension') {
                     console.warn('Invalid token source');
                     return null;
                 }
-                
+
                 return data;
             } catch (e) {
                 console.error('Failed to decode token:', e);
@@ -350,10 +366,10 @@
 
                 const textSpan = button.querySelector('.btn-text');
                 const statusSpan = button.querySelector('.btn-status');
-                
+
                 // Reset classes
                 button.className = 'cta-button';
-                
+
                 if (plan === 'free') {
                     button.classList.add('secondary');
                 }
@@ -391,7 +407,7 @@
                     } else {
                         const planConfig = PLAN_CONFIG[plan];
                         const currentPlanConfig = PLAN_CONFIG[currentTier];
-                        
+
                         if (planConfig.price > currentPlanConfig.price) {
                             textSpan.textContent = `Upgrade to ${planConfig.name}`;
                         } else {
@@ -408,11 +424,11 @@
             const button = document.getElementById(`btn-${planName}`);
             const textSpan = button.querySelector('.btn-text');
             const originalText = textSpan.textContent;
-            
+
             // Show loading state
             button.disabled = true;
             textSpan.textContent = 'Loading...';
-            
+
             try {
                 if (!hasExtension) {
                     // Download extension
@@ -474,9 +490,9 @@
                         tier: planName
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok && data.url) {
                     window.open(data.url, '_blank');
                 } else {
@@ -499,9 +515,9 @@
                     },
                     body: JSON.stringify({ email: currentUser.email })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok && data.url) {
                     window.open(data.url, '_blank');
                 } else {
@@ -524,13 +540,13 @@
             // Check URL parameters first (they have priority if coming from extension)
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token');
-            
+
             if (token) {
                 // New token-based approach
                 const userData = decodeUserData(token);
                 if (userData && userData.source === 'extension') {
                     hasExtension = true;
-                    
+
                     if (userData.signed_in && userData.email) {
                         // Create user object from decoded token
                         currentUser = { email: userData.email };
@@ -539,7 +555,7 @@
                             subscription_status: (userData.plan !== 'free') ? 'active' : 'free'
                         };
                     }
-                    
+
                     console.log('Initialized from extension token:', {
                         hasExtension,
                         userPlan: userData.plan,
@@ -552,14 +568,14 @@
             } else {
                 // Legacy approach - check old-style URL parameters
                 const isFromExtension = urlParams.get('source') === 'extension';
-                
+
                 if (isFromExtension) {
                     // Use URL parameters when coming from extension (legacy support)
                     hasExtension = true;
                     const isSignedIn = urlParams.get('signed_in') === 'true';
                     const userPlan = urlParams.get('plan') || 'free';
                     const userEmail = urlParams.get('email') || '';
-                    
+
                     if (isSignedIn && userEmail) {
                         // Create user object from URL params
                         currentUser = { email: userEmail };
@@ -568,7 +584,7 @@
                             subscription_status: (userPlan !== 'free') ? 'active' : 'free'
                         };
                     }
-                    
+
                     console.log('Initialized from extension URL params (legacy):', {
                         hasExtension,
                         isSignedIn,
@@ -577,11 +593,11 @@
                     });
                 }
             }
-            
+
             // If no extension context found, fallback to extension detection for direct visits
             if (!hasExtension) {
                 hasExtension = await checkExtensionInstalled();
-                
+
                 if (hasExtension) {
                     // Get user data from extension
                     const userData = await getUserFromExtension();
@@ -612,7 +628,7 @@
                 if (userData) {
                     const userChanged = currentUser?.id !== userData.user?.id;
                     const profileChanged = JSON.stringify(currentProfile) !== JSON.stringify(userData.profile);
-                    
+
                     if (userChanged || profileChanged) {
                         currentUser = userData.user;
                         currentProfile = userData.profile;

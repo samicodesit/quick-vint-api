@@ -1,8 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-F2QL50WB6M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-F2QL50WB6M');
+  </script>
+
   <title>No Worries! Try AutoLister AI Free</title>
   <style>
     body {
@@ -44,8 +55,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .error-container {
@@ -119,19 +135,22 @@
       left: -50%;
       width: 200%;
       height: 200%;
-      background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 10px,
-        rgba(255,255,255,0.05) 10px,
-        rgba(255,255,255,0.05) 20px
-      );
+      background: repeating-linear-gradient(45deg,
+          transparent,
+          transparent 10px,
+          rgba(255, 255, 255, 0.05) 10px,
+          rgba(255, 255, 255, 0.05) 20px);
       animation: shine 3s linear infinite;
     }
 
     @keyframes shine {
-      0% { transform: translateX(-100%) translateY(-100%); }
-      100% { transform: translateX(100%) translateY(100%); }
+      0% {
+        transform: translateX(-100%) translateY(-100%);
+      }
+
+      100% {
+        transform: translateX(100%) translateY(100%);
+      }
     }
 
     .free-offer h2 {
@@ -280,23 +299,25 @@
     }
 
     @media (max-width: 640px) {
-      .cancel-container, .error-container {
+
+      .cancel-container,
+      .error-container {
         padding: 2rem 1.5rem;
         margin: 0 1rem;
       }
-      
+
       h1 {
         font-size: 1.8rem;
       }
-      
+
       .free-features {
         grid-template-columns: 1fr;
       }
-      
+
       .cta-buttons {
         flex-direction: column;
       }
-      
+
       .btn {
         width: 100%;
         box-sizing: border-box;
@@ -304,6 +325,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Loading State -->
   <div id="loading" class="cancel-container loading-container">
@@ -317,7 +339,8 @@
     <div class="error-icon">⚠️</div>
     <div class="error-title">Access Denied</div>
     <div class="error-message">
-      This page is only accessible after a checkout session. If you'd like to try AutoLister AI, you can start with our free plan!
+      This page is only accessible after a checkout session. If you'd like to try AutoLister AI, you can start with our
+      free plan!
     </div>
     <div class="cta-buttons">
       <a href="/pricing.html" class="btn btn-primary">View Pricing</a>
@@ -326,7 +349,8 @@
     <footer>
       &copy; 2025 AutoLister AI · All rights reserved
       <br />
-      <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="mailto:support@autolister.ai">Support</a>
+      <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a
+        href="mailto:support@autolister.ai">Support</a>
     </footer>
   </div>
 
@@ -335,14 +359,16 @@
     <div class="icon">🤔</div>
     <h1>No Problem at All!</h1>
     <div class="subtitle">
-      Your checkout was canceled, but that doesn't mean you can't experience the magic of AutoLister AI. 
+      Your checkout was canceled, but that doesn't mean you can't experience the magic of AutoLister AI.
       Why not try our free plan first?
     </div>
 
     <div class="free-offer">
       <h2>🎁 Start Free Today</h2>
-      <p>Get 2 AI-generated listings daily with our Free Trial. No payment required, no strings attached. Experience the quality that makes AutoLister AI special!</p>
-      <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn btn-success">
+      <p>Get 2 AI-generated listings daily with our Free Trial. No payment required, no strings attached. Experience the
+        quality that makes AutoLister AI special!</p>
+      <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank"
+        class="btn btn-success">
         Try Free Now
       </a>
     </div>
@@ -350,7 +376,8 @@
     <div class="free-features">
       <div class="feature-card">
         <h3>✨ AI-Powered Listings</h3>
-        <p>Experience the same high-quality AI that generates compelling titles and descriptions for your Vinted items.</p>
+        <p>Experience the same high-quality AI that generates compelling titles and descriptions for your Vinted items.
+        </p>
       </div>
       <div class="feature-card">
         <h3>⚡ Instant Results</h3>
@@ -364,11 +391,13 @@
 
     <div class="cta-section">
       <h3>💡 Ready When You Are</h3>
-      <p>Once you see the results, upgrading to a paid plan gives you higher limits and priority support. But there's no rush - start free and upgrade only when you're ready!</p>
+      <p>Once you see the results, upgrading to a paid plan gives you higher limits and priority support. But there's no
+        rush - start free and upgrade only when you're ready!</p>
     </div>
 
     <div class="cta-buttons">
-      <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank" class="btn btn-primary">
+      <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank"
+        class="btn btn-primary">
         Install Extension
       </a>
       <a href="/pricing.html" class="btn btn-secondary">
@@ -379,13 +408,14 @@
     <footer>
       &copy; 2025 AutoLister AI · All rights reserved
       <br />
-      <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="mailto:support@autolister.ai">Support</a>
+      <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a
+        href="mailto:support@autolister.ai">Support</a>
     </footer>
   </div>
 
   <script>
     // Session validation and page protection
-    document.addEventListener('DOMContentLoaded', async function() {
+    document.addEventListener('DOMContentLoaded', async function () {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
       const devBypass = urlParams.get('dev');
@@ -405,14 +435,14 @@
             },
             body: JSON.stringify({ bypass_key: bypassKey })
           });
-          
+
           const bypassData = await bypassResponse.json();
-          
+
           if (bypassData.valid && bypassData.bypass) {
             // Developer bypass successful
             loadingEl.classList.add('hidden');
             cancelEl.classList.remove('hidden');
-            
+
             // Add a dev indicator
             const devIndicator = document.createElement('div');
             devIndicator.style.cssText = `
@@ -430,7 +460,7 @@
             `;
             devIndicator.textContent = '🛠️ DEV MODE';
             document.body.appendChild(devIndicator);
-            
+
             console.log('✅ Developer bypass activated');
             return;
           }
@@ -456,7 +486,7 @@
         // because the user might have a valid session but just canceled the payment
         loadingEl.classList.add('hidden');
         cancelEl.classList.remove('hidden');
-        
+
         // Log for debugging purposes
         if (data.valid) {
           console.log('Valid session but user canceled:', data.session);
@@ -472,4 +502,5 @@
     });
   </script>
 </body>
+
 </html>

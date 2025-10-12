@@ -2,7 +2,6 @@
   "name": "quick-vint-api",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vercel dev",
     "lint": "eslint api/ utils/ --ext .ts",
     "lint:fix": "eslint api/ utils/ --ext .ts --fix",
     "type-check": "tsc --noEmit",

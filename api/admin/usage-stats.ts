@@ -172,6 +172,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Get rate limit errors from api_request_logs for today
+    const { data: rateLimitData } = await supabase
+      .from("api_request_logs")
+      .select("response_status, openai_tokens_used")
+      .gte("created_at", `${todayStr}T00:00:00Z`)
+      .lt("created_at", `${todayStr}T23:59:59Z`);
+
+    const rateLimitErrors =
+      rateLimitData?.filter((log) => log.response_status === 429).length || 0;
+    const tokenValues = rateLimitData
+      ?.filter((log) => log.openai_tokens_used)
+      .map((log) => log.openai_tokens_used) || [];
+    const avgTokensPerRequest =
+      tokenValues.length > 0
+        ? tokenValues.reduce((sum, val) => sum + val, 0) / tokenValues.length
+        : 0;
+
     return res.status(200).json({
       today: {
         date: todayStr,
@@ -183,6 +200,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           typeof todayStats?.estimated_cost === "number"
             ? todayStats.estimated_cost
             : 0,
+        rateLimitErrors: rateLimitErrors,
+        avgTokensPerRequest: Math.round(avgTokensPerRequest),
       },
       lastWeek: weekStats || [],
       topUsers: combinedUsers || [],

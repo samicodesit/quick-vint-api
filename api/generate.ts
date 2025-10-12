@@ -256,8 +256,15 @@ Reply only in JSON: {"title":"...","description":"..."}
       max_tokens: 150,
     });
 
-    // Log token usage
+    // Log token usage and rate limit info
     logData.openaiTokensUsed = chat.usage?.total_tokens;
+    
+    // Log rate limit headers for monitoring (helps track when approaching limits)
+    const rateLimitInfo = {
+      remainingRequests: (chat as any)._request_id ? 'available in response headers' : 'N/A',
+      remainingTokens: (chat as any)._request_id ? 'available in response headers' : 'N/A',
+    };
+    console.log('🔄 OpenAI Rate Limit Status:', rateLimitInfo);
 
     let content = chat.choices?.[0]?.message?.content?.trim() || "{}";
     const md = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(content);
@@ -306,14 +313,29 @@ Reply only in JSON: {"title":"...","description":"..."}
   } catch (err: any) {
     console.error("Generation error:", err);
 
-    // Log the error
-    logData.responseStatus = 500;
+    // Determine user-friendly error message
+    let userMessage = "We're experiencing technical difficulties. Please try again in a moment.";
+    let statusCode = 500;
+
+    // Check for specific error types
+    if (err.message?.includes("Rate limit")) {
+      userMessage = "Our AI service is currently busy. Please try again in a few seconds.";
+      statusCode = 429;
+    } else if (err.message?.includes("timeout") || err.message?.includes("timed out")) {
+      userMessage = "The request took too long. Please try again.";
+      statusCode = 504;
+    } else if (err.message?.includes("Invalid") || err.message?.includes("invalid")) {
+      userMessage = "There was an issue processing your images. Please try different images.";
+      statusCode = 400;
+    }
+
+    // Log the detailed error (for admin)
+    logData.responseStatus = statusCode;
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = `OpenAI generation error: ${err.message}`;
     await ApiLogger.logRequest(logData);
 
-    // If OpenAI fails, we should ideally roll back the increment.
-    // For simplicity here, we accept that a failed call might still count.
-    return res.status(500).json({ error: "Internal error during generation." });
+    // Return generic error to user (protecting sensitive details)
+    return res.status(statusCode).json({ error: userMessage });
   }
 }

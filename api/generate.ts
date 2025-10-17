@@ -233,7 +233,7 @@ Reply only in JSON: {"title":"...","description":"..."}
   try {
     const parts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
       type: "image_url",
-      image_url: { url },
+      image_url: { url, detail: 'low' },
     }));
     const chat = await openai.chat.completions.create({
       model: OPEN_AI_MODEL,

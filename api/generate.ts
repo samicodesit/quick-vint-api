@@ -205,7 +205,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [Brand] [Color] [Item].
-- Description: Note a positive condition (e.g., excellent condition, Like new). Don't sound very formal, just neutral. No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags.
+- Description: Note a positive condition (e.g., excellent condition, Like new). Don't sound very formal, just neutral. No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible, just skip it, do NOT say Unknown Brand.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
@@ -233,7 +233,7 @@ Reply only in JSON: {"title":"...","description":"..."}
   try {
     const parts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
       type: "image_url",
-      image_url: { url, detail: 'low' },
+      image_url: { url, detail: "low" },
     }));
     const chat = await openai.chat.completions.create({
       model: OPEN_AI_MODEL,
@@ -258,13 +258,17 @@ Reply only in JSON: {"title":"...","description":"..."}
 
     // Log token usage and rate limit info
     logData.openaiTokensUsed = chat.usage?.total_tokens;
-    
+
     // Log rate limit headers for monitoring (helps track when approaching limits)
     const rateLimitInfo = {
-      remainingRequests: (chat as any)._request_id ? 'available in response headers' : 'N/A',
-      remainingTokens: (chat as any)._request_id ? 'available in response headers' : 'N/A',
+      remainingRequests: (chat as any)._request_id
+        ? "available in response headers"
+        : "N/A",
+      remainingTokens: (chat as any)._request_id
+        ? "available in response headers"
+        : "N/A",
     };
-    console.log('🔄 OpenAI Rate Limit Status:', rateLimitInfo);
+    console.log("🔄 OpenAI Rate Limit Status:", rateLimitInfo);
 
     let content = chat.choices?.[0]?.message?.content?.trim() || "{}";
     const md = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(content);
@@ -314,18 +318,27 @@ Reply only in JSON: {"title":"...","description":"..."}
     console.error("Generation error:", err);
 
     // Determine user-friendly error message
-    let userMessage = "We're experiencing technical difficulties. Please try again in a moment.";
+    let userMessage =
+      "We're experiencing technical difficulties. Please try again in a moment.";
     let statusCode = 500;
 
     // Check for specific error types
     if (err.message?.includes("Rate limit")) {
-      userMessage = "Our AI service is currently busy. Please try again in a few seconds.";
+      userMessage =
+        "Our AI service is currently busy. Please try again in a few seconds.";
       statusCode = 429;
-    } else if (err.message?.includes("timeout") || err.message?.includes("timed out")) {
+    } else if (
+      err.message?.includes("timeout") ||
+      err.message?.includes("timed out")
+    ) {
       userMessage = "The request took too long. Please try again.";
       statusCode = 504;
-    } else if (err.message?.includes("Invalid") || err.message?.includes("invalid")) {
-      userMessage = "There was an issue processing your images. Please try different images.";
+    } else if (
+      err.message?.includes("Invalid") ||
+      err.message?.includes("invalid")
+    ) {
+      userMessage =
+        "There was an issue processing your images. Please try different images.";
       statusCode = 400;
     }
 

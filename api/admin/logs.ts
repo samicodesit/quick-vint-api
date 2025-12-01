@@ -113,24 +113,27 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       console.error("Error counting logs:", countError);
     }
 
-    // Get some summary stats
-    const { data: stats } = await supabase
-      .from("api_logs")
-      .select(`
-        response_status,
-        suspicious_activity,
-        created_at
-      `);
+    // Get summary stats using count queries (much faster)
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    const [
+      { count: totalCount },
+      { count: suspiciousCount },
+      { count: errorCount },
+      { count: todayCount }
+    ] = await Promise.all([
+      supabase.from("api_logs").select("*", { count: 'exact', head: true }),
+      supabase.from("api_logs").select("*", { count: 'exact', head: true }).eq('suspicious_activity', true),
+      supabase.from("api_logs").select("*", { count: 'exact', head: true }).gte('response_status', 400),
+      supabase.from("api_logs").select("*", { count: 'exact', head: true }).gte('created_at', `${todayStr}T00:00:00Z`)
+    ]);
 
     const summary = {
-      total_requests: stats?.length || 0,
-      suspicious_requests: stats?.filter(s => s.suspicious_activity).length || 0,
-      error_requests: stats?.filter(s => s.response_status >= 400).length || 0,
-      success_requests: stats?.filter(s => s.response_status >= 200 && s.response_status < 300).length || 0,
-      today_requests: stats?.filter(s => {
-        const today = new Date().toDateString();
-        return new Date(s.created_at).toDateString() === today;
-      }).length || 0
+      total_requests: totalCount || 0,
+      suspicious_requests: suspiciousCount || 0,
+      error_requests: errorCount || 0,
+      success_requests: (totalCount || 0) - (errorCount || 0),
+      today_requests: todayCount || 0
     };
 
     return res.status(200).json({

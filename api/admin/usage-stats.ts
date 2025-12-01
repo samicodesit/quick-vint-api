@@ -172,34 +172,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Get rate limit errors from api_request_logs for today
-    const { data: rateLimitData } = await supabase
-      .from("api_request_logs")
+    // Get rate limit errors and usage from api_logs for today
+    const { data: todaysLogs, error: logsError } = await supabase
+      .from("api_logs")
       .select("response_status, openai_tokens_used")
       .gte("created_at", `${todayStr}T00:00:00Z`)
       .lt("created_at", `${todayStr}T23:59:59Z`);
 
+    if (logsError) {
+      console.error("Error fetching daily logs:", logsError);
+    }
+
+    const totalRequests = todaysLogs?.length || 0;
     const rateLimitErrors =
-      rateLimitData?.filter((log) => log.response_status === 429).length || 0;
-    const tokenValues = rateLimitData
-      ?.filter((log) => log.openai_tokens_used)
-      .map((log) => log.openai_tokens_used) || [];
+      todaysLogs?.filter((log) => log.response_status === 429).length || 0;
+    
+    const totalTokens = todaysLogs?.reduce((sum, log) => sum + (log.openai_tokens_used || 0), 0) || 0;
+    // Estimate cost: ~$0.50 per 1M tokens (blended rate for gpt-4o-mini)
+    const estimatedCost = (totalTokens / 1000000) * 0.50;
+
     const avgTokensPerRequest =
-      tokenValues.length > 0
-        ? tokenValues.reduce((sum, val) => sum + val, 0) / tokenValues.length
-        : 0;
+      totalRequests > 0 ? totalTokens / totalRequests : 0;
 
     return res.status(200).json({
       today: {
         date: todayStr,
-        totalRequests:
-          typeof todayStats?.total_api_calls === "number"
-            ? todayStats.total_api_calls
-            : 0,
-        estimatedCost:
-          typeof todayStats?.estimated_cost === "number"
-            ? todayStats.estimated_cost
-            : 0,
+        totalRequests: totalRequests,
+        estimatedCost: estimatedCost,
         rateLimitErrors: rateLimitErrors,
         avgTokensPerRequest: Math.round(avgTokensPerRequest),
       },

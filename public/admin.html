@@ -12,32 +12,38 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            /* Modern Slate Palette */
-            --primary: #6366f1; /* Indigo 500 */
-            --primary-hover: #4f46e5; /* Indigo 600 */
-            --bg-body: #f8fafc; /* Slate 50 */
+            /* Modern SaaS Palette (Linear/Vercel inspired) */
+            --bg-body: #ffffff;
+            --bg-subtle: #f9fafb;
             --bg-card: #ffffff;
-            --bg-sidebar: #0f172a; /* Slate 900 */
-            --text-main: #334155; /* Slate 700 */
-            --text-heading: #0f172a; /* Slate 900 */
-            --text-muted: #64748b; /* Slate 500 */
-            --border-color: #e2e8f0; /* Slate 200 */
+            --bg-sidebar: #f9fafb;
             
-            --success-bg: #dcfce7; --success-text: #166534;
-            --warning-bg: #fef9c3; --warning-text: #854d0e;
-            --danger-bg: #fee2e2; --danger-text: #991b1b;
-            --info-bg: #e0f2fe; --info-text: #075985;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --text-light: #9ca3af;
             
-            /* Compatibility Aliases */
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
+            --primary: #000000;
+            --primary-hover: #333333;
+            --primary-text: #ffffff;
+            
+            --border-color: #e5e7eb;
+            --border-hover: #d1d5db;
+            
+            --success-bg: #ecfdf5; --success-text: #059669;
+            --warning-bg: #fffbeb; --warning-text: #d97706;
+            --danger-bg: #fef2f2; --danger-text: #dc2626;
+            --info-bg: #eff6ff; --info-text: #2563eb;
 
-            --sidebar-width: 280px;
-            --header-height: 70px;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --sidebar-width: 260px;
+            --header-height: 64px;
+            
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         * {
@@ -49,13 +55,14 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans);
             background-color: var(--bg-body);
             color: var(--text-main);
             height: 100vh;
             overflow: hidden;
             display: flex;
-            font-size: 0.925rem;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
         /* Auth Screen */
@@ -67,97 +74,92 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 24px 24px;
         }
 
         .auth-card {
             background: var(--bg-card);
-            padding: 3rem;
-            border-radius: 1.5rem;
-            box-shadow: var(--shadow-lg);
+            padding: 2.5rem;
             width: 100%;
-            max-width: 420px;
+            max-width: 380px;
             text-align: center;
-            border: 1px solid var(--border-color);
         }
 
         .auth-logo {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 1.5rem;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 2rem;
         }
 
         .auth-title {
-            font-size: 1.75rem;
-            font-weight: 700;
+            font-size: 1.5rem;
+            font-weight: 600;
             margin-bottom: 0.5rem;
-            color: var(--text-heading);
-            letter-spacing: -0.025em;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
         }
 
         .auth-subtitle {
             color: var(--text-muted);
-            margin-bottom: 2.5rem;
-            font-size: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
         }
 
         .input-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             text-align: left;
         }
 
         .input-label {
             display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 500;
             margin-bottom: 0.5rem;
-            color: var(--text-heading);
+            color: var(--text-main);
         }
 
         .form-input {
             width: 100%;
-            padding: 0.875rem 1rem;
+            padding: 0.625rem 0.875rem;
             border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            transition: all 0.2s;
-            background: #f8fafc;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            transition: all 0.15s ease;
+            background: #fff;
+            color: var(--text-main);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: var(--primary);
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            border-color: var(--text-muted);
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
         }
 
         .btn-primary {
             width: 100%;
-            padding: 0.875rem;
+            padding: 0.625rem 1rem;
             background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 600;
+            color: var(--primary-text);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+            transition: all 0.15s ease;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-primary:hover {
             background: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 8px -1px rgba(79, 70, 229, 0.3);
         }
 
         .checkbox-wrapper {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
@@ -165,7 +167,7 @@
         .sidebar {
             width: var(--sidebar-width);
             background: var(--bg-sidebar);
-            color: #94a3b8;
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -179,48 +181,48 @@
             height: var(--header-height);
             display: flex;
             align-items: center;
-            padding: 0 1.75rem;
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: #fff;
+            padding: 0 1.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-main);
             gap: 0.75rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
         .sidebar-nav {
-            padding: 2rem 1rem;
+            padding: 1.5rem 0.75rem;
             flex: 1;
         }
 
         .nav-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 0.875rem 1.25rem;
-            color: #94a3b8;
+            gap: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            color: var(--text-muted);
             text-decoration: none;
-            border-radius: 0.75rem;
-            margin-bottom: 0.5rem;
-            transition: all 0.2s;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.25rem;
+            transition: all 0.15s ease;
             cursor: pointer;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .nav-item:hover {
-            background: rgba(255,255,255,0.05);
-            color: #fff;
+            background: rgba(0,0,0,0.03);
+            color: var(--text-main);
         }
 
         .nav-item.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            background: #fff;
+            color: var(--text-main);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
         }
 
         .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
         }
 
         .main-content {
@@ -230,17 +232,18 @@
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            background: var(--bg-body);
         }
 
         .top-bar {
             height: var(--header-height);
             background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 2.5rem;
+            padding: 0 2rem;
             flex-shrink: 0;
             position: sticky;
             top: 0;
@@ -248,92 +251,86 @@
         }
 
         .page-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-heading);
-            letter-spacing: -0.025em;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
         }
 
         .content-scroll {
             flex: 1;
             overflow-y: auto;
-            padding: 2.5rem;
+            padding: 2rem;
         }
 
         /* Cards & Stats */
         .grid-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
 
         .stat-card {
             background: var(--bg-card);
-            padding: 1.75rem;
-            border-radius: 1rem;
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
         }
 
         .stat-label {
             color: var(--text-muted);
-            font-size: 0.875rem;
-            font-weight: 600;
+            font-size: 0.75rem;
+            font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.75rem;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.5rem;
         }
 
         .stat-value {
-            font-size: 2.25rem;
-            font-weight: 700;
-            color: var(--text-heading);
-            letter-spacing: -0.025em;
-            line-height: 1;
-            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
         }
 
         .stat-trend {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             font-weight: 500;
+            color: var(--text-muted);
         }
 
-        .trend-up { color: var(--success-text); background: var(--success-bg); padding: 2px 8px; border-radius: 99px; }
-        .trend-down { color: var(--danger-text); background: var(--danger-bg); padding: 2px 8px; border-radius: 99px; }
+        .trend-up { color: var(--success-text); }
+        .trend-down { color: var(--danger-text); }
 
         /* Tables */
         .card {
             background: var(--bg-card);
-            border-radius: 1rem;
+            border-radius: var(--radius-lg);
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
         }
 
         .card-header {
-            padding: 1.5rem 2rem;
+            padding: 1rem 1.5rem;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #f8fafc;
+            background: #fff;
         }
 
         .card-title {
-            font-weight: 700;
-            font-size: 1.125rem;
-            color: var(--text-heading);
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-main);
         }
 
         .table-container {
@@ -343,23 +340,23 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.925rem;
+            font-size: 0.875rem;
         }
 
         th {
-            background: #f8fafc;
+            background: var(--bg-subtle);
             text-align: left;
-            padding: 1rem 2rem;
-            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
             color: var(--text-muted);
             border-bottom: 1px solid var(--border-color);
-            text-transform: uppercase;
             font-size: 0.75rem;
-            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
         td {
-            padding: 1.25rem 2rem;
+            padding: 0.875rem 1.5rem;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-main);
             vertical-align: middle;
@@ -370,54 +367,50 @@
         }
 
         tr:hover td {
-            background: #f8fafc;
+            background: var(--bg-subtle);
         }
 
         /* Badges */
         .badge {
             display: inline-flex;
             align-items: center;
-            padding: 0.35rem 0.75rem;
+            padding: 0.125rem 0.5rem;
             border-radius: 9999px;
             font-size: 0.75rem;
-            font-weight: 600;
-            line-height: 1;
+            font-weight: 500;
+            line-height: 1.4;
+            border: 1px solid transparent;
         }
 
-        .badge-success { background: var(--success-bg); color: var(--success-text); }
-        .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
-        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
-        .badge-neutral { background: #f1f5f9; color: #475569; }
-        .badge-info { background: var(--info-bg); color: var(--info-text); }
+        .badge-success { background: var(--success-bg); color: var(--success-text); border-color: rgba(5, 150, 105, 0.1); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning-text); border-color: rgba(217, 119, 6, 0.1); }
+        .badge-danger { background: var(--danger-bg); color: var(--danger-text); border-color: rgba(220, 38, 38, 0.1); }
+        .badge-neutral { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+        .badge-info { background: var(--info-bg); color: var(--info-text); border-color: rgba(37, 99, 235, 0.1); }
 
         /* Filters */
         .filters-bar {
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             margin-bottom: 1.5rem;
             flex-wrap: wrap;
-            background: white;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-sm);
         }
 
         .filter-input {
-            padding: 0.625rem 1rem;
+            padding: 0.5rem 0.75rem;
             border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            font-size: 0.925rem;
-            min-width: 240px;
-            background: #f8fafc;
-            transition: all 0.2s;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            min-width: 200px;
+            background: #fff;
+            transition: all 0.15s ease;
+            color: var(--text-main);
         }
         
         .filter-input:focus {
-            background: white;
-            border-color: var(--primary);
+            border-color: var(--text-muted);
             outline: none;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
         }
 
         /* Utilities */
@@ -443,12 +436,12 @@
         }
 
         .spinner {
-            width: 2.5rem;
-            height: 2.5rem;
-            border: 3px solid #e2e8f0;
-            border-top-color: var(--primary);
+            width: 2rem;
+            height: 2rem;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--text-main);
             border-radius: 50%;
-            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation: spin 0.6s linear infinite;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -457,37 +450,36 @@
             position: fixed;
             bottom: 2rem;
             right: 2rem;
-            padding: 1rem 1.5rem;
-            border-radius: 0.75rem;
-            background: #1e293b;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            background: #111827;
             color: white;
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-card);
             transform: translateY(150%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 100;
             font-weight: 500;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
         }
 
         .toast.show { transform: translateY(0); }
-        .toast-success { border-left: 4px solid var(--success-text); }
-        .toast-error { border-left: 4px solid var(--danger-text); }
 
         /* Modal */
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;
         }
 
         .modal-backdrop.open {
@@ -496,39 +488,36 @@
         }
 
         .modal-panel {
-            background: var(--bg-card);
+            background: #fff;
             width: 90%;
-            max-width: 1000px;
-            max-height: 90vh;
-            border-radius: 1.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 900px;
+            max-height: 85vh;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             display: flex;
             flex-direction: column;
-            transform: scale(0.95) translateY(10px);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid rgba(255,255,255,0.1);
+            transform: scale(0.98);
+            transition: all 0.2s ease;
         }
 
         .modal-backdrop.open .modal-panel {
-            transform: scale(1) translateY(0);
+            transform: scale(1);
         }
 
         .modal-header {
-            padding: 1.5rem 2rem;
+            padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #f8fafc;
-            border-radius: 1.5rem 1.5rem 0 0;
         }
 
         .modal-body {
-            padding: 2rem;
+            padding: 1.5rem;
             overflow-y: auto;
             display: grid;
             grid-template-columns: 1fr 1.2fr;
-            gap: 2.5rem;
+            gap: 2rem;
         }
 
         @media (max-width: 1024px) {
@@ -539,8 +528,8 @@
 
         .image-gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.75rem;
             margin-bottom: 1.5rem;
         }
 
@@ -548,53 +537,57 @@
             width: 100%;
             aspect-ratio: 1;
             object-fit: cover;
-            border-radius: 0.75rem;
+            border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: var(--shadow-sm);
+            transition: all 0.15s;
         }
 
         .gallery-img:hover {
-            transform: scale(1.05);
-            box-shadow: var(--shadow-md);
+            transform: scale(1.02);
+            box-shadow: var(--shadow-sm);
         }
 
         .json-view {
-            background: #0f172a;
-            color: #e2e8f0;
-            padding: 1.25rem;
-            border-radius: 0.75rem;
+            background: #f9fafb;
+            color: #374151;
+            padding: 1rem;
+            border-radius: var(--radius-md);
             font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             white-space: pre-wrap;
             overflow-x: auto;
             max-height: 300px;
             line-height: 1.5;
-            border: 1px solid #1e293b;
+            border: 1px solid var(--border-color);
         }
         
         /* Scrollbar Polish */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
+            background: #d1d5db;
+            border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            background: #9ca3af;
         }
     </style>
 </head>
 
 <body>
-    <!-- Auth Screen -->
-    <div id="authScreen" class="auth-container">
+    <!-- Loading Screen (Default Visible to prevent flash) -->
+    <div id="loadingScreen" class="auth-container" style="z-index: 10000;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Auth Screen (Hidden by default) -->
+    <div id="authScreen" class="auth-container" style="display: none;">
         <div class="auth-card">
             <img src="/auto-lister-ai-svg-logo.svg" alt="Logo" class="auth-logo">
             <h1 class="auth-title">Admin Access</h1>
@@ -626,19 +619,23 @@
             
             <nav class="sidebar-nav">
                 <div class="nav-item active" onclick="switchView('overview')">
-                    <span>📊</span> Overview
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    <span>Overview</span>
                 </div>
                 <div class="nav-item" onclick="switchView('logs')">
-                    <span>🔍</span> API Logs
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    <span>API Logs</span>
                 </div>
                 <div class="nav-item" onclick="switchView('users')">
-                    <span>👥</span> Users
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Users</span>
                 </div>
             </nav>
 
             <div class="sidebar-footer">
-                <div class="nav-item" onclick="handleLogout()" style="color: var(--danger);">
-                    <span>🚪</span> Logout
+                <div class="nav-item" onclick="handleLogout()" style="color: var(--danger-text);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Logout</span>
                 </div>
             </div>
         </aside>
@@ -687,9 +684,16 @@
         // --- Auth Logic ---
         function init() {
             const storedKey = localStorage.getItem('admin_key');
+            const authScreen = document.getElementById('authScreen');
+            const loadingScreen = document.getElementById('loadingScreen');
+
             if (storedKey) {
                 state.secret = atob(storedKey); // Simple obfuscation
                 verifyAuth();
+            } else {
+                // No key, show login immediately
+                loadingScreen.style.display = 'none';
+                authScreen.style.display = 'flex';
             }
         }
 
@@ -708,23 +712,32 @@
         }
 
         async function verifyAuth() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const authScreen = document.getElementById('authScreen');
+            const dashboard = document.getElementById('dashboardLayout');
+
             try {
                 const res = await fetch('/api/admin/usage-stats', {
                     headers: { 'Authorization': `Bearer ${state.secret}` }
                 });
                 
                 if (res.ok) {
-                    document.getElementById('authScreen').classList.add('hidden');
-                    document.getElementById('dashboardLayout').classList.remove('hidden');
-                    document.getElementById('dashboardLayout').style.display = 'flex';
+                    loadingScreen.style.display = 'none';
+                    authScreen.style.display = 'none';
+                    dashboard.classList.remove('hidden');
+                    dashboard.style.display = 'flex';
                     loadView('overview');
                     return true;
                 } else {
+                    loadingScreen.style.display = 'none';
+                    authScreen.style.display = 'flex';
                     showAuthError('Invalid credentials');
                     localStorage.removeItem('admin_key');
                     return false;
                 }
             } catch (e) {
+                loadingScreen.style.display = 'none';
+                authScreen.style.display = 'flex';
                 showAuthError('Connection failed');
                 return false;
             }
@@ -799,7 +812,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Error Rate</div>
-                        <div class="stat-value" style="color: ${data.today.rateLimitErrors > 0 ? 'var(--danger)' : 'var(--success)'}">
+                        <div class="stat-value" style="color: ${data.today.rateLimitErrors > 0 ? 'var(--danger-text)' : 'var(--success-text)'}">
                             ${((data.today.rateLimitErrors / (data.today.totalRequests || 1)) * 100).toFixed(1)}%
                         </div>
                         <div class="stat-trend">
@@ -863,8 +876,8 @@
 
             // Create gradient
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
-            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
             new Chart(ctx, {
                 type: 'line',
@@ -874,16 +887,16 @@
                         {
                             label: 'Requests',
                             data: requests,
-                            borderColor: '#6366f1',
+                            borderColor: '#111827',
                             backgroundColor: gradient,
                             borderWidth: 2,
-                            tension: 0.4,
+                            tension: 0.3,
                             fill: true,
                             pointBackgroundColor: '#ffffff',
-                            pointBorderColor: '#6366f1',
+                            pointBorderColor: '#111827',
                             pointBorderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
                             yAxisID: 'y'
                         },
                         {
@@ -891,9 +904,9 @@
                             data: costs,
                             borderColor: '#10b981',
                             backgroundColor: 'transparent',
-                            borderDash: [5, 5],
-                            borderWidth: 2,
-                            tension: 0.4,
+                            borderDash: [4, 4],
+                            borderWidth: 1.5,
+                            tension: 0.3,
                             pointRadius: 0,
                             pointHoverRadius: 4,
                             yAxisID: 'y1'
@@ -914,18 +927,21 @@
                             align: 'end',
                             labels: {
                                 usePointStyle: true,
-                                boxWidth: 8,
-                                font: { family: "'Inter', sans-serif", size: 12 }
+                                boxWidth: 6,
+                                font: { family: "var(--font-sans)", size: 11 },
+                                color: '#6b7280'
                             }
                         },
                         tooltip: {
-                            backgroundColor: '#1e293b',
-                            titleColor: '#f8fafc',
-                            bodyColor: '#f8fafc',
-                            padding: 12,
-                            cornerRadius: 8,
+                            backgroundColor: '#111827',
+                            titleColor: '#f9fafb',
+                            bodyColor: '#f9fafb',
+                            padding: 10,
+                            cornerRadius: 6,
                             displayColors: true,
-                            boxPadding: 4
+                            boxPadding: 4,
+                            titleFont: { family: "var(--font-sans)", size: 12 },
+                            bodyFont: { family: "var(--font-sans)", size: 12 }
                         }
                     },
                     scales: {
@@ -935,12 +951,12 @@
                             position: 'left',
                             beginAtZero: true,
                             grid: { 
-                                color: '#f1f5f9',
+                                color: '#f3f4f6',
                                 drawBorder: false
                             },
                             ticks: {
-                                font: { family: "'Inter', sans-serif", size: 11 },
-                                color: '#64748b'
+                                font: { family: "var(--font-sans)", size: 10 },
+                                color: '#9ca3af'
                             }
                         },
                         y1: {
@@ -951,15 +967,15 @@
                             grid: { display: false },
                             ticks: {
                                 callback: function(value) { return '$' + value.toFixed(2); },
-                                font: { family: "'Inter', sans-serif", size: 11 },
-                                color: '#64748b'
+                                font: { family: "var(--font-sans)", size: 10 },
+                                color: '#9ca3af'
                             }
                         },
                         x: {
                             grid: { display: false },
                             ticks: {
-                                font: { family: "'Inter', sans-serif", size: 11 },
-                                color: '#64748b'
+                                font: { family: "var(--font-sans)", size: 10 },
+                                color: '#9ca3af'
                             }
                         }
                     }
@@ -1013,8 +1029,10 @@
                                     } catch(e) {}
                                     
                                     const thumb = images.length > 0 ? 
-                                        `<img src="${images[0]}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;" loading="lazy" alt="Input">` : 
-                                        '<span style="color:#ccc; font-size:20px;">📷</span>';
+                                        `<img src="${images[0]}" class="gallery-img" style="width: 36px; height: 36px;" loading="lazy" alt="Input">` : 
+                                        `<div style="width: 36px; height: 36px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light);">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                         </div>`;
 
                                     return `
                                     <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
@@ -1041,7 +1059,7 @@
                                             ${log.raw_prompt || '-'}
                                         </td>
                                         <td>
-                                            <button class="btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</button>
+                                            <button class="btn-secondary" style="background: #fff; border: 1px solid var(--border-color); padding: 4px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; color: var(--text-main); transition: all 0.15s;" onclick="showLogDetails('${log.id}')">View</button>
                                         </td>
                                     </tr>
                                 `}).join('')}
@@ -1060,6 +1078,14 @@
         async function renderUsers(container) {
             const data = await fetchAPI('/api/admin/usage-stats');
             
+            // Create usage map
+            const usageMap = {};
+            if (data.todaysUsage) {
+                data.todaysUsage.forEach(u => {
+                    usageMap[u.user_id] = u;
+                });
+            }
+
             const usersHtml = `
                 <div class="card">
                     <div class="card-header">
@@ -1071,26 +1097,74 @@
                                 <tr>
                                     <th>User</th>
                                     <th>Tier</th>
-                                    <th>Usage (Month)</th>
+                                    <th>Limits (Daily / Monthly)</th>
                                     <th>Joined</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${data.topUsers.map(u => `
+                                ${data.topUsers.map(u => {
+                                    const usage = usageMap[u.id];
+                                    let limitsDisplay = '<span class="text-muted">-</span>';
+                                    
+                                    if (usage) {
+                                        // Find daily and monthly counts
+                                        const dayLimit = usage.limits.find(l => l.window_type === 'day');
+                                        const monthLimit = usage.limits.find(l => l.window_type === 'month');
+                                        
+                                        const dayCount = dayLimit ? dayLimit.count : 0;
+                                        // Use u.api_calls_this_month as the source of truth for monthly if available
+                                        const reliableMonthCount = u.api_calls_this_month || 0;
+
+                                        const maxDay = usage.max_limits.day;
+                                        const maxMonth = usage.max_limits.month;
+                                        
+                                        const dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
+                                        const monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
+                                        
+                                        limitsDisplay = `
+                                            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;">
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <span style="color: var(--text-light); width: 40px;">Day</span> 
+                                                    <span style="font-weight: 500; color: var(--text-main);">${dayStr}</span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <span style="color: var(--text-light); width: 40px;">Mon</span> 
+                                                    <span style="font-weight: 500; color: var(--text-main);">${monthStr}</span>
+                                                </div>
+                                            </div>
+                                        `;
+                                    } else {
+                                        // Fallback if no active usage record but user exists
+                                        const reliableMonthCount = u.api_calls_this_month || 0;
+                                        limitsDisplay = `
+                                            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;">
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <span style="color: var(--text-light); width: 40px;">Day</span> 
+                                                    <span style="color: var(--text-muted);">-</span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <span style="color: var(--text-light); width: 40px;">Mon</span> 
+                                                    <span style="font-weight: 500; color: var(--text-main);">${reliableMonthCount}</span>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+
+                                    return `
                                     <tr>
                                         <td>
-                                            <div class="font-medium">${u.email}</div>
-                                            <div class="text-sm text-muted">${u.id}</div>
+                                            <div class="font-medium" style="color: var(--text-main); font-weight: 500;">${u.email}</div>
+                                            <div class="text-sm text-muted" style="font-size: 0.75rem; font-family: monospace;">${u.id}</div>
                                         </td>
-                                        <td><span class="badge badge-info">${u.subscription_tier}</span></td>
-                                        <td>${u.api_calls_this_month}</td>
-                                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                                        <td><span class="badge badge-info" style="text-transform: capitalize;">${u.subscription_tier}</span></td>
+                                        <td>${limitsDisplay}</td>
+                                        <td style="color: var(--text-muted); font-size: 0.8rem;">${new Date(u.created_at).toLocaleDateString()}</td>
                                         <td>
-                                            <button onclick="resetUsage('${u.id}')" class="text-sm text-muted" style="background:none; border:1px solid #ddd; padding: 2px 6px; border-radius: 4px; cursor: pointer;">Reset</button>
+                                            <button onclick="resetUsage('${u.id}')" style="background: #fff; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; color: var(--text-main); transition: all 0.15s;">Reset</button>
                                         </td>
                                     </tr>
-                                `).join('')}
+                                `}).join('')}
                             </tbody>
                         </table>
                     </div>

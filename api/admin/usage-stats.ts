@@ -26,15 +26,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq("date", todayStr)
       .single();
 
-    // Get last 7 days stats
+    // Get last 7 days stats from api_logs (aggregated on the fly)
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const weekAgoStr = weekAgo.toISOString().split("T")[0];
 
-    const { data: weekStats } = await supabase
-      .from("daily_stats")
-      .select("*")
-      .gte("date", weekAgoStr)
-      .order("date", { ascending: false });
+    const { data: logsLastWeek } = await supabase
+      .from("api_logs")
+      .select("created_at, openai_tokens_used")
+      .gte("created_at", `${weekAgoStr}T00:00:00Z`);
+
+    // Aggregate logs by day
+    const dailyMap = new Map();
+    // Initialize last 7 days with 0
+    for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        dailyMap.set(dateStr, { date: dateStr, total_api_calls: 0, estimated_cost: 0 });
+    }
+
+    if (logsLastWeek) {
+        logsLastWeek.forEach(log => {
+            const dateStr = log.created_at.split('T')[0];
+            if (dailyMap.has(dateStr)) {
+                const entry = dailyMap.get(dateStr);
+                entry.total_api_calls++;
+                entry.estimated_cost += (log.openai_tokens_used || 0) * 0.0000005;
+            }
+        });
+    }
+    
+    const weekStats = Array.from(dailyMap.values()).sort((a: any, b: any) => b.date.localeCompare(a.date));
 
     // Get ALL users (or more users) to ensure we don't miss recent signups
     const { data: allUsers } = await supabase

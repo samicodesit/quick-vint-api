@@ -195,7 +195,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const emojiInstruction =
     useEmojis === true || useEmojis === "true"
-      ? "Use relevant emojis throughout the description, not overwhelmingly."
+      ? "Use relevant emojis in the description."
       : "Do NOT use any emojis in the description.";
 
   if (

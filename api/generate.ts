@@ -181,9 +181,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // --- VALIDATE BODY ---
-  const { imageUrls, languageCode } = req.body;
+  const { imageUrls, languageCode, tone, useEmojis } = req.body;
   const languageCodeStr = String(languageCode || "en").toLowerCase();
   const language = languageMap[languageCodeStr] || "English";
+
+  // --- CONSTRUCT PROMPT INSTRUCTIONS ---
+  let toneInstruction = "neutral and balanced"; // Default for 'standard'
+  if (tone === "friendly") toneInstruction = "friendly, casual, and warm";
+  else if (tone === "professional")
+    toneInstruction = "professional, clean, and concise";
+  else if (tone === "enthusiastic")
+    toneInstruction = "enthusiastic, sales-oriented, and exciting";
+
+  const emojiInstruction =
+    useEmojis === false
+      ? ""
+      : "Use relevant emojis throughout the description, not overwhelmingly.";
 
   if (
     !Array.isArray(imageUrls) ||
@@ -205,7 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [Brand] [Color] [Item].
-- Description: Note a positive condition (e.g., excellent condition, Like new). Don't sound very formal, just neutral. No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible, just skip it, do NOT say Unknown Brand.
+- Description: Note a positive condition (e.g., excellent condition, Like new). No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible, just skip it, do NOT say Unknown Brand. Your tone should be ${toneInstruction}. ${emojiInstruction}
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

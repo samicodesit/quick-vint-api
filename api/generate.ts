@@ -194,9 +194,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     toneInstruction = "enthusiastic, sales-oriented, and exciting";
 
   const emojiInstruction =
-    useEmojis === false
-      ? "Do NOT use any emojis in the description."
-      : "Use relevant emojis throughout the description, not overwhelmingly.";
+    useEmojis === true || useEmojis === "true"
+      ? "Use relevant emojis throughout the description, not overwhelmingly."
+      : "Do NOT use any emojis in the description.";
 
   if (
     !Array.isArray(imageUrls) ||

@@ -39,24 +39,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const dailyMap = new Map();
     // Initialize last 7 days with 0
     for (let i = 0; i < 7; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        dailyMap.set(dateStr, { date: dateStr, total_api_calls: 0, estimated_cost: 0 });
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      dailyMap.set(dateStr, {
+        date: dateStr,
+        total_api_calls: 0,
+        estimated_cost: 0,
+      });
     }
 
     if (logsLastWeek) {
-        logsLastWeek.forEach(log => {
-            const dateStr = log.created_at.split('T')[0];
-            if (dailyMap.has(dateStr)) {
-                const entry = dailyMap.get(dateStr);
-                entry.total_api_calls++;
-                entry.estimated_cost += (log.openai_tokens_used || 0) * 0.0000005;
-            }
-        });
+      logsLastWeek.forEach((log) => {
+        const dateStr = log.created_at.split("T")[0];
+        if (dailyMap.has(dateStr)) {
+          const entry = dailyMap.get(dateStr);
+          entry.total_api_calls++;
+          entry.estimated_cost += (log.openai_tokens_used || 0) * 0.0000005;
+        }
+      });
     }
-    
-    const weekStats = Array.from(dailyMap.values()).sort((a: any, b: any) => b.date.localeCompare(a.date));
+
+    const weekStats = Array.from(dailyMap.values()).sort((a: any, b: any) =>
+      b.date.localeCompare(a.date)
+    );
 
     // Get ALL users (or more users) to ensure we don't miss recent signups
     const { data: allUsers } = await supabase
@@ -208,10 +214,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const totalRequests = todaysLogs?.length || 0;
     const rateLimitErrors =
       todaysLogs?.filter((log) => log.response_status === 429).length || 0;
-    
-    const totalTokens = todaysLogs?.reduce((sum, log) => sum + (log.openai_tokens_used || 0), 0) || 0;
+
+    const totalTokens =
+      todaysLogs?.reduce(
+        (sum, log) => sum + (log.openai_tokens_used || 0),
+        0
+      ) || 0;
     // Estimate cost: ~$0.50 per 1M tokens (blended rate for gpt-4o-mini)
-    const estimatedCost = (totalTokens / 1000000) * 0.50;
+    const estimatedCost = (totalTokens / 1000000) * 0.5;
 
     const avgTokensPerRequest =
       totalRequests > 0 ? totalTokens / totalRequests : 0;

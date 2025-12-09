@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (action === "view-logs" || !action) {
     return handleViewLogs(req, res);
   } else if (action === "flag-activity") {
-    return handleFlagActivity(req, res, 'admin'); // Use 'admin' as user ID for admin actions
+    return handleFlagActivity(req, res, "admin"); // Use 'admin' as user ID for admin actions
   } else {
     return res.status(400).json({ error: "Invalid action" });
   }
@@ -30,8 +30,8 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const page = parseInt(req.query.page as string) || 1;
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
     const offset = (page - 1) * limit;
-    
-    const suspiciousOnly = req.query.suspicious === 'true';
+
+    const suspiciousOnly = req.query.suspicious === "true";
     const userId = req.query.user_id as string;
     const startDate = req.query.start_date as string;
     const endDate = req.query.end_date as string;
@@ -39,7 +39,8 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     // Build query
     let query = supabase
       .from("api_logs")
-      .select(`
+      .select(
+        `
         id,
         user_id,
         user_email,
@@ -61,25 +62,26 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         processing_duration_ms,
         suspicious_activity,
         flagged_reason
-      `)
-      .order('created_at', { ascending: false })
+      `
+      )
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     // Apply filters
     if (suspiciousOnly) {
-      query = query.eq('suspicious_activity', true);
+      query = query.eq("suspicious_activity", true);
     }
-    
+
     if (userId) {
-      query = query.eq('user_id', userId);
+      query = query.eq("user_id", userId);
     }
-    
+
     if (startDate) {
-      query = query.gte('created_at', startDate);
+      query = query.gte("created_at", startDate);
     }
-    
+
     if (endDate) {
-      query = query.lte('created_at', endDate);
+      query = query.lte("created_at", endDate);
     }
 
     const { data: logs, error: logsError } = await query;
@@ -92,19 +94,19 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     // Get total count for pagination
     let countQuery = supabase
       .from("api_logs")
-      .select("*", { count: 'exact', head: true });
+      .select("*", { count: "exact", head: true });
 
     if (suspiciousOnly) {
-      countQuery = countQuery.eq('suspicious_activity', true);
+      countQuery = countQuery.eq("suspicious_activity", true);
     }
     if (userId) {
-      countQuery = countQuery.eq('user_id', userId);
+      countQuery = countQuery.eq("user_id", userId);
     }
     if (startDate) {
-      countQuery = countQuery.gte('created_at', startDate);
+      countQuery = countQuery.gte("created_at", startDate);
     }
     if (endDate) {
-      countQuery = countQuery.lte('created_at', endDate);
+      countQuery = countQuery.lte("created_at", endDate);
     }
 
     const { count, error: countError } = await countQuery;
@@ -114,18 +116,27 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     }
 
     // Get summary stats using count queries (much faster)
-    const todayStr = new Date().toISOString().split('T')[0];
-    
+    const todayStr = new Date().toISOString().split("T")[0];
+
     const [
       { count: totalCount },
       { count: suspiciousCount },
       { count: errorCount },
-      { count: todayCount }
+      { count: todayCount },
     ] = await Promise.all([
-      supabase.from("api_logs").select("*", { count: 'exact', head: true }),
-      supabase.from("api_logs").select("*", { count: 'exact', head: true }).eq('suspicious_activity', true),
-      supabase.from("api_logs").select("*", { count: 'exact', head: true }).gte('response_status', 400),
-      supabase.from("api_logs").select("*", { count: 'exact', head: true }).gte('created_at', `${todayStr}T00:00:00Z`)
+      supabase.from("api_logs").select("*", { count: "exact", head: true }),
+      supabase
+        .from("api_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("suspicious_activity", true),
+      supabase
+        .from("api_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("response_status", 400),
+      supabase
+        .from("api_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", `${todayStr}T00:00:00Z`),
     ]);
 
     const summary = {
@@ -133,7 +144,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       suspicious_requests: suspiciousCount || 0,
       error_requests: errorCount || 0,
       success_requests: (totalCount || 0) - (errorCount || 0),
-      today_requests: todayCount || 0
+      today_requests: todayCount || 0,
     };
 
     return res.status(200).json({
@@ -142,28 +153,33 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         page,
         limit,
         total: count || 0,
-        total_pages: Math.ceil((count || 0) / limit)
+        total_pages: Math.ceil((count || 0) / limit),
       },
-      summary
+      summary,
     });
-
   } catch (err: any) {
     console.error("Admin logs error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
 
-async function handleFlagActivity(req: VercelRequest, res: VercelResponse, adminId: string) {
+async function handleFlagActivity(
+  req: VercelRequest,
+  res: VercelResponse,
+  adminId: string
+) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST allowed for flag-activity" });
+    return res
+      .status(405)
+      .json({ error: "Only POST allowed for flag-activity" });
   }
 
   try {
     const { logId, reason, action } = req.body;
 
     if (!logId || !reason) {
-      return res.status(400).json({ 
-        error: "logId and reason are required" 
+      return res.status(400).json({
+        error: "logId and reason are required",
       });
     }
 
@@ -184,11 +200,10 @@ async function handleFlagActivity(req: VercelRequest, res: VercelResponse, admin
         return res.status(500).json({ error: "Failed to flag log" });
       }
 
-      return res.status(200).json({ 
-        success: true, 
-        message: "Log flagged as suspicious" 
+      return res.status(200).json({
+        success: true,
+        message: "Log flagged as suspicious",
       });
-
     } else if (action === "unflag") {
       // Remove suspicious flag
       const { error: updateError } = await supabase
@@ -206,11 +221,10 @@ async function handleFlagActivity(req: VercelRequest, res: VercelResponse, admin
         return res.status(500).json({ error: "Failed to unflag log" });
       }
 
-      return res.status(200).json({ 
-        success: true, 
-        message: "Log unflagged" 
+      return res.status(200).json({
+        success: true,
+        message: "Log unflagged",
       });
-
     } else if (action === "block_user") {
       // Get the user_id from the log first
       const { data: logData, error: logError } = await supabase
@@ -250,16 +264,15 @@ async function handleFlagActivity(req: VercelRequest, res: VercelResponse, admin
         })
         .eq("id", logId);
 
-      return res.status(200).json({ 
-        success: true, 
-        message: "User blocked and log flagged" 
+      return res.status(200).json({
+        success: true,
+        message: "User blocked and log flagged",
       });
     }
 
-    return res.status(400).json({ 
-      error: "Invalid action. Use 'flag', 'unflag', or 'block_user'" 
+    return res.status(400).json({
+      error: "Invalid action. Use 'flag', 'unflag', or 'block_user'",
     });
-
   } catch (err: any) {
     console.error("Admin flag error:", err);
     return res.status(500).json({ error: "Internal server error" });

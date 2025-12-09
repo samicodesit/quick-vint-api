@@ -17,30 +17,34 @@
             --bg-subtle: #f9fafb;
             --bg-card: #ffffff;
             --bg-sidebar: #f9fafb;
-            
+
             --text-main: #111827;
             --text-muted: #6b7280;
             --text-light: #9ca3af;
-            
+
             --primary: #000000;
             --primary-hover: #333333;
             --primary-text: #ffffff;
-            
+
             --border-color: #e5e7eb;
             --border-hover: #d1d5db;
-            
-            --success-bg: #ecfdf5; --success-text: #059669;
-            --warning-bg: #fffbeb; --warning-text: #d97706;
-            --danger-bg: #fef2f2; --danger-text: #dc2626;
-            --info-bg: #eff6ff; --info-text: #2563eb;
+
+            --success-bg: #ecfdf5;
+            --success-text: #059669;
+            --warning-bg: #fffbeb;
+            --warning-text: #d97706;
+            --danger-bg: #fef2f2;
+            --danger-text: #dc2626;
+            --info-bg: #eff6ff;
+            --info-text: #2563eb;
 
             --sidebar-width: 260px;
             --header-height: 64px;
-            
+
             --radius-sm: 6px;
             --radius-md: 8px;
             --radius-lg: 12px;
-            
+
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -131,7 +135,7 @@
         .form-input:focus {
             outline: none;
             border-color: var(--text-muted);
-            box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
         }
 
         .btn-primary {
@@ -163,6 +167,22 @@
             color: var(--text-muted);
         }
 
+        /* Mobile Menu Toggle */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+
         /* Dashboard Layout */
         .sidebar {
             width: var(--sidebar-width);
@@ -175,6 +195,17 @@
             left: 0;
             top: 0;
             z-index: 50;
+            transition: transform 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
         }
 
         .sidebar-header {
@@ -209,7 +240,7 @@
         }
 
         .nav-item:hover {
-            background: rgba(0,0,0,0.03);
+            background: rgba(0, 0, 0, 0.03);
             color: var(--text-main);
         }
 
@@ -235,6 +266,12 @@
             background: var(--bg-body);
         }
 
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
         .top-bar {
             height: var(--header-height);
             background: rgba(255, 255, 255, 0.8);
@@ -250,16 +287,58 @@
             z-index: 40;
         }
 
+        @media (max-width: 768px) {
+            .top-bar {
+                padding: 0 1rem;
+            }
+        }
+
         .page-title {
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--text-main);
         }
 
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 1rem;
+            }
+        }
+
+        /* Responsive buttons and controls */
+        .btn-primary {
+            width: 100%;
+            padding: 0.625rem 1rem;
+            background: var(--primary);
+            color: var(--primary-text);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .btn-primary {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.85rem;
+            }
+        }
+
         .content-scroll {
             flex: 1;
             overflow-y: auto;
             padding: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .content-scroll {
+                padding: 1rem;
+            }
         }
 
         /* Cards & Stats */
@@ -270,12 +349,31 @@
             margin-bottom: 2rem;
         }
 
+        @media (max-width: 768px) {
+            .grid-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .stat-card {
             background: var(--bg-card);
             padding: 1.25rem;
             border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 768px) {
+            .stat-card {
+                padding: 1rem;
+            }
         }
 
         .stat-label {
@@ -296,6 +394,12 @@
             margin-bottom: 0.25rem;
         }
 
+        @media (max-width: 768px) {
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+
         .stat-trend {
             display: flex;
             align-items: center;
@@ -305,8 +409,13 @@
             color: var(--text-muted);
         }
 
-        .trend-up { color: var(--success-text); }
-        .trend-down { color: var(--danger-text); }
+        .trend-up {
+            color: var(--success-text);
+        }
+
+        .trend-down {
+            color: var(--danger-text);
+        }
 
         /* Tables */
         .card {
@@ -327,20 +436,41 @@
             background: #fff;
         }
 
+        @media (max-width: 768px) {
+            .card-header {
+                padding: 0.75rem 1rem;
+            }
+        }
+
         .card-title {
             font-weight: 600;
             font-size: 1rem;
             color: var(--text-main);
         }
 
+        @media (max-width: 768px) {
+            .card-title {
+                font-size: 0.9rem;
+            }
+        }
+
         .table-container {
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.875rem;
+            min-width: 800px;
+        }
+
+        @media (max-width: 768px) {
+            table {
+                font-size: 0.75rem;
+                min-width: 600px;
+            }
         }
 
         th {
@@ -353,6 +483,14 @@
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            th {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.65rem;
+            }
         }
 
         td {
@@ -360,6 +498,12 @@
             border-bottom: 1px solid var(--border-color);
             color: var(--text-main);
             vertical-align: middle;
+        }
+
+        @media (max-width: 768px) {
+            td {
+                padding: 0.625rem 0.75rem;
+            }
         }
 
         tr:last-child td {
@@ -382,11 +526,35 @@
             border: 1px solid transparent;
         }
 
-        .badge-success { background: var(--success-bg); color: var(--success-text); border-color: rgba(5, 150, 105, 0.1); }
-        .badge-warning { background: var(--warning-bg); color: var(--warning-text); border-color: rgba(217, 119, 6, 0.1); }
-        .badge-danger { background: var(--danger-bg); color: var(--danger-text); border-color: rgba(220, 38, 38, 0.1); }
-        .badge-neutral { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
-        .badge-info { background: var(--info-bg); color: var(--info-text); border-color: rgba(37, 99, 235, 0.1); }
+        .badge-success {
+            background: var(--success-bg);
+            color: var(--success-text);
+            border-color: rgba(5, 150, 105, 0.1);
+        }
+
+        .badge-warning {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+            border-color: rgba(217, 119, 6, 0.1);
+        }
+
+        .badge-danger {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border-color: rgba(220, 38, 38, 0.1);
+        }
+
+        .badge-neutral {
+            background: #f3f4f6;
+            color: #374151;
+            border-color: #e5e7eb;
+        }
+
+        .badge-info {
+            background: var(--info-bg);
+            color: var(--info-text);
+            border-color: rgba(37, 99, 235, 0.1);
+        }
 
         /* Filters */
         .filters-bar {
@@ -406,22 +574,52 @@
             transition: all 0.15s ease;
             color: var(--text-main);
         }
-        
+
+        @media (max-width: 768px) {
+            .filter-input {
+                min-width: 100%;
+                font-size: 0.8rem;
+            }
+        }
+
         .filter-input:focus {
             border-color: var(--text-muted);
             outline: none;
-            box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
         }
 
         /* Utilities */
-        .hidden { display: none !important; }
-        .flex { display: flex; }
-        .items-center { align-items: center; }
-        .justify-between { justify-content: space-between; }
-        .gap-2 { gap: 0.5rem; }
-        .text-sm { font-size: 0.875rem; }
-        .text-muted { color: var(--text-muted); }
-        .mt-4 { margin-top: 1rem; }
+        .hidden {
+            display: none !important;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
 
         /* Loading & Error */
         .loading-overlay {
@@ -444,7 +642,11 @@
             animation: spin 0.6s linear infinite;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         .toast {
             position: fixed;
@@ -465,7 +667,9 @@
             gap: 0.75rem;
         }
 
-        .toast.show { transform: translateY(0); }
+        .toast.show {
+            transform: translateY(0);
+        }
 
         /* Modal */
         .modal-backdrop {
@@ -526,6 +730,33 @@
             }
         }
 
+        @media (max-width: 768px) {
+            .modal-body {
+                padding: 1rem;
+                gap: 1rem;
+            }
+        }
+
+        .modal-panel {
+            background: #fff;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.98);
+            transition: all 0.2s ease;
+        }
+
+        @media (max-width: 768px) {
+            .modal-panel {
+                width: 95%;
+                max-height: 90vh;
+            }
+        }
+
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -561,21 +792,109 @@
             line-height: 1.5;
             border: 1px solid var(--border-color);
         }
-        
+
         /* Scrollbar Polish */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
+
         ::-webkit-scrollbar-track {
             background: transparent;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #d1d5db;
             border-radius: 3px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #9ca3af;
+        }
+
+        /* Mobile Card Layout for Tables */
+        @media (max-width: 768px) {
+            .table-container table {
+                display: none;
+            }
+
+            .mobile-card-list {
+                display: block;
+            }
+        }
+
+        .mobile-card-list {
+            display: none;
+        }
+
+        .mobile-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .mobile-card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .mobile-card-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .mobile-card-label {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            flex-shrink: 0;
+            margin-right: 0.5rem;
+        }
+
+        .mobile-card-value {
+            text-align: right;
+            flex: 1;
+        }
+
+        /* Mobile specific utilities */
+        @media (max-width: 768px) {
+            .hide-mobile {
+                display: none;
+            }
+
+            .text-sm.text-muted {
+                font-size: 0.7rem;
+            }
+
+            /* Better touch targets */
+            button,
+            .nav-item,
+            a {
+                min-height: 44px;
+                min-width: 44px;
+            }
+        }
+
+        /* Overlay for mobile menu */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 45;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-overlay.active {
+            display: block;
+            opacity: 1;
         }
     </style>
 </head>
@@ -592,7 +911,7 @@
             <img src="/auto-lister-ai-svg-logo.svg" alt="Logo" class="auth-logo">
             <h1 class="auth-title">Admin Access</h1>
             <p class="auth-subtitle">Enter your secure key to continue</p>
-            
+
             <div class="input-group">
                 <label class="input-label">Admin Secret Key</label>
                 <input type="password" id="adminSecret" class="form-input" placeholder="••••••••••••••••">
@@ -610,31 +929,56 @@
 
     <!-- Dashboard Layout -->
     <div id="dashboardLayout" class="hidden" style="width: 100%;">
+        <!-- Mobile Overlay -->
+        <div id="mobileOverlay" class="mobile-overlay" onclick="toggleMobileMenu()"></div>
+
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <img src="/auto-lister-ai-svg-logo.svg" alt="Logo" style="width: 24px; height: 24px;">
                 <span>AutoLister AI</span>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <div class="nav-item active" onclick="switchView('overview')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
                     <span>Overview</span>
                 </div>
                 <div class="nav-item" onclick="switchView('logs')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+                        </path>
+                    </svg>
                     <span>API Logs</span>
                 </div>
                 <div class="nav-item" onclick="switchView('users')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
                     <span>Users</span>
                 </div>
             </nav>
 
             <div class="sidebar-footer">
                 <div class="nav-item" onclick="handleLogout()" style="color: var(--danger-text);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
                     <span>Logout</span>
                 </div>
             </div>
@@ -643,11 +987,27 @@
         <!-- Main Content -->
         <main class="main-content">
             <header class="top-bar">
-                <h2 id="pageTitle" class="page-title">Overview</h2>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <h2 id="pageTitle" class="page-title">Overview</h2>
+                </div>
                 <div class="flex items-center gap-2">
-                    <span id="lastUpdated" class="text-sm text-muted">Updated just now</span>
+                    <span id="lastUpdated" class="text-sm text-muted" style="display: none;">Updated just now</span>
                     <button onclick="refreshData()" class="btn-primary" style="width: auto; padding: 0.5rem 1rem;">
-                        Refresh
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="margin-right: 0.5rem;">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        <span class="hide-mobile">Refresh</span>
                     </button>
                 </div>
             </header>
@@ -666,7 +1026,8 @@
         <div class="modal-panel">
             <div class="modal-header">
                 <h3 id="modalTitle" class="card-title">Details</h3>
-                <button onclick="closeModal()" style="background: none; border: none; cursor: pointer; font-size: 1.5rem;">&times;</button>
+                <button onclick="closeModal()"
+                    style="background: none; border: none; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
             <div id="modalBody" class="modal-body"></div>
         </div>
@@ -700,12 +1061,12 @@
         async function handleLogin() {
             const input = document.getElementById('adminSecret').value;
             const remember = document.getElementById('rememberDevice').checked;
-            
+
             if (!input) return showAuthError('Please enter a key');
-            
+
             state.secret = input;
             const success = await verifyAuth();
-            
+
             if (success && remember) {
                 localStorage.setItem('admin_key', btoa(input));
             }
@@ -720,7 +1081,7 @@
                 const res = await fetch('/api/admin/usage-stats', {
                     headers: { 'Authorization': `Bearer ${state.secret}` }
                 });
-                
+
                 if (res.ok) {
                     loadingScreen.style.display = 'none';
                     authScreen.style.display = 'none';
@@ -758,11 +1119,16 @@
         // --- Navigation & Views ---
         function switchView(viewName) {
             state.currentView = viewName;
-            
+
+            // Close mobile menu if open
+            if (window.innerWidth <= 768) {
+                toggleMobileMenu(false);
+            }
+
             // Update Sidebar
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active');
-                if(el.textContent.toLowerCase().includes(viewName)) el.classList.add('active');
+                if (el.textContent.toLowerCase().includes(viewName)) el.classList.add('active');
             });
 
             // Update Title
@@ -770,6 +1136,24 @@
             document.getElementById('pageTitle').textContent = titles[viewName];
 
             loadView(viewName);
+        }
+
+        function toggleMobileMenu(forceState) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+
+            if (forceState !== undefined) {
+                if (forceState) {
+                    sidebar.classList.add('mobile-open');
+                    overlay.classList.add('active');
+                } else {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                }
+            } else {
+                sidebar.classList.toggle('mobile-open');
+                overlay.classList.toggle('active');
+            }
         }
 
         async function loadView(view) {
@@ -793,7 +1177,7 @@
         // --- Renderers ---
         async function renderOverview(container) {
             const data = await fetchAPI('/api/admin/usage-stats');
-            
+
             const statsHtml = `
                 <div class="grid-stats">
                     <div class="stat-card">
@@ -860,6 +1244,28 @@
                                 `).join('')}
                             </tbody>
                         </table>
+                        <div class="mobile-card-list">
+                            ${data.topUsers.slice(0, 5).map(u => `
+                                <div class="mobile-card">
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Email</span>
+                                        <span class="mobile-card-value" style="font-weight: 500;">${u.email}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Joined</span>
+                                        <span class="mobile-card-value">${new Date(u.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Status</span>
+                                        <span class="mobile-card-value"><span class="badge ${u.subscription_status === 'active' ? 'badge-success' : 'badge-neutral'}">${u.subscription_status}</span></span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Tier</span>
+                                        <span class="mobile-card-value"><span class="badge badge-info">${u.subscription_tier}</span></span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
             `;
@@ -867,7 +1273,7 @@
 
             // Initialize Chart
             const ctx = document.getElementById('usageChart').getContext('2d');
-            
+
             // Prepare data (reverse to show oldest to newest)
             const chartData = [...(data.lastWeek || [])].reverse();
             const labels = chartData.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
@@ -921,7 +1327,7 @@
                         intersect: false,
                     },
                     plugins: {
-                        legend: { 
+                        legend: {
                             display: true,
                             position: 'top',
                             align: 'end',
@@ -950,7 +1356,7 @@
                             display: true,
                             position: 'left',
                             beginAtZero: true,
-                            grid: { 
+                            grid: {
                                 color: '#f3f4f6',
                                 drawBorder: false
                             },
@@ -966,7 +1372,7 @@
                             beginAtZero: true,
                             grid: { display: false },
                             ticks: {
-                                callback: function(value) { return '$' + value.toFixed(2); },
+                                callback: function (value) { return '$' + value.toFixed(2); },
                                 font: { family: "var(--font-sans)", size: 10 },
                                 color: '#9ca3af'
                             }
@@ -989,9 +1395,9 @@
                 page: state.logsPage,
                 limit: 50
             });
-            
+
             const data = await fetchAPI(`/api/admin/logs?${params}`);
-            
+
             const logsHtml = `
                 <div class="filters-bar">
                     <input type="text" placeholder="Search by User ID..." class="filter-input" id="logSearch">
@@ -1019,27 +1425,27 @@
                             </thead>
                             <tbody>
                                 ${data.logs.map(log => {
-                                    const cost = (log.openai_tokens_used || 0) * 0.0000005; // ~$0.50 per 1M tokens
-                                    
-                                    // Parse images
-                                    let images = [];
-                                    try {
-                                        if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
-                                        else if (Array.isArray(log.image_urls)) images = log.image_urls;
-                                    } catch(e) {}
-                                    
-                                    const thumb = images.length > 0 ? 
-                                        `<img src="${images[0]}" class="gallery-img" style="width: 36px; height: 36px;" loading="lazy" alt="Input">` : 
-                                        `<div style="width: 36px; height: 36px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light);">
+                const cost = (log.openai_tokens_used || 0) * 0.0000005; // ~$0.50 per 1M tokens
+
+                // Parse images
+                let images = [];
+                try {
+                    if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
+                    else if (Array.isArray(log.image_urls)) images = log.image_urls;
+                } catch (e) { }
+
+                const thumb = images.length > 0 ?
+                    `<img src="${images[0]}" class="gallery-img" style="width: 36px; height: 36px;" loading="lazy" alt="Input">` :
+                    `<div style="width: 36px; height: 36px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light);">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                                          </div>`;
 
-                                    return `
+                return `
                                     <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
                                         <td>${new Date(log.created_at).toLocaleTimeString()}</td>
                                         <td>
                                             <div class="text-sm font-medium">${log.user_email || 'Unknown'}</div>
-                                            <div class="text-sm text-muted" style="font-size: 0.75rem;">${log.user_id ? log.user_id.substring(0,8) + '...' : '-'}</div>
+                                            <div class="text-sm text-muted" style="font-size: 0.75rem;">${log.user_id ? log.user_id.substring(0, 8) + '...' : '-'}</div>
                                         </td>
                                         <td>
                                             <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">
@@ -1050,7 +1456,7 @@
                                         <td>
                                             <div style="display:flex; align-items:center; gap:4px;">
                                                 ${thumb}
-                                                ${images.length > 1 ? `<span style="font-size:10px; background:#eee; padding:2px 4px; border-radius:4px;">+${images.length-1}</span>` : ''}
+                                                ${images.length > 1 ? `<span style="font-size:10px; background:#eee; padding:2px 4px; border-radius:4px;">+${images.length - 1}</span>` : ''}
                                             </div>
                                         </td>
                                         <td><span class="badge badge-neutral">${log.openai_model || 'gpt-4o-mini'}</span></td>
@@ -1065,19 +1471,62 @@
                                 `}).join('')}
                             </tbody>
                         </table>
+                        <div class="mobile-card-list">
+                            ${data.logs.map(log => {
+                    const cost = (log.openai_tokens_used || 0) * 0.0000005;
+                    let images = [];
+                    try {
+                        if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
+                        else if (Array.isArray(log.image_urls)) images = log.image_urls;
+                    } catch (e) { }
+
+                    const thumb = images.length > 0 ?
+                        `<img src="${images[0]}" style="width: 48px; height: 48px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-color);" loading="lazy" alt="Input">` :
+                        `<div style="width: 48px; height: 48px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light); border: 1px solid var(--border-color);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    </div>`;
+
+                    return `
+                                <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
+                                    <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
+                                        ${thumb}
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-weight: 500; margin-bottom: 0.25rem;">${log.user_email || 'Unknown'}</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(log.created_at).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Status</span>
+                                        <span class="mobile-card-value">
+                                            <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
+                                            ${log.suspicious_activity ? '<span class="badge badge-warning">Flagged</span>' : ''}
+                                        </span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Model</span>
+                                        <span class="mobile-card-value"><span class="badge badge-neutral">${log.openai_model || 'gpt-4o-mini'}</span></span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Cost</span>
+                                        <span class="mobile-card-value" style="font-weight: 500;">$${cost.toFixed(5)}</span>
+                                    </div>
+                                    ${log.raw_prompt ? `<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${log.raw_prompt}</div>` : ''}
+                                </div>
+                            `}).join('')}
+                        </div>
                     </div>
                 </div>
             `;
-            
+
             container.innerHTML = logsHtml;
-            
+
             // Cache logs for modal lookup
             state.currentLogs = data.logs;
         }
 
         async function renderUsers(container) {
             const data = await fetchAPI('/api/admin/usage-stats');
-            
+
             // Create usage map
             const usageMap = {};
             if (data.todaysUsage) {
@@ -1104,25 +1553,25 @@
                             </thead>
                             <tbody>
                                 ${data.topUsers.map(u => {
-                                    const usage = usageMap[u.id];
-                                    let limitsDisplay = '<span class="text-muted">-</span>';
-                                    
-                                    if (usage) {
-                                        // Find daily and monthly counts
-                                        const dayLimit = usage.limits.find(l => l.window_type === 'day');
-                                        const monthLimit = usage.limits.find(l => l.window_type === 'month');
-                                        
-                                        const dayCount = dayLimit ? dayLimit.count : 0;
-                                        // Use u.api_calls_this_month as the source of truth for monthly if available
-                                        const reliableMonthCount = u.api_calls_this_month || 0;
+                const usage = usageMap[u.id];
+                let limitsDisplay = '<span class="text-muted">-</span>';
 
-                                        const maxDay = usage.max_limits.day;
-                                        const maxMonth = usage.max_limits.month;
-                                        
-                                        const dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
-                                        const monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
-                                        
-                                        limitsDisplay = `
+                if (usage) {
+                    // Find daily and monthly counts
+                    const dayLimit = usage.limits.find(l => l.window_type === 'day');
+                    const monthLimit = usage.limits.find(l => l.window_type === 'month');
+
+                    const dayCount = dayLimit ? dayLimit.count : 0;
+                    // Use u.api_calls_this_month as the source of truth for monthly if available
+                    const reliableMonthCount = u.api_calls_this_month || 0;
+
+                    const maxDay = usage.max_limits.day;
+                    const maxMonth = usage.max_limits.month;
+
+                    const dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
+                    const monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
+
+                    limitsDisplay = `
                                             <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;">
                                                 <div style="display: flex; align-items: center; gap: 6px;">
                                                     <span style="color: var(--text-light); width: 40px;">Day</span> 
@@ -1134,10 +1583,10 @@
                                                 </div>
                                             </div>
                                         `;
-                                    } else {
-                                        // Fallback if no active usage record but user exists
-                                        const reliableMonthCount = u.api_calls_this_month || 0;
-                                        limitsDisplay = `
+                } else {
+                    // Fallback if no active usage record but user exists
+                    const reliableMonthCount = u.api_calls_this_month || 0;
+                    limitsDisplay = `
                                             <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;">
                                                 <div style="display: flex; align-items: center; gap: 6px;">
                                                     <span style="color: var(--text-light); width: 40px;">Day</span> 
@@ -1149,9 +1598,9 @@
                                                 </div>
                                             </div>
                                         `;
-                                    }
+                }
 
-                                    return `
+                return `
                                     <tr>
                                         <td>
                                             <div class="font-medium" style="color: var(--text-main); font-weight: 500;">${u.email}</div>
@@ -1167,6 +1616,52 @@
                                 `}).join('')}
                             </tbody>
                         </table>
+                        <div class="mobile-card-list">
+                            ${data.topUsers.map(u => {
+                    const usage = usageMap[u.id];
+                    const reliableMonthCount = u.api_calls_this_month || 0;
+
+                    let dayStr = '-';
+                    let monthStr = `${reliableMonthCount}`;
+
+                    if (usage) {
+                        const dayLimit = usage.limits.find(l => l.window_type === 'day');
+                        const dayCount = dayLimit ? dayLimit.count : 0;
+                        const maxDay = usage.max_limits.day;
+                        const maxMonth = usage.max_limits.month;
+                        dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
+                        monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
+                    }
+
+                    return `
+                                <div class="mobile-card">
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Email</span>
+                                        <span class="mobile-card-value" style="font-weight: 500; word-break: break-all;">${u.email}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Tier</span>
+                                        <span class="mobile-card-value"><span class="badge badge-info" style="text-transform: capitalize;">${u.subscription_tier}</span></span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Day Limit</span>
+                                        <span class="mobile-card-value" style="font-weight: 500;">${dayStr}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Month Limit</span>
+                                        <span class="mobile-card-value" style="font-weight: 500;">${monthStr}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Joined</span>
+                                        <span class="mobile-card-value">${new Date(u.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Actions</span>
+                                        <span class="mobile-card-value"><button onclick="resetUsage('${u.id}')" style="background: #fff; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; color: var(--text-main);">Reset</button></span>
+                                    </div>
+                                </div>
+                            `}).join('')}
+                        </div>
                     </div>
                 </div>
             `;
@@ -1191,12 +1686,12 @@
             try {
                 if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
                 else if (Array.isArray(log.image_urls)) images = log.image_urls;
-            } catch(e) {}
+            } catch (e) { }
 
-            const imagesHtml = images.length > 0 ? 
+            const imagesHtml = images.length > 0 ?
                 `<div class="image-gallery">
                     ${images.map(url => `<img src="${url}" class="gallery-img" onclick="window.open('${url}', '_blank')" loading="lazy">`).join('')}
-                 </div>` : 
+                 </div>` :
                 '<div style="padding: 2rem; text-align: center; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">No images found</div>';
 
             const content = `
@@ -1229,14 +1724,14 @@
                             ID: ${log.id}<br>
                             Model: ${log.openai_model || 'N/A'}
                         </div>
-                        ${log.suspicious_activity ? 
-                            `<button class="btn-primary" style="background: var(--success); width: auto;" onclick="alert('Feature coming soon: Unflag')">Mark Safe</button>` : 
-                            `<button class="btn-primary" style="background: var(--danger); width: auto;" onclick="alert('Feature coming soon: Flag')">Flag Suspicious</button>`
-                        }
+                        ${log.suspicious_activity ?
+                    `<button class="btn-primary" style="background: var(--success); width: auto;" onclick="alert('Feature coming soon: Unflag')">Mark Safe</button>` :
+                    `<button class="btn-primary" style="background: var(--danger); width: auto;" onclick="alert('Feature coming soon: Flag')">Flag Suspicious</button>`
+                }
                     </div>
                 </div>
             `;
-            
+
             openModal(`Log Details`, content);
         }
 
@@ -1261,4 +1756,5 @@
         init();
     </script>
 </body>
+
 </html>

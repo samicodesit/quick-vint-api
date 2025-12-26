@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>QuickVint Upload</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --radius: 24px;
+            --radius-sm: 12px;
+            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 40px 32px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0 0 12px;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        p {
+            margin: 0 0 36px;
+            color: var(--text-sub);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .upload-btn {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 20px;
+            border-radius: 18px;
+            font-size: 17px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+        }
+
+        .upload-btn:active {
+            transform: scale(0.97);
+            background: var(--primary-hover);
+        }
+
+        .upload-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .file-list {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-preview {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.2s ease;
+        }
+
+        .file-status {
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+            color: var(--text-sub);
+        }
+
+        .status-done {
+            color: #10b981;
+        }
+
+        .status-error {
+            color: #ef4444;
+        }
+
+        .session-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .session-footer:hover {
+            color: var(--text-sub);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Upload Photos</h1>
+        <p>Select photos for your <strong>current item</strong>.<br>Start a new session for a different item.</p>
+
+        <button class="upload-btn" id="mainBtn">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Select Photos
+        </button>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div class="session-footer" id="sessionFooter">
+            Session: <span id="sessionCode">...</span>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+    <div class="toast" id="toast">Link copied to clipboard</div>
+
+    <script>
+        (() => {
+            const API_UPLOAD = '/api/phone-upload';
+            const API_COMPLETE = '/api/phone-upload?action=complete';
+
+            const sessionCodeEl = document.getElementById('sessionCode');
+            const fileInput = document.getElementById('fileInput');
+            const mainBtn = document.getElementById('mainBtn');
+            const fileList = document.getElementById('fileList');
+            const toastEl = document.getElementById('toast');
+            const sessionFooter = document.getElementById('sessionFooter');
+
+            const state = {
+                sessionId: null,
+                files: []
+            };
+
+            function createSessionId() {
+                const url = new URL(window.location.href);
+                const existing = url.searchParams.get('s') || url.searchParams.get('session');
+                if (existing) return existing;
+                return 'sess_' + Math.random().toString(36).slice(2, 10);
+            }
+
+            function showToast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                setTimeout(() => toastEl.classList.remove('show'), 2000);
+            }
+
+            function renderFile(item) {
+                const el = document.createElement('div');
+                el.className = 'file-item';
+                el.innerHTML = `
+            <img src="${item.preview}" class="file-preview">
+            <div class="file-info">
+                <div class="file-name">${item.name}</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                <div class="file-status">Waiting...</div>
+            </div>
+        `;
+                fileList.prepend(el);
+                return {
+                    el,
+                    fill: el.querySelector('.progress-fill'),
+                    status: el.querySelector('.file-status')
+                };
+            }
+
+            function uploadFile(item, ui) {
+                const form = new FormData();
+                form.append('file', item.file);
+                form.append('sessionId', state.sessionId);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', API_UPLOAD, true);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        ui.fill.style.width = pct + '%';
+                        ui.status.textContent = pct === 100 ? 'Processing...' : 'Uploading...';
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        ui.fill.style.width = '100%';
+                        ui.fill.style.background = '#10b981';
+                        ui.status.textContent = 'Sent';
+                        ui.status.classList.add('status-done');
+                        item.done = true;
+                    } else {
+                        ui.status.textContent = 'Failed';
+                        ui.status.classList.add('status-error');
+                        ui.fill.style.background = '#ef4444';
+                    }
+                    checkAllDone();
+                };
+
+                xhr.onerror = () => {
+                    ui.status.textContent = 'Error';
+                    ui.status.classList.add('status-error');
+                    checkAllDone();
+                };
+
+                xhr.send(form);
+            }
+
+            async function checkAllDone() {
+                const allDone = state.files.every(f => f.done);
+                if (allDone && state.files.length > 0) {
+                    try {
+                        await fetch(`${API_COMPLETE}&sessionId=${state.sessionId}`, { method: 'POST' });
+                        showToast('All photos sent to desktop!');
+                    } catch (e) { }
+                }
+            }
+
+            function compressImage(file) {
+                return new Promise((resolve) => {
+                    // If not an image, return as is
+                    if (!file.type.startsWith('image/')) return resolve(file);
+
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    
+                    img.onload = () => {
+                        URL.revokeObjectURL(url);
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Max dimension 1920px (Full HD is enough for Vinted)
+                        const MAX_SIZE = 1920;
+                        if (width > height) {
+                            if (width > MAX_SIZE) {
+                                height *= MAX_SIZE / width;
+                                width = MAX_SIZE;
+                            }
+                        } else {
+                            if (height > MAX_SIZE) {
+                                width *= MAX_SIZE / height;
+                                height = MAX_SIZE;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Compress to JPEG 0.8 quality
+                        canvas.toBlob((blob) => {
+                            if (!blob) return resolve(file); // Fallback
+                            // Create new file with same name but .jpg extension if needed
+                            const newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                            const newFile = new File([blob], newName, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(newFile);
+                        }, 'image/jpeg', 0.8);
+                    };
+                    
+                    img.onerror = () => resolve(file);
+                    img.src = url;
+                });
+            }
+
+            function handleFiles(files) {
+                Array.from(files).forEach(async (originalFile) => {
+                    // Create preview immediately for UI responsiveness
+                    const previewUrl = URL.createObjectURL(originalFile);
+                    
+                    const item = {
+                        file: originalFile, // Will be replaced by compressed
+                        name: originalFile.name,
+                        preview: previewUrl,
+                        done: false
+                    };
+                    
+                    state.files.push(item);
+                    const ui = renderFile(item);
+                    
+                    ui.status.textContent = 'Compressing...';
+                    
+                    try {
+                        const compressedFile = await compressImage(originalFile);
+                        item.file = compressedFile;
+                        // Update name if changed (e.g. png -> jpg)
+                        if (item.name !== compressedFile.name) {
+                            item.name = compressedFile.name;
+                            ui.el.querySelector('.file-name').textContent = compressedFile.name;
+                        }
+                        uploadFile(item, ui);
+                    } catch (e) {
+                        console.error(e);
+                        // Fallback to original
+                        uploadFile(item, ui);
+                    }
+                });
+            }
+
+            // Init
+            state.sessionId = createSessionId();
+            sessionCodeEl.textContent = state.sessionId;
+
+            mainBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+            sessionFooter.addEventListener('click', () => {
+                const link = `${location.origin}${location.pathname}?s=${state.sessionId}`;
+                navigator.clipboard.writeText(link).then(() => showToast('Link copied'));
+            });
+
+            // Drag drop support on the whole container
+            const container = document.querySelector('.container');
+            container.addEventListener('dragover', e => { e.preventDefault(); container.style.transform = 'scale(0.98)'; });
+            container.addEventListener('dragleave', e => { e.preventDefault(); container.style.transform = 'scale(1)'; });
+            container.addEventListener('drop', e => {
+                e.preventDefault();
+                container.style.transform = 'scale(1)';
+                handleFiles(e.dataTransfer.files);
+            });
+
+        })();
+    </script>
+</body>
+
+</html>

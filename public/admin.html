@@ -1111,7 +1111,8 @@
         </main>
 
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-            <button class="mobile-bottom-btn active" data-view="overview" onclick="switchView('overview')">Overview</button>
+            <button class="mobile-bottom-btn active" data-view="overview"
+                onclick="switchView('overview')">Overview</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
         </nav>
@@ -1177,7 +1178,7 @@
             const dashboard = document.getElementById('dashboardLayout');
 
             try {
-                const res = await fetch('/api/admin/usage-stats', {
+                const res = await fetch('/api/admin?action=usage-stats', {
                     headers: { 'Authorization': `Bearer ${state.secret}` }
                 });
 
@@ -1278,7 +1279,7 @@
 
         // --- Renderers ---
         async function renderOverview(container) {
-            const data = await fetchAPI('/api/admin/usage-stats');
+            const data = await fetchAPI('/api/admin?action=usage-stats');
 
             const statsHtml = `
                 <div class="grid-stats">
@@ -1498,7 +1499,7 @@
                 limit: 50
             });
 
-            const data = await fetchAPI(`/api/admin/logs?${params}`);
+            const data = await fetchAPI(`/api/admin?${params}`);
 
             const logsHtml = `
                 <div class="filters-bar">
@@ -1627,7 +1628,7 @@
         }
 
         async function renderUsers(container) {
-            const data = await fetchAPI('/api/admin/usage-stats');
+            const data = await fetchAPI('/api/admin?action=usage-stats');
 
             // Create usage map
             const usageMap = {};

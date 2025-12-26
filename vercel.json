@@ -5,11 +5,7 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/cleanup-rate-limits",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-temp-uploads",
+      "path": "/api/cron/daily-cleanup",
       "schedule": "0 4 * * *"
     }
   ]

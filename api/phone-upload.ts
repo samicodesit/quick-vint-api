@@ -160,21 +160,35 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
 
 // --- Handler: Complete Session (POST JSON) ---
 async function handleComplete(req: VercelRequest, res: VercelResponse) {
-    // Parse body if needed, but we mostly just need sessionId from query or body
-    // Since bodyParser is false, we might need to parse manually if it's in body.
-    // But for simplicity, let's rely on query param for sessionId in this case, 
-    // or simple JSON parsing if we really need body.
-    
-    // Note: Since config.api.bodyParser is false for the whole file (needed for busboy),
-    // req.body will be undefined or raw stream.
-    // We can just use query param for sessionId which is easier.
-    
     const sessionId = req.query.sessionId as string;
     
     if (!sessionId) {
          return res.status(400).json({ error: 'Missing sessionId' });
     }
 
-    // In the future, this could trigger a WebSocket event or push notification
-    res.status(200).json({ message: 'Upload session completed' });
+    try {
+        // 1. List all files in the session folder
+        const { data: files, error: listError } = await supabase.storage
+            .from('temp-uploads')
+            .list(sessionId);
+
+        if (listError) throw listError;
+
+        // 2. If there are files, delete them
+        if (files && files.length > 0) {
+            const filesToRemove = files.map(f => `${sessionId}/${f.name}`);
+            const { error: removeError } = await supabase.storage
+                .from('temp-uploads')
+                .remove(filesToRemove);
+            
+            if (removeError) throw removeError;
+            console.log(`Cleaned up session ${sessionId}: ${files.length} files removed.`);
+        }
+
+        res.status(200).json({ success: true, message: 'Session completed and cleaned up' });
+    } catch (error: any) {
+        console.error('Complete error:', error);
+        // Even if cleanup fails, we return success to the client so they don't retry
+        res.status(200).json({ success: true, warning: 'Cleanup failed but session marked complete' });
+    }
 }

@@ -322,26 +322,14 @@
                         ui.status.classList.add('status-error');
                         ui.fill.style.background = '#ef4444';
                     }
-                    checkAllDone();
                 };
 
                 xhr.onerror = () => {
                     ui.status.textContent = 'Error';
                     ui.status.classList.add('status-error');
-                    checkAllDone();
                 };
 
                 xhr.send(form);
-            }
-
-            async function checkAllDone() {
-                const allDone = state.files.every(f => f.done);
-                if (allDone && state.files.length > 0) {
-                    try {
-                        await fetch(`${API_COMPLETE}&sessionId=${state.sessionId}`, { method: 'POST' });
-                        showToast('All photos sent to desktop!');
-                    } catch (e) { }
-                }
             }
 
             function compressImage(file) {
@@ -381,7 +369,11 @@
                         canvas.toBlob((blob) => {
                             if (!blob) return resolve(file); // Fallback
                             // Create new file with same name but .jpg extension if needed
-                            const newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                            // Add timestamp to avoid duplicate filename errors on server
+                            const timestamp = Date.now();
+                            const originalName = file.name.replace(/\.[^/.]+$/, "");
+                            const newName = `${originalName}_${timestamp}.jpg`;
+                            
                             const newFile = new File([blob], newName, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now()

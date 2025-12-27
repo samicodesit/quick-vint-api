@@ -182,18 +182,18 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         ...user,
         limits,
         max_limits: {
-          day: tierConfig.limits.day,
-          month: tierConfig.limits.month,
+          day: tierConfig.limits.daily,
+          month: tierConfig.limits.monthly,
         },
       };
     });
 
     return res.status(200).json({
       today: {
-        totalRequests: todayStats?.total_requests || 0,
-        rateLimitErrors: todayStats?.rate_limit_errors || 0,
-        avgTokensPerRequest: todayStats?.avg_tokens_per_request || 0,
-        estimatedCost: (todayStats?.total_tokens_used || 0) * 0.0000005,
+        totalRequests: todayStats?.total_api_calls || 0,
+        rateLimitErrors: 0, // Not currently tracked in daily_stats
+        avgTokensPerRequest: 0, // Not currently tracked
+        estimatedCost: todayStats?.estimated_cost || 0,
       },
       lastWeek: weekStats,
       topUsers: enrichedUsers,

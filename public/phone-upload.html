@@ -339,13 +339,13 @@
 
                     const img = new Image();
                     const url = URL.createObjectURL(file);
-                    
+
                     img.onload = () => {
                         URL.revokeObjectURL(url);
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-                        
+
                         // Max dimension 1920px (Full HD is enough for Vinted)
                         const MAX_SIZE = 1920;
                         if (width > height) {
@@ -364,7 +364,7 @@
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        
+
                         // Compress to JPEG 0.8 quality
                         canvas.toBlob((blob) => {
                             if (!blob) return resolve(file); // Fallback
@@ -373,7 +373,7 @@
                             const timestamp = Date.now();
                             const originalName = file.name.replace(/\.[^/.]+$/, "");
                             const newName = `${originalName}_${timestamp}.jpg`;
-                            
+
                             const newFile = new File([blob], newName, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now()
@@ -381,7 +381,7 @@
                             resolve(newFile);
                         }, 'image/jpeg', 0.8);
                     };
-                    
+
                     img.onerror = () => resolve(file);
                     img.src = url;
                 });
@@ -391,19 +391,19 @@
                 Array.from(files).forEach(async (originalFile) => {
                     // Create preview immediately for UI responsiveness
                     const previewUrl = URL.createObjectURL(originalFile);
-                    
+
                     const item = {
                         file: originalFile, // Will be replaced by compressed
                         name: originalFile.name,
                         preview: previewUrl,
                         done: false
                     };
-                    
+
                     state.files.push(item);
                     const ui = renderFile(item);
-                    
+
                     ui.status.textContent = 'Compressing...';
-                    
+
                     try {
                         const compressedFile = await compressImage(originalFile);
                         item.file = compressedFile;

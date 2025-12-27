@@ -1649,11 +1649,11 @@
                             <tbody>
                                 ${data.topUsers.map(u => {
                 // u contains all the info we need (limits, max_limits)
-                
+
                 // Find daily count from rate limits (if any)
                 const dayLimit = u.limits ? u.limits.find(l => l.window_type === 'day') : null;
                 const dayCount = dayLimit ? dayLimit.count : 0;
-                
+
                 // Use u.api_calls_this_month as the source of truth for monthly
                 const reliableMonthCount = u.api_calls_this_month || 0;
 
@@ -1694,20 +1694,16 @@
                         </table>
                         <div class="mobile-card-list">
                             ${data.topUsers.map(u => {
-                    const usage = usageMap[u.id];
+                    // u contains all the info we need
+                    const dayLimit = u.limits ? u.limits.find(l => l.window_type === 'day') : null;
+                    const dayCount = dayLimit ? dayLimit.count : 0;
                     const reliableMonthCount = u.api_calls_this_month || 0;
 
-                    let dayStr = '-';
-                    let monthStr = `${reliableMonthCount}`;
+                    const maxDay = u.max_limits?.day;
+                    const maxMonth = u.max_limits?.month;
 
-                    if (usage) {
-                        const dayLimit = usage.limits.find(l => l.window_type === 'day');
-                        const dayCount = dayLimit ? dayLimit.count : 0;
-                        const maxDay = usage.max_limits.day;
-                        const maxMonth = usage.max_limits.month;
-                        dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
-                        monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
-                    }
+                    const dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
+                    const monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
 
                     return `
                                 <div class="mobile-card">
@@ -1751,6 +1747,31 @@
             });
             if (!res.ok) throw new Error(res.statusText);
             return await res.json();
+        }
+
+        async function resetUsage(userId) {
+            if (!confirm('Are you sure you want to reset all usage limits for this user?')) return;
+
+            try {
+                const res = await fetch('/api/admin?action=reset-usage', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.secret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Usage limits reset successfully');
+                    loadView('users'); // Refresh list
+                } else {
+                    showToast(data.error || 'Failed to reset usage', 'error');
+                }
+            } catch (e) {
+                showToast('Connection failed', 'error');
+            }
         }
 
         function showLogDetails(id) {

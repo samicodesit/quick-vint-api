@@ -24,6 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleEmergencyBrake(req, res);
     } else if (action === "flag-activity") {
       return handleFlagActivity(req, res, "admin");
+    } else if (action === "reset-usage") {
+      return handleResetUsage(req, res);
     } else {
       return res.status(400).json({ error: "Invalid POST action" });
     }
@@ -268,6 +270,34 @@ async function handleFlagActivity(
 
     if (error) throw error;
     return res.status(200).json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+// --- LOGIC: Reset Usage ---
+async function handleResetUsage(req: VercelRequest, res: VercelResponse) {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+  try {
+    // 1. Reset rate limits (daily/minute)
+    const { error: rateLimitError } = await supabase
+      .from("rate_limits")
+      .delete()
+      .eq("user_id", userId);
+
+    if (rateLimitError) throw rateLimitError;
+
+    // 2. Reset monthly usage in profile
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ api_calls_this_month: 0 })
+      .eq("id", userId);
+
+    if (profileError) throw profileError;
+
+    return res.status(200).json({ success: true, message: "User usage reset" });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }

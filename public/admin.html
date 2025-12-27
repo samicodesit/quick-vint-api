@@ -1642,7 +1642,7 @@
                                     <th>User</th>
                                     <th>Tier</th>
                                     <th>Limits (Daily / Monthly)</th>
-                                    <th>Joined</th>
+                                    <th>Joined / Last Active</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -1676,6 +1676,10 @@
                                         </div>
                                     `;
 
+                const lastActiveStr = u.last_active && u.last_active !== u.created_at 
+                    ? new Date(u.last_active).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                    : '<span style="opacity:0.5">No recent activity</span>';
+
                 return `
                                     <tr>
                                         <td>
@@ -1684,7 +1688,10 @@
                                         </td>
                                         <td><span class="badge badge-info" style="text-transform: capitalize;">${u.subscription_tier}</span></td>
                                         <td>${limitsDisplay}</td>
-                                        <td style="color: var(--text-muted); font-size: 0.8rem;">${new Date(u.created_at).toLocaleDateString()}</td>
+                                        <td style="color: var(--text-muted); font-size: 0.8rem;">
+                                            <div>Joined: ${new Date(u.created_at).toLocaleDateString()}</div>
+                                            <div style="color: var(--text-main); font-weight: 500; margin-top: 2px;">Active: ${lastActiveStr}</div>
+                                        </td>
                                         <td>
                                             <button onclick="resetUsage('${u.id}')" style="background: #fff; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; color: var(--text-main); transition: all 0.15s;">Reset</button>
                                         </td>
@@ -1704,6 +1711,10 @@
 
                     const dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
                     const monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
+                    
+                    const lastActiveStr = u.last_active && u.last_active !== u.created_at 
+                        ? new Date(u.last_active).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                        : 'No recent activity';
 
                     return `
                                 <div class="mobile-card">
@@ -1726,6 +1737,10 @@
                                     <div class="mobile-card-row">
                                         <span class="mobile-card-label">Joined</span>
                                         <span class="mobile-card-value">${new Date(u.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Last Active</span>
+                                        <span class="mobile-card-value" style="font-weight: 500;">${lastActiveStr}</span>
                                     </div>
                                     <div class="mobile-card-row">
                                         <span class="mobile-card-label">Actions</span>

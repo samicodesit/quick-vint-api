@@ -138,13 +138,29 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       b.date.localeCompare(a.date)
     );
 
+    // 1. Get recent activity timestamps to sort users
+    const { data: recentLogs } = await supabase
+      .from("api_logs")
+      .select("user_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    const lastActiveMap = new Map();
+    if (recentLogs) {
+      recentLogs.forEach((log) => {
+        if (!lastActiveMap.has(log.user_id)) {
+          lastActiveMap.set(log.user_id, log.created_at);
+        }
+      });
+    }
+
     const { data: allUsers } = await supabase
       .from("profiles")
       .select(
         "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end"
       )
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(100);
 
     const { data: topUsersByUsage } = await supabase
       .from("profiles")
@@ -154,8 +170,21 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       .order("api_calls_this_month", { ascending: false })
       .limit(50);
 
+    // Fetch profiles for recently active users
+    const recentUserIds = Array.from(lastActiveMap.keys());
+    let recentUsers: any[] = [];
+    if (recentUserIds.length > 0) {
+       const { data } = await supabase
+        .from("profiles")
+        .select(
+            "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end"
+        )
+        .in("id", recentUserIds);
+       recentUsers = data || [];
+    }
+
     const allUserMap = new Map();
-    [...(allUsers || []), ...(topUsersByUsage || [])].forEach((user) => {
+    [...(allUsers || []), ...(topUsersByUsage || []), ...recentUsers].forEach((user) => {
       if (user.email) allUserMap.set(user.email, user);
     });
 
@@ -182,6 +211,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         TIER_CONFIGS.free;
       return {
         ...user,
+        last_active: lastActiveMap.get(user.id) || user.created_at,
         limits,
         max_limits: {
           day: tierConfig.limits.daily,
@@ -189,6 +219,9 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         },
       };
     });
+
+    // Sort by last_active descending
+    enrichedUsers.sort((a: any, b: any) => b.last_active.localeCompare(a.last_active));
 
     return res.status(200).json({
       today: {

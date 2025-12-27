@@ -1630,14 +1630,6 @@
         async function renderUsers(container) {
             const data = await fetchAPI('/api/admin?action=usage-stats');
 
-            // Create usage map
-            const usageMap = {};
-            if (data.todaysUsage) {
-                data.todaysUsage.forEach(u => {
-                    usageMap[u.user_id] = u;
-                });
-            }
-
             const usersHtml = `
                 <div class="card">
                     <div class="card-header">
@@ -1656,52 +1648,33 @@
                             </thead>
                             <tbody>
                                 ${data.topUsers.map(u => {
-                const usage = usageMap[u.id];
-                let limitsDisplay = '<span class="text-muted">-</span>';
+                // u contains all the info we need (limits, max_limits)
+                
+                // Find daily count from rate limits (if any)
+                const dayLimit = u.limits ? u.limits.find(l => l.window_type === 'day') : null;
+                const dayCount = dayLimit ? dayLimit.count : 0;
+                
+                // Use u.api_calls_this_month as the source of truth for monthly
+                const reliableMonthCount = u.api_calls_this_month || 0;
 
-                if (usage) {
-                    // Find daily and monthly counts
-                    const dayLimit = usage.limits.find(l => l.window_type === 'day');
-                    const monthLimit = usage.limits.find(l => l.window_type === 'month');
+                const maxDay = u.max_limits?.day;
+                const maxMonth = u.max_limits?.month;
 
-                    const dayCount = dayLimit ? dayLimit.count : 0;
-                    // Use u.api_calls_this_month as the source of truth for monthly if available
-                    const reliableMonthCount = u.api_calls_this_month || 0;
+                const dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
+                const monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
 
-                    const maxDay = usage.max_limits.day;
-                    const maxMonth = usage.max_limits.month;
-
-                    const dayStr = maxDay ? `${dayCount} / ${maxDay}` : `${dayCount} / ∞`;
-                    const monthStr = maxMonth ? `${reliableMonthCount} / ${maxMonth}` : `${reliableMonthCount} / ∞`;
-
-                    limitsDisplay = `
-                                            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;">
-                                                <div style="display: flex; align-items: center; gap: 6px;">
-                                                    <span style="color: var(--text-light); width: 40px;">Day</span> 
-                                                    <span style="font-weight: 500; color: var(--text-main);">${dayStr}</span>
-                                                </div>
-                                                <div style="display: flex; align-items: center; gap: 6px;">
-                                                    <span style="color: var(--text-light); width: 40px;">Mon</span> 
-                                                    <span style="font-weight: 500; color: var(--text-main);">${monthStr}</span>
-                                                </div>
+                const limitsDisplay = `
+                                        <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;">
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <span style="color: var(--text-light); width: 40px;">Day</span> 
+                                                <span style="font-weight: 500; color: var(--text-main);">${dayStr}</span>
                                             </div>
-                                        `;
-                } else {
-                    // Fallback if no active usage record but user exists
-                    const reliableMonthCount = u.api_calls_this_month || 0;
-                    limitsDisplay = `
-                                            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;">
-                                                <div style="display: flex; align-items: center; gap: 6px;">
-                                                    <span style="color: var(--text-light); width: 40px;">Day</span> 
-                                                    <span style="color: var(--text-muted);">-</span>
-                                                </div>
-                                                <div style="display: flex; align-items: center; gap: 6px;">
-                                                    <span style="color: var(--text-light); width: 40px;">Mon</span> 
-                                                    <span style="font-weight: 500; color: var(--text-main);">${reliableMonthCount}</span>
-                                                </div>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <span style="color: var(--text-light); width: 40px;">Mon</span> 
+                                                <span style="font-weight: 500; color: var(--text-main);">${monthStr}</span>
                                             </div>
-                                        `;
-                }
+                                        </div>
+                                    `;
 
                 return `
                                     <tr>

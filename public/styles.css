@@ -412,24 +412,34 @@ body.menu-dim .footer {
   animation: heroImageFadeInUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards;
 }
 
-.hero-image-container img {
+.hero-image-container img,
+.hero-image-container video {
+  width: min(1280px, 100%); /* Bigger while respecting viewport */
   max-width: 100%;
-  width: 750px; /* Adjust this value based on your screenshot's ideal size */
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.15);
+  display: block;
 
-  /* This creates the premium "floating" 3D perspective effect */
-  transform: perspective(1000px) rotateX(10deg);
+  /* Upright by default */
+  transform: none;
 
   /* A deep, soft shadow for depth */
   box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.35);
 
-  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: none;
 }
 
-.hero-image-container img:hover {
-  /* On hover, the image becomes flat and scales up slightly */
-  transform: perspective(1000px) rotateX(0deg) scale(1.03);
+.hero-image-container video {
+  height: auto;
+  object-fit: cover;
+  background: #0b1021;
+  aspect-ratio: 16 / 9;
+}
+
+/* Keep media perfectly straight even on hover */
+.hero-image-container img:hover,
+.hero-image-container video:hover {
+  transform: none;
 }
 
 @media (min-width: 768px) {

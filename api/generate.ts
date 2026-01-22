@@ -6,6 +6,7 @@ import { supabase } from "../utils/supabaseClient";
 import { RateLimiter } from "../utils/rateLimiter";
 import { ApiLogger } from "../utils/apiLogger";
 import { languageMap } from "../utils/languageMap";
+import { isDisposableEmail } from "../utils/disposableDomains";
 
 const OPEN_AI_MODEL = "gpt-4o-mini";
 // allow vinted page origins (so extension fetch from page context works)
@@ -111,11 +112,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.userId = user.id;
   logData.userEmail = user.email;
 
+  if (isDisposableEmail(user.email || "")) {
+    logData.responseStatus = 403;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Disposable email blocked";
+    await ApiLogger.logRequest(logData);
+    return res.status(403).json({
+      error:
+        "Disposable emails are not allowed. If you have previously used or attempt to use one, you risk legal action. Contact us for appeal, or if you believe this is a mistake.",
+    });
+  }
+
   // --- PROFILE & LIMITS ---
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset"
+      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset",
     )
     .eq("id", user.id)
     .single();
@@ -167,7 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- RATE LIMITING ---
   const rateLimitResult = await RateLimiter.checkRateLimit(
     user.id,
-    userProfile
+    userProfile,
   );
 
   if (!rateLimitResult.allowed) {
@@ -238,7 +250,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     logData.flaggedReason = suspiciousCheck.reasons.join("; ");
     console.warn(
       `🚨 Suspicious activity detected for user ${user.id}:`,
-      suspiciousCheck.reasons
+      suspiciousCheck.reasons,
     );
   }
 

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
 import { supabase } from "../../utils/supabaseClient";
+import { isDisposableEmail } from "../../utils/disposableDomains";
 
 // Read and parse allowed origins from env for CORS
 // This should primarily be your Chrome extension's origin
@@ -60,6 +61,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!email || typeof email !== "string" || !email.includes("@")) {
     return res.status(400).json({ error: "A valid email address is required" });
+  }
+
+  if (isDisposableEmail(email)) {
+    return res.status(400).json({
+      error:
+        "Disposable emails are not allowed. If you have previously used or attempt to use one, you risk legal action. Contact us for appeal, or if you believe this is a mistake.",
+    });
   }
 
   const appSiteUrl = process.env.VERCEL_APP_SITE_URL;

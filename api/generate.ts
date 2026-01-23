@@ -188,7 +188,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logData.flaggedReason = "Rate limit exceeded";
     await ApiLogger.logRequest(logData);
     return res.status(429).json({
-      error: "Too many requests. Please try again later.",
+      error:
+        rateLimitResult.error || "Too many requests. Please try again later.",
     });
   }
 

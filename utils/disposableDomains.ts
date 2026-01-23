@@ -5142,6 +5142,8 @@ export const disposableDomains = new Set([
   "zzi.us",
   "zzrgg.com",
   "zzz.com",
+  "okexbit.com",
+  "sepole.com",
 ]);
 
 export function isDisposableEmail(email: string): boolean {

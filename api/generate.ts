@@ -230,8 +230,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "You are a savvy Vinted seller. Your goal is to create listings that are appealing, trustworthy, and get items sold.";
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
-- Title format: [Brand] [Color] [Item].
-- Description: Note a positive condition (e.g., excellent condition, Like new). No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible, just skip it, do NOT say Unknown Brand. Your tone should be ${toneInstruction}. ${emojiInstruction}
+- Title format: [BRAND] [Color] [Item].
+- Description: Note a positive condition (e.g., excellent condition, Like new). No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible at all, just skip it, do NOT say "Unknown Brand". Your tone should be ${toneInstruction}. ${emojiInstruction}
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

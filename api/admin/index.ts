@@ -220,8 +220,25 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    // Sort by last_active descending
-    enrichedUsers.sort((a: any, b: any) => b.last_active.localeCompare(a.last_active));
+    // Get total user count
+    const { count: totalUserCount } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
+
+    // Sort by last_active descending for recent activity view
+    const recentActivityUsers = [...enrichedUsers].sort((a: any, b: any) => 
+      b.last_active.localeCompare(a.last_active)
+    );
+
+    // Sort by created_at descending for recent signups view
+    const recentSignups = [...enrichedUsers].sort((a: any, b: any) => 
+      b.created_at.localeCompare(a.created_at)
+    );
+
+    // Sort by api_calls_this_month descending for top users by usage
+    const topUsersByUsageList = [...enrichedUsers].sort((a: any, b: any) => 
+      (b.api_calls_this_month || 0) - (a.api_calls_this_month || 0)
+    );
 
     return res.status(200).json({
       today: {
@@ -231,8 +248,13 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         estimatedCost: todayStats?.estimated_cost || 0,
       },
       lastWeek: weekStats,
-      topUsers: enrichedUsers,
-      todaysUsage: enrichedUsers,
+      totalUsers: totalUserCount || 0,
+      recentActivity: recentActivityUsers,
+      recentSignups: recentSignups,
+      topUsersByUsage: topUsersByUsageList,
+      // Deprecated fields for backwards compatibility
+      topUsers: recentActivityUsers,
+      todaysUsage: recentActivityUsers,
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });

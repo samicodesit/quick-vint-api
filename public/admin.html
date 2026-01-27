@@ -1139,7 +1139,9 @@
             secret: '',
             currentView: 'overview',
             data: null,
-            logsPage: 1
+            logsPage: 1,
+            cachedData: {},
+            isTransitioning: false
         };
 
         // --- Auth Logic ---
@@ -1218,7 +1220,10 @@
 
         // --- Navigation & Views ---
         function switchView(viewName) {
+            if (state.isTransitioning || state.currentView === viewName) return;
+            
             state.currentView = viewName;
+            state.isTransitioning = true;
 
             // Close mobile menu if open
             if (window.innerWidth <= 768) {
@@ -1261,18 +1266,31 @@
 
         async function loadView(view) {
             const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+            
+            // Add fade out
+            content.style.opacity = '0.5';
+            content.style.transition = 'opacity 0.15s ease';
 
             try {
                 if (view === 'overview') await renderOverview(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
+                
+                // Fade in
+                setTimeout(() => {
+                    content.style.opacity = '1';
+                    state.isTransitioning = false;
+                }, 50);
             } catch (e) {
-                content.innerHTML = `<div class="p-4 text-red-600">Error loading view: ${e.message}</div>`;
+                content.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--danger-text);">Error loading view: ${e.message}</div>`;
+                content.style.opacity = '1';
+                state.isTransitioning = false;
             }
         }
 
         function refreshData() {
+            // Clear cached data to force fresh fetch
+            state.cachedData = {};
             loadView(state.currentView);
             showToast('Data refreshed', 'success');
         }
@@ -1292,9 +1310,9 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Total Users</div>
-                        <div class="stat-value">${data.topUsers.length}</div>
+                        <div class="stat-value">${data.totalUsers || data.topUsers.length}</div>
                         <div class="stat-trend">
-                            <span>Active Platform Users</span>
+                            <span>All Registered Users</span>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -1337,7 +1355,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${data.topUsers.slice(0, 5).map(u => `
+                                ${(data.recentSignups || data.topUsers).slice(0, 5).map(u => `
                                     <tr>
                                         <td>${u.email}</td>
                                         <td>${new Date(u.created_at).toLocaleDateString()}</td>
@@ -1348,7 +1366,7 @@
                             </tbody>
                         </table>
                         <div class="mobile-card-list">
-                            ${data.topUsers.slice(0, 5).map(u => `
+                            ${(data.recentSignups || data.topUsers).slice(0, 5).map(u => `
                                 <div class="mobile-card">
                                     <div class="mobile-card-row">
                                         <span class="mobile-card-label">Email</span>
@@ -1629,11 +1647,12 @@
 
         async function renderUsers(container) {
             const data = await fetchAPI('/api/admin?action=usage-stats');
+            const usersList = data.recentActivity || data.topUsers;
 
             const usersHtml = `
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">All Users (${data.topUsers.length})</h3>
+                        <h3 class="card-title">All Users (${data.totalUsers || usersList.length})</h3>
                     </div>
                     <div class="table-container">
                         <table>
@@ -1647,7 +1666,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${data.topUsers.map(u => {
+                                ${usersList.map(u => {
                 // u contains all the info we need (limits, max_limits)
 
                 // Find daily count from rate limits (if any)
@@ -1700,7 +1719,7 @@
                             </tbody>
                         </table>
                         <div class="mobile-card-list">
-                            ${data.topUsers.map(u => {
+                            ${usersList.map(u => {
                     // u contains all the info we need
                     const dayLimit = u.limits ? u.limits.find(l => l.window_type === 'day') : null;
                     const dayCount = dayLimit ? dayLimit.count : 0;

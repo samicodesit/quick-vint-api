@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import type { VercelRequest } from "@vercel/node";
+import type { NextRequest } from "next/server";
 
 export interface ApiLogData {
   userId?: string;
@@ -86,7 +86,7 @@ export class ApiLogger {
   static async flagSuspiciousActivity(
     logId: string,
     reason: string,
-    reviewedBy?: string
+    reviewedBy?: string,
   ): Promise<void> {
     try {
       const { error } = await supabase
@@ -108,12 +108,12 @@ export class ApiLogger {
   }
 
   /**
-   * Extract request metadata from Vercel request
+   * Extract request metadata from Next.js request
    */
-  static extractRequestMetadata(req: VercelRequest) {
+  static extractRequestMetadata(req: NextRequest) {
     return {
-      userAgent: req.headers["user-agent"],
-      origin: req.headers.origin,
+      userAgent: req.headers.get("user-agent") || undefined,
+      origin: req.headers.get("origin") || undefined,
       ipAddress: this.getClientIpAddress(req),
       requestMethod: req.method || "UNKNOWN",
     };
@@ -122,14 +122,15 @@ export class ApiLogger {
   /**
    * Get the real client IP address from various headers
    */
-  private static getClientIpAddress(req: VercelRequest): string | undefined {
+  private static getClientIpAddress(req: NextRequest): string | undefined {
+    const forwardedFor = req.headers.get("x-forwarded-for");
     return (
-      req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
-      req.headers["x-real-ip"]?.toString() ||
-      req.headers["x-client-ip"]?.toString() ||
-      req.headers["x-forwarded"]?.toString() ||
-      req.headers["forwarded-for"]?.toString() ||
-      req.headers["forwarded"]?.toString() ||
+      forwardedFor?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      req.headers.get("x-client-ip") ||
+      req.headers.get("x-forwarded") ||
+      req.headers.get("forwarded-for") ||
+      req.headers.get("forwarded") ||
       undefined
     );
   }
@@ -152,7 +153,9 @@ export class ApiLogger {
           !url.includes("vinted") &&
           !url.includes("imgur") &&
           !url.includes("cloudinary") &&
-          (url.includes("adult") || url.includes("porn") || url.includes("xxx"))
+          (url.includes("adult") ||
+            url.includes("porn") ||
+            url.includes("xxx")),
       )
     ) {
       reasons.push("Potentially inappropriate image URLs detected");
@@ -183,12 +186,12 @@ export class ApiLogger {
 
       const lowerPrompt = data.rawPrompt.toLowerCase();
       const foundSuspiciousKeywords = suspiciousKeywords.filter((keyword) =>
-        lowerPrompt.includes(keyword)
+        lowerPrompt.includes(keyword),
       );
 
       if (foundSuspiciousKeywords.length > 0) {
         reasons.push(
-          `Suspicious keywords detected: ${foundSuspiciousKeywords.join(", ")}`
+          `Suspicious keywords detected: ${foundSuspiciousKeywords.join(", ")}`,
         );
       }
     }

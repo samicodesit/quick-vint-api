@@ -1,0 +1,242 @@
+{
+  "nav": {
+    "features": "Funktionen",
+    "pricing": "Preise",
+    "contact": "Kontakt",
+    "getExtension": "Erweiterung herunterladen",
+    "close": "Menü schließen"
+  },
+  "meta": {
+    "home": {
+      "title": "AutoLister AI: KI-gestützter Vinted-Beschreibungsgenerator - Kostenlos testen",
+      "description": "Erstellen Sie sofort überzeugende Vinted-Anzeigen mit AutoLister AI. Professionelle Titel und Beschreibungen, die verkaufen - unterstützt durch fortschrittliche KI-Technologie.",
+      "ogTitle": "AutoLister AI - KI-gestützte Vinted-Anzeigen in Sekunden",
+      "ogDescription": "Verschwenden Sie keine Zeit mehr mit dem Schreiben von Beschreibungen. Erstellen Sie überzeugende, verkaufsorientierte Anzeigen aus Ihren Fotos in Sekunden."
+    },
+    "pricing": {
+      "title": "AutoLister AI - Preise & Pläne | Wählen Sie Ihren Plan",
+      "description": "Erschwingliche Preise für jeden Vinted-Verkäufer. Kostenlos starten, jederzeit upgraden. Pläne von 0€ bis 19,99€/Monat.",
+      "ogTitle": "AutoLister AI Preise - Pläne für jeden Verkäufer",
+      "ogDescription": "Einfache Preisgestaltung für Vinted-Verkäufer. Kostenlose Testversion, Starter-, Pro- und Business-Pläne. Jederzeit kündbar."
+    },
+    "support": {
+      "title": "AutoLister AI - Support & Hilfe-Center",
+      "description": "Erhalten Sie Hilfe mit AutoLister AI. Kontaktieren Sie uns, prüfen Sie FAQs und finden Sie Antworten auf häufige Fragen zu unserem Vinted-Anzeigengenerator.",
+      "ogTitle": "AutoLister AI Support - Wir sind für Sie da",
+      "ogDescription": "Brauchen Sie Hilfe? Kontaktieren Sie unser Support-Team oder durchsuchen Sie unser Hilfe-Center."
+    },
+    "terms": {
+      "title": "AutoLister AI - Nutzungsbedingungen",
+      "description": "Nutzungsbedingungen und Benutzervereinbarung für AutoLister AI. Lesen Sie unsere Bedingungen, bevor Sie die Vinted-Anzeigengenerator-Erweiterung verwenden.",
+      "ogTitle": "AutoLister AI Nutzungsbedingungen",
+      "ogDescription": "Geschäftsbedingungen für die Nutzung von AutoLister AI."
+    },
+    "privacy": {
+      "title": "AutoLister AI - Datenschutzrichtlinie",
+      "description": "Datenschutzrichtlinie für AutoLister AI. Erfahren Sie, wie wir Ihre Daten schützen und Ihre Privatsphäre respektieren, wenn Sie unseren Vinted-Anzeigengenerator verwenden.",
+      "ogTitle": "AutoLister AI Datenschutzrichtlinie",
+      "ogDescription": "Wie wir Ihre Daten und Privatsphäre schützen."
+    },
+    "cancel": {
+      "title": "AutoLister AI - Abonnement gekündigt",
+      "description": "Ihr AutoLister AI-Abonnement wurde gekündigt. Es tut uns leid, Sie gehen zu sehen.",
+      "ogTitle": "Abonnement gekündigt - AutoLister AI",
+      "ogDescription": "Ihr Abonnement wurde erfolgreich gekündigt."
+    },
+    "success": {
+      "title": "AutoLister AI - Zahlung erfolgreich",
+      "description": "Vielen Dank für Ihr Abonnement bei AutoLister AI! Ihre Zahlung war erfolgreich und Ihr Konto ist jetzt aktiv.",
+      "ogTitle": "Willkommen bei AutoLister AI - Zahlung erfolgreich",
+      "ogDescription": "Ihr Abonnement ist jetzt aktiv. Beginnen Sie mit der Erstellung von Vinted-Anzeigen!"
+    }
+  },
+  "home": {
+    "heroTitle": "Verwandeln Sie Ihre Vinted-Verkäufe mit KI-gestützten Anzeigen",
+    "heroSubtitle": "Erstellen Sie überzeugende Titel und Beschreibungen für Ihre Vinted-Artikel in Sekunden. Professioneller, konversionsorientierter Inhalt, der verkauft - unterstützt durch fortschrittliche KI.",
+    "ctaStart": "Kostenlos starten",
+    "ctaChrome": "Chrome-Erweiterung herunterladen",
+    "stats": {
+      "listings": "Anzeigen erstellt",
+      "languages": "Unterstützte Sprachen",
+      "speed": "Durchschnittliche Generierungszeit"
+    },
+    "howItWorks": {
+      "title": "Wie es funktioniert",
+      "subtitle": "Erhalten Sie professionelle Anzeigen in drei einfachen Schritten",
+      "step1": {
+        "title": "Erweiterung installieren",
+        "description": "Fügen Sie den Vinted-Generator in Sekunden zu Ihrem Browser hinzu. Der Einstieg ist kostenlos."
+      },
+      "step2": {
+        "title": "Klicken zum Generieren",
+        "description": "Klicken Sie auf einer beliebigen Vinted-Anzeigenseite auf die Schaltfläche Generieren, um sofort professionellen Inhalt zu erstellen."
+      },
+      "step3": {
+        "title": "Veröffentlichen & Verkaufen",
+        "description": "Überprüfen, bei Bedarf anpassen und Ihre optimierte Anzeige veröffentlichen. Sehen Sie zu, wie sich Ihre Verkäufe verbessern!"
+      }
+    },
+    "features": {
+      "title": "Funktionen für echte Verkäufer",
+      "subtitle": "Alles, was Sie brauchen, um schneller zu listen und mehr zu verkaufen",
+      "instant": {
+        "title": "Sofortige Generierung",
+        "description": "Fotos hochladen, professionellen Anzeigentext in Sekunden erhalten"
+      },
+      "intelligent": {
+        "title": "Intelligente Analyse",
+        "description": "KI versteht Ihre Artikel und erstellt Beschreibungen, die konvertieren"
+      },
+      "optimization": {
+        "title": "SEO-Optimierung",
+        "description": "Titel und Beschreibungen für die Vinted-Suche optimiert"
+      }
+    },
+    "pricing": {
+      "title": "Einfache, transparente Preisgestaltung",
+      "subtitle": "Kostenlos starten, upgraden wenn Sie bereit sind",
+      "viewPlans": "Alle Pläne anzeigen"
+    },
+    "cta": {
+      "title": "Bereit, intelligenter zu verkaufen?",
+      "subtitle": "Schließen Sie sich Tausenden von Verkäufern an, die mit AutoLister AI Zeit sparen",
+      "button": "Jetzt loslegen"
+    }
+  },
+  "pricing": {
+    "title": "Wählen Sie Ihren Plan",
+    "subtitle": "Preisgestaltung für echte Verkäufer - vom Hobby bis zum Geschäft",
+    "free": {
+      "name": "Kostenlose Testversion",
+      "description": "Probieren Sie AutoLister AI aus",
+      "price": "0€",
+      "period": "/für immer",
+      "limits": {
+        "title": "Nutzungsgrenzen",
+        "daily": "Täglich: 2 Anzeigen pro Tag",
+        "monthly": "Monatlich: 10 Anzeigen pro Monat",
+        "trial": "Testen Sie vor dem Kauf"
+      },
+      "features": [
+        "KI-generierte Titel und Beschreibungen",
+        "Basis-Support",
+        "Sehen Sie zuerst, ob es Ihnen gefällt"
+      ],
+      "cta": "Kostenlos testen"
+    },
+    "starter": {
+      "name": "Starter",
+      "description": "Perfekt für gelegentliche Vinted-Verkäufer",
+      "price": "3,99€",
+      "period": "/Monat",
+      "limits": {
+        "title": "Nutzungsgrenzen",
+        "daily": "Täglich: 15 Anzeigen pro Tag",
+        "monthly": "Monatlich: 300 Anzeigen pro Monat",
+        "burst": "Zusätzliche Kapazität für arbeitsreiche Tage"
+      },
+      "features": [
+        "Alles in Kostenlos",
+        "Bis zu 15 Anzeigen pro Tag",
+        "Prioritäts-Support",
+        "Jederzeit kündbar"
+      ],
+      "cta": "Loslegen",
+      "popular": "Am beliebtesten"
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "Für aktive Verkäufer, die täglich listen",
+      "price": "9,99€",
+      "period": "/Monat",
+      "limits": {
+        "title": "Nutzungsgrenzen",
+        "daily": "Täglich: 40 Anzeigen pro Tag",
+        "monthly": "Monatlich: 800 Anzeigen pro Monat",
+        "priority": "Prioritätsbearbeitung"
+      },
+      "features": [
+        "Alles in Starter",
+        "Bis zu 40 Anzeigen pro Tag",
+        "Prioritäts-KI-Verarbeitung"
+      ],
+      "cta": "Auf Pro upgraden"
+    },
+    "business": {
+      "name": "Business",
+      "description": "Für Power-Verkäufer und Shops",
+      "price": "19,99€",
+      "period": "/Monat",
+      "limits": {
+        "title": "Nutzungsgrenzen",
+        "daily": "Täglich: 75 Anzeigen pro Tag",
+        "monthly": "Monatlich: 1.500 Anzeigen pro Monat",
+        "fastest": "Schnellste Verarbeitung"
+      },
+      "features": [
+        "Alles in Pro",
+        "Bis zu 75 Anzeigen pro Tag",
+        "Dedizierter Support"
+      ],
+      "cta": "Business werden"
+    },
+    "faq": {
+      "title": "Häufig gestellte Fragen",
+      "q1": {
+        "question": "Wie funktionieren die Nutzungsgrenzen?",
+        "answer": "Jeder Plan hat tägliche und monatliche Grenzen. Wenn Sie Ihr Tageslimit erreichen, können Sie am nächsten Tag noch verbleibende monatliche Kapazität nutzen. Die Grenzen setzen sich automatisch zurück."
+      },
+      "q2": {
+        "question": "Kann ich jederzeit kündigen?",
+        "answer": "Ja! Alle bezahlten Pläne können jederzeit gekündigt werden. Sie behalten den Zugriff bis zum Ende Ihres aktuellen Abrechnungszeitraums."
+      },
+      "q3": {
+        "question": "Was ist, wenn ich mehr als 75 Anzeigen pro Tag benötige?",
+        "answer": "Kontaktieren Sie uns für individuelle Unternehmenspreise. Wir können Hochvolumen-Verkäufer mit individuellen Grenzen unterstützen."
+      }
+    },
+    "buttons": {
+      "downloadExtension": "Erweiterung herunterladen",
+      "signInToStart": "Anmelden zum Starten",
+      "signInToSubscribe": "Anmelden zum Abonnieren",
+      "currentPlan": "Aktueller Plan",
+      "active": "Aktiv",
+      "downgrade": "Herabstufen",
+      "upgrade": "Upgrade auf",
+      "switch": "Wechseln zu"
+    },
+    "footer": {
+      "whyLimited": "Warum so limitiert kostenlos?",
+      "freeExplanation": "Die kostenlose Testversion gibt Ihnen gerade genug, um die Magie zu sehen ✨. Die meisten Verkäufer brauchen mehr als 2 Anzeigen/Tag, was bezahlte Pläne zu einem ausgezeichneten Wert macht.",
+      "noSurprises": "Keine Überraschungen:",
+      "pricingNote": "Alle Preise in EUR. Jederzeit kündbar. Keine Einrichtungsgebühren."
+    }
+  },
+  "footer": {
+    "tagline": "KI-gestützte Vinted-Anzeigen in Sekunden",
+    "product": "Produkt",
+    "features": "Funktionen",
+    "pricing": "Preise",
+    "chromeExtension": "Chrome-Erweiterung",
+    "legal": "Rechtliches",
+    "privacy": "Datenschutzrichtlinie",
+    "terms": "Nutzungsbedingungen",
+    "support": "Support",
+    "contactUs": "Kontaktieren Sie uns",
+    "documentation": "Dokumentation",
+    "rights": "Alle Rechte vorbehalten."
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Ein Fehler ist aufgetreten",
+    "success": "Erfolg!",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "close": "Menü schließen"
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "description": "Die Seite, die Sie suchen, existiert nicht.",
+    "goHome": "Zurück zur Startseite"
+  }
+}

@@ -23,9 +23,9 @@ The previous system allowed unlimited API calls for paid subscribers, leading to
 **Unlimited Monthly:**
 
 - 5 requests per minute
--- 10 requests per minute
--- 30 requests per minute
--- 50 requests per minute
+  -- 10 requests per minute
+  -- 30 requests per minute
+  -- 50 requests per minute
 
 **Unlimited Annual:**
 

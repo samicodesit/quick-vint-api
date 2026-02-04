@@ -1,0 +1,242 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "getExtension": "Get Extension",
+    "close": "Close menu"
+  },
+  "meta": {
+    "home": {
+      "title": "AutoLister AI: AI-Powered Vinted Description Generator - Try For Free",
+      "description": "Generate compelling Vinted listings instantly with AutoLister AI. Professional titles and descriptions that sell - powered by advanced AI technology.",
+      "ogTitle": "AutoLister AI - AI-Powered Vinted Listings in Seconds",
+      "ogDescription": "Stop wasting time writing descriptions. Generate compelling, sales-focused listings for Vinted from your photos in seconds."
+    },
+    "pricing": {
+      "title": "AutoLister AI - Pricing & Plans | Choose Your Plan",
+      "description": "Affordable pricing for every Vinted seller. Start free, upgrade anytime. Plans from €0 to €19.99/month.",
+      "ogTitle": "AutoLister AI Pricing - Plans for Every Seller",
+      "ogDescription": "Simple pricing for Vinted sellers. Free trial, starter, pro, and business plans. Cancel anytime."
+    },
+    "support": {
+      "title": "AutoLister AI - Support & Help Center",
+      "description": "Get help with AutoLister AI. Contact us, check FAQs, and find answers to common questions about our Vinted listing generator.",
+      "ogTitle": "AutoLister AI Support - We're Here to Help",
+      "ogDescription": "Need help? Contact our support team or browse our help center for answers."
+    },
+    "terms": {
+      "title": "AutoLister AI - Terms of Service",
+      "description": "Terms of service and user agreement for AutoLister AI. Read our terms before using the Vinted listing generator extension.",
+      "ogTitle": "AutoLister AI Terms of Service",
+      "ogDescription": "Terms and conditions for using AutoLister AI."
+    },
+    "privacy": {
+      "title": "AutoLister AI - Privacy Policy",
+      "description": "Privacy policy for AutoLister AI. Learn how we protect your data and respect your privacy when using our Vinted listing generator.",
+      "ogTitle": "AutoLister AI Privacy Policy",
+      "ogDescription": "How we protect your data and privacy."
+    },
+    "cancel": {
+      "title": "AutoLister AI - Subscription Cancelled",
+      "description": "Your AutoLister AI subscription has been cancelled. We're sorry to see you go.",
+      "ogTitle": "Subscription Cancelled - AutoLister AI",
+      "ogDescription": "Your subscription has been successfully cancelled."
+    },
+    "success": {
+      "title": "AutoLister AI - Payment Successful",
+      "description": "Thank you for subscribing to AutoLister AI! Your payment was successful and your account is now active.",
+      "ogTitle": "Welcome to AutoLister AI - Payment Successful",
+      "ogDescription": "Your subscription is now active. Start generating Vinted listings!"
+    }
+  },
+  "home": {
+    "heroTitle": "Transform Your Vinted Sales with AI-Powered Listings",
+    "heroSubtitle": "Generate compelling titles and descriptions for your Vinted items in seconds. Professional, conversion-focused content that sells - powered by advanced AI.",
+    "ctaStart": "Get Started Free",
+    "ctaChrome": "Get Chrome Extension",
+    "stats": {
+      "listings": "Listings Generated",
+      "languages": "Languages supported",
+      "speed": "Average Generation Time"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Get professional listings in three simple steps",
+      "step1": {
+        "title": "Install Extension",
+        "description": "Add the Vinted generator to your browser in seconds. It's free to get started."
+      },
+      "step2": {
+        "title": "Click to Generate",
+        "description": "On any Vinted listing page, click the Generate button to instantly generate professional content."
+      },
+      "step3": {
+        "title": "Publish & Sell",
+        "description": "Review, customize if needed, and publish your optimized listing. Watch your sales improve!"
+      }
+    },
+    "features": {
+      "title": "Features Built For Real Sellers",
+      "subtitle": "Everything you need to list faster and sell more",
+      "instant": {
+        "title": "Instant Generation",
+        "description": "Upload photos, get professional listing text in seconds"
+      },
+      "intelligent": {
+        "title": "Intelligent Analysis",
+        "description": "AI understands your items and creates descriptions that convert"
+      },
+      "optimization": {
+        "title": "SEO Optimization",
+        "description": "Titles and descriptions optimized for Vinted search"
+      }
+    },
+    "pricing": {
+      "title": "Simple, Transparent Pricing",
+      "subtitle": "Start free, upgrade when you're ready",
+      "viewPlans": "View All Plans"
+    },
+    "cta": {
+      "title": "Ready to Sell Smarter?",
+      "subtitle": "Join thousands of sellers saving time with AutoLister AI",
+      "button": "Get Started Now"
+    }
+  },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Pricing designed for real sellers - from hobby to business",
+    "free": {
+      "name": "Free Trial",
+      "description": "Get a taste of AutoLister AI",
+      "price": "€0",
+      "period": "/forever",
+      "limits": {
+        "title": "Usage Limits",
+        "daily": "Daily: 2 listings per day",
+        "monthly": "Monthly: 10 listings per month",
+        "trial": "Try before you buy"
+      },
+      "features": [
+        "AI-generated titles and descriptions",
+        "Basic support",
+        "See if you like it first"
+      ],
+      "cta": "Try Free"
+    },
+    "starter": {
+      "name": "Starter",
+      "description": "Perfect for casual Vinted sellers",
+      "price": "€3.99",
+      "period": "/month",
+      "limits": {
+        "title": "Usage Limits",
+        "daily": "Daily: 15 listings per day",
+        "monthly": "Monthly: 300 listings per month",
+        "burst": "Burst capacity for busy days"
+      },
+      "features": [
+        "Everything in Free",
+        "Up to 15 listings per day",
+        "Priority support",
+        "Cancel anytime"
+      ],
+      "cta": "Get Started",
+      "popular": "Most Popular"
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "For active sellers listing daily",
+      "price": "€9.99",
+      "period": "/month",
+      "limits": {
+        "title": "Usage Limits",
+        "daily": "Daily: 40 listings per day",
+        "monthly": "Monthly: 800 listings per month",
+        "priority": "Priority processing"
+      },
+      "features": [
+        "Everything in Starter",
+        "Up to 40 listings per day",
+        "Priority AI processing"
+      ],
+      "cta": "Upgrade to Pro"
+    },
+    "business": {
+      "name": "Business",
+      "description": "For power sellers and shops",
+      "price": "€19.99",
+      "period": "/month",
+      "limits": {
+        "title": "Usage Limits",
+        "daily": "Daily: 75 listings per day",
+        "monthly": "Monthly: 1,500 listings per month",
+        "fastest": "Fastest processing"
+      },
+      "features": [
+        "Everything in Pro",
+        "Up to 75 listings per day",
+        "Dedicated support"
+      ],
+      "cta": "Go Business"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": {
+        "question": "How do the usage limits work?",
+        "answer": "Each plan has daily and monthly limits. If you hit your daily limit, you can still use any remaining monthly capacity the next day. Limits reset automatically."
+      },
+      "q2": {
+        "question": "Can I cancel anytime?",
+        "answer": "Yes! All paid plans can be cancelled at any time. You'll keep access until the end of your current billing period."
+      },
+      "q3": {
+        "question": "What if I need more than 75 listings per day?",
+        "answer": "Contact us for custom enterprise pricing. We can accommodate high-volume sellers with custom limits."
+      }
+    },
+    "buttons": {
+      "downloadExtension": "Download Extension",
+      "signInToStart": "Sign In to Start",
+      "signInToSubscribe": "Sign In to Subscribe",
+      "currentPlan": "Current Plan",
+      "active": "Active",
+      "downgrade": "Downgrade",
+      "upgrade": "Upgrade to",
+      "switch": "Switch to"
+    },
+    "footer": {
+      "whyLimited": "Why so limited for free?",
+      "freeExplanation": "Free trial gives you just enough to see the magic ✨. Most sellers need more than 2 listings/day, making paid plans excellent value.",
+      "noSurprises": "No surprises:",
+      "pricingNote": "All prices in EUR. Cancel anytime. No setup fees."
+    }
+  },
+  "footer": {
+    "tagline": "AI-powered Vinted listings in seconds",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "chromeExtension": "Chrome Extension",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "support": "Support",
+    "contactUs": "Contact Us",
+    "documentation": "Documentation",
+    "rights": "All rights reserved."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success!",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close menu"
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "The page you are looking for does not exist.",
+    "goHome": "Go Home"
+  }
+}

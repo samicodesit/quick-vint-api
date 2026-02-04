@@ -1,24 +1,33 @@
 {
-  "name": "quick-vint-api",
-  "version": "1.0.0",
+  "name": "autolister-ai",
+  "version": "2.0.0",
   "scripts": {
-    "lint": "eslint api/ utils/ --ext .ts",
-    "lint:fix": "eslint api/ utils/ --ext .ts --fix",
-    "type-check": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
-    "format-check": "prettier --check \"**/*.{ts,js,json,md}\""
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "AutoLister AI - AI-powered Vinted listing generator",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
     "axios": "1.12.2",
     "busboy": "^1.6.0",
     "cors": "2.8.5",
     "micro": "^10.0.1",
+    "next": "15.1.6",
+    "next-intl": "^3.26.3",
     "openai": "4.100.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "stripe": "^18.2.0"
   },
   "devDependencies": {
@@ -27,16 +36,18 @@
     "@types/busboy": "^1.5.4",
     "@types/cors": "2.8.18",
     "@types/node": "22.15.20",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "@vercel/node": "5.1.16",
     "esbuild": "^0.25.0",
     "eslint": "^9.27.0",
+    "eslint-config-next": "15.1.6",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.4.0",
     "prettier": "^3.5.3",
-    "ts-node": "10.9.2",
     "typescript": "5.8.3"
   },
   "overrides": {

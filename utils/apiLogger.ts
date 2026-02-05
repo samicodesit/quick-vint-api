@@ -86,7 +86,7 @@ export class ApiLogger {
   static async flagSuspiciousActivity(
     logId: string,
     reason: string,
-    reviewedBy?: string
+    reviewedBy?: string,
   ): Promise<void> {
     try {
       const { error } = await supabase
@@ -152,7 +152,9 @@ export class ApiLogger {
           !url.includes("vinted") &&
           !url.includes("imgur") &&
           !url.includes("cloudinary") &&
-          (url.includes("adult") || url.includes("porn") || url.includes("xxx"))
+          (url.includes("adult") ||
+            url.includes("porn") ||
+            url.includes("xxx")),
       )
     ) {
       reasons.push("Potentially inappropriate image URLs detected");
@@ -183,12 +185,12 @@ export class ApiLogger {
 
       const lowerPrompt = data.rawPrompt.toLowerCase();
       const foundSuspiciousKeywords = suspiciousKeywords.filter((keyword) =>
-        lowerPrompt.includes(keyword)
+        lowerPrompt.includes(keyword),
       );
 
       if (foundSuspiciousKeywords.length > 0) {
         reasons.push(
-          `Suspicious keywords detected: ${foundSuspiciousKeywords.join(", ")}`
+          `Suspicious keywords detected: ${foundSuspiciousKeywords.join(", ")}`,
         );
       }
     }

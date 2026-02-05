@@ -9,26 +9,26 @@ What this migration does
 
 How to review safely (recommended steps)
 
-1) Dry-run in Supabase SQL editor (or psql)
+1. Dry-run in Supabase SQL editor (or psql)
    - Open the Supabase SQL editor or connect with psql and run the top section of `cleanup_rate_limits.sql` (the SELECTs) to inspect:
      - total rows
      - how many hour rows exist
      - what groups have duplicates (user_id + window_type)
      - a preview of which rows would be kept
 
-2) Backup (already done by script) but you can additionally export `rate_limits` table as CSV from Supabase.
+2. Backup (already done by script) but you can additionally export `rate_limits` table as CSV from Supabase.
 
-3) Run the transactional cleanup
+3. Run the transactional cleanup
    - Once you're satisfied, uncomment and run the transactional block in the SQL script (or run the entire script). It wraps changes in a transaction and creates `rate_limits_backup`.
 
-4) Verify
+4. Verify
    - After commit, run the SELECTs again to confirm duplicates are gone and hour rows count is zero.
 
 Restore plan (if needed)
 
 - If you need to restore the original state:
   - TRUNCATE rate_limits;
-  - INSERT INTO rate_limits SELECT * FROM rate_limits_backup;
+  - INSERT INTO rate_limits SELECT \* FROM rate_limits_backup;
 
 Notes and caveats
 
@@ -37,5 +37,6 @@ Notes and caveats
 - Test the script on a staging copy of your database first before running in production.
 
 If you'd like, I can also:
+
 - Produce a Node.js dry-run script that connects via Supabase client and prints the exact rows that would be deleted/kept (no write). This lets you review with JSON output.
 - Prepare a one-click migration that runs from your environment (I will not run it without your approval).

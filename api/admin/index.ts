@@ -49,7 +49,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     let query = supabase
       .from("api_logs")
       .select(
-        `id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, generated_title, generated_description, response_status, openai_model, openai_tokens_used, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason`
+        `id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, generated_title, generated_description, response_status, openai_model, openai_tokens_used, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason`,
       )
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -135,7 +135,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     }
 
     const weekStats = Array.from(dailyMap.values()).sort((a: any, b: any) =>
-      b.date.localeCompare(a.date)
+      b.date.localeCompare(a.date),
     );
 
     // 1. Get recent activity timestamps to sort users
@@ -157,7 +157,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     const { data: allUsers } = await supabase
       .from("profiles")
       .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end"
+        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end",
       )
       .order("created_at", { ascending: false })
       .limit(100);
@@ -165,7 +165,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     const { data: topUsersByUsage } = await supabase
       .from("profiles")
       .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end"
+        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end",
       )
       .order("api_calls_this_month", { ascending: false })
       .limit(50);
@@ -174,19 +174,21 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     const recentUserIds = Array.from(lastActiveMap.keys());
     let recentUsers: any[] = [];
     if (recentUserIds.length > 0) {
-       const { data } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select(
-            "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end"
+          "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end",
         )
         .in("id", recentUserIds);
-       recentUsers = data || [];
+      recentUsers = data || [];
     }
 
     const allUserMap = new Map();
-    [...(allUsers || []), ...(topUsersByUsage || []), ...recentUsers].forEach((user) => {
-      if (user.email) allUserMap.set(user.email, user);
-    });
+    [...(allUsers || []), ...(topUsersByUsage || []), ...recentUsers].forEach(
+      (user) => {
+        if (user.email) allUserMap.set(user.email, user);
+      },
+    );
 
     const combinedUsers = Array.from(allUserMap.values());
 
@@ -226,18 +228,19 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       .select("*", { count: "exact", head: true });
 
     // Sort by last_active descending for recent activity view
-    const recentActivityUsers = [...enrichedUsers].sort((a: any, b: any) => 
-      b.last_active.localeCompare(a.last_active)
+    const recentActivityUsers = [...enrichedUsers].sort((a: any, b: any) =>
+      b.last_active.localeCompare(a.last_active),
     );
 
     // Sort by created_at descending for recent signups view
-    const recentSignups = [...enrichedUsers].sort((a: any, b: any) => 
-      b.created_at.localeCompare(a.created_at)
+    const recentSignups = [...enrichedUsers].sort((a: any, b: any) =>
+      b.created_at.localeCompare(a.created_at),
     );
 
     // Sort by api_calls_this_month descending for top users by usage
-    const topUsersByUsageList = [...enrichedUsers].sort((a: any, b: any) => 
-      (b.api_calls_this_month || 0) - (a.api_calls_this_month || 0)
+    const topUsersByUsageList = [...enrichedUsers].sort(
+      (a: any, b: any) =>
+        (b.api_calls_this_month || 0) - (a.api_calls_this_month || 0),
     );
 
     return res.status(200).json({
@@ -309,7 +312,7 @@ async function handleEmergencyBrake(req: VercelRequest, res: VercelResponse) {
 async function handleFlagActivity(
   req: VercelRequest,
   res: VercelResponse,
-  adminId: string
+  adminId: string,
 ) {
   const { logId, reason } = req.body;
   if (!logId) return res.status(400).json({ error: "Missing logId" });

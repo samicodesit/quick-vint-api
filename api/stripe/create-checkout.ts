@@ -59,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (stripeErr: any) {
         console.warn(
           "Stored customer not found, will create new:",
-          stripeErr.message
+          stripeErr.message,
         );
         customerId = null;
       }

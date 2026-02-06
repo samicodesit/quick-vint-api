@@ -9,7 +9,7 @@ try {
   // Fallback for backward compatibility
   TIER_CONFIGS = {
     free: {
-      limits: { daily: 2, monthly: 10, burst: { perMinute: 3 } },
+      limits: { daily: 2, monthly: 8, burst: { perMinute: 3 } },
       features: ["AI-generated titles and descriptions", "Basic support"],
     },
     starter: {
@@ -90,7 +90,7 @@ export class RateLimiter {
   }
   private static async getTimeBasedKey(
     userId: string,
-    window: string
+    window: string,
   ): Promise<string> {
     const now = new Date();
     let timeKey: string;
@@ -112,7 +112,7 @@ export class RateLimiter {
 
   private static async getCurrentCount(
     userId: string,
-    window: string
+    window: string,
   ): Promise<number> {
     try {
       const key = await this.getTimeBasedKey(userId, window);
@@ -140,7 +140,7 @@ export class RateLimiter {
 
   private static async incrementCount(
     userId: string,
-    window: string
+    window: string,
   ): Promise<void> {
     try {
       const key = await this.getTimeBasedKey(userId, window);
@@ -159,8 +159,8 @@ export class RateLimiter {
             expiryDate.getUTCHours(),
             expiryDate.getUTCMinutes() + 1,
             0,
-            0
-          )
+            0,
+          ),
         );
       } else if (window === "day") {
         // expire at the start of the next UTC day (00:00 UTC)
@@ -172,8 +172,8 @@ export class RateLimiter {
             0,
             0,
             0,
-            0
-          )
+            0,
+          ),
         );
       } else {
         // fallback short UTC buffer for unknown windows
@@ -280,7 +280,7 @@ export class RateLimiter {
 
   static async checkRateLimit(
     userId: string,
-    profile: UserProfile
+    profile: UserProfile,
   ): Promise<RateLimitResult> {
     try {
       // 0. Check emergency brake first
@@ -311,7 +311,7 @@ export class RateLimiter {
       const { data: customLimits } = await supabase
         .from("profiles")
         .select(
-          "custom_daily_limit, custom_limit_expires_at, custom_limit_reason"
+          "custom_daily_limit, custom_limit_expires_at, custom_limit_reason",
         )
         .eq("id", userId)
         .single();
@@ -367,7 +367,7 @@ export class RateLimiter {
         remainingRequests: {
           minute: Math.max(
             0,
-            tierConfig.limits.burst.perMinute - minuteCount - 1
+            tierConfig.limits.burst.perMinute - minuteCount - 1,
           ),
           day:
             effectiveDailyLimit !== null
@@ -375,7 +375,7 @@ export class RateLimiter {
               : null,
           month: Math.max(
             0,
-            tierConfig.limits.monthly - profile.api_calls_this_month - 1
+            tierConfig.limits.monthly - profile.api_calls_this_month - 1,
           ),
         },
       };

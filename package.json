@@ -2,6 +2,9 @@
   "name": "quick-vint-api",
   "version": "1.0.0",
   "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
     "lint": "eslint api/ utils/ --ext .ts",
     "lint:fix": "eslint api/ utils/ --ext .ts --fix",
     "type-check": "tsc --noEmit",
@@ -14,12 +17,15 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
+    "@tailwindcss/vite": "^4.1.18",
+    "astro": "^5.17.1",
     "axios": "1.12.2",
     "busboy": "^1.6.0",
     "cors": "2.8.5",
     "micro": "^10.0.1",
     "openai": "4.100.0",
-    "stripe": "^18.2.0"
+    "stripe": "^18.2.0",
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

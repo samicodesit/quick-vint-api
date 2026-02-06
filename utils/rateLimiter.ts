@@ -9,7 +9,7 @@ try {
   // Fallback for backward compatibility
   TIER_CONFIGS = {
     free: {
-      limits: { daily: 2, monthly: 10, burst: { perMinute: 3 } },
+      limits: { daily: 2, monthly: 8, burst: { perMinute: 3 } },
       features: ["AI-generated titles and descriptions", "Basic support"],
     },
     starter: {

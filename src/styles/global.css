@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-250: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-900: #1e1b4b;
+  --animate-blob: blob 7s infinite;
+  --animate-fade-in-up: fadeInUp 0.8s ease-out forwards;
+}
+
+@keyframes blob {
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Hamburger animation */
+.hamburger svg line {
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    opacity 200ms ease;
+  transform-origin: center;
+}
+.hamburger.open svg #ham-top {
+  transform: translateY(6px) rotate(45deg);
+}
+.hamburger.open svg #ham-mid {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburger.open svg #ham-bot {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Mobile menu staggered animation */
+.mobile-menu a {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.mobile-menu.open a {
+  opacity: 1;
+  transform: translateY(0);
+}
+.mobile-menu.open a:nth-child(1) {
+  transition: all 360ms ease 80ms;
+}
+.mobile-menu.open a:nth-child(2) {
+  transition: all 360ms ease 160ms;
+}
+.mobile-menu.open a:nth-child(3) {
+  transition: all 360ms ease 240ms;
+}
+.mobile-menu.open a:nth-child(4) {
+  transition: all 360ms ease 320ms;
+}
+
+/* Gradient text effects */
+.gradient-text {
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-accent {
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Modal animations */
+.modal {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+.modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+.modal-content {
+  transform: scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal.is-open .modal-content {
+  transform: scale(1);
+}

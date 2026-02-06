@@ -34,7 +34,7 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
     },
     limits: {
       daily: 2, // Very restrictive - just a taste!
-      monthly: 10, // About 3 uses over 3-4 days max
+      monthly: 8, // About 3 uses over 3-4 days max
       burst: {
         perMinute: 3, // Allow a couple quick tries
       },

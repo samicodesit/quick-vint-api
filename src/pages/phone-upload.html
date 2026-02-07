@@ -20,6 +20,7 @@
             --radius: 24px;
             --radius-sm: 12px;
             --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            --select-color: #10b981;
         }
 
         * {
@@ -38,6 +39,8 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            padding-bottom: 100px;
+            /* Space for fixed footer */
         }
 
         .container {
@@ -102,6 +105,13 @@
             text-align: left;
         }
 
+        /* Gallery Grid for Multi Mode */
+        .file-list.gallery-mode {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
         .file-item {
             display: flex;
             align-items: center;
@@ -111,6 +121,41 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             animation: slideIn 0.3s ease-out;
+            position: relative;
+        }
+
+        /* Gallery Item Styling */
+        .file-list.gallery-mode .file-item {
+            flex-direction: column;
+            padding: 0;
+            border: 2px solid transparent;
+            overflow: hidden;
+            gap: 0;
+            aspect-ratio: 1;
+            cursor: pointer;
+        }
+
+        .file-list.gallery-mode .file-item.selected {
+            border-color: var(--select-color);
+            background: #ecfdf5;
+        }
+
+        .file-list.gallery-mode .file-item.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: var(--select-color);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         @keyframes slideIn {
@@ -134,9 +179,34 @@
             flex-shrink: 0;
         }
 
+        .file-list.gallery-mode .file-preview {
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+        }
+
         .file-info {
             flex: 1;
             min-width: 0;
+        }
+
+        .file-list.gallery-mode .file-info {
+            display: none;
+            /* Hide progress text in gallery mode for cleanliness */
+        }
+
+        /* Small overlay status for gallery mode */
+        .file-list.gallery-mode .file-status-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.5);
+            height: 4px;
+        }
+
+        .file-list.gallery-mode .file-status-overlay .progress-fill {
+            height: 100%;
         }
 
         .file-name {
@@ -219,20 +289,91 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        /* Fixed Bottom Bar for Multi Mode */
+        .selection-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            width: 90%;
+            max-width: 400px;
+            background: #1e293b;
+            padding: 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 90;
+        }
+
+        .selection-bar.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .selection-info {
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .selection-sub {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .send-group-btn {
+            background: var(--select-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-group-btn:active {
+            background: #059669;
+        }
+
+        .send-group-btn:disabled {
+            background: #475569;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .mode-badge {
+            display: inline-block;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 
 <body>
 
     <div class="container">
-        <h1>Upload Photos</h1>
-        <p>Select photos for your <strong>current item</strong>.<br>Start a new session for a different item.</p>
+        <div id="modeBadge" class="mode-badge" style="display:none">Multi Mode</div>
+        <h1 id="pageTitle">Upload Photos</h1>
+        <p id="pageDesc">Select photos for your <strong>current item</strong>.<br>Start a new session for a different
+            item.</p>
 
         <button class="upload-btn" id="mainBtn">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Select Photos
+            <span id="uploadBtnText">Select Photos</span>
         </button>
 
         <div class="file-list" id="fileList"></div>
@@ -242,13 +383,22 @@
         </div>
     </div>
 
+    <!-- Multi Mode Fixed Bar -->
+    <div class="selection-bar" id="selectionBar">
+        <div>
+            <div class="selection-info" id="selectionCount">0 selected</div>
+            <div class="selection-sub">Create a new item</div>
+        </div>
+        <button class="send-group-btn" id="sendGroupBtn">Send Item &rarr;</button>
+    </div>
+
     <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
     <div class="toast" id="toast">Link copied to clipboard</div>
 
     <script>
         (() => {
             const API_UPLOAD = '/api/phone-upload';
-            const API_COMPLETE = '/api/phone-upload?action=complete';
+            const API_GROUP = '/api/phone-upload?action=group';
 
             const sessionCodeEl = document.getElementById('sessionCode');
             const fileInput = document.getElementById('fileInput');
@@ -257,16 +407,40 @@
             const toastEl = document.getElementById('toast');
             const sessionFooter = document.getElementById('sessionFooter');
 
+            // Multi Mode Elements
+            const selectionBar = document.getElementById('selectionBar');
+            const selectionCountEl = document.getElementById('selectionCount');
+            const sendGroupBtn = document.getElementById('sendGroupBtn');
+            const pageTitle = document.getElementById('pageTitle');
+            const pageDesc = document.getElementById('pageDesc');
+            const uploadBtnText = document.getElementById('uploadBtnText');
+            const modeBadge = document.getElementById('modeBadge');
+
             const state = {
                 sessionId: null,
-                files: []
+                files: [],
+                mode: 'single', // 'single' | 'multi'
+                selectedFiles: new Set()
             };
 
             function createSessionId() {
                 const url = new URL(window.location.href);
                 const existing = url.searchParams.get('s') || url.searchParams.get('session');
+                // Detect mode
+                if (url.searchParams.get('mode') === 'multi') {
+                    state.mode = 'multi';
+                    initMultiModeUI();
+                }
                 if (existing) return existing;
                 return 'sess_' + Math.random().toString(36).slice(2, 10);
+            }
+
+            function initMultiModeUI() {
+                fileList.classList.add('gallery-mode');
+                pageTitle.textContent = "Organize Items";
+                pageDesc.innerHTML = "Upload all photos first, then <strong>tap to select</strong> photos to create an item.";
+                uploadBtnText.textContent = "Add Photos to Gallery";
+                modeBadge.style.display = "inline-block";
             }
 
             function showToast(msg) {
@@ -278,26 +452,73 @@
             function renderFile(item) {
                 const el = document.createElement('div');
                 el.className = 'file-item';
-                el.innerHTML = `
-            <img src="${item.preview}" class="file-preview">
-            <div class="file-info">
-                <div class="file-name">${item.name}</div>
-                <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
-                <div class="file-status">Waiting...</div>
-            </div>
-        `;
-                fileList.prepend(el);
+
+                if (state.mode === 'multi') {
+                    // Multi Mode: Gallery Item
+                    el.innerHTML = `
+                        <img src="${item.preview}" class="file-preview">
+                        <div class="file-status-overlay">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    `;
+
+                    // Toggle Selection Logic
+                    el.addEventListener('click', () => {
+                        if (!item.serverName) return; // Wait for upload to finish
+
+                        if (state.selectedFiles.has(item.serverName)) {
+                            state.selectedFiles.delete(item.serverName);
+                            el.classList.remove('selected');
+                        } else {
+                            state.selectedFiles.add(item.serverName);
+                            el.classList.add('selected');
+                        }
+                        updateSelectionBar();
+                    });
+
+                    fileList.appendChild(el); // Append to end in gallery mode
+                } else {
+                    // Single Mode: List Item
+                    el.innerHTML = `
+                        <img src="${item.preview}" class="file-preview">
+                        <div class="file-info">
+                            <div class="file-name">${item.name}</div>
+                            <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                            <div class="file-status">Waiting...</div>
+                        </div>
+                    `;
+                    fileList.prepend(el); // Prepend to top in list mode
+                }
+
                 return {
                     el,
                     fill: el.querySelector('.progress-fill'),
-                    status: el.querySelector('.file-status')
+                    status: el.querySelector('.file-status') // null in gallery mode
                 };
+            }
+
+            function updateSelectionBar() {
+                const count = state.selectedFiles.size;
+                selectionCountEl.textContent = `${count} selected`;
+
+                if (count > 0) {
+                    selectionBar.classList.add('visible');
+                    sendGroupBtn.textContent = `Send Item (${count})`;
+                    sendGroupBtn.disabled = false;
+                } else {
+                    selectionBar.classList.remove('visible');
+                }
             }
 
             function uploadFile(item, ui) {
                 const form = new FormData();
                 form.append('file', item.file);
                 form.append('sessionId', state.sessionId);
+
+                // If Multi Mode, mark as 'staging' so the backend hides it from the extension list
+                if (state.mode === 'multi') {
+                    form.append('stage', 'staging');
+                }
 
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', API_UPLOAD, true);
@@ -306,27 +527,47 @@
                     if (e.lengthComputable) {
                         const pct = Math.round((e.loaded / e.total) * 100);
                         ui.fill.style.width = pct + '%';
-                        ui.status.textContent = pct === 100 ? 'Processing...' : 'Uploading...';
+                        if (ui.status) ui.status.textContent = pct === 100 ? 'Processing...' : 'Uploading...';
                     }
                 };
 
                 xhr.onload = () => {
                     if (xhr.status >= 200 && xhr.status < 300) {
+                        // Store the final server name (important if renamed by backend due to staging prefix)
+                        try {
+                            const res = JSON.parse(xhr.responseText);
+                            if (res.filename) {
+                                item.serverName = res.filename;
+                            } else {
+                                // Fallback logic if backend doesn't return filename: reconstruct
+                                item.serverName = (state.mode === 'multi' ? 'staging_' : '') + item.name;
+                            }
+                        } catch (e) {
+                            // Fallback
+                            item.serverName = (state.mode === 'multi' ? 'staging_' : '') + item.name;
+                        }
+
                         ui.fill.style.width = '100%';
                         ui.fill.style.background = '#10b981';
-                        ui.status.textContent = 'Sent';
-                        ui.status.classList.add('status-done');
+                        if (ui.status) {
+                            ui.status.textContent = 'Sent';
+                            ui.status.classList.add('status-done');
+                        }
                         item.done = true;
                     } else {
-                        ui.status.textContent = 'Failed';
-                        ui.status.classList.add('status-error');
+                        if (ui.status) {
+                            ui.status.textContent = 'Failed';
+                            ui.status.classList.add('status-error');
+                        }
                         ui.fill.style.background = '#ef4444';
                     }
                 };
 
                 xhr.onerror = () => {
-                    ui.status.textContent = 'Error';
-                    ui.status.classList.add('status-error');
+                    if (ui.status) {
+                        ui.status.textContent = 'Error';
+                        ui.status.classList.add('status-error');
+                    }
                 };
 
                 xhr.send(form);
@@ -334,7 +575,6 @@
 
             function compressImage(file) {
                 return new Promise((resolve) => {
-                    // If not an image, return as is
                     if (!file.type.startsWith('image/')) return resolve(file);
 
                     const img = new Image();
@@ -345,8 +585,6 @@
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-
-                        // Max dimension 1920px (Full HD is enough for Vinted)
                         const MAX_SIZE = 1920;
                         if (width > height) {
                             if (width > MAX_SIZE) {
@@ -359,29 +597,20 @@
                                 height = MAX_SIZE;
                             }
                         }
-
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Compress to JPEG 0.8 quality
                         canvas.toBlob((blob) => {
-                            if (!blob) return resolve(file); // Fallback
-                            // Create new file with same name but .jpg extension if needed
-                            // Add timestamp to avoid duplicate filename errors on server
+                            if (!blob) return resolve(file);
                             const timestamp = Date.now();
                             const originalName = file.name.replace(/\.[^/.]+$/, "");
                             const newName = `${originalName}_${timestamp}.jpg`;
-
-                            const newFile = new File([blob], newName, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now()
-                            });
+                            const newFile = new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() });
                             resolve(newFile);
                         }, 'image/jpeg', 0.8);
                     };
-
                     img.onerror = () => resolve(file);
                     img.src = url;
                 });
@@ -389,36 +618,88 @@
 
             function handleFiles(files) {
                 Array.from(files).forEach(async (originalFile) => {
-                    // Create preview immediately for UI responsiveness
                     const previewUrl = URL.createObjectURL(originalFile);
-
                     const item = {
-                        file: originalFile, // Will be replaced by compressed
+                        file: originalFile,
                         name: originalFile.name,
                         preview: previewUrl,
-                        done: false
+                        done: false,
+                        serverName: null // Filled after upload
                     };
 
                     state.files.push(item);
                     const ui = renderFile(item);
 
-                    ui.status.textContent = 'Compressing...';
+                    if (ui.status) ui.status.textContent = 'Compressing...';
 
                     try {
                         const compressedFile = await compressImage(originalFile);
                         item.file = compressedFile;
-                        // Update name if changed (e.g. png -> jpg)
+                        // Synchronize name if compression changed it
                         if (item.name !== compressedFile.name) {
                             item.name = compressedFile.name;
-                            ui.el.querySelector('.file-name').textContent = compressedFile.name;
+                            // Only update UI text in List Mode
+                            const nameEl = ui.el.querySelector('.file-name');
+                            if (nameEl) nameEl.textContent = compressedFile.name;
                         }
                         uploadFile(item, ui);
                     } catch (e) {
                         console.error(e);
-                        // Fallback to original
                         uploadFile(item, ui);
                     }
                 });
+            }
+
+            async function sendGroup() {
+                if (state.selectedFiles.size === 0) return;
+
+                const fileNames = Array.from(state.selectedFiles);
+                sendGroupBtn.disabled = true;
+                sendGroupBtn.textContent = "Sending...";
+
+                try {
+                    const res = await fetch(API_GROUP, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sessionId: state.sessionId,
+                            files: fileNames
+                        })
+                    });
+
+                    if (res.ok) {
+                        showToast("Item Sent!");
+
+                        // Remove successful items from gallery
+                        const filesToRemove = new Set(fileNames);
+
+                        // Filter out DOM elements
+                        const allEls = document.querySelectorAll('.file-item');
+                        allEls.forEach((el, index) => {
+                            // Find corresponding item in state (order matches)
+                            // NOTE: This relies on DOM order matching state.files order
+                            // A cleaner way is ID mapping, but for MVP this is okay if we iterate carefully or use data attributes.
+                            // Better: check if 'selected' class is present.
+                            if (el.classList.contains('selected')) {
+                                el.remove();
+                            }
+                        });
+
+                        // Cleanup State
+                        state.selectedFiles.clear();
+                        updateSelectionBar();
+
+                    } else {
+                        showToast("Failed to send item");
+                        sendGroupBtn.disabled = false;
+                        updateSelectionBar();
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showToast("Error sending item");
+                    sendGroupBtn.disabled = false;
+                    updateSelectionBar();
+                }
             }
 
             // Init
@@ -428,12 +709,14 @@
             mainBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
+            // Send Group Listener
+            sendGroupBtn.addEventListener('click', sendGroup);
+
             sessionFooter.addEventListener('click', () => {
                 const link = `${location.origin}${location.pathname}?s=${state.sessionId}`;
                 navigator.clipboard.writeText(link).then(() => showToast('Link copied'));
             });
 
-            // Drag drop support on the whole container
             const container = document.querySelector('.container');
             container.addEventListener('dragover', e => { e.preventDefault(); container.style.transform = 'scale(0.98)'; });
             container.addEventListener('dragleave', e => { e.preventDefault(); container.style.transform = 'scale(1)'; });

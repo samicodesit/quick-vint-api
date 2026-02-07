@@ -38,6 +38,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     return handleList(req, res);
   } else if (req.method === "POST") {
+    // Check specific actions via query param first
+    if (req.query.action === "group") {
+      return handleGroup(req, res);
+    }
+
     // Check if it's a multipart request (upload) or JSON (complete)
     const contentType = req.headers["content-type"] || "";
     if (contentType.includes("multipart/form-data")) {
@@ -73,8 +78,12 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ files: [] });
     }
 
+    // FILTER: Exclude files that are currently in "staging_"
+    // This allows the Multi-Mode to upload photos without triggering the extension immediately.
+    const readyFiles = files.filter((f) => !f.name.startsWith("staging_"));
+
     const fileUrls = await Promise.all(
-      files.map(async (file) => {
+      readyFiles.map(async (file) => {
         const path = `${sessionId}/${file.name}`;
         const { data, error } = await supabase.storage
           .from("temp-uploads")
@@ -104,10 +113,14 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   const busboy = Busboy({ headers: req.headers });
   const fileUploads: FileUpload[] = [];
   let sessionId = "";
+  let stage = ""; // 'staging' or empty
 
   busboy.on("field", (fieldname, val) => {
     if (fieldname === "sessionId") {
       sessionId = val;
+    }
+    if (fieldname === "stage") {
+      stage = val;
     }
   });
 
@@ -133,9 +146,18 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Missing sessionId" });
       }
 
+      const uploadedNames: string[] = [];
+
       const uploadPromises = fileUploads.map(async (file) => {
+        // If staged, prefix the filename. Extension ignores "staging_" files.
+        const prefix = stage === "staging" ? "staging_" : "";
         const uniqueSuffix = Math.random().toString(36).substring(2, 9);
-        const path = `${finalSessionId}/${Date.now()}-${uniqueSuffix}-${file.filename}`;
+        const finalName = `${prefix}${Date.now()}-${uniqueSuffix}-${file.filename}`;
+
+        const path = `${finalSessionId}/${finalName}`;
+
+        uploadedNames.push(finalName);
+
         const { error } = await supabase.storage
           .from("temp-uploads")
           .upload(path, file.buffer, {
@@ -147,7 +169,15 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       });
 
       await Promise.all(uploadPromises);
-      res.status(200).json({ success: true, count: fileUploads.length });
+
+      // Return the generated filename so client can track it for later grouping
+      res
+        .status(200)
+        .json({
+          success: true,
+          count: fileUploads.length,
+          filename: uploadedNames[0],
+        });
     } catch (error: any) {
       console.error("Upload error:", error);
       res.status(500).json({ error: error.message });
@@ -157,8 +187,64 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   req.pipe(busboy);
 }
 
+// --- Handler: Group Items (POST JSON) ---
+async function handleGroup(req: VercelRequest, res: VercelResponse) {
+  // Need to read body manually because bodyParser is false for this route
+  const buffers: Buffer[] = [];
+  req.on("data", (chunk) => buffers.push(chunk));
+  req.on("end", async () => {
+    try {
+      const bodyStr = Buffer.concat(buffers).toString();
+      if (!bodyStr) return res.status(400).json({ error: "Missing body" });
+
+      const body = JSON.parse(bodyStr);
+      const { sessionId, files } = body;
+
+      if (!sessionId || !files || !Array.isArray(files)) {
+        return res.status(400).json({ error: "Invalid parameters" });
+      }
+
+      // Create a unique Item ID (timestamp)
+      const itemId = Date.now();
+
+      // Move/Rename files from "staging_X" to "item_ID_X"
+      // Supabase move requires full paths
+      const movePromises = files.map(
+        async (fileName: string, index: number) => {
+          const fromPath = `${sessionId}/${fileName}`;
+          // Remove 'staging_' prefix if present for clean final name
+          const cleanName = fileName.replace("staging_", "");
+          const toPath = `${sessionId}/item_${itemId}_${index}_${cleanName}`;
+
+          const { error } = await supabase.storage
+            .from("temp-uploads")
+            .move(fromPath, toPath);
+
+          if (error) {
+            console.error(`Failed to move ${fileName}`, error);
+            // Continue even if one fails? Or throw?
+            // For MVP, we log and continue.
+          }
+        },
+      );
+
+      await Promise.all(movePromises);
+
+      res.status(200).json({ success: true, message: "Grouped" });
+    } catch (error: any) {
+      console.error("Group error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+}
+
 // --- Handler: Complete Session (POST JSON) ---
 async function handleComplete(req: VercelRequest, res: VercelResponse) {
+  // Need to handle body parsing for 'complete' if it sends JSON,
+  // but usually it's just a query trigger or empty POST.
+  // However, since bodyParser is false, if we need body we must parse it.
+  // Existing code didn't read body, so we leave as is.
+
   const sessionId = req.query.sessionId as string;
 
   if (!sessionId) {
@@ -192,11 +278,9 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("Complete error:", error);
     // Even if cleanup fails, we return success to the client so they don't retry
-    res
-      .status(200)
-      .json({
-        success: true,
-        warning: "Cleanup failed but session marked complete",
-      });
+    res.status(200).json({
+      success: true,
+      warning: "Cleanup failed but session marked complete",
+    });
   }
 }

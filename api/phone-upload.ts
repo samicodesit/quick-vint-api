@@ -206,6 +206,8 @@ async function handleGroup(req: VercelRequest, res: VercelResponse) {
 
       // Create a unique Item ID (timestamp)
       const itemId = Date.now();
+      let successCount = 0;
+      let errorCount = 0;
 
       // Move/Rename files from "staging_X" to "item_ID_X"
       // Supabase move requires full paths
@@ -222,15 +224,27 @@ async function handleGroup(req: VercelRequest, res: VercelResponse) {
 
           if (error) {
             console.error(`Failed to move ${fileName}`, error);
-            // Continue even if one fails? Or throw?
-            // For MVP, we log and continue.
+            errorCount++;
+          } else {
+            successCount++;
           }
         },
       );
 
       await Promise.all(movePromises);
 
-      res.status(200).json({ success: true, message: "Grouped" });
+      if (successCount === 0 && errorCount > 0) {
+        return res
+          .status(500)
+          .json({
+            error: "Failed to move files",
+            details: "Check server logs",
+          });
+      }
+
+      res
+        .status(200)
+        .json({ success: true, message: "Grouped", itemCount: successCount });
     } catch (error: any) {
       console.error("Group error:", error);
       res.status(500).json({ error: error.message });

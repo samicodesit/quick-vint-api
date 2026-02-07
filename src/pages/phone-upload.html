@@ -658,6 +658,7 @@
                 sendGroupBtn.textContent = "Sending...";
 
                 try {
+                    console.log("Sending group...", fileNames);
                     const res = await fetch(API_GROUP, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -676,10 +677,6 @@
                         // Filter out DOM elements
                         const allEls = document.querySelectorAll('.file-item');
                         allEls.forEach((el, index) => {
-                            // Find corresponding item in state (order matches)
-                            // NOTE: This relies on DOM order matching state.files order
-                            // A cleaner way is ID mapping, but for MVP this is okay if we iterate carefully or use data attributes.
-                            // Better: check if 'selected' class is present.
                             if (el.classList.contains('selected')) {
                                 el.remove();
                             }
@@ -690,12 +687,14 @@
                         updateSelectionBar();
 
                     } else {
-                        showToast("Failed to send item");
+                        const err = await res.json();
+                        console.error("Send failed", err);
+                        showToast("Failed: " + (err.error || "Server Error"));
                         sendGroupBtn.disabled = false;
                         updateSelectionBar();
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error("Send exception", e);
                     showToast("Error sending item");
                     sendGroupBtn.disabled = false;
                     updateSelectionBar();

@@ -171,13 +171,11 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       await Promise.all(uploadPromises);
 
       // Return the generated filename so client can track it for later grouping
-      res
-        .status(200)
-        .json({
-          success: true,
-          count: fileUploads.length,
-          filename: uploadedNames[0],
-        });
+      res.status(200).json({
+        success: true,
+        count: fileUploads.length,
+        filename: uploadedNames[0],
+      });
     } catch (error: any) {
       console.error("Upload error:", error);
       res.status(500).json({ error: error.message });
@@ -234,12 +232,10 @@ async function handleGroup(req: VercelRequest, res: VercelResponse) {
       await Promise.all(movePromises);
 
       if (successCount === 0 && errorCount > 0) {
-        return res
-          .status(500)
-          .json({
-            error: "Failed to move files",
-            details: "Check server logs",
-          });
+        return res.status(500).json({
+          error: "Failed to move files",
+          details: "Check server logs",
+        });
       }
 
       res

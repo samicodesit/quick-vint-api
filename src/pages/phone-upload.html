@@ -358,13 +358,46 @@
             border-radius: 6px;
             margin-bottom: 8px;
         }
+
+        /* New Toggle Styles */
+        .ui-toggle-container {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 4px;
+            display: flex;
+            margin-bottom: 24px;
+        }
+
+        .ui-toggle-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ui-toggle-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
 
 <body>
 
     <div class="container">
-        <div id="modeBadge" class="mode-badge" style="display:none">Multi Mode</div>
+        <!-- New Phone-Side Toggle -->
+        <div class="ui-toggle-container">
+            <button id="toggleSingle" class="ui-toggle-btn active">Single Item</button>
+            <button id="toggleMulti" class="ui-toggle-btn">Multi Item</button>
+        </div>
+
         <h1 id="pageTitle">Upload Photos</h1>
         <p id="pageDesc">Select photos for your <strong>current item</strong>.<br>Start a new session for a different
             item.</p>
@@ -407,6 +440,10 @@
             const toastEl = document.getElementById('toast');
             const sessionFooter = document.getElementById('sessionFooter');
 
+            // Toggle Elements
+            const toggleSingle = document.getElementById('toggleSingle');
+            const toggleMulti = document.getElementById('toggleMulti');
+
             // Multi Mode Elements
             const selectionBar = document.getElementById('selectionBar');
             const selectionCountEl = document.getElementById('selectionCount');
@@ -414,7 +451,6 @@
             const pageTitle = document.getElementById('pageTitle');
             const pageDesc = document.getElementById('pageDesc');
             const uploadBtnText = document.getElementById('uploadBtnText');
-            const modeBadge = document.getElementById('modeBadge');
 
             const state = {
                 sessionId: null,
@@ -426,22 +462,64 @@
             function createSessionId() {
                 const url = new URL(window.location.href);
                 const existing = url.searchParams.get('s') || url.searchParams.get('session');
-                // Detect mode
+                // Detect mode from URL initially
                 if (url.searchParams.get('mode') === 'multi') {
-                    state.mode = 'multi';
-                    initMultiModeUI();
+                    setMode('multi');
                 }
                 if (existing) return existing;
                 return 'sess_' + Math.random().toString(36).slice(2, 10);
             }
 
-            function initMultiModeUI() {
-                fileList.classList.add('gallery-mode');
-                pageTitle.textContent = "Organize Items";
-                pageDesc.innerHTML = "Upload all photos first, then <strong>tap to select</strong> photos to create an item.";
-                uploadBtnText.textContent = "Add Photos to Gallery";
-                modeBadge.style.display = "inline-block";
+            function setMode(mode) {
+                state.mode = mode;
+
+                // Update Toggle UI
+                if (mode === 'single') {
+                    toggleSingle.classList.add('active');
+                    toggleMulti.classList.remove('active');
+
+                    // Update Text
+                    fileList.classList.remove('gallery-mode');
+                    pageTitle.textContent = "Upload Photos";
+                    pageDesc.innerHTML = "Select photos for your <strong>current item</strong>.<br>Start a new session for a different item.";
+                    uploadBtnText.textContent = "Select Photos";
+
+                    // Reset selection bar if switching back
+                    selectionBar.classList.remove('visible');
+
+                    // Re-render list
+                    fileList.innerHTML = '';
+                    state.files.forEach(item => {
+                        // Re-render as list items
+                        const ui = renderFile(item);
+                        if (item.done) {
+                            ui.fill.style.width = '100%';
+                            ui.fill.style.background = '#10b981';
+                            ui.status.textContent = 'Sent';
+                            ui.status.classList.add('status-done');
+                        }
+                    });
+
+                } else {
+                    toggleMulti.classList.add('active');
+                    toggleSingle.classList.remove('active');
+
+                    // Update Text
+                    fileList.classList.add('gallery-mode');
+                    pageTitle.textContent = "Organize Items";
+                    pageDesc.innerHTML = "Upload all photos first, then <strong>tap to select</strong> photos to create an item.";
+                    uploadBtnText.textContent = "Add Photos to Gallery";
+
+                    // Re-render list
+                    fileList.innerHTML = '';
+                    state.files.forEach(item => {
+                        renderFile(item); // Re-render as gallery items
+                    });
+                }
             }
+
+            toggleSingle.addEventListener('click', () => setMode('single'));
+            toggleMulti.addEventListener('click', () => setMode('multi'));
 
             function showToast(msg) {
                 toastEl.textContent = msg;
@@ -462,6 +540,10 @@
                         </div>
                     `;
 
+                    if (state.selectedFiles.has(item.serverName)) {
+                        el.classList.add('selected');
+                    }
+
                     // Toggle Selection Logic
                     el.addEventListener('click', () => {
                         if (!item.serverName) return; // Wait for upload to finish
@@ -476,7 +558,7 @@
                         updateSelectionBar();
                     });
 
-                    fileList.appendChild(el); // Append to end in gallery mode
+                    fileList.appendChild(el);
                 } else {
                     // Single Mode: List Item
                     el.innerHTML = `
@@ -487,7 +569,7 @@
                             <div class="file-status">Waiting...</div>
                         </div>
                     `;
-                    fileList.prepend(el); // Prepend to top in list mode
+                    fileList.prepend(el);
                 }
 
                 return {
@@ -533,17 +615,15 @@
 
                 xhr.onload = () => {
                     if (xhr.status >= 200 && xhr.status < 300) {
-                        // Store the final server name (important if renamed by backend due to staging prefix)
+                        // Store the final server name
                         try {
                             const res = JSON.parse(xhr.responseText);
                             if (res.filename) {
                                 item.serverName = res.filename;
                             } else {
-                                // Fallback logic if backend doesn't return filename: reconstruct
                                 item.serverName = (state.mode === 'multi' ? 'staging_' : '') + item.name;
                             }
                         } catch (e) {
-                            // Fallback
                             item.serverName = (state.mode === 'multi' ? 'staging_' : '') + item.name;
                         }
 
@@ -635,10 +715,8 @@
                     try {
                         const compressedFile = await compressImage(originalFile);
                         item.file = compressedFile;
-                        // Synchronize name if compression changed it
                         if (item.name !== compressedFile.name) {
                             item.name = compressedFile.name;
-                            // Only update UI text in List Mode
                             const nameEl = ui.el.querySelector('.file-name');
                             if (nameEl) nameEl.textContent = compressedFile.name;
                         }
@@ -671,12 +749,11 @@
                     if (res.ok) {
                         showToast("Item Sent!");
 
-                        // Remove successful items from gallery
                         const filesToRemove = new Set(fileNames);
 
-                        // Filter out DOM elements
+                        // Remove from UI
                         const allEls = document.querySelectorAll('.file-item');
-                        allEls.forEach((el, index) => {
+                        allEls.forEach((el) => {
                             if (el.classList.contains('selected')) {
                                 el.remove();
                             }
@@ -708,7 +785,6 @@
             mainBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-            // Send Group Listener
             sendGroupBtn.addEventListener('click', sendGroup);
 
             sessionFooter.addEventListener('click', () => {

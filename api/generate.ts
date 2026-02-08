@@ -230,8 +230,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "You are a savvy Vinted seller. Your goal is to create listings that are appealing, trustworthy, and get items sold.";
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
-- Title format: [BRAND - Omit if not known] [Color] [Item] - [Size].
-- Description: Note a positive condition (e.g., excellent condition, Like new). No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible at all, just skip it, do NOT say "Unknown Brand". Your tone should be ${toneInstruction}. ${emojiInstruction} Apply minimal formatting like line breaks for readability or other necessary formatting only if needed. 
+- Title format: [BRAND - Omit if not known] [Color] [Item] - [Size - Omit if not known].
+- Description: Note a positive condition (e.g., excellent condition, Like new). No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible at all, just skip it, do NOT say "Unknown Brand". Your tone should be ${toneInstruction}. ${emojiInstruction} Split into 2 paragraphs and line break before hashtags. 
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
@@ -271,15 +271,32 @@ Reply only in JSON: {"title":"...","description":"..."}
         {
           role: "user",
           content: [
-            ...parts,
             {
               type: "text",
               text: userPrompt,
             },
+            ...parts,
           ],
         },
       ],
-      max_tokens: 150,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "listing",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              title: { type: "string" },
+              description: { type: "string" },
+            },
+            required: ["title", "description"],
+          },
+        },
+      },
+      max_tokens: 230,
+      temperature: 0.3,
     });
 
     // Log token usage and rate limit info
@@ -296,20 +313,11 @@ Reply only in JSON: {"title":"...","description":"..."}
     };
     console.log("🔄 OpenAI Rate Limit Status:", rateLimitInfo);
 
-    let content = chat.choices?.[0]?.message?.content?.trim() || "{}";
-    const md = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(content);
-    if (md && md[1]) content = md[1].trim();
-
-    let parsed: { title?: string; description?: string } = {};
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      console.warn("GPT output not valid JSON:", content);
-    }
-
-    const title = parsed.title?.trim() || "Untitled";
+    const content = chat.choices?.[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(content);
+    const title = (parsed.title ?? "").trim() || "Untitled";
     const description =
-      parsed.description?.trim() || "No description available.";
+      (parsed.description ?? "").trim() || "No description available.";
 
     // Add generated content to log
     logData.generatedTitle = title;

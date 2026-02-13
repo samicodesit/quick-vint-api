@@ -7,6 +7,12 @@ import { RateLimiter } from "../utils/rateLimiter";
 import { ApiLogger } from "../utils/apiLogger";
 import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
+import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
+import messagesEn from "../messages/en.json";
+import messagesFr from "../messages/fr.json";
+import messagesDe from "../messages/de.json";
+import messagesNl from "../messages/nl.json";
+import messagesPl from "../messages/pl.json";
 
 const OPEN_AI_MODEL = "gpt-4o-mini";
 // allow vinted page origins (so extension fetch from page context works)
@@ -194,7 +200,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // --- VALIDATE BODY ---
-  const { imageUrls, languageCode, tone, useEmojis } = req.body;
+  const { imageUrls, languageCode, tone, useEmojis, useBulletPoints } =
+    req.body;
+
   const languageCodeStr = String(languageCode || "en").toLowerCase();
   const language = languageMap[languageCodeStr] || "English";
 
@@ -210,6 +218,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     useEmojis === true || useEmojis === "true"
       ? "Use relevant emojis in the description."
       : "Do NOT use any emojis in the description.";
+
+  // bullet points vs paragraphs
+  const bulletpointInstruction =
+    useBulletPoints === true || useBulletPoints === "true"
+      ? "1 short setence (text ONLY). Followed by a line break. Followed by 3-4 concise bullet points. Each bullet starts with '• '. End each with relevant emoji. First bullet exclusive ONLY to size and brand if known, don't add anything else to first bullet even if it will be so short."
+      : "Use 2-3 short paragraphs. separated with line breaks where necessary.";
 
   if (
     !Array.isArray(imageUrls) ||
@@ -227,11 +241,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are a savvy Vinted seller. Your goal is to create listings that are appealing, trustworthy, and get items sold.";
+    "You are a savvy Vinted seller. Your goal is to create listings that are appealing, trustworthy, and get items sold. Never guess brand, size, material, model, etc. You can mention defects (with high tolerance) only if clearly and obviously visible. Wrinkles or creasings are not defects.";
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
-- Title format: [BRAND - Omit if not known] [Color] [Item] - [Size - Omit if not known].
-- Description: Note a positive condition (e.g., excellent condition, Like new). No negative remarks related to wrinkles or creasing. Highlight a key feature, the feel of the fabric, or a good way to style it. End with 4-5 relevant SEO hashtags. If brand is not visible at all, just skip it, do NOT say "Unknown Brand". Your tone should be ${toneInstruction}. ${emojiInstruction} Split into 2 paragraphs and line break before hashtags. 
+- Title format: [BRAND - Omit if not known] [Model - if electronics or applicable] [Color] [Item] - [Size - Omit if not known/not applicable].
+- Description: Note a positive condition (e.g., excellent condition, Like new) if visible. No negative remarks related to wrinkles or creasing. Highlight a key feature: a good way to style it, or fabric within reason if clear, as examples. End with 4-5 relevant SEO hashtags. If brand/size is not visible at all, just skip it, do NOT say "Unknown Brand/Size". Your tone should be ${toneInstruction}. ${emojiInstruction} ${bulletpointInstruction} highlighting key features and styling tips. Add line break before hashtags. 
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
@@ -295,7 +309,7 @@ Reply only in JSON: {"title":"...","description":"..."}
           },
         },
       },
-      max_tokens: 230,
+      max_tokens: 320,
       temperature: 0.3,
     });
 
@@ -318,6 +332,18 @@ Reply only in JSON: {"title":"...","description":"..."}
     const title = (parsed.title ?? "").trim() || "Untitled";
     const description =
       (parsed.description ?? "").trim() || "No description available.";
+
+    // Generate localized measurement advice if item is clothing
+    const messagesMap: Record<string, any> = {
+      en: messagesEn,
+      fr: messagesFr,
+      de: messagesDe,
+      nl: messagesNl,
+      pl: messagesPl,
+    };
+    const messages = messagesMap[languageCode] || messagesEn;
+    const isClothing = isClothingItem(title, description);
+    const measurementAdvice = getMeasurementAdvice(isClothing, messages);
 
     // Add generated content to log
     logData.generatedTitle = title;
@@ -347,6 +373,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     return res.status(200).json({
       title,
       description,
+      measurementAdvice,
     });
   } catch (err: any) {
     console.error("Generation error:", err);

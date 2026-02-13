@@ -1,0 +1,126 @@
+---
+const url = new URL(Astro.request.url);
+const success = url.searchParams.get("success") === "true";
+const email = url.searchParams.get("email") || "";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unsubscribe - AutoLister</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 16px;
+        padding: 48px 32px;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        text-align: center;
+      }
+
+      .icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 24px;
+        background: #10b981;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+      }
+
+      .icon.error {
+        background: #ef4444;
+      }
+
+      h1 {
+        font-size: 28px;
+        color: #1f2937;
+        margin-bottom: 16px;
+      }
+
+      p {
+        font-size: 16px;
+        color: #6b7280;
+        line-height: 1.6;
+        margin-bottom: 12px;
+      }
+
+      .email {
+        font-weight: 600;
+        color: #4f46e5;
+      }
+
+      .btn {
+        display: inline-block;
+        margin-top: 24px;
+        padding: 12px 32px;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: background 0.2s;
+      }
+
+      .btn:hover {
+        background: #5568d3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      {
+        success ? (
+          <>
+            <div class="icon">✓</div>
+            <h1>Successfully Unsubscribed</h1>
+            <p>You've been unsubscribed from our email updates.</p>
+            {email && <p class="email">{email}</p>}
+            <p style="margin-top: 24px; font-size: 14px;">
+              You won't receive any more promotional emails from us. You'll
+              still receive important account-related emails.
+            </p>
+            <a href="/" class="btn">
+              Return to Homepage
+            </a>
+          </>
+        ) : (
+          <>
+            <div class="icon error">✕</div>
+            <h1>Unsubscribe Failed</h1>
+            <p>
+              We couldn't process your unsubscribe request. The email address
+              may not be found in our system.
+            </p>
+            <a href="/" class="btn">
+              Return to Homepage
+            </a>
+          </>
+        )
+      }
+    </div>
+  </body>
+</html>

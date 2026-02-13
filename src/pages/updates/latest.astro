@@ -1,265 +1,335 @@
-<!DOCTYPE html
-    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!doctype html>
 <html>
-
-<head>
+  <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>AutoLister Update</title>
     <style type="text/css">
-        /* Client-specific resets */
-        body,
-        table,
-        td,
-        a {
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
+      /* Client-specific resets */
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+      }
+
+      table {
+        border-collapse: collapse !important;
+      }
+
+      body {
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+
+      /* iOS Blue Link Removal */
+      a[x-apple-data-detectors] {
+        color: inherit !important;
+        text-decoration: none !important;
+        font-size: inherit !important;
+        font-family: inherit !important;
+        font-weight: inherit !important;
+        line-height: inherit !important;
+      }
+
+      /* Media Queries */
+      @media screen and (max-width: 600px) {
+        .email-container {
+          width: 100% !important;
         }
 
-        table,
-        td {
-            mso-table-lspace: 0pt;
-            mso-table-rspace: 0pt;
+        .fluid-img {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
         }
 
-        img {
-            -ms-interpolation-mode: bicubic;
-            border: 0;
-            height: auto;
-            line-height: 100%;
-            outline: none;
-            text-decoration: none;
+        .mobile-padding {
+          padding-left: 20px !important;
+          padding-right: 20px !important;
         }
 
-        table {
-            border-collapse: collapse !important;
+        .mobile-stack {
+          display: block !important;
+          width: 100% !important;
         }
-
-        body {
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-        }
-
-        /* iOS Blue Link Removal */
-        a[x-apple-data-detectors] {
-            color: inherit !important;
-            text-decoration: none !important;
-            font-size: inherit !important;
-            font-family: inherit !important;
-            font-weight: inherit !important;
-            line-height: inherit !important;
-        }
-
-        /* Media Queries */
-        @media screen and (max-width: 600px) {
-            .email-container {
-                width: 100% !important;
-            }
-
-            .fluid-img {
-                width: 100% !important;
-                max-width: 100% !important;
-                height: auto !important;
-            }
-
-            .mobile-padding {
-                padding-left: 20px !important;
-                padding-right: 20px !important;
-            }
-
-            .mobile-stack {
-                display: block !important;
-                width: 100% !important;
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body
-    style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-
+  <body
+    style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;"
+  >
     <!-- PREHEADER TEXT (Hidden) -->
     <div
-        style="display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all; font-family: sans-serif;">
-        Structured descriptions are now live. Plus: A preview of bulk mobile uploads.
+      style="display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all; font-family: sans-serif;"
+    >
+      Structured descriptions are now live. Plus: A preview of bulk mobile
+      uploads.
     </div>
 
     <center>
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%"
-            style="background-color: #f4f5f7;">
-
-            <!-- VIEW IN BROWSER LINK (Helps Deliverability) -->
-            <tr>
-                <td style="padding: 10px 0; text-align: center;">
-                    <a href="{{view_in_browser_url}}"
-                        style="font-size: 12px; color: #999999; text-decoration: underline;">View in browser</a>
+      <table
+        role="presentation"
+        cellspacing="0"
+        cellpadding="0"
+        border="0"
+        align="center"
+        width="100%"
+        style="background-color: #f4f5f7;"
+      >
+        <tr>
+          <td valign="top" align="center" style="padding-bottom: 40px;">
+            <!-- MAIN CONTAINER -->
+            <table
+              role="presentation"
+              class="email-container"
+              cellspacing="0"
+              cellpadding="0"
+              border="0"
+              width="600"
+              style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin: 0 auto;"
+            >
+              <!-- HEADER -->
+              <tr>
+                <td
+                  style="padding: 40px 40px 30px 40px; text-align: left; border-bottom: 1px solid #f0f0f0;"
+                  class="mobile-padding"
+                >
+                  <h1
+                    style="margin: 0; font-size: 20px; color: #764BA2; font-weight: 700; letter-spacing: -0.5px;"
+                  >
+                    AutoLister AI
+                  </h1>
                 </td>
-            </tr>
+              </tr>
 
-            <tr>
-                <td valign="top" align="center" style="padding-bottom: 40px;">
+              <!-- BODY CONTENT -->
+              <tr>
+                <td
+                  style="padding: 40px 40px 20px 40px;"
+                  class="mobile-padding"
+                >
+                  <!-- INTRO -->
+                  <p
+                    style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #333333;"
+                  >
+                    We have updated the description engine to prioritize
+                    readability and conversion.
+                  </p>
 
-                    <!-- MAIN CONTAINER -->
-                    <table role="presentation" class="email-container" cellspacing="0" cellpadding="0" border="0"
-                        width="600"
-                        style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin: 0 auto;">
+                  <!-- SECTION 1 -->
+                  <h2
+                    style="margin: 0 0 12px 0; font-size: 17px; color: #111111; font-weight: 600;"
+                  >
+                    1. Structured Bullet Points
+                  </h2>
+                  <p
+                    style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #555555;"
+                  >
+                    To help buyers scan your items faster, the AI now organizes
+                    key product details (Size, Brand, Condition) into clean
+                    bullet points by default.
+                  </p>
 
-                        <!-- HEADER -->
-                        <tr>
-                            <td style="padding: 40px 40px 30px 40px; text-align: left; border-bottom: 1px solid #f0f0f0;"
-                                class="mobile-padding">
-                                <h1
-                                    style="margin: 0; font-size: 20px; color: #764BA2; font-weight: 700; letter-spacing: -0.5px;">
-                                    AutoLister AI</h1>
-                            </td>
-                        </tr>
+                  <!-- IMAGE 1: Wide snippet -->
+                  <div
+                    style="margin-bottom: 35px; border: 1px solid #eaeaea; border-radius: 6px; overflow: hidden;"
+                  >
+                    <img
+                      src="https://autolister.app/update-133.png"
+                      alt="New structured description format"
+                      width="520"
+                      style="display: block; width: 100%; max-width: 100%; height: auto; background-color: #f9f9f9;"
+                      class="fluid-img"
+                    />
+                  </div>
 
-                        <!-- BODY CONTENT -->
-                        <tr>
-                            <td style="padding: 40px 40px 20px 40px;" class="mobile-padding">
+                  <!-- SECTION 2 -->
+                  <h2
+                    style="margin: 0 0 12px 0; font-size: 17px; color: #111111; font-weight: 600;"
+                  >
+                    2. Formatting Preferences
+                  </h2>
+                  <p
+                    style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #555555;"
+                  >
+                    You retain full control over your listing style. A new <strong
+                      >Settings Menu</strong
+                    > allows you to toggle between the new list format and the classic
+                    paragraph style.
+                  </p>
 
-                                <!-- INTRO -->
-                                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #333333;">
-                                    We have updated the description engine to prioritize readability and conversion.
-                                </p>
+                  <!-- IMAGE 2: Vertical Phone Mockup (Constrained Width) -->
+                  <div
+                    style="text-align: center; margin-bottom: 35px; padding: 20px 0;"
+                  >
+                    <img
+                      src="https://autolister.app/new-settings.png"
+                      alt="New settings menu interface"
+                      width="260"
+                      style="display: inline-block; width: 100%; max-width: 260px; height: auto; border: 1px solid #eaeaea; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.06);"
+                    />
+                    <p
+                      style="margin: 12px 0 0 0; font-size: 13px; color: #999999;"
+                    >
+                      The new settings interface
+                    </p>
+                  </div>
 
-                                <!-- SECTION 1 -->
-                                <h2 style="margin: 0 0 12px 0; font-size: 17px; color: #111111; font-weight: 600;">1.
-                                    Structured Bullet Points</h2>
-                                <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #555555;">
-                                    To help buyers scan your items faster, the AI now organizes key product details
-                                    (Size, Brand, Condition) into clean bullet points by default.
-                                </p>
-
-                                <!-- IMAGE 1: Wide snippet -->
-                                <div
-                                    style="margin-bottom: 35px; border: 1px solid #eaeaea; border-radius: 6px; overflow: hidden;">
-                                    <img src="https://autolister.app/update-133.png"
-                                        alt="New structured description format" width="520"
-                                        style="display: block; width: 100%; max-width: 100%; height: auto; background-color: #f9f9f9;"
-                                        class="fluid-img">
-                                </div>
-
-                                <!-- SECTION 2 -->
-                                <h2 style="margin: 0 0 12px 0; font-size: 17px; color: #111111; font-weight: 600;">2.
-                                    Formatting Preferences</h2>
-                                <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #555555;">
-                                    You retain full control over your listing style. A new <strong>Settings
-                                        Menu</strong> allows you to toggle between the new list format and the classic
-                                    paragraph style.
-                                </p>
-
-                                <!-- IMAGE 2: Vertical Phone Mockup (Constrained Width) -->
-                                <div style="text-align: center; margin-bottom: 35px; padding: 20px 0;">
-                                    <img src="https://autolister.app/new-settings.png" alt="New settings menu interface"
-                                        width="260"
-                                        style="display: inline-block; width: 100%; max-width: 260px; height: auto; border: 1px solid #eaeaea; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.06);">
-                                    <p style="margin: 12px 0 0 0; font-size: 13px; color: #999999;">The new settings
-                                        interface</p>
-                                </div>
-
-                                <!-- UPDATE NUDGE -->
-                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-                                    <tr>
-                                        <td
-                                            style="background-color: #fcfcfc; border: 1px solid #eeeeee; border-radius: 6px; padding: 16px;">
-                                            <p
-                                                style="margin: 0; font-size: 14px; color: #555555; text-align: center; line-height: 1.5;">
-                                                <span
-                                                    style="display: inline-block; width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; margin-right: 6px;"></span>
-                                                <strong>Update Required:</strong> If you don't see these changes, please
-                                                restart your browser to force the extension to update.
-                                            </p>
-                                        </td>
-                                    </tr>
-                                </table>
-
-                            </td>
-                        </tr>
-
-                        <!-- SECTION 3: SNEAK PEEK (Different bg color) -->
-                        <tr>
-                            <td style="padding: 0;">
-                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
-                                    style="background-color: #fafafa; border-top: 1px solid #eeeeee;">
-                                    <tr>
-                                        <td style="padding: 40px;" class="mobile-padding">
-
-                                            <!-- Label -->
-                                            <div style="margin-bottom: 15px; text-align: center;">
-                                                <span
-                                                    style="background-color: #333333; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Upcoming</span>
-                                            </div>
-
-                                            <h2
-                                                style="margin: 0 0 10px 0; font-size: 18px; color: #111111; font-weight: 600; text-align: center;">
-                                                Bulk Mobile Uploads</h2>
-                                            <p
-                                                style="margin: 0 0 25px 0; font-size: 15px; line-height: 1.6; color: #666666; text-align: center;">
-                                                We are finalizing a new workflow that allows you to upload multiple
-                                                items via mobile and generate all descriptions simultaneously.
-                                            </p>
-
-                                            <!-- IMAGE 3: Teaser Image -->
-                                            <div
-                                                style="border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background-color: #ffffff;">
-                                                <img src="https://autolister.app/upcoming.png"
-                                                    alt="Preview of bulk mobile uploads" width="520"
-                                                    style="display: block; width: 100%; height: auto;"
-                                                    class="fluid-img">
-                                            </div>
-
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-
-                        <!-- FOOTER -->
-                        <tr>
-                            <td style="padding: 40px; text-align: center; background-color: #ffffff; border-top: 1px solid #f0f0f0;"
-                                class="mobile-padding">
-
-                                <div style="margin-bottom: 30px;">
-                                    <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
-                                        style="background-color: #764BA2; color: #ffffff; display: inline-block; padding: 14px 30px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px;">Download
-                                        Extension</a>
-                                </div>
-
-                                <p style="margin: 0; font-size: 16px; color: #333333; font-weight: 600;">
-                                    Happy Selling,
-                                </p>
-                                <p style="margin: 5px 0 0 0; font-size: 16px; color: #555555;">
-                                    The AutoLister Team
-                                </p>
-
-                                <p style="margin: 30px 0 0 0; font-size: 12px; color: #999999; line-height: 1.5;">
-                                    <!-- TRUST BADGE: Helps prevent images from being blocked next time -->
-                                    To ensure you receive future updates with images enabled, please add <strong
-                                        style="color:#555">updates@autolister.app</strong> to your address book.<br><br>
-
-                                    You are receiving this because you signed up for <strong>AutoLister AI</strong>.<br>
-
-                                    <!-- CUSTOM UNSUBSCRIBE LINK -->
-                                    <a href="https://autolister.app/api/auth/magic-link?action=unsubscribe&email={{user_email}}"
-                                        style="color: #999999; text-decoration: underline;">Unsubscribe</a>
-                                    &nbsp;|&nbsp; <a href="https://autolister.app"
-                                        style="color: #999999; text-decoration: underline;">Visit Website</a>
-                                </p>
-                            </td>
-                        </tr>
-
-                    </table>
-                    <!-- END MAIN CONTAINER -->
-
-                    <div style="height: 40px; line-height: 40px; font-size: 40px;">&nbsp;</div>
-
+                  <!-- UPDATE NUDGE -->
+                  <table
+                    role="presentation"
+                    border="0"
+                    cellpadding="0"
+                    cellspacing="0"
+                    width="100%"
+                  >
+                    <tr>
+                      <td
+                        style="background-color: #fcfcfc; border: 1px solid #eeeeee; border-radius: 6px; padding: 16px;"
+                      >
+                        <p
+                          style="margin: 0; font-size: 14px; color: #555555; text-align: center; line-height: 1.5;"
+                        >
+                          <span
+                            style="display: inline-block; width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; margin-right: 6px;"
+                          ></span>
+                          <strong>Update Required:</strong> If you don't see these
+                          changes, please restart your browser to force the extension
+                          to update.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
-            </tr>
-        </table>
+              </tr>
+
+              <!-- SECTION 3: SNEAK PEEK (Different bg color) -->
+              <tr>
+                <td style="padding: 0;">
+                  <table
+                    role="presentation"
+                    cellspacing="0"
+                    cellpadding="0"
+                    border="0"
+                    width="100%"
+                    style="background-color: #fafafa; border-top: 1px solid #eeeeee;"
+                  >
+                    <tr>
+                      <td style="padding: 40px;" class="mobile-padding">
+                        <!-- Label -->
+                        <div style="margin-bottom: 15px; text-align: center;">
+                          <span
+                            style="background-color: #333333; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;"
+                            >Upcoming</span
+                          >
+                        </div>
+
+                        <h2
+                          style="margin: 0 0 10px 0; font-size: 18px; color: #111111; font-weight: 600; text-align: center;"
+                        >
+                          Bulk Mobile Uploads
+                        </h2>
+                        <p
+                          style="margin: 0 0 25px 0; font-size: 15px; line-height: 1.6; color: #666666; text-align: center;"
+                        >
+                          We are finalizing a new workflow that allows you to
+                          upload multiple items via mobile and generate all
+                          descriptions simultaneously.
+                        </p>
+
+                        <!-- IMAGE 3: Teaser Image -->
+                        <div
+                          style="border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background-color: #ffffff;"
+                        >
+                          <img
+                            src="https://autolister.app/upcoming.png"
+                            alt="Preview of bulk mobile uploads"
+                            width="520"
+                            style="display: block; width: 100%; height: auto;"
+                            class="fluid-img"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- FOOTER -->
+              <tr>
+                <td
+                  style="padding: 40px; text-align: center; background-color: #ffffff; border-top: 1px solid #f0f0f0;"
+                  class="mobile-padding"
+                >
+                  <div style="margin-bottom: 30px;">
+                    <a
+                      href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
+                      style="background-color: #764BA2; color: #ffffff; display: inline-block; padding: 14px 30px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px;"
+                      >Download Extension</a
+                    >
+                  </div>
+
+                  <p
+                    style="margin: 0; font-size: 16px; color: #333333; font-weight: 600;"
+                  >
+                    Happy Selling,
+                  </p>
+                  <p
+                    style="margin: 5px 0 0 0; font-size: 16px; color: #555555;"
+                  >
+                    The AutoLister Team
+                  </p>
+
+                  <p
+                    style="margin: 30px 0 0 0; font-size: 12px; color: #999999; line-height: 1.5;"
+                  >
+                    <!-- TRUST BADGE: Helps prevent images from being blocked next time -->
+                    To ensure you receive future updates with images enabled, please
+                    add <strong style="color:#555"
+                      >updates@autolister.app</strong
+                    > to your address book.<br /><br />
+
+                    You are receiving this because you signed up for <strong
+                      >AutoLister AI</strong
+                    >.<br />
+
+                    <a
+                      href="https://autolister.app"
+                      style="color: #999999; text-decoration: underline;"
+                      >Visit Website</a
+                    >
+                  </p>
+                </td>
+              </tr>
+            </table>
+            <!-- END MAIN CONTAINER -->
+
+            <div style="height: 40px; line-height: 40px; font-size: 40px;">
+              &nbsp;
+            </div>
+          </td>
+        </tr>
+      </table>
     </center>
-</body>
-
+  </body>
 </html>

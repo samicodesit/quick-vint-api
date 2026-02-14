@@ -1,8 +1,3 @@
----
-const url = new URL(Astro.request.url);
-const success = url.searchParams.get("success") === "true";
----
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -85,36 +80,40 @@ const success = url.searchParams.get("success") === "true";
     </style>
   </head>
   <body>
-    <div class="container">
-      {
-        success ? (
-          <>
-            <div class="icon">✓</div>
-            <h1>Successfully Unsubscribed</h1>
-            <p>You've been unsubscribed from our email updates.</p>
-            <p style="margin-top: 24px; font-size: 14px;">
-              You won't receive any more promotional emails from us. You'll
-              still receive important account-related emails.
-            </p>
-            <a href="/" class="btn">
-              Return to Homepage
-            </a>
-          </>
-        ) : (
-          <>
-            <div class="icon error">✕</div>
-            <h1>Unsubscribe Failed</h1>
-            <p>
-              We couldn't process your unsubscribe request. The link may be
-              invalid or expired. Please try again from a recent email, or
-              contact support.
-            </p>
-            <a href="/" class="btn">
-              Return to Homepage
-            </a>
-          </>
-        )
-      }
+    <div class="container" id="content">
+      <!-- Content rendered by JavaScript -->
     </div>
+
+    <script is:inline>
+      // Parse query param on client side (because Astro static mode can't SSR)
+      const params = new URLSearchParams(window.location.search);
+      const success = params.get("success") === "true";
+
+      const content = document.getElementById("content");
+
+      if (success) {
+        content.innerHTML = `
+          <div class="icon">✓</div>
+          <h1>Successfully Unsubscribed</h1>
+          <p>You've been unsubscribed from our email updates.</p>
+          <p style="margin-top: 24px; font-size: 14px;">
+            You won't receive any more promotional emails from us. You'll
+            still receive important account-related emails.
+          </p>
+          <a href="/" class="btn">Return to Homepage</a>
+        `;
+      } else {
+        content.innerHTML = `
+          <div class="icon error">✕</div>
+          <h1>Unsubscribe Failed</h1>
+          <p>
+            We couldn't process your unsubscribe request. The link may be
+            invalid or expired. Please try again from a recent email, or
+            contact support.
+          </p>
+          <a href="/" class="btn">Return to Homepage</a>
+        `;
+      }
+    </script>
   </body>
 </html>

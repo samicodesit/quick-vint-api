@@ -1,6 +1,15 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { Resend } from "resend";
 import { supabase } from "../../utils/supabaseClient";
 import { TIER_CONFIGS } from "../../utils/tierConfig";
+import {
+  BRAND,
+  TEMPLATES,
+  wrapEmailLayout,
+  getTemplateIndex,
+} from "../../utils/emailTemplates";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- AUTH with ADMIN_SECRET ---
@@ -16,6 +25,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleViewLogs(req, res);
     } else if (action === "usage-stats") {
       return handleUsageStats(req, res);
+    } else if (action === "list-templates") {
+      return handleListTemplates(req, res);
+    } else if (action === "preview-template") {
+      return handlePreviewTemplate(req, res);
     } else {
       return res.status(400).json({ error: "Invalid GET action" });
     }
@@ -26,6 +39,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleFlagActivity(req, res, "admin");
     } else if (action === "reset-usage") {
       return handleResetUsage(req, res);
+    } else if (action === "send-campaign") {
+      return handleSendCampaign(req, res);
     } else {
       return res.status(400).json({ error: "Invalid POST action" });
     }
@@ -357,6 +372,188 @@ async function handleResetUsage(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true, message: "User usage reset" });
   } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+// --- LOGIC: List Templates ---
+async function handleListTemplates(_req: VercelRequest, res: VercelResponse) {
+  return res.status(200).json({ templates: getTemplateIndex() });
+}
+
+// --- LOGIC: Preview Template (returns rendered HTML) ---
+async function handlePreviewTemplate(req: VercelRequest, res: VercelResponse) {
+  const key = req.query.key as string;
+
+  if (!key || !TEMPLATES[key]) {
+    return res.status(400).json({
+      error: `Unknown template key. Available: ${Object.keys(TEMPLATES).join(", ")}`,
+    });
+  }
+
+  const template = TEMPLATES[key];
+  const demoUnsubUrl =
+    "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
+  const html = wrapEmailLayout(template.body, template.preheader, demoUnsubUrl);
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(html);
+}
+
+// --- LOGIC: Send Email Campaign ---
+async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
+  const {
+    template_key,
+    custom_subject,
+    custom_preheader,
+    custom_html,
+    test_email,
+    recipient_emails, // NEW: array of specific emails to send to
+  } = req.body;
+
+  try {
+    // Determine content
+    let subject: string;
+    let preheader: string;
+    let bodyHtml: string;
+
+    if (template_key && TEMPLATES[template_key]) {
+      const tpl = TEMPLATES[template_key];
+      subject = custom_subject || tpl.subject;
+      preheader = custom_preheader || tpl.preheader;
+      bodyHtml = tpl.body;
+    } else if (custom_subject && custom_html) {
+      subject = custom_subject;
+      preheader = custom_preheader || "";
+      bodyHtml = custom_html;
+    } else {
+      return res.status(400).json({
+        error:
+          'Provide either "template_key" or ("custom_subject" + "custom_html")',
+        available_templates: Object.keys(TEMPLATES),
+      });
+    }
+
+    // MODE 1: Test mode (single test email with dummy unsubscribe)
+    if (test_email) {
+      const demoUnsubUrl =
+        "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
+      const html = wrapEmailLayout(bodyHtml, preheader, demoUnsubUrl);
+
+      await resend.emails.send({
+        from: BRAND.from,
+        to: test_email,
+        subject: `[TEST] ${subject}`,
+        html,
+        headers: {
+          "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${demoUnsubUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      });
+
+      return res.status(200).json({
+        mode: "test",
+        sent_to: test_email,
+        subject: `[TEST] ${subject}`,
+      });
+    }
+
+    // MODE 2: Specific recipients (fetch only those emails from DB)
+    let users;
+    if (
+      recipient_emails &&
+      Array.isArray(recipient_emails) &&
+      recipient_emails.length > 0
+    ) {
+      const { data, error: fetchError } = await supabase
+        .from("profiles")
+        .select("email, unsubscribe_token, email_subscribed")
+        .in("email", recipient_emails);
+
+      if (fetchError) throw fetchError;
+      users = data || [];
+
+      if (users.length === 0) {
+        return res.status(200).json({
+          mode: "specific",
+          message: "None of the provided emails found in database.",
+          requested: recipient_emails,
+        });
+      }
+    } else {
+      // MODE 3: Bulk (all subscribed users)
+      const { data, error: fetchError } = await supabase
+        .from("profiles")
+        .select("email, unsubscribe_token, email_subscribed")
+        .eq("email_subscribed", true)
+        .not("email", "is", null);
+
+      if (fetchError) throw fetchError;
+      users = data || [];
+
+      if (users.length === 0) {
+        return res.status(200).json({
+          mode: "bulk",
+          message: "No subscribed users found.",
+        });
+      }
+    }
+
+    // Send to all selected users
+    const results: Array<{
+      email: string;
+      status: string;
+      error?: string;
+      subscribed?: boolean;
+    }> = [];
+
+    for (const user of users) {
+      const unsubUrl = `https://autolister.app/api/unsubscribe?token=${user.unsubscribe_token}`;
+      const html = wrapEmailLayout(bodyHtml, preheader, unsubUrl);
+
+      try {
+        await resend.emails.send({
+          from: BRAND.from,
+          to: user.email,
+          subject,
+          html,
+          headers: {
+            "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${unsubUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        });
+        results.push({
+          email: user.email,
+          status: "sent",
+          subscribed: user.email_subscribed,
+        });
+      } catch (err: any) {
+        console.error(`Failed to send to ${user.email}:`, err.message);
+        results.push({
+          email: user.email,
+          status: "failed",
+          error: err.message,
+          subscribed: user.email_subscribed,
+        });
+      }
+
+      // Pace at ~10/sec to stay well within Resend limits
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    const sent = results.filter((r) => r.status === "sent").length;
+    const failed = results.filter((r) => r.status === "failed").length;
+    const mode = recipient_emails ? "specific" : "bulk";
+
+    return res.status(200).json({
+      mode,
+      total: users.length,
+      sent,
+      failed,
+      results,
+    });
+  } catch (error: any) {
+    console.error("Campaign error:", error);
     return res.status(500).json({ error: error.message });
   }
 }

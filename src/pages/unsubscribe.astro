@@ -1,7 +1,6 @@
 ---
 const url = new URL(Astro.request.url);
 const success = url.searchParams.get("success") === "true";
-const email = url.searchParams.get("email") || "";
 ---
 
 <!doctype html>
@@ -68,11 +67,6 @@ const email = url.searchParams.get("email") || "";
         margin-bottom: 12px;
       }
 
-      .email {
-        font-weight: 600;
-        color: #4f46e5;
-      }
-
       .btn {
         display: inline-block;
         margin-top: 24px;
@@ -98,7 +92,6 @@ const email = url.searchParams.get("email") || "";
             <div class="icon">✓</div>
             <h1>Successfully Unsubscribed</h1>
             <p>You've been unsubscribed from our email updates.</p>
-            {email && <p class="email">{email}</p>}
             <p style="margin-top: 24px; font-size: 14px;">
               You won't receive any more promotional emails from us. You'll
               still receive important account-related emails.
@@ -112,8 +105,9 @@ const email = url.searchParams.get("email") || "";
             <div class="icon error">✕</div>
             <h1>Unsubscribe Failed</h1>
             <p>
-              We couldn't process your unsubscribe request. The email address
-              may not be found in our system.
+              We couldn't process your unsubscribe request. The link may be
+              invalid or expired. Please try again from a recent email, or
+              contact support.
             </p>
             <a href="/" class="btn">
               Return to Homepage

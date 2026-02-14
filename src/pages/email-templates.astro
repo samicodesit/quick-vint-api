@@ -1,0 +1,603 @@
+---
+// Template viewer — admin-only page to preview email templates
+// Access: /email-templates (protected by admin secret in the UI)
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="en" class="h-full bg-zinc-950 text-zinc-200 antialiased">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Email Templates — AutoLister Admin</title>
+    <!-- Syntax highlighting for Source view -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+      rel="stylesheet"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"
+      defer></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"
+      defer></script>
+
+    <style>
+      /* Custom scrollbar for dark theme */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #18181b;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3f3f46;
+        border-radius: 5px;
+        border: 2px solid #18181b;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #52525b;
+      }
+    </style>
+  </head>
+  <body class="h-full overflow-hidden flex flex-col font-sans text-sm">
+    <!-- ── AUTH GATE ──────────────────────────────── -->
+    <div
+      id="auth-gate"
+      class="absolute inset-0 z-50 flex items-center justify-center bg-zinc-950 p-4 transition-all duration-300"
+    >
+      <form
+        id="auth-form"
+        class="w-full max-w-sm overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl"
+      >
+        <div class="mb-6 text-center">
+          <div class="mb-3 text-4xl">🔐</div>
+          <h1 class="text-xl font-bold text-white">Admin Access</h1>
+          <p class="text-xs text-zinc-500 mt-1">
+            Enter your admin secret to view templates
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="sr-only" for="secret-input">Secret Key</label>
+            <input
+              type="password"
+              id="secret-input"
+              class="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600 transition-colors"
+              placeholder="admin_..."
+              autocomplete="current-password"
+            />
+          </div>
+          <button
+            type="submit"
+            class="flex w-full items-center justify-center rounded-lg bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2 focus:ring-offset-zinc-900 active:scale-[0.98] transition-all"
+          >
+            Authenticate
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── MAIN APP ──────────────────────────────── -->
+    <div
+      id="app"
+      class="hidden flex-1 flex-col h-full opacity-0 transition-opacity duration-500"
+    >
+      <!-- HEADER -->
+      <header
+        class="flex h-14 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-5"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-violet-400"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
+              ></path>
+            </svg>
+          </div>
+          <h1 class="font-semibold text-zinc-100">Email Templates</h1>
+          <span
+            id="template-count"
+            class="rounded-full bg-zinc-800 px-2.5 py-0.5 text-[10px] font-medium text-zinc-400"
+            >0</span
+          >
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            id="logout-btn"
+            class="text-zinc-500 hover:text-zinc-300 text-xs px-2 py-1 rounded hover:bg-zinc-800 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT LAYOUT -->
+      <div class="flex flex-1 min-h-0">
+        <!-- SIDEBAR -->
+        <aside
+          class="flex w-64 min-w-[256px] flex-col border-r border-zinc-800 bg-zinc-900/50"
+        >
+          <div
+            class="flex h-10 shrink-0 items-center justify-between border-b border-zinc-800/50 px-4"
+          >
+            <span
+              class="text-[10px] font-bold uppercase tracking-wider text-zinc-500"
+              >Templates</span
+            >
+          </div>
+          <div id="template-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+            <!-- Template items injected here -->
+          </div>
+        </aside>
+
+        <!-- PREVIEW AREA -->
+        <main class="flex flex-1 flex-col min-w-0 bg-zinc-950">
+          <!-- TOOLBAR -->
+          <div
+            class="flex h-12 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4"
+          >
+            <!-- View Mode Switcher -->
+            <div
+              class="flex items-center rounded-lg bg-zinc-900 p-1 ring-1 ring-zinc-800"
+            >
+              <button
+                class="view-btn active rounded py-1 px-3 text-xs font-medium text-zinc-400 transition-all hover:text-zinc-200 data-[active=true]:bg-zinc-800 data-[active=true]:text-white data-[active=true]:shadow-sm"
+                data-view="preview"
+                data-active="true"
+              >
+                Preview
+              </button>
+              <button
+                class="view-btn rounded py-1 px-3 text-xs font-medium text-zinc-400 transition-all hover:text-zinc-200 data-[active=true]:bg-zinc-800 data-[active=true]:text-white data-[active=true]:shadow-sm"
+                data-view="source"
+                data-active="false"
+              >
+                Source
+              </button>
+            </div>
+
+            <!-- Device Switcher (only visible in preview mode) -->
+            <div id="device-toggles" class="flex items-center gap-2">
+              <div
+                class="flex items-center rounded-lg bg-zinc-900 p-1 ring-1 ring-zinc-800"
+              >
+                <button
+                  class="device-btn rounded py-1 px-2 text-zinc-400 transition-all hover:text-zinc-200 data-[active=true]:bg-zinc-800 data-[active=true]:text-white"
+                  data-device="desktop"
+                  data-active="true"
+                  title="Desktop View"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-4 w-4"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M2 4.25A2.25 2.25 0 0 1 4.25 2h11.5A2.25 2.25 0 0 1 18 4.25v8.5A2.25 2.25 0 0 1 15.75 15h-3.105a3.501 3.501 0 0 0 1.1 1.677A.75.75 0 0 1 13.26 18H6.74a.75.75 0 0 1-.484-1.323A3.501 3.501 0 0 0 7.355 15H4.25A2.25 2.25 0 0 1 2 12.75v-8.5Zm1.5 0a.75.75 0 0 1 .75-.75h11.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-.75.75H4.25a.75.75 0 0 1-.75-.75v-7.5Z"
+                      clip-rule="evenodd"></path>
+                  </svg>
+                </button>
+                <button
+                  class="device-btn rounded py-1 px-2 text-zinc-400 transition-all hover:text-zinc-200 data-[active=true]:bg-zinc-800 data-[active=true]:text-white"
+                  data-device="mobile"
+                  data-active="false"
+                  title="Mobile View"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-4 w-4"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M6 3.75A2.75 2.75 0 0 1 8.75 1h2.5A2.75 2.75 0 0 1 14 3.75v12.5A2.75 2.75 0 0 1 11.25 19h-2.5A2.75 2.75 0 0 1 6 16.25V3.75Zm2.75-1.25a1.25 1.25 0 0 0-1.25 1.25v12.5c0 .69.56 1.25 1.25 1.25h2.5c.69 0 1.25-.56 1.25-1.25V3.75c0-.69-.56-1.25-1.25-1.25h-2.5Z"
+                      clip-rule="evenodd"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- INFO BAR -->
+          <div
+            id="info-bar"
+            class="hidden flex-shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/30 px-4 py-2 text-xs"
+          >
+            <div class="flex items-center gap-6 overflow-hidden">
+              <div class="flex items-center gap-2 min-w-0">
+                <span
+                  class="font-mono font-bold uppercase text-zinc-500 text-[10px]"
+                  >Subject</span
+                >
+                <span
+                  id="info-subject"
+                  class="truncate text-zinc-300 select-all"></span>
+              </div>
+              <div class="flex items-center gap-2 min-w-0">
+                <span
+                  class="font-mono font-bold uppercase text-zinc-500 text-[10px]"
+                  >Preheader</span
+                >
+                <span
+                  id="info-preheader"
+                  class="truncate text-zinc-400 select-all font-light italic"
+                ></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CANVAS / CONTAINER -->
+          <div class="relative flex-1 overflow-auto bg-[#1c1c1f]">
+            <!-- Background pattern for nicer look (dots) -->
+            <div
+              class="absolute inset-0 z-0 opacity-[0.03]"
+              style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;"
+            >
+            </div>
+
+            <!-- Scrollable Content -->
+            <div
+              id="preview-wrapper"
+              class="relative z-10 flex min-h-full flex-col items-center justify-start p-8 transition-all duration-300"
+            >
+              <!-- Empty State -->
+              <div
+                class="flex h-full flex-col items-center justify-center pt-20 text-zinc-600"
+              >
+                <div
+                  class="mb-4 rounded-full bg-zinc-900 p-4 ring-1 ring-zinc-800"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="size-6"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
+                    ></path>
+                  </svg>
+                </div>
+                <p>Select a template to view details</p>
+              </div>
+            </div>
+
+            <!-- Loading -->
+            <div
+              id="loading-overlay"
+              class="hidden absolute inset-0 z-50 flex items-center justify-center bg-zinc-950/50 backdrop-blur-sm"
+            >
+              <div
+                class="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-violet-500"
+              >
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- CLIENT SCRIPT -->
+    <script is:inline>
+      const API_BASE = window.location.origin;
+      let adminSecret = "";
+      let templates = [];
+      let currentHtml = "";
+      let currentView = "preview"; // preview | source
+      let currentDevice = "desktop"; // desktop | mobile
+      let loading = false;
+
+      // ── Initialization ──
+      document.addEventListener("DOMContentLoaded", () => {
+        // Check for stored secret
+        const stored = localStorage.getItem("admin_secret");
+        if (stored) {
+          document.getElementById("secret-input").value = stored;
+          // Optionally auto-submit if you want instant login,
+          // but requiring one click is safer to verify flow.
+          // Let's trigger it for UX convenience:
+          authenticate(stored);
+        }
+      });
+
+      // ── Auth Logic ──
+      document.getElementById("auth-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const secret = document.getElementById("secret-input").value.trim();
+        if (secret) authenticate(secret);
+      });
+
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        localStorage.removeItem("admin_secret");
+        window.location.reload();
+      });
+
+      async function authenticate(secret) {
+        setLoadingAuth(true);
+        adminSecret = secret;
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/admin?action=list-templates`,
+            {
+              headers: { Authorization: `Bearer ${adminSecret}` },
+            },
+          );
+
+          if (!res.ok) {
+            if (res.status === 401) throw new Error("Invalid admin secret");
+            throw new Error("Failed to fetch templates");
+          }
+
+          const data = await res.json();
+          templates = data.templates;
+
+          // Success: Store secret & Show UI
+          localStorage.setItem("admin_secret", adminSecret);
+
+          document
+            .getElementById("auth-gate")
+            .classList.add("opacity-0", "pointer-events-none");
+          setTimeout(() => {
+            document.getElementById("auth-gate").style.display = "none";
+            document.getElementById("app").classList.remove("hidden");
+            // Trigger reflow
+            void document.getElementById("app").offsetWidth;
+            document.getElementById("app").classList.remove("opacity-0");
+          }, 300);
+
+          document.getElementById("template-count").textContent =
+            templates.length;
+          renderSidebar();
+
+          // Auto-select first
+          if (templates.length > 0) {
+            selectTemplate(templates[0].key);
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Auth failed: " + err.message);
+          // Only clear if it was an auto-login attempt that failed
+          if (
+            localStorage.getItem("admin_secret") === secret &&
+            err.message.includes("Invalid")
+          ) {
+            localStorage.removeItem("admin_secret");
+          }
+        } finally {
+          setLoadingAuth(false);
+        }
+      }
+
+      function setLoadingAuth(isLoading) {
+        const btn = document.querySelector("#auth-form button");
+        const input = document.querySelector("#auth-form input");
+        if (isLoading) {
+          btn.disabled = true;
+          input.disabled = true;
+          btn.innerHTML = `<div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white mr-2"></div> Authenticating...`;
+        } else {
+          btn.disabled = false;
+          input.disabled = false;
+          btn.textContent = "Authenticate";
+        }
+      }
+
+      // ── Sidebar Logic ──
+      function renderSidebar() {
+        const list = document.getElementById("template-list");
+        list.innerHTML = templates
+          .map(
+            (t) => `
+          <button
+            class="template-item group flex w-full flex-col gap-1 rounded-md border border-transparent p-3 text-left transition-all hover:bg-zinc-800 focus:outline-none"
+            data-key="${t.key}"
+          >
+            <div class="flex w-full items-center justify-between">
+                <span class="text-xs font-semibold text-zinc-300 group-hover:text-white transition-colors">${t.key}</span>
+                <span class="opacity-0 group-hover:opacity-100 text-violet-500 transition-opacity">→</span>
+            </div>
+            <span class="line-clamp-1 text-[10px] text-zinc-500 group-hover:text-zinc-400">
+                ${escapeHtml(t.subject)}
+            </span>
+          </button>
+        `,
+          )
+          .join("");
+
+        list.querySelectorAll(".template-item").forEach((el) => {
+          el.addEventListener("click", () => selectTemplate(el.dataset.key));
+        });
+      }
+
+      async function selectTemplate(key) {
+        if (loading) return;
+        loading = true;
+        document.getElementById("loading-overlay").classList.remove("hidden");
+
+        // Sidebar active state
+        document.querySelectorAll(".template-item").forEach((el) => {
+          const isActive = el.dataset.key === key;
+          el.classList.toggle("bg-zinc-800", isActive);
+          el.classList.toggle("bg-zinc-900", isActive); // darker active
+          el.classList.toggle("ring-1", isActive);
+          el.classList.toggle("ring-violet-500/50", isActive);
+
+          // Text colors
+          const title = el.querySelector("span:first-child");
+          title.classList.toggle("text-violet-300", isActive);
+          title.classList.toggle("text-zinc-300", !isActive);
+        });
+
+        // Update Info
+        const tpl = templates.find((t) => t.key === key);
+        if (tpl) {
+          document.getElementById("info-subject").textContent = tpl.subject;
+          document.getElementById("info-preheader").textContent =
+            tpl.preheader || "—";
+          document.getElementById("info-bar").classList.remove("hidden");
+          document.getElementById("info-bar").classList.add("flex");
+        }
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/admin?action=preview-template&key=${key}`,
+            {
+              headers: { Authorization: `Bearer ${adminSecret}` },
+            },
+          );
+          if (!res.ok) throw new Error("Failed to load template");
+
+          currentHtml = await res.text();
+          renderPreviewArea();
+        } catch (err) {
+          document.getElementById("preview-wrapper").innerHTML = `
+                <div class="text-red-400 p-4 border border-red-900/50 bg-red-900/10 rounded-lg">
+                    Error loading template: ${err.message}
+                </div>
+            `;
+        } finally {
+          loading = false;
+          document.getElementById("loading-overlay").classList.add("hidden");
+        }
+      }
+
+      // ── Render Preview/Source ──
+      function renderPreviewArea() {
+        const wrapper = document.getElementById("preview-wrapper");
+        wrapper.innerHTML = "";
+
+        if (currentView === "preview") {
+          renderIframe(wrapper);
+          document.getElementById("device-toggles").style.visibility =
+            "visible";
+        } else {
+          renderSource(wrapper);
+          document.getElementById("device-toggles").style.visibility = "hidden";
+        }
+      }
+
+      function renderIframe(container) {
+        const frameContainer = document.createElement("div");
+
+        // Desktop vs Mobile styling
+        if (currentDevice === "mobile") {
+          frameContainer.className =
+            "w-[375px] h-[812px] bg-white rounded-[3rem] shadow-2xl border-[8px] border-zinc-800 relative overflow-hidden shrink-0 my-8 mx-auto ring-1 ring-zinc-700";
+
+          // Notch
+          const notch = document.createElement("div");
+          notch.className =
+            "absolute top-0 left-1/2 -translate-x-1/2 h-6 w-32 bg-zinc-800 rounded-b-xl z-20 pointer-events-none";
+          frameContainer.appendChild(notch);
+        } else {
+          frameContainer.className =
+            "w-full max-w-3xl bg-white rounded-lg shadow-lg overflow-hidden shrink-0 min-h-[600px] h-full";
+        }
+
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("sandbox", "allow-same-origin");
+        // allow-same-origin needed for null origin to work with some contents, but let's try strict first
+        // Actually without allow-scripts, dynamic content won't work, but email templates shouldn't have scripts.
+
+        iframe.className = "w-full h-full border-none bg-white";
+
+        // Inject content
+        iframe.srcdoc = currentHtml;
+
+        frameContainer.appendChild(iframe);
+        container.appendChild(frameContainer);
+      }
+
+      function renderSource(container) {
+        const pre = document.createElement("pre");
+        pre.className =
+          "language-html w-full max-w-4xl rounded-lg border border-zinc-800 text-sm overflow-auto";
+        pre.style.margin = "0";
+
+        const code = document.createElement("code");
+        code.className = "language-html";
+        code.textContent = currentHtml;
+
+        pre.appendChild(code);
+        container.appendChild(pre);
+
+        if (window.Prism) {
+          window.Prism.highlightElement(code);
+        }
+      }
+
+      function escapeHtml(str) {
+        if (!str) return "";
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // ── Event Board ──
+
+      // View Toggles
+      document.querySelectorAll(".view-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".view-btn").forEach((b) => {
+            b.dataset.active = "false";
+            b.classList.remove("text-white", "bg-zinc-800");
+            b.classList.add("text-zinc-400");
+          });
+
+          btn.dataset.active = "true";
+          btn.classList.add("text-white", "bg-zinc-800");
+          btn.classList.remove("text-zinc-400");
+
+          currentView = btn.dataset.view;
+          if (currentHtml) renderPreviewArea();
+        });
+      });
+
+      // Device Toggles
+      document.querySelectorAll(".device-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (currentView !== "preview") return;
+
+          document.querySelectorAll(".device-btn").forEach((b) => {
+            b.dataset.active = "false";
+            b.classList.remove("text-white", "bg-zinc-800");
+            b.classList.add("text-zinc-400");
+          });
+
+          btn.dataset.active = "true";
+          btn.classList.add("text-white", "bg-zinc-800");
+          btn.classList.remove("text-zinc-400");
+
+          currentDevice = btn.dataset.device;
+          if (currentHtml) renderPreviewArea();
+        });
+      });
+    </script>
+  </body>
+</html>

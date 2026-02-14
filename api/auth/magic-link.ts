@@ -30,7 +30,7 @@ const cors = Cors({
     }
     return callback(new Error("CORS origin denied for magic-link"), false);
   },
-  methods: ["POST", "GET", "OPTIONS"],
+  methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"], // Added Authorization for consistency
 });
 
@@ -53,48 +53,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  // Handle unsubscribe via GET request with ?action=unsubscribe&email=...
-  if (req.method === "GET") {
-    const { action, email } = req.query;
-
-    if (action === "unsubscribe") {
-      if (!email || typeof email !== "string") {
-        return res.status(400).json({ error: "Email parameter is required" });
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .update({ email_subscribed: false })
-          .eq("email", email.toLowerCase())
-          .select();
-
-        if (error) {
-          console.error("Error unsubscribing user:", error);
-          return res.status(500).json({ error: "Failed to unsubscribe" });
-        }
-
-        if (!data || data.length === 0) {
-          return res.status(404).json({ error: "Email not found" });
-        }
-
-        return res.redirect(
-          302,
-          `/unsubscribe?success=true&email=${encodeURIComponent(email)}`,
-        );
-      } catch (error) {
-        console.error("Unsubscribe error:", error);
-        return res.status(500).json({ error: "Internal server error" });
-      }
-    }
-
-    return res.status(400).json({ error: "Invalid action parameter" });
-  }
-
   if (req.method !== "POST") {
-    return res
-      .status(405)
-      .json({ error: "Only POST and GET requests allowed" });
+    return res.status(405).json({ error: "Only POST requests allowed" });
   }
 
   const { email } = req.body;

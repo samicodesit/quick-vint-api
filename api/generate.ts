@@ -207,15 +207,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const language = languageMap[languageCodeStr] || "English";
 
   // --- CONSTRUCT PROMPT INSTRUCTIONS ---
+  // Only pro/business tiers can customize tone and emojis
+  const tierAllowsExtras =
+    userProfile.subscription_tier === "pro" ||
+    userProfile.subscription_tier === "business";
+
   let toneInstruction = "neutral and balanced"; // Default for 'standard'
-  if (tone === "friendly") toneInstruction = "friendly, casual, and warm";
-  else if (tone === "professional")
-    toneInstruction = "professional, clean, and concise";
-  else if (tone === "enthusiastic")
-    toneInstruction = "enthusiastic, sales-oriented, and exciting";
+  if (tierAllowsExtras) {
+    if (tone === "friendly") toneInstruction = "friendly, casual, and warm";
+    else if (tone === "professional")
+      toneInstruction = "professional, clean, and concise";
+    else if (tone === "enthusiastic")
+      toneInstruction = "enthusiastic, sales-oriented, and exciting";
+  }
 
   const emojiInstruction =
-    useEmojis === true || useEmojis === "true"
+    tierAllowsExtras && (useEmojis === true || useEmojis === "true")
       ? "Use relevant emojis in the description."
       : "Do NOT use any emojis in the description.";
 

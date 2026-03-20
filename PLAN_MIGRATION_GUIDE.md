@@ -4,12 +4,12 @@
 
 | Tier              | Old Daily | New Daily | Old Monthly | New Monthly |
 | ----------------- | --------- | --------- | ----------- | ----------- |
-| Free              | 3         | 3         | 10          | **5**       |
-| Starter (€3.99)   | 10        | **5**     | 200         | **75**      |
-| Pro (€9.99)       | 30        | **15**    | 600         | **300**     |
-| Business (€19.99) | 100       | **50**    | 2000        | **1000**    |
+| Free              | 2         | **3**     | 8           | **5**       |
+| Starter (€3.99)   | 15        | **5**     | 300         | **75**      |
+| Pro (€9.99)       | 40        | **15**    | 800         | **300**     |
+| Business (€19.99) | 75        | **50**    | 1500        | **1000**    |
 
-Free daily stayed the same. All other limits decreased.
+Free daily increased from 2 → 3. All monthly limits decreased. Paid tier daily limits decreased.
 
 ## How Limits Work (Important to Understand)
 

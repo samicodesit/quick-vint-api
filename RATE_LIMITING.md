@@ -18,25 +18,25 @@ The previous system allowed unlimited API calls for paid subscribers, leading to
 
 - 3 requests per minute
 - 3 requests per day
-- 10 requests per month
+- 5 requests per month
 
 **Starter (€3.99/mo):**
 
-- 8 requests per minute
-- 10 requests per day
-- 200 requests per month
+- 5 requests per minute
+- 5 requests per day
+- 75 requests per month
 
 **Pro (€9.99/mo):**
 
-- 15 requests per minute
-- 30 requests per day
-- 600 requests per month
+- 10 requests per minute
+- 15 requests per day
+- 300 requests per month
 
 **Business (€19.99/mo):**
 
-- 30 requests per minute
-- 100 requests per day
-- 2,000 requests per month
+- 20 requests per minute
+- 50 requests per day
+- 1,000 requests per month
 
 ### 2. Global Cost Protection
 

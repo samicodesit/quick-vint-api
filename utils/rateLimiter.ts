@@ -337,27 +337,24 @@ export class RateLimiter {
           error: "Too many requests. Please wait a moment before trying again.",
         };
       }
-      // 5. Check daily limits (if applicable)
-      // Business tier is exempt from daily limits
+      // 5. Check daily limits
       let effectiveDailyLimit: number | null = null;
-      if (profile.subscription_tier !== "business") {
-        if (
-          customLimits?.custom_daily_limit &&
-          customLimits.custom_limit_expires_at &&
-          new Date(customLimits.custom_limit_expires_at) > new Date()
-        ) {
-          effectiveDailyLimit = customLimits.custom_daily_limit;
-        } else {
-          effectiveDailyLimit = tierConfig.limits.daily;
-        }
+      if (
+        customLimits?.custom_daily_limit &&
+        customLimits.custom_limit_expires_at &&
+        new Date(customLimits.custom_limit_expires_at) > new Date()
+      ) {
+        effectiveDailyLimit = customLimits.custom_daily_limit;
+      } else {
+        effectiveDailyLimit = tierConfig.limits.daily;
+      }
 
-        if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
-          return {
-            allowed: false,
-            error:
-              "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
-          };
-        }
+      if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
+        return {
+          allowed: false,
+          error:
+            "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
+        };
       }
 
       // 6. All checks passed - return success but don't increment yet
@@ -400,12 +397,9 @@ export class RateLimiter {
 
       const ops: Promise<any>[] = [
         this.incrementCount(userId, "minute"),
+        this.incrementCount(userId, "day"),
         this.updateGlobalStats(),
       ];
-      // Only track daily counters for non-business users (business tier is exempt)
-      if (!isBusiness) {
-        ops.push(this.incrementCount(userId, "day"));
-      }
 
       await Promise.all(ops);
     } catch (err) {

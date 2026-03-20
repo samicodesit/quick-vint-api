@@ -10,5 +10,10 @@ export default function handler(_req: VercelRequest, res: VercelResponse) {
     return res.status(204).end();
   }
 
+  if (_req.method !== "GET") {
+    res.setHeader("Allow", "GET, OPTIONS");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   return res.status(200).json(getPublicTierConfigs());
 }

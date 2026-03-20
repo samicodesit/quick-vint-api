@@ -8,7 +8,7 @@ try {
 } catch (err) {
   console.error(
     "[rateLimiter] Failed to load ./tierConfig. Falling back to hardcoded TIER_CONFIGS.",
-    err
+    err,
   );
   // Fallback for backward compatibility — keep in sync with tierConfig.ts
   TIER_CONFIGS = {

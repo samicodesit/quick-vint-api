@@ -38,6 +38,7 @@ try {
         "Everything in Pro",
         "Up to 50 listings per day",
         "Dedicated support",
+        "Highest daily limits",
       ],
     },
   };

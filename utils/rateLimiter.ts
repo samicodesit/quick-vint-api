@@ -6,33 +6,33 @@ let TIER_CONFIGS: any;
 try {
   TIER_CONFIGS = require("./tierConfig").TIER_CONFIGS;
 } catch {
-  // Fallback for backward compatibility
+  // Fallback for backward compatibility — keep in sync with tierConfig.ts
   TIER_CONFIGS = {
     free: {
-      limits: { daily: 2, monthly: 8, burst: { perMinute: 3 } },
+      limits: { daily: 3, monthly: 5, burst: { perMinute: 3 } },
       features: ["AI-generated titles and descriptions", "Basic support"],
     },
     starter: {
-      limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
+      limits: { daily: 5, monthly: 75, burst: { perMinute: 5 } },
       features: [
         "AI-generated titles and descriptions",
         "Priority support",
-        "Up to 15 listings per day",
+        "Up to 5 listings per day",
       ],
     },
     pro: {
-      limits: { daily: 40, monthly: 800, burst: { perMinute: 20 } },
+      limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
       features: [
         "Everything in Starter",
-        "Up to 40 listings per day",
-        "Priority processing",
+        "Up to 15 listings per day",
+        "Tone & emoji customization",
       ],
     },
     business: {
-      limits: { daily: 75, monthly: 1500, burst: { perMinute: 30 } },
+      limits: { daily: 50, monthly: 1000, burst: { perMinute: 20 } },
       features: [
         "Everything in Pro",
-        "Up to 75 listings per day",
+        "Up to 50 listings per day",
         "Dedicated support",
       ],
     },

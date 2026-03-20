@@ -14,24 +14,29 @@ The previous system allowed unlimited API calls for paid subscribers, leading to
 
 ### 1. Multi-Tier Rate Limiting
 
-**Free Tier:**
+**Free:**
 
-- 2 requests per minute
-- 20 requests per day
-- 5 requests per month
+- 3 requests per minute
+- 3 requests per day
+- 10 requests per month
 
-**Unlimited Monthly:**
-
-- 5 requests per minute
-  -- 10 requests per minute
-  -- 30 requests per minute
-  -- 50 requests per minute
-
-**Unlimited Annual:**
+**Starter (€3.99/mo):**
 
 - 8 requests per minute
-- 150 requests per day
-- 1,500 requests per month
+- 10 requests per day
+- 200 requests per month
+
+**Pro (€9.99/mo):**
+
+- 15 requests per minute
+- 30 requests per day
+- 600 requests per month
+
+**Business (€19.99/mo):**
+
+- 30 requests per minute
+- 100 requests per day
+- 2,000 requests per month
 
 ### 2. Global Cost Protection
 

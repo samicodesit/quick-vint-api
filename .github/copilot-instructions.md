@@ -25,6 +25,6 @@ This backend API (`quick-vint-api`) serves the Chrome extension (`quick-vint`). 
 | Basic generation | ✓    | ✓       | ✓   | ✓        |
 | Tone selection   | ✗    | ✗       | ✓   | ✓        |
 | Emoji toggle     | ✗    | ✗       | ✓   | ✓        |
-| Daily limit      | 2    | 15      | 40  | 75       |
+| Daily limit      | 3    | 5       | 15  | 50       |
 
 **Important:** All feature gating must be enforced server-side. Pro/Business tiers only: emojis and tone customization.

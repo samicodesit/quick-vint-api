@@ -25,18 +25,18 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
   free: {
     id: "free",
     name: "free",
-    displayName: "Free Trial",
+    displayName: "Free",
     description: "Get a taste of AutoLister AI",
     monthlyPrice: 0,
     stripe: {
-      productId: "prod_T5HLolJrCnS2x6", // Replace with actual Stripe product ID
-      priceId: "price_1S96mcP5rNq9hGDSGMayEHQ1", // Replace with actual Stripe price ID
+      productId: "prod_T5HLolJrCnS2x6",
+      priceId: "price_1S96mcP5rNq9hGDSGMayEHQ1",
     },
     limits: {
-      daily: 2, // Very restrictive - just a taste!
-      monthly: 8, // About 3 uses over 3-4 days max
+      daily: 3,
+      monthly: 5,
       burst: {
-        perMinute: 3, // Allow a couple quick tries
+        perMinute: 3,
       },
     },
     features: ["AI-generated titles and descriptions", "Basic support"],
@@ -49,20 +49,20 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
     description: "Perfect for casual Vinted sellers",
     monthlyPrice: 3.99,
     stripe: {
-      productId: "prod_T5HLgwjVpMBXzZ", // Replace with actual Stripe product ID
-      priceId: "price_1S96n6P5rNq9hGDSjEHrJV5g", // Replace with actual Stripe price ID
+      productId: "prod_T5HLgwjVpMBXzZ",
+      priceId: "price_1S96n6P5rNq9hGDSjEHrJV5g",
     },
     limits: {
-      daily: 15, // $0.30/day cost = $9/month - losing money but growth focused
-      monthly: 300, // 10 requests/day average with burst capacity
+      daily: 5,
+      monthly: 75,
       burst: {
-        perMinute: 10,
+        perMinute: 5,
       },
     },
     features: [
       "AI-generated titles and descriptions",
       "Priority support",
-      "Up to 15 listings per day",
+      "Up to 5 listings per day",
     ],
   },
 
@@ -73,20 +73,20 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
     description: "For active sellers listing daily",
     monthlyPrice: 9.99,
     stripe: {
-      productId: "prod_T5HMxldgRIjyyn", // Replace with actual Stripe product ID
-      priceId: "price_1S96o0P5rNq9hGDStClke9za", // Replace with actual Stripe price ID
+      productId: "prod_T5HMxldgRIjyyn",
+      priceId: "price_1S96o0P5rNq9hGDStClke9za",
     },
     limits: {
-      daily: 40, // $0.80/day cost = $24/month - profitable!
-      monthly: 800, // 25+ requests/day average
+      daily: 15,
+      monthly: 300,
       burst: {
-        perMinute: 20,
+        perMinute: 10,
       },
     },
     features: [
       "Everything in Starter",
-      "Up to 40 listings per day",
-      "Priority processing",
+      "Up to 15 listings per day",
+      "Tone & emoji customization",
     ],
   },
 
@@ -97,19 +97,19 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
     description: "For resellers and high-volume sellers",
     monthlyPrice: 19.99,
     stripe: {
-      productId: "prod_T5HM9khIl1EvUA", // Replace with actual Stripe product ID
-      priceId: "price_1S96oFP5rNq9hGDSPZ1RpKHJ", // Replace with actual Stripe price ID
+      productId: "prod_T5HM9khIl1EvUA",
+      priceId: "price_1S96oFP5rNq9hGDSPZ1RpKHJ",
     },
     limits: {
-      daily: 75, // $1.50/day cost = $45/month - good margins
-      monthly: 1500, // High ceiling
+      daily: 50,
+      monthly: 1000,
       burst: {
-        perMinute: 30,
+        perMinute: 20,
       },
     },
     features: [
       "Everything in Pro",
-      "Up to 75 listings per day",
+      "Up to 50 listings per day",
       "Dedicated support",
       "Highest daily limits",
     ],
@@ -142,4 +142,32 @@ export function getTierByStripePriceId(priceId: string): TierConfig | null {
 
 export function getAllPaidTiers(): TierConfig[] {
   return Object.values(TIER_CONFIGS).filter((tier) => tier.monthlyPrice > 0);
+}
+
+/**
+ * Returns a client-safe subset of tier configs (no Stripe secrets).
+ * Used by the /api/tier-config endpoint so the extension can stay in sync.
+ */
+export function getPublicTierConfigs() {
+  const publicConfigs: Record<
+    string,
+    {
+      displayName: string;
+      monthlyPrice: number;
+      limits: { daily: number; monthly: number };
+      features: string[];
+    }
+  > = {};
+  for (const [key, tier] of Object.entries(TIER_CONFIGS)) {
+    publicConfigs[key] = {
+      displayName: tier.displayName,
+      monthlyPrice: tier.monthlyPrice,
+      limits: {
+        daily: tier.limits.daily,
+        monthly: tier.limits.monthly,
+      },
+      features: tier.features,
+    };
+  }
+  return publicConfigs;
 }

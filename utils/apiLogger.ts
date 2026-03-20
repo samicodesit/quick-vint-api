@@ -1,5 +1,5 @@
-import { supabase } from "./supabaseClient";
 import type { VercelRequest } from "@vercel/node";
+import { supabase } from "./supabaseClient";
 
 export interface ApiLogData {
   userId?: string;

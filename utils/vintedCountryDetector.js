@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // Enhanced Vinted Country Detection
 // This provides a more reliable way to detect user location for Vinted redirects
 
@@ -123,8 +124,8 @@ export class VintedCountryDetector {
       }
 
       return null;
-    } catch (e) {
-      console.warn("IP detection failed:", e);
+    } catch (_e) {
+      console.warn("IP detection failed:", _e);
       return null;
     }
   }
@@ -154,7 +155,7 @@ export class VintedCountryDetector {
         console.log("Country detected by IP:", country);
         return country;
       }
-    } catch (e) {
+    } catch {
       console.warn("IP detection unavailable");
     }
 

@@ -4,6 +4,7 @@ import { getPublicTierConfigs } from "../utils/tierConfig";
 export default function handler(_req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
   res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
 
   if (_req.method === "OPTIONS") {

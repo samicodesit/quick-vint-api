@@ -18,7 +18,7 @@ Limits are **NOT stored in the database per user**. Here's the flow:
 1. User makes a request to `/api/generate`
 2. Backend looks at user's `subscription_tier` field in the `profiles` table (e.g., `"starter"`)
 3. Backend looks up that tier's limits in `utils/tierConfig.ts`
-4. Backend checks the `rate_limits` table for current usage counts
+4. Backend checks usage counts: **minute/daily** from the `rate_limits` table, **monthly** from `profiles.api_calls_this_month`
 5. If usage < limit → allowed. If usage >= limit → blocked.
 
 This means: **the moment you deploy the new `tierConfig.ts`, ALL users get the new limits immediately**. No database migration needed. No per-user changes.
@@ -62,24 +62,24 @@ For the published Chrome Web Store version: submit a new version through the Chr
 
 ### Free users
 
-- **Monthly limit drops from 10 → 5**. Some users who already used 6-10 this month will see "monthly limit reached" until the month resets.
+- **Daily limit increases from 2 → 3, monthly limit drops from 8 → 5**. Some users who already used 6-8 this month will see "monthly limit reached" until the month resets.
 - This is fine — they're free users and the goal is to drive upgrades.
 
 ### Starter subscribers (€3.99/month)
 
-- Daily drops 10 → 5, monthly drops 200 → 75.
-- **In practice:** Most casual sellers use 2-4/day. Very few hit even 5/day. The monthly drop from 200 to 75 is more noticeable, but 75 = ~2.5/day average, which covers most casual patterns.
-- **Risk**: If a Starter user was consistently listing 6-10 items/day, they'll hit the new daily cap. This is intentional — it pushes them toward Pro.
+- Daily drops 15 → 5, monthly drops 300 → 75.
+- **In practice:** Most casual sellers use 2-4/day. Very few hit even 5/day. The monthly drop from 300 to 75 is more noticeable, but 75 = ~2.5/day average, which covers most casual patterns.
+- **Risk**: If a Starter user was consistently listing 6-15 items/day, they'll hit the new daily cap. This is intentional — it pushes them toward Pro.
 
 ### Pro subscribers (€9.99/month)
 
-- Daily drops 30 → 15, monthly drops 600 → 300.
+- Daily drops 40 → 15, monthly drops 800 → 300.
 - **In practice**: Very few Vinted sellers list 15+ items in a single day. 300/month = 10/day average, plenty for active sellers.
 - **Risk**: Low. An active seller doing 10/day would use ~300/month, exactly at the cap. But most active sellers are more like 5-7/day.
 
 ### Business subscribers (€19.99/month)
 
-- Daily drops 100 → 50, monthly drops 2000 → 1000.
+- Daily drops 75 → 50, monthly drops 1500 → 1000.
 - **In practice**: 50/day is still massive. Even power resellers rarely list 50 items in a single day on Vinted.
 - **Risk**: Minimal.
 
@@ -140,23 +140,24 @@ If you really want to let existing subscribers keep their old limits until their
 
 ```sql
 ALTER TABLE profiles ADD COLUMN custom_daily_limit INTEGER DEFAULT NULL;
-ALTER TABLE profiles ADD COLUMN custom_monthly_limit INTEGER DEFAULT NULL;
 ```
 
 2. Set old limits for current subscribers:
 
 ```sql
-UPDATE profiles SET custom_daily_limit = 10, custom_monthly_limit = 200
+UPDATE profiles SET custom_daily_limit = 15
 WHERE subscription_tier = 'starter' AND subscription_status = 'active';
 
-UPDATE profiles SET custom_daily_limit = 30, custom_monthly_limit = 600
+UPDATE profiles SET custom_daily_limit = 40
 WHERE subscription_tier = 'pro' AND subscription_status = 'active';
 
-UPDATE profiles SET custom_daily_limit = 100, custom_monthly_limit = 2000
+UPDATE profiles SET custom_daily_limit = 75
 WHERE subscription_tier = 'business' AND subscription_status = 'active';
 ```
 
-3. Modify `RateLimiter.getTierConfig()` in `rateLimiter.ts` to check `custom_daily_limit` / `custom_monthly_limit` first, falling back to `tierConfig.ts`.
+> **Note:** Only `custom_daily_limit` is currently supported by the rate limiter. Monthly limits are tracked via `profiles.api_calls_this_month` and compared against `tierConfig.ts` — there is no `custom_monthly_limit` override path in the current code. If monthly grandfathering is needed, that would require additional code changes in `rateLimiter.ts`.
+
+3. Modify `RateLimiter.checkRateLimit()` in `rateLimiter.ts` to check `custom_daily_limit` / `custom_limit_expires_at` first, falling back to `tierConfig.ts` (this is already implemented).
 
 4. Add a Stripe webhook handler for `invoice.paid` that clears the custom limits (sets them back to NULL) when the subscription renews.
 

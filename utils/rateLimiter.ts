@@ -5,7 +5,11 @@ import { supabase } from "./supabaseClient";
 let TIER_CONFIGS: any;
 try {
   TIER_CONFIGS = require("./tierConfig").TIER_CONFIGS;
-} catch {
+} catch (err) {
+  console.error(
+    "[rateLimiter] Failed to load ./tierConfig. Falling back to hardcoded TIER_CONFIGS.",
+    err
+  );
   // Fallback for backward compatibility — keep in sync with tierConfig.ts
   TIER_CONFIGS = {
     free: {
@@ -386,15 +390,6 @@ export class RateLimiter {
   // Record successful API generation - only call this after OpenAI succeeds
   static async recordSuccessfulRequest(userId: string): Promise<void> {
     try {
-      // Fetch user's profile to determine if we should write a daily counter
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscription_tier")
-        .eq("id", userId)
-        .single();
-
-      const isBusiness = profile?.subscription_tier === "business";
-
       const ops: Promise<any>[] = [
         this.incrementCount(userId, "minute"),
         this.incrementCount(userId, "day"),

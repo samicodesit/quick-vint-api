@@ -11,7 +11,8 @@ export interface TierConfig {
     priceId: string;
   };
   limits: {
-    daily: number;
+    /** null = no per-day limit (free tier uses a lifetime total tracked via `monthly`) */
+    daily: number | null;
     monthly: number;
     burst: {
       perMinute: number;
@@ -33,8 +34,8 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       priceId: "price_1S96mcP5rNq9hGDSGMayEHQ1",
     },
     limits: {
-      daily: 3,
-      monthly: 5,
+      daily: null, // No per-day cap — lifetime total enforced via `monthly`
+      monthly: 4, // Lifetime total (never reset for free users)
       burst: {
         perMinute: 3,
       },
@@ -154,7 +155,7 @@ export function getPublicTierConfigs() {
     {
       displayName: string;
       monthlyPrice: number;
-      limits: { daily: number; monthly: number };
+      limits: { daily: number | null; monthly: number };
       features: string[];
     }
   > = {};

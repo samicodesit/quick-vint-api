@@ -20,11 +20,13 @@ This backend API (`quick-vint-api`) serves the Chrome extension (`quick-vint`). 
 
 ## Subscription Tiers
 
-| Feature          | Free | Starter | Pro | Business |
-| ---------------- | ---- | ------- | --- | -------- |
-| Basic generation | ✓    | ✓       | ✓   | ✓        |
-| Tone selection   | ✗    | ✗       | ✓   | ✓        |
-| Emoji toggle     | ✗    | ✗       | ✓   | ✓        |
-| Daily limit      | 3    | 5       | 15  | 50       |
+| Feature            | Free          | Starter | Pro | Business |
+| ------------------ | ------------- | ------- | --- | -------- |
+| Basic generation   | ✓             | ✓       | ✓   | ✓        |
+| Tone selection     | ✗             | ✗       | ✓   | ✓        |
+| Emoji toggle       | ✗             | ✗       | ✓   | ✓        |
+| Daily limit        | none          | 5       | 15  | 50       |
+| Monthly limit      | —             | 75      | 300 | 1000     |
+| Lifetime limit     | 4 (one-time)  | —       | —   | —        |
 
 **Important:** All feature gating must be enforced server-side. Pro/Business tiers only: emojis and tone customization.

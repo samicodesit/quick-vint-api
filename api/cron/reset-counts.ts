@@ -14,7 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Find and update all profiles whose current period started more than 30 days ago
+  // Find and update all profiles whose current period started more than 30 days ago.
+  // Only reset active (paid) subscribers — free users have a lifetime total that must never reset.
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -22,7 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Reset the period start to today for the next 30-day cycle
       last_api_call_reset: new Date().toISOString(),
     })
-    .lte("last_api_call_reset", thirtyDaysAgo.toISOString()); // Use 'lte' (less than or equal)
+    .lte("last_api_call_reset", thirtyDaysAgo.toISOString()) // Use 'lte' (less than or equal)
+    .eq("subscription_status", "active"); // Never reset free-tier lifetime counters
 
   if (error) {
     console.error("Daily cron job failed:", error);

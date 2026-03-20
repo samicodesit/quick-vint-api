@@ -13,7 +13,7 @@ try {
   // Fallback for backward compatibility — keep in sync with tierConfig.ts
   TIER_CONFIGS = {
     free: {
-      limits: { daily: 3, monthly: 5, burst: { perMinute: 3 } },
+      limits: { daily: null, monthly: 4, burst: { perMinute: 3 } },
       features: ["AI-generated titles and descriptions", "Basic support"],
     },
     starter: {
@@ -50,7 +50,7 @@ const OPENAI_COST_PER_REQUEST_USD = 0.0201; // Based on actual dashboard: $6.12/
 
 interface TierConfig {
   limits: {
-    daily: number;
+    daily: number | null;
     monthly: number;
     burst: { perMinute: number };
   };
@@ -323,12 +323,14 @@ export class RateLimiter {
 
       const tierConfig = this.getTierConfig(profile);
 
-      // 3. Check monthly limit (existing logic)
+      // 3. Check monthly limit (serves as lifetime total for free users)
+      const isFreeUser = profile.subscription_status !== "active";
       if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
         return {
           allowed: false,
-          error:
-            "Monthly usage limit reached. Please upgrade your plan or try again next month.",
+          error: isFreeUser
+            ? "Trial limit reached (4 uses). Upgrade to keep generating listings."
+            : "Monthly usage limit reached. Please upgrade your plan or try again next month.",
         };
       }
 
@@ -351,7 +353,7 @@ export class RateLimiter {
       ) {
         effectiveDailyLimit = customLimits.custom_daily_limit;
       } else {
-        effectiveDailyLimit = tierConfig.limits.daily;
+        effectiveDailyLimit = tierConfig.limits.daily ?? null;
       }
 
       if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {

@@ -16,9 +16,8 @@ The previous system allowed unlimited API calls for paid subscribers, leading to
 
 **Free:**
 
-- 3 requests per minute
-- 3 requests per day
-- 5 requests per month
+- 3 requests per minute (burst)
+- **4 lifetime requests total** (no daily reset — `api_calls_this_month` is never reset for free users)
 
 **Starter (€3.99/mo):**
 

@@ -4,12 +4,12 @@
 
 | Tier              | Old Daily | New Daily | Old Monthly | New Monthly |
 | ----------------- | --------- | --------- | ----------- | ----------- |
-| Free              | 2         | **3**     | 8           | **5**       |
+| Free              | 2         | **none**  | 8           | **4 (lifetime)** |
 | Starter (€3.99)   | 15        | **5**     | 300         | **75**      |
 | Pro (€9.99)       | 40        | **15**    | 800         | **300**     |
 | Business (€19.99) | 75        | **50**    | 1500        | **1000**    |
 
-Free daily increased from 2 → 3. All monthly limits decreased. Paid tier daily limits decreased.
+Free tier now has **no daily cap** and a **4-use lifetime trial** (tracked via `api_calls_this_month`, which is never reset for non-active subscribers). Paid tier daily limits decreased.
 
 ## How Limits Work (Important to Understand)
 

@@ -41,7 +41,7 @@ Once deployed, ALL users (free and paid) immediately operate under the new limit
 
 ```bash
 cd quick-vint
-npm run build        # rebuilds content.min.js
+npm run build        # sets API base URL via set-env.js
 ```
 
 Then:

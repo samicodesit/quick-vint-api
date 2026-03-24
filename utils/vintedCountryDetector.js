@@ -124,8 +124,8 @@ export class VintedCountryDetector {
       }
 
       return null;
-    } catch (_e) {
-      console.warn("IP detection failed:", _e);
+    } catch (e) {
+      console.warn("IP detection failed:", e);
       return null;
     }
   }

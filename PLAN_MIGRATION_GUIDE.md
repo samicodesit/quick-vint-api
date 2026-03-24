@@ -56,14 +56,14 @@ For the published Chrome Web Store version: submit a new version through the Chr
 
 - **Stripe**: No changes needed. Stripe handles billing (€3.99/€9.99/€19.99), not limits. Prices haven't changed.
 - **Supabase**: No schema changes needed. The `profiles` table stores `subscription_tier` (a string), and limits come from `tierConfig.ts`.
-- **Rate limits table**: No changes needed. It stores usage counts with expiry timestamps. Counts reset naturally (daily at midnight UTC, monthly on the 1st).
+- **Rate limits table**: No changes needed. It stores usage counts with expiry timestamps. Daily counters reset at midnight UTC; monthly usage for active subscribers resets on a rolling 30-day basis using `last_api_call_reset`. Free users' `api_calls_this_month` is never reset (lifetime trial).
 
 ## What Happens to Existing Users
 
 ### Free users
 
-- **Daily limit increases from 2 → 3, monthly limit drops from 8 → 5**. Some users who already used 6-8 this month will see "monthly limit reached" until the month resets.
-- This is fine — they're free users and the goal is to drive upgrades.
+- **Daily cap removed; Free becomes a 4-use lifetime trial.** Usage is tracked via `api_calls_this_month`, which is never reset for non-active (non-paying) users.
+- This is intentional — free users get just enough to try the product, then must upgrade.
 
 ### Starter subscribers (€3.99/month)
 

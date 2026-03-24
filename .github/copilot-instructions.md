@@ -25,7 +25,7 @@ This backend API (`quick-vint-api`) serves the Chrome extension (`quick-vint`). 
 | Basic generation   | ✓             | ✓       | ✓   | ✓        |
 | Tone selection     | ✗             | ✗       | ✓   | ✓        |
 | Emoji toggle       | ✗             | ✗       | ✓   | ✓        |
-| Daily limit        | none          | 5       | 15  | 50       |
+| Daily limit        | —             | 5       | 15  | 50       |
 | Monthly limit      | —             | 75      | 300 | 1000     |
 | Lifetime limit     | 4 (one-time)  | —       | —   | —        |
 

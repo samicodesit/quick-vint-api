@@ -5,35 +5,40 @@ import { supabase } from "./supabaseClient";
 let TIER_CONFIGS: any;
 try {
   TIER_CONFIGS = require("./tierConfig").TIER_CONFIGS;
-} catch {
-  // Fallback for backward compatibility
+} catch (err) {
+  console.error(
+    "[rateLimiter] Failed to load ./tierConfig. Falling back to hardcoded TIER_CONFIGS.",
+    err,
+  );
+  // Fallback for backward compatibility — keep in sync with tierConfig.ts
   TIER_CONFIGS = {
     free: {
-      limits: { daily: 2, monthly: 8, burst: { perMinute: 3 } },
+      limits: { daily: null, monthly: 4, burst: { perMinute: 3 } },
       features: ["AI-generated titles and descriptions", "Basic support"],
     },
     starter: {
-      limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
+      limits: { daily: 5, monthly: 75, burst: { perMinute: 5 } },
       features: [
         "AI-generated titles and descriptions",
         "Priority support",
-        "Up to 15 listings per day",
+        "Up to 5 listings per day",
       ],
     },
     pro: {
-      limits: { daily: 40, monthly: 800, burst: { perMinute: 20 } },
+      limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
       features: [
         "Everything in Starter",
-        "Up to 40 listings per day",
-        "Priority processing",
+        "Up to 15 listings per day",
+        "Tone & emoji customization",
       ],
     },
     business: {
-      limits: { daily: 75, monthly: 1500, burst: { perMinute: 30 } },
+      limits: { daily: 50, monthly: 1000, burst: { perMinute: 20 } },
       features: [
         "Everything in Pro",
-        "Up to 75 listings per day",
+        "Up to 50 listings per day",
         "Dedicated support",
+        "Highest daily limits",
       ],
     },
   };
@@ -45,7 +50,7 @@ const OPENAI_COST_PER_REQUEST_USD = 0.0201; // Based on actual dashboard: $6.12/
 
 interface TierConfig {
   limits: {
-    daily: number;
+    daily: number | null;
     monthly: number;
     burst: { perMinute: number };
   };
@@ -318,12 +323,14 @@ export class RateLimiter {
 
       const tierConfig = this.getTierConfig(profile);
 
-      // 3. Check monthly limit (existing logic)
+      // 3. Check monthly limit (serves as lifetime total for free users)
+      const isFreeUser = profile.subscription_status !== "active";
       if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
         return {
           allowed: false,
-          error:
-            "Monthly usage limit reached. Please upgrade your plan or try again next month.",
+          error: isFreeUser
+            ? "Trial limit reached (4 uses). Upgrade to keep generating listings."
+            : "Monthly usage limit reached. Please upgrade your plan or try again next month.",
         };
       }
 
@@ -337,27 +344,24 @@ export class RateLimiter {
           error: "Too many requests. Please wait a moment before trying again.",
         };
       }
-      // 5. Check daily limits (if applicable)
-      // Business tier is exempt from daily limits
+      // 5. Check daily limits
       let effectiveDailyLimit: number | null = null;
-      if (profile.subscription_tier !== "business") {
-        if (
-          customLimits?.custom_daily_limit &&
-          customLimits.custom_limit_expires_at &&
-          new Date(customLimits.custom_limit_expires_at) > new Date()
-        ) {
-          effectiveDailyLimit = customLimits.custom_daily_limit;
-        } else {
-          effectiveDailyLimit = tierConfig.limits.daily;
-        }
+      if (
+        customLimits?.custom_daily_limit &&
+        customLimits.custom_limit_expires_at &&
+        new Date(customLimits.custom_limit_expires_at) > new Date()
+      ) {
+        effectiveDailyLimit = customLimits.custom_daily_limit;
+      } else {
+        effectiveDailyLimit = tierConfig.limits.daily ?? null;
+      }
 
-        if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
-          return {
-            allowed: false,
-            error:
-              "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
-          };
-        }
+      if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
+        return {
+          allowed: false,
+          error:
+            "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
+        };
       }
 
       // 6. All checks passed - return success but don't increment yet
@@ -389,23 +393,11 @@ export class RateLimiter {
   // Record successful API generation - only call this after OpenAI succeeds
   static async recordSuccessfulRequest(userId: string): Promise<void> {
     try {
-      // Fetch user's profile to determine if we should write a daily counter
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscription_tier")
-        .eq("id", userId)
-        .single();
-
-      const isBusiness = profile?.subscription_tier === "business";
-
       const ops: Promise<any>[] = [
         this.incrementCount(userId, "minute"),
+        this.incrementCount(userId, "day"),
         this.updateGlobalStats(),
       ];
-      // Only track daily counters for non-business users (business tier is exempt)
-      if (!isBusiness) {
-        ops.push(this.incrementCount(userId, "day"));
-      }
 
       await Promise.all(ops);
     } catch (err) {

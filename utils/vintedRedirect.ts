@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // Vinted Country URL mapping for create listing pages
 // Based on Vinted's international domains and their create listing URLs
 
@@ -84,7 +85,7 @@ export function detectUserCountryAndGetVintedUrl(): string {
         "America/Vancouver": "CA",
       };
       countryCode = timezoneToCountry[timezone];
-    } catch (e) {
+    } catch {
       // Fallback if Intl is not available
     }
   }

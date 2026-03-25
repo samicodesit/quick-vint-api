@@ -79,6 +79,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 subscription_tier: tier,
                 subscription_status: status,
                 current_period_end: currentPeriodEnd,
+                // Reset usage counter: on free plan this was a lifetime total;
+                // on a paid plan it becomes a monthly total, so start fresh.
+                api_calls_this_month: 0,
               })
               .eq("id", profileRow.id);
           }
@@ -131,6 +134,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         if (profileRow) {
+          // Only reset the usage counter when transitioning from free → paid
+          // (status becomes "active"). Avoid resetting on renewals or other updates.
+          const { data: existingProfile } = await supabase
+            .from("profiles")
+            .select("subscription_status")
+            .eq("id", profileRow.id)
+            .single();
+
+          const wasNotActive = existingProfile?.subscription_status !== "active";
+          const isNowActive = status === "active";
+
           await supabase
             .from("profiles")
             .update({
@@ -138,6 +152,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               subscription_tier: tier,
               subscription_status: status,
               current_period_end: currentPeriodEnd,
+              // Reset usage counter only when first activating a paid plan
+              ...(wasNotActive && isNowActive ? { api_calls_this_month: 0 } : {}),
             })
             .eq("id", profileRow.id);
         }

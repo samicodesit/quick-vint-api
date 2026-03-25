@@ -31,6 +31,15 @@ module.exports = [
         require: "readonly",
         module: "readonly",
         __dirname: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        navigator: "readonly",
+        fetch: "readonly",
       },
     },
     plugins: {
@@ -41,10 +50,16 @@ module.exports = [
       "@typescript-eslint/no-explicit-any": "off",
       // don’t force every export’s return type
       "@typescript-eslint/explicit-module-boundary-types": "off",
-      // but still catch truly unused vars
+      // disable base rule — @typescript-eslint/no-unused-vars handles it
+      "no-unused-vars": "off",
+      // catch truly unused vars; _ prefix exempts intentionally unused
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_" },
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
       ],
     },
   },

@@ -14,7 +14,8 @@ import messagesDe from "../messages/de.json";
 import messagesNl from "../messages/nl.json";
 import messagesPl from "../messages/pl.json";
 
-const OPEN_AI_MODEL = "gpt-4o-mini";
+const OPEN_AI_MODEL = "gpt-4o";
+const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -280,7 +281,7 @@ Reply only in JSON: {"title":"...","description":"..."}
   try {
     const parts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
       type: "image_url",
-      image_url: { url, detail: "auto" },
+      image_url: { url, detail: OPEN_AI_IMAGE_DETAIL },
     }));
     const chat = await openai.chat.completions.create({
       model: OPEN_AI_MODEL,

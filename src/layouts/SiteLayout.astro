@@ -1,4 +1,6 @@
 ---
+import "../styles/global.css";
+
 export let title =
   "AutoLister AI - The #1 Vinted Description Generator & Lister";
 export let description =
@@ -6,11 +8,11 @@ export let description =
 export let canonical: string | URL | null | undefined;
 export let ogUrl = "https://autolister.app/";
 export let ogImage = "https://autolister.app/banner.png";
-import "../styles/global.css";
+export let htmlLang = "en";
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth">
+<html lang={htmlLang} class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -33,6 +35,7 @@ import "../styles/global.css";
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content={ogImage} />
+    <slot name="head" />
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-F2QL50WB6M"
@@ -40,7 +43,7 @@ import "../styles/global.css";
     <script is:inline>
       window.dataLayer = window.dataLayer || [];
 
-      function gtag(...args: any[]) {
+      function gtag(...args) {
         window.dataLayer.push(args);
       }
 

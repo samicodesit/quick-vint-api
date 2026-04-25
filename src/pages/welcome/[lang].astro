@@ -1,0 +1,303 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import {
+  DEFAULT_WELCOME_LOCALE,
+  SUPPORTED_WELCOME_LOCALES,
+  WELCOME_COPY,
+  normalizeWelcomeLocale,
+} from "../../i18n/welcome.js";
+import type { WelcomeLocale } from "../../i18n/welcome.js";
+
+export function getStaticPaths() {
+  return SUPPORTED_WELCOME_LOCALES.map((lang: WelcomeLocale) => ({
+    params: { lang },
+  }));
+}
+
+const locale = normalizeWelcomeLocale(Astro.params.lang);
+const copy = WELCOME_COPY[locale];
+const baseUrl = "https://autolister.app";
+const welcomePath = `/welcome/${locale}`;
+const canonical = `${baseUrl}${welcomePath}`;
+---
+
+<SiteLayout
+  title={copy.seoTitle}
+  description={copy.seoDescription}
+  canonical={canonical}
+  ogUrl={canonical}
+  htmlLang={locale}
+>
+  <Fragment slot="head">
+    <link rel="alternate" hreflang="en" href={`${baseUrl}/welcome/en`} />
+    <link rel="alternate" hreflang="fr" href={`${baseUrl}/welcome/fr`} />
+    <link rel="alternate" hreflang="de" href={`${baseUrl}/welcome/de`} />
+    <link rel="alternate" hreflang="nl" href={`${baseUrl}/welcome/nl`} />
+    <link rel="alternate" hreflang="pl" href={`${baseUrl}/welcome/pl`} />
+    <link rel="alternate" hreflang="es" href={`${baseUrl}/welcome/es`} />
+    <link rel="alternate" hreflang="it" href={`${baseUrl}/welcome/it`} />
+    <link rel="alternate" hreflang="pt" href={`${baseUrl}/welcome/pt`} />
+    <link rel="alternate" hreflang="x-default" href={`${baseUrl}/welcome/en`} />
+  </Fragment>
+
+  <main class="relative pt-32 pb-16 lg:pt-36 lg:pb-20 overflow-hidden bg-white">
+    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <div
+        class="absolute top-0 left-1/4 w-96 h-96 bg-brand-100 rounded-full blur-3xl opacity-70"
+      >
+      </div>
+      <div
+        class="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-60"
+      >
+      </div>
+    </div>
+
+    <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div
+        class="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-slate-200/40"
+      >
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
+        >
+          <span
+            class="inline-flex items-center px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold uppercase tracking-wider"
+          >
+            {copy.heroBadge}
+          </span>
+
+          <label
+            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
+            for="language-switcher"
+          >
+            <span>{copy.switcherLabel}</span>
+            <select
+              id="language-switcher"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-brand-400 focus:outline-none"
+              data-current-locale={locale}
+            >
+              {
+                SUPPORTED_WELCOME_LOCALES.map((langCode: WelcomeLocale) => (
+                  <option value={langCode} selected={langCode === locale}>
+                    {WELCOME_COPY[langCode].languageName}
+                  </option>
+                ))
+              }
+            </select>
+          </label>
+        </div>
+
+        <h1
+          class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight text-balance mb-4"
+        >
+          {copy.heroTitle}
+        </h1>
+
+        <p class="text-lg text-slate-600 leading-relaxed mb-8">
+          {copy.heroSubtitle}
+        </p>
+
+        <div
+          class="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 mb-8"
+        >
+          <h2 class="text-lg font-bold text-slate-900 mb-4">
+            {copy.stepsTitle}
+          </h2>
+          <ol class="space-y-3">
+            {
+              copy.steps.map((step: string, index: number) => (
+                <li class="flex items-start gap-3 text-slate-700">
+                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white text-sm font-bold">
+                    {index + 1}
+                  </span>
+                  <span class="pt-0.5 text-base font-medium">{step}</span>
+                </li>
+              ))
+            }
+          </ol>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <a
+            id="welcome-primary-cta"
+            href="https://www.vinted.com/items/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-bold text-white bg-brand-600 rounded-2xl hover:bg-brand-700 transition-all hover:-translate-y-0.5 shadow-lg shadow-brand-600/25 no-underline"
+          >
+            {copy.primaryCta}
+          </a>
+          <a
+            id="welcome-pricing-cta"
+            href="/pricing"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-bold text-brand-700 bg-brand-50 border border-brand-200 rounded-2xl hover:bg-brand-100 transition-colors no-underline"
+          >
+            {copy.secondaryCta}
+          </a>
+        </div>
+
+        <p class="mt-4 text-sm text-slate-600">
+          <a
+            id="welcome-fallback-link"
+            href="https://www.vinted.com/items/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-brand-700 font-semibold hover:text-brand-800"
+          >
+            {copy.fallbackCta}
+          </a>
+        </p>
+
+        <p class="mt-5 text-sm text-slate-600">{copy.reassurance}</p>
+        <p class="mt-2 text-sm text-slate-500">{copy.compliance}</p>
+      </div>
+    </section>
+  </main>
+
+  <script
+    is:inline
+    define:vars={{ locale, welcomePath, defaultLocale: DEFAULT_WELCOME_LOCALE }}
+  >
+    const VINTED_DOMAINS = {
+      FR: "vinted.fr",
+      DE: "vinted.de",
+      GB: "vinted.co.uk",
+      UK: "vinted.co.uk",
+      ES: "vinted.es",
+      IT: "vinted.it",
+      BE: "vinted.be",
+      NL: "vinted.nl",
+      AT: "vinted.at",
+      PL: "vinted.pl",
+      CZ: "vinted.cz",
+      LT: "vinted.lt",
+      LV: "vinted.lv",
+      LU: "vinted.lu",
+      PT: "vinted.pt",
+      US: "vinted.com",
+      CA: "vinted.ca",
+      DEFAULT: "vinted.com",
+    };
+
+    const TIMEZONE_TO_COUNTRY = {
+      "Europe/Paris": "FR",
+      "Europe/Berlin": "DE",
+      "Europe/London": "GB",
+      "Europe/Madrid": "ES",
+      "Europe/Rome": "IT",
+      "Europe/Brussels": "BE",
+      "Europe/Amsterdam": "NL",
+      "Europe/Vienna": "AT",
+      "Europe/Warsaw": "PL",
+      "Europe/Prague": "CZ",
+      "Europe/Vilnius": "LT",
+      "Europe/Riga": "LV",
+      "Europe/Luxembourg": "LU",
+      "Europe/Lisbon": "PT",
+      "America/New_York": "US",
+      "America/Chicago": "US",
+      "America/Denver": "US",
+      "America/Los_Angeles": "US",
+      "America/Toronto": "CA",
+      "America/Vancouver": "CA",
+      "America/Montreal": "CA",
+    };
+
+    const primaryCta = document.getElementById("welcome-primary-cta");
+    const pricingCta = document.getElementById("welcome-pricing-cta");
+    const languageSwitcher = document.getElementById("language-switcher");
+
+    function getQueryParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        source: params.get("source") || params.get("utm_source") || "unknown",
+        medium: params.get("medium") || params.get("utm_medium") || "unknown",
+        campaign:
+          params.get("campaign") || params.get("utm_campaign") || "unknown",
+      };
+    }
+
+    function detectCountryCode() {
+      try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const timezoneCountry = TIMEZONE_TO_COUNTRY[timezone];
+        if (timezoneCountry) return timezoneCountry;
+      } catch (_error) {
+        // fall through
+      }
+
+      const languageCandidates = [
+        navigator.language,
+        ...(navigator.languages || []),
+      ].filter(Boolean);
+      for (const langEntry of languageCandidates) {
+        const region = langEntry.split(/[-_]/)[1]?.toUpperCase();
+        if (region && VINTED_DOMAINS[region]) {
+          return region;
+        }
+      }
+
+      return "DEFAULT";
+    }
+
+    function getVintedListingUrl() {
+      const countryCode = detectCountryCode();
+      const domain = VINTED_DOMAINS[countryCode] || VINTED_DOMAINS.DEFAULT;
+      return `https://www.${domain}/items/new`;
+    }
+
+    function sendGtagEvent(eventName, extra = {}) {
+      const payload = {
+        locale,
+        page_path: welcomePath,
+        ...getQueryParams(),
+        ...extra,
+      };
+
+      if (typeof window.gtag === "function") {
+        window.gtag("event", eventName, payload);
+        return;
+      }
+
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: eventName, ...payload });
+    }
+
+    function withExistingQueryParams(url) {
+      const finalUrl = new URL(url, window.location.origin);
+      const currentParams = new URLSearchParams(window.location.search);
+      for (const [key, value] of currentParams.entries()) {
+        finalUrl.searchParams.set(key, value);
+      }
+      return finalUrl.pathname + finalUrl.search;
+    }
+
+    if (primaryCta) {
+      primaryCta.href = getVintedListingUrl();
+      primaryCta.addEventListener("click", () => {
+        sendGtagEvent("welcome_primary_cta_click", {
+          target_url: primaryCta.href,
+          detected_country: detectCountryCode(),
+        });
+      });
+    }
+
+    if (pricingCta) {
+      pricingCta.href = withExistingQueryParams("/pricing");
+      pricingCta.addEventListener("click", () => {
+        sendGtagEvent("welcome_secondary_pricing_click");
+      });
+    }
+
+    if (languageSwitcher) {
+      languageSwitcher.addEventListener("change", (event) => {
+        const selectedLocale = event.target?.value || defaultLocale;
+        sendGtagEvent("welcome_language_switch_click", {
+          selected_locale: selectedLocale,
+        });
+        window.location.href = withExistingQueryParams(
+          `/welcome/${selectedLocale}`,
+        );
+      });
+    }
+  </script>
+</SiteLayout>

@@ -1,8 +1,5 @@
 ---
-import type { SiteCopy, SiteLocale } from "../i18n/site.js";
-import { SITE_EXTRA_COPY } from "../i18n/site.js";
-
-type SiteExtraHomeCopy = (typeof SITE_EXTRA_COPY)[SiteLocale]["home"];
+import type { SiteCopy, SiteLocale, SiteExtraHomeCopy } from "../i18n/site.js";
 
 interface Props {
   copy: SiteCopy["home"];

@@ -115,7 +115,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Risque de ban nul - aucune connexion aux serveurs Vinted comme les bots",
       comparisonTitle: "AutoLister vs DotB et Vintex",
       comparisonSubtitle:
-        "DotB et Vintex vendent des bots d'automatisation. AutoLister reste un assistant de contenu sur.",
+        "DotB et Vintex vendent des bots d'automatisation. AutoLister reste un assistant de contenu sûr.",
     },
     pricing: {
       seoTitle: "Tarifs - AutoLister AI",
@@ -357,7 +357,7 @@ export function normalizeSiteLocale(input?: string | null): SiteLocale {
   return DEFAULT_SITE_LOCALE;
 }
 
-type SiteExtraHomeCopy = {
+export type SiteExtraHomeCopy = {
   watchDemo: string;
   videoCaption: string;
   // Hero bullets

@@ -118,12 +118,11 @@ const locale = normalizeSiteLocale(currentLocale);
 </div>
 
 <script>
-  // Document-level listeners registered once per page regardless of switcher count
-  let docListenersReady = false;
-
+  // Document-level listeners registered once per page regardless of switcher count.
+  // Uses a window flag so it's unambiguously shared across all component instances.
   function setupDocListeners() {
-    if (docListenersReady) return;
-    docListenersReady = true;
+    if ((window as any).__langSwitcherListenersReady) return;
+    (window as any).__langSwitcherListenersReady = true;
 
     document.addEventListener("click", (e) => {
       document
@@ -131,7 +130,9 @@ const locale = normalizeSiteLocale(currentLocale);
         .forEach((sw) => {
           if (sw.contains(e.target as Node)) return;
           const panel = sw.querySelector("[data-lang-panel]");
-          const trigger = sw.querySelector<HTMLButtonElement>("[data-lang-trigger]");
+          const trigger = sw.querySelector<HTMLButtonElement>(
+            "[data-lang-trigger]",
+          );
           const chevron = sw.querySelector<HTMLElement>("[data-chevron]");
           if (panel && !panel.classList.contains("hidden")) {
             panel.classList.add("hidden");
@@ -147,7 +148,9 @@ const locale = normalizeSiteLocale(currentLocale);
         .querySelectorAll<Element>("[data-lang-switcher][data-initialized]")
         .forEach((sw) => {
           const panel = sw.querySelector("[data-lang-panel]");
-          const trigger = sw.querySelector<HTMLButtonElement>("[data-lang-trigger]");
+          const trigger = sw.querySelector<HTMLButtonElement>(
+            "[data-lang-trigger]",
+          );
           const chevron = sw.querySelector<HTMLElement>("[data-chevron]");
           if (panel && !panel.classList.contains("hidden")) {
             panel.classList.add("hidden");

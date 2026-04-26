@@ -31,6 +31,15 @@ module.exports = [
         require: "readonly",
         module: "readonly",
         __dirname: "readonly",
+        // Node.js built-in globals (available in Node 18+)
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        setInterval: "readonly",
+        clearTimeout: "readonly",
+        clearInterval: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
       },
     },
     plugins: {
@@ -57,6 +66,18 @@ module.exports = [
     },
   },
 
-  // 5) Prettier integration
+  // 5) Browser globals for client-side utilities
+  {
+    files: ["utils/vintedCountryDetector.js", "utils/vintedRedirect.ts"],
+    languageOptions: {
+      globals: {
+        navigator: "readonly",
+        window: "readonly",
+        document: "readonly",
+      },
+    },
+  },
+
+  // 6) Prettier integration
   ...compat.extends("plugin:prettier/recommended"),
 ];

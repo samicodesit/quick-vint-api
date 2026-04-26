@@ -1,7 +1,6 @@
 import { DEFAULT_SITE_LOCALE } from "./site.js";
 import type { SiteLocale } from "./site.js";
 
-export { SiteLocale };
 export const LOCALE_FLAGS: Record<SiteLocale, string> = {
   en: "gb",
   fr: "fr",

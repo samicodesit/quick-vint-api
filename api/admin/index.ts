@@ -281,7 +281,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
 
 // --- LOGIC: Emergency Brake ---
 async function handleEmergencyBrake(req: VercelRequest, res: VercelResponse) {
-  const { subAction, reason } = req.body; // 'action' is used for routing, so use 'subAction' or check body
+  const { reason } = req.body; // 'action' is used for routing, so use 'subAction' or check body
 
   // Actually, the original code used 'action' in body.
   // Since we use 'action' query param for routing, let's look at body.action
@@ -327,7 +327,7 @@ async function handleEmergencyBrake(req: VercelRequest, res: VercelResponse) {
 async function handleFlagActivity(
   req: VercelRequest,
   res: VercelResponse,
-  adminId: string,
+  _adminId: string,
 ) {
   const { logId, reason } = req.body;
   if (!logId) return res.status(400).json({ error: "Missing logId" });

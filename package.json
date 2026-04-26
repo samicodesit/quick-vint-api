@@ -9,7 +9,9 @@
     "lint:fix": "eslint api/ utils/ --ext .ts --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
-    "format-check": "prettier --check \"**/*.{ts,js,json,md}\""
+    "format-check": "prettier --check \"**/*.{ts,js,json,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -44,7 +46,8 @@
     "eslint-plugin-prettier": "^5.4.0",
     "prettier": "^3.5.3",
     "ts-node": "10.9.2",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "vitest": "^4.1.5"
   },
   "overrides": {
     "@vercel/node": {

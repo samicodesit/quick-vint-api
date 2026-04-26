@@ -1,59 +1,48 @@
 ---
-import SiteLayout from "../layouts/SiteLayout.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import {
+  SITE_EXTRA_COPY,
+  SITE_COPY,
+  SUPPORTED_SITE_LOCALES,
+  normalizeSiteLocale,
+} from "../../i18n/site.js";
+import type { SiteLocale } from "../../i18n/site.js";
+
+export function getStaticPaths() {
+  return SUPPORTED_SITE_LOCALES.filter((lang) => lang !== "en").map(
+    (lang: SiteLocale) => ({ params: { lang } }),
+  );
+}
+
+const locale = normalizeSiteLocale(Astro.params.lang);
+const copy = SITE_COPY[locale];
+const extra = SITE_EXTRA_COPY[locale];
+const baseUrl = "https://autolister.app";
+const canonicalPath = locale === "en" ? "/pricing" : `/${locale}/pricing`;
+const canonical = `${baseUrl}${canonicalPath}`;
 ---
 
 <SiteLayout
-  title="Pricing - AutoLister AI"
-  description="Discover our simple and transparent pricing plans for AutoLister AI. Choose the perfect plan for your selling journey on Vinted, with options for every seller type. Scale up or down at any time."
-  canonical="https://autolister.app/pricing"
-  ogUrl="https://autolister.app/pricing"
-  htmlLang="en"
-  currentLocale="en"
+  title={copy.pricing.seoTitle}
+  description={copy.pricing.seoDescription}
+  canonical={canonical}
+  ogUrl={canonical}
+  htmlLang={locale}
+  currentLocale={locale}
   localeBasePath="/pricing"
 >
   <Fragment slot="head">
-    <link rel="alternate" hreflang="en" href="https://autolister.app/pricing" />
-    <link
-      rel="alternate"
-      hreflang="fr"
-      href="https://autolister.app/fr/pricing"
-    />
-    <link
-      rel="alternate"
-      hreflang="de"
-      href="https://autolister.app/de/pricing"
-    />
-    <link
-      rel="alternate"
-      hreflang="nl"
-      href="https://autolister.app/nl/pricing"
-    />
-    <link
-      rel="alternate"
-      hreflang="pl"
-      href="https://autolister.app/pl/pricing"
-    />
-    <link
-      rel="alternate"
-      hreflang="es"
-      href="https://autolister.app/es/pricing"
-    />
-    <link
-      rel="alternate"
-      hreflang="it"
-      href="https://autolister.app/it/pricing"
-    />
-    <link
-      rel="alternate"
-      hreflang="pt"
-      href="https://autolister.app/pt/pricing"
-    />
-    <link
-      rel="alternate"
-      hreflang="x-default"
-      href="https://autolister.app/pricing"
-    />
+    <link rel="alternate" hreflang="en" href={`${baseUrl}/pricing`} />
+    <link rel="alternate" hreflang="fr" href={`${baseUrl}/fr/pricing`} />
+    <link rel="alternate" hreflang="de" href={`${baseUrl}/de/pricing`} />
+    <link rel="alternate" hreflang="nl" href={`${baseUrl}/nl/pricing`} />
+    <link rel="alternate" hreflang="pl" href={`${baseUrl}/pl/pricing`} />
+    <link rel="alternate" hreflang="es" href={`${baseUrl}/es/pricing`} />
+    <link rel="alternate" hreflang="it" href={`${baseUrl}/it/pricing`} />
+    <link rel="alternate" hreflang="pt" href={`${baseUrl}/pt/pricing`} />
+    <link rel="alternate" hreflang="x-default" href={`${baseUrl}/pricing`} />
   </Fragment>
+
   <div
     class="bg-slate-50 pb-14 pt-32 lg:pt-40 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
   >
@@ -73,14 +62,15 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       <h1
         class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 mb-6 tracking-tight"
       >
-        Simple, Transparent <span
+        {copy.pricing.heading}
+        <span
           class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-violet-600"
-          >Pricing</span
+          >{copy.pricing.headingAccent}</span
         >
       </h1>
       <p class="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-        Choose the perfect plan for your selling journey.
-        <span class="block mt-2">Scale up or down at any time.</span>
+        {copy.pricing.subtitle}
+        <span class="block mt-2">{copy.pricing.subtitleLine2}</span>
       </p>
     </div>
 
@@ -104,7 +94,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
             ></path>
           </svg>
           <span class="font-bold text-sm"
-            >The only Vinted tool your account is genuinely safe with.</span
+            >{extra.pricing.safetyBannerTitle}</span
           >
         </div>
         <div
@@ -122,7 +112,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                 stroke-width="2.5"
                 d="M5 13l4 4L19 7"></path></svg
             >
-            0 mass actions
+            {extra.pricing.safetyZeroMass}
           </span>
           <span class="flex items-center gap-1">
             <svg
@@ -136,7 +126,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                 stroke-width="2.5"
                 d="M5 13l4 4L19 7"></path></svg
             >
-            0 API hooks
+            {extra.pricing.safetyZeroApi}
           </span>
           <span class="flex items-center gap-1">
             <svg
@@ -150,7 +140,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                 stroke-width="2.5"
                 d="M5 13l4 4L19 7"></path></svg
             >
-            0 ban risk
+            {extra.pricing.safetyZeroBan}
           </span>
         </div>
       </div>
@@ -165,7 +155,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       >
         <div class="mb-6">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xl font-bold text-slate-900">Free Trial</h3>
+            <h3 class="text-xl font-bold text-slate-900">
+              {extra.pricing.freePlanName}
+            </h3>
             <span
               class="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full uppercase tracking-wide"
             >
@@ -180,18 +172,18 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   stroke-width="2.5"
                   d="M5 13l4 4L19 7"></path></svg
               >
-              Account-Safe
+              {extra.pricing.accountSafe}
             </span>
           </div>
           <p class="text-sm text-slate-500 h-10">
-            Get a taste of AutoLister AI
+            {extra.pricing.freePlanSubtitle}
           </p>
         </div>
 
         <div class="mb-8">
           <div class="flex items-baseline">
             <span class="text-4xl font-extrabold text-slate-900">€0</span>
-            <span class="text-slate-500 ml-2">/forever</span>
+            <span class="text-slate-500 ml-2">{extra.pricing.perForever}</span>
           </div>
         </div>
 
@@ -216,7 +208,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>2</strong> listings per day</span
+              ><strong>2</strong> {extra.pricing.listingsPerDay}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -237,7 +229,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>8</strong> listings per month</span
+              ><strong>8</strong> {extra.pricing.listingsPerMonth}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -258,7 +250,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              >AI-generated titles & descriptions</span
+              >{extra.pricing.aiGeneratedTitles}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -279,7 +271,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              >Phone upload (Soon only available to Pro and Business)</span
+              >{extra.pricing.phoneUpload}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -299,7 +291,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-700 text-sm">See if you like it first</span>
+            <span class="text-slate-700 text-sm"
+              >{extra.pricing.seeIfYouLikeIt}</span
+            >
           </li>
         </ul>
 
@@ -308,7 +302,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
           data-plan="free"
           id="btn-free"
         >
-          <span class="btn-text">Try Free</span>
+          <span class="btn-text">{extra.pricing.freePlanCta}</span>
           <span class="btn-status text-sm opacity-90 ml-2"></span>
         </button>
       </div>
@@ -319,7 +313,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       >
         <div class="mb-6 mt-2">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xl font-bold text-slate-900">Starter</h3>
+            <h3 class="text-xl font-bold text-slate-900">
+              {extra.pricing.starterPlanName}
+            </h3>
             <span
               class="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full uppercase tracking-wide"
             >
@@ -334,18 +330,18 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   stroke-width="2.5"
                   d="M5 13l4 4L19 7"></path></svg
               >
-              Account-Safe
+              {extra.pricing.accountSafe}
             </span>
           </div>
           <p class="text-sm text-slate-500 h-10">
-            Perfect for casual Vinted sellers
+            {extra.pricing.starterPlanSubtitle}
           </p>
         </div>
 
         <div class="mb-8">
           <div class="flex items-baseline">
             <span class="text-4xl font-extrabold text-slate-900">€3.99</span>
-            <span class="text-slate-500 ml-2">/month</span>
+            <span class="text-slate-500 ml-2">{extra.pricing.perMonth}</span>
           </div>
         </div>
 
@@ -370,7 +366,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-700 text-sm"
-              ><strong>15</strong> listings per day</span
+              ><strong>15</strong> {extra.pricing.listingsPerDay}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -391,7 +387,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-700 text-sm"
-              ><strong>300</strong> listings per month</span
+              ><strong>300</strong> {extra.pricing.listingsPerMonth}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -412,7 +408,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-700 text-sm"
-              >AI-generated titles & descriptions</span
+              >{extra.pricing.aiGeneratedTitles}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -433,7 +429,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-700 text-sm"
-              >Phone upload (Soon only available to Pro and Business)</span
+              >{extra.pricing.phoneUpload}</span
             >
           </li>
         </ul>
@@ -443,7 +439,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
           data-plan="starter"
           id="btn-starter"
         >
-          <span class="btn-text">Get Starter Plan</span>
+          <span class="btn-text">{extra.pricing.starterPlanCta}</span>
           <span class="btn-status text-sm opacity-90 ml-2"></span>
         </button>
       </div>
@@ -458,12 +454,14 @@ import SiteLayout from "../layouts/SiteLayout.astro";
           <span
             class="bg-gradient-to-r from-brand-600 to-violet-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg shadow-brand-600/80 uppercase tracking-wide ring-4 ring-white"
           >
-            Most Popular
+            {extra.pricing.mostPopular}
           </span>
         </div>
         <div class="mb-6">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xl font-bold text-slate-900">Pro</h3>
+            <h3 class="text-xl font-bold text-slate-900">
+              {extra.pricing.proPlanName}
+            </h3>
             <span
               class="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full uppercase tracking-wide"
             >
@@ -478,16 +476,18 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   stroke-width="2.5"
                   d="M5 13l4 4L19 7"></path></svg
               >
-              Account-Safe
+              {extra.pricing.accountSafe}
             </span>
           </div>
-          <p class="text-sm text-slate-500 h-10">For active sellers</p>
+          <p class="text-sm text-slate-500 h-10">
+            {extra.pricing.proPlanSubtitle}
+          </p>
         </div>
 
         <div class="mb-8">
           <div class="flex items-baseline">
             <span class="text-4xl font-extrabold text-brand-600">€9.99</span>
-            <span class="text-slate-500 ml-2">/month</span>
+            <span class="text-slate-500 ml-2">{extra.pricing.perMonth}</span>
           </div>
         </div>
 
@@ -512,7 +512,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>40 listings per day</strong></span
+              ><strong>40 {extra.pricing.listingsPerDay}</strong></span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -533,7 +533,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>800 listings per month</strong></span
+              ><strong>800 {extra.pricing.listingsPerMonth}</strong></span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -553,7 +553,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-600 text-sm">Everything in Starter</span>
+            <span class="text-slate-600 text-sm"
+              >{extra.pricing.everythingInStarter}</span
+            >
           </li>
           <li class="flex items-start gap-3">
             <div
@@ -572,7 +574,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-600 text-sm">Change AI writing tone</span>
+            <span class="text-slate-600 text-sm"
+              >{extra.pricing.changeAiTone}</span
+            >
           </li>
           <li class="flex items-start gap-3">
             <div
@@ -591,7 +595,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-600 text-sm">Emoji Support</span>
+            <span class="text-slate-600 text-sm"
+              >{extra.pricing.emojiSupport}</span
+            >
           </li>
         </ul>
 
@@ -600,7 +606,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
           data-plan="pro"
           id="btn-pro"
         >
-          <span class="btn-text">Get Pro Plan</span>
+          <span class="btn-text">{extra.pricing.proPlanCta}</span>
           <span class="btn-status text-sm opacity-90 ml-2"></span>
         </button>
       </div>
@@ -611,7 +617,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       >
         <div class="mb-6">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xl font-bold text-slate-900">Business</h3>
+            <h3 class="text-xl font-bold text-slate-900">
+              {extra.pricing.businessPlanName}
+            </h3>
             <span
               class="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full uppercase tracking-wide"
             >
@@ -626,18 +634,18 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   stroke-width="2.5"
                   d="M5 13l4 4L19 7"></path></svg
               >
-              Account-Safe
+              {extra.pricing.accountSafe}
             </span>
           </div>
           <p class="text-sm text-slate-500 h-10">
-            For resellers and high-volume sellers
+            {extra.pricing.businessPlanSubtitle}
           </p>
         </div>
 
         <div class="mb-8">
           <div class="flex items-baseline">
             <span class="text-4xl font-extrabold text-slate-900">€19.99</span>
-            <span class="text-slate-500 ml-2">/month</span>
+            <span class="text-slate-500 ml-2">{extra.pricing.perMonth}</span>
           </div>
         </div>
 
@@ -662,7 +670,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>No Daily Limit</strong></span
+              ><strong>{extra.pricing.noDailyLimit}</strong></span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -683,7 +691,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>1,500</strong> listings per month</span
+              ><strong>1,500</strong> {extra.pricing.listingsPerMonth}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -703,7 +711,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-600 text-sm">Everything in Pro</span>
+            <span class="text-slate-600 text-sm"
+              >{extra.pricing.everythingInPro}</span
+            >
           </li>
           <li class="flex items-start gap-3">
             <div
@@ -722,7 +732,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-600 text-sm">Highest daily limits</span>
+            <span class="text-slate-600 text-sm"
+              >{extra.pricing.highestDailyLimits}</span
+            >
           </li>
           <li class="flex items-start gap-3">
             <div
@@ -741,7 +753,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-600 text-sm">Dedicated support</span>
+            <span class="text-slate-600 text-sm"
+              >{extra.pricing.dedicatedSupport}</span
+            >
           </li>
           <li class="flex items-start gap-3">
             <div
@@ -760,7 +774,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
                   d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-slate-600 text-sm">Priority processing</span>
+            <span class="text-slate-600 text-sm"
+              >{extra.pricing.priorityProcessing}</span
+            >
           </li>
         </ul>
 
@@ -769,7 +785,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
           data-plan="business"
           id="btn-business"
         >
-          <span class="btn-text">Get Business Plan</span>
+          <span class="btn-text">{extra.pricing.businessPlanCta}</span>
           <span class="btn-status text-sm opacity-90 ml-2"></span>
         </button>
       </div>
@@ -793,26 +809,26 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               stroke-width="2"
               d="M5 13l4 4L19 7"></path></svg
           >
-          No credit card required
+          {extra.pricing.noCard}
         </span>
         <span class="block text-sm text-gray-500 mt-1 ml-7">
-          Instant access to free features.
+          {extra.pricing.instantAccess}
         </span>
       </div>
 
       <div class="text-center md:text-right">
-        <p class="text-sm text-gray-500">Need help choosing?</p>
+        <p class="text-sm text-gray-500">{extra.pricing.helpChoosing}</p>
         <a
           href="mailto:support@autolister.app"
           class="text-gray-900 font-medium hover:underline decoration-blue-500 underline-offset-4"
         >
-          Email our support team &rarr;
+          {extra.pricing.emailSupport}
         </a>
       </div>
     </div>
   </div>
   <script>
-    import "../scripts/pricing.js";
+    import "../../scripts/pricing.js";
   </script>
 </SiteLayout>
 

@@ -28,3 +28,11 @@ This backend API (`quick-vint-api`) serves the Chrome extension (`quick-vint`). 
 | Daily limit      | 2    | 15      | 40  | 75       |
 
 **Important:** All feature gating must be enforced server-side. Pro/Business tiers only: emojis and tone customization.
+
+## Known Non-Issues (Do Not Suggest)
+
+These have been reviewed and intentionally kept as-is:
+
+- **Pricing page duplication** (`src/pages/pricing.astro` vs `src/pages/[lang]/pricing.astro`): EN page is intentionally hardcoded, localized pages use the copy system. Do not suggest extracting a shared Pricing component.
+- **LanguageSwitcher ARIA keyboard nav**: The switcher uses `role="menu"` / `role="menuitem"` with click-based interaction. Full arrow-key nav / active-descendant management is not required and would add disproportionate complexity for an 8-item language list.
+- **Flag CDN (flagcdn.com)**: Third-party CDN is intentional. `referrerpolicy="no-referrer"` and `loading="lazy"` are already applied.

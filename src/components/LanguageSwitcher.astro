@@ -29,7 +29,7 @@ const locale = normalizeSiteLocale(currentLocale);
     type="button"
     data-lang-trigger
     aria-expanded="false"
-    aria-haspopup="listbox"
+    aria-haspopup="menu"
     class="w-full md:w-auto inline-flex items-center justify-between md:justify-start gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-400"
   >
     <div class="flex items-center gap-2">
@@ -37,7 +37,10 @@ const locale = normalizeSiteLocale(currentLocale);
         src={`https://flagcdn.com/w20/${LOCALE_FLAGS[locale]}.png`}
         srcset={`https://flagcdn.com/w40/${LOCALE_FLAGS[locale]}.png 2x`}
         width="20"
+        height="15"
         alt=""
+        referrerpolicy="no-referrer"
+        loading="lazy"
         class="rounded-[2px] shadow-sm"
       />
       <span>{SITE_COPY[locale].languageName}</span>
@@ -58,7 +61,7 @@ const locale = normalizeSiteLocale(currentLocale);
 
   <!-- Dropdown panel -->
   <ul
-    role="listbox"
+    role="menu"
     data-lang-panel
     aria-label={SITE_COPY[locale].nav.switcherLabel}
     class="absolute right-0 left-0 md:left-auto top-full mt-2 w-full md:w-48 bg-white rounded-2xl shadow-xl ring-1 ring-slate-200/80 py-1.5 z-[200] hidden"
@@ -71,8 +74,7 @@ const locale = normalizeSiteLocale(currentLocale);
           <li role="none">
             <a
               href={href}
-              role="option"
-              aria-selected={isSelected}
+              role="menuitem"
               data-lang-option
               class={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors no-underline ${
                 isSelected
@@ -84,7 +86,10 @@ const locale = normalizeSiteLocale(currentLocale);
                 src={`https://flagcdn.com/w20/${LOCALE_FLAGS[langCode]}.png`}
                 srcset={`https://flagcdn.com/w40/${LOCALE_FLAGS[langCode]}.png 2x`}
                 width="20"
+                height="15"
                 alt=""
+                referrerpolicy="no-referrer"
+                loading="lazy"
                 class="shrink-0 rounded-[2px] shadow-sm"
               />
               <span class="flex-1">{SITE_COPY[langCode].languageName}</span>
@@ -113,6 +118,47 @@ const locale = normalizeSiteLocale(currentLocale);
 </div>
 
 <script>
+  // Document-level listeners registered once per page regardless of switcher count
+  let docListenersReady = false;
+
+  function setupDocListeners() {
+    if (docListenersReady) return;
+    docListenersReady = true;
+
+    document.addEventListener("click", (e) => {
+      document
+        .querySelectorAll<Element>("[data-lang-switcher][data-initialized]")
+        .forEach((sw) => {
+          if (sw.contains(e.target as Node)) return;
+          const panel = sw.querySelector("[data-lang-panel]");
+          const trigger = sw.querySelector<HTMLButtonElement>("[data-lang-trigger]");
+          const chevron = sw.querySelector<HTMLElement>("[data-chevron]");
+          if (panel && !panel.classList.contains("hidden")) {
+            panel.classList.add("hidden");
+            trigger?.setAttribute("aria-expanded", "false");
+            if (chevron) chevron.style.transform = "";
+          }
+        });
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      document
+        .querySelectorAll<Element>("[data-lang-switcher][data-initialized]")
+        .forEach((sw) => {
+          const panel = sw.querySelector("[data-lang-panel]");
+          const trigger = sw.querySelector<HTMLButtonElement>("[data-lang-trigger]");
+          const chevron = sw.querySelector<HTMLElement>("[data-chevron]");
+          if (panel && !panel.classList.contains("hidden")) {
+            panel.classList.add("hidden");
+            trigger?.setAttribute("aria-expanded", "false");
+            if (chevron) chevron.style.transform = "";
+            trigger?.focus();
+          }
+        });
+    });
+  }
+
   function initSwitcher(container: Element) {
     const trigger = container.querySelector(
       "[data-lang-trigger]",
@@ -122,7 +168,7 @@ const locale = normalizeSiteLocale(currentLocale);
 
     if (!trigger || !panel) return;
 
-    // Preserving UTMs and queries
+    // Preserve UTMs and queries
     if (window.location.search) {
       container
         .querySelectorAll<HTMLAnchorElement>("[data-lang-option]")
@@ -132,51 +178,30 @@ const locale = normalizeSiteLocale(currentLocale);
         });
     }
 
-    function openPanel() {
-      panel!.classList.remove("hidden");
-      trigger!.setAttribute("aria-expanded", "true");
-      if (chevron) chevron.style.transform = "rotate(180deg)";
-    }
-
-    function closePanel() {
-      panel!.classList.add("hidden");
-      trigger!.setAttribute("aria-expanded", "false");
-      if (chevron) chevron.style.transform = "";
-    }
-
-    trigger.addEventListener("click", function (e) {
+    trigger.addEventListener("click", (e) => {
       e.stopPropagation();
-      panel!.classList.contains("hidden") ? openPanel() : closePanel();
-    });
-
-    document.addEventListener("click", function (e) {
-      if (!container.contains(e.target as Node)) closePanel();
-    });
-
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !panel!.classList.contains("hidden")) {
-        closePanel();
-        trigger!.focus();
+      if (panel!.classList.contains("hidden")) {
+        panel!.classList.remove("hidden");
+        trigger!.setAttribute("aria-expanded", "true");
+        if (chevron) chevron.style.transform = "rotate(180deg)";
+      } else {
+        panel!.classList.add("hidden");
+        trigger!.setAttribute("aria-expanded", "false");
+        if (chevron) chevron.style.transform = "";
       }
     });
   }
 
-  // Initialize once per component
-  document.querySelectorAll("[data-lang-switcher]").forEach((sw) => {
-    // Only init if not already initialized
-    if (!sw.hasAttribute("data-initialized")) {
-      sw.setAttribute("data-initialized", "true");
-      initSwitcher(sw);
-    }
-  });
-
-  // Re-init on astro page load (if using ViewTransitions, though currently not, still good practice)
-  document.addEventListener("astro:page-load", () => {
+  function initAll() {
+    setupDocListeners();
     document.querySelectorAll("[data-lang-switcher]").forEach((sw) => {
       if (!sw.hasAttribute("data-initialized")) {
         sw.setAttribute("data-initialized", "true");
         initSwitcher(sw);
       }
     });
-  });
+  }
+
+  initAll();
+  document.addEventListener("astro:page-load", initAll);
 </script>

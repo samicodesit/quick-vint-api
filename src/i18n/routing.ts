@@ -1,6 +1,7 @@
 import { DEFAULT_SITE_LOCALE } from "./site.js";
 import type { SiteLocale } from "./site.js";
 
+export { SiteLocale };
 export const LOCALE_FLAGS: Record<SiteLocale, string> = {
   en: "gb",
   fr: "fr",
@@ -19,10 +20,9 @@ export const LOCALE_FLAGS: Record<SiteLocale, string> = {
  *   fr + /          → /fr/
  *   fr + /pricing   → /fr/pricing
  */
-export function localizedPath(lang: string, path: string): string {
+export function localizedPath(lang: SiteLocale, path: string): string {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const normalizedPath =
-    cleanPath === "/" ? "/" : cleanPath.replace(/\/$/, "");
+  const normalizedPath = cleanPath === "/" ? "/" : cleanPath.replace(/\/$/, "");
 
   if (lang === DEFAULT_SITE_LOCALE) {
     return normalizedPath;

@@ -163,60 +163,13 @@ describe("SITE_COPY", () => {
 // ─── SITE_EXTRA_COPY completeness ───────────────────────────────────────────
 
 describe("SITE_EXTRA_COPY", () => {
-  const HOME_KEYS = [
-    "watchDemo",
-    "videoCaption",
-    "heroBullet1",
-    "heroBullet2",
-    "heroBullet3",
-    "addToChrome",
-    "addToChromeNote",
-    "safetyHeading",
-    "safetyBody",
-    "safetyNativeBadge",
-    "safetyCoreBadge",
-    "safetyCoreTitle",
-    "safetyCoreSubtitle",
-    "safetyCoreBody",
-    "featuresTitle",
-    "featuresSubtitle",
-    "howItWorksTitle",
-    "howItWorksSubtitle",
-    "finalCtaTitle",
-    "finalCtaBody",
-    "getStartedFree",
-  ] as const;
+  const HOME_KEYS = Object.keys(SITE_EXTRA_COPY.en.home) as Array<
+    keyof (typeof SITE_EXTRA_COPY)["en"]["home"]
+  >;
 
-  const PRICING_KEYS = [
-    "safetyBannerTitle",
-    "safetyZeroMass",
-    "safetyZeroApi",
-    "safetyZeroBan",
-    "accountSafe",
-    "mostPopular",
-    "perMonth",
-    "perForever",
-    "freePlanName",
-    "freePlanSubtitle",
-    "freePlanCta",
-    "starterPlanName",
-    "starterPlanSubtitle",
-    "starterPlanCta",
-    "proPlanName",
-    "proPlanSubtitle",
-    "proPlanCta",
-    "businessPlanName",
-    "businessPlanSubtitle",
-    "businessPlanCta",
-    "aiGeneratedTitles",
-    "phoneUpload",
-    "listingsPerDay",
-    "listingsPerMonth",
-    "noCard",
-    "instantAccess",
-    "helpChoosing",
-    "emailSupport",
-  ] as const;
+  const PRICING_KEYS = Object.keys(SITE_EXTRA_COPY.en.pricing) as Array<
+    keyof (typeof SITE_EXTRA_COPY)["en"]["pricing"]
+  >;
 
   SUPPORTED_SITE_LOCALES.forEach((locale) => {
     describe(`locale "${locale}"`, () => {

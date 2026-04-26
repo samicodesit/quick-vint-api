@@ -3,7 +3,7 @@ import "../styles/global.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import { SITE_COPY, normalizeSiteLocale } from "../i18n/site.js";
 
-interface Props {
+export interface Props {
   title?: string;
   description?: string;
   canonical?: string | URL | null;

@@ -27,6 +27,8 @@ const canonical = `${baseUrl}${welcomePath}`;
   canonical={canonical}
   ogUrl={canonical}
   htmlLang={locale}
+  currentLocale={locale}
+  pathPattern="/welcome/{lang}"
 >
   <Fragment slot="head">
     <link rel="alternate" hreflang="en" href={`${baseUrl}/welcome/en`} />
@@ -40,117 +42,122 @@ const canonical = `${baseUrl}${welcomePath}`;
     <link rel="alternate" hreflang="x-default" href={`${baseUrl}/welcome/en`} />
   </Fragment>
 
-  <main class="relative pt-32 pb-16 lg:pt-36 lg:pb-20 overflow-hidden bg-white">
+  <main class="relative min-h-[calc(100vh-80px)] pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden bg-slate-50 flex items-center">
     <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-      <div
-        class="absolute top-0 left-1/4 w-96 h-96 bg-brand-100 rounded-full blur-3xl opacity-70"
-      >
-      </div>
-      <div
-        class="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-60"
-      >
-      </div>
+      <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-100 rounded-full blur-3xl opacity-50 mix-blend-multiply"></div>
+      <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-3xl opacity-50 mix-blend-multiply"></div>
     </div>
 
-    <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <div
-        class="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-slate-200/40"
-      >
-        <div
-          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
-        >
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold uppercase tracking-wider"
-          >
-            {copy.heroBadge}
-          </span>
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+      <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-6 sm:p-10 lg:p-12 shadow-xl shadow-slate-200/40 grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+        
+        <!-- Left Column: Content -->
+        <div class="flex flex-col text-left">
+          <div class="flex flex-col gap-4 mb-8">
+            <span class="inline-flex items-center px-3 py-1 rounded-full bg-brand-100 border border-brand-200 text-brand-800 text-xs font-bold uppercase tracking-wider w-fit">
+              <svg class="w-4 h-4 mr-1.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              {copy.heroBadge}
+            </span>
+          </div>
 
-          <label
-            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
-            for="language-switcher"
-          >
-            <span>{copy.switcherLabel}</span>
-            <select
-              id="language-switcher"
-              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-brand-400 focus:outline-none"
-              data-current-locale={locale}
-            >
-              {
-                SUPPORTED_WELCOME_LOCALES.map((langCode: WelcomeLocale) => (
-                  <option value={langCode} selected={langCode === locale}>
-                    {WELCOME_COPY[langCode].languageName}
-                  </option>
-                ))
-              }
-            </select>
-          </label>
-        </div>
+          <h1 class="text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.1] text-balance mb-6">
+            {copy.heroTitle}
+          </h1>
 
-        <h1
-          class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight text-balance mb-4"
-        >
-          {copy.heroTitle}
-        </h1>
+          <p class="text-lg text-slate-600 leading-relaxed mb-8 max-w-lg">
+            {copy.heroSubtitle}
+          </p>
 
-        <p class="text-lg text-slate-600 leading-relaxed mb-8">
-          {copy.heroSubtitle}
-        </p>
-
-        <div
-          class="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 mb-8"
-        >
-          <h2 class="text-lg font-bold text-slate-900 mb-4">
-            {copy.stepsTitle}
-          </h2>
-          <ol class="space-y-3">
-            {
-              copy.steps.map((step: string, index: number) => (
-                <li class="flex items-start gap-3 text-slate-700">
-                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white text-sm font-bold">
+          <!-- Streamlined Steps -->
+          <div class="space-y-6 mb-10">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">{copy.stepsTitle}</h2>
+            <div class="space-y-5">
+              {copy.steps.map((step: string, index: number) => (
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold border border-brand-100 shadow-sm mt-0.5">
                     {index + 1}
-                  </span>
-                  <span class="pt-0.5 text-base font-medium">{step}</span>
-                </li>
-              ))
-            }
-          </ol>
+                  </div>
+                  <div class="pt-1 text-slate-800 font-medium">
+                    {step}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <a
+              id="welcome-primary-cta"
+              href="https://www.vinted.com/items/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-bold text-white bg-brand-600 rounded-xl hover:bg-brand-700 transition-all hover:-translate-y-1 shadow-lg shadow-brand-600/25 no-underline w-full sm:w-auto"
+            >
+              {copy.primaryCta}
+            </a>
+            <a
+              id="welcome-pricing-cta"
+              href="/pricing"
+              class="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-bold text-slate-700 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all hover:-translate-y-1 no-underline w-full sm:w-auto"
+            >
+              {copy.secondaryCta}
+            </a>
+          </div>
+
+          <div class="mt-4 flex flex-col gap-3">
+            <div class="inline-flex items-start sm:items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100/80 w-fit">
+              <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <p class="text-[15px] font-semibold text-emerald-800 leading-snug m-0">{copy.reassurance}</p>
+            </div>
+            <p class="text-xs text-slate-400 font-medium pl-1 max-w-sm leading-relaxed">{copy.compliance}</p>
+          </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <a
-            id="welcome-primary-cta"
-            href="https://www.vinted.com/items/new"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-bold text-white bg-brand-600 rounded-2xl hover:bg-brand-700 transition-all hover:-translate-y-0.5 shadow-lg shadow-brand-600/25 no-underline"
-          >
-            {copy.primaryCta}
-          </a>
-          <a
-            id="welcome-pricing-cta"
-            href="/pricing"
-            class="inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-bold text-brand-700 bg-brand-50 border border-brand-200 rounded-2xl hover:bg-brand-100 transition-colors no-underline"
-          >
-            {copy.secondaryCta}
-          </a>
+        <!-- Right Column: Image Guide -->
+        <div class="relative w-full max-w-[440px] mx-auto lg:mx-0 lg:ml-auto flex flex-col gap-6">
+          
+          <!-- Step 1 Card -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm shadow-slate-200/50">
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-sm">
+                  1
+                </div>
+                <h3 class="text-[15px] font-bold text-slate-900">Click &quot;Extensions&quot;</h3>
+              </div>
+              <div class="rounded-xl overflow-hidden bg-[#f8fafc] flex items-center justify-center py-4 px-2 border border-slate-100">
+                <img src="/extensions-icon.jpg" alt="Click the Extensions icon in your browser" class="h-[70px] w-auto object-contain mix-blend-multiply" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 Card -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm shadow-slate-200/50">
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-sm">
+                  2
+                </div>
+                <h3 class="text-[15px] font-bold text-slate-900">Pin AutoLister AI</h3>
+              </div>
+              <div class="rounded-xl overflow-hidden bg-[#f8fafc] flex items-center justify-center pt-5 pb-0 px-2 border border-slate-100">
+                <img src="/pin-it.png" alt="Click the pin icon next to AutoLister AI" class="h-[200px] w-auto object-contain object-bottom" />
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-1 text-center px-4 w-full">
+            <p class="text-[13px] font-medium text-slate-500 flex items-center justify-center gap-2 mx-auto bg-slate-50/80 rounded-full py-2 px-5 w-fit border border-slate-200/60">
+              <svg class="w-[18px] h-[18px] text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Pin AutoLister AI to easily access it later
+            </p>
+          </div>
         </div>
-
-        <p class="mt-4 text-sm text-slate-600">
-          <a
-            id="welcome-fallback-link"
-            href="https://www.vinted.com/items/new"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-brand-700 font-semibold hover:text-brand-800"
-          >
-            {copy.fallbackCta}
-          </a>
-        </p>
-
-        <p class="mt-5 text-sm text-slate-600">{copy.reassurance}</p>
-        <p class="mt-2 text-sm text-slate-500">{copy.compliance}</p>
       </div>
     </section>
+
   </main>
 
   <script
@@ -204,7 +211,6 @@ const canonical = `${baseUrl}${welcomePath}`;
 
     const primaryCta = document.getElementById("welcome-primary-cta");
     const pricingCta = document.getElementById("welcome-pricing-cta");
-    const languageSwitcher = document.getElementById("language-switcher");
 
     function getQueryParams() {
       const params = new URLSearchParams(window.location.search);
@@ -288,16 +294,18 @@ const canonical = `${baseUrl}${welcomePath}`;
       });
     }
 
-    if (languageSwitcher) {
-      languageSwitcher.addEventListener("change", (event) => {
-        const selectedLocale = event.target?.value || defaultLocale;
+    document.querySelectorAll("[data-lang-option]").forEach((langLink) => {
+      langLink.addEventListener("click", (event) => {
+        // The URL is already a localized path because LanguageSwitcher generated it,
+        // we just parse the final lang out from the generated href for tracking
+        const hrefUrl = new URL(langLink.href, window.location.origin);
+        // Extracts the language part after 'welcome/' or leading slashes
+        const selectedLocale = hrefUrl.pathname.split("/").pop() || defaultLocale;
+        
         sendGtagEvent("welcome_language_switch_click", {
           selected_locale: selectedLocale,
         });
-        window.location.href = withExistingQueryParams(
-          `/welcome/${selectedLocale}`,
-        );
       });
-    }
+    });
   </script>
 </SiteLayout>

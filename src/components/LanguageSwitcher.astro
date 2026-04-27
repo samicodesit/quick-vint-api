@@ -12,12 +12,14 @@ export interface Props {
   currentLocale?: string;
   basePath?: string;
   className?: string;
+  pathPattern?: string;
 }
 
 const {
   currentLocale = DEFAULT_SITE_LOCALE,
   basePath = "/",
   className = "",
+  pathPattern,
 } = Astro.props;
 
 const locale = normalizeSiteLocale(currentLocale);
@@ -63,13 +65,13 @@ const locale = normalizeSiteLocale(currentLocale);
   <ul
     role="menu"
     data-lang-panel
-    aria-label={SITE_COPY[locale].nav.switcherLabel}
+    aria-label={SITE_COPY[locale].nav?.switcherLabel || SITE_COPY[locale].languageName}
     class="absolute right-0 left-0 md:left-auto top-full mt-2 w-full md:w-48 bg-white rounded-2xl shadow-xl ring-1 ring-slate-200/80 py-1.5 z-[200] hidden"
   >
     {
       SUPPORTED_SITE_LOCALES.map((langCode: SiteLocale) => {
         const isSelected = langCode === locale;
-        const href = localizedPath(langCode, basePath);
+        const href = pathPattern ? pathPattern.replace("{lang}", langCode) : localizedPath(langCode, basePath);
         return (
           <li role="none">
             <a

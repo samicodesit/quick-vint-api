@@ -12,6 +12,7 @@ export interface Props {
   htmlLang?: string;
   currentLocale?: string;
   localeBasePath?: string;
+  pathPattern?: string;
 }
 
 const {
@@ -23,6 +24,7 @@ const {
   htmlLang = "en",
   currentLocale,
   localeBasePath = "/",
+  pathPattern,
 } = Astro.props;
 
 const resolvedLocale = normalizeSiteLocale(currentLocale || htmlLang);
@@ -159,6 +161,7 @@ const pricingHref = `${localePrefix}/pricing`;
                 <LanguageSwitcher
                   currentLocale={resolvedLocale}
                   basePath={localeBasePath}
+                  pathPattern={pathPattern}
                 />
               </div>
             )
@@ -235,6 +238,7 @@ const pricingHref = `${localePrefix}/pricing`;
                   currentLocale={resolvedLocale}
                   basePath={localeBasePath}
                   className="w-full"
+                  pathPattern={pathPattern}
                 />
               </div>
             )

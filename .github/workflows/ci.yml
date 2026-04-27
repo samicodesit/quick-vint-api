@@ -13,7 +13,7 @@ jobs:
     steps:
       # 1) Check out your code
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 2) Set up pnpm (lockfile version 9)
       - name: Setup pnpm
@@ -23,7 +23,7 @@ jobs:
 
       # 3) Install Node.js (pnpm cache requires pnpm to be set up first)
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "pnpm"
@@ -40,14 +40,19 @@ jobs:
       - name: Type-check
         run: pnpm run type-check
 
-      # 7) Verify formatting
+      # 7) Build (catches Astro/Vite build errors before they reach Vercel)
+      - name: Build
+        run: pnpm run build
+
+      # 8) Verify formatting
       - name: Format check
         run: pnpm run format-check
 
-      # 8) Audit for high-severity vulns
+      # 9) Audit production dependencies for high-severity vulns
+      # (--prod excludes devDep transitive chains like @vercel/node>tar, eslint>minimatch, etc.)
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=high --prod
 
-      # 9) Run tests
+      # 10) Run tests
       - name: Run tests
         run: pnpm test

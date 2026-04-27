@@ -85,6 +85,8 @@ describe("LOCALE_FLAGS", () => {
   });
 
   it("has exactly the same count as SUPPORTED_SITE_LOCALES", () => {
-    expect(Object.keys(LOCALE_FLAGS).length).toBe(SUPPORTED_SITE_LOCALES.length);
+    expect(Object.keys(LOCALE_FLAGS).length).toBe(
+      SUPPORTED_SITE_LOCALES.length,
+    );
   });
 });

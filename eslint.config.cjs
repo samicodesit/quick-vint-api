@@ -17,14 +17,10 @@ module.exports = [
   // 2) Base JS recommended rules
   js.configs.recommended,
 
-  // 3) TypeScript support + globals for Node
+  // 3) Common globals for all linted files (Node.js runtime)
   {
+    files: ["**/*.{ts,js}"],
     languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        ecmaVersion: 2021,
-        sourceType: "module",
-      },
       globals: {
         process: "readonly",
         console: "readonly",
@@ -42,23 +38,36 @@ module.exports = [
         URLSearchParams: "readonly",
       },
     },
+  },
+
+  // 4) TypeScript-specific: parser, plugins, rules
+  {
+    files: ["**/*.ts"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 2021,
+        sourceType: "module",
+      },
+    },
     plugins: {
       "@typescript-eslint": tsPlugin,
     },
     rules: {
       // allow `any` for now
       "@typescript-eslint/no-explicit-any": "off",
-      // don’t force every export’s return type
+      // don't force every export's return type
       "@typescript-eslint/explicit-module-boundary-types": "off",
-      // but still catch truly unused vars
+      // Disable base rule - @typescript-eslint/no-unused-vars is the TS-aware replacement
+      "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_" },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
     },
   },
 
-  // 4) Import ordering (optional, but helpful)
+  // 5) Import ordering
   {
     plugins: { import: importPlugin },
     rules: {
@@ -66,7 +75,7 @@ module.exports = [
     },
   },
 
-  // 5) Browser globals for client-side utilities
+  // 6) Browser globals for client-side utilities
   {
     files: ["utils/vintedCountryDetector.js", "utils/vintedRedirect.ts"],
     languageOptions: {
@@ -78,6 +87,6 @@ module.exports = [
     },
   },
 
-  // 6) Prettier integration
+  // 7) Prettier integration
   ...compat.extends("plugin:prettier/recommended"),
 ];

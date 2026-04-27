@@ -21,6 +21,8 @@ module.exports = [
   {
     files: ["**/*.{ts,js}"],
     languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
       globals: {
         process: "readonly",
         console: "readonly",

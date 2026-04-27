@@ -160,6 +160,8 @@ const locale = normalizeSiteLocale(currentLocale);
           }
         });
     });
+
+    document.addEventListener("astro:page-load", initAll);
   }
 
   function initSwitcher(container: Element) {
@@ -206,5 +208,4 @@ const locale = normalizeSiteLocale(currentLocale);
   }
 
   initAll();
-  document.addEventListener("astro:page-load", initAll);
 </script>

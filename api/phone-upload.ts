@@ -192,11 +192,9 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("Complete error:", error);
     // Even if cleanup fails, we return success to the client so they don't retry
-    res
-      .status(200)
-      .json({
-        success: true,
-        warning: "Cleanup failed but session marked complete",
-      });
+    res.status(200).json({
+      success: true,
+      warning: "Cleanup failed but session marked complete",
+    });
   }
 }

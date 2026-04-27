@@ -84,7 +84,7 @@ export function detectUserCountryAndGetVintedUrl(): string {
         "America/Vancouver": "CA",
       };
       countryCode = timezoneToCountry[timezone];
-    } catch (e) {
+    } catch {
       // Fallback if Intl is not available
     }
   }

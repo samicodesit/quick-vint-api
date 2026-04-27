@@ -1,21 +1,36 @@
 ---
-import HomeLanding from "../components/HomeLanding.astro";
-import SiteLayout from "../layouts/SiteLayout.astro";
-import { SITE_EXTRA_COPY, SITE_COPY } from "../i18n/site.js";
+import HomeLanding from "../../components/HomeLanding.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import {
+  SITE_EXTRA_COPY,
+  SITE_COPY,
+  SUPPORTED_SITE_LOCALES,
+  normalizeSiteLocale,
+} from "../../i18n/site.js";
+import type { SiteLocale } from "../../i18n/site.js";
 
+export function getStaticPaths() {
+  return SUPPORTED_SITE_LOCALES.filter((lang) => lang !== "en").map(
+    (lang: SiteLocale) => ({ params: { lang } }),
+  );
+}
+
+const locale = normalizeSiteLocale(Astro.params.lang);
+const copy = SITE_COPY[locale];
+const extra = SITE_EXTRA_COPY[locale];
 const baseUrl = "https://autolister.app";
-const copy = SITE_COPY.en;
-const extra = SITE_EXTRA_COPY.en;
+const canonicalPath = locale === "en" ? "/" : `/${locale}/`;
+const canonical = `${baseUrl}${canonicalPath}`;
 ---
 
 <SiteLayout
-  canonical={`${baseUrl}/`}
+  canonical={canonical}
   title={copy.home.seoTitle}
   description={copy.home.seoDescription}
-  ogUrl={`${baseUrl}/`}
+  ogUrl={canonical}
   ogImage="https://autolister.app/banner.png"
-  htmlLang="en"
-  currentLocale="en"
+  htmlLang={locale}
+  currentLocale={locale}
   localeBasePath="/"
 >
   <Fragment slot="head">

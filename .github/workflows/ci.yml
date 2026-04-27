@@ -13,35 +13,46 @@ jobs:
     steps:
       # 1) Check out your code
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2) Install Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      # 2) Set up pnpm (lockfile version 9)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: 18
-          cache: "npm"
+          version: 9
 
-      # 3) Install dependencies
+      # 3) Install Node.js (pnpm cache requires pnpm to be set up first)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      # 4) Install dependencies
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      # 4) Lint with ESLint
+      # 5) Lint with ESLint
       - name: Lint code
-        run: npm run lint
+        run: pnpm run lint
 
-      # 5) Type-check with tsc
+      # 6) Type-check with tsc
       - name: Type-check
-        run: npm run type-check
+        run: pnpm run type-check
 
-      # 6) Verify formatting
+      # 7) Build (catches Astro/Vite build errors before they reach Vercel)
+      - name: Build
+        run: pnpm run build
+
+      # 8) Verify formatting
       - name: Format check
-        run: npm run format-check
+        run: pnpm run format-check
 
-      # 7) Audit for high-severity vulns
+      # 9) Audit production dependencies for high-severity vulns
+      # (--prod excludes devDep transitive chains like @vercel/node>tar, eslint>minimatch, etc.)
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: pnpm audit --audit-level=high --prod
 
-      # 8) (Optional) Run your tests, if/when you add them
-      # - name: Run tests
-      #   run: npm test
+      # 10) Run tests
+      - name: Run tests
+        run: pnpm test

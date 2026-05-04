@@ -1,0 +1,18 @@
+---
+import type { BlogCategory, BlogLocale } from "../../i18n/blog.js";
+import { getCategoryLabel, getCategoryUrl } from "../../utils/blog.js";
+
+interface Props {
+  category: BlogCategory;
+  locale: BlogLocale;
+}
+
+const { category, locale } = Astro.props;
+---
+
+<a
+  href={getCategoryUrl(locale, category)}
+  class="inline-flex items-center rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-700 no-underline transition hover:border-brand-200 hover:bg-brand-100"
+>
+  {getCategoryLabel(locale, category)}
+</a>

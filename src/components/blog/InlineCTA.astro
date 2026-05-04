@@ -1,0 +1,64 @@
+---
+import { CHROME_WEB_STORE_URL } from "../../utils/blog.js";
+
+interface Props {
+  variant?: "speed" | "quality" | "safe";
+  locale?: "en" | "fr" | "de" | "nl";
+}
+
+const { variant = "speed", locale = "en" } = Astro.props;
+
+const copy = {
+  en: {
+    speed: "Turn photos into Vinted listings in seconds.",
+    quality: "Write clearer titles and descriptions buyers can actually find.",
+    safe: "Grow faster without risky Vinted automation bots.",
+    body: "AutoLister AI generates account-safe Vinted titles and descriptions from your photos.",
+    cta: "Add to Chrome — free",
+  },
+  fr: {
+    speed: "Transformez vos photos en annonces Vinted en quelques secondes.",
+    quality: "Rédigez des titres et descriptions plus clairs, faciles à trouver.",
+    safe: "Vendez plus vite sans bots Vinted risqués.",
+    body: "AutoLister AI génère des titres et descriptions Vinted sûrs depuis vos photos.",
+    cta: "Ajouter à Chrome — gratuit",
+  },
+  de: {
+    speed: "Verwandle Fotos in Sekunden in Vinted-Listings.",
+    quality: "Schreibe klarere Titel und Beschreibungen, die Käufer finden.",
+    safe: "Wachse schneller ohne riskante Vinted-Bots.",
+    body: "AutoLister AI erstellt sichere Vinted-Titel und Beschreibungen aus deinen Fotos.",
+    cta: "Zu Chrome hinzufügen — kostenlos",
+  },
+  nl: {
+    speed: "Zet foto's in seconden om naar Vinted-advertenties.",
+    quality: "Schrijf betere titels en beschrijvingen die kopers kunnen vinden.",
+    safe: "Groei sneller zonder riskante Vinted-bots.",
+    body: "AutoLister AI maakt veilige Vinted-titels en beschrijvingen vanuit je foto's.",
+    cta: "Toevoegen aan Chrome — gratis",
+  },
+}[locale];
+---
+
+<aside
+  class="my-10 rounded-2xl border border-slate-200 bg-slate-50 p-5"
+>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="text-base font-bold text-slate-900">
+        {copy[variant]}
+      </p>
+      <p class="mt-1 text-sm font-medium leading-6 text-slate-600">
+        {copy.body}
+      </p>
+    </div>
+    <a
+      href={CHROME_WEB_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white no-underline transition hover:bg-slate-800"
+    >
+      {copy.cta}
+    </a>
+  </div>
+</aside>

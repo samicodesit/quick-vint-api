@@ -16,6 +16,7 @@ export const DEFAULT_SITE_LOCALE: SiteLocale = "en";
 type NavCopy = {
   features: string;
   pricing: string;
+  blog: string;
   support: string;
   contact: string;
   cta: string;
@@ -58,6 +59,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Features",
       pricing: "Pricing",
+      blog: "Blog",
       support: "Support",
       contact: "Contact",
       cta: "Get Started Free",
@@ -95,6 +97,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Fonctionnalités",
       pricing: "Tarifs",
+      blog: "Blog",
       support: "Support",
       contact: "Contact",
       cta: "Commencer Gratuitement",
@@ -132,6 +135,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Funktionen",
       pricing: "Preise",
+      blog: "Blog",
       support: "Support",
       contact: "Kontakt",
       cta: "Kostenlos Starten",
@@ -168,6 +172,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Functies",
       pricing: "Prijzen",
+      blog: "Blog",
       support: "Support",
       contact: "Contact",
       cta: "Gratis Starten",
@@ -205,6 +210,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Funkcje",
       pricing: "Cennik",
+      blog: "Blog",
       support: "Wsparcie",
       contact: "Kontakt",
       cta: "Zacznij za darmo",
@@ -241,6 +247,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Funciones",
       pricing: "Precios",
+      blog: "Blog",
       support: "Soporte",
       contact: "Contacto",
       cta: "Empieza Gratis",
@@ -279,6 +286,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Funzionalita",
       pricing: "Prezzi",
+      blog: "Blog",
       support: "Supporto",
       contact: "Contatto",
       cta: "Inizia Gratis",
@@ -315,6 +323,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     nav: {
       features: "Funcionalidades",
       pricing: "Precos",
+      blog: "Blog",
       support: "Suporte",
       contact: "Contacto",
       cta: "Comecar Gratis",

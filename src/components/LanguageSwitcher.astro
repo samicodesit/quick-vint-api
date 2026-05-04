@@ -13,6 +13,7 @@ export interface Props {
   basePath?: string;
   className?: string;
   pathPattern?: string;
+  switcherLocales?: SiteLocale[];
 }
 
 const {
@@ -20,9 +21,13 @@ const {
   basePath = "/",
   className = "",
   pathPattern,
+  switcherLocales,
 } = Astro.props;
 
 const locale = normalizeSiteLocale(currentLocale);
+const availableLocales = switcherLocales?.length
+  ? switcherLocales
+  : SUPPORTED_SITE_LOCALES;
 ---
 
 <div class={`relative ${className}`} data-lang-switcher>
@@ -69,7 +74,7 @@ const locale = normalizeSiteLocale(currentLocale);
     class="absolute right-0 left-0 md:left-auto top-full mt-2 w-full md:w-48 bg-white rounded-2xl shadow-xl ring-1 ring-slate-200/80 py-1.5 z-[200] hidden"
   >
     {
-      SUPPORTED_SITE_LOCALES.map((langCode: SiteLocale) => {
+      availableLocales.map((langCode: SiteLocale) => {
         const isSelected = langCode === locale;
         const href = pathPattern ? pathPattern.replace("{lang}", langCode) : localizedPath(langCode, basePath);
         return (

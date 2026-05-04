@@ -1,0 +1,96 @@
+---
+import { getCollection } from "astro:content";
+import BlogCard from "../../../components/blog/BlogCard.astro";
+import {
+  BLOG_CATEGORIES,
+  BLOG_COPY,
+  LOCALIZED_BLOG_LOCALES,
+  normalizeBlogLocale,
+  type BlogLocale,
+} from "../../../i18n/blog.js";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getPublishedPosts, getCategoryUrl, type BlogPost } from "../../../utils/blog.js";
+
+export function getStaticPaths() {
+  return LOCALIZED_BLOG_LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = normalizeBlogLocale(Astro.params.lang) as BlogLocale;
+const copy = BLOG_COPY[locale];
+const posts = getPublishedPosts(
+  ((await getCollection("blog")) as BlogPost[]).filter(
+    (post) => post.data.locale === locale && !post.data.draft,
+  ),
+);
+const canonicalUrl = `https://autolister.app/${locale}/blog`;
+
+const collectionSchema = {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  name: copy.title,
+  description: copy.seoDescription,
+  url: canonicalUrl,
+  publisher: {
+    "@type": "Organization",
+    name: "AutoLister AI",
+    url: "https://autolister.app/",
+  },
+};
+---
+
+<SiteLayout
+  title={copy.seoTitle}
+  description={copy.seoDescription}
+  canonical={canonicalUrl}
+  ogUrl={canonicalUrl}
+  htmlLang={locale}
+  currentLocale={locale}
+  localeBasePath="/blog"
+  switcherLocales={["en", "fr", "de", "nl"]}
+>
+  <Fragment slot="head">
+    <link rel="alternate" type="application/rss+xml" title={`AutoLister AI Blog ${locale.toUpperCase()}`} href={`/${locale}/blog/rss.xml`} />
+    <link rel="alternate" hreflang="en" href="https://autolister.app/blog" />
+    <link rel="alternate" hreflang="fr" href="https://autolister.app/fr/blog" />
+    <link rel="alternate" hreflang="de" href="https://autolister.app/de/blog" />
+    <link rel="alternate" hreflang="nl" href="https://autolister.app/nl/blog" />
+    <link rel="alternate" hreflang="x-default" href="https://autolister.app/blog" />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(collectionSchema)} />
+  </Fragment>
+
+  <main class="bg-white pt-28">
+    <section class="relative overflow-hidden bg-gradient-to-br from-brand-50 via-white to-indigo-50 py-20 sm:py-24">
+      <div class="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl"></div>
+      <div class="relative z-10 mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
+        <p class="text-sm font-black uppercase tracking-[0.25em] text-brand-600">
+          {copy.eyebrow}
+        </p>
+        <h1 class="mt-4 text-4xl font-black tracking-tight text-slate-950 sm:text-6xl">
+          {copy.title}
+        </h1>
+        <p class="mx-auto mt-6 max-w-3xl text-lg font-medium leading-8 text-slate-600 sm:text-xl">
+          {copy.subtitle}
+        </p>
+      </div>
+    </section>
+
+    <section class="border-y border-slate-200 bg-white py-5">
+      <div class="mx-auto flex max-w-7xl gap-3 overflow-x-auto px-4 sm:px-6 lg:px-8">
+        <a href={`/${locale}/blog`} class="shrink-0 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white no-underline">
+          {copy.allPosts}
+        </a>
+        {BLOG_CATEGORIES.map((category) => (
+          <a href={getCategoryUrl(locale, category)} class="shrink-0 rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 no-underline transition hover:bg-brand-50 hover:text-brand-700">
+            {copy.categories[category]}
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {posts.map((post) => <BlogCard post={post} />)}
+      </div>
+    </section>
+  </main>
+</SiteLayout>

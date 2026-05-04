@@ -1,0 +1,311 @@
+---
+import type { MarkdownHeading } from "astro";
+import type { BlogLocale } from "../i18n/blog.js";
+import { BLOG_COPY } from "../i18n/blog.js";
+import {
+  estimateReadingTime,
+  formatBlogDate,
+  getPostUrl,
+  type BlogPost,
+} from "../utils/blog.js";
+import BlogCard from "../components/blog/BlogCard.astro";
+import CategoryBadge from "../components/blog/CategoryBadge.astro";
+import EndOfPostCTA from "../components/blog/EndOfPostCTA.astro";
+import ShareButtons from "../components/blog/ShareButtons.astro";
+import TableOfContents from "../components/blog/TableOfContents.astro";
+import TagList from "../components/blog/TagList.astro";
+import SiteLayout from "./SiteLayout.astro";
+
+interface TranslationLink {
+  locale: BlogLocale;
+  url: string;
+}
+
+interface Props {
+  post: BlogPost;
+  headings: MarkdownHeading[];
+  relatedPosts: BlogPost[];
+  translations: TranslationLink[];
+}
+
+const { post, headings, relatedPosts, translations } = Astro.props;
+const locale = post.data.locale as BlogLocale;
+const copy = BLOG_COPY[locale];
+const canonicalUrl = new URL(getPostUrl(post), Astro.site || "https://autolister.app").toString();
+const readingTime = estimateReadingTime(post.body || "");
+const heroImage = post.data.heroImage
+  ? new URL(post.data.heroImage, Astro.site || "https://autolister.app").toString()
+  : "https://autolister.app/banner.png";
+const categoryUrl = locale === "en"
+  ? `/blog/category/${post.data.category}`
+  : `/${locale}/blog/category/${post.data.category}`;
+const blogUrl = locale === "en" ? "/blog" : `/${locale}/blog`;
+
+const blogPostingSchema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description: post.data.description,
+  image: heroImage,
+  datePublished: post.data.publishDate.toISOString(),
+  dateModified: (post.data.updatedDate || post.data.publishDate).toISOString(),
+  author: {
+    "@type": "Organization",
+    name: post.data.author,
+    url: "https://autolister.app/",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "AutoLister AI",
+    logo: {
+      "@type": "ImageObject",
+      url: "https://autolister.app/apple-touch-icon.png",
+    },
+  },
+  mainEntityOfPage: canonicalUrl,
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "AutoLister AI",
+      item: "https://autolister.app/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: copy.title,
+      item: new URL(blogUrl, Astro.site || "https://autolister.app").toString(),
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: post.data.title,
+      item: canonicalUrl,
+    },
+  ],
+};
+
+const faqSchema = post.data.faqItems?.length
+  ? {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: post.data.faqItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    }
+  : null;
+---
+
+<SiteLayout
+  title={`${post.data.title} - AutoLister AI`}
+  description={post.data.description}
+  canonical={canonicalUrl}
+  ogUrl={canonicalUrl}
+  ogImage={heroImage}
+  ogType="article"
+  htmlLang={locale}
+  currentLocale={locale}
+  localeBasePath={`/blog/${post.data.slug}`}
+  switcherLocales={translations.map((translation) => translation.locale)}
+>
+  <Fragment slot="head">
+    <meta property="article:published_time" content={post.data.publishDate.toISOString()} />
+    <meta property="article:modified_time" content={(post.data.updatedDate || post.data.publishDate).toISOString()} />
+    <meta property="article:author" content={post.data.author} />
+    <meta property="article:section" content={copy.categories[post.data.category]} />
+    {post.data.tags.map((tag) => <meta property="article:tag" content={tag} />)}
+    {translations.map((translation) => (
+      <link rel="alternate" hreflang={translation.locale} href={new URL(translation.url, Astro.site || "https://autolister.app").toString()} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={new URL(translations.find((translation) => translation.locale === "en")?.url || getPostUrl(post), Astro.site || "https://autolister.app").toString()} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(blogPostingSchema)} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    {faqSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
+  </Fragment>
+
+  <main class="bg-white pt-28">
+    <section class="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-brand-50 via-white to-indigo-50 py-16 sm:py-20">
+      <div class="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl"></div>
+      <div class="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <a href={blogUrl} class="mb-8 inline-flex items-center text-sm font-black text-brand-700 no-underline hover:text-brand-800">
+          ← {copy.backToBlog}
+        </a>
+        <div class="mb-5 flex flex-wrap items-center gap-3">
+          <CategoryBadge category={post.data.category} locale={locale} />
+          <span class="text-sm font-bold text-slate-500">
+            {readingTime} {copy.minutesRead}
+          </span>
+        </div>
+        <h1 class="max-w-4xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+          {post.data.title}
+        </h1>
+        <p class="mt-6 max-w-3xl text-lg font-medium leading-8 text-slate-600 sm:text-xl">
+          {post.data.description}
+        </p>
+        <div class="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm font-bold text-slate-500">
+          <span>{post.data.author}</span>
+          <span aria-hidden="true">•</span>
+          <time datetime={post.data.publishDate.toISOString()}>
+            {copy.published}: {formatBlogDate(post.data.publishDate, locale)}
+          </time>
+          {post.data.updatedDate && (
+            <>
+              <span aria-hidden="true">•</span>
+              <time datetime={post.data.updatedDate.toISOString()}>
+                {copy.updated}: {formatBlogDate(post.data.updatedDate, locale)}
+              </time>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+
+    {post.data.heroImage && (
+      <div class="mx-auto max-w-5xl px-4 pt-10 sm:px-6 lg:px-8">
+        <img
+          src={post.data.heroImage}
+          alt={post.data.heroImageAlt || post.data.title}
+          class="h-auto w-full rounded-2xl border border-slate-200 object-cover"
+        />
+      </div>
+    )}
+
+    <section class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
+      <article class="min-w-0">
+        <div class="blog-content mx-auto max-w-3xl">
+          <slot />
+        </div>
+        <div class="mx-auto max-w-3xl">
+          <div class="mt-12 border-t border-slate-200 pt-8">
+            <TagList tags={post.data.tags} />
+          </div>
+          <div class="mt-8 lg:hidden">
+            <ShareButtons title={post.data.title} url={canonicalUrl} locale={locale} />
+          </div>
+          <EndOfPostCTA locale={locale} />
+        </div>
+      </article>
+
+      <aside class="hidden lg:block">
+        <div class="sticky top-28 space-y-6">
+          <TableOfContents headings={headings} locale={locale} />
+          <ShareButtons title={post.data.title} url={canonicalUrl} locale={locale} />
+        </div>
+      </aside>
+    </section>
+
+    {relatedPosts.length > 0 && (
+      <section class="border-t border-slate-200 bg-slate-50 py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="mb-8 flex items-end justify-between gap-6">
+            <div>
+              <p class="text-sm font-black uppercase tracking-[0.2em] text-brand-600">
+                {copy.categories[post.data.category]}
+              </p>
+              <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                {copy.relatedPosts}
+              </h2>
+            </div>
+            <a href={categoryUrl} class="hidden text-sm font-black text-brand-700 no-underline hover:text-brand-800 sm:inline-flex">
+              {copy.allPosts} →
+            </a>
+          </div>
+          <div class="grid gap-6 md:grid-cols-3">
+            {relatedPosts.map((relatedPost) => (
+              <BlogCard post={relatedPost} compact />
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+  </main>
+</SiteLayout>
+
+<style>
+  .blog-content :global(h2) {
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    line-height: 1.15;
+    font-weight: 900;
+    letter-spacing: -0.035em;
+    color: rgb(15 23 42);
+  }
+
+  .blog-content :global(h3) {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.35rem;
+    line-height: 1.25;
+    font-weight: 900;
+    color: rgb(15 23 42);
+  }
+
+  .blog-content :global(p),
+  .blog-content :global(li) {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    color: rgb(71 85 105);
+  }
+
+  .blog-content :global(p) {
+    margin-top: 1.15rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .blog-content :global(ul),
+  .blog-content :global(ol) {
+    margin: 1.5rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .blog-content :global(li) {
+    margin: 0.6rem 0;
+  }
+
+  .blog-content :global(> p a),
+  .blog-content :global(> ul a),
+  .blog-content :global(> ol a),
+  .blog-content :global(> blockquote a) {
+    color: rgb(79 70 229);
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .blog-content :global(> p a:hover),
+  .blog-content :global(> ul a:hover),
+  .blog-content :global(> ol a:hover),
+  .blog-content :global(> blockquote a:hover) {
+    color: rgb(67 56 202);
+    text-decoration: underline;
+  }
+
+  .blog-content :global(strong) {
+    color: rgb(15 23 42);
+    font-weight: 900;
+  }
+
+  .blog-content :global(blockquote) {
+    margin: 2rem 0;
+    border-left: 4px solid rgb(99 102 241);
+    border-radius: 1rem;
+    background: rgb(238 242 255);
+    padding: 1rem 1.25rem;
+  }
+
+  .blog-content :global(blockquote p) {
+    margin: 0;
+    color: rgb(51 65 85);
+    font-weight: 700;
+  }
+</style>

@@ -1,0 +1,75 @@
+---
+import type { BlogLocale } from "../../i18n/blog.js";
+import { BLOG_COPY } from "../../i18n/blog.js";
+import type { BlogCategory } from "../../i18n/blog.js";
+import {
+  estimateReadingTime,
+  formatBlogDate,
+  getPostUrl,
+  type BlogPost,
+} from "../../utils/blog.js";
+import CategoryBadge from "./CategoryBadge.astro";
+import TagList from "./TagList.astro";
+
+interface Props {
+  post: BlogPost;
+  compact?: boolean;
+}
+
+const { post, compact = false } = Astro.props;
+const locale = post.data.locale as BlogLocale;
+const copy = BLOG_COPY[locale];
+const readingTime = estimateReadingTime(post.body || post.rendered?.html || "");
+const categoryLabel = copy.categories[post.data.category];
+---
+
+<article
+  class="group h-full overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60"
+>
+  <a href={getPostUrl(post)} class="flex h-full flex-col no-underline">
+    {post.data.category === "selling-tips" && (
+      <div class="flex aspect-[5/3] flex-col justify-end bg-gradient-to-br from-amber-100 to-orange-100 p-6">
+        <p class="text-2xl font-black leading-tight text-amber-900">{categoryLabel}</p>
+      </div>
+    )}
+    {post.data.category === "marketplace-guide" && (
+      <div class="flex aspect-[5/3] flex-col justify-end bg-gradient-to-br from-blue-100 to-cyan-100 p-6">
+        <p class="text-2xl font-black leading-tight text-blue-900">{categoryLabel}</p>
+      </div>
+    )}
+    {post.data.category === "tool-comparison" && (
+      <div class="flex aspect-[5/3] flex-col justify-end bg-gradient-to-br from-violet-100 to-purple-100 p-6">
+        <p class="text-2xl font-black leading-tight text-violet-900">{categoryLabel}</p>
+      </div>
+    )}
+    {post.data.category === "pricing-strategy" && (
+      <div class="flex aspect-[5/3] flex-col justify-end bg-gradient-to-br from-emerald-100 to-teal-100 p-6">
+        <p class="text-2xl font-black leading-tight text-emerald-900">{categoryLabel}</p>
+      </div>
+    )}
+    {post.data.category === "success-stories" && (
+      <div class="flex aspect-[5/3] flex-col justify-end bg-gradient-to-br from-rose-100 to-pink-100 p-6">
+        <p class="text-2xl font-black leading-tight text-rose-900">{categoryLabel}</p>
+      </div>
+    )}
+
+    <div class={compact ? "flex flex-1 flex-col p-5" : "flex flex-1 flex-col p-6"}>
+      <div class="mb-3 flex flex-wrap items-center gap-3">
+        <span class="text-xs font-bold uppercase tracking-wide text-slate-500">
+          {formatBlogDate(post.data.publishDate, locale)} · {readingTime} {copy.minutesRead}
+        </span>
+      </div>
+
+      <h2 class="text-lg font-black leading-tight tracking-tight text-slate-950 transition group-hover:text-brand-700">
+        {post.data.title}
+      </h2>
+      <p class="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-slate-600">
+        {post.data.description}
+      </p>
+
+      <span class="mt-auto inline-flex items-center pt-5 text-sm font-bold text-brand-700">
+        {copy.readMore} →
+      </span>
+    </div>
+  </a>
+</article>

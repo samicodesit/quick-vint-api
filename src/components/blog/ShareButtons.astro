@@ -1,0 +1,74 @@
+---
+import type { BlogLocale } from "../../i18n/blog.js";
+import { BLOG_COPY } from "../../i18n/blog.js";
+
+interface Props {
+  title: string;
+  url: string;
+  locale: BlogLocale;
+}
+
+const { title, url, locale } = Astro.props;
+const copy = BLOG_COPY[locale];
+const encodedUrl = encodeURIComponent(url);
+const encodedTitle = encodeURIComponent(title);
+---
+
+<div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  <p class="mb-4 text-sm font-black uppercase tracking-wide text-slate-500">
+    {copy.share}
+  </p>
+  <div class="flex flex-wrap gap-2">
+    <a
+      href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 no-underline transition hover:bg-slate-200"
+    >
+      X
+    </a>
+    <a
+      href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 no-underline transition hover:bg-slate-200"
+    >
+      Facebook
+    </a>
+    <a
+      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 no-underline transition hover:bg-slate-200"
+    >
+      LinkedIn
+    </a>
+    <button
+      type="button"
+      data-copy-url={url}
+      data-copy-label={copy.copyLink}
+      data-copied-label={copy.copied}
+      class="rounded-full bg-brand-50 px-4 py-2 text-sm font-bold text-brand-700 transition hover:bg-brand-100"
+    >
+      {copy.copyLink}
+    </button>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll("[data-copy-url]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!(button instanceof HTMLButtonElement)) return;
+
+      const url = button.dataset.copyUrl;
+      if (!url) return;
+
+      await navigator.clipboard.writeText(url);
+      button.textContent = button.dataset.copiedLabel || "Copied";
+
+      window.setTimeout(() => {
+        button.textContent = button.dataset.copyLabel || "Copy link";
+      }, 1800);
+    });
+  });
+</script>

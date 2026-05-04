@@ -1,9 +1,14 @@
 ---
+import { getCollection } from "astro:content";
+import BlogCard from "./blog/BlogCard.astro";
+import { BLOG_COPY, normalizeBlogLocale } from "../i18n/blog.js";
 import type { SiteCopy, SiteExtraHomeCopy } from "../i18n/site.js";
+import type { BlogPost } from "../utils/blog.js";
 
 interface Props {
   copy: SiteCopy["home"];
   extra: SiteExtraHomeCopy;
+  locale?: string;
   heroTitleAccent?: {
     before: string;
     accent: string;
@@ -12,7 +17,14 @@ interface Props {
   heroSubtitleEmphasis?: string;
 }
 
-const { copy, extra, heroTitleAccent, heroSubtitleEmphasis } = Astro.props;
+const { copy, extra, locale = "en", heroTitleAccent, heroSubtitleEmphasis } = Astro.props;
+const blogLocale = normalizeBlogLocale(locale);
+const blogCopy = BLOG_COPY[blogLocale];
+const latestPosts = ((await getCollection("blog")) as BlogPost[])
+  .filter((post) => post.data.locale === blogLocale && !post.data.draft)
+  .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())
+  .slice(0, 3);
+const blogHref = blogLocale === "en" ? "/blog" : `/${blogLocale}/blog`;
 
 const chromeHref =
   "https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl";
@@ -1110,6 +1122,39 @@ const subtitleParts =
     </div>
   </div>
 </section>
+
+{
+  latestPosts.length > 0 && (
+    <section class="py-20 lg:py-24 bg-white border-t border-slate-100">
+      <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div class="max-w-2xl">
+            <p class="text-sm font-black uppercase tracking-[0.25em] text-brand-600">
+              {blogCopy.eyebrow}
+            </p>
+            <h2 class="mt-3 text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900">
+              {blogCopy.latestTitle}
+            </h2>
+            <p class="mt-4 text-lg text-slate-600 leading-relaxed">
+              {blogCopy.latestSubtitle}
+            </p>
+          </div>
+          <a
+            href={blogHref}
+            class="inline-flex items-center justify-center rounded-2xl border border-brand-200 bg-brand-50 px-5 py-3 text-sm font-black text-brand-700 no-underline transition hover:bg-brand-100"
+          >
+            {blogCopy.viewAll} →
+          </a>
+        </div>
+        <div class="grid gap-8 md:grid-cols-3">
+          {latestPosts.map((post) => (
+            <BlogCard post={post} compact />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 <section class="py-20 lg:py-24 bg-white border-t border-slate-100">
   <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">

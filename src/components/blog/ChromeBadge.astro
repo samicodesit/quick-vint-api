@@ -1,0 +1,26 @@
+---
+import { CHROME_WEB_STORE_URL } from "../../utils/blog.js";
+
+interface Props {
+  label?: string;
+}
+
+const { label = "Available on Chrome" } = Astro.props;
+---
+
+<a
+  href={CHROME_WEB_STORE_URL}
+  target="_blank"
+  rel="noopener noreferrer"
+  class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:text-brand-700 hover:shadow-md"
+>
+  <svg viewBox="0 0 48 48" class="h-4 w-4" aria-hidden="true">
+    <circle cx="24" cy="24" r="22" fill="#fff"></circle>
+    <path d="M24 12h19.05a22 22 0 0 0-38.1 0L14.5 28.5 24 12Z" fill="#ea4335"></path>
+    <path d="M33.5 28.5 24 45.01A22 22 0 0 0 43.05 12H24l9.5 16.5Z" fill="#fbbc04"></path>
+    <path d="M14.5 28.5 4.95 12A22 22 0 0 0 24 45.01l9.5-16.5h-19Z" fill="#34a853"></path>
+    <circle cx="24" cy="24" r="8.5" fill="#1a73e8"></circle>
+  </svg>
+  <span>{label}</span>
+  <span class="text-amber-500" aria-label="4.9 out of 5 stars">★ 4.9</span>
+</a>

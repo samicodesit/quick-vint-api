@@ -1,0 +1,35 @@
+---
+import type { MarkdownHeading } from "astro";
+import type { BlogLocale } from "../../i18n/blog.js";
+import { BLOG_COPY } from "../../i18n/blog.js";
+
+interface Props {
+  headings: MarkdownHeading[];
+  locale: BlogLocale;
+}
+
+const { headings, locale } = Astro.props;
+const visibleHeadings = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+---
+
+{
+  visibleHeadings.length > 0 && (
+    <nav class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" aria-label={BLOG_COPY[locale].tableOfContents}>
+      <p class="mb-4 text-sm font-black uppercase tracking-wide text-slate-500">
+        {BLOG_COPY[locale].tableOfContents}
+      </p>
+      <ol class="space-y-2 list-none p-0 m-0">
+        {visibleHeadings.map((heading) => (
+          <li class={heading.depth === 3 ? "pl-4" : ""}>
+            <a
+              href={`#${heading.slug}`}
+              class="block rounded-xl px-3 py-2 text-sm font-semibold leading-5 text-slate-600 no-underline transition hover:bg-brand-50 hover:text-brand-700"
+            >
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}

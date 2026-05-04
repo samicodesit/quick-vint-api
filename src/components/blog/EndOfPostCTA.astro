@@ -1,0 +1,49 @@
+---
+import { CHROME_WEB_STORE_URL } from "../../utils/blog.js";
+
+interface Props {
+  locale?: "en" | "fr" | "de" | "nl";
+}
+
+const { locale = "en" } = Astro.props;
+
+const copy = {
+  en: {
+    title: "Try AutoLister AI",
+    body: "Turn product photos into Vinted-ready titles and descriptions. Free Chrome extension, no account required to start.",
+    cta: "Add to Chrome — free",
+  },
+  fr: {
+    title: "Essayer AutoLister AI",
+    body: "Transformez vos photos en titres et descriptions prêts pour Vinted. Extension Chrome gratuite, aucun compte nécessaire.",
+    cta: "Ajouter à Chrome — gratuit",
+  },
+  de: {
+    title: "AutoLister AI testen",
+    body: "Verwandle Produktfotos in Vinted-fertige Titel und Beschreibungen. Kostenlose Chrome-Erweiterung, kein Konto nötig.",
+    cta: "Zu Chrome hinzufügen — kostenlos",
+  },
+  nl: {
+    title: "Probeer AutoLister AI",
+    body: "Zet productfoto's om in Vinted-klare titels en beschrijvingen. Gratis Chrome-extensie, geen account nodig.",
+    cta: "Toevoegen aan Chrome — gratis",
+  },
+}[locale];
+---
+
+<aside class="my-12 rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h3 class="text-lg font-bold text-slate-900">{copy.title}</h3>
+      <p class="mt-1 text-sm text-slate-600 leading-relaxed">{copy.body}</p>
+    </div>
+    <a
+      href={CHROME_WEB_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white no-underline transition hover:bg-slate-800"
+    >
+      {copy.cta}
+    </a>
+  </div>
+</aside>

@@ -1,0 +1,42 @@
+---
+import { getCollection, render } from "astro:content";
+import BlogPostLayout from "../../../layouts/BlogPostLayout.astro";
+import { LOCALIZED_BLOG_LOCALES } from "../../../i18n/blog.js";
+import {
+  getPublishedPosts,
+  getRelatedPosts,
+  getPostUrl,
+  type BlogPost,
+} from "../../../utils/blog.js";
+
+export async function getStaticPaths() {
+  const posts = ((await getCollection("blog")) as BlogPost[]).filter(
+    (post) =>
+      LOCALIZED_BLOG_LOCALES.includes(
+        post.data.locale as (typeof LOCALIZED_BLOG_LOCALES)[number],
+      ) && !post.data.draft,
+  );
+
+  return posts.map((post) => ({
+    params: { lang: post.data.locale, slug: post.data.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props as { post: BlogPost };
+const allPosts = getPublishedPosts((await getCollection("blog")) as BlogPost[]);
+const relatedPosts = getRelatedPosts(post, allPosts);
+const translations = allPosts
+  .filter((candidate) => candidate.data.translationKey === post.data.translationKey)
+  .map((candidate) => ({ locale: candidate.data.locale, url: getPostUrl(candidate) }));
+const { Content, headings } = await render(post);
+---
+
+<BlogPostLayout
+  post={post}
+  headings={headings}
+  relatedPosts={relatedPosts}
+  translations={translations}
+>
+  <Content />
+</BlogPostLayout>

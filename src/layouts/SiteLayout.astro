@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import { SITE_COPY, normalizeSiteLocale } from "../i18n/site.js";
+import type { SiteLocale } from "../i18n/site.js";
 
 export interface Props {
   title?: string;
@@ -9,10 +10,12 @@ export interface Props {
   canonical?: string | URL | null;
   ogUrl?: string;
   ogImage?: string;
+  ogType?: string;
   htmlLang?: string;
   currentLocale?: string;
   localeBasePath?: string;
   pathPattern?: string;
+  switcherLocales?: SiteLocale[];
 }
 
 const {
@@ -21,10 +24,12 @@ const {
   canonical,
   ogUrl = "https://autolister.app/",
   ogImage = "https://autolister.app/banner.png",
+  ogType = "website",
   htmlLang = "en",
   currentLocale,
   localeBasePath = "/",
   pathPattern,
+  switcherLocales,
 } = Astro.props;
 
 const resolvedLocale = normalizeSiteLocale(currentLocale || htmlLang);
@@ -34,6 +39,7 @@ const localePrefix = resolvedLocale === "en" ? "" : `/${resolvedLocale}`;
 const homeHref = `${localePrefix}/`;
 const featuresHref = `${localePrefix}/#features`;
 const pricingHref = `${localePrefix}/pricing`;
+const blogHref = `${localePrefix}/blog`;
 ---
 
 <!doctype html>
@@ -50,7 +56,7 @@ const pricingHref = `${localePrefix}/pricing`;
     <title>{title}</title>
     <meta name="description" content={description} />
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:url" content={ogUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -143,6 +149,11 @@ const pricingHref = `${localePrefix}/pricing`;
                 >{navCopy.pricing}</a
               >
               <a
+                href={blogHref}
+                class="text-base font-bold text-slate-700 hover:text-brand-600 transition-colors no-underline"
+                >{navCopy.blog}</a
+              >
+              <a
                 href="/support"
                 class="text-base font-bold text-slate-700 hover:text-brand-600 transition-colors no-underline"
                 >{navCopy.support}</a
@@ -162,6 +173,7 @@ const pricingHref = `${localePrefix}/pricing`;
                   currentLocale={resolvedLocale}
                   basePath={localeBasePath}
                   pathPattern={pathPattern}
+                  switcherLocales={switcherLocales}
                 />
               </div>
             )
@@ -221,6 +233,11 @@ const pricingHref = `${localePrefix}/pricing`;
             >{navCopy.pricing}</a
           >
           <a
+            href={blogHref}
+            class="block px-3 py-3 rounded-lg text-base font-semibold text-slate-600 hover:text-brand-600 hover:bg-brand-50 transition-colors no-underline"
+            >{navCopy.blog}</a
+          >
+          <a
             href="/support"
             class="block px-3 py-3 rounded-lg text-base font-semibold text-slate-600 hover:text-brand-600 hover:bg-brand-50 transition-colors no-underline"
             >{navCopy.support}</a
@@ -239,6 +256,7 @@ const pricingHref = `${localePrefix}/pricing`;
                   basePath={localeBasePath}
                   className="w-full"
                   pathPattern={pathPattern}
+                  switcherLocales={switcherLocales}
                 />
               </div>
             )
@@ -277,6 +295,11 @@ const pricingHref = `${localePrefix}/pricing`;
               href={pricingHref}
               class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition-colors"
               >{navCopy.pricing}</a
+            >
+            <a
+              href={blogHref}
+              class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition-colors"
+              >{navCopy.blog}</a
             >
             <a
               href="/privacy"

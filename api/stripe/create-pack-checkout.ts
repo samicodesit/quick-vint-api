@@ -1,20 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
-import { NEW_TIER_CONFIGS } from "../../utils/tierConfig";
+import { PACK_CONFIG } from "../../utils/tierConfig";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
-
-type NewTierId = "starter_v2" | "plus" | "pro_v2" | "business_v2";
-
-const VALID_TIERS = new Set<NewTierId>([
-  "starter_v2",
-  "plus",
-  "pro_v2",
-  "business_v2",
-]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -23,25 +14,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { email, tier } = req.body as { email: string; tier: NewTierId };
+    const { email } = req.body as { email: string };
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return res.status(400).json({ error: "A valid email is required." });
     }
 
-    if (!tier || !VALID_TIERS.has(tier)) {
-      return res.status(400).json({
-        error:
-          "Invalid tier. Must be one of: starter_v2, plus, pro_v2, business_v2.",
-      });
-    }
-
-    const tierConfig = NEW_TIER_CONFIGS[tier];
-    const priceId = tierConfig.stripe.priceId;
-
+    const priceId = PACK_CONFIG.stripe.priceId;
     if (!priceId || priceId.includes("PLACEHOLDER")) {
-      console.error(`Stripe price ID not configured for tier: ${tier}`);
-      return res.status(500).json({ error: "Subscription not available yet." });
+      console.error("Stripe price ID not configured for pack");
+      return res
+        .status(500)
+        .json({ error: "Pack purchase not available yet." });
     }
 
     // Look up existing Stripe customer.
@@ -54,7 +38,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (profileRow?.stripe_customer_id) {
       customerId = profileRow.stripe_customer_id;
-      // Verify customer still exists in Stripe.
       try {
         await stripe.customers.retrieve(customerId!);
       } catch {
@@ -76,18 +59,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
+      mode: "payment",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       customer: customerId,
-      success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}&type=pack`,
       cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
-      allow_promotion_codes: true,
     });
 
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
-    console.error("❌ create-checkout error:", err);
+    console.error("❌ create-pack-checkout error:", err);
     return res.status(500).json({ error: err.message });
   }
 }

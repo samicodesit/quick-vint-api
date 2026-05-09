@@ -1,76 +1,195 @@
-// api/stripe/webhook.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { buffer } from "micro";
 import Stripe from "stripe";
+import { Resend } from "resend";
 import { supabase } from "../../utils/supabaseClient";
-import { getTierByStripePriceId } from "../../utils/tierConfig";
+import {
+  getTierByStripePriceId,
+  LEGACY_TIER_IDS,
+  NEW_TIER_CONFIGS,
+  PACK_CONFIG,
+} from "../../utils/tierConfig";
+import {
+  grantSubscriptionCredits,
+  upgradeSubscriptionCredits,
+  cancelSubscriptionCredits,
+  freezeSubscriptionCreditsOnFailure,
+  addPackCredits,
+} from "../../utils/credits";
+import { BRAND, TEMPLATES, wrapEmailLayout } from "../../utils/emailTemplates";
 
 export const config = { api: { bodyParser: false } };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
-
+const resend = new Resend(process.env.RESEND_API_KEY);
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Calculates prorated credits for a mid-cycle upgrade. */
+function calcProratedCredits(
+  periodStart: number,
+  periodEnd: number,
+  monthlyCredits: number,
+): number {
+  const now = Math.floor(Date.now() / 1000);
+  const totalSecs = periodEnd - periodStart;
+  const remainingSecs = Math.max(0, periodEnd - now);
+  const fraction = totalSecs > 0 ? remainingSecs / totalSecs : 1;
+  return Math.max(1, Math.round(monthlyCredits * fraction));
+}
+
+async function sendPaymentFailureEmail(
+  template: "payment_failed_day1" | "payment_failed_day5",
+  userEmail: string,
+  unsubscribeToken: string | null,
+): Promise<void> {
+  const tpl = TEMPLATES[template];
+  if (!tpl) return;
+
+  const unsubUrl = unsubscribeToken
+    ? `https://autolister.app/api/unsubscribe?token=${unsubscribeToken}`
+    : "https://autolister.app/api/unsubscribe";
+
+  const html = wrapEmailLayout(tpl.body, tpl.preheader, unsubUrl);
+
+  try {
+    await resend.emails.send({
+      from: BRAND.from,
+      to: userEmail,
+      subject: tpl.subject,
+      html,
+      headers: {
+        "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${unsubUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    });
+  } catch (err: any) {
+    console.error(`Failed to send ${template} to ${userEmail}:`, err.message);
+  }
+}
+
+/** Looks up a profile by stripe_customer_id, falling back to email lookup. */
+async function findProfileByCustomer(
+  customerId: string,
+  selectCols: string,
+): Promise<Record<string, any> | null> {
+  let { data } = await supabase
+    .from("profiles")
+    .select(selectCols)
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (!data) {
+    const customer = await stripe.customers.retrieve(customerId);
+    const email = (customer as any).email as string | undefined;
+    if (email) {
+      const result = await supabase
+        .from("profiles")
+        .select(selectCols)
+        .ilike("email", email)
+        .single();
+      data = result.data;
+    }
+  }
+
+  return data ?? null;
+}
+
+// ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).end("Method Not Allowed");
   }
 
-  // 1) Retrieve raw body + signature header
   const buf = await buffer(req);
   const sigHeader = req.headers["stripe-signature"] as string;
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(buf, sigHeader, WEBHOOK_SECRET);
-    console.log(`✅ Stripe webhook signature OK. Event: ${event.type}`);
+    console.log(`✅ Stripe webhook: ${event.type}`);
   } catch (err: any) {
-    console.error("⚠️ Webhook signature verification failed:", err.message);
+    console.error("⚠️ Webhook signature failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // 2) Handle event types
+  // Idempotency: skip events we've already fully processed. Stripe retries
+  // on 5xx and on its own retry schedule, so renewals/pack purchases/
+  // cancellations would otherwise double-apply.
+  const { error: dedupErr } = await supabase
+    .from("processed_stripe_events")
+    .insert({ event_id: event.id, event_type: event.type });
+  if (dedupErr) {
+    if ((dedupErr as any).code === "23505") {
+      console.log(`↩️ Stripe webhook ${event.id} already processed; skipping.`);
+      return res.json({ received: true, deduped: true });
+    }
+    // Any other insert error: log and continue (don't block legit events on
+    // a bookkeeping table failure).
+    console.error("Idempotency insert failed (non-fatal):", dedupErr);
+  }
+
   try {
     switch (event.type) {
+      // ── New checkout completed ──────────────────────────────────────────────
       case "checkout.session.completed": {
-        console.log("⏳ Handling checkout.session.completed");
         const session = event.data.object as Stripe.Checkout.Session;
         const customerId = session.customer as string;
         const email = session.customer_details?.email!;
 
         if (session.mode === "subscription" && session.subscription) {
-          // Fetch the full Subscription
           const subscription = (await stripe.subscriptions.retrieve(
             session.subscription as string,
           )) as any;
 
-          // Pull interval from the first item’s plan
           const priceId = subscription.items.data[0]?.price.id;
           const tierConfig = getTierByStripePriceId(priceId);
           const tier = tierConfig?.name || "free";
           const status = subscription.status as string;
+          const periodEnd = subscription.current_period_end as number;
+          const currentPeriodEnd = new Date(periodEnd * 1000).toISOString();
+          const isLegacyTier = LEGACY_TIER_IDS.has(tier);
 
-          // Pull current_period_end from items.data[0]
-          const rawEnd = subscription.items.data[0]?.current_period_end;
-          let currentPeriodEnd: string | null = null;
-          if (typeof rawEnd === "number") {
-            currentPeriodEnd = new Date(rawEnd * 1000).toISOString();
-          }
-
-          // 2a) Upsert stripe_customer_id
+          // Save stripe_customer_id first so the profile lookup below works.
           await supabase
             .from("profiles")
             .update({ stripe_customer_id: customerId })
             .ilike("email", email);
 
-          // 2b) Find the user’s profile row by email
           const { data: profileRow } = await supabase
             .from("profiles")
-            .select("id")
+            .select(
+              "id, credits_cycle_end, is_legacy_plan, stripe_subscription_id",
+            )
             .ilike("email", email)
             .single();
 
           if (profileRow) {
+            // Legacy → new plan switch: cancel the old legacy subscription so the
+            // user isn't billed for two plans simultaneously.
+            if (
+              profileRow.is_legacy_plan &&
+              !isLegacyTier &&
+              profileRow.stripe_subscription_id &&
+              profileRow.stripe_subscription_id !== subscription.id
+            ) {
+              try {
+                await stripe.subscriptions.cancel(
+                  profileRow.stripe_subscription_id,
+                );
+                console.log(
+                  `Cancelled legacy subscription ${profileRow.stripe_subscription_id} for ${email}`,
+                );
+              } catch (err: any) {
+                console.error(
+                  `Failed to cancel legacy subscription for ${email}:`,
+                  err.message,
+                );
+              }
+            }
+
             await supabase
               .from("profiles")
               .update({
@@ -79,104 +198,283 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 subscription_tier: tier,
                 subscription_status: status,
                 current_period_end: currentPeriodEnd,
+                is_legacy_plan: isLegacyTier,
+                pending_tier: null,
               })
+              .eq("id", profileRow.id);
+
+            // Grant credits only on first subscribe (idempotency: skip if cycle
+            // end is already set to this period, meaning subscription.created
+            // already fired first).
+            if (
+              !isLegacyTier &&
+              currentPeriodEnd &&
+              profileRow.credits_cycle_end !== currentPeriodEnd
+            ) {
+              const newTierConfig = NEW_TIER_CONFIGS[tier];
+              if (newTierConfig?.credits) {
+                await grantSubscriptionCredits(
+                  profileRow.id,
+                  newTierConfig.credits.monthly,
+                  newTierConfig.credits.rolloverCap,
+                  currentPeriodEnd,
+                );
+              }
+            }
+          }
+        }
+
+        // One-time pack purchase
+        if (session.mode === "payment") {
+          const lineItems = await stripe.checkout.sessions.listLineItems(
+            session.id,
+          );
+          const packItem = lineItems.data.find(
+            (item) => item.price?.id === PACK_CONFIG.stripe.priceId,
+          );
+
+          if (packItem) {
+            const { data: profileRow } = await supabase
+              .from("profiles")
+              .select("id")
+              .ilike("email", email)
+              .single();
+
+            if (profileRow) {
+              await addPackCredits(profileRow.id, PACK_CONFIG.credits);
+            }
+          }
+        }
+        break;
+      }
+
+      // ── Subscription created or updated ────────────────────────────────────
+      case "customer.subscription.created":
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+
+        const customerId = subscription.customer as string;
+        const item = subscription.items.data[0];
+        const priceId = item?.price.id;
+        const tierConfig = getTierByStripePriceId(priceId);
+        const tier = tierConfig?.name || "free";
+        const status = subscription.status;
+        const periodEnd = item?.current_period_end as number;
+        const periodStart = item?.current_period_start as number;
+        const currentPeriodEnd = new Date(periodEnd * 1000).toISOString();
+        const isLegacyTier = LEGACY_TIER_IDS.has(tier);
+
+        const profileRow = await findProfileByCustomer(
+          customerId,
+          "id, credits_cycle_end, is_legacy_plan, subscription_tier, pending_tier, payment_grace_started_at",
+        );
+
+        if (!profileRow) break;
+
+        // Always persist subscription metadata.
+        await supabase
+          .from("profiles")
+          .update({
+            stripe_subscription_id: subscription.id,
+            subscription_status: status,
+            current_period_end: currentPeriodEnd,
+            is_legacy_plan: isLegacyTier,
+          })
+          .eq("id", profileRow.id);
+
+        // Legacy subscribers: never touch their credits.
+        if (isLegacyTier || profileRow.is_legacy_plan) break;
+
+        // Don't grant credits during past_due / unpaid — the status update
+        // above is sufficient; the grace period is handled by invoice events.
+        if (status !== "active") break;
+
+        // ── Determine what changed ──────────────────────────────────────────
+        const isRenewal = currentPeriodEnd !== profileRow.credits_cycle_end;
+
+        const storedTier = profileRow.subscription_tier as string | null;
+        const storedTierConfig = storedTier
+          ? NEW_TIER_CONFIGS[storedTier]
+          : null;
+        const isTierChange =
+          !!tierConfig && !!storedTierConfig && tier !== storedTier;
+        const isUpgrade =
+          isTierChange &&
+          (tierConfig?.monthlyPrice ?? 0) >
+            (storedTierConfig?.monthlyPrice ?? 0);
+        const isDowngrade =
+          isTierChange &&
+          (tierConfig?.monthlyPrice ?? 0) <
+            (storedTierConfig?.monthlyPrice ?? 0);
+
+        if (isRenewal) {
+          // Cycle completed. Apply pending downgrade if queued, else normal renewal.
+          const tierToApply =
+            (profileRow.pending_tier as string | null) || tier;
+          const configToApply = NEW_TIER_CONFIGS[tierToApply];
+
+          if (configToApply?.credits) {
+            await grantSubscriptionCredits(
+              profileRow.id,
+              configToApply.credits.monthly,
+              configToApply.credits.rolloverCap,
+              currentPeriodEnd,
+            );
+            await supabase
+              .from("profiles")
+              .update({
+                subscription_tier: tierToApply,
+                pending_tier: null,
+              })
+              .eq("id", profileRow.id);
+          }
+        } else if (isUpgrade) {
+          // Mid-cycle upgrade: preserve all credits, add prorated new ones.
+          const proratedCredits = calcProratedCredits(
+            periodStart,
+            periodEnd,
+            tierConfig!.credits!.monthly,
+          );
+          await upgradeSubscriptionCredits(
+            profileRow.id,
+            proratedCredits,
+            currentPeriodEnd,
+          );
+          await supabase
+            .from("profiles")
+            .update({
+              subscription_tier: tier,
+              pending_tier: null,
+            })
+            .eq("id", profileRow.id);
+        } else if (isDowngrade) {
+          // Mid-cycle downgrade: store pending tier, user keeps features until renewal.
+          await supabase
+            .from("profiles")
+            .update({ pending_tier: tier })
+            .eq("id", profileRow.id);
+        } else if (
+          !isRenewal &&
+          !isTierChange &&
+          !profileRow.credits_cycle_end
+        ) {
+          // First subscription (subscription.created before checkout.session.completed).
+          if (tierConfig?.credits) {
+            await grantSubscriptionCredits(
+              profileRow.id,
+              tierConfig.credits.monthly,
+              tierConfig.credits.rolloverCap,
+              currentPeriodEnd,
+            );
+            await supabase
+              .from("profiles")
+              .update({ subscription_tier: tier })
               .eq("id", profileRow.id);
           }
         }
         break;
       }
 
-      case "customer.subscription.created":
-      case "customer.subscription.updated": {
-        console.log(`⏳ Handling ${event.type}`);
+      // ── Subscription cancelled ─────────────────────────────────────────────
+      case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        const subAny = subscription as any;
+        const customerId = subscription.customer as string;
 
-        const customerId = subAny.customer as string;
-        // Same logic: price ID from items.data[0].price.id
-        const priceId = subscription.items.data[0]?.price.id;
-        const tierConfig = getTierByStripePriceId(priceId);
-        const tier = tierConfig?.name || "free";
-        const status = subscription.status as string;
+        const profileRow = await findProfileByCustomer(
+          customerId,
+          "id, is_legacy_plan, payment_grace_started_at",
+        );
 
-        // Pull current_period_end from items.data[0]
-        const rawEnd = subAny.items.data[0]?.current_period_end as
-          | number
-          | undefined;
-        let currentPeriodEnd: string | null = null;
-        if (typeof rawEnd === "number") {
-          currentPeriodEnd = new Date(rawEnd * 1000).toISOString();
-        }
+        if (!profileRow) break;
 
-        // 1) Try find profile by stripe_customer_id
-        let { data: profileRow } = await supabase
+        await supabase
           .from("profiles")
-          .select("id")
-          .eq("stripe_customer_id", customerId)
-          .single();
+          .update({
+            subscription_status: "canceled",
+            subscription_tier: "free",
+            current_period_end: null,
+            pending_tier: null,
+            is_legacy_plan: false,
+          })
+          .eq("id", profileRow.id);
 
-        // 2) Fallback: match by email if no customer_id found
-        if (!profileRow) {
-          const customer = await stripe.customers.retrieve(customerId);
-          const custAny = customer as any;
-          const email = custAny.email as string | undefined;
-          if (email) {
-            const { data } = await supabase
-              .from("profiles")
-              .select("id")
-              .ilike("email", email)
-              .single();
-            profileRow = data as any;
+        if (!profileRow.is_legacy_plan) {
+          if (profileRow.payment_grace_started_at) {
+            // Cancellation from payment failure: freeze rollover until
+            // graceStart + 21 days (7-day grace + 14-day freeze). Anchor on
+            // grace start so the webhook and payment-recovery cron agree on
+            // the deadline regardless of which fires first.
+            const graceStartMs = new Date(
+              profileRow.payment_grace_started_at,
+            ).getTime();
+            const frozenUntil = new Date(
+              graceStartMs + 21 * 24 * 60 * 60 * 1000,
+            ).toISOString();
+            await freezeSubscriptionCreditsOnFailure(
+              profileRow.id,
+              frozenUntil,
+            );
+          } else {
+            // Voluntary cancellation: subscription credits expire immediately.
+            await cancelSubscriptionCredits(profileRow.id);
           }
-        }
-
-        if (profileRow) {
-          await supabase
-            .from("profiles")
-            .update({
-              stripe_subscription_id: subAny.id,
-              subscription_tier: tier,
-              subscription_status: status,
-              current_period_end: currentPeriodEnd,
-            })
-            .eq("id", profileRow.id);
         }
         break;
       }
 
-      case "customer.subscription.deleted": {
-        console.log("⏳ Handling customer.subscription.deleted");
-        const subscription = event.data.object as Stripe.Subscription;
-        const subAny = subscription as any;
-        const customerId = subAny.customer as string;
+      // ── Payment failed — start grace period ────────────────────────────────
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
 
-        const { data: profileRow } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("stripe_customer_id", customerId)
-          .single();
+        const profileRow = await findProfileByCustomer(
+          customerId,
+          "id, email, is_legacy_plan, payment_grace_started_at, unsubscribe_token",
+        );
 
-        if (profileRow) {
+        if (!profileRow || profileRow.is_legacy_plan) break;
+
+        // Only record the first failure; retries also fire this event.
+        if (!profileRow.payment_grace_started_at) {
           await supabase
             .from("profiles")
-            .update({
-              subscription_status: "canceled",
-              subscription_tier: "free",
-              current_period_end: null,
-            })
+            .update({ payment_grace_started_at: new Date().toISOString() })
             .eq("id", profileRow.id);
+
+          if (profileRow.email) {
+            await sendPaymentFailureEmail(
+              "payment_failed_day1",
+              profileRow.email,
+              profileRow.unsubscribe_token ?? null,
+            );
+          }
         }
+        break;
+      }
+
+      // ── Payment recovered — clear grace period ─────────────────────────────
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+
+        // Only clear grace state; credit granting is handled by subscription.updated.
+        await supabase
+          .from("profiles")
+          .update({
+            payment_grace_started_at: null,
+            payment_day5_email_sent: false,
+          })
+          .eq("stripe_customer_id", customerId);
         break;
       }
 
       default:
-        // Ignore other events
         break;
     }
 
     return res.json({ received: true });
   } catch (err) {
-    console.error("❌ Error handling Stripe webhook:", err);
+    console.error("❌ Webhook error:", err);
     return res.status(500).end();
   }
 }

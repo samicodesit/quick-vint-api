@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Busboy from "busboy";
 import Cors from "cors";
+import { normalizeFreeTierLegacyProfile } from "../utils/profileState";
 import { supabase } from "../utils/supabaseClient";
 import { getFeatureFlags } from "../utils/tierConfig";
 
@@ -52,7 +53,7 @@ async function checkAndConsumePhoneUploadQuota(userId: string): Promise<{
   reason?: string;
   remaining?: number;
 }> {
-  const { data: profile } = await supabase
+  const { data: rawProfile } = await supabase
     .from("profiles")
     .select(
       "subscription_tier, subscription_status, is_legacy_plan, pack_credits",
@@ -60,6 +61,7 @@ async function checkAndConsumePhoneUploadQuota(userId: string): Promise<{
     .eq("id", userId)
     .single();
 
+  const profile = await normalizeFreeTierLegacyProfile(userId, rawProfile);
   if (!profile) return { allowed: false, reason: "Profile not found" };
 
   const tier = profile.subscription_tier || "free";

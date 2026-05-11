@@ -9,6 +9,7 @@ import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
 import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
 import { consumeCredit, giveSignupBonus } from "../utils/credits";
+import { normalizeFreeTierLegacyProfile } from "../utils/profileState";
 import { getFeatureFlags } from "../utils/tierConfig";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
@@ -182,7 +183,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Use the existing profile or the default values for new users
-  const userProfile = profile || {
+  let userProfile = profile || {
     api_calls_this_month: 0,
     subscription_status: "free",
     subscription_tier: "free",
@@ -191,6 +192,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     subscription_credits: 5, // just granted above
     pack_credits: 0,
   };
+
+  userProfile =
+    (await normalizeFreeTierLegacyProfile(user.id, userProfile)) || userProfile;
 
   // Add user profile info to log data
   logData.subscriptionTier = userProfile.subscription_tier;

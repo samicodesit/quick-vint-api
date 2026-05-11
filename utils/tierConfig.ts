@@ -66,7 +66,7 @@ export const LEGACY_TIER_CONFIGS: Record<string, TierConfig> = {
     id: "starter",
     name: "starter",
     displayName: "Starter",
-    description: "Perfect for casual Vinted sellers",
+    description: "For casual sellers",
     monthlyPrice: 3.99,
     stripe: {
       productId: "prod_T5HLgwjVpMBXzZ",
@@ -210,7 +210,7 @@ export const NEW_TIER_CONFIGS: Record<string, TierConfig> = {
     id: "business_v2",
     name: "business_v2",
     displayName: "Business",
-    description: "For Vinted Pro sellers",
+    description: "For power sellers",
     monthlyPrice: 24.99,
     stripe: {
       productId: env("STRIPE_BUSINESS_V2_PRODUCT_ID"),

@@ -24,6 +24,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const resend = new Resend(process.env.RESEND_API_KEY);
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
+type SubscriptionItemWithPeriod = Stripe.SubscriptionItem & {
+  current_period_start?: number;
+  current_period_end?: number;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Calculates prorated credits for a mid-cycle upgrade. */
@@ -210,7 +215,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             session.subscription as string,
           );
 
-          const item = subscription.items.data[0];
+          const item = subscription.items.data[0] as
+            | SubscriptionItemWithPeriod
+            | undefined;
           const priceId = item?.price.id;
           if (!priceId || !item?.current_period_end) {
             console.error(
@@ -316,7 +323,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subscription = event.data.object as Stripe.Subscription;
 
         const customerId = subscription.customer as string;
-        const item = subscription.items.data[0];
+        const item = subscription.items.data[0] as
+          | SubscriptionItemWithPeriod
+          | undefined;
         const priceId = item?.price.id;
         if (
           !priceId ||

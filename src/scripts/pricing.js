@@ -93,14 +93,6 @@ function decodeUserData(token) {
   }
 }
 
-// Normalize legacy tier names to v2 equivalents for comparison
-function normalizeTier(tier) {
-  if (tier === "starter" || tier === "unlimited_monthly") return "starter_v2";
-  if (tier === "pro") return "pro_v2";
-  if (tier === "business") return "business_v2";
-  return tier;
-}
-
 // Update button states based on user context
 function updateButtonStates() {
   const subscriptionButtons = {
@@ -111,7 +103,6 @@ function updateButtonStates() {
   };
 
   const rawTier = currentProfile?.subscription_tier || "free";
-  const currentTier = normalizeTier(rawTier);
   const isActive = currentProfile?.subscription_status === "active";
 
   Object.entries(subscriptionButtons).forEach(([plan, button]) => {
@@ -135,13 +126,13 @@ function updateButtonStates() {
       textSpan.textContent = "Sign In to Subscribe";
       statusSpan.textContent = "";
       button.classList.add("state-signin");
-    } else if (isActive && currentTier === plan) {
+    } else if (isActive && rawTier === plan) {
       textSpan.textContent = "Current Plan";
       statusSpan.textContent = "✓ Active";
       button.classList.add("state-current");
     } else {
       const planConfig = PLAN_CONFIG[plan];
-      const currentPlanConfig = PLAN_CONFIG[currentTier] || PLAN_CONFIG["free"];
+      const currentPlanConfig = PLAN_CONFIG[rawTier] || PLAN_CONFIG["free"];
       textSpan.textContent =
         planConfig.price > (currentPlanConfig?.price || 0)
           ? `Upgrade to ${planConfig.name}`
@@ -190,12 +181,10 @@ async function handlePlanClick(planName) {
       return;
     }
 
-    const currentTier = normalizeTier(
-      currentProfile?.subscription_tier || "free",
-    );
+    const currentTier = currentProfile?.subscription_tier || "free";
     const isActive = currentProfile?.subscription_status === "active";
 
-    if (isActive && currentTier === normalizeTier(planName)) {
+    if (isActive && currentTier === planName) {
       await openCustomerPortal();
     } else {
       await handlePaidPlanSelection(planName);

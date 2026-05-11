@@ -86,6 +86,28 @@ export const LEGACY_TIER_CONFIGS: Record<string, TierConfig> = {
     ],
   },
 
+  unlimited_monthly: {
+    id: "unlimited_monthly",
+    name: "unlimited_monthly",
+    displayName: "Starter",
+    description: "Legacy unlimited monthly plan",
+    monthlyPrice: 3.99,
+    stripe: {
+      productId: "prod_T5HLgwjVpMBXzZ",
+      priceId: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+    },
+    limits: {
+      daily: 15,
+      monthly: 300,
+      burst: { perMinute: 10 },
+    },
+    features: [
+      "AI-generated titles and descriptions",
+      "Priority support",
+      "Up to 15 listings per day",
+    ],
+  },
+
   pro: {
     id: "pro",
     name: "pro",
@@ -246,7 +268,12 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
 };
 
 // IDs of tiers that use the legacy daily/monthly rate-limiter
-export const LEGACY_TIER_IDS = new Set(["starter", "pro", "business"]);
+export const LEGACY_TIER_IDS = new Set([
+  "starter",
+  "unlimited_monthly",
+  "pro",
+  "business",
+]);
 
 export function isLegacyTierById(tierId: string): boolean {
   return LEGACY_TIER_IDS.has(tierId);

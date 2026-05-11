@@ -30,7 +30,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_phone_upload_reset TIMESTAMP 
 UPDATE profiles
 SET is_legacy_plan = TRUE
 WHERE subscription_status = 'active'
-  AND subscription_tier IN ('starter', 'pro', 'business');
+  AND subscription_tier IN ('starter', 'unlimited_monthly', 'pro', 'business');
 
 -- Bootstrap the free credit system for all non-legacy users:
 -- give 5 signup credits and start the drip clock from now.

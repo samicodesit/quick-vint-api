@@ -554,7 +554,6 @@ Reply only in JSON: {"title":"...","description":"..."}
             creditResult.error === "Insufficient credits"
               ? "You don't have enough credits for this generation."
               : "We couldn't deduct a credit for this generation. Please try again.";
-          error.partialResults = isBatch ? [...results] : [];
           error.totalTokens = totalTokens;
           throw error;
         }
@@ -626,27 +625,6 @@ Reply only in JSON: {"title":"...","description":"..."}
       userMessage =
         "There was an issue processing your images. Please try different images.";
       statusCode = 400;
-    }
-
-    if (isBatch && err.partialResults?.length > 0) {
-      const partialResults = err.partialResults as GenerationResult[];
-
-      logData.openaiTokensUsed = err.totalTokens ?? totalTokens;
-      logData.generatedTitle = partialResults[0].title;
-      logData.generatedDescription = partialResults[0].description;
-      logData.responseStatus = 200;
-      logData.processingDurationMs = Date.now() - startTime;
-      logData.flaggedReason = `Partial batch response after credit deduction failure: ${err.message}`;
-      await ApiLogger.logRequest(logData);
-
-      return res.status(200).json({
-        title: partialResults[0].title,
-        description: partialResults[0].description,
-        measurementAdvice: partialResults[0].measurementAdvice,
-        results: partialResults,
-        partial: true,
-        error: userMessage,
-      });
     }
 
     // Log the detailed error (for admin)

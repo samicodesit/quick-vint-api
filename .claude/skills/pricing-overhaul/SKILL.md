@@ -169,12 +169,9 @@ This is NOT an "SEO score for your AI output." That would backfire — if your o
 
 - Title length: is the seller using a good portion of Vinted's 100-character title limit?
 - Description length: is there enough detail for Vinted's search to index?
-- Photo count: does the listing have 5+ photos? (Vinted's algorithm favors 8–12 photos)
-- Brand field: is it filled in?
-- Category specificity: did the seller pick a narrow sub-category or leave it broad?
-- Condition field: is it set?
-- Hashtag presence: are there hashtags in the description?
-- Key attributes present in text: brand, size, color, material, condition mentioned?
+- Hashtag count: does the description include at least 3 hashtags?
+- Photo count: does the listing have at least 3 photos? This is the current implementation threshold.
+- Measurements: if a measurements section is present, is at least one measurement field filled in?
 
 **How it works across tiers:**
 
@@ -184,7 +181,7 @@ This is NOT an "SEO score for your AI output." That would backfire — if your o
 
 **Why this works for manually typed content too:** The check evaluates the whole listing page, so yes — if someone on the free tier types their own description and it's missing brand/size/material, the score reflects that. It works the same whether the text was AI-generated or hand-typed. This makes the feature universally useful and avoids the trap of the AI grading its own homework.
 
-**Why this doesn't backfire on AI-generated content:** Since the score checks page-level completeness (photos, category, brand field, etc.), the AI-generated text will naturally score well on the text-related checks (title length, keyword presence, description length). The areas where users lose points will be things AutoLister doesn't control — photo count, category selection, brand field. So the score motivates users to complete the non-AI parts of their listing, making the whole listing better. The AI never rates its own text as bad.
+**Why this doesn't backfire on AI-generated content:** Since the score checks page-level completeness (title length, description length, photos), the AI-generated text will naturally score well on the actual checks. The only lower-scoring area in the current implementation is photo count, so the feature encourages users to add more images without penalizing the text it generated.
 
 **Vinted-safe:** You're reading the DOM of the listing page the user is already on. No API calls, no automation.
 
@@ -192,26 +189,21 @@ This is NOT an "SEO score for your AI output." That would backfire — if your o
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Listing Completeness          7/10  ██████░░░░  │
+│  Listing Completeness          3/5  ██████░░░░  │
 │                                                   │
 │  ✅ Title length (68/100 chars)                   │
-│  ✅ Brand detected in title                       │
 │  ✅ Description length (220 chars)                │
-│  ✅ Hashtags present (5)                          │
-│  ✅ Size mentioned                                │
-│  ✅ Color mentioned                               │
-│  ✅ Condition field set                           │
-│  ⚠️ Photos: 3 uploaded (aim for 8+)       [Pro]  │
-│  ⚠️ Category: broad — narrow it down      [Pro]  │
-│  ⚠️ Material not mentioned in text         [Pro]  │
+│  ⚠️ Hashtags: 1 found (add 2 more)               │
+│  ⚠️ Photos: 2 uploaded (add at least 3 photos)    │
+│  ⚠️ Measurements: 1/2 filled                     │
 │                                                   │
-│  Items marked [Pro] show full suggestion          │
-│  text on Pro/Business. All tiers see the          │
-│  checkmarks and the score number.                 │
+│  [Pro/Business] shows full tips for missing items │
+│  Free/Starter/Plus see the score and pass/fail    │
+│  state for each checked field.                    │
 └─────────────────────────────────────────────┘
 ```
 
-On Free/Pack/Starter/Plus: the ⚠️ items show as "⚠️ Photos" / "⚠️ Category" / "⚠️ Material" with a lock icon and "Upgrade for tips." On Pro/Business: the full suggestion text appears inline.
+On Free/Pack/Starter/Plus: failing items show the score state and an upgrade prompt. On Pro/Business: failing items also show actionable tips inline.
 
 ### 2. Smart Re-Gen (Plus tier and above)
 
@@ -251,24 +243,18 @@ This is NOT a freeform text box. It's a set of **predefined checkboxes** you con
 ```
 ┌──────────────────────────────────────────────┐
 │  🎨 Listing Preferences                      │
-│                                               │
+│                                              │
 │  Include in every listing:                    │
-│  ☑️  Mention item measurements                │
-│  ☐  Mention "smoke-free, pet-free home"       │
-│  ☐  Mention shipping speed                    │
-│  ☐  Add a friendly closing line               │
-│  ☑️  Mention fabric/material when visible      │
-│  ☐  Note if item is "true to size"            │
-│  ☐  Mention original retail price if known     │
-│  ☐  Include care instructions                 │
-│                                               │
+│  ☐  Mention "smoke-free home"                │
+│  ☐  Mention "pet-free home"                  │
+│                                              │
 │  ───────────────────────────────────────────  │
 │  💡 Suggest a new preference                  │
 │  ┌──────────────────────────────────────────┐ │
 │  │ e.g. "always mention if item has pockets"│ │
 │  └──────────────────────────────────────────┘ │
 │  [Submit suggestion]                          │
-│                                               │
+│                                              │
 │  Suggestions go to AutoLister team.           │
 │  Popular requests get added as new options.   │
 └──────────────────────────────────────────────┘
@@ -472,24 +458,24 @@ The pack sits below the subscription cards as a full-width bar, visually seconda
 
 ## Consistency Audit
 
-| Check                                                                     | Result                                                                                                                        |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Does every tier cost less per-credit than the one below it?               | ✅ €0.27 → €0.075 → €0.050 → €0.037 → €0.025                                                                                  |
-| Does the pack cost more per-credit than every subscription?               | ✅ €0.27 vs. cheapest sub at €0.075                                                                                           |
-| Does the free-credits-run-out prompt match the pack specs?                | ✅ "Get 15 more for €3.99" / pack = 15 credits at €3.99                                                                       |
-| Does the rollover cap follow 3x monthly for all tiers?                    | ✅ 240/600/1,200/3,000 = 3× of 80/200/400/1,000                                                                               |
-| Can a casual seller (10 items/mo) live on free tier forever?              | ❌ Free caps at 13 total, forces conversion                                                                                   |
-| Can a casual seller bypass subscriptions with packs?                      | Possible but expensive (€0.27 vs €0.075) — math favors subscribing within 2 months                                            |
-| Does Phone Upload create habit at the entry level?                        | ✅ Unlimited from Starter onward                                                                                              |
-| Is Tone Control a clear Pro-only upgrade?                                 | ✅ Locked on Free, Pack, Starter, Plus; unlocked on Pro + Business                                                            |
-| Is Multi-lang batch on Pro AND Business?                                  | ✅ Both tiers, consistent with grid                                                                                           |
-| Are Listing Preferences + Smart Re-Gen gated at Plus+?                    | ✅ Plus, Pro, Business                                                                                                        |
-| Does Listing Completeness Check show suggestions only on Pro+?            | ✅ Score for all, suggestions for Pro + Business                                                                              |
-| Can the Listing Completeness Check rate AI output as bad?                 | ❌ It checks page-level completeness (photos, fields, category), not text quality. AI text always scores well on text checks. |
-| Do permanent pack credits survive cancellation?                           | ✅ They never expire under any circumstance                                                                                   |
-| Are subscription credits consumed before pack credits?                    | ✅ Expiring resource burns first                                                                                              |
-| Are legacy users' plans/limits unchanged?                                 | ✅ Kept as-is unless they voluntarily switch                                                                                  |
-| Are Listing Preferences preserved on downgrade (just inactive)?           | ✅ They reactivate on re-upgrade                                                                                              |
-| Are Listing Preferences checkbox-only (no freeform prompt injection)?     | ✅ Users pick from predefined options; suggestions go to you for review                                                       |
-| Do all edge case rules reference the correct tier numbers?                | ✅ Verified against grid                                                                                                      |
-| Does every mention of the pack in the document say "15 credits at €3.99"? | ✅ Verified — no 25-credit references remain                                                                                  |
+| Check                                                                     | Result                                                                                                                                |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Does every tier cost less per-credit than the one below it?               | ✅ €0.27 → €0.075 → €0.050 → €0.037 → €0.025                                                                                          |
+| Does the pack cost more per-credit than every subscription?               | ✅ €0.27 vs. cheapest sub at €0.075                                                                                                   |
+| Does the free-credits-run-out prompt match the pack specs?                | ✅ "Get 15 more for €3.99" / pack = 15 credits at €3.99                                                                               |
+| Does the rollover cap follow 3x monthly for all tiers?                    | ✅ 240/600/1,200/3,000 = 3× of 80/200/400/1,000                                                                                       |
+| Can a casual seller (10 items/mo) live on free tier forever?              | ❌ Free caps at 13 total, forces conversion                                                                                           |
+| Can a casual seller bypass subscriptions with packs?                      | Possible but expensive (€0.27 vs €0.075) — math favors subscribing within 2 months                                                    |
+| Does Phone Upload create habit at the entry level?                        | ✅ Unlimited from Starter onward                                                                                                      |
+| Is Tone Control a clear Pro-only upgrade?                                 | ✅ Locked on Free, Pack, Starter, Plus; unlocked on Pro + Business                                                                    |
+| Is Multi-lang batch on Pro AND Business?                                  | ✅ Both tiers, consistent with grid                                                                                                   |
+| Are Listing Preferences + Smart Re-Gen gated at Plus+?                    | ✅ Plus, Pro, Business                                                                                                                |
+| Does Listing Completeness Check show suggestions only on Pro+?            | ✅ Score for all, suggestions for Pro + Business                                                                                      |
+| Can the Listing Completeness Check rate AI output as bad?                 | ❌ It checks page-level completeness (title, description, photos), not text quality. AI text always scores well on the actual checks. |
+| Do permanent pack credits survive cancellation?                           | ✅ They never expire under any circumstance                                                                                           |
+| Are subscription credits consumed before pack credits?                    | ✅ Expiring resource burns first                                                                                                      |
+| Are legacy users' plans/limits unchanged?                                 | ✅ Kept as-is unless they voluntarily switch                                                                                          |
+| Are Listing Preferences preserved on downgrade (just inactive)?           | ✅ They reactivate on re-upgrade                                                                                                      |
+| Are Listing Preferences checkbox-only (no freeform prompt injection)?     | ✅ Users pick from predefined options; suggestions go to you for review                                                               |
+| Do all edge case rules reference the correct tier numbers?                | ✅ Verified against grid                                                                                                              |
+| Does every mention of the pack in the document say "15 credits at €3.99"? | ✅ Verified — no 25-credit references remain                                                                                          |

@@ -24,8 +24,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { email, tier } = req.body as { email: string; tier: NewTierId };
+    const normalizedEmail = email?.trim();
 
-    if (!email || typeof email !== "string" || !email.includes("@")) {
+    if (
+      !normalizedEmail ||
+      typeof normalizedEmail !== "string" ||
+      !normalizedEmail.includes("@")
+    ) {
       return res.status(400).json({ error: "A valid email is required." });
     }
 
@@ -49,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: profileRow } = await supabase
       .from("profiles")
       .select("stripe_customer_id")
-      .ilike("email", email)
+      .ilike("email", normalizedEmail)
       .single();
 
     if (profileRow?.stripe_customer_id) {
@@ -62,28 +67,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    if (!customerId) {
-      const newCustomer = await stripe.customers.create({
-        email,
-        metadata: { source: "autolister_extension" },
-      });
-      customerId = newCustomer.id;
-
-      await supabase
-        .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .ilike("email", email);
-    }
-
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      customer: customerId,
+      ...(customerId
+        ? { customer: customerId }
+        : { customer_email: normalizedEmail }),
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
       allow_promotion_codes: true,
-    });
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return res.status(200).json({ url: session.url });
   } catch (err: any) {

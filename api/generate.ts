@@ -324,6 +324,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "If measurements are visible in the images, include them in the description.",
     smoke_pet_free:
       "Add a brief note that this item comes from a smoke-free, pet-free home.",
+    smoke_free_home:
+      "Add a brief note that this item comes from a smoke-free home.",
+    pet_free_home:
+      "Add a brief note that this item comes from a pet-free home.",
     fabric_material:
       "If the fabric or material is visible or can be reasonably identified from the images, mention it.",
     closing_line:
@@ -460,25 +464,21 @@ Reply only in JSON: {"title":"...","description":"..."}
     };
   }
 
-  // --- GENERATE (sequential per language; deduct one credit per success) ---
-  try {
-    const results: Array<{
-      languageCode: string;
-      title: string;
-      description: string;
-      measurementAdvice: string;
-    }> = [];
-    let totalTokens = 0;
+  type GenerationResult = {
+    languageCode: string;
+    title: string;
+    description: string;
+    measurementAdvice: string;
+  };
 
+  // --- GENERATE (sequential per language; deduct one credit per success) ---
+  const results: GenerationResult[] = [];
+  let totalTokens = 0;
+
+  try {
     for (const langCode of targetLanguageCodes) {
       const r = await generateOne(langCode);
       totalTokens += r.tokensUsed ?? 0;
-      results.push({
-        languageCode: r.languageCode,
-        title: r.title,
-        description: r.description,
-        measurementAdvice: r.measurementAdvice,
-      });
 
       // Deduct credit (or rate-limit increment for legacy) per successful generation.
       if (isLegacy) {
@@ -510,16 +510,30 @@ Reply only in JSON: {"title":"...","description":"..."}
           );
           const error = new Error(
             creditResult.error || "Credit deduction failed",
-          ) as Error & { statusCode?: number; userMessage?: string };
+          ) as Error & {
+            statusCode?: number;
+            userMessage?: string;
+            partialResults?: GenerationResult[];
+            totalTokens?: number;
+          };
           error.statusCode =
             creditResult.error === "Insufficient credits" ? 402 : 500;
           error.userMessage =
             creditResult.error === "Insufficient credits"
               ? "You don't have enough credits for this generation."
               : "We couldn't deduct a credit for this generation. Please try again.";
+          error.partialResults = isBatch ? [...results] : [];
+          error.totalTokens = totalTokens;
           throw error;
         }
       }
+
+      results.push({
+        languageCode: r.languageCode,
+        title: r.title,
+        description: r.description,
+        measurementAdvice: r.measurementAdvice,
+      });
     }
 
     if (results.length === 0) {
@@ -580,6 +594,27 @@ Reply only in JSON: {"title":"...","description":"..."}
       userMessage =
         "There was an issue processing your images. Please try different images.";
       statusCode = 400;
+    }
+
+    if (isBatch && err.partialResults?.length > 0) {
+      const partialResults = err.partialResults as GenerationResult[];
+
+      logData.openaiTokensUsed = err.totalTokens ?? totalTokens;
+      logData.generatedTitle = partialResults[0].title;
+      logData.generatedDescription = partialResults[0].description;
+      logData.responseStatus = 200;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason = `Partial batch response after credit deduction failure: ${err.message}`;
+      await ApiLogger.logRequest(logData);
+
+      return res.status(200).json({
+        title: partialResults[0].title,
+        description: partialResults[0].description,
+        measurementAdvice: partialResults[0].measurementAdvice,
+        results: partialResults,
+        partial: true,
+        error: userMessage,
+      });
     }
 
     // Log the detailed error (for admin)

@@ -155,15 +155,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const email = session.customer_details?.email!;
 
         if (session.mode === "subscription" && session.subscription) {
-          const subscription = (await stripe.subscriptions.retrieve(
+          const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string,
-          )) as any;
+          );
 
-          const priceId = subscription.items.data[0]?.price.id;
+          const item = subscription.items.data[0];
+          const priceId = item?.price.id;
+          if (!priceId || !item?.current_period_end) {
+            console.error(
+              `Subscription ${subscription.id} is missing item price or period end`,
+            );
+            break;
+          }
+
           const tierConfig = getTierByStripePriceId(priceId);
           const tier = tierConfig?.name || "free";
           const status = subscription.status as string;
-          const periodEnd = subscription.current_period_end as number;
+          const periodEnd = item.current_period_end;
           const currentPeriodEnd = new Date(periodEnd * 1000).toISOString();
           const isLegacyTier = LEGACY_TIER_IDS.has(tier);
 
@@ -271,11 +279,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const customerId = subscription.customer as string;
         const item = subscription.items.data[0];
         const priceId = item?.price.id;
+        if (
+          !priceId ||
+          !item?.current_period_end ||
+          !item.current_period_start
+        ) {
+          console.error(
+            `Subscription ${subscription.id} is missing item price or period bounds`,
+          );
+          break;
+        }
+
         const tierConfig = getTierByStripePriceId(priceId);
         const tier = tierConfig?.name || "free";
         const status = subscription.status;
-        const periodEnd = item?.current_period_end as number;
-        const periodStart = item?.current_period_start as number;
+        const periodEnd = item.current_period_end;
+        const periodStart = item.current_period_start;
         const currentPeriodEnd = new Date(periodEnd * 1000).toISOString();
         const isLegacyTier = LEGACY_TIER_IDS.has(tier);
 

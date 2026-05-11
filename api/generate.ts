@@ -508,7 +508,16 @@ Reply only in JSON: {"title":"...","description":"..."}
             "Credit deduction failed mid-batch:",
             creditResult.error,
           );
-          break;
+          const error = new Error(
+            creditResult.error || "Credit deduction failed",
+          ) as Error & { statusCode?: number; userMessage?: string };
+          error.statusCode =
+            creditResult.error === "Insufficient credits" ? 402 : 500;
+          error.userMessage =
+            creditResult.error === "Insufficient credits"
+              ? "You don't have enough credits for this generation."
+              : "We couldn't deduct a credit for this generation. Please try again.";
+          throw error;
         }
       }
     }
@@ -547,6 +556,11 @@ Reply only in JSON: {"title":"...","description":"..."}
     let userMessage =
       "We're experiencing technical difficulties. Please try again in a moment.";
     let statusCode = 500;
+
+    if (err.statusCode && err.userMessage) {
+      statusCode = err.statusCode;
+      userMessage = err.userMessage;
+    }
 
     // Check for specific error types
     if (err.message?.includes("Rate limit")) {

@@ -117,12 +117,12 @@ describe("consumeCredit", () => {
   });
 
   it("does not touch pack_credits while subscription_credits remain", async () => {
-    stubConsumeCreditRpc({ sub: 0, rollover: 0, pack: 10 });
+    stubConsumeCreditRpc({ sub: 4, rollover: 0, pack: 10 });
 
     const result = await consumeCredit("user-3");
 
     expect(result.success).toBe(true);
-    expect(result.balance.subscription_credits).toBe(0);
+    expect(result.balance.subscription_credits).toBe(4);
     expect(result.balance.pack_credits).toBe(10);
   });
 

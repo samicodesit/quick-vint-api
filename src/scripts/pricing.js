@@ -171,12 +171,7 @@ function updateButtonStates() {
 // Handle subscription button clicks
 async function handlePlanClick(planName) {
   const buttonId = `btn-${planName.replace("_v2", "").replace("_", "-")}`;
-  const button = document.getElementById(
-    planName === "starter_v2" ? "btn-starter" :
-    planName === "pro_v2" ? "btn-pro" :
-    planName === "business_v2" ? "btn-business" :
-    `btn-${planName}`
-  );
+  const button = document.getElementById(buttonId);
   if (!button) return;
   const textSpan = button.querySelector(".btn-text");
   const originalText = textSpan.textContent;
@@ -195,7 +190,9 @@ async function handlePlanClick(planName) {
       return;
     }
 
-    const currentTier = normalizeTier(currentProfile?.subscription_tier || "free");
+    const currentTier = normalizeTier(
+      currentProfile?.subscription_tier || "free",
+    );
     const isActive = currentProfile?.subscription_status === "active";
 
     if (isActive && currentTier === normalizeTier(planName)) {
@@ -232,11 +229,14 @@ async function handlePackClick() {
       return;
     }
 
-    const response = await fetch(`${API_BASE}/api/stripe/create-pack-checkout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: currentUser.email }),
-    });
+    const response = await fetch(
+      `${API_BASE}/api/stripe/create-pack-checkout`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentUser.email }),
+      },
+    );
 
     const data = await response.json();
     if (response.ok && data.url) {

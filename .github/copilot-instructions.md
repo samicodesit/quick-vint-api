@@ -20,14 +20,30 @@ This backend API (`quick-vint-api`) serves the Chrome extension (`quick-vint`). 
 
 ## Subscription Tiers
 
-| Feature          | Free | Starter | Pro | Business |
-| ---------------- | ---- | ------- | --- | -------- |
-| Basic generation | ✓    | ✓       | ✓   | ✓        |
-| Tone selection   | ✗    | ✗       | ✓   | ✓        |
-| Emoji toggle     | ✗    | ✗       | ✓   | ✓        |
-| Daily limit      | 2    | 15      | 40  | 75       |
+Current pricing follows the credit-based pricing overhaul in `.claude/skills/pricing-overhaul/SKILL.md`:
 
-**Important:** All feature gating must be enforced server-side. Pro/Business tiers only: emojis and tone customization.
+| Feature          | Free Evaluation | Closet Clear Pack | Starter   | Plus      | Pro       | Business  |
+| ---------------- | --------------- | ----------------- | --------- | --------- | --------- | --------- |
+| Credits          | 13 total ever   | 15 perpetual      | 80/mo     | 200/mo    | 400/mo    | 1,000/mo  |
+| Phone Upload     | 5/month         | All 15 credits    | Unlimited | Unlimited | Unlimited | Unlimited |
+| Tone selection   | ✗               | ✗                 | ✗         | ✗         | ✓         | ✓         |
+| Emoji toggle     | ✗               | ✗                 | ✗         | ✗         | ✓         | ✓         |
+| Multi-lang batch | ✗               | ✗                 | ✗         | ✗         | ✓         | ✓         |
+| Preferences      | ✗               | ✗                 | ✗         | ✓         | ✓         | ✓         |
+| Smart Re-Gen     | ✗               | ✗                 | ✗         | ✓         | ✓         | ✓         |
+
+**Important:** All feature gating must be enforced server-side. Pro/Business tiers only: emojis, tone customization, multi-language batch generation, and detailed listing tips. Plus and above only: listing preferences and Smart Re-Gen. Legacy users keep their old plan limits/features until they voluntarily switch to the new pricing.
+
+## Pricing Overhaul Review Notes
+
+Avoid repeating these false-positive review comments:
+
+- **No daily limits for new plans**: New pricing uses credits and rollover, not daily/monthly count limits. `max_limits` being nullable for new tiers is intentional.
+- **Closet Clear Pack is not a subscription tier**: It is a one-time, 15-credit purchase with permanent credits. Pack credits are consumed after expiring subscription credits.
+- **Free credits do not reset forever**: Free evaluation is 5 signup credits plus 2 credits/week for 4 weeks, 13 total ever per account.
+- **Plus does not include tone/emoji/multi-lang**: Those are intentionally Pro/Business gates. Plus starts Listing Preferences and Smart Re-Gen only.
+- **Legacy users are intentionally preserved**: Existing legacy subscribers keep old limits and pricing unless they opt into the new model; do not suggest remapping them automatically.
+- **Pricing page duplication remains intentional**: EN pricing is hardcoded while localized pricing uses copy keys.
 
 ## Known Non-Issues (Do Not Suggest)
 

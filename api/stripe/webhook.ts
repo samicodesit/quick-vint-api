@@ -81,8 +81,18 @@ async function findProfileByCustomer(
     .single();
 
   if (!data) {
-    const customer = await stripe.customers.retrieve(customerId);
-    const email = (customer as any).email as string | undefined;
+    let email: string | undefined;
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      email = (customer as any).email as string | undefined;
+    } catch (err: any) {
+      console.error(
+        `Unable to retrieve Stripe customer ${customerId}:`,
+        err.message,
+      );
+      return null;
+    }
+
     if (email) {
       const result = await supabase
         .from("profiles")
@@ -115,20 +125,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Idempotency: skip events we've already fully processed. Stripe retries
-  // on 5xx and on its own retry schedule, so renewals/pack purchases/
-  // cancellations would otherwise double-apply.
-  const { error: dedupErr } = await supabase
+  const { data: processedEvent, error: processedLookupError } = await supabase
     .from("processed_stripe_events")
-    .insert({ event_id: event.id, event_type: event.type });
-  if (dedupErr) {
-    if ((dedupErr as any).code === "23505") {
-      console.log(`↩️ Stripe webhook ${event.id} already processed; skipping.`);
-      return res.json({ received: true, deduped: true });
-    }
-    // Any other insert error: log and continue (don't block legit events on
-    // a bookkeeping table failure).
-    console.error("Idempotency insert failed (non-fatal):", dedupErr);
+    .select("event_id")
+    .eq("event_id", event.id)
+    .single();
+
+  if (processedEvent) {
+    console.log(`↩️ Stripe webhook ${event.id} already processed; skipping.`);
+    return res.json({ received: true, deduped: true });
+  }
+
+  if (
+    processedLookupError &&
+    (processedLookupError as any).code !== "PGRST116"
+  ) {
+    console.error(
+      "Idempotency lookup failed (non-fatal):",
+      processedLookupError,
+    );
   }
 
   try {
@@ -470,6 +485,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       default:
         break;
+    }
+
+    const { error: dedupInsertError } = await supabase
+      .from("processed_stripe_events")
+      .insert({ event_id: event.id, event_type: event.type });
+
+    if (dedupInsertError && (dedupInsertError as any).code !== "23505") {
+      console.error(
+        "Idempotency insert failed after processing:",
+        dedupInsertError,
+      );
     }
 
     return res.json({ received: true });

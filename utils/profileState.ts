@@ -24,7 +24,10 @@ export async function normalizeFreeTierLegacyProfile<
     api_calls_this_month: 0,
   };
 
-  const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
+  const { error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", userId);
   if (error) {
     console.error("Failed to normalize free-tier legacy profile:", error);
     return profile;

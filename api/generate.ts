@@ -237,6 +237,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- CONSTRUCT PROMPT INSTRUCTIONS ---
   const featureFlags = getFeatureFlags(userProfile.subscription_tier, isLegacy);
 
+  const supportedLanguageCodes = new Set(Object.keys(languageMap));
+  const normalizeLanguageCode = (code: unknown): string => {
+    const normalized = String(code || "")
+      .toLowerCase()
+      .trim();
+    return normalized === "cs" ? "cz" : normalized;
+  };
+
   // Multi-language batch (Pro+ only): if the client sent languageCodes (array),
   // we generate once per language and deduct N credits. Falls back to the
   // legacy single-language flow when not eligible or when the array is empty.
@@ -247,18 +255,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     languageCodes.length > 0
   ) {
     const seen = new Set<string>();
-    targetLanguageCodes = (languageCodes as unknown[])
-      .map((c) =>
-        String(c || "")
-          .toLowerCase()
-          .trim(),
-      )
+    const requestedLanguageCodes = (languageCodes as unknown[])
+      .map(normalizeLanguageCode)
       .filter((c) => c && !seen.has(c) && (seen.add(c), true));
+    const unsupportedLanguageCodes = requestedLanguageCodes.filter(
+      (code) => !supportedLanguageCodes.has(code),
+    );
+
+    if (unsupportedLanguageCodes.length > 0) {
+      logData.responseStatus = 400;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason = `Unsupported language codes: ${unsupportedLanguageCodes.join(", ")}`;
+      await ApiLogger.logRequest(logData);
+      return res.status(400).json({
+        error: `Unsupported language code${unsupportedLanguageCodes.length === 1 ? "" : "s"}: ${unsupportedLanguageCodes.join(", ")}.`,
+      });
+    }
+
+    targetLanguageCodes = requestedLanguageCodes;
     if (targetLanguageCodes.length === 0) {
-      targetLanguageCodes = [String(languageCode || "en").toLowerCase()];
+      targetLanguageCodes = [normalizeLanguageCode(languageCode || "en")];
     }
   } else {
-    targetLanguageCodes = [String(languageCode || "en").toLowerCase()];
+    targetLanguageCodes = [normalizeLanguageCode(languageCode || "en")];
+  }
+
+  const unsupportedTargetLanguageCodes = targetLanguageCodes.filter(
+    (code) => !supportedLanguageCodes.has(code),
+  );
+  if (unsupportedTargetLanguageCodes.length > 0) {
+    logData.responseStatus = 400;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = `Unsupported language codes: ${unsupportedTargetLanguageCodes.join(", ")}`;
+    await ApiLogger.logRequest(logData);
+    return res.status(400).json({
+      error: `Unsupported language code${unsupportedTargetLanguageCodes.length === 1 ? "" : "s"}: ${unsupportedTargetLanguageCodes.join(", ")}.`,
+    });
   }
   const isBatch = targetLanguageCodes.length > 1;
 

@@ -4,7 +4,8 @@
  * Run once per environment (test / live):
  *   STRIPE_SECRET_KEY=sk_... npx ts-node --esm scripts/setup-stripe-products.ts
  *
- * Copy the printed price IDs into utils/tierConfig.ts (NEW_TIER_CONFIGS and PACK_CONFIG).
+ * Copy the printed environment variables into your Vercel/project env. The
+ * backend reads product/price IDs from env vars in utils/tierConfig.ts.
  */
 
 import Stripe from "stripe";
@@ -99,16 +100,20 @@ async function main() {
     console.log(`✅ ${spec.key}: product=${product.id}  price=${price.id}`);
   }
 
-  console.log("\n─────────────────────────────────────────────────────────────");
-  console.log("Paste the following into backend/utils/tierConfig.ts:\n");
+  console.log(
+    "\n─────────────────────────────────────────────────────────────",
+  );
+  console.log("Paste the following into your backend environment:\n");
 
   for (const [key, ids] of Object.entries(results)) {
-    console.log(`  ${key}:`);
-    console.log(`    productId: "${ids.productId}",`);
-    console.log(`    priceId:   "${ids.priceId}",`);
+    const envPrefix = key.toUpperCase();
+    console.log(`STRIPE_${envPrefix}_PRODUCT_ID=${ids.productId}`);
+    console.log(`STRIPE_${envPrefix}_PRICE_ID=${ids.priceId}`);
   }
 
-  console.log("\nDone. Run this script once per Stripe environment (test/live).");
+  console.log(
+    "\nDone. Run this script once per Stripe environment (test/live).",
+  );
 }
 
 main().catch((err) => {

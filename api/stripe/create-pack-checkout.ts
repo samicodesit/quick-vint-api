@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { supabase } from "../../utils/supabaseClient";
 import { PACK_CONFIG } from "../../utils/tierConfig";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
@@ -15,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { email } = req.body as { email: string };
-    const normalizedEmail = email?.trim();
+    const normalizedEmail = typeof email === "string" ? email.trim() : "";
 
     if (
       !normalizedEmail ||
@@ -33,30 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ error: "Pack purchase not available yet." });
     }
 
-    // Look up existing Stripe customer.
-    let customerId: string | null = null;
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select("stripe_customer_id")
-      .ilike("email", normalizedEmail)
-      .single();
-
-    if (profileRow?.stripe_customer_id) {
-      customerId = profileRow.stripe_customer_id;
-      try {
-        await stripe.customers.retrieve(customerId!);
-      } catch {
-        customerId = null;
-      }
-    }
-
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      ...(customerId
-        ? { customer: customerId }
-        : { customer_email: normalizedEmail }),
+      customer_email: normalizedEmail,
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}&type=pack`,
       cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
     };

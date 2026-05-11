@@ -44,6 +44,9 @@ Avoid repeating these false-positive review comments:
 - **Plus does not include tone/emoji/multi-lang**: Those are intentionally Pro/Business gates. Plus starts Listing Preferences and Smart Re-Gen only.
 - **Legacy users are intentionally preserved**: Existing legacy subscribers keep old limits and pricing unless they opt into the new model; do not suggest remapping them automatically.
 - **Pricing page duplication remains intentional**: EN pricing is hardcoded while localized pricing uses copy keys.
+- **Checkout auth is intentionally deferred**: The current frontend `new-pricing` branch sends email-body checkout requests, not bearer-auth checkout requests. Do not require JWT auth for `/api/stripe/create-checkout` or `/api/stripe/create-pack-checkout` until the frontend contract changes. The safe invariant is that these endpoints must not pre-payment mutate profiles or reuse an existing `stripe_customer_id` from an unauthenticated email.
+- **Phone upload auth is intentionally deferred**: The current QR/mobile phone-upload flow cannot access the extension's Supabase token. `/api/phone-upload` remains session-id based for this launch. Do not suggest bearer-token auth or per-user quota enforcement there until a signed upload-session design is implemented across frontend and backend.
+- **Stripe subscription periods use item fields in current SDK**: With `stripe@18.5.0`, subscription item objects expose `current_period_start` / `current_period_end`; `Stripe.Subscription` types in this repo do not. Do not suggest moving these fields back to the subscription object unless the Stripe SDK/API version changes.
 
 ## Known Non-Issues (Do Not Suggest)
 

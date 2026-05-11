@@ -106,6 +106,64 @@ async function findProfileByCustomer(
   return data ?? null;
 }
 
+async function getCustomerEmail(customerId: string): Promise<string | null> {
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    return (customer as any).email ?? null;
+  } catch (err: any) {
+    console.error(
+      `Unable to retrieve Stripe customer ${customerId}:`,
+      err.message,
+    );
+    return null;
+  }
+}
+
+async function findProfileByCheckoutSession(
+  session: Stripe.Checkout.Session,
+  selectCols: string,
+): Promise<Record<string, any> | null> {
+  const customerId =
+    typeof session.customer === "string" ? session.customer : null;
+
+  if (customerId) {
+    const { data } = await supabase
+      .from("profiles")
+      .select(selectCols)
+      .eq("stripe_customer_id", customerId)
+      .single();
+
+    if (data) return data;
+  }
+
+  const email =
+    session.customer_details?.email ||
+    session.customer_email ||
+    (customerId ? await getCustomerEmail(customerId) : null);
+
+  if (!email) {
+    console.error(`Checkout session ${session.id} has no resolvable email`);
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("profiles")
+    .select(selectCols)
+    .ilike("email", email)
+    .single();
+
+  const profile = data as Record<string, any> | null;
+
+  if (profile && customerId && profile.stripe_customer_id !== customerId) {
+    await supabase
+      .from("profiles")
+      .update({ stripe_customer_id: customerId })
+      .eq("id", profile.id);
+  }
+
+  return profile ?? null;
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -151,8 +209,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // ── New checkout completed ──────────────────────────────────────────────
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const customerId = session.customer as string;
-        const email = session.customer_details?.email!;
+        const customerId =
+          typeof session.customer === "string" ? session.customer : null;
 
         if (session.mode === "subscription" && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
@@ -175,26 +233,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const currentPeriodEnd = new Date(periodEnd * 1000).toISOString();
           const isLegacyTier = LEGACY_TIER_IDS.has(tier);
 
-          // Save stripe_customer_id first so the profile lookup below works.
-          await supabase
-            .from("profiles")
-            .update({ stripe_customer_id: customerId })
-            .ilike("email", email);
-
-          const { data: profileRow } = await supabase
-            .from("profiles")
-            .select(
-              "id, credits_cycle_end, is_legacy_plan, stripe_subscription_id",
-            )
-            .ilike("email", email)
-            .single();
+          const profileRow = await findProfileByCheckoutSession(
+            session,
+            "id, email, stripe_customer_id, credits_cycle_end, is_legacy_plan, stripe_subscription_id",
+          );
 
           if (profileRow) {
-            // Legacy → new plan switch: cancel the old legacy subscription so the
+            // Plan switch via Checkout: cancel the previous subscription so the
             // user isn't billed for two plans simultaneously.
             if (
-              profileRow.is_legacy_plan &&
-              !isLegacyTier &&
               profileRow.stripe_subscription_id &&
               profileRow.stripe_subscription_id !== subscription.id
             ) {
@@ -203,11 +250,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   profileRow.stripe_subscription_id,
                 );
                 console.log(
-                  `Cancelled legacy subscription ${profileRow.stripe_subscription_id} for ${email}`,
+                  `Cancelled previous subscription ${profileRow.stripe_subscription_id} for ${profileRow.email}`,
                 );
               } catch (err: any) {
                 console.error(
-                  `Failed to cancel legacy subscription for ${email}:`,
+                  `Failed to cancel previous subscription for ${profileRow.email}:`,
                   err.message,
                 );
               }
@@ -217,7 +264,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .from("profiles")
               .update({
                 stripe_subscription_id: subscription.id,
-                stripe_customer_id: customerId,
+                ...(customerId ? { stripe_customer_id: customerId } : {}),
                 subscription_tier: tier,
                 subscription_status: status,
                 current_period_end: currentPeriodEnd,
@@ -257,11 +304,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           );
 
           if (packItem) {
-            const { data: profileRow } = await supabase
-              .from("profiles")
-              .select("id")
-              .ilike("email", email)
-              .single();
+            const profileRow = await findProfileByCheckoutSession(
+              session,
+              "id, email, stripe_customer_id",
+            );
 
             if (profileRow) {
               await addPackCredits(profileRow.id, PACK_CONFIG.credits);

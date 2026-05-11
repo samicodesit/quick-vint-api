@@ -46,6 +46,21 @@ async function logTransaction(
   }
 }
 
+async function updateProfileOrThrow(
+  userId: string,
+  payload: Record<string, unknown>,
+  context: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update(payload)
+    .eq("id", userId);
+  if (error) {
+    console.error(`Failed to update profile for ${context}:`, error);
+    throw error;
+  }
+}
+
 export async function getCreditBalance(userId: string): Promise<CreditBalance> {
   const { data } = await supabase
     .from("profiles")
@@ -152,15 +167,16 @@ export async function giveSignupBonus(userId: string): Promise<void> {
   const SIGNUP_BONUS = 5;
   const now = new Date().toISOString();
 
-  await supabase
-    .from("profiles")
-    .update({
+  await updateProfileOrThrow(
+    userId,
+    {
       subscription_credits: SIGNUP_BONUS,
       free_drip_started_at: now,
       free_drip_weeks_delivered: 0,
       is_legacy_plan: false,
-    })
-    .eq("id", userId);
+    },
+    "signup bonus",
+  );
 
   await logTransaction(
     userId,
@@ -189,13 +205,14 @@ export async function deliverWeeklyDrip(userId: string): Promise<void> {
   const weeksDelivered = (data?.free_drip_weeks_delivered ?? 0) + 1;
   const newSub = currentSub + DRIP_AMOUNT;
 
-  await supabase
-    .from("profiles")
-    .update({
+  await updateProfileOrThrow(
+    userId,
+    {
       subscription_credits: newSub,
       free_drip_weeks_delivered: weeksDelivered,
-    })
-    .eq("id", userId);
+    },
+    "weekly drip",
+  );
 
   await logTransaction(
     userId,
@@ -260,7 +277,7 @@ export async function grantSubscriptionCredits(
     updatePayload.payment_day5_email_sent = false;
   }
 
-  await supabase.from("profiles").update(updatePayload).eq("id", userId);
+  await updateProfileOrThrow(userId, updatePayload, "subscription renewal");
 
   await logTransaction(
     userId,
@@ -301,14 +318,15 @@ export async function upgradeSubscriptionCredits(
   const pack = data?.pack_credits ?? 0;
   const newSub = sub + proratedCredits;
 
-  await supabase
-    .from("profiles")
-    .update({
+  await updateProfileOrThrow(
+    userId,
+    {
       subscription_credits: newSub,
       credits_cycle_end: cycleEnd,
       is_legacy_plan: false,
-    })
-    .eq("id", userId);
+    },
+    "subscription upgrade",
+  );
 
   await logTransaction(
     userId,
@@ -369,14 +387,15 @@ export async function cancelSubscriptionCredits(userId: string): Promise<void> {
 
   const pack = data?.pack_credits ?? 0;
 
-  await supabase
-    .from("profiles")
-    .update({
+  await updateProfileOrThrow(
+    userId,
+    {
       subscription_credits: 0,
       rollover_credits: 0,
       credits_cycle_end: null,
-    })
-    .eq("id", userId);
+    },
+    "subscription cancellation",
+  );
 
   await logTransaction(userId, 0, "subscription_cancel", pack, 0, pack);
 }
@@ -400,17 +419,18 @@ export async function freezeSubscriptionCreditsOnFailure(
   const sub = data?.subscription_credits ?? 0;
   const pack = data?.pack_credits ?? 0;
 
-  await supabase
-    .from("profiles")
-    .update({
+  await updateProfileOrThrow(
+    userId,
+    {
       subscription_credits: 0,
       rollover_credits: sub,
       rollover_frozen_until: frozenUntil,
       credits_cycle_end: null,
       payment_grace_started_at: null,
       payment_day5_email_sent: false,
-    })
-    .eq("id", userId);
+    },
+    "payment failure rollover freeze",
+  );
 
   await logTransaction(userId, -sub, "rollover_freeze", pack, 0, pack, {
     frozen_credits: sub,
@@ -432,13 +452,14 @@ export async function expireFrozenRollover(userId: string): Promise<void> {
   const frozen = data?.rollover_credits ?? 0;
   const pack = data?.pack_credits ?? 0;
 
-  await supabase
-    .from("profiles")
-    .update({
+  await updateProfileOrThrow(
+    userId,
+    {
       rollover_credits: 0,
       rollover_frozen_until: null,
-    })
-    .eq("id", userId);
+    },
+    "frozen rollover expiry",
+  );
 
   if (frozen > 0) {
     await logTransaction(userId, -frozen, "rollover_expiry", pack, 0, pack, {

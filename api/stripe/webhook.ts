@@ -183,25 +183,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  const { data: processedEvent, error: processedLookupError } = await supabase
+  const { error: eventClaimError } = await supabase
     .from("processed_stripe_events")
-    .select("event_id")
-    .eq("event_id", event.id)
-    .single();
+    .insert({ event_id: event.id, event_type: event.type });
 
-  if (processedEvent) {
+  if ((eventClaimError as any)?.code === "23505") {
     console.log(`↩️ Stripe webhook ${event.id} already processed; skipping.`);
     return res.json({ received: true, deduped: true });
   }
 
-  if (
-    processedLookupError &&
-    (processedLookupError as any).code !== "PGRST116"
-  ) {
-    console.error(
-      "Idempotency lookup failed (non-fatal):",
-      processedLookupError,
-    );
+  if (eventClaimError) {
+    console.error("Failed to claim Stripe webhook event:", eventClaimError);
+    return res.status(500).end();
   }
 
   try {
@@ -552,20 +545,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
     }
 
-    const { error: dedupInsertError } = await supabase
-      .from("processed_stripe_events")
-      .insert({ event_id: event.id, event_type: event.type });
-
-    if (dedupInsertError && (dedupInsertError as any).code !== "23505") {
-      console.error(
-        "Idempotency insert failed after processing:",
-        dedupInsertError,
-      );
-    }
-
     return res.json({ received: true });
   } catch (err) {
     console.error("❌ Webhook error:", err);
+    const { error: releaseError } = await supabase
+      .from("processed_stripe_events")
+      .delete()
+      .eq("event_id", event.id);
+    if (releaseError) {
+      console.error(
+        "Failed to release failed webhook event claim:",
+        releaseError,
+      );
+    }
     return res.status(500).end();
   }
 }

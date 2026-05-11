@@ -40,8 +40,10 @@ export interface FeatureFlags {
   phone_upload_limit: number | null;
 }
 
-// ─── Legacy tiers (existing 12 subscribers — DO NOT CHANGE) ──────────────────
-// These use the old daily/monthly rate-limiting system.
+// ─── Legacy tiers (existing subscribers) ─────────────────────────────────────
+// Keep legacy Stripe IDs/pricing stable. These tiers continue to use the old
+// daily/monthly rate-limiting system unless a documented legacy behaviour needs
+// correcting.
 
 export const LEGACY_TIER_CONFIGS: Record<string, TierConfig> = {
   free: {

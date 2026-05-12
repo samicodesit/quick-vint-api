@@ -32,13 +32,19 @@ export function getPostUrl(post: BlogPost): string {
     : `/${locale}/blog/${post.data.slug}`;
 }
 
-export function getCategoryUrl(locale: BlogLocale, category: BlogCategory): string {
+export function getCategoryUrl(
+  locale: BlogLocale,
+  category: BlogCategory,
+): string {
   return locale === "en"
     ? `/blog/category/${category}`
     : `/${locale}/blog/category/${category}`;
 }
 
-export function getCategoryLabel(locale: BlogLocale, category: BlogCategory): string {
+export function getCategoryLabel(
+  locale: BlogLocale,
+  category: BlogCategory,
+): string {
   return BLOG_COPY[locale].categories[category];
 }
 
@@ -84,7 +90,9 @@ export function getRelatedPosts(
         !post.data.draft &&
         post.data.locale === currentPost.data.locale &&
         (post.data.category === currentPost.data.category ||
-          post.data.tags.some((tag: string) => currentPost.data.tags.includes(tag))),
+          post.data.tags.some((tag: string) =>
+            currentPost.data.tags.includes(tag),
+          )),
     ),
   ).slice(0, limit);
 }

@@ -3,27 +3,23 @@ import Busboy from "busboy";
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 
-// Initialize CORS middleware
 const cors = Cors({
   methods: ["GET", "POST", "OPTIONS"],
   origin: true,
+  allowedHeaders: ["Content-Type"],
 });
 
 function runMiddleware(req: VercelRequest, res: VercelResponse, fn: Function) {
   return new Promise((resolve, reject) => {
     fn(req, res, (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
+      if (result instanceof Error) return reject(result);
       return resolve(result);
     });
   });
 }
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 interface FileUpload {
@@ -35,33 +31,31 @@ interface FileUpload {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   await runMiddleware(req, res, cors);
 
-  if (req.method === "GET") {
-    return handleList(req, res);
-  } else if (req.method === "POST") {
-    // Check if it's a multipart request (upload) or JSON (complete)
+  if (req.method === "OPTIONS") return res.status(200).end();
+
+  if (req.method === "GET") return handleList(req, res);
+  if (req.method === "POST") {
     const contentType = req.headers["content-type"] || "";
     if (contentType.includes("multipart/form-data")) {
       return handleUpload(req, res);
-    } else {
-      return handleComplete(req, res);
     }
-  } else {
-    return res.status(405).json({ error: "Method not allowed" });
+    return handleComplete(req, res);
   }
+  return res.status(405).json({ error: "Method not allowed" });
 }
 
 // --- Handler: List Files (GET) ---
 async function handleList(req: VercelRequest, res: VercelResponse) {
   const { sessionId } = req.query;
-
   if (!sessionId || typeof sessionId !== "string") {
     return res.status(400).json({ error: "Missing sessionId" });
   }
 
   try {
+    const root = sessionId;
     const { data: files, error: listError } = await supabase.storage
       .from("temp-uploads")
-      .list(sessionId, {
+      .list(root, {
         limit: 100,
         offset: 0,
         sortBy: { column: "created_at", order: "asc" },
@@ -75,13 +69,11 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 
     const fileUrls = await Promise.all(
       files.map(async (file) => {
-        const path = `${sessionId}/${file.name}`;
+        const path = `${root}/${file.name}`;
         const { data, error } = await supabase.storage
           .from("temp-uploads")
           .createSignedUrl(path, 3600);
-
         if (error) return null;
-
         return {
           name: file.name,
           url: data?.signedUrl,
@@ -91,11 +83,10 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       }),
     );
 
-    const validFiles = fileUrls.filter((f) => f !== null);
-    res.status(200).json({ files: validFiles });
+    res.status(200).json({ files: fileUrls.filter((f) => f !== null) });
   } catch (error: any) {
     console.error("List error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Failed to list uploads" });
   }
 }
 
@@ -106,15 +97,12 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   let sessionId = "";
 
   busboy.on("field", (fieldname, val) => {
-    if (fieldname === "sessionId") {
-      sessionId = val;
-    }
+    if (fieldname === "sessionId") sessionId = val;
   });
 
-  busboy.on("file", (fieldname, file, info) => {
+  busboy.on("file", (_fieldname, file, info) => {
     const { filename, mimeType } = info;
     const chunks: Buffer[] = [];
-
     file.on("data", (data) => chunks.push(data));
     file.on("end", () => {
       fileUploads.push({
@@ -128,29 +116,36 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   busboy.on("finish", async () => {
     try {
       const finalSessionId = sessionId || (req.query.sessionId as string);
-
       if (!finalSessionId) {
         return res.status(400).json({ error: "Missing sessionId" });
       }
 
-      const uploadPromises = fileUploads.map(async (file) => {
-        const uniqueSuffix = Math.random().toString(36).substring(2, 9);
-        const path = `${finalSessionId}/${Date.now()}-${uniqueSuffix}-${file.filename}`;
-        const { error } = await supabase.storage
-          .from("temp-uploads")
-          .upload(path, file.buffer, {
-            contentType: file.mimeType,
-            upsert: false,
-          });
+      if (fileUploads.length === 0) {
+        return res.status(400).json({ error: "No files provided" });
+      }
 
-        if (error) throw error;
+      const root = finalSessionId;
+      await Promise.all(
+        fileUploads.map(async (file) => {
+          const uniqueSuffix = Math.random().toString(36).substring(2, 9);
+          const path = `${root}/${Date.now()}-${uniqueSuffix}-${file.filename}`;
+          const { error } = await supabase.storage
+            .from("temp-uploads")
+            .upload(path, file.buffer, {
+              contentType: file.mimeType,
+              upsert: false,
+            });
+          if (error) throw error;
+        }),
+      );
+
+      res.status(200).json({
+        success: true,
+        count: fileUploads.length,
       });
-
-      await Promise.all(uploadPromises);
-      res.status(200).json({ success: true, count: fileUploads.length });
     } catch (error: any) {
       console.error("Upload error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to upload files" });
     }
   });
 
@@ -160,26 +155,23 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
 // --- Handler: Complete Session (POST JSON) ---
 async function handleComplete(req: VercelRequest, res: VercelResponse) {
   const sessionId = req.query.sessionId as string;
-
   if (!sessionId) {
     return res.status(400).json({ error: "Missing sessionId" });
   }
 
   try {
-    // 1. List all files in the session folder
+    const root = sessionId;
     const { data: files, error: listError } = await supabase.storage
       .from("temp-uploads")
-      .list(sessionId);
+      .list(root);
 
     if (listError) throw listError;
 
-    // 2. If there are files, delete them
     if (files && files.length > 0) {
-      const filesToRemove = files.map((f) => `${sessionId}/${f.name}`);
+      const filesToRemove = files.map((f) => `${root}/${f.name}`);
       const { error: removeError } = await supabase.storage
         .from("temp-uploads")
         .remove(filesToRemove);
-
       if (removeError) throw removeError;
       console.log(
         `Cleaned up session ${sessionId}: ${files.length} files removed.`,
@@ -191,7 +183,6 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       .json({ success: true, message: "Session completed and cleaned up" });
   } catch (error: any) {
     console.error("Complete error:", error);
-    // Even if cleanup fails, we return success to the client so they don't retry
     res.status(200).json({
       success: true,
       warning: "Cleanup failed but session marked complete",

@@ -11,9 +11,13 @@ let hasExtension = false;
 const PLAN_CONFIG = {
   free: { name: "Free", price: 0 },
   unlimited_monthly: { name: "Starter", price: 3.99 }, // Legacy support
-  starter: { name: "Starter", price: 3.99 },
-  pro: { name: "Pro", price: 9.99 },
-  business: { name: "Business", price: 19.99 },
+  starter: { name: "Starter", price: 3.99 }, // Legacy support
+  starter_v2: { name: "Starter", price: 5.99 },
+  plus: { name: "Plus", price: 9.99 },
+  pro: { name: "Pro", price: 9.99 }, // Legacy support
+  pro_v2: { name: "Pro", price: 14.99 },
+  business: { name: "Business", price: 19.99 }, // Legacy support
+  business_v2: { name: "Business", price: 24.99 },
 };
 
 // Check if extension is installed
@@ -91,23 +95,22 @@ function decodeUserData(token) {
 
 // Update button states based on user context
 function updateButtonStates() {
-  const buttons = {
-    free: document.getElementById("btn-free"),
-    starter: document.getElementById("btn-starter"),
-    pro: document.getElementById("btn-pro"),
-    business: document.getElementById("btn-business"),
+  const subscriptionButtons = {
+    starter_v2: document.getElementById("btn-starter"),
+    plus: document.getElementById("btn-plus"),
+    pro_v2: document.getElementById("btn-pro"),
+    business_v2: document.getElementById("btn-business"),
   };
 
-  const currentTier = currentProfile?.subscription_tier || "free";
+  const rawTier = currentProfile?.subscription_tier || "free";
   const isActive = currentProfile?.subscription_status === "active";
 
-  Object.entries(buttons).forEach(([plan, button]) => {
+  Object.entries(subscriptionButtons).forEach(([plan, button]) => {
     if (!button) return;
 
     const textSpan = button.querySelector(".btn-text");
     const statusSpan = button.querySelector(".btn-status");
 
-    // Remove all state classes
     button.classList.remove(
       "state-download",
       "state-signin",
@@ -120,98 +123,119 @@ function updateButtonStates() {
       statusSpan.textContent = "";
       button.classList.add("state-download");
     } else if (!currentUser) {
-      textSpan.textContent =
-        plan === "free" ? "Sign In to Start" : "Sign In to Subscribe";
+      textSpan.textContent = "Sign In to Subscribe";
       statusSpan.textContent = "";
       button.classList.add("state-signin");
-    } else if (
-      isActive &&
-      (currentTier === plan ||
-        (currentTier === "unlimited_monthly" && plan === "starter"))
-    ) {
+    } else if (isActive && rawTier === plan) {
       textSpan.textContent = "Current Plan";
       statusSpan.textContent = "✓ Active";
       button.classList.add("state-current");
     } else {
-      if (plan === "free" && currentTier !== "free") {
-        textSpan.textContent = "Downgrade";
-        statusSpan.textContent = "";
-        button.classList.add("state-disabled");
-      } else if (plan === "free") {
-        textSpan.textContent = "Current Plan";
-        button.classList.add("state-current");
-      } else {
-        const planConfig = PLAN_CONFIG[plan];
-        const currentPlanConfig = PLAN_CONFIG[currentTier];
-        textSpan.textContent =
-          planConfig.price > currentPlanConfig.price
-            ? `Upgrade to ${planConfig.name}`
-            : `Switch to ${planConfig.name}`;
-        statusSpan.textContent = "";
-      }
+      const planConfig = PLAN_CONFIG[plan];
+      const currentPlanConfig = PLAN_CONFIG[rawTier] || PLAN_CONFIG["free"];
+      textSpan.textContent =
+        planConfig.price > (currentPlanConfig?.price || 0)
+          ? `Upgrade to ${planConfig.name}`
+          : `Switch to ${planConfig.name}`;
+      statusSpan.textContent = "";
     }
   });
+
+  // Pack button
+  const packButton = document.getElementById("btn-pack");
+  if (packButton) {
+    const textSpan = packButton.querySelector(".btn-text");
+    const statusSpan = packButton.querySelector(".btn-status");
+    packButton.classList.remove("state-download", "state-signin");
+    if (!hasExtension) {
+      textSpan.textContent = "Download Extension";
+      statusSpan.textContent = "";
+      packButton.classList.add("state-download");
+    } else if (!currentUser) {
+      textSpan.textContent = "Sign In to Buy";
+      statusSpan.textContent = "";
+      packButton.classList.add("state-signin");
+    }
+  }
 }
 
-// Handle button clicks
+// Handle subscription button clicks
 async function handlePlanClick(planName) {
-  const button = document.getElementById(`btn-${planName}`);
+  const buttonId = `btn-${planName.replace("_v2", "").replace("_", "-")}`;
+  const button = document.getElementById(buttonId);
+  if (!button) return;
   const textSpan = button.querySelector(".btn-text");
   const originalText = textSpan.textContent;
 
-  // Show loading state
   button.disabled = true;
   textSpan.textContent = "Loading...";
 
   try {
     if (!hasExtension) {
-      // Download extension
       downloadExtension();
       return;
     }
 
     if (!currentUser) {
-      // Prompt to sign in through extension
-      // IMPORTANT: Using custom modal/message box instead of alert()
-      console.log(
-        "User not signed in. Please sign in through the AutoLister AI extension first, then return to this page.",
-      );
-      // In a real app, you would show a modal here.
+      console.log("Please sign in through the AutoLister AI extension first.");
       return;
     }
 
-    if (planName === "free") {
-      // Already on free or trying to downgrade
-      if (currentProfile?.subscription_tier === "free") {
-        console.log("You are already on the free plan!");
-        return;
-      } else {
-        // Redirect to customer portal to cancel
-        await openCustomerPortal();
-        return;
-      }
-    }
-
-    // Handle paid plan selection
     const currentTier = currentProfile?.subscription_tier || "free";
     const isActive = currentProfile?.subscription_status === "active";
 
-    if (
-      isActive &&
-      (currentTier === planName ||
-        (currentTier === "unlimited_monthly" && planName === "starter"))
-    ) {
-      // Already on this plan - open customer portal
+    if (isActive && currentTier === planName) {
       await openCustomerPortal();
     } else {
-      // Upgrade/switch plan
       await handlePaidPlanSelection(planName);
     }
   } catch (error) {
     console.error("Plan selection error:", error);
-    // In a real app, you would show an error modal here.
   } finally {
-    // Reset button state
+    button.disabled = false;
+    textSpan.textContent = originalText;
+  }
+}
+
+// Handle pack purchase
+async function handlePackClick() {
+  const button = document.getElementById("btn-pack");
+  if (!button) return;
+  const textSpan = button.querySelector(".btn-text");
+  const originalText = textSpan.textContent;
+
+  button.disabled = true;
+  textSpan.textContent = "Loading...";
+
+  try {
+    if (!hasExtension) {
+      downloadExtension();
+      return;
+    }
+
+    if (!currentUser) {
+      console.log("Please sign in through the AutoLister AI extension first.");
+      return;
+    }
+
+    const response = await fetch(
+      `${API_BASE}/api/stripe/create-pack-checkout`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentUser.email }),
+      },
+    );
+
+    const data = await response.json();
+    if (response.ok && data.url) {
+      window.open(data.url, "_blank");
+    } else {
+      console.error("Pack checkout error:", data);
+    }
+  } catch (error) {
+    console.error("Pack checkout error:", error);
+  } finally {
     button.disabled = false;
     textSpan.textContent = originalText;
   }
@@ -358,17 +382,20 @@ async function initializePage() {
 
   // Add event listeners
   document
-    .getElementById("btn-free")
-    .addEventListener("click", () => handlePlanClick("free"));
-  document
     .getElementById("btn-starter")
-    .addEventListener("click", () => handlePlanClick("starter"));
+    ?.addEventListener("click", () => handlePlanClick("starter_v2"));
+  document
+    .getElementById("btn-plus")
+    ?.addEventListener("click", () => handlePlanClick("plus"));
   document
     .getElementById("btn-pro")
-    .addEventListener("click", () => handlePlanClick("pro"));
+    ?.addEventListener("click", () => handlePlanClick("pro_v2"));
   document
     .getElementById("btn-business")
-    .addEventListener("click", () => handlePlanClick("business"));
+    ?.addEventListener("click", () => handlePlanClick("business_v2"));
+  document
+    .getElementById("btn-pack")
+    ?.addEventListener("click", handlePackClick);
 }
 
 // Initialize on page load

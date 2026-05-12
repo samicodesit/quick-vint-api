@@ -489,6 +489,27 @@ type SiteExtraPricingCopy = {
   instantAccess: string;
   helpChoosing: string;
   emailSupport: string;
+  freeTagline: string;
+  creditsPerMonth: string;
+  perCredit: string;
+  subscribeCta: string;
+  plusPlanName: string;
+  plusPlanSubtitle: string;
+  phoneUploadUnlimited: string;
+  creditRolloverFeature: string;
+  listingCompleteness: string;
+  standardSupport: string;
+  listingPreferences: string;
+  smartReGen: string;
+  everythingInPlus: string;
+  toneControl: string;
+  multiLangBatch: string;
+  listingTips: string;
+  prioritySupport24h: string;
+  forVintedProSellers: string;
+  packBarTitle: string;
+  packBarDesc: string;
+  packBarCta: string;
 };
 
 export const SITE_EXTRA_COPY: Record<
@@ -599,7 +620,7 @@ export const SITE_EXTRA_COPY: Record<
       freePlanSubtitle: "Get a taste of AutoLister AI",
       freePlanCta: "Try Free",
       starterPlanName: "Starter",
-      starterPlanSubtitle: "Perfect for casual Vinted sellers",
+      starterPlanSubtitle: "For casual sellers",
       starterPlanCta: "Get Starter Plan",
       proPlanName: "Pro",
       proPlanSubtitle: "For active sellers",
@@ -624,6 +645,28 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Instant access to free features.",
       helpChoosing: "Need help choosing?",
       emailSupport: "Email our support team ->",
+      freeTagline: "Start free with 13 credits — no card required.",
+      creditsPerMonth: "credits/month",
+      perCredit: "/credit",
+      subscribeCta: "Subscribe",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "For regular sellers",
+      phoneUploadUnlimited: "Phone upload (unlimited)",
+      creditRolloverFeature: "Credits roll over — up to",
+      listingCompleteness: "Listing completeness score",
+      standardSupport: "Standard support",
+      listingPreferences: "Listing preferences & style",
+      smartReGen: "Smart re-generation",
+      everythingInPlus: "Everything in Plus",
+      toneControl: "AI tone control",
+      multiLangBatch: "Multi-language & batch mode",
+      listingTips: "AI listing tips",
+      prioritySupport24h: "Priority support (24h)",
+      forVintedProSellers: "For power sellers",
+      packBarTitle: "Closet Clear Pack",
+      packBarDesc:
+        "15 credits that never expire. No commitment. Perfect for clearing your closet.",
+      packBarCta: "Buy Pack",
     },
   },
   fr: {
@@ -755,6 +798,29 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Accès immédiat aux fonctionnalités gratuites.",
       helpChoosing: "Besoin d'aide pour choisir ?",
       emailSupport: "Contacter le support ->",
+      freeTagline:
+        "Commencez gratuitement avec 13 crédits — sans carte bancaire.",
+      creditsPerMonth: "crédits/mois",
+      perCredit: "/crédit",
+      subscribeCta: "S'abonner",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "Pour les vendeurs réguliers",
+      phoneUploadUnlimited: "Photo depuis mobile (illimité)",
+      creditRolloverFeature: "Crédits reportés — jusqu'à",
+      listingCompleteness: "Score de complétude d'annonce",
+      standardSupport: "Support standard",
+      listingPreferences: "Préférences et style d'annonce",
+      smartReGen: "Régénération intelligente",
+      everythingInPlus: "Tout ce qu'inclut Plus",
+      toneControl: "Contrôle du ton IA",
+      multiLangBatch: "Mode multilingue et par lot",
+      listingTips: "Conseils d'annonce IA",
+      prioritySupport24h: "Support prioritaire (24h)",
+      forVintedProSellers: "Pour les vendeurs Pro Vinted",
+      packBarTitle: "Pack Vide-Dressing",
+      packBarDesc:
+        "15 crédits qui n'expirent jamais. Sans engagement. Parfait pour vider votre dressing.",
+      packBarCta: "Acheter le pack",
     },
   },
   de: {
@@ -887,6 +953,28 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Sofortiger Zugriff auf kostenlose Funktionen.",
       helpChoosing: "Hilfe bei der Auswahl?",
       emailSupport: "Support-Team kontaktieren ->",
+      freeTagline: "Starte kostenlos mit 13 Credits — keine Karte nötig.",
+      creditsPerMonth: "Credits/Monat",
+      perCredit: "/Credit",
+      subscribeCta: "Abonnieren",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "Für regelmäßige Verkäufer",
+      phoneUploadUnlimited: "Foto-Upload vom Handy (unbegrenzt)",
+      creditRolloverFeature: "Credits werden übertragen — bis zu",
+      listingCompleteness: "Vollständigkeits-Score für Anzeigen",
+      standardSupport: "Standard-Support",
+      listingPreferences: "Anzeigenpräferenzen und Stil",
+      smartReGen: "Intelligente Neugenerierung",
+      everythingInPlus: "Alles aus Plus",
+      toneControl: "KI-Ton-Steuerung",
+      multiLangBatch: "Mehrsprachig und Stapelverarbeitung",
+      listingTips: "KI-Anzeigentipps",
+      prioritySupport24h: "Prioritäts-Support (24h)",
+      forVintedProSellers: "Für Vinted Pro-Verkäufer",
+      packBarTitle: "Kleiderschrank-Räumungspaket",
+      packBarDesc:
+        "15 Credits, die niemals verfallen. Keine Bindung. Perfekt zum Ausräumen deines Kleiderschranks.",
+      packBarCta: "Paket kaufen",
     },
   },
   nl: {
@@ -1020,6 +1108,28 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Direct toegang tot gratis functies.",
       helpChoosing: "Hulp nodig bij kiezen?",
       emailSupport: "Mail ons supportteam ->",
+      freeTagline: "Begin gratis met 13 credits — geen kaart vereist.",
+      creditsPerMonth: "credits/maand",
+      perCredit: "/credit",
+      subscribeCta: "Abonneren",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "Voor reguliere verkopers",
+      phoneUploadUnlimited: "Telefoon upload (onbeperkt)",
+      creditRolloverFeature: "Credits worden meegenomen — tot",
+      listingCompleteness: "Volledigheidscore van advertentie",
+      standardSupport: "Standaard support",
+      listingPreferences: "Advertentievoorkeuren en stijl",
+      smartReGen: "Slimme regeneratie",
+      everythingInPlus: "Alles uit Plus",
+      toneControl: "AI toonbeheer",
+      multiLangBatch: "Meertalig en batchmodus",
+      listingTips: "AI advertentietips",
+      prioritySupport24h: "Prioriteitssupport (24u)",
+      forVintedProSellers: "Voor Vinted Pro-verkopers",
+      packBarTitle: "Kledingkast Opruimpakket",
+      packBarDesc:
+        "15 credits die nooit verlopen. Geen verplichting. Perfect voor het opruimen van je kledingkast.",
+      packBarCta: "Pakket kopen",
     },
   },
   pl: {
@@ -1152,6 +1262,28 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Natychmiastowy dostep do darmowych funkcji.",
       helpChoosing: "Potrzebujesz pomocy z wyborem?",
       emailSupport: "Napisz do supportu ->",
+      freeTagline: "Zacznij za darmo z 13 kredytami — bez karty.",
+      creditsPerMonth: "kredytow/mies.",
+      perCredit: "/kredyt",
+      subscribeCta: "Subskrybuj",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "Dla regularnych sprzedawców",
+      phoneUploadUnlimited: "Przesylanie zdjec z telefonu (bez limitu)",
+      creditRolloverFeature: "Kredyty przechodza na kolejny miesiac — do",
+      listingCompleteness: "Wskaznik kompletnosci ogloszenia",
+      standardSupport: "Standardowe wsparcie",
+      listingPreferences: "Preferencje i styl ogloszen",
+      smartReGen: "Inteligentna regeneracja",
+      everythingInPlus: "Wszystko z planu Plus",
+      toneControl: "Kontrola tonu AI",
+      multiLangBatch: "Tryb wielojezyczny i wsadowy",
+      listingTips: "Wskazowki AI do ogloszen",
+      prioritySupport24h: "Priorytetowe wsparcie (24h)",
+      forVintedProSellers: "Dla sprzedawcow Vinted Pro",
+      packBarTitle: "Pakiet Wyprzedaz Garderoby",
+      packBarDesc:
+        "15 kredytow, ktore nigdy nie wygasaja. Bez zobowiazan. Idealny do oprozniania szafy.",
+      packBarCta: "Kup pakiet",
     },
   },
   es: {
@@ -1283,6 +1415,28 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Acceso instantaneo a funciones gratuitas.",
       helpChoosing: "Necesitas ayuda para elegir?",
       emailSupport: "Escribe a soporte ->",
+      freeTagline: "Empieza gratis con 13 creditos — sin tarjeta.",
+      creditsPerMonth: "creditos/mes",
+      perCredit: "/credito",
+      subscribeCta: "Suscribirse",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "Para vendedores regulares",
+      phoneUploadUnlimited: "Subida desde movil (ilimitado)",
+      creditRolloverFeature: "Creditos acumulables — hasta",
+      listingCompleteness: "Puntuacion de completitud del anuncio",
+      standardSupport: "Soporte estandar",
+      listingPreferences: "Preferencias y estilo de anuncio",
+      smartReGen: "Regeneracion inteligente",
+      everythingInPlus: "Todo lo de Plus",
+      toneControl: "Control de tono IA",
+      multiLangBatch: "Modo multilingue y por lotes",
+      listingTips: "Consejos IA para anuncios",
+      prioritySupport24h: "Soporte prioritario (24h)",
+      forVintedProSellers: "Para vendedores Vinted Pro",
+      packBarTitle: "Pack Vaciado de Armario",
+      packBarDesc:
+        "15 creditos que nunca expiran. Sin compromiso. Perfecto para vaciar tu armario.",
+      packBarCta: "Comprar pack",
     },
   },
   it: {
@@ -1414,6 +1568,28 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Accesso immediato alle funzioni gratuite.",
       helpChoosing: "Hai bisogno di aiuto per scegliere?",
       emailSupport: "Contatta il supporto ->",
+      freeTagline: "Inizia gratis con 13 crediti — nessuna carta richiesta.",
+      creditsPerMonth: "crediti/mese",
+      perCredit: "/credito",
+      subscribeCta: "Abbonati",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "Per venditori regolari",
+      phoneUploadUnlimited: "Upload da telefono (illimitato)",
+      creditRolloverFeature: "Crediti accumulabili — fino a",
+      listingCompleteness: "Punteggio di completezza annuncio",
+      standardSupport: "Supporto standard",
+      listingPreferences: "Preferenze e stile dell'annuncio",
+      smartReGen: "Rigenerazione intelligente",
+      everythingInPlus: "Tutto di Plus",
+      toneControl: "Controllo tono AI",
+      multiLangBatch: "Modalita multilingua e batch",
+      listingTips: "Suggerimenti AI per annunci",
+      prioritySupport24h: "Supporto prioritario (24h)",
+      forVintedProSellers: "Per venditori Vinted Pro",
+      packBarTitle: "Pacchetto Svuota Armadio",
+      packBarDesc:
+        "15 crediti che non scadono mai. Senza impegno. Perfetto per svuotare il tuo armadio.",
+      packBarCta: "Acquista pacchetto",
     },
   },
   pt: {
@@ -1545,6 +1721,28 @@ export const SITE_EXTRA_COPY: Record<
       instantAccess: "Acesso imediato a funcionalidades gratuitas.",
       helpChoosing: "Precisa de ajuda para escolher?",
       emailSupport: "Enviar email ao suporte ->",
+      freeTagline: "Comece gratis com 13 creditos — sem cartao.",
+      creditsPerMonth: "creditos/mes",
+      perCredit: "/credito",
+      subscribeCta: "Subscrever",
+      plusPlanName: "Plus",
+      plusPlanSubtitle: "Para vendedores regulares",
+      phoneUploadUnlimited: "Upload pelo telemovel (ilimitado)",
+      creditRolloverFeature: "Creditos acumulaveis — ate",
+      listingCompleteness: "Pontuacao de completude do anuncio",
+      standardSupport: "Suporte padrao",
+      listingPreferences: "Preferencias e estilo do anuncio",
+      smartReGen: "Regeneracao inteligente",
+      everythingInPlus: "Tudo do Plus",
+      toneControl: "Controlo de tom IA",
+      multiLangBatch: "Modo multilingue e em lote",
+      listingTips: "Dicas IA para anuncios",
+      prioritySupport24h: "Suporte prioritario (24h)",
+      forVintedProSellers: "Para vendedores Vinted Pro",
+      packBarTitle: "Pacote Esvazia Closet",
+      packBarDesc:
+        "15 creditos que nunca expiram. Sem compromisso. Perfeito para esvaziar o seu closet.",
+      packBarCta: "Comprar pacote",
     },
   },
 };

@@ -14,15 +14,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Find and update all profiles whose current period started more than 30 days ago
+  // Reset monthly call counters only for legacy subscribers (new-plan users use credits)
   const { error } = await supabase
     .from("profiles")
     .update({
       api_calls_this_month: 0,
-      // Reset the period start to today for the next 30-day cycle
       last_api_call_reset: new Date().toISOString(),
     })
-    .lte("last_api_call_reset", thirtyDaysAgo.toISOString()); // Use 'lte' (less than or equal)
+    .eq("is_legacy_plan", true)
+    .lte("last_api_call_reset", thirtyDaysAgo.toISOString());
 
   if (error) {
     console.error("Daily cron job failed:", error);

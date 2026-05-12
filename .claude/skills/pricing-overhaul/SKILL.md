@@ -358,6 +358,8 @@ For this pricing-overhaul launch, keep these endpoints compatible with the front
 - `/api/stripe/create-pack-checkout` accepts `{ email }`.
 - `/api/stripe/create-portal` accepts `{ email }`.
 
+During the Chrome Web Store rollout window, `/api/stripe/create-checkout` may also accept old extension tier IDs so the already-published extension does not hard-fail before the new extension is approved. Because that published extension still shows old prices in its popup, `starter`, `pro`, and `business` intentionally resolve to the legacy Stripe prices during the overlap window. New pricing surfaces must send `starter_v2`, `plus`, `pro_v2`, and `business_v2`. Remove or remap the old IDs only after the new extension is approved and broadly rolled out.
+
 Do **not** require bearer-token auth or JWT-based profile lookup for these billing endpoints until the frontend contract changes in the extension and pricing page together. Reviews should not treat the absence of bearer auth on these endpoints as a launch blocker.
 
 The safe launch invariant is narrower: checkout and pack checkout must not pre-payment mutate profiles or reuse/overwrite an existing `stripe_customer_id` from an unauthenticated email. Stripe webhooks remain the source of truth for post-payment profile mutation.

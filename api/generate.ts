@@ -572,6 +572,25 @@ Reply only in JSON: {"title":"...","description":"..."}
       throw new Error("No generations succeeded");
     }
 
+    if (!isLegacy) {
+      // Increment the monthly counter so the popup "Listed this month" stat
+      // stays accurate for credit-based (non-legacy) users.
+      // Done once after all languages succeed to avoid stale-value races in batch.
+      const { error: counterError } = await supabase
+        .from("profiles")
+        .update({
+          api_calls_this_month:
+            (userProfile.api_calls_this_month ?? 0) + results.length,
+        })
+        .eq("id", user.id);
+      if (counterError) {
+        console.error(
+          "Failed to increment monthly listing count:",
+          counterError,
+        );
+      }
+    }
+
     logData.openaiTokensUsed = totalTokens;
     logData.generatedTitle = results[0].title;
     logData.generatedDescription = results[0].description;

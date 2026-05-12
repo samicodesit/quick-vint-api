@@ -16,10 +16,7 @@ export function getStaticPaths() {
 export async function GET(context: { params: { lang?: string }; site: URL }) {
   const locale = normalizeBlogLocale(context.params.lang) as BlogLocale;
   const posts = getPublishedPosts(
-    await getCollection(
-      "blog",
-      ({ data }) => data.locale === locale && !data.draft,
-    ),
+    await getCollection("blog", ({ data }) => data.locale === locale && !data.draft),
   );
 
   return rss({

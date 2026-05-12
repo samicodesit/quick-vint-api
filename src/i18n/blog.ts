@@ -169,7 +169,5 @@ export function normalizeBlogLocale(locale?: string | null): BlogLocale {
 export function blogPath(locale: BlogLocale, path = ""): string {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const normalizedPath = cleanPath === "/" ? "" : cleanPath.replace(/\/$/, "");
-  return locale === "en"
-    ? `/blog${normalizedPath}`
-    : `/${locale}/blog${normalizedPath}`;
+  return locale === "en" ? `/blog${normalizedPath}` : `/${locale}/blog${normalizedPath}`;
 }

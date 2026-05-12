@@ -18,6 +18,8 @@ jobs:
       # 2) Set up pnpm (lockfile version 9)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       # 3) Install Node.js (pnpm cache requires pnpm to be set up first)
       - name: Setup Node.js

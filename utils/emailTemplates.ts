@@ -279,49 +279,6 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       el.button("Learn More", "https://autolister.app/updates/latest"),
     ].join("\n"),
   },
-
-  payment_failed_day1: {
-    subject: "Your payment failed — update your card to keep your plan",
-    preheader:
-      "We couldn't charge your card. Update it now to avoid losing access.",
-    body: [
-      el.h2("We couldn't process your payment"),
-      el.p(
-        "Your AutoLister subscription payment failed. Don't worry — you have <strong>7 days of full access</strong> while we retry your card.",
-      ),
-      el.p(
-        "To keep your plan active, update your payment method now. It only takes a moment.",
-      ),
-      el.button("Update payment method", "https://autolister.app/billing"),
-      el.callout(
-        "We'll retry your card on days 1, 3, and 7. If all retries fail, your subscription will be cancelled and your unused credits will be frozen for 14 days in case you resubscribe.",
-      ),
-      el.p(
-        'Questions? Reply to this email or reach us at <a href="mailto:support@autolister.app" style="color: #764BA2;">support@autolister.app</a>.',
-      ),
-    ].join("\n"),
-  },
-
-  payment_failed_day5: {
-    subject: "Your plan expires in 2 days — update your payment now",
-    preheader: "Last chance: your AutoLister subscription expires in 2 days.",
-    body: [
-      el.h2("Your plan expires in 2 days"),
-      el.p(
-        "We still couldn't charge your card. Your AutoLister subscription will be cancelled in <strong>2 days</strong> unless you update your payment method.",
-      ),
-      el.p(
-        "Your credits and rollover balance will be frozen for 14 days after cancellation — resubscribe within that window to recover them.",
-      ),
-      el.button("Update payment method now", "https://autolister.app/billing"),
-      el.callout(
-        "Pack credits (Closet Clear Pack) are never affected by payment issues — they remain in your account permanently.",
-      ),
-      el.p(
-        'Need help? Contact us at <a href="mailto:support@autolister.app" style="color: #764BA2;">support@autolister.app</a>.',
-      ),
-    ].join("\n"),
-  },
 };
 
 /**

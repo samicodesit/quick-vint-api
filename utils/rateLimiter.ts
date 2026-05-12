@@ -1,6 +1,43 @@
 // utils/rateLimiter.ts
-import { LEGACY_TIER_CONFIGS } from "./tierConfig";
 import { supabase } from "./supabaseClient";
+
+// Import tier configs if available, otherwise use fallback
+let TIER_CONFIGS: any;
+try {
+  TIER_CONFIGS = require("./tierConfig").TIER_CONFIGS;
+} catch {
+  // Fallback for backward compatibility
+  TIER_CONFIGS = {
+    free: {
+      limits: { daily: 2, monthly: 8, burst: { perMinute: 3 } },
+      features: ["AI-generated titles and descriptions", "Basic support"],
+    },
+    starter: {
+      limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
+      features: [
+        "AI-generated titles and descriptions",
+        "Priority support",
+        "Up to 15 listings per day",
+      ],
+    },
+    pro: {
+      limits: { daily: 40, monthly: 800, burst: { perMinute: 20 } },
+      features: [
+        "Everything in Starter",
+        "Up to 40 listings per day",
+        "Priority processing",
+      ],
+    },
+    business: {
+      limits: { daily: 75, monthly: 1500, burst: { perMinute: 30 } },
+      features: [
+        "Everything in Pro",
+        "Up to 75 listings per day",
+        "Dedicated support",
+      ],
+    },
+  };
+}
 
 // Global cost protection
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
@@ -31,15 +68,13 @@ interface UserProfile {
   api_calls_this_month: number;
 }
 
-const legacyTierConfigs = LEGACY_TIER_CONFIGS as Record<string, TierConfig>;
-
 export class RateLimiter {
   // Get user's tier configuration
   private static getTierConfig(profile: UserProfile): TierConfig {
     const isActive = profile.subscription_status === "active";
 
     if (!isActive) {
-      return legacyTierConfigs.free;
+      return TIER_CONFIGS.free;
     }
 
     // Map existing tier names to new ones (only unlimited_monthly exists)
@@ -51,7 +86,7 @@ export class RateLimiter {
     };
 
     const tierKey = tierMapping[profile.subscription_tier] || "free";
-    return legacyTierConfigs[tierKey] || legacyTierConfigs.free;
+    return TIER_CONFIGS[tierKey] || TIER_CONFIGS.free;
   }
   private static async getTimeBasedKey(
     userId: string,

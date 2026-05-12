@@ -20,41 +20,14 @@ This backend API (`quick-vint-api`) serves the Chrome extension (`quick-vint`). 
 
 ## Subscription Tiers
 
-Current pricing follows the credit-based pricing overhaul in `.claude/skills/pricing-overhaul/SKILL.md`:
+| Feature          | Free | Starter | Pro | Business |
+| ---------------- | ---- | ------- | --- | -------- |
+| Basic generation | ✓    | ✓       | ✓   | ✓        |
+| Tone selection   | ✗    | ✗       | ✓   | ✓        |
+| Emoji toggle     | ✗    | ✗       | ✓   | ✓        |
+| Daily limit      | 2    | 15      | 40  | 75       |
 
-| Feature          | Free Evaluation | Closet Clear Pack | Starter   | Plus      | Pro       | Business  |
-| ---------------- | --------------- | ----------------- | --------- | --------- | --------- | --------- |
-| Credits          | 13 total ever   | 15 perpetual      | 80/mo     | 200/mo    | 400/mo    | 1,000/mo  |
-| Phone Upload     | 5/month         | All 15 credits    | Unlimited | Unlimited | Unlimited | Unlimited |
-| Tone selection   | ✗               | ✗                 | ✗         | ✗         | ✓         | ✓         |
-| Emoji toggle     | ✗               | ✗                 | ✗         | ✗         | ✓         | ✓         |
-| Multi-lang batch | ✗               | ✗                 | ✗         | ✗         | ✓         | ✓         |
-| Preferences      | ✗               | ✗                 | ✗         | ✓         | ✓         | ✓         |
-| Smart Re-Gen     | ✗               | ✗                 | ✗         | ✓         | ✓         | ✓         |
-
-**Important:** All feature gating must be enforced server-side. Pro/Business tiers only: emojis, tone customization, multi-language batch generation, and detailed listing tips. Plus and above only: listing preferences and Smart Re-Gen. Legacy users keep their old plan limits/features until they voluntarily switch to the new pricing.
-
-## Pricing Overhaul Review Notes
-
-Avoid repeating these false-positive review comments:
-
-- **No daily limits for new plans**: New pricing uses credits and rollover, not daily/monthly count limits. `max_limits` being nullable for new tiers is intentional.
-- **Closet Clear Pack is not a subscription tier**: It is a one-time, 15-credit purchase with permanent credits. Pack credits are consumed after expiring subscription credits.
-- **Free credits do not reset forever**: Free evaluation is 5 signup credits plus 2 credits/week for 4 weeks, 13 total ever per account.
-- **Plus does not include tone/emoji/multi-lang**: Those are intentionally Pro/Business gates. Plus starts Listing Preferences and Smart Re-Gen only.
-- **Legacy users are intentionally preserved**: Existing legacy subscribers keep old limits and pricing unless they opt into the new model; do not suggest remapping them automatically.
-- **Pricing page duplication remains intentional**: EN pricing is hardcoded while localized pricing uses copy keys.
-- **Billing endpoint auth is intentionally deferred for this launch**: The current frontend `new-pricing` branch sends email-body billing requests, not bearer-auth billing requests. Do not require JWT auth for `/api/stripe/create-checkout`, `/api/stripe/create-pack-checkout`, or `/api/stripe/create-portal` until the frontend contract changes. The accepted launch contract is email-body billing initiation; this must not be treated as a blocker or review finding for the pricing-overhaul launch. The safe invariant for checkout/pack checkout is that these endpoints must not pre-payment mutate profiles or reuse an existing `stripe_customer_id` from an unauthenticated email.
-- **Legacy checkout tier aliases are temporary Chrome rollout compatibility**: `/api/stripe/create-checkout` may accept old extension tier IDs (`starter`, `pro`, `business`) while the already-published Chrome extension still shows old prices. During that overlap, these aliases intentionally resolve to legacy Stripe prices to avoid stale UI charging surprises. New pricing surfaces must use `starter_v2`, `plus`, `pro_v2`, and `business_v2`. Remove or remap the aliases only after the new extension is approved and broadly rolled out.
-- **Phone upload auth is intentionally deferred**: The current QR/mobile phone-upload flow cannot access the extension's Supabase token. `/api/phone-upload` remains session-id based for this launch. Do not suggest bearer-token auth or per-user quota enforcement there until a signed upload-session design is implemented across frontend and backend.
-- **Stripe subscription periods use item fields in current SDK**: With `stripe@18.5.0`, subscription item objects expose `current_period_start` / `current_period_end`; `Stripe.Subscription` types in this repo do not. Do not suggest moving these fields back to the subscription object unless the Stripe SDK/API version changes.
-- **Generation credit deduction is post-OpenAI by design**: `/api/generate` deducts a credit only after OpenAI returns successfully so users are not charged for failed generations. If `consumeCredit()` fails after generation, the handler must not return that generated result as a successful paid output; a pre-reservation/refund design should only be suggested with a matching refund RPC/migration.
-- **Batch generation partial failures are intentional**: In multi-language generation, already charged successful language outputs are returned with HTTP `206` and `partial: true` if a later language fails. The failed/current language is not returned when its credit deduction fails. Do not suggest dropping charged partial results or charging failed outputs.
-- **Credit transaction logging is best-effort after balance mutation**: `logTransaction()` logs errors but does not throw. Throwing after a successful atomic credit mutation would cause Stripe/webhook retries to double-credit users. Do not require transaction-log failures to roll back successful balance mutations without a real DB transaction/refund design.
-- **`LEGACY_TIER_IDS` already includes `unlimited_monthly`**: `utils/tierConfig.ts` exports `LEGACY_TIER_IDS` as a `Set` that explicitly includes `unlimited_monthly`. Do not flag this as missing.
-- **Legacy backfill migration already covers `unlimited_monthly`**: `migrations/add_credit_system.sql` excludes `unlimited_monthly` holders from the new-credit backfill. Do not suggest adding it.
-- **`normalizeTier()` mapping legacy → v2 IDs is for feature-gating only**: It is not an automatic plan migration. Legacy users retain their original limits via `is_legacy_plan = true`; the normalization only resolves which feature set applies server-side. Do not suggest it misleads display or billing.
-- **Weekly drip catch-up is bounded by a hard 4-week window**: `api/cron/weekly-drip.ts` skips users whose `dripStarted + 4 weeks` has passed and marks them at `free_drip_weeks_delivered = 4`. Do not suggest unbounded catch-up is possible.
+**Important:** All feature gating must be enforced server-side. Pro/Business tiers only: emojis and tone customization.
 
 ## Known Non-Issues (Do Not Suggest)
 

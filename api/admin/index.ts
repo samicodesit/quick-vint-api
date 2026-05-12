@@ -231,8 +231,8 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         last_active: lastActiveMap.get(user.id) || user.created_at,
         limits,
         max_limits: {
-          day: tierConfig.limits?.daily ?? null,
-          month: tierConfig.limits?.monthly ?? null,
+          day: tierConfig.limits.daily,
+          month: tierConfig.limits.monthly,
         },
       };
     });

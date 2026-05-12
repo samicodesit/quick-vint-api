@@ -7,14 +7,6 @@
     {
       "path": "/api/cron/daily-cleanup",
       "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/weekly-drip",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/payment-recovery",
-      "schedule": "0 7 * * *"
     }
   ]
 }

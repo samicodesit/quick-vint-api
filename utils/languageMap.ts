@@ -17,5 +17,4 @@ export const languageMap: { [key: string]: string } = {
   ro: "Romanian",
   sk: "Slovak",
   es: "Spanish",
-  sv: "Swedish",
 };

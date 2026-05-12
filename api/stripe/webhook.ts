@@ -159,17 +159,63 @@ async function findProfileByCheckoutSession(
 
   const profile = data as Record<string, any> | null;
 
+  if (
+    profile &&
+    customerId &&
+    profile.stripe_customer_id &&
+    profile.stripe_customer_id !== customerId
+  ) {
+    console.warn(
+      `Refusing checkout session ${session.id}: email matched profile ${profile.id} but Stripe customer differs`,
+    );
+    return null;
+  }
+
   // Only link stripe_customer_id when not already set. If it's already set to
   // a different value we refuse to overwrite it — an attacker could supply a
   // victim's email at checkout and hijack their billing relationship.
   if (profile && customerId && !profile.stripe_customer_id) {
-    await supabase
+    const { error } = await supabase
       .from("profiles")
       .update({ stripe_customer_id: customerId })
       .eq("id", profile.id);
+    if (error) throw error;
+    profile.stripe_customer_id = customerId;
   }
 
   return profile ?? null;
+}
+
+async function updateProfileById(
+  profileId: string,
+  payload: Record<string, unknown>,
+  context: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update(payload)
+    .eq("id", profileId);
+
+  if (error) {
+    console.error(`Failed to update profile for ${context}:`, error);
+    throw error;
+  }
+}
+
+async function updateProfileByStripeCustomer(
+  customerId: string,
+  payload: Record<string, unknown>,
+  context: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update(payload)
+    .eq("stripe_customer_id", customerId);
+
+  if (error) {
+    console.error(`Failed to update profile for ${context}:`, error);
+    throw error;
+  }
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -267,9 +313,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               }
             }
 
-            await supabase
-              .from("profiles")
-              .update({
+            await updateProfileById(
+              profileRow.id,
+              {
                 stripe_subscription_id: subscription.id,
                 ...(customerId ? { stripe_customer_id: customerId } : {}),
                 subscription_tier: tier,
@@ -277,8 +323,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 current_period_end: currentPeriodEnd,
                 is_legacy_plan: isLegacyTier,
                 pending_tier: null,
-              })
-              .eq("id", profileRow.id);
+              },
+              "checkout subscription completion",
+            );
 
             // Grant credits only on first subscribe (idempotency: skip if cycle
             // end is already set to this period, meaning subscription.created
@@ -361,15 +408,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!profileRow) break;
 
         // Always persist subscription metadata.
-        await supabase
-          .from("profiles")
-          .update({
+        await updateProfileById(
+          profileRow.id,
+          {
             stripe_subscription_id: subscription.id,
             subscription_status: status,
             current_period_end: currentPeriodEnd,
             is_legacy_plan: isLegacyTier,
-          })
-          .eq("id", profileRow.id);
+          },
+          "subscription metadata sync",
+        );
 
         // Legacy subscribers: never touch their credits.
         if (isLegacyTier || profileRow.is_legacy_plan) break;
@@ -409,13 +457,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               configToApply.credits.rolloverCap,
               currentPeriodEnd,
             );
-            await supabase
-              .from("profiles")
-              .update({
+            await updateProfileById(
+              profileRow.id,
+              {
                 subscription_tier: tierToApply,
                 pending_tier: null,
-              })
-              .eq("id", profileRow.id);
+              },
+              "subscription renewal tier sync",
+            );
           }
         } else if (isUpgrade) {
           // Mid-cycle upgrade: preserve all credits, add prorated new ones.
@@ -429,19 +478,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             proratedCredits,
             currentPeriodEnd,
           );
-          await supabase
-            .from("profiles")
-            .update({
+          await updateProfileById(
+            profileRow.id,
+            {
               subscription_tier: tier,
               pending_tier: null,
-            })
-            .eq("id", profileRow.id);
+            },
+            "subscription upgrade tier sync",
+          );
         } else if (isDowngrade) {
           // Mid-cycle downgrade: store pending tier, user keeps features until renewal.
-          await supabase
-            .from("profiles")
-            .update({ pending_tier: tier })
-            .eq("id", profileRow.id);
+          await updateProfileById(
+            profileRow.id,
+            { pending_tier: tier },
+            "subscription downgrade queue",
+          );
         } else if (
           !isRenewal &&
           !isTierChange &&
@@ -455,10 +506,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               tierConfig.credits.rolloverCap,
               currentPeriodEnd,
             );
-            await supabase
-              .from("profiles")
-              .update({ subscription_tier: tier })
-              .eq("id", profileRow.id);
+            await updateProfileById(
+              profileRow.id,
+              { subscription_tier: tier },
+              "first subscription tier sync",
+            );
           }
         }
         break;
@@ -476,16 +528,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (!profileRow) break;
 
-        await supabase
-          .from("profiles")
-          .update({
+        await updateProfileById(
+          profileRow.id,
+          {
             subscription_status: "canceled",
             subscription_tier: "free",
             current_period_end: null,
             pending_tier: null,
             is_legacy_plan: false,
-          })
-          .eq("id", profileRow.id);
+          },
+          "subscription cancellation status sync",
+        );
 
         if (!profileRow.is_legacy_plan) {
           if (profileRow.payment_grace_started_at) {
@@ -525,10 +578,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Only record the first failure; retries also fire this event.
         if (!profileRow.payment_grace_started_at) {
-          await supabase
-            .from("profiles")
-            .update({ payment_grace_started_at: new Date().toISOString() })
-            .eq("id", profileRow.id);
+          await updateProfileById(
+            profileRow.id,
+            { payment_grace_started_at: new Date().toISOString() },
+            "payment failure grace start",
+          );
 
           if (profileRow.email) {
             await sendPaymentFailureEmail(
@@ -547,13 +601,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const customerId = invoice.customer as string;
 
         // Only clear grace state; credit granting is handled by subscription.updated.
-        await supabase
-          .from("profiles")
-          .update({
+        await updateProfileByStripeCustomer(
+          customerId,
+          {
             payment_grace_started_at: null,
             payment_day5_email_sent: false,
-          })
-          .eq("stripe_customer_id", customerId);
+          },
+          "payment recovery grace clear",
+        );
         break;
       }
 

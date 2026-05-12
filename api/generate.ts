@@ -554,6 +554,7 @@ Reply only in JSON: {"title":"...","description":"..."}
             creditResult.error === "Insufficient credits"
               ? "You don't have enough credits for this generation."
               : "We couldn't deduct a credit for this generation. Please try again.";
+          error.partialResults = [...results];
           error.totalTokens = totalTokens;
           throw error;
         }
@@ -628,10 +629,33 @@ Reply only in JSON: {"title":"...","description":"..."}
     }
 
     // Log the detailed error (for admin)
+    const partialResults =
+      Array.isArray(err.partialResults) && err.partialResults.length > 0
+        ? err.partialResults
+        : isBatch && results.length > 0
+          ? results
+          : null;
+
     logData.responseStatus = statusCode;
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = `OpenAI generation error: ${err.message}`;
+    if (partialResults) {
+      logData.responseStatus = 206;
+      logData.generatedTitle = partialResults[0].title;
+      logData.generatedDescription = partialResults[0].description;
+    }
     await ApiLogger.logRequest(logData);
+
+    if (partialResults) {
+      return res.status(206).json({
+        title: partialResults[0].title,
+        description: partialResults[0].description,
+        measurementAdvice: partialResults[0].measurementAdvice,
+        results: partialResults,
+        partial: true,
+        error: userMessage,
+      });
+    }
 
     // Return generic error to user (protecting sensitive details)
     return res.status(statusCode).json({ error: userMessage });

@@ -45,10 +45,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // expire their remaining drips without delivering credits and skip them in
     // future cron runs.
     if (now >= windowEnd) {
-      await supabase
+      const { error: expireError } = await supabase
         .from("profiles")
         .update({ free_drip_weeks_delivered: TOTAL_WEEKS })
         .eq("id", user.id);
+      if (expireError) {
+        console.error(
+          "weekly-drip: failed to expire drip window:",
+          expireError,
+        );
+        return res.status(500).json({
+          success: false,
+          error: expireError.message,
+        });
+      }
       continue;
     }
 

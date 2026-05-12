@@ -348,6 +348,20 @@ The upgrade button dynamically shows the next tier up. For free users it says "[
 
 ## Edge Cases
 
+## Launch API Contract — Billing Auth Deferred
+
+The `new-pricing` frontend branch uses email-body requests for billing entry points during this launch. This is an explicit cross-repo contract, not an accidental omission.
+
+For this pricing-overhaul launch, keep these endpoints compatible with the frontend contract:
+
+- `/api/stripe/create-checkout` accepts `{ email, tier }`.
+- `/api/stripe/create-pack-checkout` accepts `{ email }`.
+- `/api/stripe/create-portal` accepts `{ email }`.
+
+Do **not** require bearer-token auth or JWT-based profile lookup for these billing endpoints until the frontend contract changes in the extension and pricing page together. Reviews should not treat the absence of bearer auth on these endpoints as a launch blocker.
+
+The safe launch invariant is narrower: checkout and pack checkout must not pre-payment mutate profiles or reuse/overwrite an existing `stripe_customer_id` from an unauthenticated email. Stripe webhooks remain the source of truth for post-payment profile mutation.
+
 ### Cancellation
 
 1. Banked rollover credits stay usable until end of current billing cycle.

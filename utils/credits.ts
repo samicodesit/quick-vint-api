@@ -62,11 +62,16 @@ async function updateProfileOrThrow(
 }
 
 export async function getCreditBalance(userId: string): Promise<CreditBalance> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("subscription_credits, rollover_credits, pack_credits")
     .eq("id", userId)
     .single();
+
+  if (error) {
+    console.error("Failed to load credit balance:", error);
+    throw error;
+  }
 
   const sub = data?.subscription_credits ?? 0;
   const rollover = data?.rollover_credits ?? 0;
@@ -114,11 +119,27 @@ export async function consumeCredit(
 
   if (!row) {
     // RPC returned no row — user had no credits left.
-    const { data: profileRow } = await supabase
+    const { data: profileRow, error: balanceError } = await supabase
       .from("profiles")
       .select("subscription_credits, rollover_credits, pack_credits")
       .eq("id", userId)
       .single();
+    if (balanceError) {
+      console.error(
+        "Failed to load credit balance after empty RPC:",
+        balanceError,
+      );
+      return {
+        success: false,
+        balance: {
+          subscription_credits: 0,
+          rollover_credits: 0,
+          pack_credits: 0,
+          total: 0,
+        },
+        error: "Could not load credit balance",
+      };
+    }
     const sub = profileRow?.subscription_credits ?? 0;
     const rollover = profileRow?.rollover_credits ?? 0;
     const pack = profileRow?.pack_credits ?? 0;
@@ -194,11 +215,16 @@ export async function giveSignupBonus(userId: string): Promise<void> {
 export async function deliverWeeklyDrip(userId: string): Promise<void> {
   const DRIP_AMOUNT = 2;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("subscription_credits, pack_credits, free_drip_weeks_delivered")
     .eq("id", userId)
     .single();
+
+  if (error) {
+    console.error("Failed to load profile for weekly drip:", error);
+    throw error;
+  }
 
   const currentSub = data?.subscription_credits ?? 0;
   const pack = data?.pack_credits ?? 0;
@@ -242,13 +268,18 @@ export async function grantSubscriptionCredits(
   rolloverCap: number,
   cycleEnd: string,
 ): Promise<void> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select(
       "subscription_credits, pack_credits, rollover_credits, rollover_frozen_until",
     )
     .eq("id", userId)
     .single();
+
+  if (error) {
+    console.error("Failed to load profile for subscription credits:", error);
+    throw error;
+  }
 
   const rawUnusedSub = data?.subscription_credits ?? 0;
   const pack = data?.pack_credits ?? 0;
@@ -308,11 +339,16 @@ export async function upgradeSubscriptionCredits(
   proratedCredits: number,
   cycleEnd: string,
 ): Promise<void> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("subscription_credits, pack_credits")
     .eq("id", userId)
     .single();
+
+  if (error) {
+    console.error("Failed to load profile for subscription upgrade:", error);
+    throw error;
+  }
 
   const sub = data?.subscription_credits ?? 0;
   const pack = data?.pack_credits ?? 0;
@@ -356,10 +392,14 @@ export async function addPackCredits(
 
   if (error) {
     console.error("Failed to add pack credits:", error);
-    return;
+    throw error;
   }
 
   const row = Array.isArray(data) ? data[0] : data;
+  if (!row) {
+    throw new Error(`Pack credit RPC returned no balance for user ${userId}`);
+  }
+
   const sub = row?.subscription_credits ?? 0;
   const newPack = row?.pack_credits ?? 0;
 
@@ -379,11 +419,19 @@ export async function addPackCredits(
  * Pack credits are never touched.
  */
 export async function cancelSubscriptionCredits(userId: string): Promise<void> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("pack_credits")
     .eq("id", userId)
     .single();
+
+  if (error) {
+    console.error(
+      "Failed to load profile for subscription cancellation:",
+      error,
+    );
+    throw error;
+  }
 
   const pack = data?.pack_credits ?? 0;
 
@@ -410,11 +458,16 @@ export async function freezeSubscriptionCreditsOnFailure(
   userId: string,
   frozenUntil: string,
 ): Promise<void> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("subscription_credits, pack_credits")
     .eq("id", userId)
     .single();
+
+  if (error) {
+    console.error("Failed to load profile for payment failure freeze:", error);
+    throw error;
+  }
 
   const sub = data?.subscription_credits ?? 0;
   const pack = data?.pack_credits ?? 0;
@@ -443,11 +496,16 @@ export async function freezeSubscriptionCreditsOnFailure(
  * Permanently zeros out the frozen rollover credits.
  */
 export async function expireFrozenRollover(userId: string): Promise<void> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("rollover_credits, pack_credits")
     .eq("id", userId)
     .single();
+
+  if (error) {
+    console.error("Failed to load profile for frozen rollover expiry:", error);
+    throw error;
+  }
 
   const frozen = data?.rollover_credits ?? 0;
   const pack = data?.pack_credits ?? 0;

@@ -7,7 +7,10 @@ import { getPostUrl, getPublishedPosts } from "../../utils/blog.js";
 export async function GET(context: { site: URL }) {
   const locale = "en";
   const posts = getPublishedPosts(
-    await getCollection("blog", ({ data }) => data.locale === locale && !data.draft),
+    await getCollection(
+      "blog",
+      ({ data }) => data.locale === locale && !data.draft,
+    ),
   );
 
   return rss({

@@ -38,6 +38,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   for (const user of candidates) {
     let weeksDelivered = user.free_drip_weeks_delivered ?? 0;
     const dripStarted = new Date(user.free_drip_started_at);
+    const windowEnd = new Date(dripStarted.getTime() + TOTAL_WEEKS * WEEK_MS);
+
+    // Hard cutoff: if the 4-week evaluation window has closed (e.g. the user
+    // was on a paid plan during the window and cancelled back to free later),
+    // expire their remaining drips without delivering credits and skip them in
+    // future cron runs.
+    if (now >= windowEnd) {
+      await supabase
+        .from("profiles")
+        .update({ free_drip_weeks_delivered: TOTAL_WEEKS })
+        .eq("id", user.id);
+      continue;
+    }
 
     // Catch up any missed weeks (e.g. if the cron skipped a day) up to the
     // 4-week total. Each week's drip is independently due once the elapsed

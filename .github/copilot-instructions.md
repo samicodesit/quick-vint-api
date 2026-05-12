@@ -48,6 +48,10 @@ Avoid repeating these false-positive review comments:
 - **Phone upload auth is intentionally deferred**: The current QR/mobile phone-upload flow cannot access the extension's Supabase token. `/api/phone-upload` remains session-id based for this launch. Do not suggest bearer-token auth or per-user quota enforcement there until a signed upload-session design is implemented across frontend and backend.
 - **Stripe subscription periods use item fields in current SDK**: With `stripe@18.5.0`, subscription item objects expose `current_period_start` / `current_period_end`; `Stripe.Subscription` types in this repo do not. Do not suggest moving these fields back to the subscription object unless the Stripe SDK/API version changes.
 - **Generation credit deduction is post-OpenAI by design**: `/api/generate` deducts a credit only after OpenAI returns successfully so users are not charged for failed generations. If `consumeCredit()` fails after generation, the handler must not return that generated result as a successful paid output; a pre-reservation/refund design should only be suggested with a matching refund RPC/migration.
+- **`LEGACY_TIER_IDS` already includes `unlimited_monthly`**: `utils/tierConfig.ts` exports `LEGACY_TIER_IDS` as a `Set` that explicitly includes `unlimited_monthly`. Do not flag this as missing.
+- **Legacy backfill migration already covers `unlimited_monthly`**: `migrations/add_credit_system.sql` excludes `unlimited_monthly` holders from the new-credit backfill. Do not suggest adding it.
+- **`normalizeTier()` mapping legacy → v2 IDs is for feature-gating only**: It is not an automatic plan migration. Legacy users retain their original limits via `is_legacy_plan = true`; the normalization only resolves which feature set applies server-side. Do not suggest it misleads display or billing.
+- **Weekly drip catch-up is bounded by a hard 4-week window**: `api/cron/weekly-drip.ts` skips users whose `dripStarted + 4 weeks` has passed and marks them at `free_drip_weeks_delivered = 4`. Do not suggest unbounded catch-up is possible.
 
 ## Known Non-Issues (Do Not Suggest)
 

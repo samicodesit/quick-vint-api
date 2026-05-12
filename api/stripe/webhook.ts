@@ -159,7 +159,10 @@ async function findProfileByCheckoutSession(
 
   const profile = data as Record<string, any> | null;
 
-  if (profile && customerId && profile.stripe_customer_id !== customerId) {
+  // Only link stripe_customer_id when not already set. If it's already set to
+  // a different value we refuse to overwrite it — an attacker could supply a
+  // victim's email at checkout and hijack their billing relationship.
+  if (profile && customerId && !profile.stripe_customer_id) {
     await supabase
       .from("profiles")
       .update({ stripe_customer_id: customerId })
@@ -240,8 +243,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           if (profileRow) {
             // Plan switch via Checkout: cancel the previous subscription so the
-            // user isn't billed for two plans simultaneously.
+            // user isn't billed for two plans simultaneously. Only do this when
+            // the profile was matched by stripe_customer_id — if we matched by
+            // email alone we cannot prove ownership, so skip cancellation to
+            // prevent an attacker from cancelling a victim's subscription.
             if (
+              profileRow.stripe_customer_id === customerId &&
               profileRow.stripe_subscription_id &&
               profileRow.stripe_subscription_id !== subscription.id
             ) {

@@ -308,32 +308,24 @@
 
   <!-- Success State -->
   <div id="success" class="success-container hidden">
-    <div class="success-icon">🎉</div>
-    <h1>Welcome Aboard!</h1>
-    <div class="subtitle">Your AutoLister AI subscription is now active</div>
-    <div class="description">
-      You've just unlocked the power to create compelling Vinted listings in seconds. Your account has been upgraded and
-      you can start using your enhanced limits immediately.
-    </div>
+    <div class="success-icon" id="success-icon">🎉</div>
+    <h1 id="success-title">You're all set!</h1>
+    <div class="subtitle" id="success-subtitle"></div>
+    <div class="description" id="success-description"></div>
 
-    <div class="benefits">
-      <h3>🚀 What's Available Now</h3>
-      <div class="benefit-item">Access to enhanced daily generation limits</div>
-      <div class="benefit-item">AI-powered titles and descriptions</div>
-      <div class="benefit-item">Instant listing optimization</div>
-      <div class="benefit-item">Priority customer support</div>
-      <div class="benefit-item">Future feature updates included</div>
+    <div class="benefits" id="success-benefits">
+      <h3 id="benefits-title"></h3>
+      <div id="benefits-list"></div>
     </div>
 
     <div class="next-steps">
-      <h3>⚡ Ready to Get Started?</h3>
-      <p>Your new limits are active immediately! Click below to go directly to Vinted and start creating your first
-        AI-powered listing.</p>
+      <h3>⚡ Ready to go?</h3>
+      <p>Your credits are available immediately. Open Vinted and start listing.</p>
     </div>
 
     <div class="cta-buttons">
       <a href="#" target="_blank" class="btn btn-primary" id="vinted-redirect">
-        Start Creating on Vinted
+        Start listing on Vinted
       </a>
       <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank"
         class="btn btn-secondary">
@@ -378,6 +370,7 @@
             // Developer bypass successful
             loadingEl.classList.add('hidden');
             successEl.classList.remove('hidden');
+            populateSuccessContent(null);
 
             // Add a dev indicator
             const devIndicator = document.createElement('div');
@@ -425,6 +418,7 @@
           // Session is valid, show success page
           loadingEl.classList.add('hidden');
           successEl.classList.remove('hidden');
+          populateSuccessContent(data.session?.tier ?? null);
 
           // Initialize Vinted redirect functionality
           initializeVintedRedirect();
@@ -444,6 +438,111 @@
         console.error('Failed to verify session:', error);
       }
     });
+
+    const TIER_CONTENT = {
+      pack: {
+        icon: '📦',
+        title: '15 credits added!',
+        subtitle: 'Your Closet Clear Pack is ready',
+        description: '15 permanent credits have been added to your account. They never expire — use them at your own pace.',
+        benefitsTitle: 'What you got',
+        benefits: [
+          '15 permanent credits — no expiry, no rush',
+          'AI-powered titles and descriptions',
+          'Phone upload support',
+        ],
+      },
+      starter_v2: {
+        icon: '🎉',
+        title: 'Starter plan active!',
+        subtitle: '80 credits per month, starting now',
+        description: 'Your monthly credits are ready. Unused credits roll over automatically — you never lose them.',
+        benefitsTitle: 'What\'s included',
+        benefits: [
+          '80 credits/month with rollover',
+          'Unlimited phone uploads',
+          'AI-powered titles and descriptions',
+        ],
+      },
+      plus: {
+        icon: '🎉',
+        title: 'Plus plan active!',
+        subtitle: '200 credits per month, starting now',
+        description: 'Your monthly credits are ready. Unused credits roll over automatically — you never lose them.',
+        benefitsTitle: 'What\'s included',
+        benefits: [
+          '200 credits/month with rollover',
+          'Unlimited phone uploads',
+          'AI-powered titles and descriptions',
+          'Listing preferences',
+          'Smart Re-Gen',
+        ],
+      },
+      pro_v2: {
+        icon: '🚀',
+        title: 'Pro plan active!',
+        subtitle: '400 credits per month, starting now',
+        description: 'Your monthly credits are ready. Unused credits roll over automatically — you never lose them.',
+        benefitsTitle: 'What\'s included',
+        benefits: [
+          '400 credits/month with rollover',
+          'Unlimited phone uploads',
+          'AI-powered titles and descriptions',
+          'Listing preferences + Smart Re-Gen',
+          'Tone customisation & emoji toggle',
+          'Multi-language batch generation',
+        ],
+      },
+      business_v2: {
+        icon: '🏢',
+        title: 'Business plan active!',
+        subtitle: '1,000 credits per month, starting now',
+        description: 'Your monthly credits are ready. Unused credits roll over automatically — you never lose them.',
+        benefitsTitle: 'What\'s included',
+        benefits: [
+          '1,000 credits/month with rollover',
+          'Unlimited phone uploads',
+          'AI-powered titles and descriptions',
+          'Listing preferences + Smart Re-Gen',
+          'Tone customisation & emoji toggle',
+          'Multi-language batch generation',
+        ],
+      },
+      default: {
+        icon: '🎉',
+        title: 'Subscription active!',
+        subtitle: 'Your credits are ready to use',
+        description: 'Your monthly credits have been added to your account. Unused credits roll over — you never lose them.',
+        benefitsTitle: 'What\'s included',
+        benefits: [
+          'Monthly credits with rollover',
+          'Unlimited phone uploads',
+          'AI-powered titles and descriptions',
+        ],
+      },
+    };
+
+    function populateSuccessContent(tier) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPack = urlParams.get('type') === 'pack';
+
+      const key = isPack ? 'pack' : (tier && TIER_CONTENT[tier] ? tier : 'default');
+      const content = TIER_CONTENT[key];
+
+      document.getElementById('success-icon').textContent = content.icon;
+      document.getElementById('success-title').textContent = content.title;
+      document.getElementById('success-subtitle').textContent = content.subtitle;
+      document.getElementById('success-description').textContent = content.description;
+      document.getElementById('benefits-title').textContent = content.benefitsTitle;
+
+      const list = document.getElementById('benefits-list');
+      content.benefits.forEach(text => {
+        const el = document.createElement('div');
+        el.className = 'benefit-item';
+        el.textContent = text;
+        list.appendChild(el);
+      });
+    }
 
     function initializeVintedRedirect() {
       const VINTED_DOMAINS = {

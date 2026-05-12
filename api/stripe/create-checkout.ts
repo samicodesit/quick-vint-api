@@ -76,6 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
       allow_promotion_codes: true,
+      metadata: { tier: normalizedTier },
     };
 
     const session = await stripe.checkout.sessions.create(sessionParams);

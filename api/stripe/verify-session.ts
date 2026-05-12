@@ -38,6 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           payment_status: session.payment_status,
           subscription_id: session.subscription,
           created: session.created,
+          tier: session.metadata?.tier ?? null,
         },
       });
     } else {

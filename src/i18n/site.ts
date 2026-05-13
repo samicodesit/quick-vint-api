@@ -582,7 +582,7 @@ export const SITE_EXTRA_COPY: Record<
         "Review, customize if needed, and publish your optimized listing. Watch your sales improve!",
       finalCtaTitle: "Ready to Transform Your Vinted Sales?",
       finalCtaBody:
-        "Join thousands of successful sellers who use AutoLister to create professional listings that sell faster. Turn your closet into a boutique today.",
+        "Join other successful sellers who use AutoLister to create professional listings that sell faster. Turn your closet into a boutique today.",
       getStartedFree: "Get Started Free",
     },
     pricing: {
@@ -714,7 +714,7 @@ export const SITE_EXTRA_COPY: Record<
         "Révisez, ajustez si besoin, puis publiez votre annonce optimisée.",
       finalCtaTitle: "Prêt à booster vos ventes Vinted ?",
       finalCtaBody:
-        "Rejoignez des milliers de vendeurs qui utilisent AutoLister pour vendre plus vite.",
+        "Rejoignez d'autres vendeurs qui utilisent AutoLister pour vendre plus vite.",
       getStartedFree: "Commencer gratuitement",
     },
     pricing: {
@@ -845,7 +845,7 @@ export const SITE_EXTRA_COPY: Record<
         "Prufen, anpassen und veroffentlichen. So verkaufst du schneller.",
       finalCtaTitle: "Bereit, deine Vinted-Verkaufe zu steigern?",
       finalCtaBody:
-        "Tausende Seller nutzen AutoLister fur professionelle Anzeigen, die schneller verkaufen.",
+        "Schließen Sie sich anderen Verkäufern an, die AutoLister für professionelle Anzeigen nutzen, die schneller verkaufen.",
       getStartedFree: "Kostenlos starten",
     },
     pricing: {
@@ -977,7 +977,7 @@ export const SITE_EXTRA_COPY: Record<
         "Controleer, pas aan en publiceer. Verkoop sneller met minder werk.",
       finalCtaTitle: "Klaar om je Vinted-verkoop te versnellen?",
       finalCtaBody:
-        "Sluit je aan bij duizenden verkopers die AutoLister gebruiken om sneller te verkopen.",
+        "Sluit je aan bij andere verkopers die AutoLister gebruiken om sneller te verkopen.",
       getStartedFree: "Gratis beginnen",
     },
     pricing: {
@@ -1110,7 +1110,7 @@ export const SITE_EXTRA_COPY: Record<
         "Sprawdz, popraw i opublikuj. Sprzedawaj szybciej przy mniejszym wysilku.",
       finalCtaTitle: "Gotowy zwiekszyc sprzedaz na Vinted?",
       finalCtaBody:
-        "Dolacz do tysiecy sprzedawcow, ktorzy uzywaja AutoLister do szybszej sprzedazy.",
+        "Dolacz do innych sprzedawcow, ktorzy uzywaja AutoLister do szybszej sprzedazy.",
       getStartedFree: "Zacznij za darmo",
     },
     pricing: {
@@ -1241,7 +1241,7 @@ export const SITE_EXTRA_COPY: Record<
         "Revisa, ajusta si quieres y publica. Vende mas rapido con menos esfuerzo.",
       finalCtaTitle: "Listo para acelerar tus ventas en Vinted?",
       finalCtaBody:
-        "Unete a miles de vendedores que usan AutoLister para vender mas rapido.",
+        "Unete a otros vendedores que usan AutoLister para vender mas rapido.",
       getStartedFree: "Empieza gratis",
     },
     pricing: {
@@ -1372,7 +1372,7 @@ export const SITE_EXTRA_COPY: Record<
         "Controlla, modifica se vuoi e pubblica. Vendi piu velocemente con meno fatica.",
       finalCtaTitle: "Pronto ad aumentare le vendite su Vinted?",
       finalCtaBody:
-        "Unisciti a migliaia di venditori che usano AutoLister per vendere piu rapidamente.",
+        "Unisciti ad altri venditori che usano AutoLister per vendere piu rapidamente.",
       getStartedFree: "Inizia gratis",
     },
     pricing: {
@@ -1503,7 +1503,7 @@ export const SITE_EXTRA_COPY: Record<
         "Reveja, ajuste se quiser e publique. Venda mais rapido com menos trabalho.",
       finalCtaTitle: "Pronto para acelerar as suas vendas na Vinted?",
       finalCtaBody:
-        "Junte-se a milhares de vendedores que usam o AutoLister para vender mais rapido.",
+        "Junte-se a outros vendedores que usam o AutoLister para vender mais rapido.",
       getStartedFree: "Comecar gratis",
     },
     pricing: {

@@ -1,0 +1,55 @@
+---
+import { CHROME_WEB_STORE_URL } from "../../utils/blog.js";
+
+interface Props {
+  locale?: "en" | "fr" | "de" | "nl";
+}
+
+const { locale = "en" } = Astro.props;
+
+const copy = {
+  en: {
+    eyebrow: "Photo-to-listing writing",
+    title: "Turn item photos into Vinted-ready text",
+    body: "AutoLister AI generates titles, descriptions, and SEO-style hashtags from your item photos. Review the details, adjust anything specific, then use the text in your Vinted listing.",
+    cta: "Add to Chrome",
+  },
+  fr: {
+    eyebrow: "Rédaction depuis vos photos",
+    title: "Transformez vos photos en texte prêt pour Vinted",
+    body: "AutoLister AI génère des titres, descriptions et hashtags de style SEO depuis vos photos d'articles. Vérifiez les détails, ajustez si besoin, puis utilisez le texte dans votre annonce Vinted.",
+    cta: "Ajouter à Chrome",
+  },
+  de: {
+    eyebrow: "Texte aus Artikelfotos",
+    title: "Verwandle Artikelfotos in Vinted-fertigen Text",
+    body: "AutoLister AI erstellt Titel, Beschreibungen und SEO-ähnliche Hashtags aus deinen Artikelfotos. Prüfe die Details, passe Besonderheiten an und nutze den Text in deinem Vinted-Listing.",
+    cta: "Zu Chrome hinzufügen",
+  },
+  nl: {
+    eyebrow: "Tekst vanuit foto's",
+    title: "Zet itemfoto's om naar Vinted-klare tekst",
+    body: "AutoLister AI maakt titels, beschrijvingen en SEO-achtige hashtags vanuit je itemfoto's. Controleer de details, pas specifieke informatie aan en gebruik de tekst in je Vinted-advertentie.",
+    cta: "Toevoegen aan Chrome",
+  },
+}[locale];
+---
+
+<aside class="my-10 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="min-w-0">
+      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">{copy.eyebrow}</p>
+      <h3 class="text-base font-bold text-slate-900">{copy.title}</h3>
+      <p class="mt-1 text-sm font-medium leading-6 text-slate-600">{copy.body}</p>
+    </div>
+    <a
+      href={CHROME_WEB_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white no-underline transition hover:bg-slate-800"
+    >
+      {copy.cta}
+    </a>
+  </div>
+</aside>
+

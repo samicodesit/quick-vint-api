@@ -1,0 +1,55 @@
+---
+import { CHROME_WEB_STORE_URL } from "../../utils/blog.js";
+
+interface Props {
+  locale?: "en" | "fr" | "de" | "nl";
+}
+
+const { locale = "en" } = Astro.props;
+
+const copy = {
+  en: {
+    eyebrow: "Listing writing controls",
+    title: "Draft listing text in the style you need",
+    body: "AutoLister AI can help format photo-generated Vinted descriptions with clearer structure, tone, bullets, emojis, and localized output when those writing controls are available on your plan.",
+    cta: "Add to Chrome",
+  },
+  fr: {
+    eyebrow: "Contrôles de rédaction",
+    title: "Préparez vos annonces dans le style adapté",
+    body: "AutoLister AI peut aider à formater les descriptions Vinted générées depuis vos photos avec une structure plus claire, le ton, les listes, les emojis et la langue locale quand ces contrôles sont disponibles dans votre formule.",
+    cta: "Ajouter à Chrome",
+  },
+  de: {
+    eyebrow: "Schreibstil-Steuerung",
+    title: "Entwirf Listing-Texte im passenden Stil",
+    body: "AutoLister AI kann aus Fotos generierte Vinted-Beschreibungen mit klarerer Struktur, Tonalität, Aufzählungen, Emojis und lokalisierter Ausgabe formatieren, wenn diese Schreibsteuerungen in deinem Tarif verfügbar sind.",
+    cta: "Zu Chrome hinzufügen",
+  },
+  nl: {
+    eyebrow: "Schrijfstijl-instellingen",
+    title: "Maak advertentietekst in de stijl die past",
+    body: "AutoLister AI kan vanuit foto's gemaakte Vinted-beschrijvingen helpen opmaken met duidelijkere structuur, toon, bullets, emoji's en lokale taal wanneer die schrijfinstellingen in je pakket beschikbaar zijn.",
+    cta: "Toevoegen aan Chrome",
+  },
+}[locale];
+---
+
+<aside class="my-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="min-w-0">
+      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">{copy.eyebrow}</p>
+      <h3 class="text-base font-bold text-slate-900">{copy.title}</h3>
+      <p class="mt-1 text-sm font-medium leading-6 text-slate-600">{copy.body}</p>
+    </div>
+    <a
+      href={CHROME_WEB_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white no-underline transition hover:bg-slate-800"
+    >
+      {copy.cta}
+    </a>
+  </div>
+</aside>
+

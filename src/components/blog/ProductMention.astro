@@ -1,19 +1,45 @@
 ---
 interface Props {
+  locale?: "en" | "fr" | "de" | "nl";
   title?: string;
   body?: string;
 }
 
+const { locale = "en" } = Astro.props;
+
+const copy = {
+  en: {
+    eyebrow: "Tool tip",
+    title: "AutoLister AI can draft listing text from photos",
+    body: "Use it when you want a buyer-friendly Vinted title and description from your item photos, then review the details before adding the text to your listing.",
+  },
+  fr: {
+    eyebrow: "Astuce outil",
+    title: "AutoLister AI peut rédiger le texte depuis vos photos",
+    body: "Utilisez-le pour obtenir un titre et une description Vinted à partir de vos photos, puis vérifiez les détails avant d'ajouter le texte à votre annonce.",
+  },
+  de: {
+    eyebrow: "Tool-Tipp",
+    title: "AutoLister AI kann Listing-Text aus Fotos entwerfen",
+    body: "Nutze es, wenn du aus deinen Artikelfotos einen käuferfreundlichen Vinted-Titel und eine Beschreibung erstellen möchtest. Prüfe die Details, bevor du den Text in dein Listing einfügst.",
+  },
+  nl: {
+    eyebrow: "Tooltip",
+    title: "AutoLister AI kan advertentietekst uit foto's maken",
+    body: "Gebruik het wanneer je uit itemfoto's een kopergerichte Vinted-titel en beschrijving wilt maken. Controleer de details voordat je de tekst aan je advertentie toevoegt.",
+  },
+}[locale];
+
 const {
-  title = "AutoLister AI handles the repetitive writing for you",
-  body = "Use it when you already know what you want to sell, but don't want to rewrite titles, measurements, materials, condition notes, and buyer-friendly descriptions every time.",
+  title = copy.title,
+  body = copy.body,
 } = Astro.props;
 ---
 
 <aside class="my-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
   <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
     <div class="min-w-0 flex-1">
-      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Tool tip</p>
+      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">{copy.eyebrow}</p>
       <h3 class="text-base font-bold text-slate-900">{title}</h3>
       <p class="mt-1 text-sm font-medium leading-6 text-slate-600">{body}</p>
     </div>

@@ -253,6 +253,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [BRAND - Omit if not known] [Model - if electronics or applicable] [Color] [Item] - [Size - Omit if not known/not applicable].
+- Size handling: For clothing and shoes, prioritize visible EU size markings over US sizing. Do not convert or infer sizes; omit the size if the system is unclear.
 - Description: Note a positive condition (e.g., excellent condition, Like new) if visible. No negative remarks related to wrinkles or creasing. Highlight a key feature: a good way to style it, or fabric within reason if clear, as examples. End with 4-5 relevant SEO hashtags. If brand/size is not visible at all, just skip it, do NOT say "Unknown Brand/Size". Your tone should be ${toneInstruction}. ${emojiInstruction} ${bulletpointInstruction} highlighting key features and styling tips. Add line break before hashtags. 
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();

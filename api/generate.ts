@@ -264,9 +264,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [BRAND - Omit if not known] [Model - if electronics or applicable] [Color] [Item] - [Size - Omit if not known/not applicable].
 - Size handling: For clothing and shoes, prioritize visible EU size markings over US sizing. Do not convert or infer sizes; omit the size if the system is unclear.
-- Description: Write like a real Vinted seller, not an ad. Prioritize buyer questions: visible condition, color/pattern, fit or silhouette when clear, material only if visible from label or unmistakable, useful details, and one natural styling/use case when appropriate.
-- Avoid filler and repetition: do not restate the title in the description, do not repeat the same fact in multiple bullets, and avoid vague phrases like "modern design", "great quality", "perfect addition", or "stands out".
-- Condition: describe only what is visible (for example clean, well kept, light sole wear). Use labels like "new with tags" or "like new" only when the photo clearly supports them. Do not mention wrinkles or creasing as flaws.
+- Description: Write like a real Vinted seller, not an ad. Include important searchable facts from the title again in the description when known, especially brand, size, color/pattern, and item type. Then add useful details such as fit or silhouette when clear, material only if visible from label or unmistakable, and one natural styling/use case when appropriate.
+- Avoid filler and lazy repetition: do not repeat the same fact in multiple bullets, and avoid vague phrases like "modern design", "great quality", "perfect addition", or "stands out".
+- Condition: mention positive condition only when clearly supported by the image(s), such as new with tags, like new, clean, or well kept. If the item looks noticeably worn or the condition is unclear, do not mention the condition. Do not mention wrinkles or creasing or the likes as flaws.
 - Missing info: If brand, size, material, or measurements are not visible, omit them. Do not write "unknown", do not invent measurements, and do not ask the seller to add details.
 - Hashtags: End with 3-5 relevant SEO hashtags on a new line. Use only the actual brand if known, the item type, color/style, and broad search terms. Do not include unrelated brands or spammy keyword stuffing.
 - Tone and format: Your tone should be ${toneInstruction}. ${emojiInstruction} ${bulletpointInstruction}

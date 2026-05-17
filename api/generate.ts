@@ -208,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const language = languageMap[languageCodeStr] || "English";
 
   // --- CONSTRUCT PROMPT INSTRUCTIONS ---
-  // Only pro/business tiers can customize tone and emojis
+  // Only pro/business tiers can customize tone
   const tierAllowsExtras =
     userProfile.subscription_tier === "pro" ||
     userProfile.subscription_tier === "business";
@@ -222,8 +222,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       toneInstruction = "enthusiastic, sales-oriented, and exciting";
   }
 
+  const emojisDisabledByUser = useEmojis === false || useEmojis === "false";
   const emojisEnabled =
-    tierAllowsExtras && (useEmojis === true || useEmojis === "true");
+    userProfile.subscription_tier === "free"
+      ? !emojisDisabledByUser
+      : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
     ? "Use relevant emojis in the description."
     : "Do NOT use any emojis in the description.";

@@ -32,6 +32,61 @@ interface FileUpload {
   mimeType: string;
 }
 
+interface StoredFile {
+  name: string;
+  path: string;
+  url: string;
+  size: unknown;
+  type: unknown;
+}
+
+const UPLOAD_BUCKET = "temp-uploads";
+
+function getMetadataValue(
+  metadata: Record<string, unknown> | null | undefined,
+  keys: string[],
+) {
+  if (!metadata) return undefined;
+  for (const key of keys) {
+    if (metadata[key] !== undefined) return metadata[key];
+  }
+  return undefined;
+}
+
+function sanitizeFilename(filename: string) {
+  const baseName = filename.split(/[\\/]/).pop()?.trim() || "upload";
+  return baseName.replace(/[^\w .()-]/g, "_");
+}
+
+async function createStoredFileResponse(
+  sessionId: string,
+  file: { name: string; metadata?: Record<string, unknown> | null },
+): Promise<StoredFile> {
+  const path = `${sessionId}/${file.name}`;
+  const { data, error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .createSignedUrl(path, 3600);
+
+  if (error || !data?.signedUrl) {
+    throw new Error(
+      `Failed to create signed URL for ${path}: ${error?.message || "No signed URL returned"}`,
+    );
+  }
+
+  return {
+    name: file.name,
+    path,
+    url: data.signedUrl,
+    size: getMetadataValue(file.metadata, ["size", "contentLength"]),
+    type: getMetadataValue(file.metadata, [
+      "mimetype",
+      "mimeType",
+      "contentType",
+      "content-type",
+    ]),
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   await runMiddleware(req, res, cors);
 
@@ -60,7 +115,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { data: files, error: listError } = await supabase.storage
-      .from("temp-uploads")
+      .from(UPLOAD_BUCKET)
       .list(sessionId, {
         limit: 100,
         offset: 0,
@@ -73,26 +128,11 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ files: [] });
     }
 
-    const fileUrls = await Promise.all(
-      files.map(async (file) => {
-        const path = `${sessionId}/${file.name}`;
-        const { data, error } = await supabase.storage
-          .from("temp-uploads")
-          .createSignedUrl(path, 3600);
-
-        if (error) return null;
-
-        return {
-          name: file.name,
-          url: data?.signedUrl,
-          size: file.metadata?.size,
-          type: file.metadata?.mimetype,
-        };
-      }),
+    const signedFiles = await Promise.all(
+      files.map((file) => createStoredFileResponse(sessionId, file)),
     );
 
-    const validFiles = fileUrls.filter((f) => f !== null);
-    res.status(200).json({ files: validFiles });
+    res.status(200).json({ files: signedFiles, count: signedFiles.length });
   } catch (error: any) {
     console.error("List error:", error);
     res.status(500).json({ error: error.message });
@@ -104,6 +144,13 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   const busboy = Busboy({ headers: req.headers });
   const fileUploads: FileUpload[] = [];
   let sessionId = "";
+  let responseSent = false;
+
+  const sendError = (status: number, message: string) => {
+    if (responseSent) return;
+    responseSent = true;
+    res.status(status).json({ error: message });
+  };
 
   busboy.on("field", (fieldname, val) => {
     if (fieldname === "sessionId") {
@@ -130,28 +177,56 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       const finalSessionId = sessionId || (req.query.sessionId as string);
 
       if (!finalSessionId) {
-        return res.status(400).json({ error: "Missing sessionId" });
+        return sendError(400, "Missing sessionId");
+      }
+
+      if (fileUploads.length === 0) {
+        return sendError(400, "No files received");
       }
 
       const uploadPromises = fileUploads.map(async (file) => {
         const uniqueSuffix = Math.random().toString(36).substring(2, 9);
-        const path = `${finalSessionId}/${Date.now()}-${uniqueSuffix}-${file.filename}`;
+        const storedName = `${Date.now()}-${uniqueSuffix}-${sanitizeFilename(file.filename)}`;
+        const path = `${finalSessionId}/${storedName}`;
         const { error } = await supabase.storage
-          .from("temp-uploads")
+          .from(UPLOAD_BUCKET)
           .upload(path, file.buffer, {
             contentType: file.mimeType,
             upsert: false,
           });
 
         if (error) throw error;
+
+        return {
+          name: storedName,
+          path,
+          size: file.buffer.length,
+          type: file.mimeType,
+        };
       });
 
-      await Promise.all(uploadPromises);
-      res.status(200).json({ success: true, count: fileUploads.length });
+      const uploadedFiles = await Promise.all(uploadPromises);
+      responseSent = true;
+      res.status(200).json({
+        success: true,
+        count: uploadedFiles.length,
+        expectedCount: fileUploads.length,
+        files: uploadedFiles,
+      });
     } catch (error: any) {
       console.error("Upload error:", error);
-      res.status(500).json({ error: error.message });
+      sendError(500, error.message);
     }
+  });
+
+  busboy.on("error", (error) => {
+    console.error("Multipart parse error:", error);
+    sendError(400, "Could not parse upload request");
+  });
+
+  req.on("error", (error) => {
+    console.error("Upload request stream error:", error);
+    sendError(400, "Upload request stream failed");
   });
 
   req.pipe(busboy);
@@ -168,7 +243,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
   try {
     // 1. List all files in the session folder
     const { data: files, error: listError } = await supabase.storage
-      .from("temp-uploads")
+      .from(UPLOAD_BUCKET)
       .list(sessionId);
 
     if (listError) throw listError;
@@ -177,7 +252,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
     if (files && files.length > 0) {
       const filesToRemove = files.map((f) => `${sessionId}/${f.name}`);
       const { error: removeError } = await supabase.storage
-        .from("temp-uploads")
+        .from(UPLOAD_BUCKET)
         .remove(filesToRemove);
 
       if (removeError) throw removeError;

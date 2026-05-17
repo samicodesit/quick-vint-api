@@ -55,8 +55,8 @@ Rules:
 
 | Priority | Search intent | Target query | Category | Translation key | en | fr | de | nl | URL | Publish date | Last reviewed | Product placement | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| P0 | Improve listing text | how to write Vinted descriptions that sell | selling-tips | vinted-descriptions-that-sell | [x] | [x] | [ ] | [ ] | /blog/how-to-write-vinted-descriptions-that-sell | 2026-05-04 | 2026-05-13 | ProductMention | Complete German and Dutch localizations before new clusters. |
-| P0 | Improve listing photos | Vinted photos that sell | selling-tips | vinted-photos-that-sell | [x] | [x] | [ ] | [ ] | /blog/vinted-photos-that-sell | 2026-05-04 | 2026-05-13 | PhotoToListingCTA | Complete German and Dutch localizations before new clusters. |
+| P0 | Improve listing text | how to write Vinted descriptions that sell | selling-tips | vinted-descriptions-that-sell | [x] | [x] | [x] | [x] | /blog/how-to-write-vinted-descriptions-that-sell | 2026-05-04 | 2026-05-17 | ProductMention | German and Dutch localizations completed. |
+| P0 | Improve listing photos | Vinted photos that sell | selling-tips | vinted-photos-that-sell | [x] | [x] | [x] | [x] | /blog/vinted-photos-that-sell | 2026-05-04 | 2026-05-17 | PhotoToListingCTA | German and Dutch localizations completed. |
 | P1 | Beginner setup | how to sell on Vinted | marketplace-guide | how-to-sell-on-vinted-beginner-checklist | [x] | [x] | [x] | [x] | /blog/how-to-sell-on-vinted | 2026-05-13 | 2026-05-13 | EndOfPostCTA | Beginner checklist; CTA only after listing quality section. |
 | P1 | Diagnose poor sales | why are my Vinted items not selling | selling-tips | why-vinted-items-not-selling | [x] | [x] | [x] | [x] | /blog/why-are-my-vinted-items-not-selling | 2026-05-13 | 2026-05-13 | PhotoToListingCTA | Mention only when causes involve poor photos, weak titles, or thin descriptions. |
 | P1 | Sell-through improvement | how to sell faster on Vinted | selling-tips | how-to-sell-faster-on-vinted | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | PhotoToListingCTA | Avoid claims about automation or account growth. |

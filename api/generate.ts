@@ -222,20 +222,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       toneInstruction = "enthusiastic, sales-oriented, and exciting";
   }
 
-  const emojiInstruction =
-    tierAllowsExtras && (useEmojis === true || useEmojis === "true")
-      ? "Use relevant emojis in the description."
-      : "Do NOT use any emojis in the description.";
+  const emojisEnabled =
+    tierAllowsExtras && (useEmojis === true || useEmojis === "true");
+  const emojiInstruction = emojisEnabled
+    ? "Use relevant emojis in the description."
+    : "Do NOT use any emojis in the description.";
 
   // bullet points vs paragraphs
-  const bulletEmojiInstruction =
-    tierAllowsExtras && (useEmojis === true || useEmojis === "true")
-      ? " Emojis are optional and must be used sparingly."
-      : "";
+  const bulletEmojiInstruction = emojisEnabled
+    ? " End each bullet with exactly one relevant emoji."
+    : "";
+  const paragraphEmojiInstruction = emojisEnabled
+    ? " Use emojis sparingly in paragraph text."
+    : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
       ? `Use one short opening sentence, then a line break, then 3 concise bullet points. Each bullet starts with '• ' and must add a different useful detail than the opening sentence.${bulletEmojiInstruction}`
-      : "Use 2-3 short paragraphs separated by a line break where useful.";
+      : `Use 2-3 short paragraphs separated by a line break where useful.${paragraphEmojiInstruction}`;
 
   if (
     !Array.isArray(imageUrls) ||

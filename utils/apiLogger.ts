@@ -139,7 +139,7 @@ export class ApiLogger {
    */
   static detectSuspiciousActivity(data: {
     imageUrls?: string[];
-    rawPrompt?: string;
+    userProvidedText?: string;
     userAgent?: string;
     requestFrequency?: number;
   }): { suspicious: boolean; reasons: string[] } {
@@ -160,8 +160,9 @@ export class ApiLogger {
       reasons.push("Potentially inappropriate image URLs detected");
     }
 
-    // Check for suspicious prompt content
-    if (data.rawPrompt) {
+    // Check only user-controlled text. Generated system prompts contain words
+    // like "spammy" as safety instructions and must not self-trigger flags.
+    if (data.userProvidedText) {
       const suspiciousKeywords = [
         "hack",
         "exploit",
@@ -183,7 +184,7 @@ export class ApiLogger {
         "phishing",
       ];
 
-      const lowerPrompt = data.rawPrompt.toLowerCase();
+      const lowerPrompt = data.userProvidedText.toLowerCase();
       const foundSuspiciousKeywords = suspiciousKeywords.filter((keyword) =>
         lowerPrompt.includes(keyword),
       );

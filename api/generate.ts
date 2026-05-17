@@ -280,7 +280,6 @@ Reply only in JSON: {"title":"...","description":"..."}
   // Check for suspicious activity
   const suspiciousCheck = ApiLogger.detectSuspiciousActivity({
     imageUrls,
-    rawPrompt: logData.rawPrompt,
     userAgent: logData.userAgent,
   });
 

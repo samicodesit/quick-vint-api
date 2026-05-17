@@ -228,10 +228,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : "Do NOT use any emojis in the description.";
 
   // bullet points vs paragraphs
+  const bulletEmojiInstruction =
+    tierAllowsExtras && (useEmojis === true || useEmojis === "true")
+      ? " Emojis are optional and must be used sparingly."
+      : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? "1 short setence (text ONLY). Followed by a line break. Followed by 3-4 concise bullet points. Each bullet starts with '• '. End each with relevant emoji. First bullet exclusive ONLY to size and brand if known, don't add anything else to first bullet even if it will be so short."
-      : "Use 2-3 short paragraphs. separated with line breaks where necessary.";
+      ? `Use one short opening sentence, then a line break, then 3 concise bullet points. Each bullet starts with '• ' and must add a different useful detail than the opening sentence.${bulletEmojiInstruction}`
+      : "Use 2-3 short paragraphs separated by a line break where useful.";
 
   if (
     !Array.isArray(imageUrls) ||
@@ -249,12 +253,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are a savvy Vinted seller. Your goal is to create listings that are appealing, trustworthy, and get items sold. Never guess brand, size, material, model, etc. You can mention defects (with high tolerance) only if clearly and obviously visible. Wrinkles or creasings are not defects.";
+    "You are a savvy Vinted seller writing accurate, buyer-friendly listings. Be specific, natural, and trustworthy. Never guess brand, size, material, model, measurements, authenticity, or how many times an item was worn. Mention defects only when clearly visible. Wrinkles and creasing are not defects.";
   const userPrompt = `
 Analyze the image(s) and generate a title and description in ${language}.
 - Title format: [BRAND - Omit if not known] [Model - if electronics or applicable] [Color] [Item] - [Size - Omit if not known/not applicable].
 - Size handling: For clothing and shoes, prioritize visible EU size markings over US sizing. Do not convert or infer sizes; omit the size if the system is unclear.
-- Description: Note a positive condition (e.g., excellent condition, Like new) if visible. No negative remarks related to wrinkles or creasing. Highlight a key feature: a good way to style it, or fabric within reason if clear, as examples. End with 4-5 relevant SEO hashtags. If brand/size is not visible at all, just skip it, do NOT say "Unknown Brand/Size". Your tone should be ${toneInstruction}. ${emojiInstruction} ${bulletpointInstruction} highlighting key features and styling tips. Add line break before hashtags. 
+- Description: Write like a real Vinted seller, not an ad. Prioritize buyer questions: visible condition, color/pattern, fit or silhouette when clear, material only if visible from label or unmistakable, useful details, and one natural styling/use case when appropriate.
+- Avoid filler and repetition: do not restate the title in the description, do not repeat the same fact in multiple bullets, and avoid vague phrases like "modern design", "great quality", "perfect addition", or "stands out".
+- Condition: describe only what is visible (for example clean, well kept, light sole wear). Use labels like "new with tags" or "like new" only when the photo clearly supports them. Do not mention wrinkles or creasing as flaws.
+- Missing info: If brand, size, material, or measurements are not visible, omit them. Do not write "unknown", do not invent measurements, and do not ask the seller to add details.
+- Hashtags: End with 3-5 relevant SEO hashtags on a new line. Use only the actual brand if known, the item type, color/style, and broad search terms. Do not include unrelated brands or spammy keyword stuffing.
+- Tone and format: Your tone should be ${toneInstruction}. ${emojiInstruction} ${bulletpointInstruction}
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

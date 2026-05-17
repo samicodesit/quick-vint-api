@@ -25,6 +25,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleViewLogs(req, res);
     } else if (action === "usage-stats") {
       return handleUsageStats(req, res);
+    } else if (action === "list-users") {
+      return handleListUsers(req, res);
     } else if (action === "list-templates") {
       return handleListTemplates(req, res);
     } else if (action === "preview-template") {
@@ -46,6 +48,373 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   } else {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+}
+
+type AdminUserSegment = "today" | "recent" | "active" | "paid" | "at-risk";
+type AdminUserSort =
+  | "created_desc"
+  | "active_desc"
+  | "usage_desc"
+  | "email_asc";
+
+type ProfileRow = {
+  id: string;
+  email: string | null;
+  api_calls_this_month: number | null;
+  subscription_tier: string | null;
+  subscription_status: string | null;
+  created_at: string;
+  current_period_end: string | null;
+};
+
+type RateLimitRow = {
+  user_id: string;
+  window_type: string;
+  count: number | null;
+  expires_at: string | null;
+};
+
+const PROFILE_SELECT =
+  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end";
+
+function getQueryString(
+  value: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parsePositiveInt(
+  value: string | string[] | undefined,
+  fallback: number,
+  max: number,
+) {
+  const parsed = parseInt(getQueryString(value) || "", 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+function normalizeSegment(
+  value: string | string[] | undefined,
+): AdminUserSegment {
+  const segment = getQueryString(value);
+  if (
+    segment === "today" ||
+    segment === "recent" ||
+    segment === "active" ||
+    segment === "paid" ||
+    segment === "at-risk"
+  ) {
+    return segment;
+  }
+  return "recent";
+}
+
+function normalizeSort(value: string | string[] | undefined): AdminUserSort {
+  const sort = getQueryString(value);
+  if (
+    sort === "created_desc" ||
+    sort === "active_desc" ||
+    sort === "usage_desc" ||
+    sort === "email_asc"
+  ) {
+    return sort;
+  }
+  return "created_desc";
+}
+
+function applyProfileFilters(query: any, req: VercelRequest) {
+  const search = (getQueryString(req.query.search) || "").trim();
+  const tier = (getQueryString(req.query.tier) || "all").trim();
+  const status = (getQueryString(req.query.status) || "all").trim();
+
+  if (search) {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        search,
+      );
+    query = isUuid
+      ? query.or(`email.ilike.%${search}%,id.eq.${search}`)
+      : query.ilike("email", `%${search}%`);
+  }
+
+  if (tier !== "all") query = query.eq("subscription_tier", tier);
+  if (status !== "all") query = query.eq("subscription_status", status);
+
+  return query;
+}
+
+function matchesInMemoryFilters(user: ProfileRow, req: VercelRequest) {
+  const search = (getQueryString(req.query.search) || "").trim().toLowerCase();
+  const tier = (getQueryString(req.query.tier) || "all").trim();
+  const status = (getQueryString(req.query.status) || "all").trim();
+
+  if (search) {
+    const email = (user.email || "").toLowerCase();
+    const id = user.id.toLowerCase();
+    if (!email.includes(search) && !id.includes(search)) return false;
+  }
+
+  if (tier !== "all" && user.subscription_tier !== tier) return false;
+  if (status !== "all" && user.subscription_status !== status) return false;
+
+  return true;
+}
+
+function applyProfileSort(
+  query: any,
+  sort: AdminUserSort,
+  segment: AdminUserSegment,
+) {
+  if (sort === "usage_desc" || segment === "at-risk") {
+    return query.order("api_calls_this_month", {
+      ascending: false,
+      nullsFirst: false,
+    });
+  }
+  if (sort === "email_asc") {
+    return query.order("email", { ascending: true, nullsFirst: false });
+  }
+  return query.order("created_at", { ascending: false });
+}
+
+function getLimitCount(limits: RateLimitRow[], windowType: string) {
+  return limits
+    .filter((limit) => limit.window_type === windowType)
+    .reduce((total, limit) => total + (limit.count || 0), 0);
+}
+
+async function enrichAdminUsers(
+  users: ProfileRow[],
+  todayStart?: string,
+  todayEnd?: string,
+) {
+  if (users.length === 0) return [];
+
+  const ids = users.map((user) => user.id);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
+  const [{ data: recentLogs }, { data: activeRateLimits }] = await Promise.all([
+    supabase
+      .from("api_logs")
+      .select("user_id, created_at, response_status, suspicious_activity")
+      .in("user_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(ids.length * 25, 1000)),
+    supabase
+      .from("rate_limits")
+      .select("user_id, window_type, count, expires_at")
+      .in("user_id", ids)
+      .or(`expires_at.gt.${nowIso},expires_at.is.null`),
+  ]);
+
+  const lastActiveMap = new Map<string, string>();
+  const suspiciousMap = new Map<string, boolean>();
+  const rateLimitMap = new Map<string, RateLimitRow[]>();
+
+  (recentLogs || []).forEach((log: any) => {
+    if (!log.user_id) return;
+    if (!lastActiveMap.has(log.user_id)) {
+      lastActiveMap.set(log.user_id, log.created_at);
+    }
+    if (log.suspicious_activity || log.response_status === 429) {
+      suspiciousMap.set(log.user_id, true);
+    }
+  });
+
+  (activeRateLimits || []).forEach((limit: RateLimitRow) => {
+    if (!rateLimitMap.has(limit.user_id)) rateLimitMap.set(limit.user_id, []);
+    rateLimitMap.get(limit.user_id)?.push(limit);
+  });
+
+  return users.map((user) => {
+    const tierKey = user.subscription_tier || "free";
+    const tierConfig =
+      TIER_CONFIGS[tierKey as keyof typeof TIER_CONFIGS] || TIER_CONFIGS.free;
+    const limits = rateLimitMap.get(user.id) || [];
+    const dayCount = getLimitCount(limits, "day");
+    const monthCount = user.api_calls_this_month || 0;
+    const maxDay = tierConfig.limits.daily;
+    const maxMonth = tierConfig.limits.monthly;
+    const dayPercent = maxDay ? Math.round((dayCount / maxDay) * 100) : 0;
+    const monthPercent = maxMonth
+      ? Math.round((monthCount / maxMonth) * 100)
+      : 0;
+    const createdAt = new Date(user.created_at).getTime();
+    const isNewToday = Boolean(
+      todayStart &&
+      todayEnd &&
+      user.created_at >= todayStart &&
+      user.created_at < todayEnd,
+    );
+
+    return {
+      ...user,
+      subscription_tier: tierKey,
+      subscription_status: user.subscription_status || "unknown",
+      api_calls_this_month: monthCount,
+      last_active: lastActiveMap.get(user.id) || null,
+      limits,
+      max_limits: {
+        day: maxDay,
+        month: maxMonth,
+      },
+      usage: {
+        day: dayCount,
+        month: monthCount,
+        day_percent: dayPercent,
+        month_percent: monthPercent,
+        month_remaining: Math.max(maxMonth - monthCount, 0),
+      },
+      days_since_signup: Math.max(
+        0,
+        Math.floor((now - createdAt) / (24 * 60 * 60 * 1000)),
+      ),
+      is_new_today: isNewToday,
+      is_at_risk:
+        dayPercent >= 80 ||
+        monthPercent >= 80 ||
+        suspiciousMap.get(user.id) === true,
+    };
+  });
+}
+
+async function handleListUsers(req: VercelRequest, res: VercelResponse) {
+  try {
+    const page = parsePositiveInt(req.query.page, 1, 10000);
+    const limit = parsePositiveInt(req.query.limit, 50, 100);
+    const offset = (page - 1) * limit;
+    const segment = normalizeSegment(req.query.segment);
+    const sort = normalizeSort(req.query.sort);
+    const todayStart = getQueryString(req.query.today_start);
+    const todayEnd = getQueryString(req.query.today_end);
+
+    if (segment === "active") {
+      const { data: recentLogs, error: logsError } = await supabase
+        .from("api_logs")
+        .select("user_id, created_at")
+        .not("user_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(2000);
+
+      if (logsError) throw logsError;
+
+      const orderedIds: string[] = [];
+      (recentLogs || []).forEach((log: any) => {
+        if (log.user_id && !orderedIds.includes(log.user_id)) {
+          orderedIds.push(log.user_id);
+        }
+      });
+
+      if (orderedIds.length === 0) {
+        return res.status(200).json({
+          users: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+          segment,
+        });
+      }
+
+      let activeQuery = supabase
+        .from("profiles")
+        .select(PROFILE_SELECT)
+        .in("id", orderedIds.slice(0, 1000));
+      activeQuery = applyProfileFilters(activeQuery, req);
+
+      const { data: activeProfiles, error: profilesError } = await activeQuery;
+      if (profilesError) throw profilesError;
+
+      const activeOrder = new Map(orderedIds.map((id, index) => [id, index]));
+      const filteredUsers = ((activeProfiles || []) as ProfileRow[])
+        .filter((user) => matchesInMemoryFilters(user, req))
+        .sort(
+          (a, b) => (activeOrder.get(a.id) || 0) - (activeOrder.get(b.id) || 0),
+        );
+      const pageUsers = filteredUsers.slice(offset, offset + limit);
+
+      return res.status(200).json({
+        users: await enrichAdminUsers(pageUsers, todayStart, todayEnd),
+        pagination: {
+          page,
+          limit,
+          total: filteredUsers.length,
+          totalPages: Math.ceil(filteredUsers.length / limit),
+        },
+        segment,
+      });
+    }
+
+    if (segment === "at-risk") {
+      let riskQuery = supabase
+        .from("profiles")
+        .select(PROFILE_SELECT)
+        .order("api_calls_this_month", { ascending: false, nullsFirst: false })
+        .limit(1000);
+      riskQuery = applyProfileFilters(riskQuery, req);
+
+      const { data: riskProfiles, error: riskError } = await riskQuery;
+      if (riskError) throw riskError;
+
+      const enriched = await enrichAdminUsers(
+        (riskProfiles || []) as ProfileRow[],
+        todayStart,
+        todayEnd,
+      );
+      const atRiskUsers = enriched.filter((user) => user.is_at_risk);
+      const pageUsers = atRiskUsers.slice(offset, offset + limit);
+
+      return res.status(200).json({
+        users: pageUsers,
+        pagination: {
+          page,
+          limit,
+          total: atRiskUsers.length,
+          totalPages: Math.ceil(atRiskUsers.length / limit),
+        },
+        segment,
+      });
+    }
+
+    let query = supabase
+      .from("profiles")
+      .select(PROFILE_SELECT, { count: "exact" });
+
+    if (segment === "today" && todayStart && todayEnd) {
+      query = query.gte("created_at", todayStart).lt("created_at", todayEnd);
+    }
+
+    if (segment === "paid") {
+      query = query
+        .neq("subscription_tier", "free")
+        .eq("subscription_status", "active");
+    }
+
+    query = applyProfileFilters(query, req);
+    query = applyProfileSort(query, sort, segment).range(
+      offset,
+      offset + limit - 1,
+    );
+
+    const { data: users, error, count } = await query;
+    if (error) throw error;
+
+    return res.status(200).json({
+      users: await enrichAdminUsers(
+        (users || []) as ProfileRow[],
+        todayStart,
+        todayEnd,
+      ),
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+      segment,
+    });
+  } catch (error: any) {
+    console.error("Error listing admin users:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
 

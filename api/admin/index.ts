@@ -198,7 +198,7 @@ async function enrichAdminUsers(
   const [{ data: recentLogs }, { data: activeRateLimits }] = await Promise.all([
     supabase
       .from("api_logs")
-      .select("user_id, created_at, response_status, suspicious_activity")
+      .select("user_id, created_at")
       .in("user_id", ids)
       .order("created_at", { ascending: false })
       .limit(Math.min(ids.length * 25, 1000)),
@@ -210,16 +210,12 @@ async function enrichAdminUsers(
   ]);
 
   const lastActiveMap = new Map<string, string>();
-  const suspiciousMap = new Map<string, boolean>();
   const rateLimitMap = new Map<string, RateLimitRow[]>();
 
   (recentLogs || []).forEach((log: any) => {
     if (!log.user_id) return;
     if (!lastActiveMap.has(log.user_id)) {
       lastActiveMap.set(log.user_id, log.created_at);
-    }
-    if (log.suspicious_activity || log.response_status === 429) {
-      suspiciousMap.set(log.user_id, true);
     }
   });
 
@@ -272,10 +268,7 @@ async function enrichAdminUsers(
         Math.floor((now - createdAt) / (24 * 60 * 60 * 1000)),
       ),
       is_new_today: isNewToday,
-      is_at_risk:
-        dayPercent >= 80 ||
-        monthPercent >= 80 ||
-        suspiciousMap.get(user.id) === true,
+      is_at_risk: dayPercent >= 80 || monthPercent >= 80,
     };
   });
 }

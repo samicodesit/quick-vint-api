@@ -201,11 +201,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // --- VALIDATE BODY ---
-  const { imageUrls, languageCode, tone, useEmojis, useBulletPoints } =
-    req.body;
+  const {
+    imageUrls,
+    languageCode,
+    titleLanguageCode,
+    descriptionLanguageCode,
+    tone,
+    useEmojis,
+    useBulletPoints,
+  } = req.body;
 
-  const languageCodeStr = String(languageCode || "en").toLowerCase();
-  const language = languageMap[languageCodeStr] || "English";
+  const titleLanguageCodeStr = String(
+    titleLanguageCode || languageCode || "en",
+  ).toLowerCase();
+  const descriptionLanguageCodeStr = String(
+    descriptionLanguageCode || languageCode || "en",
+  ).toLowerCase();
+  const titleLanguage = languageMap[titleLanguageCodeStr] || "English";
+  const descriptionLanguage =
+    languageMap[descriptionLanguageCodeStr] || "English";
 
   // --- CONSTRUCT PROMPT INSTRUCTIONS ---
   // Only pro/business tiers can customize tone
@@ -261,10 +275,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const systemPrompt =
     "You are a savvy Vinted seller writing accurate, buyer-friendly listings. Be specific, natural, and trustworthy. Never guess brand, size, material, model, measurements, authenticity, or how many times an item was worn. Mention defects only when clearly visible. Wrinkles and creasing are not defects.";
   const userPrompt = `
-Analyze the image(s) and generate a title and description in ${language}.
+Analyze the image(s) and generate a title in ${titleLanguage} and a description in ${descriptionLanguage}.
 - Title format: [BRAND - Omit if not known] [Model - if electronics or applicable] [Color] [Item] - [Size - Omit if not known/not applicable].
+- Title language: Write only the title in ${titleLanguage}.
 - Size handling: For clothing and shoes, prioritize visible EU size markings over US sizing. Do not convert or infer sizes; omit the size if the system is unclear.
-- Description: Write like a real Vinted seller, not an ad. Include important searchable facts from the title again in the description when known, especially brand, size, color/pattern, and item type. Then add useful details such as fit or silhouette when clear, material only if visible from label or unmistakable, and one natural styling/use case when appropriate.
+- Description language: Write only the description in ${descriptionLanguage}.
+- Description: Write like a real Vinted seller, not an ad. Include important searchable facts from the title again in the description when known, especially brand, size, color/pattern, and item type. Translate or restate those facts naturally in ${descriptionLanguage}. Then add useful details such as fit or silhouette when clear, material only if visible from label or unmistakable, and one natural styling/use case when appropriate.
 - Avoid filler and lazy repetition: do not repeat the same fact in multiple bullets, and avoid vague phrases like "modern design", "great quality", "perfect addition", or "stands out".
 - Condition: mention positive condition only when clearly supported by the image(s), such as new with tags, like new, clean, or well kept. If the item looks noticeably worn or the condition is unclear, do not mention the condition. Do not mention wrinkles or creasing or the likes as flaws.
 - Missing info: If brand, size, material, or measurements are not visible, omit them. Do not write "unknown", do not invent measurements, and do not ask the seller to add details.
@@ -364,7 +380,7 @@ Reply only in JSON: {"title":"...","description":"..."}
       nl: messagesNl,
       pl: messagesPl,
     };
-    const messages = messagesMap[languageCode] || messagesEn;
+    const messages = messagesMap[descriptionLanguageCodeStr] || messagesEn;
     const isClothing = isClothingItem(title, description);
     const measurementAdvice = getMeasurementAdvice(isClothing, messages);
 

@@ -1,64 +1,38 @@
 // utils/rateLimiter.ts
 import { supabase } from "./supabaseClient";
-
-// Import tier configs if available, otherwise use fallback
-let TIER_CONFIGS: any;
-try {
-  TIER_CONFIGS = require("./tierConfig").TIER_CONFIGS;
-} catch {
-  // Fallback for backward compatibility
-  TIER_CONFIGS = {
-    free: {
-      limits: { daily: 2, monthly: 8, burst: { perMinute: 3 } },
-      features: ["AI-generated titles and descriptions", "Basic support"],
-    },
-    starter: {
-      limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
-      features: [
-        "AI-generated titles and descriptions",
-        "Priority support",
-        "Up to 15 listings per day",
-      ],
-    },
-    pro: {
-      limits: { daily: 40, monthly: 800, burst: { perMinute: 20 } },
-      features: [
-        "Everything in Starter",
-        "Up to 40 listings per day",
-        "Priority processing",
-      ],
-    },
-    business: {
-      limits: { daily: 75, monthly: 1500, burst: { perMinute: 30 } },
-      features: [
-        "Everything in Pro",
-        "Up to 75 listings per day",
-        "Dedicated support",
-      ],
-    },
-  };
-}
+import {
+  FREE_LIFETIME_LIMIT,
+  TIER_CONFIGS,
+  getEffectiveTier,
+  getNextTier,
+  getPricingLimitsMode,
+  getTierConfigForProfile,
+  type PricingLimitsMode,
+} from "./tierConfig";
 
 // Global cost protection
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
 const OPENAI_COST_PER_REQUEST_USD = 0.0201; // Based on actual dashboard: $6.12/304 requests
 
-interface TierConfig {
-  limits: {
-    daily: number;
-    monthly: number;
-    burst: { perMinute: number };
-  };
-  features: string[];
-}
-
 interface RateLimitResult {
   allowed: boolean;
   error?: string;
+  code?:
+    | "daily_limit"
+    | "monthly_limit"
+    | "free_lifetime_limit"
+    | "burst_limit"
+    | "service_unavailable";
+  currentTier?: string;
+  nextTier?: string | null;
+  limitScope?: "day" | "month" | "minute" | "service";
+  currentLimit?: number | null;
   remainingRequests?: {
     minute: number;
     day?: number | null;
     month: number;
+    freeLifetime?: number | null;
+    packCredits?: number | null;
   };
 }
 
@@ -66,28 +40,12 @@ interface UserProfile {
   subscription_status: string;
   subscription_tier: string;
   api_calls_this_month: number;
+  is_legacy_plan?: boolean | null;
+  free_lifetime_generations_used?: number | null;
+  pack_credits?: number | null;
 }
 
 export class RateLimiter {
-  // Get user's tier configuration
-  private static getTierConfig(profile: UserProfile): TierConfig {
-    const isActive = profile.subscription_status === "active";
-
-    if (!isActive) {
-      return TIER_CONFIGS.free;
-    }
-
-    // Map existing tier names to new ones (only unlimited_monthly exists)
-    const tierMapping: Record<string, string> = {
-      unlimited_monthly: "starter", // €3.99 → 15/day (only existing tier)
-      starter: "starter",
-      pro: "pro",
-      business: "business",
-    };
-
-    const tierKey = tierMapping[profile.subscription_tier] || "free";
-    return TIER_CONFIGS[tierKey] || TIER_CONFIGS.free;
-  }
   private static async getTimeBasedKey(
     userId: string,
     window: string,
@@ -281,6 +239,7 @@ export class RateLimiter {
   static async checkRateLimit(
     userId: string,
     profile: UserProfile,
+    pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
   ): Promise<RateLimitResult> {
     try {
       // 0. Check emergency brake first
@@ -293,6 +252,8 @@ export class RateLimiter {
       if (emergencyBrake?.value === "true") {
         return {
           allowed: false,
+          code: "service_unavailable",
+          limitScope: "service",
           error: "Service temporarily unavailable. Please try again later.",
         };
       }
@@ -302,6 +263,8 @@ export class RateLimiter {
       if (!globalBudgetOk) {
         return {
           allowed: false,
+          code: "service_unavailable",
+          limitScope: "service",
           error:
             "Service temporarily unavailable due to daily budget limits. Please try again later.",
         };
@@ -316,12 +279,85 @@ export class RateLimiter {
         .eq("id", userId)
         .single();
 
-      const tierConfig = this.getTierConfig(profile);
+      const tierKey = getEffectiveTier(profile);
+      const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
+      const nextTier = getNextTier(tierKey);
 
-      // 3. Check monthly limit (existing logic)
-      if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
+      // Free users use a lifetime trial plus optional pack credits, not
+      // recurring daily/monthly allowances.
+      if (pricingLimitsMode === "current" && tierKey === "free") {
+        const minuteCount = await this.getCurrentCount(userId, "minute");
+        if (minuteCount >= TIER_CONFIGS.free.limits.burst.perMinute) {
+          return {
+            allowed: false,
+            code: "burst_limit",
+            currentTier: tierKey,
+            nextTier,
+            limitScope: "minute",
+            currentLimit: TIER_CONFIGS.free.limits.burst.perMinute,
+            error:
+              "Too many requests. Please wait a moment before trying again.",
+          };
+        }
+
+        const freeUsed = Math.max(
+          0,
+          profile.free_lifetime_generations_used || 0,
+        );
+        const packCredits = Math.max(0, profile.pack_credits || 0);
+        const freeRemaining = Math.max(FREE_LIFETIME_LIMIT - freeUsed, 0);
+
+        if (freeRemaining > 0 || packCredits > 0) {
+          return {
+            allowed: true,
+            remainingRequests: {
+              minute: Math.max(
+                0,
+                TIER_CONFIGS.free.limits.burst.perMinute - minuteCount - 1,
+              ),
+              day: null,
+              month: 0,
+              freeLifetime: Math.max(freeRemaining - 1, 0),
+              packCredits,
+            },
+          };
+        }
+
         return {
           allowed: false,
+          code: "free_lifetime_limit",
+          currentTier: "free",
+          nextTier,
+          limitScope: "month",
+          currentLimit: FREE_LIFETIME_LIMIT,
+          error:
+            "Free listing limit reached. Upgrade your plan or buy a one-time credit pack.",
+        };
+      }
+
+      const packCredits = Math.max(0, profile.pack_credits || 0);
+
+      // 3. Check monthly limit. Pack credits can top up any tier.
+      if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
+        if (packCredits > 0) {
+          return {
+            allowed: true,
+            remainingRequests: {
+              minute: 0,
+              day: null,
+              month: 0,
+              packCredits,
+            },
+          };
+        }
+
+        return {
+          allowed: false,
+          code: "monthly_limit",
+          currentTier: tierKey,
+          nextTier,
+          limitScope: "month",
+          currentLimit: tierConfig.limits.monthly,
           error:
             "Monthly usage limit reached. Please upgrade your plan or try again next month.",
         };
@@ -334,30 +370,58 @@ export class RateLimiter {
       if (minuteCount >= tierConfig.limits.burst.perMinute) {
         return {
           allowed: false,
+          code: "burst_limit",
+          currentTier: tierKey,
+          nextTier,
+          limitScope: "minute",
+          currentLimit: tierConfig.limits.burst.perMinute,
           error: "Too many requests. Please wait a moment before trying again.",
         };
       }
-      // 5. Check daily limits (if applicable)
-      // Business tier is exempt from daily limits
+      // 5. Check daily limits. In compatibility mode, Business keeps the old
+      // no-daily-cap behavior until the extension rollout is complete.
       let effectiveDailyLimit: number | null = null;
-      if (profile.subscription_tier !== "business") {
-        if (
-          customLimits?.custom_daily_limit &&
-          customLimits.custom_limit_expires_at &&
-          new Date(customLimits.custom_limit_expires_at) > new Date()
-        ) {
-          effectiveDailyLimit = customLimits.custom_daily_limit;
-        } else {
-          effectiveDailyLimit = tierConfig.limits.daily;
-        }
+      if (pricingLimitsMode === "legacy" && tierKey === "business") {
+        effectiveDailyLimit = null;
+      } else if (
+        customLimits?.custom_daily_limit &&
+        customLimits.custom_limit_expires_at &&
+        new Date(customLimits.custom_limit_expires_at) > new Date()
+      ) {
+        effectiveDailyLimit = customLimits.custom_daily_limit;
+      } else {
+        effectiveDailyLimit = tierConfig.limits.daily;
+      }
 
-        if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
+      if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
+        if (packCredits > 0) {
           return {
-            allowed: false,
-            error:
-              "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
+            allowed: true,
+            remainingRequests: {
+              minute: Math.max(
+                0,
+                tierConfig.limits.burst.perMinute - minuteCount - 1,
+              ),
+              day: 0,
+              month: Math.max(
+                0,
+                tierConfig.limits.monthly - profile.api_calls_this_month - 1,
+              ),
+              packCredits,
+            },
           };
         }
+
+        return {
+          allowed: false,
+          code: "daily_limit",
+          currentTier: tierKey,
+          nextTier,
+          limitScope: "day",
+          currentLimit: effectiveDailyLimit,
+          error:
+            "Daily usage limit reached. Please try again tomorrow or upgrade your plan.",
+        };
       }
 
       // 6. All checks passed - return success but don't increment yet
@@ -387,24 +451,101 @@ export class RateLimiter {
   }
 
   // Record successful API generation - only call this after OpenAI succeeds
-  static async recordSuccessfulRequest(userId: string): Promise<void> {
+  static async recordSuccessfulRequest(
+    userId: string,
+    pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+  ): Promise<void> {
     try {
       // Fetch user's profile to determine if we should write a daily counter
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscription_tier")
+        .select(
+          "subscription_status, subscription_tier, api_calls_this_month, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_limit_expires_at",
+        )
         .eq("id", userId)
         .single();
 
-      const isBusiness = profile?.subscription_tier === "business";
-
-      const ops: Promise<any>[] = [
+      const ops: PromiseLike<any>[] = [
         this.incrementCount(userId, "minute"),
         this.updateGlobalStats(),
       ];
-      // Only track daily counters for non-business users (business tier is exempt)
-      if (!isBusiness) {
-        ops.push(this.incrementCount(userId, "day"));
+
+      const effectiveTier = profile ? getEffectiveTier(profile) : "free";
+      if (pricingLimitsMode === "current" && effectiveTier === "free") {
+        const freeUsed = Math.max(
+          0,
+          profile?.free_lifetime_generations_used || 0,
+        );
+        const packCredits = Math.max(0, profile?.pack_credits || 0);
+
+        if (freeUsed < FREE_LIFETIME_LIMIT) {
+          ops.push(
+            supabase
+              .from("profiles")
+              .update({
+                free_lifetime_generations_used: freeUsed + 1,
+              })
+              .eq("id", userId),
+          );
+        } else if (packCredits > 0) {
+          const { error: consumeError } = await supabase.rpc(
+            "consume_pack_credit",
+            {
+              p_user_id: userId,
+              p_metadata: {
+                source: "api_generate",
+              },
+            },
+          );
+
+          if (consumeError) {
+            console.error("Failed to consume pack credit:", consumeError);
+          }
+        }
+      } else {
+        const paidProfile = profile!;
+        const tierConfig = getTierConfigForProfile(
+          paidProfile,
+          pricingLimitsMode,
+        );
+        const dayCount = await this.getCurrentCount(userId, "day");
+        const customDailyLimit =
+          typeof (paidProfile as any).custom_daily_limit === "number" &&
+          (paidProfile as any).custom_limit_expires_at &&
+          new Date((paidProfile as any).custom_limit_expires_at) > new Date()
+            ? (paidProfile as any).custom_daily_limit
+            : null;
+        const dailyLimit =
+          pricingLimitsMode === "legacy" && effectiveTier === "business"
+            ? null
+            : (customDailyLimit ?? tierConfig.limits.daily);
+        const isOverPlan =
+          (dailyLimit !== null && dayCount >= dailyLimit) ||
+          (paidProfile.api_calls_this_month || 0) >= tierConfig.limits.monthly;
+
+        if (isOverPlan && Math.max(0, paidProfile.pack_credits || 0) > 0) {
+          const { error: consumeError } = await supabase.rpc(
+            "consume_pack_credit",
+            {
+              p_user_id: userId,
+              p_metadata: {
+                source: "api_generate",
+                over_plan_top_up: true,
+              },
+            },
+          );
+
+          if (consumeError) {
+            console.error(
+              "Failed to consume pack top-up credit:",
+              consumeError,
+            );
+          }
+        }
+
+        if (!(pricingLimitsMode === "legacy" && effectiveTier === "business")) {
+          ops.push(this.incrementCount(userId, "day"));
+        }
       }
 
       await Promise.all(ops);

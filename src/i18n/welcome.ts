@@ -51,7 +51,7 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     primaryCta: "Go to Vinted and list now",
     secondaryCta: "See pricing plans",
     fallbackCta: "Open default Vinted listing page",
-    reassurance: "Free plan includes 2 listings per day. Upgrade any time.",
+    reassurance: "Free plan included. Upgrade any time.",
     compliance:
       "AutoLister AI is an independent tool and is not affiliated with Vinted.",
     switcherLabel: "Language",

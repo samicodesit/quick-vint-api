@@ -1,5 +1,10 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
+import { getPricingTermsCopy } from "../utils/pricingDisplay.js";
+
+const termsPricing = getPricingTermsCopy(
+  import.meta.env.PUBLIC_PRICING_DISPLAY_MODE,
+);
 ---
 
 <SiteLayout
@@ -109,23 +114,41 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       <strong>Current Plans:</strong>
       <ul>
         <li>
-          <strong>Free Trial:</strong> 2 listings per day - 8 listings per month
+          <strong>Free Trial:</strong> {
+            termsPricing.free
+          }
         </li>
         <li>
-          <strong>Starter:</strong> €3.99/month - 15 listings per day, 300 per month
+          <strong>Starter:</strong> €3.99/month - {
+            termsPricing.starter
+          }
         </li>
         <li>
-          <strong>Pro:</strong> €9.99/month - 40 listings per day, 800 per month
+          <strong>Pro:</strong> €9.99/month - {
+            termsPricing.pro
+          }
         </li>
         <li>
-          <strong>Business:</strong> €19.99/month - No daily limit, 1,500 per month
+          <strong>Business:</strong> €19.99/month - {
+            termsPricing.business
+          }
         </li>
+        {
+          termsPricing.isCurrent && (
+            <li>
+              <strong>Credit packs:</strong> Optional one-time top-ups that can
+              be used by any tier when additional listings are needed.
+            </li>
+          )
+        }
       </ul>
     </div>
     <p>
       <strong
         >We reserve the right to modify pricing and limits with 30 days notice.</strong
-      > Existing subscribers will be grandfathered for their current billing period.
+      > Existing active paid subscribers keep their current legacy limits while
+      they remain on the same active subscription and tier. New subscriptions,
+      tier changes, and resubscriptions use the current limits above.
     </p>
 
     <h2>4. Fair Use Policy</h2>

@@ -1,7 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
 import { supabase } from "../../utils/supabaseClient";
-import { TIER_CONFIGS } from "../../utils/tierConfig";
+import {
+  FREE_LIFETIME_LIMIT,
+  getEffectiveTier,
+  getTierConfigForProfile,
+} from "../../utils/tierConfig";
 import {
   BRAND,
   TEMPLATES,
@@ -66,6 +70,9 @@ type ProfileRow = {
   subscription_status: string | null;
   created_at: string;
   current_period_end: string | null;
+  is_legacy_plan?: boolean | null;
+  free_lifetime_generations_used?: number | null;
+  pack_credits?: number | null;
 };
 
 type RateLimitRow = {
@@ -76,7 +83,7 @@ type RateLimitRow = {
 };
 
 const PROFILE_SELECT =
-  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end";
+  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits";
 
 function getQueryString(
   value: string | string[] | undefined,
@@ -225,9 +232,8 @@ async function enrichAdminUsers(
   });
 
   return users.map((user) => {
-    const tierKey = user.subscription_tier || "free";
-    const tierConfig =
-      TIER_CONFIGS[tierKey as keyof typeof TIER_CONFIGS] || TIER_CONFIGS.free;
+    const tierKey = getEffectiveTier(user);
+    const tierConfig = getTierConfigForProfile(user);
     const limits = rateLimitMap.get(user.id) || [];
     const dayCount = getLimitCount(limits, "day");
     const monthCount = user.api_calls_this_month || 0;
@@ -253,15 +259,33 @@ async function enrichAdminUsers(
       last_active: lastActiveMap.get(user.id) || null,
       limits,
       max_limits: {
-        day: maxDay,
-        month: maxMonth,
+        day: tierKey === "free" ? null : maxDay,
+        month: tierKey === "free" ? FREE_LIFETIME_LIMIT : maxMonth,
       },
       usage: {
-        day: dayCount,
-        month: monthCount,
+        day: tierKey === "free" ? null : dayCount,
+        month:
+          tierKey === "free"
+            ? user.free_lifetime_generations_used || 0
+            : monthCount,
         day_percent: dayPercent,
-        month_percent: monthPercent,
-        month_remaining: Math.max(maxMonth - monthCount, 0),
+        month_percent:
+          tierKey === "free"
+            ? Math.round(
+                ((user.free_lifetime_generations_used || 0) /
+                  FREE_LIFETIME_LIMIT) *
+                  100,
+              )
+            : monthPercent,
+        month_remaining:
+          tierKey === "free"
+            ? Math.max(
+                FREE_LIFETIME_LIMIT -
+                  (user.free_lifetime_generations_used || 0),
+                0,
+              )
+            : Math.max(maxMonth - monthCount, 0),
+        pack_credits: user.pack_credits || 0,
       },
       days_since_signup: Math.max(
         0,
@@ -533,17 +557,13 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
 
     const { data: allUsers } = await supabase
       .from("profiles")
-      .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end",
-      )
+      .select(PROFILE_SELECT)
       .order("created_at", { ascending: false })
       .limit(100);
 
     const { data: topUsersByUsage } = await supabase
       .from("profiles")
-      .select(
-        "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end",
-      )
+      .select(PROFILE_SELECT)
       .order("api_calls_this_month", { ascending: false })
       .limit(50);
 
@@ -553,9 +573,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     if (recentUserIds.length > 0) {
       const { data } = await supabase
         .from("profiles")
-        .select(
-          "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end",
-        )
+        .select(PROFILE_SELECT)
         .in("id", recentUserIds);
       recentUsers = data || [];
     }
@@ -585,9 +603,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
 
     const enrichedUsers = combinedUsers.map((user: any) => {
       const limits = rateLimitMap.get(user.id) || [];
-      const tierConfig =
-        TIER_CONFIGS[user.subscription_tier as keyof typeof TIER_CONFIGS] ||
-        TIER_CONFIGS.free;
+      const tierConfig = getTierConfigForProfile(user);
       return {
         ...user,
         last_active: lastActiveMap.get(user.id) || user.created_at,

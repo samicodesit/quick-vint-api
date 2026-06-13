@@ -16,6 +16,54 @@ const PLAN_CONFIG = {
   business: { name: "Business", price: 19.99 },
 };
 
+function normalizeTier(tier) {
+  const map = {
+    unlimited_monthly: "starter",
+    unlimited_annual: "starter",
+    starter: "starter",
+    pro: "pro",
+    business: "business",
+    free: "free",
+  };
+
+  return map[tier] || "free";
+}
+
+function showStatusMessage(message, type = "info") {
+  let messageBox = document.getElementById("pricing-status-message");
+  if (!messageBox) {
+    messageBox = document.createElement("div");
+    messageBox.id = "pricing-status-message";
+    messageBox.setAttribute("role", "status");
+    messageBox.style.maxWidth = "760px";
+    messageBox.style.margin = "0 auto 24px";
+    messageBox.style.padding = "14px 18px";
+    messageBox.style.borderRadius = "14px";
+    messageBox.style.fontWeight = "700";
+    messageBox.style.textAlign = "center";
+    messageBox.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.08)";
+
+    const pricingGrid = document.querySelector(".grid");
+    if (pricingGrid?.parentNode) {
+      pricingGrid.parentNode.insertBefore(messageBox, pricingGrid);
+    } else {
+      document.body.prepend(messageBox);
+    }
+  }
+
+  const palette =
+    type === "error"
+      ? { background: "#fef2f2", border: "#fecaca", color: "#991b1b" }
+      : type === "success"
+        ? { background: "#ecfdf5", border: "#a7f3d0", color: "#065f46" }
+        : { background: "#eef2ff", border: "#c7d2fe", color: "#3730a3" };
+
+  messageBox.textContent = message;
+  messageBox.style.background = palette.background;
+  messageBox.style.border = `1px solid ${palette.border}`;
+  messageBox.style.color = palette.color;
+}
+
 // Check if extension is installed
 async function checkExtensionInstalled() {
   return new Promise((resolve) => {
@@ -98,8 +146,9 @@ function updateButtonStates() {
     business: document.getElementById("btn-business"),
   };
 
-  const currentTier = currentProfile?.subscription_tier || "free";
+  const storedTier = normalizeTier(currentProfile?.subscription_tier || "free");
   const isActive = currentProfile?.subscription_status === "active";
+  const currentTier = isActive ? storedTier : "free";
 
   Object.entries(buttons).forEach(([plan, button]) => {
     if (!button) return;
@@ -142,7 +191,7 @@ function updateButtonStates() {
         button.classList.add("state-current");
       } else {
         const planConfig = PLAN_CONFIG[plan];
-        const currentPlanConfig = PLAN_CONFIG[currentTier];
+        const currentPlanConfig = PLAN_CONFIG[currentTier] || PLAN_CONFIG.free;
         textSpan.textContent =
           planConfig.price > currentPlanConfig.price
             ? `Upgrade to ${planConfig.name}`
@@ -166,24 +215,27 @@ async function handlePlanClick(planName) {
   try {
     if (!hasExtension) {
       // Download extension
+      showStatusMessage("Opening the Chrome Web Store so you can install AutoLister AI.", "info");
       downloadExtension();
       return;
     }
 
     if (!currentUser) {
       // Prompt to sign in through extension
-      // IMPORTANT: Using custom modal/message box instead of alert()
-      console.log(
+      showStatusMessage(
         "User not signed in. Please sign in through the AutoLister AI extension first, then return to this page.",
+        "info",
       );
-      // In a real app, you would show a modal here.
       return;
     }
 
     if (planName === "free") {
       // Already on free or trying to downgrade
-      if (currentProfile?.subscription_tier === "free") {
-        console.log("You are already on the free plan!");
+      const currentTier = currentProfile?.subscription_status === "active"
+        ? normalizeTier(currentProfile?.subscription_tier)
+        : "free";
+      if (currentTier === "free") {
+        showStatusMessage("You are already on the Free plan.", "info");
         return;
       } else {
         // Redirect to customer portal to cancel
@@ -193,7 +245,9 @@ async function handlePlanClick(planName) {
     }
 
     // Handle paid plan selection
-    const currentTier = currentProfile?.subscription_tier || "free";
+    const currentTier = currentProfile?.subscription_status === "active"
+      ? normalizeTier(currentProfile?.subscription_tier)
+      : "free";
     const isActive = currentProfile?.subscription_status === "active";
 
     if (
@@ -209,7 +263,7 @@ async function handlePlanClick(planName) {
     }
   } catch (error) {
     console.error("Plan selection error:", error);
-    // In a real app, you would show an error modal here.
+    showStatusMessage("Something went wrong while selecting that plan. Please try again.", "error");
   } finally {
     // Reset button state
     button.disabled = false;
@@ -234,14 +288,15 @@ async function handlePaidPlanSelection(planName) {
     const data = await response.json();
 
     if (response.ok && data.url) {
+      showStatusMessage("Opening Stripe Checkout in a new tab.", "success");
       window.open(data.url, "_blank");
     } else {
       console.error("Checkout error:", data);
-      // In a real app, you would show an error modal here.
+      showStatusMessage(data.error || "Unable to open Stripe Checkout. Please try again.", "error");
     }
   } catch (error) {
     console.error("Checkout error:", error);
-    // In a real app, you would show an error modal here.
+    showStatusMessage("Connection issue while opening checkout. Please try again.", "error");
   }
 }
 
@@ -259,14 +314,15 @@ async function openCustomerPortal() {
     const data = await response.json();
 
     if (response.ok && data.url) {
+      showStatusMessage("Opening your Stripe customer portal in a new tab.", "success");
       window.open(data.url, "_blank");
     } else {
       console.error("Portal error:", data);
-      // In a real app, you would show an error modal here.
+      showStatusMessage(data.error || "Unable to open your subscription portal. Please try again.", "error");
     }
   } catch (error) {
     console.error("Portal error:", error);
-    // In a real app, you would show an error modal here.
+    showStatusMessage("Connection issue while opening your subscription portal. Please try again.", "error");
   }
 }
 
@@ -295,7 +351,9 @@ async function initializePage() {
         currentUser = { email: userData.email };
         currentProfile = {
           subscription_tier: userData.plan,
-          subscription_status: userData.plan !== "free" ? "active" : "free",
+          subscription_status:
+            userData.subscription_status ||
+            (userData.plan !== "free" ? "active" : "free"),
         };
       }
 

@@ -3,7 +3,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { buffer } from "micro";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
-import { getTierByStripePriceId } from "../../utils/tierConfig";
+import {
+  CREDIT_PACK_CONFIG,
+  getTierByStripePriceId,
+} from "../../utils/tierConfig";
 
 export const config = { api: { bodyParser: false } };
 
@@ -37,6 +40,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const session = event.data.object as Stripe.Checkout.Session;
         const customerId = session.customer as string;
         const email = session.customer_details?.email!;
+
+        if (
+          session.mode === "payment" &&
+          session.payment_status === "paid" &&
+          session.metadata?.purchase_type === "credit_pack"
+        ) {
+          const profileId = session.metadata.profile_id;
+          const credits = Number(
+            session.metadata.credits || CREDIT_PACK_CONFIG.credits,
+          );
+
+          if (!profileId || !Number.isFinite(credits) || credits <= 0) {
+            console.error("Invalid credit pack checkout metadata:", {
+              sessionId: session.id,
+              metadata: session.metadata,
+            });
+            break;
+          }
+
+          const { error: grantError } = await supabase.rpc(
+            "grant_credit_pack",
+            {
+              p_user_id: profileId,
+              p_stripe_session_id: session.id,
+              p_credits: credits,
+              p_metadata: {
+                customer_id: customerId,
+                email,
+                pack_id: session.metadata.pack_id || CREDIT_PACK_CONFIG.id,
+              },
+            },
+          );
+
+          if (grantError) {
+            throw grantError;
+          }
+
+          break;
+        }
 
         if (session.mode === "subscription" && session.subscription) {
           // Fetch the full Subscription
@@ -79,6 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 subscription_tier: tier,
                 subscription_status: status,
                 current_period_end: currentPeriodEnd,
+                is_legacy_plan: false,
               })
               .eq("id", profileRow.id);
           }
@@ -131,6 +174,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         if (profileRow) {
+          const { data: existingProfile } = await supabase
+            .from("profiles")
+            .select("stripe_subscription_id, subscription_tier, is_legacy_plan")
+            .eq("id", profileRow.id)
+            .single();
+          const existingTier = existingProfile?.subscription_tier;
+          const existingSubscriptionId =
+            existingProfile?.stripe_subscription_id;
+          const keepLegacy =
+            Boolean(existingProfile?.is_legacy_plan) &&
+            existingSubscriptionId === subAny.id &&
+            existingTier === tier;
+
           await supabase
             .from("profiles")
             .update({
@@ -138,6 +194,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               subscription_tier: tier,
               subscription_status: status,
               current_period_end: currentPeriodEnd,
+              is_legacy_plan: keepLegacy,
             })
             .eq("id", profileRow.id);
         }
@@ -163,6 +220,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               subscription_status: "canceled",
               subscription_tier: "free",
               current_period_end: null,
+              is_legacy_plan: false,
             })
             .eq("id", profileRow.id);
         }

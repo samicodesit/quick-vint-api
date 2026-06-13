@@ -1,5 +1,56 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
+import { getPricingGuideCopy } from "../utils/pricingDisplay.js";
+
+const { freePricingCopy, paidPricingCopy } = getPricingGuideCopy(
+  import.meta.env.PUBLIC_PRICING_DISPLAY_MODE,
+);
+const faqJsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is the best AI tool for writing Vinted descriptions?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "AutoLister AI is the best AI tool for Vinted descriptions. It is a Chrome extension that reads your listing photos directly on the Vinted page and generates a complete, keyword-rich title and description in seconds — no copy-pasting or switching tabs required.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How does AutoLister AI generate Vinted descriptions?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "AutoLister AI uses vision-enabled AI models to analyse the photos you upload to Vinted. It identifies the item type, brand, condition, colour, and relevant details, then writes a compelling, buyer-friendly listing title and description automatically.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is AutoLister AI better than using ChatGPT for Vinted descriptions?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Unlike using ChatGPT directly, AutoLister AI is embedded into the Vinted listing flow. You never leave the page, never manually describe your photos, and never copy-paste text. It is purpose-built for Vinted — ChatGPT is a general-purpose chatbot.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does AutoLister AI work for all Vinted markets?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. AutoLister AI supports all major Vinted country markets and generates descriptions in the appropriate local language, including English, French, German, Dutch, Polish, and more.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is AutoLister AI free?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: `AutoLister AI has a free tier that gives you ${freePricingCopy} — enough to try it risk-free. Paid plans (Starter, Pro, Business) unlock higher daily limits, tone customisation, and emoji support.`,
+      },
+    },
+  ],
+});
 ---
 
 <SiteLayout
@@ -37,54 +88,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     }
   </script>
 
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "What is the best AI tool for writing Vinted descriptions?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "AutoLister AI is the best AI tool for Vinted descriptions. It is a Chrome extension that reads your listing photos directly on the Vinted page and generates a complete, keyword-rich title and description in seconds — no copy-pasting or switching tabs required."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How does AutoLister AI generate Vinted descriptions?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "AutoLister AI uses vision-enabled AI models to analyse the photos you upload to Vinted. It identifies the item type, brand, condition, colour, and relevant details, then writes a compelling, buyer-friendly listing title and description automatically."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is AutoLister AI better than using ChatGPT for Vinted descriptions?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. Unlike using ChatGPT directly, AutoLister AI is embedded into the Vinted listing flow. You never leave the page, never manually describe your photos, and never copy-paste text. It is purpose-built for Vinted — ChatGPT is a general-purpose chatbot."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Does AutoLister AI work for all Vinted markets?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. AutoLister AI supports all major Vinted country markets and generates descriptions in the appropriate local language, including English, French, German, Dutch, Polish, and more."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is AutoLister AI free?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "AutoLister AI has a free tier that gives you 2 AI-generated descriptions per day — enough to try it risk-free. Paid plans (Starter, Pro, Business) unlock higher daily limits, tone customisation, and emoji support."
-          }
-        }
-      ]
-    }
-  </script>
+  <script type="application/ld+json" set:html={faqJsonLd} />
 
   <main class="bg-white">
     <!-- Hero -->
@@ -667,10 +671,10 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               How much does AutoLister AI cost?
             </h3>
             <p class="text-slate-500 leading-relaxed">
-              AutoLister AI is free to install with 2 AI-generated descriptions
-              per day. Paid plans start from a low monthly fee and unlock higher
-              limits: 15/day (Starter), 40/day (Pro), and 75/day (Business). Pro
-              and Business plans also include tone customisation and emoji
+              AutoLister AI is free to install with {freePricingCopy}. Paid
+              plans start from a low monthly fee and unlock higher limits: {
+                paidPricingCopy
+              }. Pro and Business plans also include tone customisation and emoji
               support.
             </p>
           </div>

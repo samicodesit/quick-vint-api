@@ -8,6 +8,7 @@ import { ApiLogger } from "../utils/apiLogger";
 import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
 import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
+import { getPricingLimitsModeForExtension } from "../utils/tierConfig";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -34,7 +35,11 @@ const cors = Cors({
     return callback(new Error("CORS origin denied for generate"), false);
   },
   methods: ["POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Autolister-Extension-Version",
+  ],
 });
 
 function runCors(req: VercelRequest, res: VercelResponse) {
@@ -48,12 +53,19 @@ const openai = new OpenAI({ apiKey: process.env.VERCEL_APP_OPENAI_API_KEY });
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startTime = Date.now();
   const requestMetadata = ApiLogger.extractRequestMetadata(req);
+  const extensionVersionHeader = req.headers["x-autolister-extension-version"];
+  const extensionVersion = Array.isArray(extensionVersionHeader)
+    ? extensionVersionHeader[0]
+    : extensionVersionHeader;
+  const pricingLimitsMode = getPricingLimitsModeForExtension(extensionVersion);
 
   // Initialize log data
   let logData: any = {
     ...requestMetadata,
     endpoint: "/api/generate",
     fullRequestBody: req.body,
+    extensionVersion,
+    pricingLimitsMode,
   };
 
   // Extract imageUrls early for logging purposes (even if validation fails later)
@@ -134,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset",
+      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset, is_legacy_plan, free_lifetime_generations_used, pack_credits",
     )
     .eq("id", user.id)
     .single();
@@ -156,6 +168,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       last_api_call_reset: new Date().toISOString(),
       subscription_status: profile?.subscription_status || "free",
       subscription_tier: profile?.subscription_tier || "free",
+      free_lifetime_generations_used:
+        profile?.free_lifetime_generations_used || 0,
+      pack_credits: profile?.pack_credits || 0,
     });
 
     if (upsertError) {
@@ -176,6 +191,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     subscription_status: "free",
     subscription_tier: "free",
     last_api_call_reset: new Date().toISOString(),
+    is_legacy_plan: false,
+    free_lifetime_generations_used: 0,
+    pack_credits: 0,
   };
 
   // Add user profile info to log data
@@ -187,6 +205,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const rateLimitResult = await RateLimiter.checkRateLimit(
     user.id,
     userProfile,
+    pricingLimitsMode,
   );
 
   if (!rateLimitResult.allowed) {
@@ -197,6 +216,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(429).json({
       error:
         rateLimitResult.error || "Too many requests. Please try again later.",
+      code: rateLimitResult.code,
+      currentTier: rateLimitResult.currentTier,
+      nextTier: rateLimitResult.nextTier,
+      limitScope: rateLimitResult.limitScope,
+      currentLimit: rateLimitResult.currentLimit,
+      remainingRequests: rateLimitResult.remainingRequests,
     });
   }
 
@@ -223,9 +248,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // --- CONSTRUCT PROMPT INSTRUCTIONS ---
   // Only pro/business tiers can customize tone
+  const effectiveTier =
+    userProfile.subscription_status === "active"
+      ? userProfile.subscription_tier
+      : "free";
   const tierAllowsExtras =
-    userProfile.subscription_tier === "pro" ||
-    userProfile.subscription_tier === "business";
+    effectiveTier === "pro" || effectiveTier === "business";
 
   let toneInstruction = "neutral and balanced"; // Default for 'standard'
   if (tierAllowsExtras) {
@@ -238,7 +266,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const emojisDisabledByUser = useEmojis === false || useEmojis === "false";
   const emojisEnabled =
-    userProfile.subscription_tier === "free"
+    effectiveTier === "free"
       ? !emojisDisabledByUser
       : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
@@ -394,7 +422,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     await ApiLogger.logRequest(logData);
 
     // Record successful request for rate limiting (increment counters)
-    await RateLimiter.recordSuccessfulRequest(user.id);
+    await RateLimiter.recordSuccessfulRequest(user.id, pricingLimitsMode);
 
     // Increment monthly API call count after successful generation
     const { error: incrementError } = await supabase

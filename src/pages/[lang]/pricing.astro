@@ -6,6 +6,7 @@ import {
   SUPPORTED_SITE_LOCALES,
   normalizeSiteLocale,
 } from "../../i18n/site.js";
+import { getPricingDisplay } from "../../utils/pricingDisplay.js";
 import type { SiteLocale } from "../../i18n/site.js";
 
 export function getStaticPaths() {
@@ -20,6 +21,18 @@ const extra = SITE_EXTRA_COPY[locale];
 const baseUrl = "https://autolister.app";
 const canonicalPath = locale === "en" ? "/pricing" : `/${locale}/pricing`;
 const canonical = `${baseUrl}${canonicalPath}`;
+const {
+  isCurrent: isCurrentPricing,
+  limits,
+  creditPack,
+} = getPricingDisplay(
+  import.meta.env.PUBLIC_PRICING_DISPLAY_MODE,
+  {
+    listingsPerDay: extra.pricing.listingsPerDay,
+    listingsPerMonth: extra.pricing.listingsPerMonth,
+    noDailyLimit: extra.pricing.noDailyLimit,
+  },
+);
 ---
 
 <SiteLayout
@@ -208,7 +221,8 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>2</strong> {extra.pricing.listingsPerDay}</span
+              ><strong>{limits.freePrimaryValue}</strong
+              >{limits.freePrimaryLabel}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -229,7 +243,14 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>8</strong> {extra.pricing.listingsPerMonth}</span
+              >{
+                limits.freeSecondaryText || (
+                  <>
+                    <strong>{limits.freeSecondaryValue}</strong>
+                    {limits.freeSecondaryLabel}
+                  </>
+                )
+              }</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -366,7 +387,8 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-700 text-sm"
-              ><strong>15</strong> {extra.pricing.listingsPerDay}</span
+              ><strong>{limits.starterDaily}</strong
+              > {extra.pricing.listingsPerDay}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -387,7 +409,8 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-700 text-sm"
-              ><strong>300</strong> {extra.pricing.listingsPerMonth}</span
+              ><strong>{limits.starterMonthly}</strong
+              > {extra.pricing.listingsPerMonth}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -512,7 +535,9 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>40 {extra.pricing.listingsPerDay}</strong></span
+              ><strong
+                >{limits.proDaily} {extra.pricing.listingsPerDay}</strong
+              ></span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -533,7 +558,9 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>800 {extra.pricing.listingsPerMonth}</strong></span
+              ><strong
+                >{limits.proMonthly} {extra.pricing.listingsPerMonth}</strong
+              ></span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -670,7 +697,11 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>{extra.pricing.noDailyLimit}</strong></span
+              ><strong
+                >{isCurrentPricing
+                  ? `${limits.businessDaily} ${extra.pricing.listingsPerDay}`
+                  : limits.businessDaily}</strong
+              ></span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -691,7 +722,8 @@ const canonical = `${baseUrl}${canonicalPath}`;
               </svg>
             </div>
             <span class="text-slate-600 text-sm"
-              ><strong>1,500</strong> {extra.pricing.listingsPerMonth}</span
+              ><strong>{limits.businessMonthly}</strong
+              > {extra.pricing.listingsPerMonth}</span
             >
           </li>
           <li class="flex items-start gap-3">
@@ -790,6 +822,18 @@ const canonical = `${baseUrl}${canonicalPath}`;
         </button>
       </div>
     </div>
+
+    {
+      isCurrentPricing && (
+        <div class="max-w-[1400px] mx-auto relative z-10 mt-8">
+          <div class="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-center text-sm text-slate-600 shadow-sm">
+            Need a one-time top-up? {creditPack.credits}-credit packs are
+            available inside the extension for {creditPack.priceLabel} when you
+            are close to a limit.
+          </div>
+        </div>
+      )
+    }
   </div>
 
   <div class="border-t border-gray-100">

@@ -20,26 +20,110 @@ export interface TierConfig {
   features: string[];
 }
 
-// This will be stored in database and cached for performance
-export const TIER_CONFIGS: Record<string, TierConfig> = {
+export const FREE_LIFETIME_LIMIT = 5;
+
+export const CREDIT_PACK_CONFIG = {
+  id: "credits_20",
+  credits: 20,
+  priceEur: 5.99,
+  displayName: "20 credits",
+} as const;
+
+export type TierKey = "free" | "starter" | "pro" | "business";
+export type PricingLimitsMode = "legacy" | "current";
+export const CURRENT_LIMITS_MIN_EXTENSION_VERSION = "1.3.12";
+
+export type EntitlementProfile = {
+  subscription_status?: string | null;
+  subscription_tier?: string | null;
+  is_legacy_plan?: boolean | null;
+};
+
+export function normalizeTier(tier?: string | null): TierKey {
+  const map: Record<string, TierKey> = {
+    unlimited_monthly: "starter",
+    unlimited_annual: "starter",
+    starter: "starter",
+    pro: "pro",
+    business: "business",
+    free: "free",
+  };
+
+  return map[String(tier || "free")] || "free";
+}
+
+export function getEffectiveTier(profile: EntitlementProfile): TierKey {
+  return profile.subscription_status === "active"
+    ? normalizeTier(profile.subscription_tier)
+    : "free";
+}
+
+export function getNextTier(tier: TierKey): TierKey | null {
+  const nextTierByTier: Record<TierKey, TierKey | null> = {
+    free: "starter",
+    starter: "pro",
+    pro: "business",
+    business: null,
+  };
+
+  return nextTierByTier[tier];
+}
+
+export function getPricingLimitsMode(): PricingLimitsMode {
+  return process.env.PRICING_LIMITS_MODE === "current" ? "current" : "legacy";
+}
+
+export function compareSemver(a: string, b: string): number {
+  const aParts = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const bParts = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const length = Math.max(aParts.length, bParts.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const aPart = aParts[index] || 0;
+    const bPart = bParts[index] || 0;
+    if (aPart > bPart) return 1;
+    if (aPart < bPart) return -1;
+  }
+
+  return 0;
+}
+
+export function getPricingLimitsModeForExtension(
+  extensionVersion?: string | null,
+): PricingLimitsMode {
+  const globalMode = getPricingLimitsMode();
+  if (globalMode === "current") return "current";
+
+  if (
+    extensionVersion &&
+    compareSemver(extensionVersion, CURRENT_LIMITS_MIN_EXTENSION_VERSION) >= 0
+  ) {
+    return "current";
+  }
+
+  return "legacy";
+}
+
+// Current limits apply to new subscriptions and users who switch plans.
+export const TIER_CONFIGS: Record<TierKey, TierConfig> = {
   free: {
     id: "free",
     name: "free",
     displayName: "Free Trial",
-    description: "Get a taste of AutoLister AI",
+    description: "Try AutoLister AI with 5 lifetime listings",
     monthlyPrice: 0,
     stripe: {
       productId: "prod_T5HLolJrCnS2x6", // Replace with actual Stripe product ID
       priceId: "price_1S96mcP5rNq9hGDSGMayEHQ1", // Replace with actual Stripe price ID
     },
     limits: {
-      daily: 2, // Very restrictive - just a taste!
-      monthly: 8, // About 3 uses over 3-4 days max
+      daily: FREE_LIFETIME_LIMIT,
+      monthly: FREE_LIFETIME_LIMIT,
       burst: {
         perMinute: 3, // Allow a couple quick tries
       },
     },
-    features: ["AI-generated titles and descriptions", "Basic support"],
+    features: ["5 lifetime listings", "AI-generated titles and descriptions"],
   },
 
   starter: {
@@ -53,8 +137,8 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       priceId: "price_1S96n6P5rNq9hGDSjEHrJV5g", // Replace with actual Stripe price ID
     },
     limits: {
-      daily: 15, // $0.30/day cost = $9/month - losing money but growth focused
-      monthly: 300, // 10 requests/day average with burst capacity
+      daily: 10,
+      monthly: 75,
       burst: {
         perMinute: 10,
       },
@@ -62,7 +146,7 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
     features: [
       "AI-generated titles and descriptions",
       "Priority support",
-      "Up to 15 listings per day",
+      "Up to 10 listings per day",
     ],
   },
 
@@ -77,15 +161,15 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       priceId: "price_1S96o0P5rNq9hGDStClke9za", // Replace with actual Stripe price ID
     },
     limits: {
-      daily: 40, // $0.80/day cost = $24/month - profitable!
-      monthly: 800, // 25+ requests/day average
+      daily: 25,
+      monthly: 250,
       burst: {
         perMinute: 20,
       },
     },
     features: [
       "Everything in Starter",
-      "Up to 40 listings per day",
+      "Up to 25 listings per day",
       "Priority processing",
     ],
   },
@@ -101,12 +185,46 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
       priceId: "price_1S96oFP5rNq9hGDSPZ1RpKHJ", // Replace with actual Stripe price ID
     },
     limits: {
-      daily: 75, // $1.50/day cost = $45/month - good margins
-      monthly: 1500, // High ceiling
+      daily: 60,
+      monthly: 600,
       burst: {
         perMinute: 30,
       },
     },
+    features: [
+      "Everything in Pro",
+      "Up to 60 listings per day",
+      "Dedicated support",
+      "Highest daily limits",
+    ],
+  },
+};
+
+// Existing active paid subscribers at migration time keep these limits until
+// they change tier or resubscribe after canceling.
+export const LEGACY_TIER_CONFIGS: Record<TierKey, TierConfig> = {
+  ...TIER_CONFIGS,
+  starter: {
+    ...TIER_CONFIGS.starter,
+    limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
+    features: [
+      "AI-generated titles and descriptions",
+      "Priority support",
+      "Up to 15 listings per day",
+    ],
+  },
+  pro: {
+    ...TIER_CONFIGS.pro,
+    limits: { daily: 40, monthly: 800, burst: { perMinute: 20 } },
+    features: [
+      "Everything in Starter",
+      "Up to 40 listings per day",
+      "Priority processing",
+    ],
+  },
+  business: {
+    ...TIER_CONFIGS.business,
+    limits: { daily: 75, monthly: 1500, burst: { perMinute: 30 } },
     features: [
       "Everything in Pro",
       "Up to 75 listings per day",
@@ -115,6 +233,42 @@ export const TIER_CONFIGS: Record<string, TierConfig> = {
     ],
   },
 };
+
+// Compatibility mode preserves the old public limits while the Chrome extension
+// update rolls out. Flip PRICING_LIMITS_MODE=current when the new UI is broadly
+// available.
+export const COMPATIBILITY_TIER_CONFIGS: Record<TierKey, TierConfig> = {
+  ...LEGACY_TIER_CONFIGS,
+  free: {
+    ...TIER_CONFIGS.free,
+    description: "Get a taste of AutoLister AI",
+    limits: {
+      daily: 2,
+      monthly: 8,
+      burst: {
+        perMinute: 3,
+      },
+    },
+    features: ["AI-generated titles and descriptions", "Basic support"],
+  },
+};
+
+export function getTierConfigForProfile(
+  profile: EntitlementProfile,
+  pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+): TierConfig {
+  const tier = getEffectiveTier(profile);
+  if (pricingLimitsMode === "legacy") {
+    return COMPATIBILITY_TIER_CONFIGS[tier] || COMPATIBILITY_TIER_CONFIGS.free;
+  }
+
+  const source =
+    profile.subscription_status === "active" && profile.is_legacy_plan
+      ? LEGACY_TIER_CONFIGS
+      : TIER_CONFIGS;
+
+  return source[tier] || TIER_CONFIGS.free;
+}
 
 // Future expansion ready
 export const ENTERPRISE_TIER = {

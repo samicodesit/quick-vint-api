@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/daily-cleanup",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/dom-canary-heartbeat",
+      "schedule": "30 7 * * *"
     }
   ]
 }

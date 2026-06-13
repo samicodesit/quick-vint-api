@@ -7,6 +7,7 @@ import {
   getNextTier,
   getPricingLimitsMode,
   getTierConfigForProfile,
+  hasUnlimitedDailyLimit,
   type PricingLimitsMode,
 } from "./tierConfig";
 
@@ -381,7 +382,7 @@ export class RateLimiter {
       // 5. Check daily limits. In compatibility mode, Business keeps the old
       // no-daily-cap behavior until the extension rollout is complete.
       let effectiveDailyLimit: number | null = null;
-      if (pricingLimitsMode === "legacy" && tierKey === "business") {
+      if (hasUnlimitedDailyLimit(profile, pricingLimitsMode)) {
         effectiveDailyLimit = null;
       } else if (
         customLimits?.custom_daily_limit &&
@@ -515,10 +516,12 @@ export class RateLimiter {
           new Date((paidProfile as any).custom_limit_expires_at) > new Date()
             ? (paidProfile as any).custom_daily_limit
             : null;
-        const dailyLimit =
-          pricingLimitsMode === "legacy" && effectiveTier === "business"
-            ? null
-            : (customDailyLimit ?? tierConfig.limits.daily);
+        const dailyLimit = hasUnlimitedDailyLimit(
+          paidProfile,
+          pricingLimitsMode,
+        )
+          ? null
+          : (customDailyLimit ?? tierConfig.limits.daily);
         const isOverPlan =
           (dailyLimit !== null && dayCount >= dailyLimit) ||
           (paidProfile.api_calls_this_month || 0) >= tierConfig.limits.monthly;
@@ -543,7 +546,7 @@ export class RateLimiter {
           }
         }
 
-        if (!(pricingLimitsMode === "legacy" && effectiveTier === "business")) {
+        if (!hasUnlimitedDailyLimit(paidProfile, pricingLimitsMode)) {
           ops.push(this.incrementCount(userId, "day"));
         }
       }

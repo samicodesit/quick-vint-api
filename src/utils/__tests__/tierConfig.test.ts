@@ -9,6 +9,7 @@ import {
   getEffectiveTier,
   getNextTier,
   getTierConfigForProfile,
+  hasUnlimitedDailyLimit,
 } from "../../../utils/tierConfig";
 
 describe("tier entitlements", () => {
@@ -111,6 +112,17 @@ describe("tier entitlements", () => {
         is_legacy_plan: true,
       }).limits,
     ).toMatchObject({ daily: 75, monthly: 1500 });
+
+    expect(
+      hasUnlimitedDailyLimit(
+        {
+          subscription_status: "active",
+          subscription_tier: "business",
+          is_legacy_plan: true,
+        },
+        "current",
+      ),
+    ).toBe(true);
   });
 
   it("keeps every tier on old limits in legacy compatibility mode", () => {

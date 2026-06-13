@@ -247,4 +247,32 @@ describe("RateLimiter entitlement decisions", () => {
       },
     });
   });
+
+  it("keeps active legacy Business daily usage uncapped after the new extension rollout", async () => {
+    process.env.PRICING_LIMITS_MODE = "current";
+    queueCommonPreflight();
+    queueRateCount(0);
+    queueRateCount(999);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.checkRateLimit(
+      "user-business-legacy-current-mode",
+      {
+        subscription_status: "active",
+        subscription_tier: "business",
+        api_calls_this_month: 200,
+        is_legacy_plan: true,
+        pack_credits: 0,
+      },
+      "current",
+    );
+
+    expect(result).toMatchObject({
+      allowed: true,
+      remainingRequests: {
+        day: null,
+        month: 1299,
+      },
+    });
+  });
 });

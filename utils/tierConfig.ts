@@ -270,6 +270,20 @@ export function getTierConfigForProfile(
   return source[tier] || TIER_CONFIGS.free;
 }
 
+export function hasUnlimitedDailyLimit(
+  profile: EntitlementProfile,
+  pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+): boolean {
+  const tier = getEffectiveTier(profile);
+  if (tier !== "business") return false;
+
+  return (
+    pricingLimitsMode === "legacy" ||
+    (profile.subscription_status === "active" &&
+      Boolean(profile.is_legacy_plan))
+  );
+}
+
 // Future expansion ready
 export const ENTERPRISE_TIER = {
   // Custom pricing, dedicated infrastructure, SLA, etc.

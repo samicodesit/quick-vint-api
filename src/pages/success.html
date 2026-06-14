@@ -166,20 +166,22 @@
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.24)),
         #dffbea;
-      color: transparent;
+      color: var(--success-dark);
       margin-bottom: 24px;
       box-shadow: 0 16px 38px rgba(16, 185, 129, 0.22), inset 0 0 0 1px rgba(16, 185, 129, 0.2);
       animation: markIn 520ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
-    .success-icon::before {
-      content: "";
-      width: 28px;
-      height: 16px;
-      border-left: 4px solid var(--success-dark);
-      border-bottom: 4px solid var(--success-dark);
-      transform: rotate(-45deg) translate(1px, -2px);
-      border-radius: 2px;
+    .success-icon svg {
+      display: block;
+      width: 34px;
+      height: 34px;
+    }
+
+    .success-icon path {
+      stroke-dasharray: 34;
+      stroke-dashoffset: 34;
+      animation: checkDraw 560ms 360ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
 
     @keyframes markIn {
@@ -191,6 +193,12 @@
       to {
         opacity: 1;
         transform: scale(1);
+      }
+    }
+
+    @keyframes checkDraw {
+      to {
+        stroke-dashoffset: 0;
       }
     }
 
@@ -458,7 +466,12 @@
 
   <!-- Success State -->
   <div id="success" class="success-container hidden">
-    <div class="success-icon">Done</div>
+    <div class="success-icon" aria-hidden="true">
+      <svg viewBox="0 0 36 36" fill="none">
+        <path d="M9 18.5L15.2 24.7L27.5 12.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+    </div>
     <h1 id="successTitle">You're all set.</h1>
     <div id="successSubtitle" class="subtitle">Your plan is active.</div>
     <div id="successDescription" class="description">

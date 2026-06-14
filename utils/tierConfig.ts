@@ -31,7 +31,7 @@ export const CREDIT_PACK_CONFIG = {
 
 export type TierKey = "free" | "starter" | "pro" | "business";
 export type PricingLimitsMode = "legacy" | "current";
-export const CURRENT_LIMITS_MIN_EXTENSION_VERSION = "1.3.12";
+export const CURRENT_LIMITS_MIN_EXTENSION_VERSION = "1.3.13";
 
 export type EntitlementProfile = {
   subscription_status?: string | null;

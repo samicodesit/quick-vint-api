@@ -34,6 +34,7 @@ describe("tier entitlements", () => {
 
     expect(getPricingLimitsModeForExtension()).toBe("legacy");
     expect(getPricingLimitsModeForExtension("1.3.11")).toBe("legacy");
+    expect(getPricingLimitsModeForExtension("1.3.12")).toBe("legacy");
     expect(
       getPricingLimitsModeForExtension(CURRENT_LIMITS_MIN_EXTENSION_VERSION),
     ).toBe("current");

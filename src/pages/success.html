@@ -16,42 +16,92 @@
   </script>
   <title>AutoLister AI Payment Complete</title>
   <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: rgba(255, 255, 255, 0.94);
+      --surface-strong: #ffffff;
+      --ink: #111827;
+      --muted: #667085;
+      --soft: #eef2f7;
+      --line: #e6eaf0;
+      --brand: #4f46e5;
+      --brand-strong: #4338ca;
+      --success: #10b981;
+      --success-dark: #047857;
+      --warning: #b45309;
+      --danger: #dc2626;
+      --shadow: 0 30px 90px rgba(31, 41, 55, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
-      padding: 40px;
+      padding: 32px;
       text-align: center;
-      color: #333;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(79, 70, 229, 0.08), rgba(16, 185, 129, 0.05) 42%, rgba(245, 247, 251, 0) 78%),
+        var(--bg);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      -webkit-font-smoothing: antialiased;
     }
 
     .success-container {
-      background: white;
-      border-radius: 24px;
-      padding: 3rem 2.5rem;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-      max-width: 600px;
+      position: relative;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      border-radius: 28px;
+      padding: 42px;
+      box-shadow: var(--shadow);
+      max-width: 640px;
       width: 100%;
       margin: 0 auto;
+      backdrop-filter: blur(18px);
+      animation: panelIn 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .success-container::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: linear-gradient(90deg, var(--success), #38bdf8, var(--brand));
+    }
+
+    @keyframes panelIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .loading-container {
       text-align: center;
-      padding: 3rem;
+      padding: 52px 42px;
     }
 
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #4f46e5;
+      width: 44px;
+      height: 44px;
+      border: 3px solid #e7ebf3;
+      border-top: 3px solid var(--brand);
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 2rem auto;
+      animation: spin 900ms linear infinite;
+      margin: 0 auto 24px auto;
     }
 
     @keyframes spin {
@@ -65,174 +115,234 @@
     }
 
     .error-container {
-      background: white;
-      border-radius: 24px;
-      padding: 3rem 2.5rem;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-      max-width: 600px;
+      background: var(--surface);
+      border-radius: 28px;
+      padding: 42px;
+      box-shadow: var(--shadow);
+      max-width: 640px;
       width: 100%;
       margin: 0 auto;
-      border: 2px solid #ef4444;
+      border: 1px solid #fecaca;
+      animation: panelIn 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
     .error-icon {
-      font-size: 4rem;
-      margin-bottom: 1.5rem;
-      color: #ef4444;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #fef2f2;
+      color: var(--danger);
+      font-size: 1.35rem;
+      font-weight: 800;
+      margin-bottom: 18px;
     }
 
     .error-title {
       font-size: 2rem;
-      color: #ef4444;
-      margin-bottom: 1rem;
-      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
     }
 
     .error-message {
-      font-size: 1.1rem;
-      color: #6b7280;
-      margin-bottom: 2rem;
+      font-size: 1rem;
+      color: var(--muted);
+      margin: 0 auto 26px;
       line-height: 1.6;
+      max-width: 460px;
     }
 
     .success-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 56px;
-      height: 56px;
+      width: 72px;
+      height: 72px;
       border-radius: 999px;
-      background: #ecfdf5;
-      color: #059669;
-      font-weight: 800;
-      font-size: 1rem;
-      margin-bottom: 1rem;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.24)),
+        #dffbea;
+      color: transparent;
+      margin-bottom: 24px;
+      box-shadow: 0 16px 38px rgba(16, 185, 129, 0.22), inset 0 0 0 1px rgba(16, 185, 129, 0.2);
+      animation: markIn 520ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .success-icon::before {
+      content: "";
+      width: 28px;
+      height: 16px;
+      border-left: 4px solid var(--success-dark);
+      border-bottom: 4px solid var(--success-dark);
+      transform: rotate(-45deg) translate(1px, -2px);
+      border-radius: 2px;
+    }
+
+    @keyframes markIn {
+      from {
+        opacity: 0;
+        transform: scale(0.78);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
     h1 {
-      font-size: 2.5rem;
-      color: #10b981;
-      margin-bottom: 1rem;
-      font-weight: 700;
+      font-size: clamp(2.25rem, 6vw, 3.35rem);
+      color: var(--ink);
+      margin: 0 0 10px;
+      font-weight: 850;
+      line-height: 1.02;
+      letter-spacing: 0;
     }
 
     .subtitle {
-      font-size: 1.3rem;
-      color: #4f46e5;
-      margin-bottom: 2rem;
-      font-weight: 600;
+      font-size: 1.2rem;
+      color: var(--brand);
+      margin-bottom: 18px;
+      font-weight: 750;
+      letter-spacing: 0;
     }
 
     .description {
-      font-size: 1.1rem;
+      font-size: 1rem;
       line-height: 1.6;
-      color: #6b7280;
-      margin-bottom: 2.5rem;
+      color: var(--muted);
+      margin: 0 auto 28px;
+      max-width: 470px;
     }
 
     .benefits {
-      background: #f9fafb;
-      border-radius: 16px;
-      padding: 2rem;
-      margin: 2rem 0;
+      display: grid;
+      gap: 12px;
+      background: transparent;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 22px 0;
+      margin: 30px 0 24px;
       text-align: left;
     }
 
     .benefits h3 {
-      color: #4f46e5;
-      margin-bottom: 1rem;
-      font-size: 1.2rem;
-      text-align: center;
+      color: var(--ink);
+      margin: 0 0 4px;
+      font-size: 0.78rem;
+      text-align: left;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      font-weight: 800;
     }
 
     .benefit-item {
       display: flex;
       align-items: center;
-      margin-bottom: 0.8rem;
-      font-size: 1rem;
-      color: #374151;
+      gap: 10px;
+      margin: 0;
+      font-size: 0.98rem;
+      color: #253041;
     }
 
     .benefit-item::before {
-      content: "✓";
-      color: #10b981;
-      font-weight: bold;
-      margin-right: 0.8rem;
-      font-size: 1.2rem;
+      content: "";
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #dcfce7;
+      box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.18);
+      background-image: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 18 18' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 9.2L7.4 11.6L13 6' stroke='%23047857' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
     }
 
     .next-steps {
-      background: #fef3c7;
-      border: 2px solid #f59e0b;
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin: 2rem 0;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 20px;
+      margin: 0;
+      text-align: left;
     }
 
     .next-steps h3 {
-      color: #92400e;
-      margin-bottom: 1rem;
-      font-size: 1.1rem;
+      color: var(--ink);
+      margin: 0 0 6px;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0;
     }
 
     .next-steps p {
-      color: #92400e;
+      color: var(--muted);
       margin: 0;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
     }
 
     .cta-buttons {
       display: flex;
-      gap: 1rem;
+      gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-top: 2rem;
+      margin-top: 24px;
     }
 
     .btn {
-      display: inline-block;
-      padding: 0.8rem 2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 22px;
       text-decoration: none;
       border-radius: 12px;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.3s ease;
+      font-weight: 760;
+      font-size: 0.98rem;
+      transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease;
       cursor: pointer;
     }
 
     .btn-primary {
-      background: #4f46e5;
+      background: var(--ink);
       color: white;
-      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+      box-shadow: 0 12px 28px rgba(17, 24, 39, 0.16);
     }
 
     .btn-primary:hover {
-      background: #3730a3;
+      background: #1f2937;
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+      box-shadow: 0 16px 34px rgba(17, 24, 39, 0.2);
     }
 
     .btn-secondary {
-      background: #f3f4f6;
-      color: #374151;
-      border: 2px solid #e5e7eb;
+      background: var(--surface-strong);
+      color: #2f3847;
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(31, 41, 55, 0.06);
     }
 
     .btn-secondary:hover {
-      background: #e5e7eb;
+      background: #f9fafb;
+      border-color: #cfd6e2;
       transform: translateY(-2px);
     }
 
     footer {
-      margin-top: 3rem;
-      font-size: 0.9rem;
-      color: #6b7280;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 2rem;
+      margin-top: 34px;
+      font-size: 0.82rem;
+      color: #8a94a6;
+      border-top: 1px solid var(--line);
+      padding-top: 20px;
     }
 
     footer a {
-      color: #4f46e5;
+      color: #5865f2;
       text-decoration: none;
     }
 
@@ -244,12 +354,64 @@
       display: none;
     }
 
+    .success-container>* {
+      animation: contentIn 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .success-container>*:nth-child(2) {
+      animation-delay: 50ms;
+    }
+
+    .success-container>*:nth-child(3) {
+      animation-delay: 90ms;
+    }
+
+    .success-container>*:nth-child(4) {
+      animation-delay: 130ms;
+    }
+
+    .success-container>*:nth-child(5) {
+      animation-delay: 170ms;
+    }
+
+    .success-container>*:nth-child(6) {
+      animation-delay: 210ms;
+    }
+
+    @keyframes contentIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
     @media (max-width: 640px) {
+      body {
+        padding: 18px;
+        align-items: flex-start;
+      }
 
       .success-container,
       .error-container {
-        padding: 2rem 1.5rem;
-        margin: 0 1rem;
+        padding: 30px 22px;
+        margin: 18px 0;
+        border-radius: 24px;
       }
 
       h1 {
@@ -262,7 +424,6 @@
 
       .btn {
         width: 100%;
-        box-sizing: border-box;
       }
     }
   </style>
@@ -318,7 +479,7 @@
 
     <div class="cta-buttons">
       <a href="#" target="_blank" class="btn btn-primary" id="vinted-redirect">
-        Go to Vinted
+        Continue to Vinted
       </a>
       <a href="/pricing" class="btn btn-secondary">View Plans</a>
     </div>
@@ -355,15 +516,28 @@
       const titleEl = document.getElementById('successTitle');
       const subtitleEl = document.getElementById('successSubtitle');
       const descriptionEl = document.getElementById('successDescription');
+      const benefitsEl = document.getElementById('successBenefits');
 
       if (type === 'credit_pack') {
         titleEl.textContent = 'Credits added.';
         subtitleEl.textContent = "You're ready to continue.";
         descriptionEl.textContent = 'Your top-up credits are available on your AutoLister AI account.';
+        benefitsEl.innerHTML = `
+          <h3>Ready in your account</h3>
+          <div class="benefit-item">20 top-up credits added</div>
+          <div class="benefit-item">Works on Vinted item listing pages</div>
+          <div class="benefit-item">Secure billing handled by Stripe</div>
+        `;
       } else {
         titleEl.textContent = "You're all set.";
         subtitleEl.textContent = 'Your plan is active.';
         descriptionEl.textContent = 'Your AutoLister AI subscription is ready to use.';
+        benefitsEl.innerHTML = `
+          <h3>Ready in your account</h3>
+          <div class="benefit-item">Your plan is active</div>
+          <div class="benefit-item">Updated usage allowance in AutoLister AI</div>
+          <div class="benefit-item">Secure billing handled by Stripe</div>
+        `;
       }
 
       document.getElementById('loading').classList.add('hidden');
@@ -579,18 +753,7 @@
       const vintedUrl = detectCountryAndGetVintedUrl();
       btn.href = vintedUrl;
 
-      // Optional: Localize button text
-      if (vintedUrl.includes('vinted.fr')) {
-        btn.textContent = 'Créer sur Vinted';
-      } else if (vintedUrl.includes('vinted.de')) {
-        btn.textContent = 'Auf Vinted erstellen';
-      } else if (vintedUrl.includes('vinted.es')) {
-        btn.textContent = 'Crear en Vinted';
-      } else if (vintedUrl.includes('vinted.it')) {
-        btn.textContent = 'Crea su Vinted';
-      } else if (vintedUrl.includes('vinted.nl')) {
-        btn.textContent = 'Maak op Vinted';
-      }
+      btn.textContent = 'Continue to Vinted';
     }
   </script>
 </body>

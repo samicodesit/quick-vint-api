@@ -14,7 +14,7 @@
 
     gtag('config', 'G-F2QL50WB6M');
   </script>
-  <title>Welcome to AutoLister AI! 🎉</title>
+  <title>AutoLister AI Payment Complete</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -96,28 +96,17 @@
     }
 
     .success-icon {
-      font-size: 4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 800;
+      font-size: 1rem;
       margin-bottom: 1rem;
-      animation: bounce 2s infinite;
-    }
-
-    @keyframes bounce {
-
-      0%,
-      20%,
-      50%,
-      80%,
-      100% {
-        transform: translateY(0);
-      }
-
-      40% {
-        transform: translateY(-10px);
-      }
-
-      60% {
-        transform: translateY(-5px);
-      }
     }
 
     h1 {
@@ -283,16 +272,16 @@
   <!-- Loading State -->
   <div id="loading" class="success-container loading-container">
     <div class="spinner"></div>
-    <h2>Verifying your payment...</h2>
-    <p>Please wait while we confirm your subscription.</p>
+    <h2 id="loadingTitle">Payment received. Updating your account...</h2>
+    <p id="loadingMessage">This normally only takes a few seconds.</p>
   </div>
 
   <!-- Error State -->
   <div id="error" class="error-container hidden">
-    <div class="error-icon">⚠️</div>
-    <div class="error-title">Access Denied</div>
+    <div class="error-icon">!</div>
+    <div class="error-title">Payment not confirmed</div>
     <div class="error-message">
-      This page is only accessible after a successful payment. If you think this is an error, please contact support.
+      We could not verify this payment link. If you were charged, please contact support and we will check it.
     </div>
     <div class="cta-buttons">
       <a href="/pricing" class="btn btn-primary">View Pricing</a>
@@ -308,37 +297,30 @@
 
   <!-- Success State -->
   <div id="success" class="success-container hidden">
-    <div class="success-icon">🎉</div>
-    <h1>Welcome Aboard!</h1>
-    <div class="subtitle">Your AutoLister AI subscription is now active</div>
-    <div class="description">
-      You've just unlocked the power to create compelling Vinted listings in seconds. Your account has been upgraded and
-      you can start using your enhanced limits immediately.
+    <div class="success-icon">Done</div>
+    <h1 id="successTitle">You're all set.</h1>
+    <div id="successSubtitle" class="subtitle">Your plan is active.</div>
+    <div id="successDescription" class="description">
+      Your AutoLister AI account has been updated.
     </div>
 
-    <div class="benefits">
-      <h3>🚀 What's Available Now</h3>
-      <div class="benefit-item">Access to enhanced daily generation limits</div>
+    <div class="benefits" id="successBenefits">
+      <h3>What's Ready Now</h3>
       <div class="benefit-item">AI-powered titles and descriptions</div>
-      <div class="benefit-item">Instant listing optimization</div>
-      <div class="benefit-item">Priority customer support</div>
-      <div class="benefit-item">Future feature updates included</div>
+      <div class="benefit-item">Your updated limits in AutoLister AI</div>
+      <div class="benefit-item">Secure billing handled by Stripe</div>
     </div>
 
     <div class="next-steps">
-      <h3>⚡ Ready to Get Started?</h3>
-      <p>Your new limits are active immediately! Click below to go directly to Vinted and start creating your first
-        AI-powered listing.</p>
+      <h3>Ready to continue?</h3>
+      <p>You can go back to Vinted and keep creating item listings.</p>
     </div>
 
     <div class="cta-buttons">
       <a href="#" target="_blank" class="btn btn-primary" id="vinted-redirect">
-        Start Creating on Vinted
+        Go to Vinted
       </a>
-      <a href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl" target="_blank"
-        class="btn btn-secondary">
-        Open Extension
-      </a>
+      <a href="/pricing" class="btn btn-secondary">View Plans</a>
     </div>
 
     <footer>
@@ -350,7 +332,57 @@
   </div>
 
   <script>
-    // Session validation and page protection
+    const VERIFY_RETRIES = 8;
+    const VERIFY_DELAY_MS = 2000;
+
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function setLoadingCopy(title, message) {
+      document.getElementById('loadingTitle').textContent = title;
+      document.getElementById('loadingMessage').textContent = message;
+    }
+
+    function showError() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('success').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+    }
+
+    function showSuccess(data) {
+      const type = data?.fulfillment_type || data?.session?.purchase_type;
+      const titleEl = document.getElementById('successTitle');
+      const subtitleEl = document.getElementById('successSubtitle');
+      const descriptionEl = document.getElementById('successDescription');
+
+      if (type === 'credit_pack') {
+        titleEl.textContent = 'Credits added.';
+        subtitleEl.textContent = "You're ready to continue.";
+        descriptionEl.textContent = 'Your top-up credits are available on your AutoLister AI account.';
+      } else {
+        titleEl.textContent = "You're all set.";
+        subtitleEl.textContent = 'Your plan is active.';
+        descriptionEl.textContent = 'Your AutoLister AI subscription is ready to use.';
+      }
+
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('success').classList.remove('hidden');
+      initializeVintedRedirect();
+    }
+
+    async function verifySession(sessionId) {
+      const response = await fetch(`/api/stripe/verify-session?session_id=${encodeURIComponent(sessionId)}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.valid) {
+        throw new Error(data.error || 'Session verification failed');
+      }
+
+      return data;
+    }
+
     document.addEventListener('DOMContentLoaded', async function () {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
@@ -375,9 +407,7 @@
           const bypassData = await bypassResponse.json();
 
           if (bypassData.valid && bypassData.bypass) {
-            // Developer bypass successful
-            loadingEl.classList.add('hidden');
-            successEl.classList.remove('hidden');
+            showSuccess({ fulfillment_type: 'subscription' });
 
             // Add a dev indicator
             const devIndicator = document.createElement('div');
@@ -394,13 +424,10 @@
               z-index: 1000;
               box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
             `;
-            devIndicator.textContent = '🛠️ DEV MODE';
+            devIndicator.textContent = 'DEV MODE';
             document.body.appendChild(devIndicator);
 
-            // Initialize Vinted redirect functionality
-            initializeVintedRedirect();
-
-            console.log('✅ Developer bypass activated');
+            console.log('Developer bypass activated');
             return;
           }
         } catch (error) {
@@ -417,30 +444,34 @@
       }
 
       try {
-        // Verify the session with our backend
-        const response = await fetch(`/api/stripe/verify-session?session_id=${sessionId}`);
-        const data = await response.json();
+        for (let attempt = 0; attempt <= VERIFY_RETRIES; attempt += 1) {
+          const data = await verifySession(sessionId);
 
-        if (data.valid) {
-          // Session is valid, show success page
-          loadingEl.classList.add('hidden');
-          successEl.classList.remove('hidden');
+          if (data.fulfilled) {
+            showSuccess(data);
+            console.log('Session fulfilled successfully:', data.session);
+            return;
+          }
 
-          // Initialize Vinted redirect functionality
-          initializeVintedRedirect();
+          if (attempt === Math.floor(VERIFY_RETRIES / 2)) {
+            setLoadingCopy(
+              'Payment received. Updating your account...',
+              'This can take a few seconds. Your account will update automatically.',
+            );
+          }
 
-          // Optional: Log successful verification
-          console.log('Session verified successfully:', data.session);
-        } else {
-          // Session is invalid, show error
-          loadingEl.classList.add('hidden');
-          errorEl.classList.remove('hidden');
-          console.warn('Session verification failed:', data.error);
+          if (attempt < VERIFY_RETRIES) {
+            await wait(VERIFY_DELAY_MS);
+          }
         }
+
+        setLoadingCopy(
+          'Payment received. Updating your account...',
+          'This can take a few seconds. Your account will update automatically.',
+        );
       } catch (error) {
         // Network or other error, show error page
-        loadingEl.classList.add('hidden');
-        errorEl.classList.remove('hidden');
+        showError();
         console.error('Failed to verify session:', error);
       }
     });

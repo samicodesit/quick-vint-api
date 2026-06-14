@@ -165,12 +165,11 @@ function updateButtonStates() {
     );
 
     if (!hasExtension) {
-      textSpan.textContent = "Download Extension";
+      textSpan.textContent = "Get AutoLister AI";
       statusSpan.textContent = "";
       button.classList.add("state-download");
     } else if (!currentUser) {
-      textSpan.textContent =
-        plan === "free" ? "Sign In to Start" : "Sign In to Subscribe";
+      textSpan.textContent = "Sign in to continue";
       statusSpan.textContent = "";
       button.classList.add("state-signin");
     } else if (
@@ -179,7 +178,7 @@ function updateButtonStates() {
         (currentTier === "unlimited_monthly" && plan === "starter"))
     ) {
       textSpan.textContent = "Current Plan";
-      statusSpan.textContent = "✓ Active";
+      statusSpan.textContent = "";
       button.classList.add("state-current");
     } else {
       if (plan === "free" && currentTier !== "free") {
@@ -215,7 +214,10 @@ async function handlePlanClick(planName) {
   try {
     if (!hasExtension) {
       // Download extension
-      showStatusMessage("Opening the Chrome Web Store so you can install AutoLister AI.", "info");
+      showStatusMessage(
+        "Install AutoLister AI to start free or choose a plan.",
+        "info",
+      );
       downloadExtension();
       return;
     }
@@ -223,7 +225,7 @@ async function handlePlanClick(planName) {
     if (!currentUser) {
       // Prompt to sign in through extension
       showStatusMessage(
-        "User not signed in. Please sign in through the AutoLister AI extension first, then return to this page.",
+        "Sign in with AutoLister AI, then choose the plan that fits you.",
         "info",
       );
       return;
@@ -288,7 +290,7 @@ async function handlePaidPlanSelection(planName) {
     const data = await response.json();
 
     if (response.ok && data.url) {
-      showStatusMessage("Opening Stripe Checkout in a new tab.", "success");
+      showStatusMessage("Opening secure Stripe Checkout.", "success");
       window.open(data.url, "_blank");
     } else {
       console.error("Checkout error:", data);
@@ -314,7 +316,7 @@ async function openCustomerPortal() {
     const data = await response.json();
 
     if (response.ok && data.url) {
-      showStatusMessage("Opening your Stripe customer portal in a new tab.", "success");
+      showStatusMessage("Opening your Stripe customer portal.", "success");
       window.open(data.url, "_blank");
     } else {
       console.error("Portal error:", data);

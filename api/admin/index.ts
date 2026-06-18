@@ -233,7 +233,7 @@ async function enrichAdminUsers(
 
   return users.map((user) => {
     const tierKey = getEffectiveTier(user);
-    const tierConfig = getTierConfigForProfile(user);
+    const tierConfig = getTierConfigForProfile(user, "current");
     const limits = rateLimitMap.get(user.id) || [];
     const dayCount = getLimitCount(limits, "day");
     const monthCount = user.api_calls_this_month || 0;

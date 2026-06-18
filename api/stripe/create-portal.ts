@@ -2,11 +2,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
+import { handleCheckoutCors } from "../../utils/checkoutCors";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const RETURN_URL = process.env.STRIPE_PORTAL_RETURN_URL!;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!(await handleCheckoutCors(req, res))) return;
+
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method Not Allowed" });

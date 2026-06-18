@@ -796,17 +796,34 @@ const {
       </div>
     </div>
 
-    {
-      isCurrentPricing && (
-        <div class="max-w-[1400px] mx-auto relative z-10 mt-8">
-          <div class="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-center text-sm text-slate-600 shadow-sm">
-            Need a one-time top-up? {creditPack.credits}-credit packs are
-            available inside the extension for {creditPack.priceLabel} when you
-            are close to a limit.
+    <div class="max-w-[1400px] mx-auto relative z-10 mt-8">
+      <div
+        class="rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+      >
+        <div>
+          <div
+            class="text-[11px] font-black uppercase tracking-wide text-brand-600 mb-1"
+          >
+            One-time top-up
           </div>
+          <h2 class="text-lg font-extrabold text-slate-900">
+            Need a one-time top-up?
+          </h2>
+          <p class="text-sm text-slate-600 mt-1 max-w-2xl">
+            Buy {creditPack.credits} extra listing credits for {
+              creditPack.priceLabel
+            }. One-time payment. No commitment.
+          </p>
         </div>
-      )
-    }
+        <button
+          class="w-full md:w-auto min-w-[180px] py-3 px-5 rounded-xl font-bold text-sm text-brand-700 bg-brand-50 hover:bg-brand-100 transition-all duration-200 active:scale-95 flex items-center justify-center cursor-pointer"
+          id="btn-credit-pack"
+        >
+          <span class="btn-text">Buy {creditPack.credits} credits</span>
+          <span class="btn-status text-sm opacity-90 ml-2"></span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <div class="border-t border-gray-100">

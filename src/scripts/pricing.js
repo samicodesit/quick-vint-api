@@ -302,6 +302,61 @@ async function handlePaidPlanSelection(planName) {
   }
 }
 
+async function handleCreditPackClick() {
+  const button = document.getElementById("btn-credit-pack");
+  const textSpan = button?.querySelector(".btn-text");
+  const originalText = textSpan?.textContent || "Buy credits";
+
+  if (button) button.disabled = true;
+  if (textSpan) textSpan.textContent = "Loading...";
+
+  try {
+    if (!hasExtension) {
+      showStatusMessage(
+        "Install AutoLister AI to start free, choose a plan, or buy credits.",
+        "info",
+      );
+      downloadExtension();
+      return;
+    }
+
+    if (!currentUser?.email) {
+      showStatusMessage(
+        "Sign in with AutoLister AI, then choose the option that fits you.",
+        "info",
+      );
+      return;
+    }
+
+    const response = await fetch(`${API_BASE}/api/stripe/create-credit-checkout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: currentUser.email }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.url) {
+      showStatusMessage("Opening secure Stripe Checkout.", "success");
+      window.open(data.url, "_blank");
+    } else {
+      console.error("Credit checkout error:", data);
+      showStatusMessage(
+        data.error || "Unable to open Stripe Checkout. Please try again.",
+        "error",
+      );
+    }
+  } catch (error) {
+    console.error("Credit checkout error:", error);
+    showStatusMessage("Connection issue while opening checkout. Please try again.", "error");
+  } finally {
+    if (button) button.disabled = false;
+    if (textSpan) textSpan.textContent = originalText;
+  }
+}
+
 // Open customer portal for existing subscribers
 async function openCustomerPortal() {
   try {
@@ -429,6 +484,9 @@ async function initializePage() {
   document
     .getElementById("btn-business")
     .addEventListener("click", () => handlePlanClick("business"));
+  document
+    .getElementById("btn-credit-pack")
+    ?.addEventListener("click", handleCreditPackClick);
 }
 
 // Initialize on page load

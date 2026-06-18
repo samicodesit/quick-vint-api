@@ -470,6 +470,10 @@ type SiteExtraPricingCopy = {
   businessPlanName: string;
   businessPlanSubtitle: string;
   businessPlanCta: string;
+  creditPackEyebrow: string;
+  creditPackTitle: string;
+  creditPackBody: string;
+  creditPackCta: string;
   // Shared feature bullets
   aiGeneratedTitles: string;
   phoneUpload: string;
@@ -607,6 +611,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "For resellers and high-volume sellers",
       businessPlanCta: "Get Business Plan",
+      creditPackEyebrow: "One-time top-up",
+      creditPackTitle: "Need a one-time top-up?",
+      creditPackBody:
+        "Buy {credits} extra listing credits for {price}. One-time payment. No commitment.",
+      creditPackCta: "Buy {credits} credits",
       aiGeneratedTitles: "AI-generated titles & descriptions",
       phoneUpload: "Phone upload (Soon only available to Pro and Business)",
       seeIfYouLikeIt: "See if you like it first",
@@ -738,6 +747,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "Pour les revendeurs et gros volumes",
       businessPlanCta: "Choisir Business",
+      creditPackEyebrow: "Top-up ponctuel",
+      creditPackTitle: "Besoin d'un top-up ponctuel ?",
+      creditPackBody:
+        "Achetez {credits} credits d'annonces en plus pour {price}. Paiement unique. Sans engagement.",
+      creditPackCta: "Acheter {credits} credits",
       aiGeneratedTitles: "Titres et descriptions générés par IA",
       phoneUpload: "Photo depuis mobile (bientôt réservé Pro et Business)",
       seeIfYouLikeIt: "Testez avant de vous engager",
@@ -870,6 +884,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "Fur Wiederverkaufer und Vielverkaufer",
       businessPlanCta: "Business wahlen",
+      creditPackEyebrow: "Einmaliger Top-up",
+      creditPackTitle: "Brauchst du einen einmaligen Top-up?",
+      creditPackBody:
+        "Kaufe {credits} extra Inserat-Credits fur {price}. Einmalige Zahlung. Kein Abo.",
+      creditPackCta: "{credits} Credits kaufen",
       aiGeneratedTitles: "KI-generierte Titel und Beschreibungen",
       phoneUpload: "Foto-Upload per Handy (bald nur fur Pro und Business)",
       seeIfYouLikeIt: "Testen, bevor du dich entscheidest",
@@ -1002,6 +1021,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "Voor doorverkopers en grote volumes",
       businessPlanCta: "Business kiezen",
+      creditPackEyebrow: "Eenmalige top-up",
+      creditPackTitle: "Een eenmalige top-up nodig?",
+      creditPackBody:
+        "Koop {credits} extra listingcredits voor {price}. Eenmalige betaling. Geen verplichting.",
+      creditPackCta: "{credits} credits kopen",
       aiGeneratedTitles: "AI-gegenereerde titels en beschrijvingen",
       phoneUpload:
         "Foto-upload via telefoon (binnenkort alleen Pro en Business)",
@@ -1135,6 +1159,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "Dla odsprzedawcow i hurtownikow",
       businessPlanCta: "Wybierz Business",
+      creditPackEyebrow: "Jednorazowe doladowanie",
+      creditPackTitle: "Potrzebujesz jednorazowego doladowania?",
+      creditPackBody:
+        "Kup {credits} dodatkowych kredytow na ogloszenia za {price}. Platnosc jednorazowa. Bez zobowiazan.",
+      creditPackCta: "Kup {credits} kredytow",
       aiGeneratedTitles: "Tytuly i opisy generowane przez AI",
       phoneUpload: "Upload zdjec przez telefon (wkrotce tylko Pro i Business)",
       seeIfYouLikeIt: "Sprawdz zanim sie zdecydujesz",
@@ -1266,6 +1295,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "Para revendedores y grandes volumenes",
       businessPlanCta: "Elegir Business",
+      creditPackEyebrow: "Extra puntual",
+      creditPackTitle: "Necesitas un extra puntual?",
+      creditPackBody:
+        "Compra {credits} creditos extra para anuncios por {price}. Pago unico. Sin compromiso.",
+      creditPackCta: "Comprar {credits} creditos",
       aiGeneratedTitles: "Titulos y descripciones generados por IA",
       phoneUpload: "Subida desde movil (pronto solo para Pro y Business)",
       seeIfYouLikeIt: "Pruebalo primero",
@@ -1397,6 +1431,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "Per rivenditori e alti volumi",
       businessPlanCta: "Scegli Business",
+      creditPackEyebrow: "Ricarica una tantum",
+      creditPackTitle: "Ti serve una ricarica una tantum?",
+      creditPackBody:
+        "Compra {credits} crediti extra per annunci a {price}. Pagamento unico. Nessun impegno.",
+      creditPackCta: "Compra {credits} crediti",
       aiGeneratedTitles: "Titoli e descrizioni generati dall'AI",
       phoneUpload: "Upload da telefono (presto solo per Pro e Business)",
       seeIfYouLikeIt: "Provalo prima di decidere",
@@ -1528,6 +1567,11 @@ export const SITE_EXTRA_COPY: Record<
       businessPlanName: "Business",
       businessPlanSubtitle: "Para revendedores e grandes volumes",
       businessPlanCta: "Escolher Business",
+      creditPackEyebrow: "Reforco unico",
+      creditPackTitle: "Precisa de um reforco unico?",
+      creditPackBody:
+        "Compre {credits} creditos extra para anuncios por {price}. Pagamento unico. Sem compromisso.",
+      creditPackCta: "Comprar {credits} creditos",
       aiGeneratedTitles: "Titulos e descricoes gerados por IA",
       phoneUpload: "Upload por telefone (brevemente so para Pro e Business)",
       seeIfYouLikeIt: "Experimente primeiro",

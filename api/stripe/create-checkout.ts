@@ -9,6 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
+const PAID_TIERS = new Set(["starter", "pro", "business"]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!(await handleCheckoutCors(req, res))) return;
@@ -30,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 2) Validate tier and get price ID
-    if (!tier || !TIER_CONFIGS[tier]) {
+    if (!tier || !PAID_TIERS.has(tier) || !TIER_CONFIGS[tier]) {
       return res.status(400).json({ error: "Invalid tier specified." });
     }
 

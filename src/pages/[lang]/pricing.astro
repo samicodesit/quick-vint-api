@@ -823,9 +823,9 @@ const {
       </div>
     </div>
 
-    <div class="max-w-[1400px] mx-auto relative z-10 mt-8">
+    <div class="max-w-2xl mx-auto relative z-10 mt-8">
       <div
-        class="rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+        class="rounded-2xl border border-slate-200 bg-white px-6 py-6 text-center shadow-sm"
       >
         <div>
           <div
@@ -836,7 +836,7 @@ const {
           <h2 class="text-lg font-extrabold text-slate-900">
             {extra.pricing.creditPackTitle}
           </h2>
-          <p class="text-sm text-slate-600 mt-1 max-w-2xl">
+          <p class="text-sm text-slate-600 mt-1 max-w-xl mx-auto">
             {
               extra.pricing.creditPackBody
                 .replace("{credits}", String(creditPack.credits))
@@ -845,7 +845,7 @@ const {
           </p>
         </div>
         <button
-          class="w-full md:w-auto min-w-[180px] py-3 px-5 rounded-xl font-bold text-sm text-brand-700 bg-brand-50 hover:bg-brand-100 transition-all duration-200 active:scale-95 flex items-center justify-center cursor-pointer"
+          class="mt-4 w-full sm:w-auto min-w-[180px] py-3 px-5 rounded-xl font-bold text-sm text-brand-700 bg-brand-50 hover:bg-brand-100 transition-all duration-200 active:scale-95 inline-flex items-center justify-center cursor-pointer"
           id="btn-credit-pack"
         >
           <span class="btn-text">

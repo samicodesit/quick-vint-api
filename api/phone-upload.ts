@@ -76,6 +76,11 @@ function isBatchMarkerFile(file: { name?: string }) {
   return file.name === BATCH_COMPLETE_MARKER;
 }
 
+function parseExpectedCount(value: unknown) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
 async function createStoredFileResponse(
   sessionId: string,
   file: { name: string; metadata?: Record<string, unknown> | null },
@@ -282,6 +287,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const expectedCount = parseExpectedCount(req.query.expectedCount);
     const { data: files, error: listError } = await supabase.storage
       .from(UPLOAD_BUCKET)
       .list(sessionId, {
@@ -293,6 +299,14 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
     if (listError) throw listError;
 
     const photoFiles = (files || []).filter((file) => !isBatchMarkerFile(file));
+    if (expectedCount !== null && photoFiles.length < expectedCount) {
+      return res.status(409).json({
+        error: "Batch uploads are still settling",
+        count: photoFiles.length,
+        expectedCount,
+      });
+    }
+
     const manifestFiles = photoFiles
       .map((file) => ({
         name: file.name,

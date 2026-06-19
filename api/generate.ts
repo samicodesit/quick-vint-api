@@ -217,7 +217,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.apiCallsCount = userProfile.api_calls_this_month;
 
   // --- RATE LIMITING ---
-  const rateLimitResult = await RateLimiter.checkRateLimit(
+  // Reserve capacity before calling OpenAI so parallel/direct API requests
+  // cannot all pass the same stale allowance and spend extra AI budget.
+  const rateLimitResult = await RateLimiter.reserveGenerationRequest(
     user.id,
     userProfile,
     pricingLimitsMode,
@@ -430,22 +432,6 @@ Reply only in JSON: {"title":"...","description":"..."}
 
     // Log the successful request
     await ApiLogger.logRequest(logData);
-
-    // Record successful request for rate limiting (increment counters)
-    await RateLimiter.recordSuccessfulRequest(user.id, pricingLimitsMode);
-
-    // Increment monthly API call count after successful generation
-    const { error: incrementError } = await supabase
-      .from("profiles")
-      .update({
-        api_calls_this_month: userProfile.api_calls_this_month + 1,
-      })
-      .eq("id", user.id);
-
-    if (incrementError) {
-      console.error("Failed to increment monthly API count:", incrementError);
-      // Don't fail the request if we can't update the counter
-    }
 
     return res.status(200).json({
       title,

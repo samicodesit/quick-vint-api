@@ -37,6 +37,17 @@ interface RateLimitResult {
   };
 }
 
+type ReservationRpcResult = {
+  allowed?: boolean;
+  error?: string;
+  code?: RateLimitResult["code"];
+  currentTier?: string;
+  nextTier?: string | null;
+  limitScope?: RateLimitResult["limitScope"];
+  currentLimit?: number | null;
+  remainingRequests?: RateLimitResult["remainingRequests"];
+};
+
 export interface UserProfile {
   subscription_status: string;
   subscription_tier: string;
@@ -472,6 +483,69 @@ export class RateLimiter {
       console.error("Rate limiter error:", err);
       // On error, allow the request but log the issue
       return { allowed: true };
+    }
+  }
+
+  static async reserveGenerationRequest(
+    userId: string,
+    profile: UserProfile,
+    pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+  ): Promise<RateLimitResult> {
+    const tierKey = getEffectiveTier(profile);
+    const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
+    const hasUnlimitedDaily = hasUnlimitedDailyLimit(
+      profile,
+      pricingLimitsMode,
+    );
+
+    try {
+      const { data, error } = await supabase.rpc("reserve_generation_request", {
+        p_user_id: userId,
+        p_pricing_limits_mode: pricingLimitsMode,
+        p_effective_tier: tierKey,
+        p_monthly_limit: tierConfig.limits.monthly,
+        p_daily_limit: hasUnlimitedDaily ? null : tierConfig.limits.daily,
+        p_burst_limit: tierConfig.limits.burst.perMinute,
+        p_free_lifetime_limit: FREE_LIFETIME_LIMIT,
+        p_has_unlimited_daily: hasUnlimitedDaily,
+      });
+
+      if (error) {
+        console.error("Generation reservation failed:", error);
+        return {
+          allowed: false,
+          code: "service_unavailable",
+          limitScope: "service",
+          error: "Could not reserve generation capacity. Please try again.",
+        };
+      }
+
+      const result = data as ReservationRpcResult | null;
+      if (!result?.allowed) {
+        return {
+          allowed: false,
+          code: result?.code,
+          currentTier: result?.currentTier || tierKey,
+          nextTier: result?.nextTier ?? getNextTier(tierKey),
+          limitScope: result?.limitScope,
+          currentLimit: result?.currentLimit ?? undefined,
+          remainingRequests: result?.remainingRequests,
+          error: result?.error || "Too many requests. Please try again later.",
+        };
+      }
+
+      return {
+        allowed: true,
+        remainingRequests: result.remainingRequests,
+      };
+    } catch (err) {
+      console.error("Generation reservation exception:", err);
+      return {
+        allowed: false,
+        code: "service_unavailable",
+        limitScope: "service",
+        error: "Could not reserve generation capacity. Please try again.",
+      };
     }
   }
 

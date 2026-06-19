@@ -6,7 +6,9 @@ type SupabaseResponse = {
 };
 
 const singleResponses = new Map<string, SupabaseResponse[]>();
+const rpcResponses: SupabaseResponse[] = [];
 const fromCalls: string[] = [];
+const rpcCalls: Array<{ name: string; params: Record<string, unknown> }> = [];
 
 function queueSingle(table: string, response: SupabaseResponse) {
   const queue = singleResponses.get(table) || [];
@@ -21,6 +23,19 @@ function popSingle(table: string): SupabaseResponse {
 
   if (!response) {
     throw new Error(`Unexpected Supabase .single() call for "${table}"`);
+  }
+
+  return response;
+}
+
+function queueRpc(response: SupabaseResponse) {
+  rpcResponses.push(response);
+}
+
+function popRpc(): SupabaseResponse {
+  const response = rpcResponses.shift();
+  if (!response) {
+    throw new Error("Unexpected Supabase .rpc() call");
   }
 
   return response;
@@ -45,6 +60,10 @@ vi.mock("../../../utils/supabaseClient", () => ({
     from: vi.fn((table: string) => {
       fromCalls.push(table);
       return createQueryBuilder(table);
+    }),
+    rpc: vi.fn(async (name: string, params: Record<string, unknown>) => {
+      rpcCalls.push({ name, params });
+      return popRpc();
     }),
   },
 }));
@@ -73,7 +92,9 @@ describe("RateLimiter entitlement decisions", () => {
   beforeEach(() => {
     process.env.PRICING_LIMITS_MODE = "current";
     singleResponses.clear();
+    rpcResponses.length = 0;
     fromCalls.length = 0;
+    rpcCalls.length = 0;
     vi.clearAllMocks();
   });
 
@@ -397,6 +418,72 @@ describe("RateLimiter entitlement decisions", () => {
         month: 0,
         packCredits: 0,
       },
+    });
+  });
+
+  it("reserves generation through the atomic reservation RPC", async () => {
+    queueRpc({
+      data: {
+        allowed: true,
+        remainingRequests: {
+          minute: 9,
+          day: 8,
+          month: 73,
+          packCredits: 0,
+        },
+      },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveGenerationRequest("user-starter", {
+      subscription_status: "active",
+      subscription_tier: "starter",
+      api_calls_this_month: 1,
+      is_legacy_plan: false,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      remainingRequests: {
+        minute: 9,
+        day: 8,
+        month: 73,
+      },
+    });
+    expect(rpcCalls).toHaveLength(1);
+    expect(rpcCalls[0]).toMatchObject({
+      name: "reserve_generation_request",
+      params: {
+        p_user_id: "user-starter",
+        p_effective_tier: "starter",
+        p_monthly_limit: 75,
+        p_daily_limit: 10,
+        p_burst_limit: 10,
+      },
+    });
+  });
+
+  it("fails closed when generation reservation cannot be made", async () => {
+    queueRpc({
+      data: null,
+      error: { message: "function missing" },
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveGenerationRequest("user-starter", {
+      subscription_status: "active",
+      subscription_tier: "starter",
+      api_calls_this_month: 1,
+      is_legacy_plan: false,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      code: "service_unavailable",
+      limitScope: "service",
     });
   });
 });

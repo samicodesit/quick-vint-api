@@ -50,6 +50,21 @@ function runCors(req: VercelRequest, res: VercelResponse) {
 
 const openai = new OpenAI({ apiKey: process.env.VERCEL_APP_OPENAI_API_KEY });
 
+function extractOpenAIRateLimitHeaders(
+  headers?: { get(name: string): string | null } | null,
+) {
+  if (!headers) return null;
+
+  return {
+    limitRequests: headers.get("x-ratelimit-limit-requests"),
+    limitTokens: headers.get("x-ratelimit-limit-tokens"),
+    remainingRequests: headers.get("x-ratelimit-remaining-requests"),
+    remainingTokens: headers.get("x-ratelimit-remaining-tokens"),
+    resetRequests: headers.get("x-ratelimit-reset-requests"),
+    resetTokens: headers.get("x-ratelimit-reset-tokens"),
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startTime = Date.now();
   const requestMetadata = ApiLogger.extractRequestMetadata(req);
@@ -342,56 +357,51 @@ Reply only in JSON: {"title":"...","description":"..."}
       type: "image_url",
       image_url: { url, detail: OPEN_AI_IMAGE_DETAIL },
     }));
-    const chat = await openai.chat.completions.create({
-      model: OPEN_AI_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: [
+    const { data: chat, response: openaiResponse } =
+      await openai.chat.completions
+        .create({
+          model: OPEN_AI_MODEL,
+          messages: [
             {
-              type: "text",
-              text: userPrompt,
+              role: "system",
+              content: systemPrompt,
             },
-            ...parts,
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: userPrompt,
+                },
+                ...parts,
+              ],
+            },
           ],
-        },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "listing",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              title: { type: "string" },
-              description: { type: "string" },
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "listing",
+              strict: true,
+              schema: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  title: { type: "string" },
+                  description: { type: "string" },
+                },
+                required: ["title", "description"],
+              },
             },
-            required: ["title", "description"],
           },
-        },
-      },
-      max_tokens: 320,
-      temperature: 0.3,
-    });
+          max_tokens: 320,
+          temperature: 0.3,
+        })
+        .withResponse();
 
     // Log token usage and rate limit info
     logData.openaiTokensUsed = chat.usage?.total_tokens;
-
-    // Log rate limit headers for monitoring (helps track when approaching limits)
-    const rateLimitInfo = {
-      remainingRequests: (chat as any)._request_id
-        ? "available in response headers"
-        : "N/A",
-      remainingTokens: (chat as any)._request_id
-        ? "available in response headers"
-        : "N/A",
-    };
+    const rateLimitInfo = extractOpenAIRateLimitHeaders(openaiResponse.headers);
+    logData.openaiRateLimitInfo = rateLimitInfo;
     console.log("🔄 OpenAI Rate Limit Status:", rateLimitInfo);
 
     const content = chat.choices?.[0]?.message?.content ?? "{}";
@@ -451,7 +461,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     let statusCode = 500;
 
     // Check for specific error types
-    if (err.message?.includes("Rate limit")) {
+    if (err.status === 429 || err.message?.includes("Rate limit")) {
       userMessage =
         "Our AI service is currently busy. Please try again in a few seconds.";
       statusCode = 429;
@@ -474,9 +484,15 @@ Reply only in JSON: {"title":"...","description":"..."}
     logData.responseStatus = statusCode;
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = `OpenAI generation error: ${err.message}`;
+    logData.openaiRateLimitInfo = extractOpenAIRateLimitHeaders(err.headers);
     await ApiLogger.logRequest(logData);
 
     // Return generic error to user (protecting sensitive details)
-    return res.status(statusCode).json({ error: userMessage });
+    return res.status(statusCode).json({
+      error: userMessage,
+      code: statusCode === 429 ? "service_unavailable" : undefined,
+      provider: statusCode === 429 ? "openai" : undefined,
+      limitScope: statusCode === 429 ? "service" : undefined,
+    });
   }
 }

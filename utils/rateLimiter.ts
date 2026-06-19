@@ -37,13 +37,37 @@ interface RateLimitResult {
   };
 }
 
-interface UserProfile {
+export interface UserProfile {
   subscription_status: string;
   subscription_tier: string;
   api_calls_this_month: number;
   is_legacy_plan?: boolean | null;
   free_lifetime_generations_used?: number | null;
   pack_credits?: number | null;
+  custom_daily_limit?: number | null;
+  custom_limit_expires_at?: string | null;
+}
+
+export interface GenerationCapacity {
+  allowed: boolean;
+  available: number;
+  tier: string;
+  nextTier?: string | null;
+  reason?: RateLimitResult["code"];
+  message?: string;
+  limits: {
+    daily: number | null;
+    monthly: number;
+    freeLifetime?: number | null;
+    burstPerMinute: number;
+  };
+  remaining: {
+    minute?: number;
+    day: number | null;
+    month: number;
+    freeLifetime?: number | null;
+    packCredits: number;
+  };
 }
 
 export class RateLimiter {
@@ -448,6 +472,172 @@ export class RateLimiter {
       console.error("Rate limiter error:", err);
       // On error, allow the request but log the issue
       return { allowed: true };
+    }
+  }
+
+  static async getGenerationCapacity(
+    userId: string,
+    profile: UserProfile,
+    pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+  ): Promise<GenerationCapacity> {
+    const tierKey = getEffectiveTier(profile);
+    const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
+    const nextTier = getNextTier(tierKey);
+    const packCredits = Math.max(0, profile.pack_credits || 0);
+
+    const baseCapacity = {
+      tier: tierKey,
+      nextTier,
+      limits: {
+        daily: tierConfig.limits.daily,
+        monthly: tierConfig.limits.monthly,
+        burstPerMinute: tierConfig.limits.burst.perMinute,
+      },
+    };
+
+    try {
+      const { data: emergencyBrake } = await supabase
+        .from("system_settings")
+        .select("value, reason")
+        .eq("key", "emergency_brake")
+        .single();
+
+      if (emergencyBrake?.value === "true") {
+        return {
+          ...baseCapacity,
+          allowed: false,
+          available: 0,
+          reason: "service_unavailable",
+          message: "Service temporarily unavailable. Please try again later.",
+          remaining: { day: null, month: 0, packCredits },
+        };
+      }
+
+      const globalBudgetOk = await this.checkGlobalBudget();
+      if (!globalBudgetOk) {
+        return {
+          ...baseCapacity,
+          allowed: false,
+          available: 0,
+          reason: "service_unavailable",
+          message:
+            "Service temporarily unavailable due to daily budget limits. Please try again later.",
+          remaining: { day: null, month: 0, packCredits },
+        };
+      }
+
+      const { data: customLimits } = await supabase
+        .from("profiles")
+        .select(
+          "custom_daily_limit, custom_limit_expires_at, custom_limit_reason",
+        )
+        .eq("id", userId)
+        .single();
+
+      if (pricingLimitsMode === "current" && tierKey === "free") {
+        const freeUsed = Math.max(
+          0,
+          profile.free_lifetime_generations_used || 0,
+        );
+        const freeRemaining = Math.max(FREE_LIFETIME_LIMIT - freeUsed, 0);
+        const available = freeRemaining + packCredits;
+
+        return {
+          ...baseCapacity,
+          allowed: available > 0,
+          available,
+          reason: available > 0 ? undefined : "free_lifetime_limit",
+          message:
+            available > 0
+              ? undefined
+              : "Free listing limit reached. Upgrade your plan or buy a one-time credit pack.",
+          limits: {
+            ...baseCapacity.limits,
+            daily: null,
+            freeLifetime: FREE_LIFETIME_LIMIT,
+          },
+          remaining: {
+            day: null,
+            month: 0,
+            freeLifetime: freeRemaining,
+            packCredits,
+          },
+        };
+      }
+
+      const minuteCount = await this.getCurrentCount(userId, "minute");
+      const dayCount = await this.getCurrentCount(userId, "day");
+      const monthlyUsed = Math.max(0, profile.api_calls_this_month || 0);
+      const monthRemaining = Math.max(
+        0,
+        tierConfig.limits.monthly - monthlyUsed,
+      );
+
+      let effectiveDailyLimit: number | null = null;
+      if (hasUnlimitedDailyLimit(profile, pricingLimitsMode)) {
+        effectiveDailyLimit = null;
+      } else if (
+        customLimits?.custom_daily_limit &&
+        customLimits.custom_limit_expires_at &&
+        new Date(customLimits.custom_limit_expires_at) > new Date()
+      ) {
+        effectiveDailyLimit = customLimits.custom_daily_limit;
+      } else {
+        effectiveDailyLimit = tierConfig.limits.daily;
+      }
+
+      const dayRemaining =
+        effectiveDailyLimit === null
+          ? null
+          : Math.max(0, effectiveDailyLimit - dayCount);
+      const planRemaining =
+        dayRemaining === null
+          ? monthRemaining
+          : Math.min(dayRemaining, monthRemaining);
+      const available = planRemaining + packCredits;
+
+      let reason: GenerationCapacity["reason"] | undefined;
+      let message: string | undefined;
+      if (available === 0) {
+        if (monthRemaining === 0) {
+          reason = "monthly_limit";
+          message =
+            "Monthly usage limit reached. Please upgrade your plan or try again next month.";
+        } else if (dayRemaining === 0) {
+          reason = "daily_limit";
+          message =
+            "Daily usage limit reached. Please try again tomorrow or upgrade your plan.";
+        }
+      }
+
+      return {
+        ...baseCapacity,
+        allowed: available > 0,
+        available,
+        reason,
+        message,
+        limits: {
+          daily: effectiveDailyLimit,
+          monthly: tierConfig.limits.monthly,
+          burstPerMinute: tierConfig.limits.burst.perMinute,
+        },
+        remaining: {
+          minute: Math.max(0, tierConfig.limits.burst.perMinute - minuteCount),
+          day: dayRemaining,
+          month: monthRemaining,
+          packCredits,
+        },
+      };
+    } catch (err) {
+      console.error("Generation capacity error:", err);
+      return {
+        ...baseCapacity,
+        allowed: false,
+        available: 0,
+        reason: "service_unavailable",
+        message: "Could not check generation capacity. Please try again.",
+        remaining: { day: null, month: 0, packCredits },
+      };
     }
   }
 

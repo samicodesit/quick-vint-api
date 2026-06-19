@@ -275,4 +275,128 @@ describe("RateLimiter entitlement decisions", () => {
       },
     });
   });
+
+  it("reports free batch capacity from remaining lifetime listings", async () => {
+    queueCommonPreflight();
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity("user-free-three-left", {
+      subscription_status: "free",
+      subscription_tier: "free",
+      api_calls_this_month: 0,
+      free_lifetime_generations_used: 2,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      available: 3,
+      tier: "free",
+      remaining: {
+        day: null,
+        month: 0,
+        freeLifetime: 3,
+        packCredits: 0,
+      },
+    });
+  });
+
+  it("adds pack credits to exhausted free batch capacity", async () => {
+    queueCommonPreflight();
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity("user-free-pack-capacity", {
+      subscription_status: "free",
+      subscription_tier: "free",
+      api_calls_this_month: 999,
+      free_lifetime_generations_used: 5,
+      pack_credits: 4,
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      available: 4,
+      remaining: {
+        freeLifetime: 0,
+        packCredits: 4,
+      },
+    });
+  });
+
+  it("caps paid batch capacity by the lower daily or monthly remainder", async () => {
+    queueCommonPreflight();
+    queueRateCount(0);
+    queueRateCount(7);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity("user-starter-capacity", {
+      subscription_status: "active",
+      subscription_tier: "starter",
+      api_calls_this_month: 70,
+      is_legacy_plan: false,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      available: 3,
+      tier: "starter",
+      remaining: {
+        day: 3,
+        month: 5,
+        packCredits: 0,
+      },
+    });
+  });
+
+  it("adds pack credits beyond paid plan capacity", async () => {
+    queueCommonPreflight();
+    queueRateCount(0);
+    queueRateCount(10);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity("user-pro-pack-capacity", {
+      subscription_status: "active",
+      subscription_tier: "pro",
+      api_calls_this_month: 249,
+      is_legacy_plan: false,
+      pack_credits: 6,
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      available: 7,
+      remaining: {
+        day: 15,
+        month: 1,
+        packCredits: 6,
+      },
+    });
+  });
+
+  it("reports zero paid batch capacity when hard limits and pack credits are exhausted", async () => {
+    queueCommonPreflight();
+    queueRateCount(0);
+    queueRateCount(10);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity("user-starter-zero-capacity", {
+      subscription_status: "active",
+      subscription_tier: "starter",
+      api_calls_this_month: 75,
+      is_legacy_plan: false,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      available: 0,
+      reason: "monthly_limit",
+      remaining: {
+        day: 0,
+        month: 0,
+        packCredits: 0,
+      },
+    });
+  });
 });

@@ -74,7 +74,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "The best AI Vinted lister that generates descriptions from photos. Stop typing and start selling with our automatic Vinted description generator. 100% account-safe, ban-free alternative to Vinted bots.",
       heroTitle: "The Only AI Vinted Lister You Need.",
       heroSubtitle:
-        "Save time on thinking and typing. AutoLister is the Vinted description generator that turns photos into fully optimized listings in seconds.",
+        "Sell faster on Vinted. AutoLister is the Vinted description generator that turns photos into fully optimized listings in seconds.",
       heroBadgeSafe: "100% Account-Safe · Vinted ToS Compliant",
       heroBulletSafety:
         "Zero ban risk - never hooks into Vinted's servers like automation bots do",
@@ -112,7 +112,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Le meilleur outil IA pour Vinted qui génère des descriptions depuis des photos, rapidement et en toute sécurité.",
       heroTitle: "Le seul assistant IA Vinted dont vous avez besoin.",
       heroSubtitle:
-        "Gagnez du temps. AutoLister transforme vos photos en annonces Vinted optimisées en quelques secondes.",
+        "Vendez plus vite sur Vinted. AutoLister transforme vos photos en annonces Vinted optimisées en quelques secondes.",
       heroBadgeSafe: "100% Sécurisé · Conforme aux règles Vinted",
       heroBulletSafety:
         "Risque de ban nul - aucune connexion aux serveurs Vinted comme les bots",
@@ -150,7 +150,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Der beste KI-Textgenerator fur Vinted. Erstelle bessere Inserate aus Fotos in Sekunden.",
       heroTitle: "Der einzige KI-Vinted-Assistent, den du brauchst.",
       heroSubtitle:
-        "Spare Zeit beim Schreiben. AutoLister verwandelt Fotos in optimierte Vinted-Inserate in Sekunden.",
+        "Verkaufe schneller auf Vinted. AutoLister verwandelt Fotos in optimierte Vinted-Inserate in Sekunden.",
       heroBadgeSafe: "100% Sicher · Vinted-Regelkonform",
       heroBulletSafety:
         "Kein Bannrisiko - keine Verbindung zu Vinted-Servern wie bei Bots",
@@ -187,7 +187,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Maak Vinted-beschrijvingen met AI vanuit foto's, snel en veilig.",
       heroTitle: "De enige AI Vinted-assistent die je nodig hebt.",
       heroSubtitle:
-        "Bespaar tijd met typen. AutoLister zet foto's om naar geoptimaliseerde Vinted-teksten in seconden.",
+        "Verkoop sneller op Vinted. AutoLister zet foto's om naar geoptimaliseerde Vinted-teksten in seconden.",
       heroBadgeSafe: "100% Veilig · Vinted-conform",
       heroBulletSafety:
         "Geen ban-risico - geen koppeling met Vinted-servers zoals bots",
@@ -225,7 +225,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Tworz opisy Vinted z AI na podstawie zdjec szybko i bezpiecznie.",
       heroTitle: "Jeden asystent AI do Vinted, ktorego potrzebujesz.",
       heroSubtitle:
-        "Oszczedzaj czas na pisaniu. AutoLister zamienia zdjecia w zoptymalizowane oferty Vinted w kilka sekund.",
+        "Sprzedawaj szybciej na Vinted. AutoLister zamienia zdjecia w zoptymalizowane oferty Vinted w kilka sekund.",
       heroBadgeSafe: "100% Bezpieczne · Zgodne z zasadami Vinted",
       heroBulletSafety:
         "Brak ryzyka bana - brak polaczen z serwerami Vinted jak w botach",
@@ -263,7 +263,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Genera descripciones para Vinted desde fotos con IA, rapido y seguro.",
       heroTitle: "El unico asistente IA para Vinted que necesitas.",
       heroSubtitle:
-        "Ahorra tiempo al escribir. AutoLister convierte fotos en anuncios optimizados para Vinted en segundos.",
+        "Vende mas rapido en Vinted. AutoLister convierte fotos en anuncios optimizados para Vinted en segundos.",
       heroBadgeSafe: "100% Seguro · Cumple normas de Vinted",
       heroBulletSafety:
         "Riesgo de baneo cero - sin conexion a servidores de Vinted como los bots",
@@ -301,7 +301,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Genera descrizioni Vinted da foto con IA, in modo rapido e sicuro.",
       heroTitle: "L'unico assistente IA per Vinted di cui hai bisogno.",
       heroSubtitle:
-        "Risparmia tempo. AutoLister trasforma le foto in annunci Vinted ottimizzati in pochi secondi.",
+        "Vendi piu velocemente su Vinted. AutoLister trasforma le foto in annunci Vinted ottimizzati in pochi secondi.",
       heroBadgeSafe: "100% Sicuro · Conforme alle regole Vinted",
       heroBulletSafety:
         "Rischio ban zero - nessun collegamento ai server Vinted come i bot",
@@ -338,7 +338,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crie descricoes para Vinted a partir de fotos com IA, de forma rapida e segura.",
       heroTitle: "O unico assistente IA para Vinted de que precisa.",
       heroSubtitle:
-        "Poupe tempo a escrever. O AutoLister transforma fotos em anuncios Vinted otimizados em segundos.",
+        "Venda mais rapido na Vinted. O AutoLister transforma fotos em anuncios Vinted otimizados em segundos.",
       heroBadgeSafe: "100% Seguro · Em conformidade com a Vinted",
       heroBulletSafety:
         "Risco de banimento zero - sem ligacoes aos servidores da Vinted como bots",

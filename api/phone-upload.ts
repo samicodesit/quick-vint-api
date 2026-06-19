@@ -30,17 +30,20 @@ interface FileUpload {
   buffer: Buffer;
   filename: string;
   mimeType: string;
+  order: number | null;
 }
 
 interface StoredFile {
   name: string;
   path: string;
   url: string;
+  order: number;
   size: unknown;
   type: unknown;
 }
 
 const UPLOAD_BUCKET = "temp-uploads";
+const BATCH_COMPLETE_MARKER = "_batch-complete.json";
 
 function getMetadataValue(
   metadata: Record<string, unknown> | null | undefined,
@@ -56,6 +59,21 @@ function getMetadataValue(
 function sanitizeFilename(filename: string) {
   const baseName = filename.split(/[\\/]/).pop()?.trim() || "upload";
   return baseName.replace(/[^\w .()-]/g, "_");
+}
+
+function parseUploadOrder(value: unknown) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function getStoredFileOrder(name: string) {
+  return (
+    parseUploadOrder(name.match(/^(\d+)-/)?.[1]) ?? Number.MAX_SAFE_INTEGER
+  );
+}
+
+function isBatchMarkerFile(file: { name?: string }) {
+  return file.name === BATCH_COMPLETE_MARKER;
 }
 
 async function createStoredFileResponse(
@@ -77,6 +95,7 @@ async function createStoredFileResponse(
     name: file.name,
     path,
     url: data.signedUrl,
+    order: getStoredFileOrder(file.name),
     size: getMetadataValue(file.metadata, ["size", "contentLength"]),
     type: getMetadataValue(file.metadata, [
       "mimetype",
@@ -93,13 +112,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     return handleList(req, res);
   } else if (req.method === "POST") {
-    // Check if it's a multipart request (upload) or JSON (complete)
+    // Check if it's a multipart request (upload) or JSON (complete/cleanup).
+    // JSON POST without an action is legacy cleanup behavior.
     const contentType = req.headers["content-type"] || "";
+    const action = typeof req.query.action === "string" ? req.query.action : "";
     if (contentType.includes("multipart/form-data")) {
       return handleUpload(req, res);
-    } else {
+    } else if (action === "complete") {
       return handleComplete(req, res);
+    } else if (!action || action === "cleanup") {
+      return handleCleanup(req, res);
     }
+    return res.status(400).json({ error: "Unknown action" });
   } else {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -124,15 +148,25 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 
     if (listError) throw listError;
 
-    if (!files || files.length === 0) {
-      return res.status(200).json({ files: [] });
+    const complete = Boolean(files?.some(isBatchMarkerFile));
+    const photoFiles = files?.filter((file) => !isBatchMarkerFile(file)) || [];
+
+    if (photoFiles.length === 0) {
+      return res.status(200).json({ files: [], count: 0, complete });
     }
 
     const signedFiles = await Promise.all(
-      files.map((file) => createStoredFileResponse(sessionId, file)),
+      photoFiles.map((file) => createStoredFileResponse(sessionId, file)),
+    );
+    signedFiles.sort(
+      (a, b) => a.order - b.order || a.name.localeCompare(b.name),
     );
 
-    res.status(200).json({ files: signedFiles, count: signedFiles.length });
+    res.status(200).json({
+      files: signedFiles,
+      count: signedFiles.length,
+      complete,
+    });
   } catch (error: any) {
     console.error("List error:", error);
     res.status(500).json({ error: error.message });
@@ -144,6 +178,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   const busboy = Busboy({ headers: req.headers });
   const fileUploads: FileUpload[] = [];
   let sessionId = "";
+  let uploadOrder: number | null = null;
   let responseSent = false;
 
   const sendError = (status: number, message: string) => {
@@ -155,6 +190,8 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   busboy.on("field", (fieldname, val) => {
     if (fieldname === "sessionId") {
       sessionId = val;
+    } else if (fieldname === "uploadOrder") {
+      uploadOrder = parseUploadOrder(val);
     }
   });
 
@@ -168,6 +205,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         buffer: Buffer.concat(chunks),
         filename,
         mimeType,
+        order: uploadOrder,
       });
     });
   });
@@ -184,9 +222,11 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         return sendError(400, "No files received");
       }
 
-      const uploadPromises = fileUploads.map(async (file) => {
+      const uploadPromises = fileUploads.map(async (file, index) => {
         const uniqueSuffix = Math.random().toString(36).substring(2, 9);
-        const storedName = `${Date.now()}-${uniqueSuffix}-${sanitizeFilename(file.filename)}`;
+        const order = file.order ?? index;
+        const orderPrefix = String(order).padStart(6, "0");
+        const storedName = `${orderPrefix}-${Date.now()}-${uniqueSuffix}-${sanitizeFilename(file.filename)}`;
         const path = `${finalSessionId}/${storedName}`;
         const { error } = await supabase.storage
           .from(UPLOAD_BUCKET)
@@ -200,6 +240,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         return {
           name: storedName,
           path,
+          order,
           size: file.buffer.length,
           type: file.mimeType,
         };
@@ -232,7 +273,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   req.pipe(busboy);
 }
 
-// --- Handler: Complete Session (POST JSON) ---
+// --- Handler: Complete Batch Session (POST JSON) ---
 async function handleComplete(req: VercelRequest, res: VercelResponse) {
   const sessionId = req.query.sessionId as string;
 
@@ -241,14 +282,73 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // 1. List all files in the session folder
+    const { data: files, error: listError } = await supabase.storage
+      .from(UPLOAD_BUCKET)
+      .list(sessionId, {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: "created_at", order: "asc" },
+      });
+
+    if (listError) throw listError;
+
+    const photoFiles = (files || []).filter((file) => !isBatchMarkerFile(file));
+    const manifestFiles = photoFiles
+      .map((file) => ({
+        name: file.name,
+        path: `${sessionId}/${file.name}`,
+        order: getStoredFileOrder(file.name),
+      }))
+      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+
+    const markerPath = `${sessionId}/${BATCH_COMPLETE_MARKER}`;
+    const { error: markerError } = await supabase.storage
+      .from(UPLOAD_BUCKET)
+      .upload(
+        markerPath,
+        Buffer.from(
+          JSON.stringify({
+            complete: true,
+            completedAt: new Date().toISOString(),
+            count: manifestFiles.length,
+            files: manifestFiles,
+          }),
+        ),
+        {
+          contentType: "application/json",
+          upsert: true,
+        },
+      );
+
+    if (markerError) throw markerError;
+
+    res.status(200).json({
+      success: true,
+      complete: true,
+      count: manifestFiles.length,
+      files: manifestFiles,
+    });
+  } catch (error: any) {
+    console.error("Complete error:", error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// --- Handler: Cleanup Session (POST JSON) ---
+async function handleCleanup(req: VercelRequest, res: VercelResponse) {
+  const sessionId = req.query.sessionId as string;
+
+  if (!sessionId) {
+    return res.status(400).json({ error: "Missing sessionId" });
+  }
+
+  try {
     const { data: files, error: listError } = await supabase.storage
       .from(UPLOAD_BUCKET)
       .list(sessionId);
 
     if (listError) throw listError;
 
-    // 2. If there are files, delete them
     if (files && files.length > 0) {
       const filesToRemove = files.map((f) => `${sessionId}/${f.name}`);
       const { error: removeError } = await supabase.storage
@@ -265,7 +365,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       .status(200)
       .json({ success: true, message: "Session completed and cleaned up" });
   } catch (error: any) {
-    console.error("Complete error:", error);
+    console.error("Cleanup error:", error);
     // Even if cleanup fails, we return success to the client so they don't retry
     res.status(200).json({
       success: true,

@@ -89,6 +89,18 @@
             background: var(--primary-hover);
         }
 
+        .upload-btn.secondary {
+            margin-top: 12px;
+            background: #0f172a;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.24);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .upload-btn svg {
             width: 24px;
             height: 24px;
@@ -111,6 +123,50 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             animation: slideIn 0.3s ease-out;
+        }
+
+        .file-order {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: var(--primary);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .batch-mode .file-order {
+            display: flex;
+        }
+
+        .file-actions {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .batch-mode .file-actions {
+            display: flex;
+        }
+
+        .file-actions button {
+            width: 34px;
+            height: 28px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .file-actions button:disabled {
+            opacity: 0.35;
         }
 
         @keyframes slideIn {
@@ -225,14 +281,17 @@
 <body>
 
     <div class="container">
-        <h1>Upload Photos</h1>
-        <p>Select photos for your <strong>current item</strong>.<br>Start a new session for a different item.</p>
+        <h1 id="pageTitle">Upload Photos</h1>
+        <p id="pageCopy">Select photos for your <strong>current item</strong>.<br>Start a new session for a different item.</p>
 
         <button class="upload-btn" id="mainBtn">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Select Photos
+        </button>
+        <button class="upload-btn secondary" id="sendBtn" style="display: none;" disabled>
+            Send Photos
         </button>
 
         <div class="file-list" id="fileList"></div>
@@ -251,15 +310,21 @@
             const API_COMPLETE = '/api/phone-upload?action=complete';
 
             const sessionCodeEl = document.getElementById('sessionCode');
+            const pageTitle = document.getElementById('pageTitle');
+            const pageCopy = document.getElementById('pageCopy');
             const fileInput = document.getElementById('fileInput');
             const mainBtn = document.getElementById('mainBtn');
+            const sendBtn = document.getElementById('sendBtn');
             const fileList = document.getElementById('fileList');
             const toastEl = document.getElementById('toast');
             const sessionFooter = document.getElementById('sessionFooter');
 
             const state = {
                 sessionId: null,
-                files: []
+                files: [],
+                isSending: false,
+                nextOrder: 0,
+                completeSent: false
             };
 
             function createSessionId() {
@@ -267,6 +332,19 @@
                 const existing = url.searchParams.get('s') || url.searchParams.get('session');
                 if (existing) return existing;
                 return 'sess_' + Math.random().toString(36).slice(2, 10);
+            }
+
+            function isBatchMode() {
+                const url = new URL(window.location.href);
+                return url.searchParams.get('mode') === 'batch';
+            }
+
+            function syncPageCopy() {
+                if (!isBatchMode()) return;
+                document.body.classList.add('batch-mode');
+                pageTitle.textContent = 'Upload Batch Photos';
+                pageCopy.innerHTML = 'Select photos for <strong>all items</strong>.<br>Check the order, then send.';
+                sendBtn.style.display = 'flex';
             }
 
             function showToast(msg) {
@@ -279,14 +357,23 @@
                 const el = document.createElement('div');
                 el.className = 'file-item';
                 el.innerHTML = `
+            <div class="file-order"></div>
             <img src="${item.preview}" class="file-preview">
             <div class="file-info">
                 <div class="file-name">${item.name}</div>
                 <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
                 <div class="file-status">Waiting...</div>
             </div>
+            <div class="file-actions">
+                <button type="button" class="move-up">Up</button>
+                <button type="button" class="move-down">Down</button>
+            </div>
         `;
-                fileList.prepend(el);
+                fileList.appendChild(el);
+                item.el = el;
+                el.querySelector('.move-up')?.addEventListener('click', () => moveItem(item, -1));
+                el.querySelector('.move-down')?.addEventListener('click', () => moveItem(item, 1));
+                updateBatchOrderUI();
                 return {
                     el,
                     fill: el.querySelector('.progress-fill'),
@@ -295,41 +382,54 @@
             }
 
             function uploadFile(item, ui) {
-                const form = new FormData();
-                form.append('file', item.file);
-                form.append('sessionId', state.sessionId);
+                return new Promise((resolve, reject) => {
+                    const form = new FormData();
+                    form.append('sessionId', state.sessionId);
+                    form.append('uploadOrder', String(item.order));
+                    form.append('file', item.file);
 
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', API_UPLOAD, true);
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', API_UPLOAD, true);
+                    item.failed = false;
+                    ui.fill.style.width = '0%';
+                    ui.fill.style.background = '';
+                    ui.status.classList.remove('status-done', 'status-error');
+                    ui.status.textContent = 'Starting...';
 
-                xhr.upload.onprogress = (e) => {
-                    if (e.lengthComputable) {
-                        const pct = Math.round((e.loaded / e.total) * 100);
-                        ui.fill.style.width = pct + '%';
-                        ui.status.textContent = pct === 100 ? 'Processing...' : 'Uploading...';
-                    }
-                };
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const pct = Math.round((e.loaded / e.total) * 100);
+                            ui.fill.style.width = pct + '%';
+                            ui.status.textContent = pct === 100 ? 'Processing...' : 'Uploading...';
+                        }
+                    };
 
-                xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        ui.fill.style.width = '100%';
-                        ui.fill.style.background = '#10b981';
-                        ui.status.textContent = 'Sent';
-                        ui.status.classList.add('status-done');
-                        item.done = true;
-                    } else {
-                        ui.status.textContent = 'Failed';
+                    xhr.onload = () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            ui.fill.style.width = '100%';
+                            ui.fill.style.background = '#10b981';
+                            ui.status.textContent = 'Sent';
+                            ui.status.classList.add('status-done');
+                            item.done = true;
+                            resolve();
+                        } else {
+                            ui.status.textContent = 'Failed';
+                            ui.status.classList.add('status-error');
+                            ui.fill.style.background = '#ef4444';
+                            item.failed = true;
+                            reject(new Error('Upload failed'));
+                        }
+                    };
+
+                    xhr.onerror = () => {
+                        ui.status.textContent = 'Error';
                         ui.status.classList.add('status-error');
-                        ui.fill.style.background = '#ef4444';
-                    }
-                };
+                        item.failed = true;
+                        reject(new Error('Upload error'));
+                    };
 
-                xhr.onerror = () => {
-                    ui.status.textContent = 'Error';
-                    ui.status.classList.add('status-error');
-                };
-
-                xhr.send(form);
+                    xhr.send(form);
+                });
             }
 
             function compressImage(file) {
@@ -387,49 +487,159 @@
                 });
             }
 
+            function updateBatchOrderUI() {
+                if (!isBatchMode()) return;
+
+                state.files.forEach((item, index) => {
+                    item.order = index;
+                    const orderEl = item.el?.querySelector('.file-order');
+                    const upBtn = item.el?.querySelector('.move-up');
+                    const downBtn = item.el?.querySelector('.move-down');
+                    if (orderEl) orderEl.textContent = String(index + 1);
+                    if (upBtn) upBtn.disabled = state.isSending || index === 0;
+                    if (downBtn) downBtn.disabled = state.isSending || index === state.files.length - 1;
+                });
+
+                const allDone = state.files.length > 0 && state.files.every((item) => item.done);
+                sendBtn.disabled = state.isSending || state.files.length === 0 || (allDone && state.completeSent);
+                if (!state.isSending && state.files.some((item) => item.failed && !item.done)) {
+                    sendBtn.textContent = 'Retry Failed';
+                } else if (allDone && state.completeSent) {
+                    sendBtn.textContent = 'Sent to Desktop';
+                } else {
+                    sendBtn.textContent = 'Send Photos';
+                }
+            }
+
+            function moveItem(item, direction) {
+                if (state.isSending) return;
+                const currentIndex = state.files.indexOf(item);
+                const nextIndex = currentIndex + direction;
+                if (currentIndex < 0 || nextIndex < 0 || nextIndex >= state.files.length) return;
+
+                const [moved] = state.files.splice(currentIndex, 1);
+                state.files.splice(nextIndex, 0, moved);
+                state.files.forEach((fileItem) => fileList.appendChild(fileItem.el));
+                updateBatchOrderUI();
+            }
+
+            async function prepareAndUploadItem(item, ui) {
+                ui.status.textContent = 'Compressing...';
+                try {
+                    const compressedFile = await compressImage(item.originalFile || item.file);
+                    item.file = compressedFile;
+                    if (item.name !== compressedFile.name) {
+                        item.name = compressedFile.name;
+                        ui.el.querySelector('.file-name').textContent = compressedFile.name;
+                    }
+                    await uploadFile(item, ui);
+                    return true;
+                } catch (e) {
+                    console.error(e);
+                    if (!item.done) {
+                        ui.status.textContent = 'Failed';
+                        ui.status.classList.add('status-error');
+                        item.failed = true;
+                    }
+                    return false;
+                }
+            }
+
+            async function completeBatchUpload() {
+                const response = await fetch(`${API_COMPLETE}&sessionId=${encodeURIComponent(state.sessionId)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        expectedCount: state.files.length,
+                        orders: state.files.map((item) => item.order)
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Could not mark batch complete');
+                }
+
+                state.completeSent = true;
+                pageTitle.textContent = 'Photos Sent';
+                pageCopy.innerHTML = 'Return to your desktop to group photos into listings.';
+                showToast('Sent to desktop');
+            }
+
+            async function sendBatchFiles() {
+                if (!isBatchMode() || state.isSending || state.files.length === 0) return;
+                state.isSending = true;
+                mainBtn.disabled = true;
+                state.completeSent = false;
+                updateBatchOrderUI();
+
+                let failedCount = 0;
+                for (let index = 0; index < state.files.length; index += 1) {
+                    const item = state.files[index];
+                    if (item.done) continue;
+                    item.order = index;
+                    const ok = await prepareAndUploadItem(item, item.ui);
+                    if (!ok) failedCount += 1;
+                }
+
+                if (state.files.every((item) => item.done)) {
+                    try {
+                        await completeBatchUpload();
+                    } catch (error) {
+                        console.error(error);
+                        showToast('Upload finished, but desktop was not notified. Tap Send Photos again.');
+                    }
+                } else if (failedCount > 0) {
+                    showToast(`${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Retry when ready.`);
+                }
+
+                state.isSending = false;
+                mainBtn.disabled = state.completeSent;
+                updateBatchOrderUI();
+            }
+
             function handleFiles(files) {
                 Array.from(files).forEach(async (originalFile) => {
+                    const order = state.nextOrder++;
                     // Create preview immediately for UI responsiveness
                     const previewUrl = URL.createObjectURL(originalFile);
 
                     const item = {
                         file: originalFile, // Will be replaced by compressed
+                        originalFile,
                         name: originalFile.name,
                         preview: previewUrl,
-                        done: false
+                        order,
+                        done: false,
+                        failed: false
                     };
 
                     state.files.push(item);
+                    state.completeSent = false;
                     const ui = renderFile(item);
+                    item.ui = ui;
 
-                    ui.status.textContent = 'Compressing...';
-
-                    try {
-                        const compressedFile = await compressImage(originalFile);
-                        item.file = compressedFile;
-                        // Update name if changed (e.g. png -> jpg)
-                        if (item.name !== compressedFile.name) {
-                            item.name = compressedFile.name;
-                            ui.el.querySelector('.file-name').textContent = compressedFile.name;
-                        }
-                        uploadFile(item, ui);
-                    } catch (e) {
-                        console.error(e);
-                        // Fallback to original
-                        uploadFile(item, ui);
+                    if (isBatchMode()) {
+                        ui.status.textContent = 'Ready';
+                        updateBatchOrderUI();
+                        return;
                     }
+
+                    await prepareAndUploadItem(item, ui);
                 });
             }
 
             // Init
             state.sessionId = createSessionId();
             sessionCodeEl.textContent = state.sessionId;
+            syncPageCopy();
 
             mainBtn.addEventListener('click', () => fileInput.click());
+            sendBtn.addEventListener('click', sendBatchFiles);
             fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
             sessionFooter.addEventListener('click', () => {
-                const link = `${location.origin}${location.pathname}?s=${state.sessionId}`;
+                const modeParam = isBatchMode() ? '&mode=batch' : '';
+                const link = `${location.origin}${location.pathname}?s=${state.sessionId}${modeParam}`;
                 navigator.clipboard.writeText(link).then(() => showToast('Link copied'));
             });
 

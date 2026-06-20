@@ -215,32 +215,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.subscriptionTier = userProfile.subscription_tier;
   logData.subscriptionStatus = userProfile.subscription_status;
   logData.apiCallsCount = userProfile.api_calls_this_month;
-
-  // --- RATE LIMITING ---
-  // Reserve capacity before calling OpenAI so parallel/direct API requests
-  // cannot all pass the same stale allowance and spend extra AI budget.
-  const rateLimitResult = await RateLimiter.reserveGenerationRequest(
-    user.id,
-    userProfile,
-    pricingLimitsMode,
-  );
-
-  if (!rateLimitResult.allowed) {
-    logData.responseStatus = 429;
-    logData.processingDurationMs = Date.now() - startTime;
-    logData.flaggedReason = "Rate limit exceeded";
-    await ApiLogger.logRequest(logData);
-    return res.status(429).json({
-      error:
-        rateLimitResult.error || "Too many requests. Please try again later.",
-      code: rateLimitResult.code,
-      currentTier: rateLimitResult.currentTier,
-      nextTier: rateLimitResult.nextTier,
-      limitScope: rateLimitResult.limitScope,
-      currentLimit: rateLimitResult.currentLimit,
-      remainingRequests: rateLimitResult.remainingRequests,
-    });
-  }
+  let generationReservationId: string | null = null;
 
   // --- VALIDATE BODY ---
   const {
@@ -315,6 +290,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .status(400)
       .json({ error: "imageUrls must be a non-empty array of strings." });
   }
+
+  // --- RATE LIMITING ---
+  // Reserve after request validation so malformed calls do not consume a user's
+  // listing entitlement, but before OpenAI so parallel calls cannot overspend.
+  const rateLimitResult = await RateLimiter.reserveGenerationRequest(
+    user.id,
+    userProfile,
+    pricingLimitsMode,
+  );
+
+  if (!rateLimitResult.allowed) {
+    logData.responseStatus = 429;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Rate limit exceeded";
+    await ApiLogger.logRequest(logData);
+    return res.status(429).json({
+      error:
+        rateLimitResult.error || "Too many requests. Please try again later.",
+      code: rateLimitResult.code,
+      currentTier: rateLimitResult.currentTier,
+      nextTier: rateLimitResult.nextTier,
+      limitScope: rateLimitResult.limitScope,
+      currentLimit: rateLimitResult.currentLimit,
+      remainingRequests: rateLimitResult.remainingRequests,
+    });
+  }
+
+  generationReservationId = rateLimitResult.reservationId ?? null;
 
   // Create the prompt for OpenAI
   const systemPrompt =
@@ -432,6 +435,7 @@ Reply only in JSON: {"title":"...","description":"..."}
 
     // Log the successful request
     await ApiLogger.logRequest(logData);
+    await RateLimiter.commitGenerationReservation(generationReservationId);
 
     return res.status(200).json({
       title,
@@ -471,6 +475,10 @@ Reply only in JSON: {"title":"...","description":"..."}
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = `OpenAI generation error: ${err.message}`;
     logData.openaiRateLimitInfo = extractOpenAIRateLimitHeaders(err.headers);
+    await RateLimiter.refundGenerationReservation(
+      generationReservationId,
+      statusCode === 400 ? "invalid_generation_input" : "generation_failed",
+    );
     await ApiLogger.logRequest(logData);
 
     // Return generic error to user (protecting sensitive details)

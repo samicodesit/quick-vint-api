@@ -1,5 +1,30 @@
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS generation_reservations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'committed', 'refunded')),
+  entitlement_type text NOT NULL CHECK (entitlement_type IN ('plan', 'free_lifetime', 'pack_credit')),
+  counted_month boolean NOT NULL DEFAULT false,
+  counted_day boolean NOT NULL DEFAULT false,
+  day_rate_key text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  committed_at timestamptz,
+  refunded_at timestamptz,
+  refund_reason text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+
+ALTER TABLE generation_reservations ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_generation_reservations_user_created
+  ON generation_reservations (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_generation_reservations_status_created
+  ON generation_reservations (status, created_at);
+
 CREATE OR REPLACE FUNCTION reserve_generation_request(
   p_user_id uuid,
   p_pricing_limits_mode text,
@@ -38,6 +63,9 @@ DECLARE
   daily_cost numeric := 0;
   global_daily_budget numeric := 100;
   openai_cost_per_request numeric := 0.0201;
+  reservation_id uuid;
+  entitlement_type text := 'plan';
+  counted_day boolean := false;
 BEGIN
   SELECT *
   INTO profile_row
@@ -140,12 +168,16 @@ BEGIN
     END IF;
 
     IF free_remaining > 0 THEN
+      entitlement_type := 'free_lifetime';
+
       UPDATE profiles
       SET
         free_lifetime_generations_used = free_used + 1,
         api_calls_this_month = month_used + 1
       WHERE id = p_user_id;
     ELSE
+      entitlement_type := 'pack_credit';
+
       UPDATE profiles
       SET
         pack_credits = pack_balance - 1,
@@ -217,8 +249,31 @@ BEGIN
       estimated_cost = COALESCE(daily_stats.estimated_cost, 0) + openai_cost_per_request,
       updated_at = now_utc;
 
+    INSERT INTO generation_reservations (
+      user_id,
+      entitlement_type,
+      counted_month,
+      counted_day,
+      day_rate_key,
+      metadata
+    )
+    VALUES (
+      p_user_id,
+      entitlement_type,
+      true,
+      false,
+      NULL,
+      jsonb_build_object(
+        'pricingLimitsMode', p_pricing_limits_mode,
+        'tier', p_effective_tier,
+        'reservedAt', now_utc
+      )
+    )
+    RETURNING id INTO reservation_id;
+
     RETURN jsonb_build_object(
       'allowed', true,
+      'reservationId', reservation_id,
       'remainingRequests', jsonb_build_object(
         'minute', GREATEST(p_burst_limit - minute_count - 1, 0),
         'day', NULL,
@@ -282,6 +337,8 @@ BEGIN
       AND day_count >= effective_daily_limit
     )
   THEN
+    entitlement_type := 'pack_credit';
+
     UPDATE profiles
     SET
       pack_credits = pack_balance - 1,
@@ -304,6 +361,8 @@ BEGIN
       jsonb_build_object('source', 'api_generate', 'over_plan_top_up', true, 'reservation', true)
     );
   ELSE
+    entitlement_type := 'plan';
+
     UPDATE profiles
     SET api_calls_this_month = month_used + 1
     WHERE id = p_user_id;
@@ -365,6 +424,8 @@ BEGIN
         updated_at = now_utc
       WHERE id = day_rate_id;
     END IF;
+
+    counted_day := true;
   END IF;
 
   INSERT INTO daily_stats (
@@ -387,8 +448,31 @@ BEGIN
     estimated_cost = COALESCE(daily_stats.estimated_cost, 0) + openai_cost_per_request,
     updated_at = now_utc;
 
+  INSERT INTO generation_reservations (
+    user_id,
+    entitlement_type,
+    counted_month,
+    counted_day,
+    day_rate_key,
+    metadata
+  )
+  VALUES (
+    p_user_id,
+    entitlement_type,
+    true,
+    counted_day,
+    CASE WHEN counted_day THEN day_key ELSE NULL END,
+    jsonb_build_object(
+      'pricingLimitsMode', p_pricing_limits_mode,
+      'tier', p_effective_tier,
+      'reservedAt', now_utc
+    )
+  )
+  RETURNING id INTO reservation_id;
+
   RETURN jsonb_build_object(
     'allowed', true,
+    'reservationId', reservation_id,
     'remainingRequests', jsonb_build_object(
       'minute', GREATEST(p_burst_limit - minute_count - 1, 0),
       'day', CASE
@@ -408,6 +492,105 @@ BEGIN
       END
     )
   );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION commit_generation_reservation(
+  p_reservation_id uuid
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE generation_reservations
+  SET
+    status = 'committed',
+    committed_at = COALESCE(committed_at, timezone('utc', now()))
+  WHERE id = p_reservation_id
+    AND status = 'pending';
+
+  RETURN FOUND;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION refund_generation_reservation(
+  p_reservation_id uuid,
+  p_reason text DEFAULT 'generation_failed'
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  reservation_row generation_reservations%ROWTYPE;
+  new_pack_balance integer;
+BEGIN
+  SELECT *
+  INTO reservation_row
+  FROM generation_reservations
+  WHERE id = p_reservation_id
+  FOR UPDATE;
+
+  IF NOT FOUND OR reservation_row.status <> 'pending' THEN
+    RETURN false;
+  END IF;
+
+  IF reservation_row.counted_month THEN
+    UPDATE profiles
+    SET api_calls_this_month = GREATEST(COALESCE(api_calls_this_month, 0) - 1, 0)
+    WHERE id = reservation_row.user_id;
+  END IF;
+
+  IF reservation_row.entitlement_type = 'free_lifetime' THEN
+    UPDATE profiles
+    SET free_lifetime_generations_used = GREATEST(COALESCE(free_lifetime_generations_used, 0) - 1, 0)
+    WHERE id = reservation_row.user_id;
+  ELSIF reservation_row.entitlement_type = 'pack_credit' THEN
+    UPDATE profiles
+    SET pack_credits = COALESCE(pack_credits, 0) + 1
+    WHERE id = reservation_row.user_id
+    RETURNING pack_credits INTO new_pack_balance;
+
+    INSERT INTO credit_ledger (
+      user_id,
+      type,
+      delta,
+      balance_after,
+      metadata
+    )
+    VALUES (
+      reservation_row.user_id,
+      'refund',
+      1,
+      COALESCE(new_pack_balance, 0),
+      jsonb_build_object(
+        'source', 'api_generate',
+        'reservation_id', p_reservation_id,
+        'reason', COALESCE(p_reason, 'generation_failed')
+      )
+    );
+  END IF;
+
+  IF reservation_row.counted_day AND reservation_row.day_rate_key IS NOT NULL THEN
+    UPDATE rate_limits
+    SET
+      count = GREATEST(COALESCE(count, 0) - 1, 0),
+      updated_at = timezone('utc', now())
+    WHERE key = reservation_row.day_rate_key
+      AND user_id = reservation_row.user_id;
+  END IF;
+
+  UPDATE generation_reservations
+  SET
+    status = 'refunded',
+    refunded_at = timezone('utc', now()),
+    refund_reason = COALESCE(p_reason, 'generation_failed')
+  WHERE id = p_reservation_id;
+
+  RETURN true;
 END;
 $$;
 

@@ -425,6 +425,7 @@ describe("RateLimiter entitlement decisions", () => {
     queueRpc({
       data: {
         allowed: true,
+        reservationId: "reservation-1",
         remainingRequests: {
           minute: 9,
           day: 8,
@@ -451,6 +452,7 @@ describe("RateLimiter entitlement decisions", () => {
         day: 8,
         month: 73,
       },
+      reservationId: "reservation-1",
     });
     expect(rpcCalls).toHaveLength(1);
     expect(rpcCalls[0]).toMatchObject({
@@ -484,6 +486,46 @@ describe("RateLimiter entitlement decisions", () => {
       allowed: false,
       code: "service_unavailable",
       limitScope: "service",
+    });
+  });
+
+  it("commits a successful generation reservation", async () => {
+    queueRpc({
+      data: true,
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    await RateLimiter.commitGenerationReservation("reservation-commit");
+
+    expect(rpcCalls).toHaveLength(1);
+    expect(rpcCalls[0]).toMatchObject({
+      name: "commit_generation_reservation",
+      params: {
+        p_reservation_id: "reservation-commit",
+      },
+    });
+  });
+
+  it("refunds a failed generation reservation", async () => {
+    queueRpc({
+      data: true,
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    await RateLimiter.refundGenerationReservation(
+      "reservation-refund",
+      "generation_failed",
+    );
+
+    expect(rpcCalls).toHaveLength(1);
+    expect(rpcCalls[0]).toMatchObject({
+      name: "refund_generation_reservation",
+      params: {
+        p_reservation_id: "reservation-refund",
+        p_reason: "generation_failed",
+      },
     });
   });
 });

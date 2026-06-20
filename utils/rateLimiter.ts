@@ -35,6 +35,7 @@ interface RateLimitResult {
     freeLifetime?: number | null;
     packCredits?: number | null;
   };
+  reservationId?: string | null;
 }
 
 type ReservationRpcResult = {
@@ -46,6 +47,7 @@ type ReservationRpcResult = {
   limitScope?: RateLimitResult["limitScope"];
   currentLimit?: number | null;
   remainingRequests?: RateLimitResult["remainingRequests"];
+  reservationId?: string | null;
 };
 
 export interface UserProfile {
@@ -537,6 +539,7 @@ export class RateLimiter {
       return {
         allowed: true,
         remainingRequests: result.remainingRequests,
+        reservationId: result.reservationId ?? null,
       };
     } catch (err) {
       console.error("Generation reservation exception:", err);
@@ -546,6 +549,44 @@ export class RateLimiter {
         limitScope: "service",
         error: "Could not reserve generation capacity. Please try again.",
       };
+    }
+  }
+
+  static async commitGenerationReservation(
+    reservationId?: string | null,
+  ): Promise<void> {
+    if (!reservationId) return;
+
+    try {
+      const { error } = await supabase.rpc("commit_generation_reservation", {
+        p_reservation_id: reservationId,
+      });
+
+      if (error) {
+        console.error("Generation reservation commit failed:", error);
+      }
+    } catch (err) {
+      console.error("Generation reservation commit exception:", err);
+    }
+  }
+
+  static async refundGenerationReservation(
+    reservationId?: string | null,
+    reason = "generation_failed",
+  ): Promise<void> {
+    if (!reservationId) return;
+
+    try {
+      const { error } = await supabase.rpc("refund_generation_reservation", {
+        p_reservation_id: reservationId,
+        p_reason: reason,
+      });
+
+      if (error) {
+        console.error("Generation reservation refund failed:", error);
+      }
+    } catch (err) {
+      console.error("Generation reservation refund exception:", err);
     }
   }
 

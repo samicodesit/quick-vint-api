@@ -797,6 +797,22 @@
                 }
             }
 
+            function handleFileInputChange(e) {
+                const files = Array.from(e.target.files || []);
+                e.target.value = '';
+                if (!files.length) return;
+
+                let didStart = false;
+                const startHandling = () => {
+                    if (didStart) return;
+                    didStart = true;
+                    setTimeout(() => handleFiles(files), 0);
+                };
+
+                requestAnimationFrame(startHandling);
+                setTimeout(startHandling, 120);
+            }
+
             // Init
             state.sessionId = createSessionId();
             sessionCodeEl.textContent = state.sessionId;
@@ -804,7 +820,7 @@
 
             mainBtn.addEventListener('click', () => fileInput.click());
             sendBtn.addEventListener('click', sendBatchFiles);
-            fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+            fileInput.addEventListener('change', handleFileInputChange);
 
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible' && state.isSending) {

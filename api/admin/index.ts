@@ -6,6 +6,7 @@ import {
   getEffectiveTier,
   getTierConfigForProfile,
 } from "../../utils/tierConfig";
+import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import {
   BRAND,
   TEMPLATES,
@@ -45,6 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleFlagActivity(req, res, "admin");
     } else if (action === "reset-usage") {
       return handleResetUsage(req, res);
+    } else if (action === "set-account-status") {
+      return handleSetAccountStatus(req, res);
     } else if (action === "send-campaign") {
       return handleSendCampaign(req, res);
     } else {
@@ -73,6 +76,11 @@ type ProfileRow = {
   is_legacy_plan?: boolean | null;
   free_lifetime_generations_used?: number | null;
   pack_credits?: number | null;
+  account_status?: string | null;
+  abuse_reason?: string | null;
+  abuse_notes?: string | null;
+  paused_at?: string | null;
+  paused_by?: string | null;
 };
 
 type RateLimitRow = {
@@ -83,7 +91,7 @@ type RateLimitRow = {
 };
 
 const PROFILE_SELECT =
-  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits";
+  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason, abuse_notes, paused_at, paused_by";
 
 function getQueryString(
   value: string | string[] | undefined,
@@ -745,6 +753,51 @@ async function handleResetUsage(req: VercelRequest, res: VercelResponse) {
     if (profileError) throw profileError;
 
     return res.status(200).json({ success: true, message: "User usage reset" });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+// --- LOGIC: Pause / Unpause Account ---
+async function handleSetAccountStatus(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  const { userId, status, reason, notes } = req.body || {};
+  if (!userId || typeof userId !== "string") {
+    return res.status(400).json({ error: "Missing userId" });
+  }
+  if (status !== "active" && status !== "paused") {
+    return res.status(400).json({ error: "Invalid account status" });
+  }
+
+  try {
+    const update =
+      status === "paused"
+        ? {
+            account_status: "paused",
+            abuse_reason: reason || "duplicate_free_quota_abuse",
+            abuse_notes: String(notes || "").trim(),
+            paused_at: new Date().toISOString(),
+            paused_by: "admin",
+          }
+        : buildClearAccountPauseUpdate();
+
+    if (status === "paused" && !update.abuse_notes) {
+      return res.status(400).json({ error: "Pause notes are required" });
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(update)
+      .eq("id", userId);
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+      message: status === "paused" ? "Account paused" : "Account unpaused",
+    });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }

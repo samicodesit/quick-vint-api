@@ -1960,6 +1960,25 @@
             return 'badge-neutral';
         }
 
+        function renderAccountPauseBadge(u) {
+            if (u.account_status !== 'paused') return '';
+            const reason = escapeHtml(u.abuse_reason || 'manual_review');
+            return `<span class="badge badge-danger" title="${escapeAttribute(u.abuse_notes || '')}">Paused: ${reason}</span>`;
+        }
+
+        function renderAccountStatusActions(u) {
+            const userId = escapeAttribute(u.id);
+            const isPaused = u.account_status === 'paused';
+            return `
+                <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
+                    <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
+                    ${isPaused
+                        ? `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'active')">Unpause</button>`
+                        : `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'paused')">Pause</button>`}
+                </div>
+            `;
+        }
+
         function usageFillClass(percent) {
             if (percent >= 100) return 'danger';
             if (percent >= 80) return 'warning';
@@ -2011,6 +2030,7 @@
                             <span class="badge badge-info" style="text-transform: capitalize;">${tier}</span>
                             <span class="badge ${statusBadgeClass(u.subscription_status)}">${status}</span>
                             ${u.is_at_risk ? '<span class="badge badge-warning">At-risk</span>' : ''}
+                            ${renderAccountPauseBadge(u)}
                         </div>
                     </td>
                     <td>
@@ -2023,7 +2043,7 @@
                     </td>
                     <td>${u.last_active ? formatDateTime(u.last_active) : '<span style="opacity:0.55;">No activity</span>'}</td>
                     <td>
-                        <button class="btn-secondary" onclick="resetUsage('${escapeAttribute(u.id)}')">Reset</button>
+                        ${renderAccountStatusActions(u)}
                     </td>
                 </tr>
             `;
@@ -2045,6 +2065,7 @@
                         <span class="mobile-card-value">
                             <span class="badge badge-info">${tier}</span>
                             <span class="badge ${statusBadgeClass(u.subscription_status)}">${status}</span>
+                            ${renderAccountPauseBadge(u)}
                         </span>
                     </div>
                     <div style="margin: 0.85rem 0;">${renderUsage(u)}</div>
@@ -2058,7 +2079,7 @@
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Actions</span>
-                        <span class="mobile-card-value"><button class="btn-secondary" onclick="resetUsage('${escapeAttribute(u.id)}')">Reset</button></span>
+                        <span class="mobile-card-value">${renderAccountStatusActions(u)}</span>
                     </div>
                 </div>
             `;
@@ -2092,6 +2113,48 @@
                     loadView('users'); // Refresh list
                 } else {
                     showToast(data.error || 'Failed to reset usage', 'error');
+                }
+            } catch (e) {
+                showToast('Connection failed', 'error');
+            }
+        }
+
+        async function setAccountStatus(userId, status) {
+            let notes = '';
+            if (status === 'paused') {
+                notes = prompt('Why are you pausing this account? Add evidence/context for future review.', 'Likely duplicate free quota abuse: ');
+                if (notes === null) return;
+                notes = notes.trim();
+                if (!notes) {
+                    showToast('Pause notes are required', 'error');
+                    return;
+                }
+                if (!confirm('Pause this account now? The user will be blocked from generation but can contact support or buy a paid option.')) return;
+            } else if (!confirm('Unpause this account now?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin?action=set-account-status', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.secret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId,
+                        status,
+                        reason: status === 'paused' ? 'duplicate_free_quota_abuse' : null,
+                        notes
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'Account status updated');
+                    loadView('users');
+                } else {
+                    showToast(data.error || 'Failed to update account status', 'error');
                 }
             } catch (e) {
                 showToast('Connection failed', 'error');

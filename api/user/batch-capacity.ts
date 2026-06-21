@@ -3,6 +3,10 @@ import Cors from "cors";
 import { RateLimiter, type UserProfile } from "../../utils/rateLimiter";
 import { supabase } from "../../utils/supabaseClient";
 import { getPricingLimitsModeForExtension } from "../../utils/tierConfig";
+import {
+  buildAccountPausedResponse,
+  isAccountPaused,
+} from "../../src/utils/accountPause";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -65,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, is_legacy_plan, free_lifetime_generations_used, pack_credits",
+      "api_calls_this_month, subscription_status, subscription_tier, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason",
     )
     .eq("id", user.id)
     .single();
@@ -89,6 +93,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? extensionVersionHeader[0]
     : extensionVersionHeader;
   const pricingLimitsMode = getPricingLimitsModeForExtension(extensionVersion);
+
+  if (isAccountPaused(profile)) {
+    return res.status(200).json({
+      ...buildAccountPausedResponse(profile),
+      tier: "free",
+      nextTier: null,
+      limits: {
+        daily: null,
+        monthly: 0,
+        burstPerMinute: 0,
+      },
+      remaining: {
+        day: null,
+        month: 0,
+        packCredits: 0,
+      },
+      pricingLimitsMode,
+    });
+  }
 
   const capacity = await RateLimiter.getGenerationCapacity(
     user.id,

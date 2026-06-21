@@ -9,6 +9,10 @@ import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
 import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
 import { getPricingLimitsModeForExtension } from "../utils/tierConfig";
+import {
+  buildAccountPausedResponse,
+  isAccountPaused,
+} from "../src/utils/accountPause";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -161,7 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset, is_legacy_plan, free_lifetime_generations_used, pack_credits",
+      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason",
     )
     .eq("id", user.id)
     .single();
@@ -209,6 +213,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     is_legacy_plan: false,
     free_lifetime_generations_used: 0,
     pack_credits: 0,
+    account_status: "active",
+    abuse_reason: null,
   };
 
   // Add user profile info to log data
@@ -216,6 +222,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.subscriptionStatus = userProfile.subscription_status;
   logData.apiCallsCount = userProfile.api_calls_this_month;
   let generationReservationId: string | null = null;
+
+  if (isAccountPaused(userProfile)) {
+    logData.responseStatus = 403;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Account paused";
+    await ApiLogger.logRequest(logData);
+    return res.status(403).json(buildAccountPausedResponse(userProfile));
+  }
 
   // --- VALIDATE BODY ---
   const {

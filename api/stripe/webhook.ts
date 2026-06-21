@@ -7,6 +7,8 @@ import {
   CREDIT_PACK_CONFIG,
   getTierByStripePriceId,
 } from "../../utils/tierConfig";
+import { buildSubscriptionProfileUpdate } from "../../src/utils/subscriptionUsageReset";
+import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 
 export const config = { api: { bodyParser: false } };
 
@@ -77,6 +79,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             throw grantError;
           }
 
+          const { error: unpauseError } = await supabase
+            .from("profiles")
+            .update(buildClearAccountPauseUpdate())
+            .eq("id", profileId);
+
+          if (unpauseError) {
+            throw unpauseError;
+          }
+
           break;
         }
 
@@ -108,21 +119,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // 2b) Find the user’s profile row by email
           const { data: profileRow } = await supabase
             .from("profiles")
-            .select("id")
+            .select(
+              "id, stripe_subscription_id, subscription_status, subscription_tier",
+            )
             .ilike("email", email)
             .single();
 
           if (profileRow) {
+            const updateData = buildSubscriptionProfileUpdate(profileRow, {
+              subscriptionId: subscription.id,
+              stripeCustomerId: customerId,
+              status,
+              tier,
+              currentPeriodEnd,
+              isLegacyPlan: false,
+            });
+
             await supabase
               .from("profiles")
-              .update({
-                stripe_subscription_id: subscription.id,
-                stripe_customer_id: customerId,
-                subscription_tier: tier,
-                subscription_status: status,
-                current_period_end: currentPeriodEnd,
-                is_legacy_plan: false,
-              })
+              .update(updateData)
               .eq("id", profileRow.id);
           }
         }
@@ -176,7 +191,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (profileRow) {
           const { data: existingProfile } = await supabase
             .from("profiles")
-            .select("stripe_subscription_id, subscription_tier, is_legacy_plan")
+            .select(
+              "stripe_subscription_id, subscription_status, subscription_tier, is_legacy_plan",
+            )
             .eq("id", profileRow.id)
             .single();
           const existingTier = existingProfile?.subscription_tier;
@@ -186,16 +203,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             Boolean(existingProfile?.is_legacy_plan) &&
             existingSubscriptionId === subAny.id &&
             existingTier === tier;
+          const updateData = buildSubscriptionProfileUpdate(existingProfile, {
+            subscriptionId: subAny.id,
+            status,
+            tier,
+            currentPeriodEnd,
+            isLegacyPlan: keepLegacy,
+          });
 
           await supabase
             .from("profiles")
-            .update({
-              stripe_subscription_id: subAny.id,
-              subscription_tier: tier,
-              subscription_status: status,
-              current_period_end: currentPeriodEnd,
-              is_legacy_plan: keepLegacy,
-            })
+            .update(updateData)
             .eq("id", profileRow.id);
         }
         break;

@@ -1208,7 +1208,9 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
       const { data, error: fetchError } = await supabase
         .from("profiles")
         .select("email, unsubscribe_token, email_subscribed")
-        .in("email", recipient_emails);
+        .in("email", recipient_emails)
+        .eq("email_subscribed", true)
+        .not("unsubscribe_token", "is", null);
 
       if (fetchError) throw fetchError;
       users = data || [];

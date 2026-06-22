@@ -1924,6 +1924,7 @@
             const chromeVisitors = Number(chromeSnapshot.visitors || 0);
             const chromeInstalls = Number(chromeSnapshot.installs || 0);
             const chromeImpressions = Number(chromeSnapshot.impressions || 0);
+            const chromeUninstalls = Number(chromeSnapshot.uninstalls || chromeSnapshot.uninstallRate || 0);
             const chromeRatingCount = Number(chromeSnapshot.ratingCount || 0);
             const chromeInstallRate = chromeVisitors ? (chromeInstalls / chromeVisitors) * 100 : 0;
             const chromePeriod = getChromeSnapshotPeriod(chromeSnapshot);
@@ -1959,7 +1960,7 @@
             const diagnostics = [
                 diagnostic(
                     'Chrome Store',
-                    chromeSnapshot.updatedAt ? `${chromeInstalls} installs / ${chromeVisitors} visitors` : 'No snapshot',
+                    chromeSnapshot.updatedAt ? `${chromeInstalls} installs / ${chromeVisitors} page views` : 'No snapshot',
                     !chromeSnapshotReady
                         ? 'watch'
                         : chromeVisitors < 50
@@ -1974,10 +1975,10 @@
                             : chromeWarnings.length
                                 ? chromeWarnings[0]
                                 : chromeVisitors < 50
-                                    ? 'Not enough listing traffic yet. Focus on store impressions and outreach.'
+                                    ? 'Not enough listing page views yet. Focus on store impressions and outreach.'
                                     : chromeInstallRate >= 20
-                                        ? 'Store listing converts visitors into installs well enough for now.'
-                                        : 'Store visitors are not installing. Improve screenshots, first lines, and trust.'
+                                        ? 'Store listing converts page views into installs well enough for now.'
+                                        : 'Store page viewers are not installing. Improve screenshots, first lines, and trust.'
                 ),
                 diagnostic(
                     'Acquisition',
@@ -2045,7 +2046,7 @@
                 action('Send 20 Vinted seller outreach messages using the seller script below.', 'Find active sellers manually on Vinted: many listings, weak descriptions, recent uploads. Paste the script, adjust one sentence to their shop.'),
                 chromeSnapshotReady
                     ? action('Refresh the Chrome Store snapshot if it changed today.', `Use the same CWS period style as last time. Current saved period: ${chromePeriod.label}.`)
-                    : action('Paste Chrome Web Store numbers into the form below.', 'Choose a date range first. Use the same range for impressions, visitors, installs, and uninstall rate.'),
+                    : action('Paste Chrome Web Store numbers into the form below.', 'Choose a date range first. Use the same range for page views, impressions, installs, uninstalls, and weekly users.'),
             ];
             let dailyTasks = [
                 task('value_depth_review', 'Review users below 2 generations', 'Look for errors, missing photos, weak result quality, or confusing next-step flow.', '1'),
@@ -2077,7 +2078,7 @@
                 focusReason = 'Chrome Store numbers are missing, stale, or not tied to a clear reporting period.';
                 actions = [
                     action('Open Chrome Web Store Developer Dashboard.', 'Set the period to Last 30 days. Chrome Store reporting does not expose shorter windows, so use that same 30-day period for all fields.'),
-                    action('Paste them into Chrome Store Snapshot below.', 'Fill period start/end, impressions, visitors, installs, uninstall rate, current users, rating count. Click Save.'),
+                    action('Paste them into Chrome Store Snapshot below.', 'Fill period start/end, page views, impressions, installs, uninstalls, weekly users, current users, rating count. Click Save.'),
                     action('Then do the remaining tasks in Today’s Workbench.', 'After saving, the dashboard will update the current focus.'),
                 ];
                 dailyTasks = [
@@ -2087,7 +2088,7 @@
                 ];
             } else if (chromeVisitors >= 50 && chromeInstallRate < 15) {
                 focus = 'Store Listing';
-                focusReason = 'Chrome Store visitors are not converting into enough installs.';
+                focusReason = 'Chrome Store page views are not converting into enough installs.';
                 actions = [
                     action('Improve one Chrome Store asset today.', 'Change exactly one thing: screenshot order, first two lines, or short description.'),
                     action('Keep "Vinted description generator" in the first line.', 'This is search intent. Do not replace it with generic copy.'),
@@ -2286,7 +2287,7 @@
                         <div>
                             <h3 class="card-title">Chrome Store Snapshot</h3>
                             <div class="text-sm text-muted">
-                                Use one reporting period for impressions, visitors, installs, and uninstall rate. Users and rating count are current/lifetime snapshots.
+                                Use one reporting period for page views, impressions, installs, uninstalls, and weekly users. Current users and rating count are snapshots.
                             </div>
                         </div>
                     </div>
@@ -2312,7 +2313,7 @@
                             <input id="chromeImpressions" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.impressions || '')}" placeholder="e.g. 1200">
                         </div>
                         <div class="metric-input-group">
-                            <label for="chromeVisitors">Visitors in period</label>
+                            <label for="chromeVisitors">Page views in period</label>
                             <input id="chromeVisitors" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.visitors || '')}" placeholder="e.g. 180">
                         </div>
                         <div class="metric-input-group">
@@ -2320,8 +2321,12 @@
                             <input id="chromeInstalls" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.installs || '')}" placeholder="e.g. 36">
                         </div>
                         <div class="metric-input-group">
-                            <label for="chromeUninstallRate">Uninstall rate % in period</label>
-                            <input id="chromeUninstallRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="${escapeAttribute(chromeSnapshot.uninstallRate || '')}" placeholder="e.g. 4.5">
+                            <label for="chromeUninstalls">Uninstalls in period</label>
+                            <input id="chromeUninstalls" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.uninstalls || chromeSnapshot.uninstallRate || '')}" placeholder="e.g. 99">
+                        </div>
+                        <div class="metric-input-group">
+                            <label for="chromeWeeklyUsers">Weekly users in period</label>
+                            <input id="chromeWeeklyUsers" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.weeklyUsers || '')}" placeholder="e.g. 248">
                         </div>
                         <div class="metric-input-group">
                             <label for="chromeUsers">Current public users</label>
@@ -2347,15 +2352,15 @@
                     <div class="manual-metrics-summary">
                         <div class="manual-metric">
                             <strong>${ratioPct(chromeSnapshot.visitors, chromeSnapshot.impressions)}</strong>
-                            <span>visitor rate from impressions</span>
+                            <span>page view rate from impressions</span>
                         </div>
                         <div class="manual-metric">
                             <strong>${ratioPct(chromeSnapshot.installs, chromeSnapshot.visitors)}</strong>
-                            <span>install rate from visitors</span>
+                            <span>install rate from page views</span>
                         </div>
                         <div class="manual-metric">
-                            <strong>${chromeSnapshot.uninstallRate ? `${Number(chromeSnapshot.uninstallRate).toFixed(1)}%` : 'n/a'}</strong>
-                            <span>uninstall rate</span>
+                            <strong>${ratioPct(chromeSnapshot.uninstalls || chromeSnapshot.uninstallRate, chromeSnapshot.installs)}</strong>
+                            <span>uninstalls / installs</span>
                         </div>
                         <div class="manual-metric">
                             <strong>${fmt(chromeSnapshot.ratingCount)}</strong>
@@ -3037,7 +3042,8 @@
             const impressions = Number(snapshot.impressions || 0);
             const visitors = Number(snapshot.visitors || 0);
             const installs = Number(snapshot.installs || 0);
-            const uninstallRate = Number(snapshot.uninstallRate || 0);
+            const uninstalls = Number(snapshot.uninstalls || snapshot.uninstallRate || 0);
+            const weeklyUsers = Number(snapshot.weeklyUsers || 0);
             const period = getChromeSnapshotPeriod(snapshot);
 
             if (!snapshot.periodStart || !snapshot.periodEnd) {
@@ -3048,13 +3054,16 @@
                 warnings.push('Chrome Web Store metrics must use at least 30 days. Select Last 30 days or a longer custom range.');
             }
             if (visitors > impressions && impressions > 0) {
-                warnings.push('Visitors are higher than impressions. Check that both numbers use the same Chrome Store period.');
+                warnings.push('Page views are higher than impressions. Check that both numbers use the same Chrome Store period.');
             }
             if (installs > visitors && visitors > 0) {
-                warnings.push('Installs are higher than visitors. Check that both numbers use the same Chrome Store period.');
+                warnings.push('Installs are higher than page views. Check that both numbers use the same Chrome Store period.');
             }
-            if (uninstallRate > 100) {
-                warnings.push('Uninstall rate cannot be over 100%.');
+            if (uninstalls > installs && installs > 0) {
+                warnings.push('Uninstalls are higher than installs in this period. This can happen, but treat growth quality as weak.');
+            }
+            if (weeklyUsers > 0 && installs > 0 && weeklyUsers < installs * 0.5) {
+                warnings.push('Weekly users are low compared with installs. Check whether many installs churn quickly.');
             }
             if (snapshot.updatedAt) {
                 const ageMs = Date.now() - new Date(snapshot.updatedAt).getTime();
@@ -3110,7 +3119,8 @@
                 impressions: readNumberInput('chromeImpressions'),
                 visitors: readNumberInput('chromeVisitors'),
                 installs: readNumberInput('chromeInstalls'),
-                uninstallRate: readNumberInput('chromeUninstallRate'),
+                uninstalls: readNumberInput('chromeUninstalls'),
+                weeklyUsers: readNumberInput('chromeWeeklyUsers'),
                 users: readNumberInput('chromeUsers'),
                 ratingCount: readNumberInput('chromeRatingCount'),
                 updatedAt: new Date().toISOString(),
@@ -3118,8 +3128,7 @@
             const warnings = getChromeSnapshotWarnings(snapshot);
             const blockingWarning = warnings.find((warning) =>
                 warning.includes('Period start is after period end') ||
-                warning.includes('must use at least 30 days') ||
-                warning.includes('cannot be over 100%'),
+                warning.includes('must use at least 30 days'),
             );
             if (blockingWarning) {
                 showToast(blockingWarning, 'error');

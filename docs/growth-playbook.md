@@ -8,10 +8,11 @@ Do this once per day. Stop after the checklist is done.
 2. In Chrome Web Store Developer Dashboard, choose `Last 30 days`. Chrome Store reporting does not expose a shorter period, so do not enter 7-day numbers here.
 3. Paste the same-period numbers into `Chrome Store Snapshot`:
    - period start/end
+   - page views
    - impressions
-   - visitors
    - installs
-   - uninstall rate
+   - uninstalls
+   - weekly users
    - current public users
    - lifetime rating count
 4. Read `What this means`.

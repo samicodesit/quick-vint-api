@@ -493,7 +493,6 @@
         .advisor-panel {
             display: grid;
             gap: 1rem;
-            grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
             margin-top: 1rem;
         }
 
@@ -683,6 +682,23 @@
             font-size: 0.9rem;
             font-weight: 700;
             line-height: 1.35;
+        }
+
+        .operator-why {
+            margin-top: 0.85rem;
+        }
+
+        .operator-why summary {
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.86rem;
+            font-weight: 800;
+        }
+
+        .operator-why-body {
+            display: grid;
+            gap: 0.8rem;
+            margin-top: 0.8rem;
         }
 
         .advisor-meta {
@@ -2696,37 +2712,42 @@
                                 `).join('')}
                             </div>
                         </div>
-                        <div class="operator-scoreboard">
-                            ${advisor.evidence.map(item => `
-                                <div class="operator-score ${escapeAttribute(item.status || '')}">
-                                    <div class="operator-score-label">${escapeHtml(item.label)}</div>
-                                    <div class="operator-score-value">${escapeHtml(item.value)}</div>
-                                    <div class="diagnostic-note">${escapeHtml(item.note)}</div>
+                    </div>
+                    <details class="operator-why">
+                        <summary>Why this?</summary>
+                        <div class="operator-why-body">
+                            <div class="operator-status-row">
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Mode</div>
+                                    <div class="operator-status-copy">${escapeHtml(advisor.mode)}</div>
                                 </div>
-                            `).join('')}
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Stop when</div>
+                                    <div class="operator-status-copy">${escapeHtml(stopText)}</div>
+                                </div>
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Not today</div>
+                                    <div class="operator-status-copy">${escapeHtml(advisor.notNow.slice(0, 2).join(' · '))}</div>
+                                </div>
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Data quality</div>
+                                    <div class="operator-status-copy">${escapeHtml(dataGapText)}</div>
+                                </div>
+                            </div>
+                            <div class="operator-scoreboard">
+                                ${advisor.evidence.map(item => `
+                                    <div class="operator-score ${escapeAttribute(item.status || '')}">
+                                        <div class="operator-score-label">${escapeHtml(item.label)}</div>
+                                        <div class="operator-score-value">${escapeHtml(item.value)}</div>
+                                        <div class="diagnostic-note">${escapeHtml(item.note)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="memory-strip">
+                                ${advisor.memory.map(item => `<div class="memory-item">${escapeHtml(item)}</div>`).join('')}
+                            </div>
                         </div>
-                    </div>
-                    <div class="operator-status-row">
-                        <div class="operator-status-card">
-                            <div class="operator-status-title">Mode</div>
-                            <div class="operator-status-copy">${escapeHtml(advisor.mode)}</div>
-                        </div>
-                        <div class="operator-status-card">
-                            <div class="operator-status-title">Stop when</div>
-                            <div class="operator-status-copy">${escapeHtml(stopText)}</div>
-                        </div>
-                        <div class="operator-status-card">
-                            <div class="operator-status-title">Not today</div>
-                            <div class="operator-status-copy">${escapeHtml(advisor.notNow.slice(0, 2).join(' · '))}</div>
-                        </div>
-                        <div class="operator-status-card">
-                            <div class="operator-status-title">Data quality</div>
-                            <div class="operator-status-copy">${escapeHtml(dataGapText)}</div>
-                        </div>
-                    </div>
-                    <div class="memory-strip">
-                        ${advisor.memory.map(item => `<div class="memory-item">${escapeHtml(item)}</div>`).join('')}
-                    </div>
+                    </details>
                     <div id="growthCodexBrief" style="display:none;">${escapeHtml(codexBrief)}</div>
                     <div id="growthAdvisorRecord" style="display:none;">${escapeHtml(JSON.stringify(advisorRecord))}</div>
                     <textarea id="growthAdvisorResult" class="advisor-result-input" placeholder="Required before marking done: what changed or what did you learn? Example: changed next-item CTA; one-generation logs mostly showed missing-photo errors."></textarea>

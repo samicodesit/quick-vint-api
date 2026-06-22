@@ -293,11 +293,11 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
     const [profiles, recentProfiles, logs] = await Promise.all([
       fetchAdminRows(
         "profiles",
-        "id, created_at, subscription_status, subscription_tier",
+        "id, created_at, subscription_status, subscription_tier, free_lifetime_generations_used",
       ),
       fetchAdminRows(
         "profiles",
-        "id, created_at, subscription_status, subscription_tier",
+        "id, created_at, subscription_status, subscription_tier, free_lifetime_generations_used",
         (query) => query.gte("created_at", startIso),
       ),
       fetchAdminRows(
@@ -315,6 +315,7 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
         profile.subscription_tier &&
         profile.subscription_tier !== "free",
     );
+    const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
 
     recentProfiles.forEach((profile) => {
       const bucket = dayMap.get(dayKey(profile.created_at));
@@ -332,6 +333,9 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
     const eventCounts = new Map<string, number>();
     const activeUsers30 = new Set<string>();
     const activeDaysByUser = new Map<string, Set<string>>();
+    const successfulGenerationsByUser = new Map<string, number>();
+    const limitHitsByUser = new Map<string, number>();
+    const lastSuccessfulGenerationByUser = new Map<string, string>();
     logs.forEach((log) => {
       const key = dayKey(log.created_at);
       const bucket = dayMap.get(key);
@@ -351,15 +355,39 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
             const activeDays = activeDaysByUser.get(log.user_id) || new Set();
             activeDays.add(key);
             activeDaysByUser.set(log.user_id, activeDays);
+            successfulGenerationsByUser.set(
+              log.user_id,
+              (successfulGenerationsByUser.get(log.user_id) || 0) + 1,
+            );
+            const existingLast = lastSuccessfulGenerationByUser.get(log.user_id);
+            if (!existingLast || log.created_at > existingLast) {
+              lastSuccessfulGenerationByUser.set(log.user_id, log.created_at);
+            }
           }
         }
         if (status === 200) bucket.successfulGenerations += 1;
-        if (status === 429 || status === 403) bucket.limitHits += 1;
+        if (status === 429 || status === 403) {
+          bucket.limitHits += 1;
+          if (log.user_id) {
+            limitHitsByUser.set(
+              log.user_id,
+              (limitHitsByUser.get(log.user_id) || 0) + 1,
+            );
+          }
+        }
       }
 
       if (event === "generate_request") bucket.generateRequests += 1;
       if (event === "generate_click") bucket.generateClicks += 1;
-      if (event === "generate_limit_hit") bucket.limitHits += 1;
+      if (event === "generate_limit_hit") {
+        bucket.limitHits += 1;
+        if (log.user_id) {
+          limitHitsByUser.set(
+            log.user_id,
+            (limitHitsByUser.get(log.user_id) || 0) + 1,
+          );
+        }
+      }
       if (event === "paywall_shown") bucket.paywallShown += 1;
       if (event === "checkout_start") bucket.checkoutStart += 1;
       if (event === "checkout_opened") bucket.checkoutOpened += 1;
@@ -385,6 +413,46 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
     const repeatActiveUsers = Array.from(activeDaysByUser.values()).filter(
       (activeDays) => activeDays.size >= 2,
     ).length;
+    const successfulGenerationUsers = Array.from(
+      successfulGenerationsByUser.keys(),
+    );
+    const twoPlusGenerationUsers = successfulGenerationUsers.filter(
+      (userId) => (successfulGenerationsByUser.get(userId) || 0) >= 2,
+    ).length;
+    const threePlusGenerationUsers = successfulGenerationUsers.filter(
+      (userId) => (successfulGenerationsByUser.get(userId) || 0) >= 3,
+    ).length;
+    const quotaPressureUsers = Array.from(activeUsers30).filter(
+      (userId) =>
+        (successfulGenerationsByUser.get(userId) || 0) >= 3 ||
+        (limitHitsByUser.get(userId) || 0) > 0 ||
+        Number(profileById.get(userId)?.free_lifetime_generations_used || 0) >= 3,
+    ).length;
+    const avgSuccessfulGenerationsPerActive = activeUsers30.size
+      ? Math.round((last30.successfulGenerations / activeUsers30.size) * 10) / 10
+      : 0;
+    const oneGenerationTargets = Array.from(activeDaysByUser.entries())
+      .filter(([, activeDays]) => activeDays.size === 1)
+      .map(([userId, activeDays]) => {
+        const profile = profileById.get(userId);
+        return {
+          userId,
+          email: profile?.email || null,
+          tier: profile?.subscription_tier || "free",
+          status: profile?.subscription_status || "unknown",
+          activeDays: activeDays.size,
+          successfulGenerations: successfulGenerationsByUser.get(userId) || 0,
+          lastGeneratedAt: lastSuccessfulGenerationByUser.get(userId) || null,
+          signedUpAt: profile?.created_at || null,
+        };
+      })
+      .filter((user) => user.email)
+      .sort((a, b) =>
+        String(b.lastGeneratedAt || "").localeCompare(
+          String(a.lastGeneratedAt || ""),
+        ),
+      )
+      .slice(0, 10);
 
     return res.status(200).json({
       generatedAt: now.toISOString(),
@@ -394,6 +462,10 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
         activePaidProfiles: paidProfiles.length,
         activeGenerators: activeUsers30.size,
         repeatActiveUsers,
+        twoPlusGenerationUsers,
+        threePlusGenerationUsers,
+        quotaPressureUsers,
+        avgSuccessfulGenerationsPerActive,
       },
       today,
       yesterday,
@@ -402,6 +474,9 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
       rates: {
         activationPerSignup30d: pctValue(last30.activeGenerators, last30.signups),
         repeatActive30d: pctValue(repeatActiveUsers, activeUsers30.size),
+        twoPlusGeneration30d: pctValue(twoPlusGenerationUsers, activeUsers30.size),
+        quotaPressure30d: pctValue(quotaPressureUsers, activeUsers30.size),
+        limitHitsPerActiveGenerator30d: pctValue(last30.limitHits, activeUsers30.size),
         limitToPaywall30d: pctValue(last30.paywallShown, last30.limitHits),
         paywallToCheckout30d: pctValue(last30.checkoutStart, last30.paywallShown),
         checkoutOpenRate30d: pctValue(last30.checkoutOpened, last30.checkoutStart),
@@ -412,6 +487,7 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 20)
         .map(([event, count]) => ({ event, count })),
+      oneGenerationTargets,
       notes: [
         "Chrome Web Store impressions, visitors, installs, uninstall rate, and rating count still need to be read from Chrome Web Store dashboard.",
         "TrustMRR/Stripe MRR and churn should remain the source of truth for revenue.",

@@ -2537,8 +2537,8 @@
                 ),
                 script(
                     'rating',
-                    'Rating ask for happy users',
-                    `Hey,\n\nIf AutoLister AI has saved you time on Vinted, could you leave a quick Chrome Store rating?\n\nIt helps other sellers trust the extension, and it helps me keep improving it.\n\nChrome Store: https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl\n\nThanks,\nSami`
+                    'Honest review ask for happy users',
+                    `Subject: Did AutoLister help with your Vinted listings?\n\nHey,\n\nHope AutoLister AI has been useful for your Vinted listings.\n\nIf it saved you time, could you leave a quick honest review on the Chrome Web Store? It helps other sellers find the extension and decide if it is worth trying.\n\nChrome Store: https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl/reviews\n\nIf something felt off or missing, you can just reply here. I read those replies myself.\n\nThanks,\nSami`
                 ),
             ];
 
@@ -2561,11 +2561,11 @@
                 actions = [
                     action('Improve one Chrome Store asset today.', 'Change exactly one thing: screenshot order, first two lines, or short description.'),
                     action('Keep "Vinted description generator" in the first line.', 'This is search intent. Do not replace it with generic copy.'),
-                    action('Ask 3 recently active paid users for ratings using the prepared script.', `Current rating count snapshot: ${chromeRatingCount || 'unknown'}. This is worth doing only because store trust is currently thin.`),
+                    action('Ask 3 recently active happy users for honest reviews using the prepared script.', `Current rating count snapshot: ${chromeRatingCount || 'unknown'}. Do not offer credits, money, or perks for reviews.`),
                 ];
                 dailyTasks = [
                     task('store_asset_1', 'Improve 1 Chrome Store asset', 'Make one concrete listing change, not five random edits.', '1'),
-                    task('rating_3', 'Send 3 prepared rating asks', 'Use the rating script. Count ratings gained, not opens.', '3'),
+                    task('rating_3', 'Send 3 honest review asks', 'Use the review script. Count review/rating changes, not opens.', '3'),
                     task('record_store_change', 'Log the store change', 'Write exactly what changed so the next Monday snapshot has context.', '1'),
                 ];
             } else if (chromeSnapshotReady && chromeInstalls >= 25 && chromeUninstallToInstallRate >= 40) {
@@ -2638,12 +2638,12 @@
                 focusReason = 'Activation, free quota depth, and paid conversion are healthy enough to increase acquisition volume.';
                 actions = [
                     action('Increase outreach volume or test one creator post.', 'Measure install -> first generation -> paid conversion.'),
-                    action('Send 5 prepared Chrome Store rating asks to paid users.', 'Rating count is still low, and store trust matters. Count new ratings only.'),
+                    action('Send 5 prepared Chrome Store honest review asks to paid or clearly successful users.', 'Rating count is still low, and store trust matters. Do not offer anything in exchange for a review.'),
                     action('Test one paid channel with a hard cap.', 'Stop unless active generators and paid users move, not just clicks.'),
                 ];
                 dailyTasks = [
                     task('scale_channel_1', 'Run 1 scale experiment', 'Creator post, outreach batch, or small paid channel.', '1'),
-                    task('rating_5', 'Send 5 prepared rating asks', 'Use the rating script. Count rating changes, not email opens.', '5'),
+                    task('rating_5', 'Send 5 honest review asks', 'Use the review script. Count rating/review changes, not email opens.', '5'),
                     task('measure_scale', 'Record install -> generation -> paid result', 'Do not count clicks as success.', '1'),
                 ];
             }

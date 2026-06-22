@@ -271,6 +271,29 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].join("\n"),
   },
 
+  honest_review_request_v1: {
+    subject: "Did AutoLister help with your Vinted listings?",
+    preheader:
+      "If it saved you time, a quick review helps other sellers find it too.",
+    body: [
+      el.p("Hey,"),
+      el.p(
+        "Hope AutoLister AI has been useful for your Vinted listings.",
+      ),
+      el.p(
+        "If it saved you time, could you leave a quick honest review on the Chrome Web Store? It helps other sellers find the extension and decide if it is worth trying.",
+      ),
+      el.button(
+        "Leave an honest review",
+        "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl/reviews",
+      ),
+      el.p(
+        "If something felt off or missing, you can just reply here. I read those replies myself.",
+      ),
+      el.p("Thanks,<br />Sami"),
+    ].join("\n"),
+  },
+
   generic_announcement: {
     subject: "News from AutoLister",
     preheader: "We have something to share with you.",

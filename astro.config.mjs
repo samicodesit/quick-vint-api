@@ -7,7 +7,13 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   site: "https://autolister.app",
   output: "static",
-  integrations: [mdx(), sitemap()],
+  integrations: [
+    mdx(),
+    sitemap({
+      filter: (page) =>
+        !page.endsWith("/uninstall/") && !page.endsWith("/email-templates/"),
+    }),
+  ],
 
   vite: {
     plugins: [tailwindcss()],

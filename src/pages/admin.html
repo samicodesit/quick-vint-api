@@ -2590,8 +2590,13 @@
                 date: new Date().toISOString().slice(0, 10),
                 focus,
                 state: advisor.state,
+                mode: advisor.mode,
                 actionTitle: advisor.primaryAction.title,
+                actionNote: advisor.primaryAction.note,
                 confidence: advisor.confidence,
+                stopCondition: advisor.stopCondition,
+                escalationRule: advisor.escalationRule,
+                shouldEscalate: advisor.shouldEscalate,
             };
             const codexBrief = buildGrowthCodexBrief({
                 advisor,
@@ -2674,7 +2679,7 @@
                     </div>
                     <div id="growthCodexBrief" style="display:none;">${escapeHtml(codexBrief)}</div>
                     <div id="growthAdvisorRecord" style="display:none;">${escapeHtml(JSON.stringify(advisorRecord))}</div>
-                    <textarea id="growthAdvisorResult" class="advisor-result-input" placeholder="Optional: what did you do or learn? Example: changed next-item CTA, updated screenshot 1, checked logs and saw missing-photo errors."></textarea>
+                    <textarea id="growthAdvisorResult" class="advisor-result-input" placeholder="Required before marking done: what changed or what did you learn? Example: changed next-item CTA; one-generation logs mostly showed missing-photo errors."></textarea>
                     <div class="advisor-buttons">
                         <button class="btn-secondary" style="background:#fff;" onclick="markGrowthAdvisorDone()">Mark action done</button>
                         <button class="btn-secondary" style="background:#fff;" onclick="copyGrowthBrief()">${advisor.shouldEscalate ? 'Ask Codex with brief' : 'Copy Codex brief'}</button>
@@ -3880,6 +3885,7 @@
                             ? `Memory: ${sameFocusRecent.length} recent ${input.focus} action${sameFocusRecent.length === 1 ? '' : 's'} logged.`
                             : 'Memory: no recent logged action for this focus.',
                     lastSameFocus?.result ? `Last result: ${lastSameFocus.result}` : '',
+                    lastSameFocus?.mode ? `Last mode: ${lastSameFocus.mode}.` : '',
                     loopDetected
                         ? 'Loop guard: copy the Codex brief before doing more of the same.'
                         : missing.length
@@ -3984,12 +3990,16 @@
                 showToast('Could not read advisor state', 'error');
                 return;
             }
-            const result = document.getElementById('growthAdvisorResult')?.value || '';
+            const result = (document.getElementById('growthAdvisorResult')?.value || '').trim();
+            if (result.length < 12) {
+                showToast('Write one short result before marking this done', 'error');
+                return;
+            }
             const log = getGrowthDecisionLog().filter(item => !(item.date === record.date && item.focus === record.focus));
             log.unshift({
                 ...record,
                 status: 'done',
-                result: result.trim() || record.actionTitle,
+                result,
                 completedAt: new Date().toISOString(),
             });
             saveGrowthDecisionLog(log);

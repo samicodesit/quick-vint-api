@@ -456,6 +456,166 @@
             color: var(--danger-text);
         }
 
+        .command-shell {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .command-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.75fr);
+        }
+
+        @media (max-width: 1020px) {
+            .command-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .command-hero {
+            background: #111827;
+            border: 1px solid #111827;
+            border-radius: var(--radius-lg);
+            color: #fff;
+            padding: 1.35rem;
+        }
+
+        .command-kicker {
+            color: rgba(255, 255, 255, 0.58);
+            font-size: 0.72rem;
+            font-weight: 850;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+        }
+
+        .command-title {
+            color: #fff;
+            font-size: 1.35rem;
+            font-weight: 850;
+            letter-spacing: -0.01em;
+            margin-bottom: 0.35rem;
+        }
+
+        .command-copy {
+            color: rgba(255, 255, 255, 0.76);
+            font-size: 0.92rem;
+            line-height: 1.45;
+            max-width: 720px;
+        }
+
+        .command-action-row {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        @media (max-width: 980px) {
+            .command-action-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            .command-action-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .command-action {
+            appearance: none;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            min-height: 142px;
+            padding: 0.95rem;
+            text-align: left;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .command-action:hover {
+            border-color: #9ca3af;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .command-action-label {
+            color: var(--text-light);
+            font-size: 0.72rem;
+            font-weight: 850;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.45rem;
+            text-transform: uppercase;
+        }
+
+        .command-action-value {
+            color: var(--text-main);
+            font-size: 1.45rem;
+            font-weight: 850;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-bottom: 0.45rem;
+        }
+
+        .command-action-copy {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            line-height: 1.35;
+        }
+
+        .command-action.acquisition {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .command-action.product {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .command-action.revenue {
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+        .command-action.ops {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
+
+        .command-panel {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 1.15rem;
+        }
+
+        .command-panel-header {
+            align-items: flex-start;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .command-panel-title {
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 850;
+            margin-bottom: 0.15rem;
+        }
+
+        .command-panel-note {
+            color: var(--text-muted);
+            font-size: 0.83rem;
+            line-height: 1.35;
+        }
+
         .insight-grid {
             display: grid;
             grid-template-columns: minmax(0, 1fr);
@@ -2030,7 +2190,7 @@
                         <rect x="14" y="14" width="7" height="7"></rect>
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
-                    <span>Overview</span>
+                    <span>Command</span>
                 </div>
                 <div class="nav-item" data-view="growth" onclick="switchView('growth')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -2104,7 +2264,7 @@
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
                     </button>
-                    <h2 id="pageTitle" class="page-title">Overview</h2>
+                    <h2 id="pageTitle" class="page-title">Command Center</h2>
                 </div>
                 <div class="flex items-center gap-2">
                     <span id="lastUpdated" class="text-sm text-muted" style="display: none;">Updated just now</span>
@@ -2127,7 +2287,7 @@
 
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
             <button class="mobile-bottom-btn active" data-view="overview"
-                onclick="switchView('overview')">Overview</button>
+                onclick="switchView('overview')">Command</button>
             <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
             <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Events</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
@@ -2278,8 +2438,8 @@
                 btn.classList.toggle('active', btn.dataset.view === viewName);
             });
 
-            const titles = { overview: 'Overview', growth: 'Growth', events: 'Event Workbench', logs: 'API Logs', users: 'User Management' };
-            document.getElementById('pageTitle').textContent = titles[viewName] || 'Overview';
+            const titles = { overview: 'Command Center', growth: 'Growth', events: 'Event Workbench', logs: 'API Logs', users: 'User Management' };
+            document.getElementById('pageTitle').textContent = titles[viewName] || 'Command Center';
         }
 
         window.addEventListener('hashchange', () => {
@@ -2343,12 +2503,120 @@
 
         // --- Renderers ---
         async function renderOverview(container) {
-            const data = await fetchAPI('/api/admin?action=usage-stats');
             const todayRange = getLocalTodayRange();
-            const todaysUsers = await fetchAPI(`/api/admin?action=list-users&segment=today&page=1&limit=5&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`);
+            const [data, todaysUsers, growthData, eventLogData] = await Promise.all([
+                fetchAPI('/api/admin?action=usage-stats'),
+                fetchAPI(`/api/admin?action=list-users&segment=today&page=1&limit=5&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`),
+                fetchAPI('/api/admin?action=growth-stats&days=30'),
+                fetchAPI('/api/admin?action=view-logs&log_type=events&page=1&limit=6')
+            ]);
             const todaySignupList = todaysUsers.users || [];
+            const topEvents = growthData.topEvents || [];
+            const eventSummary = growthData.eventSummary || {};
+            const uninstallReasons = eventSummary.uninstallReasons || [];
+            const importantEvents = eventSummary.recentImportantEvents || [];
+            const categories = eventSummary.categories || [];
+            const eventRows = eventLogData.logs || [];
+            const rawEventFeed = eventRows.map(log => ({
+                event: typeof log.endpoint === 'string' ? log.endpoint.replace('/event/', '') : 'unknown_event',
+                category: 'Event Log',
+                createdAt: log.created_at,
+                extensionVersion: log.full_request_body?.extensionVersion || log.full_request_body?.extension_version || log.full_request_body?.context?.extensionVersion,
+                userId: log.user_id,
+                context: log.full_request_body?.context || {}
+            }));
+            const generationActivity = getEventCategoryCount(categories, 'Product Usage') || getEventCount(topEvents, 'generate_request');
+            const revenueIntent = getEventCategoryCount(categories, 'Revenue Intent') || getEventCount(topEvents, 'checkout_start');
+            const uninstallFeedback = getEventCount(topEvents, 'uninstall_feedback_submitted');
+            const generationErrors = getEventCount(topEvents, 'generate_error');
+            const limitHits = getEventCount(topEvents, 'generate_limit_hit');
+            const recentEventCount = eventRows.length || importantEvents.length;
+            const topReason = uninstallReasons[0]?.label || uninstallReasons[0]?.reason || 'No feedback yet';
+
+            const commandAction = (label, value, copy, view, className = '') => `
+                <button type="button" class="command-action ${className}" onclick="switchView('${view}')">
+                    <div class="command-action-label">${escapeHtml(label)}</div>
+                    <div class="command-action-value">${escapeHtml(String(value))}</div>
+                    <div class="command-action-copy">${escapeHtml(copy)}</div>
+                </button>
+            `;
 
             const statsHtml = `
+                <div class="command-shell">
+                    <div class="command-grid">
+                        <section class="command-hero">
+                            <div class="command-kicker">Admin Command Center</div>
+                            <div class="command-title">Start here when deciding what to do next.</div>
+                            <div class="command-copy">
+                                This screen combines usage, growth, uninstall feedback, and important product events so the next action is visible without opening three different tabs.
+                            </div>
+                            <div class="operator-answer-row">
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Acquisition quality</div>
+                                    <div class="operator-status-copy">${uninstallFeedback.toLocaleString()} uninstall feedback event${uninstallFeedback === 1 ? '' : 's'} in 30 days. Top reason: ${escapeHtml(topReason)}.</div>
+                                </div>
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Product health</div>
+                                    <div class="operator-status-copy">${generationActivity.toLocaleString()} product event${generationActivity === 1 ? '' : 's'}, ${generationErrors.toLocaleString()} generation error${generationErrors === 1 ? '' : 's'}, ${limitHits.toLocaleString()} limit hit${limitHits === 1 ? '' : 's'}.</div>
+                                </div>
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Revenue intent</div>
+                                    <div class="operator-status-copy">${revenueIntent.toLocaleString()} paywall, checkout, pricing, or billing event${revenueIntent === 1 ? '' : 's'} in the current 30-day window.</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="command-panel">
+                            <div class="command-panel-header">
+                                <div>
+                                    <div class="command-panel-title">Uninstall Pulse</div>
+                                    <div class="command-panel-note">Use this to decide what to fix before pushing for more installs.</div>
+                                </div>
+                                <button class="btn-secondary" onclick="switchView('events')">Open events</button>
+                            </div>
+                            <div class="reason-list">
+                                ${renderUninstallReasons(uninstallReasons)}
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="command-action-row">
+                        ${commandAction('Events', `${recentEventCount.toLocaleString()} recent`, 'Uninstall reasons, errors, limit hits, checkouts, and raw event logs.', 'events', 'acquisition')}
+                        ${commandAction('Users', `${todaysUsers.pagination.total.toLocaleString()} today`, 'New signups and account states that may need review requests or support.', 'users', 'ops')}
+                        ${commandAction('Growth', `${Number(growthData.days || 30).toLocaleString()} days`, 'Chrome Store numbers, KPI interpretation, and weekly operating playbook.', 'growth', 'product')}
+                        ${commandAction('Logs', `${data.today.totalRequests.toLocaleString()} calls`, 'Generation logs and API behavior when debugging user problems.', 'logs', 'revenue')}
+                    </div>
+
+                    <div class="event-workbench">
+                        <section class="event-panel">
+                            <div class="event-panel-header">
+                                <div>
+                                    <div class="event-panel-title">Event Families</div>
+                                    <div class="event-panel-note">Grouped by the decisions they support, not raw event names.</div>
+                                </div>
+                            </div>
+                            <div class="event-card-grid">
+                                ${renderEventCategoryCard('Acquisition Quality', getEventCategoryCount(categories, 'Acquisition Quality'), 'Store clicks and uninstall feedback. Watch this before scaling traffic.', ['chrome_store_click', 'uninstall_feedback_submitted'])}
+                                ${renderEventCategoryCard('Product Usage', getEventCategoryCount(categories, 'Product Usage'), 'Generation, upload, batch, limit, and error behavior.', ['generate_request', 'generate_error', 'generate_limit_hit'])}
+                                ${renderEventCategoryCard('Revenue Intent', getEventCategoryCount(categories, 'Revenue Intent'), 'Paywall, checkout, billing, pricing, and credit signals.', ['paywall_shown', 'checkout_start'])}
+                                ${renderEventCategoryCard('Auth', getEventCategoryCount(categories, 'Auth'), 'Magic link and sign-in events that can block activation.', ['magic_link_request', 'magic_link_sent'])}
+                            </div>
+                        </section>
+
+                        <section class="event-panel">
+                            <div class="event-panel-header">
+                                <div>
+                                    <div class="event-panel-title">Priority Feed</div>
+                                    <div class="event-panel-note">Recent events worth investigating first.</div>
+                                </div>
+                            </div>
+                            <div class="event-feed">
+                                ${renderRecentEventFeed(importantEvents.length ? importantEvents : rawEventFeed)}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
                 <div class="grid-stats">
                     <div class="stat-card">
                         <div class="stat-label">Today's Requests</div>

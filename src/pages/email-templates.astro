@@ -514,7 +514,7 @@ import "../styles/global.css";
           frameContainer.appendChild(notch);
         } else {
           frameContainer.className =
-            "w-full max-w-3xl bg-white rounded-lg shadow-lg overflow-hidden shrink-0 min-h-[600px] h-full";
+            "w-full max-w-3xl bg-white rounded-lg shadow-lg overflow-hidden shrink-0 my-8";
         }
 
         const iframe = document.createElement("iframe");
@@ -522,9 +522,29 @@ import "../styles/global.css";
         // allow-same-origin needed for null origin to work with some contents, but let's try strict first
         // Actually without allow-scripts, dynamic content won't work, but email templates shouldn't have scripts.
 
-        iframe.className = "w-full h-full border-none bg-white";
+        iframe.className = "w-full border-none bg-white";
 
         // Inject content
+        const resizeIframe = () => {
+          if (currentDevice === "mobile") {
+            iframe.style.height = "100%";
+            return;
+          }
+
+          const doc = iframe.contentDocument;
+          const body = doc?.body;
+          const root = doc?.documentElement;
+          const contentHeight = Math.max(
+            body?.scrollHeight || 0,
+            root?.scrollHeight || 0,
+            700,
+          );
+          iframe.style.height = `${contentHeight}px`;
+        };
+        iframe.addEventListener("load", () => {
+          resizeIframe();
+          window.setTimeout(resizeIframe, 250);
+        });
         iframe.srcdoc = currentHtml;
 
         frameContainer.appendChild(iframe);

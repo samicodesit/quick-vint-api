@@ -2203,10 +2203,12 @@
             const last30 = data.last30 || {};
             const rates = data.rates || {};
             const chromeSnapshot = getChromeStoreSnapshot();
+            const previousChromeSnapshot = getPreviousChromeSnapshot(chromeSnapshot);
             const chromeVisitors = Number(chromeSnapshot.visitors || 0);
             const chromeInstalls = Number(chromeSnapshot.installs || 0);
             const chromeImpressions = Number(chromeSnapshot.impressions || 0);
             const chromeUninstalls = Number(chromeSnapshot.uninstalls || chromeSnapshot.uninstallRate || 0);
+            const chromeWeeklyUsers = Number(chromeSnapshot.weeklyUsers || 0);
             const chromeRatingCount = Number(chromeSnapshot.ratingCount || 0);
             const chromeInstallRate = chromeVisitors ? (chromeInstalls / chromeVisitors) * 100 : 0;
             const chromePeriod = getChromeSnapshotPeriod(chromeSnapshot);
@@ -2454,12 +2456,14 @@
                 focusReason,
                 primaryAction: actions[0],
                 decisionLog,
+                previousChromeSnapshot,
                 chromeSnapshotReady,
                 chromeWarnings,
                 chromeVisitors,
                 chromeInstalls,
                 chromeImpressions,
                 chromeUninstalls,
+                chromeSnapshotWeeklyUsers: chromeWeeklyUsers,
                 chromeRatingCount,
                 chromeInstallRate,
                 avgSignups7,
@@ -2484,6 +2488,7 @@
                 focus,
                 focusReason,
                 chromeSnapshot,
+                previousChromeSnapshot,
                 chromePeriod,
                 last7,
                 last30,
@@ -3473,6 +3478,37 @@
             }
         }
 
+        function getChromeSnapshotHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('chrome_store_snapshot_history') || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function getPreviousChromeSnapshot(currentSnapshot = {}) {
+            const currentUpdatedAt = currentSnapshot.updatedAt || '';
+            return getChromeSnapshotHistory()
+                .filter(item => item && item.updatedAt && item.updatedAt !== currentUpdatedAt)
+                .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0] || null;
+        }
+
+        function saveChromeSnapshotHistory(snapshot) {
+            const history = getChromeSnapshotHistory()
+                .filter(item =>
+                    item &&
+                    !(item.periodStart === snapshot.periodStart &&
+                        item.periodEnd === snapshot.periodEnd &&
+                        item.impressions === snapshot.impressions &&
+                        item.visitors === snapshot.visitors &&
+                        item.installs === snapshot.installs &&
+                        item.uninstalls === snapshot.uninstalls &&
+                        item.weeklyUsers === snapshot.weeklyUsers)
+                );
+            history.unshift(snapshot);
+            localStorage.setItem('chrome_store_snapshot_history', JSON.stringify(history.slice(0, 10)));
+        }
+
         function readNumberInput(id) {
             const value = document.getElementById(id)?.value;
             if (value === undefined || value === null || value === '') return '';
@@ -3505,6 +3541,7 @@
                 return;
             }
             localStorage.setItem('chrome_store_snapshot', JSON.stringify(snapshot));
+            saveChromeSnapshotHistory(snapshot);
             showToast('Chrome Store snapshot saved', 'success');
             renderGrowth(document.getElementById('contentArea'));
         }
@@ -3518,6 +3555,15 @@
         function buildGrowthAdvisor(input) {
             const pctText = (value) => `${Number(value || 0).toFixed(1)}%`;
             const ratioText = (part, total) => total ? `${((Number(part || 0) / Number(total || 0)) * 100).toFixed(1)}%` : 'n/a';
+            const numberDelta = (current, previous) => Number(current || 0) - Number(previous || 0);
+            const signed = (value) => value > 0 ? `+${value}` : String(value);
+            const previousSnapshot = input.previousChromeSnapshot || null;
+            const snapshotTrend = previousSnapshot ? {
+                pageViews: numberDelta(input.chromeVisitors, previousSnapshot.visitors),
+                installs: numberDelta(input.chromeInstalls, previousSnapshot.installs),
+                uninstalls: numberDelta(input.chromeUninstalls, previousSnapshot.uninstalls || previousSnapshot.uninstallRate),
+                weeklyUsers: numberDelta(input.chromeSnapshotWeeklyUsers, previousSnapshot.weeklyUsers),
+            } : null;
             const today = new Date().toISOString().slice(0, 10);
             const recentLog = (input.decisionLog || []).filter(item => {
                 if (!item.date) return false;
@@ -3537,6 +3583,15 @@
                     note: input.chromeSnapshotReady
                         ? `${ratioText(input.chromeInstalls, input.chromeVisitors)} page-view install rate; ${ratioText(input.chromeUninstalls, input.chromeInstalls)} uninstalls/install.`
                         : 'Save page views, impressions, installs, uninstalls, weekly users, and ratings before making store decisions.',
+                },
+                {
+                    label: 'Store trend',
+                    value: snapshotTrend
+                        ? `${signed(snapshotTrend.installs)} installs, ${signed(snapshotTrend.uninstalls)} uninstalls`
+                        : 'No previous snapshot yet',
+                    note: snapshotTrend
+                        ? `${signed(snapshotTrend.pageViews)} page views and ${signed(snapshotTrend.weeklyUsers)} weekly users versus the previous saved snapshot.`
+                        : 'Save another snapshot later to let the advisor compare direction instead of reading one isolated period.',
                 },
                 {
                     label: 'Product',
@@ -3563,6 +3618,7 @@
 
             const missing = [];
             if (!input.chromeSnapshotReady) missing.push('Chrome Store snapshot');
+            if (!previousSnapshot) missing.push('previous Chrome Store snapshot');
             if (!Number(input.last30?.activeGenerators || 0)) missing.push('active generator volume');
             if (Number(input.paywallShown || 0) < 10) missing.push('paywall sample size');
             const confidence = missing.length === 0 ? 'high' : missing.length === 1 ? 'medium' : 'low';
@@ -3640,6 +3696,16 @@
                 `Public users: ${input.chromeSnapshot.users || 'blank'}`,
                 `Rating count: ${input.chromeSnapshot.ratingCount || 'blank'}`,
                 '',
+                'Previous Chrome Store snapshot:',
+                input.previousChromeSnapshot
+                    ? `Period: ${input.previousChromeSnapshot.periodStart || 'blank'} to ${input.previousChromeSnapshot.periodEnd || 'blank'}`
+                    : 'None saved yet',
+                input.previousChromeSnapshot ? `Page views: ${input.previousChromeSnapshot.visitors || 'blank'}` : '',
+                input.previousChromeSnapshot ? `Impressions: ${input.previousChromeSnapshot.impressions || 'blank'}` : '',
+                input.previousChromeSnapshot ? `Installs: ${input.previousChromeSnapshot.installs || 'blank'}` : '',
+                input.previousChromeSnapshot ? `Uninstalls: ${input.previousChromeSnapshot.uninstalls || input.previousChromeSnapshot.uninstallRate || 'blank'}` : '',
+                input.previousChromeSnapshot ? `Weekly users: ${input.previousChromeSnapshot.weeklyUsers || 'blank'}` : '',
+                '',
                 'Product metrics:',
                 `30-day signups: ${input.last30.signups || 0}`,
                 `30-day active generators: ${input.totals.activeGenerators || 0}`,
@@ -3657,7 +3723,7 @@
                 'Question for Codex:',
                 'Given this exact state, what should I do next today? Be specific and do not suggest vague user research.',
             ];
-            return lines.join('\n');
+            return lines.filter(line => line !== '').join('\n');
         }
 
         async function copyGrowthBrief() {

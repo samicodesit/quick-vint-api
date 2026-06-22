@@ -667,6 +667,56 @@
             padding: 0.75rem 0.85rem;
         }
 
+        .advanced-details {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .advanced-details>summary {
+            align-items: center;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            list-style: none;
+            padding: 1rem 1.25rem;
+        }
+
+        .advanced-details>summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .advanced-summary-title {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 750;
+        }
+
+        .advanced-summary-note {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            margin-top: 0.1rem;
+        }
+
+        .advanced-details>summary::after {
+            color: var(--text-muted);
+            content: "+";
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .advanced-details[open]>summary::after {
+            content: "-";
+        }
+
+        .advanced-body {
+            border-top: 1px solid var(--border-color);
+            padding: 1rem 1.25rem 1.25rem;
+        }
+
         .section-kicker {
             color: var(--text-light);
             font-size: 0.72rem;
@@ -2443,6 +2493,7 @@
             });
             const monthPlan = getGrowthMonthPlan(focus);
             const progress = getGrowthTaskProgress();
+            const visibleTasks = dailyTasks.slice(0, 3);
 
             container.innerHTML = `
                 <div class="growth-hero">
@@ -2485,16 +2536,16 @@
                 </div>
 
                 <div class="operator-note">
-                    <span>This page now chooses one main action. Use the checklist only to execute that action; use Copy Codex brief when you want me to reason from the exact current state.</span>
+                    <span>Default workflow: read Growth Advisor, do the one action, log what changed. Open advanced panels only when you need evidence.</span>
                 </div>
 
                 <div class="growth-section">
                     <div class="insight-card">
                         <div class="section-kicker">Daily</div>
-                        <div class="insight-title">Today's Workbench</div>
-                        <div class="insight-copy">Your actual task list. These reset daily in this browser.</div>
+                        <div class="insight-title">Execution Checklist</div>
+                        <div class="insight-copy">Only support for the advisor action. Stop after these are done.</div>
                         <div class="task-list">
-                            ${dailyTasks.map(item => `
+                            ${visibleTasks.map(item => `
                                 <label class="task-item">
                                     <input type="checkbox" ${progress[todayTaskKey(item.id)] ? 'checked' : ''} onchange="toggleGrowthTask('${escapeAttribute(item.id)}', this.checked)">
                                     <span>
@@ -2526,60 +2577,70 @@
                     </div>
                 </div>
 
-                <div class="growth-section compact">
-                    <div class="insight-card">
-                        <div class="section-kicker">Health Check</div>
-                        <div class="insight-title">Diagnostics</div>
-                        <div class="insight-copy">Use this to understand why the focus was chosen.</div>
-                        <div class="diagnostic-list">
-                            ${diagnostics.map(item => `
-                                <div class="diagnostic-item ${item.state}">
-                                    <div class="diagnostic-head">
-                                        <span>${escapeHtml(item.label)}</span>
-                                        <span>${escapeHtml(item.value)}</span>
-                                    </div>
-                                    <div class="diagnostic-note">${escapeHtml(item.note)}</div>
+                <details class="advanced-details" ontoggle="if (this.open && window.growthChart) setTimeout(() => window.growthChart.resize(), 50)">
+                    <summary>
+                        <span>
+                            <span class="advanced-summary-title">Advanced: diagnostics and prepared tools</span>
+                            <span class="advanced-summary-note">Open only when you need to inspect why the advisor chose the action.</span>
+                        </span>
+                    </summary>
+                    <div class="advanced-body">
+                        <div class="growth-section compact">
+                            <div class="insight-card">
+                                <div class="section-kicker">Health Check</div>
+                                <div class="insight-title">Diagnostics</div>
+                                <div class="insight-copy">Use this to understand why the focus was chosen.</div>
+                                <div class="diagnostic-list">
+                                    ${diagnostics.map(item => `
+                                        <div class="diagnostic-item ${item.state}">
+                                            <div class="diagnostic-head">
+                                                <span>${escapeHtml(item.label)}</span>
+                                                <span>${escapeHtml(item.value)}</span>
+                                            </div>
+                                            <div class="diagnostic-note">${escapeHtml(item.note)}</div>
+                                        </div>
+                                    `).join('')}
                                 </div>
-                            `).join('')}
-                        </div>
-                    </div>
+                            </div>
 
-                    <div class="insight-card">
-                        <div class="section-kicker">When Needed</div>
-                        <div class="insight-title">Prepared Tools</div>
-                        <div class="insight-copy">Only use these when today's checklist asks for outreach, ratings, or one-generation follow-up.</div>
-                        <div class="action-list">
-                            ${scripts.map((item, index) => `
-                                <div class="action-item">
-                                    <span class="action-number">${index + 1}</span>
-                                    <div>
-                                        <div style="font-weight: 700; font-size: 0.9rem;">${escapeHtml(item.title)}</div>
-                                        <div id="growthScript-${escapeAttribute(item.id)}" style="display:none;">${escapeHtml(item.body)}</div>
-                                        <button class="btn-secondary" style="margin-top:0.45rem;" onclick="copyGrowthScript('${escapeAttribute(item.id)}')">Copy script</button>
-                                    </div>
+                            <div class="insight-card">
+                                <div class="section-kicker">When Needed</div>
+                                <div class="insight-title">Prepared Tools</div>
+                                <div class="insight-copy">Only use these when today's checklist asks for outreach, ratings, or one-generation follow-up.</div>
+                                <div class="action-list">
+                                    ${scripts.map((item, index) => `
+                                        <div class="action-item">
+                                            <span class="action-number">${index + 1}</span>
+                                            <div>
+                                                <div style="font-weight: 700; font-size: 0.9rem;">${escapeHtml(item.title)}</div>
+                                                <div id="growthScript-${escapeAttribute(item.id)}" style="display:none;">${escapeHtml(item.body)}</div>
+                                                <button class="btn-secondary" style="margin-top:0.45rem;" onclick="copyGrowthScript('${escapeAttribute(item.id)}')">Copy script</button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
                                 </div>
-                            `).join('')}
-                        </div>
-                        <div class="section-kicker" style="margin-top:1rem;">One-generation users</div>
-                        <div class="target-list">
-                            ${oneGenerationTargets.length ? oneGenerationTargets.slice(0, 3).map(user => `
-                                <div class="target-card">
-                                    <div class="target-title">${escapeHtml(user.email || 'Unknown email')}</div>
-                                    <div class="target-meta">
-                                        ${fmt(user.successfulGenerations)} successful generation${Number(user.successfulGenerations) === 1 ? '' : 's'}
-                                        ${user.lastGeneratedAt ? ` · last ${formatDateTime(user.lastGeneratedAt)}` : ''}
-                                    </div>
-                                    ${user.email ? `<a class="btn-secondary" href="${buildMailtoScript(user.email, 'one_generation')}" style="text-decoration:none;">Open mailto</a>` : ''}
+                                <div class="section-kicker" style="margin-top:1rem;">One-generation users</div>
+                                <div class="target-list">
+                                    ${oneGenerationTargets.length ? oneGenerationTargets.slice(0, 3).map(user => `
+                                        <div class="target-card">
+                                            <div class="target-title">${escapeHtml(user.email || 'Unknown email')}</div>
+                                            <div class="target-meta">
+                                                ${fmt(user.successfulGenerations)} successful generation${Number(user.successfulGenerations) === 1 ? '' : 's'}
+                                                ${user.lastGeneratedAt ? ` · last ${formatDateTime(user.lastGeneratedAt)}` : ''}
+                                            </div>
+                                            ${user.email ? `<a class="btn-secondary" href="${buildMailtoScript(user.email, 'one_generation')}" style="text-decoration:none;">Open mailto</a>` : ''}
+                                        </div>
+                                    `).join('') : `
+                                        <div class="target-card">
+                                            <div class="target-title">No one-generation targets yet</div>
+                                            <div class="target-meta">This will populate when users generate once and stop.</div>
+                                        </div>
+                                    `}
                                 </div>
-                            `).join('') : `
-                                <div class="target-card">
-                                    <div class="target-title">No one-generation targets yet</div>
-                                    <div class="target-meta">This will populate when users generate once and stop.</div>
-                                </div>
-                            `}
+                            </div>
                         </div>
                     </div>
-                </div>
+                </details>
 
                 <div class="card" style="padding: 1.25rem; margin-bottom: 2rem;">
                     <div class="card-header" style="padding: 0 0 1rem 0;">
@@ -2668,139 +2729,149 @@
                     </div>
                 </div>
 
-                <div class="grid-stats">
-                    <div class="stat-card">
-                        <div class="stat-label">Today's Signups</div>
-                        <div class="stat-value">${fmt(data.today?.signups)}</div>
-                        <div class="stat-trend"><span>${fmt(last7.signups)} in last 7 days</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Today's Generations</div>
-                        <div class="stat-value">${fmt(data.today?.successfulGenerations)}</div>
-                        <div class="stat-trend"><span>${fmt(last7.successfulGenerations)} in last 7 days</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Active Paid Profiles</div>
-                        <div class="stat-value">${fmt(data.totals?.activePaidProfiles)}</div>
-                        <div class="stat-trend"><span>${fmt(data.totals?.profiles)} total profiles</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Free Quota Depth</div>
-                        <div class="stat-value">${pct(rates.quotaPressure30d)}</div>
-                        <div class="stat-trend"><span>${fmt(data.totals?.quotaPressureUsers)} users at 3+ generations or limit pressure</span></div>
-                    </div>
-                </div>
-
-                <div class="grid-stats" style="margin-top: -0.75rem;">
-                    <div class="stat-card">
-                        <div class="stat-label">2+ Generation Users</div>
-                        <div class="stat-value">${pct(rates.twoPlusGeneration30d)}</div>
-                        <div class="stat-trend"><span>${fmt(data.totals?.twoPlusGenerationUsers)} of ${fmt(data.totals?.activeGenerators)} active generators; avg ${avgGenerationsPerActive.toFixed(1)} generations</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Signup to Paid</div>
-                        <div class="stat-value">${pct(rates.signupToPaid30d)}</div>
-                        <div class="stat-trend"><span>${fmt(last30.paidSignups)} paid from ${fmt(last30.signups)} recent signups</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Limit to Paywall</div>
-                        <div class="stat-value">${pct(rates.limitToPaywall30d)}</div>
-                        <div class="stat-trend"><span>${fmt(last30.paywallShown)} paywalls / ${fmt(last30.limitHits)} limit hits</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Paywall to Checkout</div>
-                        <div class="stat-value">${pct(rates.paywallToCheckout30d)}</div>
-                        <div class="stat-trend"><span>${fmt(last30.checkoutStart)} starts / ${fmt(last30.paywallShown)} paywalls</span></div>
-                    </div>
-                </div>
-
-                <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Growth Funnel (Last 30 Days)</h3>
-                            <div class="text-sm text-muted">Generated ${formatDateTime(data.generatedAt)}</div>
+                <details class="advanced-details">
+                    <summary>
+                        <span>
+                            <span class="advanced-summary-title">Advanced: raw metrics, chart, and event tables</span>
+                            <span class="advanced-summary-note">Open when the advisor feels wrong or you want to audit the numbers.</span>
+                        </span>
+                    </summary>
+                    <div class="advanced-body">
+                        <div class="grid-stats">
+                            <div class="stat-card">
+                                <div class="stat-label">Today's Signups</div>
+                                <div class="stat-value">${fmt(data.today?.signups)}</div>
+                                <div class="stat-trend"><span>${fmt(last7.signups)} in last 7 days</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Today's Generations</div>
+                                <div class="stat-value">${fmt(data.today?.successfulGenerations)}</div>
+                                <div class="stat-trend"><span>${fmt(last7.successfulGenerations)} in last 7 days</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Active Paid Profiles</div>
+                                <div class="stat-value">${fmt(data.totals?.activePaidProfiles)}</div>
+                                <div class="stat-trend"><span>${fmt(data.totals?.profiles)} total profiles</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Free Quota Depth</div>
+                                <div class="stat-value">${pct(rates.quotaPressure30d)}</div>
+                                <div class="stat-trend"><span>${fmt(data.totals?.quotaPressureUsers)} users at 3+ generations or limit pressure</span></div>
+                            </div>
                         </div>
-                    </div>
-                    <div style="height: 320px;">
-                        <canvas id="growthChart"></canvas>
-                    </div>
-                </div>
 
-                <div class="card" style="margin-bottom: 2rem;">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Daily Funnel</h3>
-                            <div class="text-sm text-muted">Use this every morning before choosing outreach, product, or store work.</div>
+                        <div class="grid-stats" style="margin-top: -0.75rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">2+ Generation Users</div>
+                                <div class="stat-value">${pct(rates.twoPlusGeneration30d)}</div>
+                                <div class="stat-trend"><span>${fmt(data.totals?.twoPlusGenerationUsers)} of ${fmt(data.totals?.activeGenerators)} active generators; avg ${avgGenerationsPerActive.toFixed(1)} generations</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Signup to Paid</div>
+                                <div class="stat-value">${pct(rates.signupToPaid30d)}</div>
+                                <div class="stat-trend"><span>${fmt(last30.paidSignups)} paid from ${fmt(last30.signups)} recent signups</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Limit to Paywall</div>
+                                <div class="stat-value">${pct(rates.limitToPaywall30d)}</div>
+                                <div class="stat-trend"><span>${fmt(last30.paywallShown)} paywalls / ${fmt(last30.limitHits)} limit hits</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Paywall to Checkout</div>
+                                <div class="stat-value">${pct(rates.paywallToCheckout30d)}</div>
+                                <div class="stat-trend"><span>${fmt(last30.checkoutStart)} starts / ${fmt(last30.paywallShown)} paywalls</span></div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Signups</th>
-                                    <th>Active Generators</th>
-                                    <th>Successes</th>
-                                    <th>Limits</th>
-                                    <th>Paywalls</th>
-                                    <th>Checkouts</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${daily.slice().reverse().map(day => `
-                                    <tr>
-                                        <td>${escapeHtml(day.date)}</td>
-                                        <td>${fmt(day.signups)}</td>
-                                        <td>${fmt(day.activeGenerators)}</td>
-                                        <td>${fmt(day.successfulGenerations)}</td>
-                                        <td>${fmt(day.limitHits)}</td>
-                                        <td>${fmt(day.paywallShown)}</td>
-                                        <td>${fmt(day.checkoutStart)} / ${fmt(day.checkoutOpened)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                        <div class="mobile-card-list">
-                            ${daily.slice().reverse().map(day => `
-                                <div class="mobile-card">
-                                    <div class="mobile-card-row"><span class="mobile-card-label">Date</span><span class="mobile-card-value">${escapeHtml(day.date)}</span></div>
-                                    <div class="mobile-card-row"><span class="mobile-card-label">Signups</span><span class="mobile-card-value">${fmt(day.signups)}</span></div>
-                                    <div class="mobile-card-row"><span class="mobile-card-label">Generators</span><span class="mobile-card-value">${fmt(day.activeGenerators)}</span></div>
-                                    <div class="mobile-card-row"><span class="mobile-card-label">Successes</span><span class="mobile-card-value">${fmt(day.successfulGenerations)}</span></div>
-                                    <div class="mobile-card-row"><span class="mobile-card-label">Limits</span><span class="mobile-card-value">${fmt(day.limitHits)}</span></div>
-                                    <div class="mobile-card-row"><span class="mobile-card-label">Paywall -> Checkout</span><span class="mobile-card-value">${fmt(day.paywallShown)} -> ${fmt(day.checkoutStart)}</span></div>
+
+                        <div class="card" style="padding: 1.5rem; margin-bottom: 1rem;">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">Growth Funnel (Last 30 Days)</h3>
+                                    <div class="text-sm text-muted">Generated ${formatDateTime(data.generatedAt)}</div>
                                 </div>
-                            `).join('')}
+                            </div>
+                            <div style="height: 320px;">
+                                <canvas id="growthChart"></canvas>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Top Events</h3>
-                            <div class="text-sm text-muted">First-party tracked events from site and extension.</div>
+                        <div class="card" style="margin-bottom: 1rem;">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">Daily Funnel</h3>
+                                    <div class="text-sm text-muted">Raw daily funnel counts.</div>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Signups</th>
+                                            <th>Active Generators</th>
+                                            <th>Successes</th>
+                                            <th>Limits</th>
+                                            <th>Paywalls</th>
+                                            <th>Checkouts</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${daily.slice().reverse().map(day => `
+                                            <tr>
+                                                <td>${escapeHtml(day.date)}</td>
+                                                <td>${fmt(day.signups)}</td>
+                                                <td>${fmt(day.activeGenerators)}</td>
+                                                <td>${fmt(day.successfulGenerations)}</td>
+                                                <td>${fmt(day.limitHits)}</td>
+                                                <td>${fmt(day.paywallShown)}</td>
+                                                <td>${fmt(day.checkoutStart)} / ${fmt(day.checkoutOpened)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                                <div class="mobile-card-list">
+                                    ${daily.slice().reverse().map(day => `
+                                        <div class="mobile-card">
+                                            <div class="mobile-card-row"><span class="mobile-card-label">Date</span><span class="mobile-card-value">${escapeHtml(day.date)}</span></div>
+                                            <div class="mobile-card-row"><span class="mobile-card-label">Signups</span><span class="mobile-card-value">${fmt(day.signups)}</span></div>
+                                            <div class="mobile-card-row"><span class="mobile-card-label">Generators</span><span class="mobile-card-value">${fmt(day.activeGenerators)}</span></div>
+                                            <div class="mobile-card-row"><span class="mobile-card-label">Successes</span><span class="mobile-card-value">${fmt(day.successfulGenerations)}</span></div>
+                                            <div class="mobile-card-row"><span class="mobile-card-label">Limits</span><span class="mobile-card-value">${fmt(day.limitHits)}</span></div>
+                                            <div class="mobile-card-row"><span class="mobile-card-label">Paywall -> Checkout</span><span class="mobile-card-value">${fmt(day.paywallShown)} -> ${fmt(day.checkoutStart)}</span></div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">Top Events</h3>
+                                    <div class="text-sm text-muted">First-party tracked events from site and extension.</div>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead><tr><th>Event</th><th>Count</th></tr></thead>
+                                    <tbody>
+                                        ${(data.topEvents || []).map(item => `
+                                            <tr>
+                                                <td><code>${escapeHtml(item.event)}</code></td>
+                                                <td>${fmt(item.count)}</td>
+                                            </tr>
+                                        `).join('') || '<tr><td colspan="2" style="color: var(--text-muted);">No tracked events yet.</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>Event</th><th>Count</th></tr></thead>
-                            <tbody>
-                                ${(data.topEvents || []).map(item => `
-                                    <tr>
-                                        <td><code>${escapeHtml(item.event)}</code></td>
-                                        <td>${fmt(item.count)}</td>
-                                    </tr>
-                                `).join('') || '<tr><td colspan="2" style="color: var(--text-muted);">No tracked events yet.</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                </details>
             `;
 
             const ctx = document.getElementById('growthChart').getContext('2d');
             const labels = daily.map(day => new Date(day.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-            new Chart(ctx, {
+            window.growthChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels,

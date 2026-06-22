@@ -221,6 +221,38 @@ function getEventName(log: any) {
   return null;
 }
 
+function getEventCategory(event: string | null) {
+  if (!event) return null;
+  if (
+    event === "uninstall_feedback_submitted" ||
+    event === "chrome_store_click"
+  ) {
+    return "Acquisition Quality";
+  }
+  if (
+    event.startsWith("generate_") ||
+    event === "phone_upload_start" ||
+    event === "batch_start" ||
+    event === "batch_start_blocked" ||
+    event === "phone_upload_blocked"
+  ) {
+    return "Product Usage";
+  }
+  if (
+    event.startsWith("paywall_") ||
+    event.startsWith("checkout_") ||
+    event === "credit_pack_click" ||
+    event.startsWith("billing_portal_") ||
+    event.startsWith("pricing_")
+  ) {
+    return "Revenue Intent";
+  }
+  if (event.startsWith("magic_link_")) {
+    return "Auth";
+  }
+  return "Other";
+}
+
 function getGrowthEmptyDay(date: string) {
   return {
     date,
@@ -238,6 +270,7 @@ function getGrowthEmptyDay(date: string) {
     magicLinkRequests: 0,
     phoneUploadStarts: 0,
     batchStarts: 0,
+    uninstallFeedback: 0,
   };
 }
 
@@ -333,6 +366,12 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
     });
 
     const eventCounts = new Map<string, number>();
+    const eventCategoryCounts = new Map<string, number>();
+    const uninstallReasonCounts = new Map<
+      string,
+      { reason: string; label: string; count: number }
+    >();
+    const recentImportantEvents: any[] = [];
     const activeUsers30 = new Set<string>();
     const activeDaysByUser = new Map<string, Set<string>>();
     const successfulGenerationsByUser = new Map<string, number>();
@@ -347,6 +386,54 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
       const event = getEventName(log);
       if (event) {
         eventCounts.set(event, (eventCounts.get(event) || 0) + 1);
+        const category = getEventCategory(event);
+        if (category) {
+          eventCategoryCounts.set(
+            category,
+            (eventCategoryCounts.get(category) || 0) + 1,
+          );
+        }
+
+        const body = log.full_request_body || {};
+        const context =
+          body && typeof body === "object" && typeof body.context === "object"
+            ? body.context
+            : {};
+
+        if (event === "uninstall_feedback_submitted") {
+          bucket.uninstallFeedback += 1;
+          const reason = String(context.reason || "unknown");
+          const label = String(context.reasonLabel || reason);
+          const existing = uninstallReasonCounts.get(reason) || {
+            reason,
+            label,
+            count: 0,
+          };
+          existing.count += 1;
+          uninstallReasonCounts.set(reason, existing);
+        }
+
+        if (
+          [
+            "uninstall_feedback_submitted",
+            "generate_error",
+            "generate_limit_hit",
+            "paywall_shown",
+            "checkout_start",
+            "checkout_opened",
+          ].includes(event) &&
+          recentImportantEvents.length < 20
+        ) {
+          recentImportantEvents.push({
+            event,
+            category,
+            createdAt: log.created_at,
+            userId: log.user_id || null,
+            context,
+            extensionVersion:
+              body.extensionVersion || context.extensionVersion || null,
+          });
+        }
       }
 
       if (log.endpoint === "/api/generate") {
@@ -489,6 +576,15 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 20)
         .map(([event, count]) => ({ event, count })),
+      eventSummary: {
+        categories: Array.from(eventCategoryCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([category, count]) => ({ category, count })),
+        uninstallReasons: Array.from(uninstallReasonCounts.values()).sort(
+          (a, b) => b.count - a.count,
+        ),
+        recentImportantEvents,
+      },
       oneGenerationTargets,
       notes: [
         "Chrome Web Store impressions, visitors, installs, uninstall rate, and rating count still need to be read from Chrome Web Store dashboard.",

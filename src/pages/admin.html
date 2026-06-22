@@ -1129,6 +1129,198 @@
             padding: 0.65rem 0.75rem;
         }
 
+        .event-workbench {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 1020px) {
+            .event-workbench {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .event-panel {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 1.15rem;
+        }
+
+        .event-panel-header {
+            align-items: flex-start;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .event-panel-title {
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 800;
+            margin-bottom: 0.15rem;
+        }
+
+        .event-panel-note {
+            color: var(--text-muted);
+            font-size: 0.83rem;
+        }
+
+        .event-card-grid {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (max-width: 680px) {
+            .event-card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .event-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            display: grid;
+            gap: 0.45rem;
+            min-height: 128px;
+            padding: 0.85rem;
+        }
+
+        .event-card.acquisition {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .event-card.product {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .event-card.revenue {
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+        .event-card.auth {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
+
+        .event-card.other {
+            background: #f9fafb;
+        }
+
+        .event-card-top {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .event-card-label {
+            color: var(--text-main);
+            font-size: 0.88rem;
+            font-weight: 800;
+        }
+
+        .event-card-value {
+            color: var(--text-main);
+            font-size: 1.35rem;
+            font-weight: 850;
+            letter-spacing: -0.02em;
+        }
+
+        .event-card-copy {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.35;
+        }
+
+        .event-pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: auto;
+        }
+
+        .event-pill {
+            background: rgba(255, 255, 255, 0.68);
+            border: 1px solid rgba(17, 24, 39, 0.08);
+            border-radius: 999px;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 750;
+            padding: 0.22rem 0.5rem;
+        }
+
+        .reason-list,
+        .event-feed {
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .reason-row,
+        .event-feed-row {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+            background: var(--bg-subtle);
+        }
+
+        .reason-row {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .reason-row-main {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .reason-bar {
+            background: #e5e7eb;
+            border-radius: 999px;
+            height: 7px;
+            overflow: hidden;
+        }
+
+        .reason-bar-fill {
+            background: #111827;
+            border-radius: inherit;
+            display: block;
+            height: 100%;
+            width: var(--reason-width);
+        }
+
+        .event-feed-row {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .event-feed-title {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            font-size: 0.83rem;
+            font-weight: 800;
+        }
+
+        .event-feed-meta,
+        .event-feed-context {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            line-height: 1.35;
+        }
+
         /* Tables */
         .card {
             background: var(--bg-card);
@@ -2359,6 +2551,125 @@
             });
         }
 
+        function getEventCount(topEvents, name) {
+            const item = (topEvents || []).find(event => event.event === name);
+            return Number(item?.count || 0);
+        }
+
+        function getEventCategoryCount(categories, name) {
+            const item = (categories || []).find(category => category.category === name);
+            return Number(item?.count || 0);
+        }
+
+        function getEventCardClass(category) {
+            if (category === 'Acquisition Quality') return 'acquisition';
+            if (category === 'Product Usage') return 'product';
+            if (category === 'Revenue Intent') return 'revenue';
+            if (category === 'Auth') return 'auth';
+            return 'other';
+        }
+
+        function friendlyEventName(event) {
+            const names = {
+                uninstall_feedback_submitted: 'Uninstall feedback',
+                generate_request: 'Generation request',
+                generate_success: 'Generation success',
+                generate_error: 'Generation error',
+                generate_missing_photo: 'Missing photo',
+                generate_limit_hit: 'Limit hit',
+                generate_click: 'Generate click',
+                paywall_shown: 'Paywall shown',
+                paywall_option_select: 'Paywall option select',
+                checkout_start: 'Checkout start',
+                checkout_opened: 'Checkout opened',
+                chrome_store_click: 'Chrome Store click',
+                magic_link_request: 'Magic link request',
+                magic_link_sent: 'Magic link sent',
+                phone_upload_start: 'Phone upload start',
+                phone_upload_blocked: 'Phone upload blocked',
+                batch_start: 'Batch start',
+                batch_start_blocked: 'Batch blocked',
+            };
+            return names[event] || String(event || 'Unknown event').replaceAll('_', ' ');
+        }
+
+        function renderEventCategoryCard(category, count, note, events = []) {
+            return `
+                <div class="event-card ${getEventCardClass(category)}">
+                    <div class="event-card-top">
+                        <div class="event-card-label">${escapeHtml(category)}</div>
+                        <div class="event-card-value">${Number(count || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="event-card-copy">${escapeHtml(note)}</div>
+                    <div class="event-pill-row">
+                        ${events.map(event => `<span class="event-pill">${escapeHtml(friendlyEventName(event))}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUninstallReasons(reasons) {
+            const rows = reasons || [];
+            const total = rows.reduce((sum, item) => sum + Number(item.count || 0), 0);
+            if (!rows.length) {
+                return `
+                    <div class="reason-row">
+                        <div class="reason-row-main">
+                            <span>No uninstall feedback yet</span>
+                            <span>0</span>
+                        </div>
+                        <div class="event-feed-meta">Feedback starts appearing after users on version 1.3.19+ uninstall and tap a reason.</div>
+                    </div>
+                `;
+            }
+
+            return rows.map(item => {
+                const count = Number(item.count || 0);
+                const width = total ? Math.max(7, Math.round((count / total) * 100)) : 0;
+                return `
+                    <div class="reason-row">
+                        <div class="reason-row-main">
+                            <span>${escapeHtml(item.label || item.reason || 'Unknown reason')}</span>
+                            <span>${count.toLocaleString()}</span>
+                        </div>
+                        <div class="reason-bar"><span class="reason-bar-fill" style="--reason-width:${width}%"></span></div>
+                        <div class="event-feed-meta">${total ? ((count / total) * 100).toFixed(1) : '0.0'}% of uninstall feedback</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderRecentEventFeed(events) {
+            const rows = events || [];
+            if (!rows.length) {
+                return `
+                    <div class="event-feed-row">
+                        <div class="event-feed-title">No priority events yet</div>
+                        <div class="event-feed-meta">Errors, limit hits, checkouts, and uninstall feedback will appear here.</div>
+                    </div>
+                `;
+            }
+
+            return rows.slice(0, 8).map(item => {
+                const context = item.context || {};
+                const summary = context.reasonLabel || context.message || context.code || context.tier || context.source || '';
+                return `
+                    <div class="event-feed-row">
+                        <div class="event-feed-title">
+                            <span>${escapeHtml(friendlyEventName(item.event))}</span>
+                            <span class="badge badge-neutral">${escapeHtml(item.category || 'Other')}</span>
+                        </div>
+                        <div class="event-feed-meta">
+                            ${item.createdAt ? escapeHtml(formatDateTime(item.createdAt)) : 'Unknown time'}
+                            ${item.extensionVersion ? ` · v${escapeHtml(item.extensionVersion)}` : ''}
+                            ${item.userId ? ` · user ${escapeHtml(String(item.userId).slice(0, 8))}` : ' · anonymous'}
+                        </div>
+                        ${summary ? `<div class="event-feed-context">${escapeHtml(summary)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
         async function renderGrowth(container) {
             const data = await fetchAPI('/api/admin?action=growth-stats&days=30');
             const fmt = value => Number(value || 0).toLocaleString();
@@ -2399,6 +2710,19 @@
             const limitHits = Number(last30.limitHits || 0);
             const paywallToCheckoutRate = Number(rates.paywallToCheckout30d || 0);
             const oneGenerationTargets = data.oneGenerationTargets || [];
+            const eventSummary = data.eventSummary || {};
+            const eventCategories = eventSummary.categories || [];
+            const uninstallReasons = eventSummary.uninstallReasons || [];
+            const recentImportantEvents = eventSummary.recentImportantEvents || [];
+            const topEvents = data.topEvents || [];
+            const acquisitionEventCount = getEventCategoryCount(eventCategories, 'Acquisition Quality');
+            const productEventCount = getEventCategoryCount(eventCategories, 'Product Usage');
+            const revenueEventCount = getEventCategoryCount(eventCategories, 'Revenue Intent');
+            const authEventCount = getEventCategoryCount(eventCategories, 'Auth');
+            const uninstallFeedbackCount = getEventCount(topEvents, 'uninstall_feedback_submitted');
+            const generateErrorCount = getEventCount(topEvents, 'generate_error');
+            const missingPhotoCount = getEventCount(topEvents, 'generate_missing_photo');
+            const checkoutStartCount = getEventCount(topEvents, 'checkout_start');
 
             function diagnostic(label, value, state, note) {
                 return { label, value, state, note };
@@ -2870,6 +3194,101 @@
                     </div>
                 </div>
 
+                <div class="event-workbench">
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Event Workbench</div>
+                                <div class="event-panel-title">What users are doing</div>
+                                <div class="event-panel-note">Grouped first-party events from the site, extension, paywall, and uninstall page. Use this before opening raw logs.</div>
+                            </div>
+                            <button class="btn-secondary" onclick="state.logsType='events'; switchView('logs')">Open event logs</button>
+                        </div>
+                        <div class="event-card-grid">
+                            ${renderEventCategoryCard(
+                                'Acquisition Quality',
+                                acquisitionEventCount,
+                                uninstallFeedbackCount
+                                    ? `${fmt(uninstallFeedbackCount)} users left uninstall feedback. Read reasons before changing acquisition.`
+                                    : 'Chrome Store clicks and uninstall feedback live here. Uninstall feedback appears after 1.3.19+ users uninstall.',
+                                ['chrome_store_click', 'uninstall_feedback_submitted']
+                            )}
+                            ${renderEventCategoryCard(
+                                'Product Usage',
+                                productEventCount,
+                                `${fmt(generateErrorCount)} generation errors and ${fmt(missingPhotoCount)} missing-photo events in the last 30 days.`,
+                                ['generate_request', 'generate_success', 'generate_error', 'phone_upload_start', 'batch_start']
+                            )}
+                            ${renderEventCategoryCard(
+                                'Revenue Intent',
+                                revenueEventCount,
+                                `${fmt(last30.paywallShown)} paywalls, ${fmt(checkoutStartCount)} checkout starts. Use this to judge paid intent, not email opens.`,
+                                ['paywall_shown', 'checkout_start', 'checkout_opened', 'credit_pack_click']
+                            )}
+                            ${renderEventCategoryCard(
+                                'Auth',
+                                authEventCount,
+                                `${fmt(last30.magicLinkRequests)} magic-link requests. If this is high but activation is low, sign-in may be leaking users.`,
+                                ['magic_link_request', 'magic_link_sent']
+                            )}
+                        </div>
+                    </div>
+
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Uninstall Reasons</div>
+                                <div class="event-panel-title">Why users leave</div>
+                                <div class="event-panel-note">One-tap feedback from the uninstall page. This is anonymous and only available for users on extension 1.3.19+.</div>
+                            </div>
+                            <span class="badge badge-neutral">${fmt(uninstallFeedbackCount)} total</span>
+                        </div>
+                        <div class="reason-list">
+                            ${renderUninstallReasons(uninstallReasons)}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-workbench">
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Priority Feed</div>
+                                <div class="event-panel-title">Recent signals to inspect</div>
+                                <div class="event-panel-note">Only critical events: uninstall feedback, generation errors, limit hits, paywalls, and checkout intent.</div>
+                            </div>
+                        </div>
+                        <div class="event-feed">
+                            ${renderRecentEventFeed(recentImportantEvents)}
+                        </div>
+                    </div>
+
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Raw Top Events</div>
+                                <div class="event-panel-title">Volume by event type</div>
+                                <div class="event-panel-note">Useful for spotting noisy or missing instrumentation.</div>
+                            </div>
+                        </div>
+                        <div class="reason-list">
+                            ${topEvents.slice(0, 8).map(item => `
+                                <div class="reason-row">
+                                    <div class="reason-row-main">
+                                        <span><code>${escapeHtml(item.event)}</code></span>
+                                        <span>${fmt(item.count)}</span>
+                                    </div>
+                                    <div class="event-feed-meta">${escapeHtml(friendlyEventName(item.event))}</div>
+                                </div>
+                            `).join('') || `
+                                <div class="reason-row">
+                                    <div class="reason-row-main"><span>No tracked events yet</span><span>0</span></div>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+
                 <details class="advanced-details" ontoggle="if (this.open && window.growthChart) setTimeout(() => window.growthChart.resize(), 50)">
                     <summary>
                         <span>
@@ -3243,7 +3662,10 @@
         function getLogPreview(log) {
             if (log.raw_prompt) return escapeHtml(log.raw_prompt);
             if (typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')) {
-                return escapeHtml(log.endpoint.replace('/event/', 'event: '));
+                const event = log.endpoint.replace('/event/', '');
+                const context = log.full_request_body?.context || {};
+                const detail = context.reasonLabel || context.message || context.code || context.tier || context.source || '';
+                return escapeHtml(detail ? `${friendlyEventName(event)}: ${detail}` : friendlyEventName(event));
             }
             return escapeHtml(log.endpoint || 'No prompt');
         }

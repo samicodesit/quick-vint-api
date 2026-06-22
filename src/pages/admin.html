@@ -2546,13 +2546,13 @@
                 focusReason = 'Chrome Store numbers are missing, stale, or not tied to a clear reporting period.';
                 actions = [
                     action('Open Chrome Web Store Developer Dashboard.', 'Set the period to Last 30 days. Chrome Store reporting does not expose shorter windows, so use that same 30-day period for all fields.'),
-                    action('Paste them into Chrome Store Snapshot below.', 'Fill period start/end, page views, impressions, installs, uninstalls, weekly users, current users, rating count. Click Save.'),
+                    action('Paste them into Chrome Store Snapshot below.', 'Fill period start/end, page views, impressions, installs, uninstalls, weekly users, public users if shown, rating count. Click Save.'),
                     action('Then follow the refreshed top command.', 'After saving, the Growth Operator will update the current focus.'),
                 ];
                 dailyTasks = [
                     task('store_snapshot', 'Save Chrome Store snapshot', 'This unlocks useful store interpretation in the dashboard.', '1'),
-                    task('seller_outreach_20', 'Send 20 seller outreach messages', 'Use the Vinted seller outreach script below.', '20'),
-                    task('record_learning', 'Write 1 learning from today', 'What did the dashboard or replies show?', '1'),
+                    task('record_measurement_state', 'Write what data is still missing', 'If the snapshot is complete, write "CWS snapshot complete" and follow the refreshed command.', '1'),
+                    task('stop_measurement', 'Stop after the operator refreshes', 'Do not start outreach or store edits from Measurement mode.', '1'),
                 ];
             } else if (chromeVisitors >= 50 && chromeInstallRate < 15) {
                 focus = 'Store Listing';
@@ -4218,7 +4218,7 @@
 
         function getGrowthMonthPlan(focus) {
             const common = [
-                { week: 'Week 1', title: 'Baseline and store trust', note: 'Upload .18, save Chrome Store snapshots, ask for first ratings, send outreach daily.' },
+                { week: 'Week 1', title: 'Baseline and stage gate', note: 'Keep one valid CWS snapshot, follow the current stage, and log one result per working day.' },
                 { week: 'Week 2', title: 'Increase free quota depth', note: 'Ship one change that gets more users from first generation to 2-3 generations.' },
                 { week: 'Week 3', title: 'SEO and store iteration', note: 'Improve one search-intent page and one Chrome Store asset based on data.' },
                 { week: 'Week 4', title: 'Scale only what worked', note: 'Double the best channel only if installs become active generators.' },
@@ -4228,7 +4228,7 @@
                     { week: 'Week 1', title: 'Fix install conversion', note: 'Improve screenshots, short description, and first paragraph. Keep search phrase visible.' },
                     { week: 'Week 2', title: 'Add trust', note: 'Ask happy users for ratings and improve listing proof.' },
                     { week: 'Week 3', title: 'Compare CWS periods', note: 'Save 30-day Chrome Store snapshots and keep changes that lift visitor -> install rate.' },
-                    { week: 'Week 4', title: 'Scale traffic', note: 'Only increase outreach/paid tests if store conversion is healthy.' },
+                    { week: 'Week 4', title: 'Resume distribution carefully', note: 'Only increase outreach or paid tests if store conversion and install quality are healthy.' },
                 ];
             }
             if (focus === 'Install Quality') {

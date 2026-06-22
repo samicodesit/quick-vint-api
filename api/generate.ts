@@ -21,6 +21,7 @@ import messagesPl from "../messages/pl.json";
 
 const OPEN_AI_MODEL = "gpt-4o";
 const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
+const OPEN_AI_MAX_OUTPUT_TOKENS = 480;
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -412,7 +413,7 @@ Reply only in JSON: {"title":"...","description":"..."}
               },
             },
           },
-          max_tokens: 320,
+          max_tokens: OPEN_AI_MAX_OUTPUT_TOKENS,
           temperature: 0.3,
         })
         .withResponse();

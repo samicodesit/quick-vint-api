@@ -290,6 +290,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       el.p(
         "If something felt off or missing, you can just reply here. I read those replies myself.",
       ),
+      el.p("This is a one-time request, so I will not keep asking."),
       el.p("Thanks,<br />Sami"),
     ].join("\n"),
   },

@@ -2368,6 +2368,7 @@
             const chromeWeeklyUsers = Number(chromeSnapshot.weeklyUsers || 0);
             const chromeRatingCount = Number(chromeSnapshot.ratingCount || 0);
             const chromeInstallRate = chromeVisitors ? (chromeInstalls / chromeVisitors) * 100 : 0;
+            const chromeUninstallToInstallRate = chromeInstalls ? (chromeUninstalls / chromeInstalls) * 100 : 0;
             const chromePeriod = getChromeSnapshotPeriod(chromeSnapshot);
             const chromeWarnings = getChromeSnapshotWarnings(chromeSnapshot);
             const chromeBlockingWarnings = getChromeSnapshotBlockingWarnings(chromeSnapshot);
@@ -2543,6 +2544,19 @@
                     task('store_asset_1', 'Improve 1 Chrome Store asset', 'Make one concrete listing change, not five random edits.', '1'),
                     task('rating_3', 'Send 3 prepared rating asks', 'Use the rating script. Count ratings gained, not opens.', '3'),
                     task('record_store_change', 'Log the store change', 'Write exactly what changed so the next Monday snapshot has context.', '1'),
+                ];
+            } else if (chromeSnapshotReady && chromeInstalls >= 25 && chromeUninstallToInstallRate >= 40) {
+                focus = 'Install Quality';
+                focusReason = 'Chrome Store installs are happening, but too many users uninstall in the same reporting period. That usually means promise mismatch, first-run failure, or low immediate value.';
+                actions = [
+                    action('Find the first-session reason installs are not sticking.', 'Check first-run path, generation errors, missing-photo events, and whether users reach one successful Vinted title/description.'),
+                    action('Compare store promise against first-run reality.', 'If the listing promises instant Vinted descriptions, the first session must deliver that before asking users to explore anything else.'),
+                    action('Ship one install-quality fix before adding traffic.', 'Examples: clearer Vinted-only expectation, better first-run CTA, faster photo handoff, or a fix for the top generation failure.'),
+                ];
+                dailyTasks = [
+                    task('install_quality_review', 'Audit first session after install', `Current CWS uninstalls/install: ${pct(chromeUninstallToInstallRate)}.`, '1'),
+                    task('first_value_fix_1', 'Ship or write 1 first-value fix', 'Make install -> first successful listing draft more reliable.', '1'),
+                    task('record_install_quality', 'Log the suspected uninstall reason', 'One sentence: promise mismatch, first-run failure, no Vinted context, pricing surprise, or other.', '1'),
                 ];
             } else if (avgSignups7 < 4) {
                 focus = 'Acquisition';
@@ -3868,6 +3882,7 @@
             const notNowByFocus = {
                 Measurement: ['Changing store copy from incomplete data', 'Scaling outreach volume'],
                 'Store Listing': ['Building new features', 'Changing pricing'],
+                'Install Quality': ['More outreach volume', 'Paid ads'],
                 Acquisition: ['Paid ads', 'Big onboarding rewrites'],
                 Activation: ['More top-of-funnel traffic', 'Rating asks'],
                 'Value Depth': ['Paid ads', 'More dashboard analysis'],
@@ -3906,6 +3921,7 @@
             const weekAnswerByFocus = {
                 Measurement: 'Get one valid 30-day CWS snapshot, then stop touching CWS until Monday.',
                 'Store Listing': 'Change one store trust/intent asset, then wait for the next CWS period.',
+                'Install Quality': 'Reduce uninstall reasons before adding more users.',
                 Acquisition: 'Run controlled distribution and judge by installs plus first generations.',
                 Activation: 'Remove one blocker before first successful generation.',
                 'Value Depth': 'Make the second generation easier; paid conversion depends on depth.',
@@ -3924,6 +3940,7 @@
             const plainDiagnosisByFocus = {
                 Measurement: 'The system cannot make a strong call until the Chrome Store snapshot is saved with the same 30-day reporting period.',
                 'Store Listing': 'Enough people see the listing, but too many do not install or churn quickly. Fix trust and intent before building more product.',
+                'Install Quality': 'People are installing, but uninstall volume is too high. Treat this as a quality/promise problem before scaling traffic.',
                 Acquisition: 'The product does not have enough new users per day to learn fast. Your main job is controlled distribution, not extra dashboard reading.',
                 Activation: 'People arrive but do not reach the first successful listing. Fix the first-use path before increasing traffic.',
                 'Value Depth': 'Users may try the tool once, but not enough consume multiple free generations. A paid ask is weak until depth improves.',
@@ -3933,6 +3950,7 @@
             const stopConditionByFocus = {
                 Measurement: 'Stop after the snapshot is saved and the advisor refreshes.',
                 'Store Listing': 'Stop after one store asset is changed and the change is logged. Wait for the next CWS period before judging it.',
+                'Install Quality': 'Stop after one first-session failure or promise mismatch is fixed or written as a concrete ticket.',
                 Acquisition: 'Stop after the outreach or SEO/store asset count is done and logged. Judge by installs and first generations, not replies alone.',
                 Activation: 'Stop after one first-success blocker is fixed or written as a concrete ticket.',
                 'Value Depth': 'Stop after one second-generation improvement is shipped or specified. Do not keep looking for more metrics today.',
@@ -4007,6 +4025,7 @@
                 'Product-specific rules:',
                 'Chrome Web Store dashboard minimum useful reporting period is 30 days; do not ask for 7-day CWS snapshots.',
                 'This product has a 5-free-generation limit, so repeat free usage is not the main KPI.',
+                'High Chrome Web Store uninstalls/install means install quality or promise mismatch must be fixed before scaling traffic.',
                 'Prioritize install -> first successful generation -> 2+ generations/quota pressure -> paid intent.',
                 'Do not suggest vague user research. If contact is needed, provide exact scripts and who to contact.',
                 'Do not suggest email campaigns unless there is a specific trigger, audience, copy, and success metric.',
@@ -4133,6 +4152,14 @@
                     { week: 'Week 2', title: 'Add trust', note: 'Ask happy users for ratings and improve listing proof.' },
                     { week: 'Week 3', title: 'Compare CWS periods', note: 'Save 30-day Chrome Store snapshots and keep changes that lift visitor -> install rate.' },
                     { week: 'Week 4', title: 'Scale traffic', note: 'Only increase outreach/paid tests if store conversion is healthy.' },
+                ];
+            }
+            if (focus === 'Install Quality') {
+                return [
+                    { week: 'Week 1', title: 'Find uninstall cause', note: 'Audit first-run path and top generation failures before changing acquisition.' },
+                    { week: 'Week 2', title: 'Fix first value', note: 'Make install -> first successful Vinted draft obvious and reliable.' },
+                    { week: 'Week 3', title: 'Align store promise', note: 'Adjust listing copy/screenshots only if users expected something different.' },
+                    { week: 'Week 4', title: 'Resume growth only if quality improves', note: 'Scale only after uninstalls/install stops dominating the CWS snapshot.' },
                 ];
             }
             if (focus === 'Activation') {

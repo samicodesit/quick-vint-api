@@ -753,14 +753,28 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const userId = req.query.user_id as string;
     const startDate = req.query.start_date as string;
     const endDate = req.query.end_date as string;
+    const logType = (req.query.log_type as string) || "generation";
 
-    let query = supabase
-      .from("api_logs")
-      .select(
-        `id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, generated_title, generated_description, response_status, openai_model, openai_tokens_used, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason`,
-      )
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+    const applyLogTypeFilter = (query: any) => {
+      if (logType === "all") return query;
+      if (logType === "events") return query.like("endpoint", "/event/%");
+      if (logType === "system") {
+        return query
+          .neq("endpoint", "/api/generate")
+          .not("endpoint", "like", "/event/%");
+      }
+      return query.eq("endpoint", "/api/generate");
+    };
+
+    let query = applyLogTypeFilter(
+      supabase
+        .from("api_logs")
+        .select(
+          `id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason`,
+        )
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
+    );
 
     if (suspiciousOnly) query = query.eq("suspicious_activity", true);
     if (userId) query = query.eq("user_id", userId);
@@ -774,9 +788,9 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Failed to fetch logs" });
     }
 
-    let countQuery = supabase
-      .from("api_logs")
-      .select("*", { count: "exact", head: true });
+    let countQuery = applyLogTypeFilter(
+      supabase.from("api_logs").select("*", { count: "exact", head: true }),
+    );
 
     if (suspiciousOnly) countQuery = countQuery.eq("suspicious_activity", true);
     if (userId) countQuery = countQuery.eq("user_id", userId);

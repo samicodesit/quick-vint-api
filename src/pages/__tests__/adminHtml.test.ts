@@ -1,0 +1,250 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import vm from "node:vm";
+import { describe, expect, it } from "vitest";
+
+class StubElement {
+  id: string;
+  style: Record<string, string> = {};
+  dataset: Record<string, string> = {};
+  value = "";
+  checked = false;
+  private html = "";
+  private text = "";
+  classList = {
+    add() {},
+    remove() {},
+    toggle() {},
+    contains() {
+      return false;
+    },
+  };
+
+  constructor(id: string) {
+    this.id = id;
+  }
+
+  set innerHTML(value: string) {
+    this.html = String(value);
+  }
+
+  get innerHTML() {
+    return this.html;
+  }
+
+  set textContent(value: string) {
+    this.text = String(value);
+  }
+
+  get textContent() {
+    return this.text;
+  }
+
+  getContext() {
+    return {
+      createLinearGradient() {
+        return { addColorStop() {} };
+      },
+    };
+  }
+}
+
+function buildAdminHarness() {
+  const html = readFileSync(join(process.cwd(), "src/pages/admin.html"), "utf8");
+  const script = html
+    .match(/<script>([\s\S]*)<\/script>\s*<\/body>/)?.[1]
+    ?.replace("const state = {", "var state = {");
+
+  if (!script) throw new Error("Could not extract admin script");
+
+  const elements = new Map<string, StubElement>();
+  const el = (id: string) => {
+    if (!elements.has(id)) elements.set(id, new StubElement(id));
+    return elements.get(id)!;
+  };
+
+  const now = new Date("2026-06-22T12:00:00.000Z").toISOString();
+  const usage = {
+    today: { totalRequests: 12, estimatedCost: 0.02, rateLimitErrors: 0, avgTokensPerRequest: 900 },
+    totalUsers: 100,
+    topUsers: [],
+    lastWeek: [{ date: "2026-06-22", total_api_calls: 12, estimated_cost: 0.02 }],
+  };
+
+  const growth = {
+    days: 30,
+    generatedAt: now,
+    rates: {
+      activationPerSignup30d: 55,
+      twoPlusGeneration30d: 40,
+      signupToPaid30d: 5,
+      limitToPaywall30d: 75,
+      paywallToCheckout30d: 12,
+      quotaPressure30d: 28,
+    },
+    totals: { activeGenerators: 30, quotaPressureUsers: 8, twoPlusGenerationUsers: 12 },
+    last30: {
+      signups: 70,
+      activeGenerators: 30,
+      successfulGenerations: 140,
+      limitHits: 15,
+      paywallShown: 10,
+      checkoutStart: 3,
+      checkoutOpened: 2,
+      paidSignups: 2,
+      magicLinkRequests: 6,
+    },
+    daily: [
+      {
+        date: "2026-06-22",
+        signups: 4,
+        activeGenerators: 2,
+        successfulGenerations: 8,
+        limitHits: 1,
+        paywallShown: 1,
+        checkoutStart: 0,
+        checkoutOpened: 0,
+      },
+    ],
+    topEvents: [
+      { event: "uninstall_feedback_submitted", count: 2 },
+      { event: "generate_error", count: 1 },
+      { event: "checkout_start", count: 3 },
+    ],
+    eventSummary: {
+      categories: [
+        { category: "Acquisition Quality", count: 2 },
+        { category: "Product Usage", count: 9 },
+        { category: "Revenue Intent", count: 3 },
+        { category: "Auth", count: 1 },
+      ],
+      uninstallReasons: [{ reason: "results_not_good_enough", label: "Results were not good enough", count: 2 }],
+      recentImportantEvents: [
+        {
+          event: "uninstall_feedback_submitted",
+          category: "Acquisition Quality",
+          createdAt: now,
+          extensionVersion: "1.3.19",
+          userId: null,
+          context: { reasonLabel: "Results were not good enough" },
+        },
+      ],
+    },
+  };
+
+  const users = {
+    users: [
+      {
+        id: "user-1",
+        email: "test@example.com",
+        email_can_contact: true,
+        subscription_status: "active",
+        subscription_tier: "starter",
+        account_status: "active",
+        created_at: now,
+        last_active_at: now,
+        usage: { day: 4, month: 20, day_percent: 27, month_percent: 7 },
+        max_limits: { day: 15, month: 300 },
+        is_at_risk: false,
+      },
+    ],
+    pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+  };
+
+  const logs = {
+    logs: [
+      {
+        id: "log-1",
+        created_at: now,
+        endpoint: "/event/uninstall_feedback_submitted",
+        response_status: 200,
+        user_id: null,
+        user_email: null,
+        full_request_body: {
+          context: { reasonLabel: "Results were not good enough" },
+          extensionVersion: "1.3.19",
+        },
+        image_urls: [],
+      },
+    ],
+  };
+
+  const context = {
+    console,
+    setTimeout(fn: () => void) {
+      if (typeof fn === "function") fn();
+      return 1;
+    },
+    clearTimeout() {},
+    Date,
+    URLSearchParams,
+    encodeURIComponent,
+    localStorage: {
+      getItem() {
+        return Buffer.from("dev").toString("base64");
+      },
+      setItem() {},
+      removeItem() {},
+    },
+    atob(value: string) {
+      return Buffer.from(value, "base64").toString("binary");
+    },
+    btoa(value: string) {
+      return Buffer.from(value, "binary").toString("base64");
+    },
+    history: { pushState() {} },
+    location: { reload() {} },
+    window: {
+      location: { hash: "" },
+      innerWidth: 1200,
+      addEventListener() {},
+      open() {},
+      growthChart: null,
+    },
+    document: {
+      body: { classList: { add() {}, remove() {} } },
+      getElementById: el,
+      querySelectorAll() {
+        return [];
+      },
+      addEventListener() {},
+    },
+    Chart: class {
+      constructor() {}
+    },
+    fetch: async (endpoint: string) => {
+      const url = String(endpoint);
+      let body: unknown = usage;
+      if (url.includes("growth-stats")) body = growth;
+      if (url.includes("list-users")) body = users;
+      if (url.includes("view-logs")) body = logs;
+      return { ok: true, json: async () => body };
+    },
+  };
+
+  const windowMock = context.window as Record<string, unknown>;
+  windowMock.window = context.window;
+  windowMock.document = context.document;
+  windowMock.localStorage = context.localStorage;
+
+  vm.createContext(context);
+  vm.runInContext(script, context, { filename: "admin.html" });
+
+  return {
+    context: context as typeof context & { loadView: (view: string) => Promise<void>; state: { currentView: string } },
+    content: el("contentArea"),
+  };
+}
+
+describe("admin HTML", () => {
+  it("renders every admin view without runtime view errors", async () => {
+    const { context, content } = buildAdminHarness();
+
+    for (const view of ["overview", "growth", "events", "logs", "users"]) {
+      context.state.currentView = view;
+      await context.loadView(view);
+      expect(content.innerHTML, view).not.toContain("Error loading view");
+      expect(content.innerHTML.length, view).toBeGreaterThan(1000);
+    }
+  });
+});

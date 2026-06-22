@@ -3423,7 +3423,7 @@
                 ['recent', 'Recent'],
                 ['active', 'Active'],
                 ['paid', 'Paid'],
-                ['at-risk', 'At-risk']
+                ['at-risk', 'High usage']
             ];
 
             const usersHtml = `
@@ -3587,15 +3587,15 @@
             const userId = escapeAttribute(u.id);
             const encodedEmail = encodeURIComponent(u.email || '');
             const isPaused = u.account_status === 'paused';
-            const canSendReview = Boolean(u.email_can_contact && !u.is_at_risk && !isPaused);
+            const canSendReview = Boolean(u.email_can_contact && !isPaused);
             const reviewTitle = !u.email
                 ? 'No email address'
                 : !u.email_can_contact
                     ? 'User is unsubscribed from email'
-                    : u.is_at_risk
-                        ? 'Do not ask at-risk users for reviews'
-                        : isPaused
-                            ? 'Do not email paused users'
+                    : isPaused
+                        ? 'Do not email paused users'
+                        : u.is_at_risk
+                            ? 'High-usage user. Confirm before sending.'
                             : 'Send one-time honest review request';
             const disabledStyle = canSendReview ? '' : 'opacity: 0.55;';
             return `
@@ -3659,7 +3659,7 @@
                         <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
                             <span class="badge badge-info" style="text-transform: capitalize;">${tier}</span>
                             <span class="badge ${statusBadgeClass(u.subscription_status)}">${status}</span>
-                            ${u.is_at_risk ? '<span class="badge badge-warning">At-risk</span>' : ''}
+                            ${u.is_at_risk ? '<span class="badge badge-warning">High usage</span>' : ''}
                             ${renderAccountPauseBadge(u)}
                         </div>
                     </td>

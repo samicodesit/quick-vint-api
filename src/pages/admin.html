@@ -487,13 +487,13 @@
             border: 1px solid #111827;
             border-radius: var(--radius-lg);
             color: #fff;
-            padding: 1.25rem;
+            padding: 1.35rem;
         }
 
         .advisor-panel {
             display: grid;
             gap: 1rem;
-            grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+            grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
             margin-top: 1rem;
         }
 
@@ -517,19 +517,89 @@
             margin-bottom: 0.35rem;
         }
 
-        .advisor-evidence {
+        .operator-steps {
             display: grid;
-            gap: 0.55rem;
+            gap: 0.6rem;
+            margin-top: 1rem;
         }
 
-        .advisor-evidence-item {
+        .operator-step {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.65rem;
+            align-items: start;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+        }
+
+        .operator-step-number {
+            align-items: center;
+            background: #fff;
+            border-radius: 999px;
+            color: #111827;
+            display: inline-flex;
+            font-size: 0.72rem;
+            font-weight: 800;
+            height: 1.4rem;
+            justify-content: center;
+            width: 1.4rem;
+        }
+
+        .operator-step-title {
+            color: #fff;
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 800;
+            margin-bottom: 0.15rem;
+        }
+
+        .operator-step-note {
+            color: rgba(255, 255, 255, 0.72);
+            display: block;
+            font-size: 0.8rem;
+        }
+
+        .operator-step-count {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.74rem;
+            font-weight: 800;
+            padding: 0.22rem 0.5rem;
+        }
+
+        .operator-scoreboard {
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .operator-score {
             background: #fff;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             padding: 0.8rem;
         }
 
-        .advisor-evidence-label {
+        .operator-score.warn {
+            border-color: #fde68a;
+            background: #fffbeb;
+        }
+
+        .operator-score.danger {
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+
+        .operator-score.good {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+        }
+
+        .advisor-evidence-label,
+        .operator-score-label {
             color: var(--text-light);
             font-size: 0.72rem;
             font-weight: 800;
@@ -538,10 +608,45 @@
             text-transform: uppercase;
         }
 
-        .advisor-evidence-value {
+        .advisor-evidence-value,
+        .operator-score-value {
             color: var(--text-main);
             font-size: 0.92rem;
             font-weight: 700;
+        }
+
+        .operator-status-row {
+            display: grid;
+            gap: 0.55rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .operator-status-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .operator-status-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: var(--radius-md);
+            color: rgba(255, 255, 255, 0.78);
+            padding: 0.75rem;
+        }
+
+        .operator-status-title {
+            color: #fff;
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }
+
+        .operator-status-copy {
+            font-size: 0.82rem;
         }
 
         .advisor-meta {
@@ -583,7 +688,7 @@
         .memory-strip {
             display: grid;
             gap: 0.5rem;
-            margin-top: 0.75rem;
+            margin-top: 1rem;
         }
 
         .memory-item {
@@ -2499,33 +2604,60 @@
             const monthPlan = getGrowthMonthPlan(focus);
             const progress = getGrowthTaskProgress();
             const visibleTasks = dailyTasks.slice(0, 3);
+            const stopText = advisor.stopCondition || 'Stop after the command is done and recorded. Do not keep refreshing metrics.';
+            const dataGapText = advisor.missing.length
+                ? `Data gap: ${advisor.missing.join(', ')}. This lowers confidence, but does not block today's command.`
+                : 'Data coverage is enough for today. Act before adding more analysis.';
 
             container.innerHTML = `
                 <div class="growth-hero">
-                    <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Growth Advisor</div>
+                    <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Growth Operator</div>
                     <div class="insight-title" style="font-size: 1.25rem;">${escapeHtml(advisor.state)}</div>
-                    <div class="insight-copy">${escapeHtml(focusReason)}</div>
+                    <div class="insight-copy">${escapeHtml(advisor.plainDiagnosis || focusReason)}</div>
                     <div class="advisor-panel">
                         <div class="advisor-action">
-                            <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Do next</div>
+                            <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Today's command</div>
                             <div class="advisor-action-title">${escapeHtml(advisor.primaryAction.title)}</div>
                             <div class="action-note">${escapeHtml(advisor.primaryAction.note)}</div>
                             <div class="advisor-meta">
                                 <span class="advisor-chip">Confidence: ${escapeHtml(advisor.confidence)}</span>
                                 <span class="advisor-chip">${escapeHtml(advisor.timebox)}</span>
                             </div>
-                            <div class="not-now-list">
-                                ${advisor.notNow.map(item => `<div class="not-now-item">Not now: ${escapeHtml(item)}</div>`).join('')}
+                            <div class="operator-steps">
+                                ${visibleTasks.map((item, index) => `
+                                    <label class="operator-step">
+                                        <input type="checkbox" ${progress[todayTaskKey(item.id)] ? 'checked' : ''} onchange="toggleGrowthTask('${escapeAttribute(item.id)}', this.checked)">
+                                        <span>
+                                            <span class="operator-step-title">${index + 1}. ${escapeHtml(item.title)}</span>
+                                            <span class="operator-step-note">${escapeHtml(item.note)}</span>
+                                        </span>
+                                        <span class="operator-step-count">${escapeHtml(item.count)}</span>
+                                    </label>
+                                `).join('')}
                             </div>
                         </div>
-                        <div class="advisor-evidence">
+                        <div class="operator-scoreboard">
                             ${advisor.evidence.map(item => `
-                                <div class="advisor-evidence-item">
-                                    <div class="advisor-evidence-label">${escapeHtml(item.label)}</div>
-                                    <div class="advisor-evidence-value">${escapeHtml(item.value)}</div>
+                                <div class="operator-score ${escapeAttribute(item.status || '')}">
+                                    <div class="operator-score-label">${escapeHtml(item.label)}</div>
+                                    <div class="operator-score-value">${escapeHtml(item.value)}</div>
                                     <div class="diagnostic-note">${escapeHtml(item.note)}</div>
                                 </div>
                             `).join('')}
+                        </div>
+                    </div>
+                    <div class="operator-status-row">
+                        <div class="operator-status-card">
+                            <div class="operator-status-title">Stop when</div>
+                            <div class="operator-status-copy">${escapeHtml(stopText)}</div>
+                        </div>
+                        <div class="operator-status-card">
+                            <div class="operator-status-title">Not today</div>
+                            <div class="operator-status-copy">${escapeHtml(advisor.notNow.slice(0, 2).join(' · '))}</div>
+                        </div>
+                        <div class="operator-status-card">
+                            <div class="operator-status-title">Data quality</div>
+                            <div class="operator-status-copy">${escapeHtml(dataGapText)}</div>
                         </div>
                     </div>
                     <div class="memory-strip">
@@ -2540,33 +2672,11 @@
                     </div>
                 </div>
 
-                <div class="operator-note">
-                    <span>Default workflow: read Growth Advisor, do the one action, log what changed. Open advanced panels only when you need evidence.</span>
-                </div>
-
                 <div class="growth-section">
                     <div class="insight-card">
-                        <div class="section-kicker">Daily</div>
-                        <div class="insight-title">Execution Checklist</div>
-                        <div class="insight-copy">Only support for the advisor action. Stop after these are done.</div>
-                        <div class="task-list">
-                            ${visibleTasks.map(item => `
-                                <label class="task-item">
-                                    <input type="checkbox" ${progress[todayTaskKey(item.id)] ? 'checked' : ''} onchange="toggleGrowthTask('${escapeAttribute(item.id)}', this.checked)">
-                                    <span>
-                                        <span class="task-title">${escapeHtml(item.title)}</span>
-                                        <span class="action-note">${escapeHtml(item.note)}</span>
-                                    </span>
-                                    <span class="badge badge-info">${escapeHtml(item.count)}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="insight-card">
-                        <div class="section-kicker">Weekly</div>
-                        <div class="insight-title">This Month</div>
-                        <div class="insight-copy">Monday plan. Follow this unless the focus changes hard.</div>
+                        <div class="section-kicker">Operating rhythm</div>
+                        <div class="insight-title">This week</div>
+                        <div class="insight-copy">Use this as the Monday frame. The top command still decides what to do today.</div>
                         <div class="task-list">
                             ${monthPlan.map((item, index) => `
                                 <div class="task-item">
@@ -2578,6 +2688,24 @@
                                     <span class="badge badge-neutral">${escapeHtml(item.week)}</span>
                                 </div>
                             `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="insight-card">
+                        <div class="section-kicker">What this means</div>
+                        <div class="insight-title">Current public users</div>
+                        <div class="insight-copy">
+                            Chrome Store does not give enough data here to infer public listing users. Use Weekly users as the operating number, and leave Public users blank unless the store listing shows it.
+                        </div>
+                        <div class="manual-metrics-summary" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+                            <div class="manual-metric">
+                                <strong>${fmt(chromeWeeklyUsers)}</strong>
+                                <span>weekly users from CWS</span>
+                            </div>
+                            <div class="manual-metric">
+                                <strong>${chromeSnapshot.users ? fmt(chromeSnapshot.users) : 'Unknown'}</strong>
+                                <span>public listing users</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3557,6 +3685,8 @@
             const ratioText = (part, total) => total ? `${((Number(part || 0) / Number(total || 0)) * 100).toFixed(1)}%` : 'n/a';
             const numberDelta = (current, previous) => Number(current || 0) - Number(previous || 0);
             const signed = (value) => value > 0 ? `+${value}` : String(value);
+            const storeInstallRate = input.chromeVisitors ? (input.chromeInstalls / input.chromeVisitors) * 100 : 0;
+            const uninstallToInstallRate = input.chromeInstalls ? (input.chromeUninstalls / input.chromeInstalls) * 100 : 0;
             const previousSnapshot = input.previousChromeSnapshot || null;
             const snapshotTrend = previousSnapshot ? {
                 pageViews: numberDelta(input.chromeVisitors, previousSnapshot.visitors),
@@ -3564,6 +3694,13 @@
                 uninstalls: numberDelta(input.chromeUninstalls, previousSnapshot.uninstalls || previousSnapshot.uninstallRate),
                 weeklyUsers: numberDelta(input.chromeSnapshotWeeklyUsers, previousSnapshot.weeklyUsers),
             } : null;
+            const trendStatus = !snapshotTrend
+                ? 'warn'
+                : snapshotTrend.installs > 0 && snapshotTrend.weeklyUsers >= 0 && snapshotTrend.uninstalls <= 0
+                    ? 'good'
+                    : snapshotTrend.installs < 0 || snapshotTrend.weeklyUsers < 0 || snapshotTrend.uninstalls > 0
+                        ? 'danger'
+                        : 'warn';
             const today = new Date().toISOString().slice(0, 10);
             const recentLog = (input.decisionLog || []).filter(item => {
                 if (!item.date) return false;
@@ -3583,6 +3720,7 @@
                     note: input.chromeSnapshotReady
                         ? `${ratioText(input.chromeInstalls, input.chromeVisitors)} page-view install rate; ${ratioText(input.chromeUninstalls, input.chromeInstalls)} uninstalls/install.`
                         : 'Save page views, impressions, installs, uninstalls, weekly users, and ratings before making store decisions.',
+                    status: !input.chromeSnapshotReady ? 'warn' : storeInstallRate >= 20 && uninstallToInstallRate <= 35 ? 'good' : uninstallToInstallRate >= 40 ? 'danger' : 'warn',
                 },
                 {
                     label: 'Store trend',
@@ -3592,27 +3730,27 @@
                     note: snapshotTrend
                         ? `${signed(snapshotTrend.pageViews)} page views and ${signed(snapshotTrend.weeklyUsers)} weekly users versus the previous saved snapshot.`
                         : 'Save another snapshot later to let the advisor compare direction instead of reading one isolated period.',
+                    status: trendStatus,
                 },
                 {
-                    label: 'Product',
+                    label: 'Depth',
                     value: `${pctText(input.twoPlusGenerationRate)} reach 2+ generations`,
                     note: `${pctText(input.quotaPressureRate)} quota pressure; ${Number(input.avgGenerationsPerActive || 0).toFixed(1)} generations per active generator.`,
+                    status: input.quotaPressureRate >= 35 || input.avgGenerationsPerActive >= 2.5
+                        ? 'good'
+                        : input.quotaPressureRate >= 20 || input.avgGenerationsPerActive >= 1.7
+                            ? 'warn'
+                            : 'danger',
                 },
                 {
                     label: 'Money',
                     value: `${pctText(input.rates.signupToPaid30d)} signup -> paid`,
                     note: `${input.paywallShown || 0} paywalls shown; ${pctText(input.paywallToCheckoutRate)} paywall -> checkout.`,
-                },
-                {
-                    label: 'Memory',
-                    value: sameFocusRecent.length
-                        ? `${sameFocusRecent.length} ${input.focus} action${sameFocusRecent.length === 1 ? '' : 's'} logged in 7 days`
-                        : 'No recent actions logged',
-                    note: doneToday
-                        ? 'Today is already marked done for this focus.'
-                        : loopDetected
-                            ? 'The same focus is repeating. Stop repeating the same move; ask for a fresh diagnosis.'
-                            : 'Use Mark action done after you actually complete the recommended action.',
+                    status: Number(input.rates.signupToPaid30d || 0) >= 8
+                        ? 'good'
+                        : Number(input.rates.signupToPaid30d || 0) >= 4 || input.paywallShown < 10
+                            ? 'warn'
+                            : 'danger',
                 },
             ];
 
@@ -3644,6 +3782,24 @@
                         note: 'This focus is already marked done today. Check again tomorrow or after a real product/store change.',
                     }
                     : input.primaryAction || { title: 'Open Growth data', note: 'Save the current data snapshot first.' };
+            const plainDiagnosisByFocus = {
+                Measurement: 'The system cannot make a strong call until the Chrome Store snapshot is saved with the same 30-day reporting period.',
+                'Store Listing': 'Enough people see the listing, but too many do not install or churn quickly. Fix trust and intent before building more product.',
+                Acquisition: 'The product does not have enough new users per day to learn fast. Your main job is controlled distribution, not extra dashboard reading.',
+                Activation: 'People arrive but do not reach the first successful listing. Fix the first-use path before increasing traffic.',
+                'Value Depth': 'Users may try the tool once, but not enough consume multiple free generations. A paid ask is weak until depth improves.',
+                Paywall: 'Users reach the limit, but the upgrade step is not turning into checkout intent. Fix offer clarity before more acquisition.',
+                Scale: 'The core path is healthy enough to increase distribution while watching install-to-generation-to-paid quality.',
+            };
+            const stopConditionByFocus = {
+                Measurement: 'Stop after the snapshot is saved and the advisor refreshes.',
+                'Store Listing': 'Stop after one store asset is changed and the change is logged. Wait for the next CWS period before judging it.',
+                Acquisition: 'Stop after the outreach or SEO/store asset count is done and logged. Judge by installs and first generations, not replies alone.',
+                Activation: 'Stop after one first-success blocker is fixed or written as a concrete ticket.',
+                'Value Depth': 'Stop after one second-generation improvement is shipped or specified. Do not keep looking for more metrics today.',
+                Paywall: 'Stop after one paywall choice or copy issue is simplified and logged.',
+                Scale: 'Stop after one bounded scale experiment is launched with a clear cap and measurement rule.',
+            };
 
             return {
                 state: loopDetected
@@ -3651,11 +3807,21 @@
                     : doneToday
                         ? `${input.focus}: today is already handled`
                         : `${input.focus}: ${confidence === 'low' ? 'data is not strong enough yet' : 'next action is clear'}`,
+                plainDiagnosis: loopDetected
+                    ? `The same ${input.focus} loop has repeated. The next move is not more execution; it is a fresh diagnosis with the exact brief.`
+                    : doneToday
+                        ? `Today's ${input.focus} action is already recorded. Only reopen this if new data changed.`
+                        : plainDiagnosisByFocus[input.focus] || input.focusReason,
                 confidence,
                 timebox: input.focus === 'Measurement' ? '10 minutes' : '60-90 minutes',
                 primaryAction,
                 evidence,
                 missing,
+                stopCondition: doneToday
+                    ? 'Stop for today unless fresh data arrived.'
+                    : loopDetected
+                        ? 'Stop after copying the brief and asking for a fresh diagnosis.'
+                        : stopConditionByFocus[input.focus],
                 notNow: loopDetected
                     ? ['Repeating the same action again', 'Adding more metrics before changing the approach']
                     : notNowByFocus[input.focus] || ['Adding more metrics', 'Changing multiple things at once'],

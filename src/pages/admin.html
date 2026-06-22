@@ -357,7 +357,7 @@
             overflow-y: auto;
             padding: 2rem;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
         }
 
@@ -458,9 +458,9 @@
 
         .insight-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+            grid-template-columns: minmax(0, 1fr);
             gap: 1rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
 
         @media (max-width: 900px) {
@@ -475,6 +475,97 @@
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-sm);
             padding: 1.25rem;
+        }
+
+        .growth-shell {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .growth-hero {
+            background: #111827;
+            border: 1px solid #111827;
+            border-radius: var(--radius-lg);
+            color: #fff;
+            padding: 1.25rem;
+        }
+
+        .growth-hero .insight-title,
+        .growth-hero .insight-copy,
+        .growth-hero .action-note {
+            color: #fff;
+        }
+
+        .growth-hero .insight-copy,
+        .growth-hero .action-note {
+            color: rgba(255, 255, 255, 0.76);
+        }
+
+        .growth-hero .action-item {
+            border-color: rgba(255, 255, 255, 0.16);
+        }
+
+        .growth-hero .action-number {
+            background: #fff;
+            color: #111827;
+        }
+
+        .growth-section {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+        }
+
+        @media (max-width: 1020px) {
+            .growth-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .growth-section.compact {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (max-width: 860px) {
+            .growth-section.compact {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .operator-note {
+            align-items: center;
+            background: var(--info-bg);
+            border: 1px solid #bfdbfe;
+            border-radius: var(--radius-md);
+            color: var(--info-text);
+            display: flex;
+            font-size: 0.86rem;
+            font-weight: 600;
+            gap: 0.55rem;
+            padding: 0.75rem 0.85rem;
+        }
+
+        .section-kicker {
+            color: var(--text-light);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+        }
+
+        .loading-state {
+            align-items: center;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.7rem;
+            justify-content: center;
+            min-height: 260px;
+        }
+
+        .loading-state .spinner {
+            height: 22px;
+            width: 22px;
         }
 
         .insight-title {
@@ -561,9 +652,9 @@
 
         .workbench-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(300px, 0.85fr);
+            grid-template-columns: minmax(0, 1fr) minmax(300px, 0.75fr);
             gap: 1rem;
-            margin-bottom: 2rem;
+            margin-bottom: 0;
         }
 
         @media (max-width: 960px) {
@@ -1336,7 +1427,7 @@
                 left: 0;
                 right: 0;
                 display: grid;
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(4, 1fr);
                 gap: 0.5rem;
                 padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
                 background: rgba(255, 255, 255, 0.95);
@@ -1410,7 +1501,7 @@
             </div>
 
             <nav class="sidebar-nav">
-                <div class="nav-item active" onclick="switchView('overview')">
+                <div class="nav-item active" data-view="overview" onclick="switchView('overview')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -1420,7 +1511,7 @@
                     </svg>
                     <span>Overview</span>
                 </div>
-                <div class="nav-item" onclick="switchView('growth')">
+                <div class="nav-item" data-view="growth" onclick="switchView('growth')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
@@ -1428,7 +1519,7 @@
                     </svg>
                     <span>Growth</span>
                 </div>
-                <div class="nav-item" onclick="switchView('logs')">
+                <div class="nav-item" data-view="logs" onclick="switchView('logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path
@@ -1437,7 +1528,7 @@
                     </svg>
                     <span>API Logs</span>
                 </div>
-                <div class="nav-item" onclick="switchView('users')">
+                <div class="nav-item" data-view="users" onclick="switchView('users')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -1523,7 +1614,7 @@
         // State Management
         const state = {
             secret: '',
-            currentView: 'overview',
+            currentView: getInitialAdminView(),
             data: null,
             logsPage: 1,
             usersPage: 1,
@@ -1536,6 +1627,11 @@
             cachedData: {},
             isTransitioning: false
         };
+
+        function getInitialAdminView() {
+            const view = window.location.hash.replace('#', '');
+            return ['overview', 'growth', 'logs', 'users'].includes(view) ? view : 'overview';
+        }
 
         // --- Auth Logic ---
         function init() {
@@ -1582,7 +1678,8 @@
                     authScreen.style.display = 'none';
                     dashboard.classList.remove('hidden');
                     dashboard.style.display = 'flex';
-                    loadView('overview');
+                    updateNavigationState(state.currentView);
+                    loadView(state.currentView);
                     return true;
                 } else {
                     loadingScreen.style.display = 'none';
@@ -1617,28 +1714,41 @@
 
             state.currentView = viewName;
             state.isTransitioning = true;
+            if (window.location.hash !== `#${viewName}`) {
+                history.pushState(null, '', `#${viewName}`);
+            }
 
             // Close mobile menu if open
             if (window.innerWidth <= 768) {
                 toggleMobileMenu(false);
             }
 
-            // Update Sidebar
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active');
-                if (el.textContent.toLowerCase().includes(viewName)) el.classList.add('active');
+            updateNavigationState(viewName);
+
+            loadView(viewName);
+        }
+
+        function updateNavigationState(viewName) {
+            document.querySelectorAll('.nav-item[data-view]').forEach(el => {
+                el.classList.toggle('active', el.dataset.view === viewName);
             });
 
             document.querySelectorAll('.mobile-bottom-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === viewName);
             });
 
-            // Update Title
             const titles = { overview: 'Overview', growth: 'Growth', logs: 'API Logs', users: 'User Management' };
-            document.getElementById('pageTitle').textContent = titles[viewName];
-
-            loadView(viewName);
+            document.getElementById('pageTitle').textContent = titles[viewName] || 'Overview';
         }
+
+        window.addEventListener('hashchange', () => {
+            const nextView = getInitialAdminView();
+            if (nextView !== state.currentView) {
+                state.currentView = nextView;
+                updateNavigationState(nextView);
+                loadView(nextView);
+            }
+        });
 
         function toggleMobileMenu(forceState) {
             const sidebar = document.getElementById('sidebar');
@@ -1660,8 +1770,8 @@
         async function loadView(view) {
             const content = document.getElementById('contentArea');
 
-            // Add fade out
-            content.style.opacity = '0.5';
+            content.innerHTML = `<div class="loading-state"><div class="spinner"></div><span>Loading ${escapeHtml(view)}...</span></div>`;
+            content.style.opacity = '1';
             content.style.transition = 'opacity 0.15s ease';
 
             try {
@@ -2170,46 +2280,32 @@
             const progress = getGrowthTaskProgress();
 
             container.innerHTML = `
-                <div class="insight-grid">
-                    <div class="insight-card">
-                        <div class="insight-title">What this means</div>
-                        <div class="insight-copy">
-                            Current focus: <strong>${escapeHtml(focus)}</strong>. ${escapeHtml(focusReason)}
-                        </div>
-                        <div class="diagnostic-list">
-                            ${diagnostics.map(item => `
-                                <div class="diagnostic-item ${item.state}">
-                                    <div class="diagnostic-head">
-                                        <span>${escapeHtml(item.label)}</span>
-                                        <span>${escapeHtml(item.value)}</span>
-                                    </div>
-                                    <div class="diagnostic-note">${escapeHtml(item.note)}</div>
+                <div class="growth-hero">
+                    <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Today</div>
+                    <div class="insight-title" style="font-size: 1.25rem;">Focus: ${escapeHtml(focus)}</div>
+                    <div class="insight-copy">${escapeHtml(focusReason)}</div>
+                    <div class="action-list">
+                        ${actions.map((item, index) => `
+                            <div class="action-item">
+                                <span class="action-number">${index + 1}</span>
+                                <div>
+                                    <div style="font-weight: 750; font-size: 0.95rem;">${escapeHtml(item.title)}</div>
+                                    <div class="action-note">${escapeHtml(item.note)}</div>
                                 </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="insight-card">
-                        <div class="insight-title">What to do today</div>
-                        <div class="insight-copy">Do these before staring at more charts.</div>
-                        <div class="action-list">
-                            ${actions.map((item, index) => `
-                                <div class="action-item">
-                                    <span class="action-number">${index + 1}</span>
-                                    <div>
-                                        <div style="font-weight: 700; font-size: 0.9rem;">${escapeHtml(item.title)}</div>
-                                        <div class="action-note">${escapeHtml(item.note)}</div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
 
-                <div class="workbench-grid">
+                <div class="operator-note">
+                    <span>Use this page top-to-bottom: do Today's Workbench first, then update the Chrome snapshot, then inspect diagnostics only if something looks off.</span>
+                </div>
+
+                <div class="growth-section">
                     <div class="insight-card">
-                        <div class="insight-title">Today’s Workbench</div>
-                        <div class="insight-copy">Tick these off today. They reset daily in this browser.</div>
+                        <div class="section-kicker">Daily</div>
+                        <div class="insight-title">Today's Workbench</div>
+                        <div class="insight-copy">Your actual task list. These reset daily in this browser.</div>
                         <div class="task-list">
                             ${dailyTasks.map(item => `
                                 <label class="task-item">
@@ -2225,8 +2321,9 @@
                     </div>
 
                     <div class="insight-card">
+                        <div class="section-kicker">Weekly</div>
                         <div class="insight-title">This Month</div>
-                        <div class="insight-copy">Follow this for 4 weeks unless the dashboard focus changes hard.</div>
+                        <div class="insight-copy">Monday plan. Follow this unless the focus changes hard.</div>
                         <div class="task-list">
                             ${monthPlan.map((item, index) => `
                                 <div class="task-item">
@@ -2242,40 +2339,55 @@
                     </div>
                 </div>
 
-                <div class="workbench-grid">
+                <div class="growth-section compact">
                     <div class="insight-card">
-                        <div class="insight-title">Copy-ready Scripts</div>
-                        <div class="insight-copy">Use these as controlled experiments. Judge replies, clicks, installs, generations, checkout starts, or ratings. Do not judge opens.</div>
-                        <div class="script-list">
-                            ${scripts.map(item => `
-                                <div class="script-card">
-                                    <div class="script-title">${escapeHtml(item.title)}</div>
-                                    <div class="script-body" id="growthScript-${escapeAttribute(item.id)}">${escapeHtml(item.body)}</div>
-                                    <button class="btn-secondary" onclick="copyGrowthScript('${escapeAttribute(item.id)}')">Copy script</button>
+                        <div class="section-kicker">Health Check</div>
+                        <div class="insight-title">Diagnostics</div>
+                        <div class="insight-copy">Use this to understand why the focus was chosen.</div>
+                        <div class="diagnostic-list">
+                            ${diagnostics.map(item => `
+                                <div class="diagnostic-item ${item.state}">
+                                    <div class="diagnostic-head">
+                                        <span>${escapeHtml(item.label)}</span>
+                                        <span>${escapeHtml(item.value)}</span>
+                                    </div>
+                                    <div class="diagnostic-note">${escapeHtml(item.note)}</div>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
 
                     <div class="insight-card">
-                        <div class="insight-title">One-Generation Targets</div>
-                        <div class="insight-copy">Users who generated on one day only. Send the prepared short email only if there is no better in-product channel.</div>
+                        <div class="section-kicker">When Needed</div>
+                        <div class="insight-title">Prepared Tools</div>
+                        <div class="insight-copy">Only use these when today's checklist asks for outreach, ratings, or one-generation follow-up.</div>
+                        <div class="action-list">
+                            ${scripts.map((item, index) => `
+                                <div class="action-item">
+                                    <span class="action-number">${index + 1}</span>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 0.9rem;">${escapeHtml(item.title)}</div>
+                                        <div id="growthScript-${escapeAttribute(item.id)}" style="display:none;">${escapeHtml(item.body)}</div>
+                                        <button class="btn-secondary" style="margin-top:0.45rem;" onclick="copyGrowthScript('${escapeAttribute(item.id)}')">Copy script</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="section-kicker" style="margin-top:1rem;">One-generation users</div>
                         <div class="target-list">
-                            ${oneGenerationTargets.length ? oneGenerationTargets.slice(0, 5).map(user => `
+                            ${oneGenerationTargets.length ? oneGenerationTargets.slice(0, 3).map(user => `
                                 <div class="target-card">
                                     <div class="target-title">${escapeHtml(user.email || 'Unknown email')}</div>
                                     <div class="target-meta">
                                         ${fmt(user.successfulGenerations)} successful generation${Number(user.successfulGenerations) === 1 ? '' : 's'}
-                                        ${user.lastGeneratedAt ? `· last ${formatDateTime(user.lastGeneratedAt)}` : ''}
-                                        · ${escapeHtml(user.tier || 'free')}
+                                        ${user.lastGeneratedAt ? ` · last ${formatDateTime(user.lastGeneratedAt)}` : ''}
                                     </div>
-                                    <button class="btn-secondary" onclick="copyGrowthScript('one_generation')">Copy email</button>
                                     ${user.email ? `<a class="btn-secondary" href="${buildMailtoScript(user.email, 'one_generation')}" style="text-decoration:none;">Open mailto</a>` : ''}
                                 </div>
                             `).join('') : `
                                 <div class="target-card">
-                                    <div class="target-title">No targets yet</div>
-                                    <div class="target-meta">After more users generate, this will show one-time users for a prepared contact experiment.</div>
+                                    <div class="target-title">No one-generation targets yet</div>
+                                    <div class="target-meta">This will populate when users generate once and stop.</div>
                                 </div>
                             `}
                         </div>

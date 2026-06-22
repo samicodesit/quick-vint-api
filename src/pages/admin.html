@@ -1867,6 +1867,14 @@
                     </svg>
                     <span>Users</span>
                 </div>
+                <a class="nav-item" href="/email-templates" target="_blank" rel="noopener" style="text-decoration: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4h16v16H4z"></path>
+                        <path d="m22 6-10 7L2 6"></path>
+                    </svg>
+                    <span>Email Templates</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -3575,11 +3583,23 @@
             return `<span class="badge badge-danger" title="${escapeAttribute(u.abuse_notes || '')}">Paused: ${reason}</span>`;
         }
 
-        function renderAccountStatusActions(u) {
+        function renderUserActions(u) {
             const userId = escapeAttribute(u.id);
+            const encodedEmail = encodeURIComponent(u.email || '');
             const isPaused = u.account_status === 'paused';
+            const canSendReview = Boolean(u.email_can_contact && !u.is_at_risk && !isPaused);
+            const reviewTitle = !u.email
+                ? 'No email address'
+                : !u.email_can_contact
+                    ? 'User is unsubscribed from email'
+                    : u.is_at_risk
+                        ? 'Do not ask at-risk users for reviews'
+                        : isPaused
+                            ? 'Do not email paused users'
+                            : 'Send one-time honest review request';
             return `
                 <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
+                    <button class="btn-secondary" title="${escapeAttribute(reviewTitle)}" ${canSendReview ? '' : 'disabled'} onclick="sendReviewRequest('${encodedEmail}')">Review email</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
                         ? `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'active')">Unpause</button>`
@@ -3652,7 +3672,7 @@
                     </td>
                     <td>${u.last_active ? formatDateTime(u.last_active) : '<span style="opacity:0.55;">No activity</span>'}</td>
                     <td>
-                        ${renderAccountStatusActions(u)}
+                        ${renderUserActions(u)}
                     </td>
                 </tr>
             `;
@@ -3688,7 +3708,7 @@
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Actions</span>
-                        <span class="mobile-card-value">${renderAccountStatusActions(u)}</span>
+                        <span class="mobile-card-value">${renderUserActions(u)}</span>
                     </div>
                 </div>
             `;
@@ -4328,6 +4348,36 @@
                 } else {
                     showToast(data.error || 'Failed to reset usage', 'error');
                 }
+            } catch (e) {
+                showToast('Connection failed', 'error');
+            }
+        }
+
+        async function sendReviewRequest(encodedEmail) {
+            const email = decodeURIComponent(encodedEmail || '');
+            if (!email) return showToast('No email address found', 'error');
+            if (!confirm(`Send the one-time honest review request to ${email}?`)) return;
+
+            try {
+                const res = await fetch('/api/admin?action=send-campaign', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.secret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template_key: 'honest_review_request_v1',
+                        recipient_emails: [email]
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.sent > 0) {
+                    showToast('Review request sent');
+                    return;
+                }
+
+                showToast(data.message || data.error || 'Email was not sent', 'error');
             } catch (e) {
                 showToast('Connection failed', 'error');
             }

@@ -83,6 +83,8 @@ type ProfileRow = {
   abuse_notes?: string | null;
   paused_at?: string | null;
   paused_by?: string | null;
+  email_subscribed?: boolean | null;
+  unsubscribe_token?: string | null;
 };
 
 type RateLimitRow = {
@@ -93,7 +95,7 @@ type RateLimitRow = {
 };
 
 const PROFILE_SELECT =
-  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason, abuse_notes, paused_at, paused_by";
+  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token";
 
 function getQueryString(
   value: string | string[] | undefined,
@@ -539,6 +541,7 @@ async function enrichAdminUsers(
   });
 
   return users.map((user) => {
+    const { unsubscribe_token: unsubscribeToken, ...safeUser } = user;
     const tierKey = getEffectiveTier(user);
     const tierConfig = getTierConfigForProfile(user, "current");
     const limits = rateLimitMap.get(user.id) || [];
@@ -559,9 +562,10 @@ async function enrichAdminUsers(
     );
 
     return {
-      ...user,
+      ...safeUser,
       subscription_tier: tierKey,
       subscription_status: user.subscription_status || "unknown",
+      email_can_contact: Boolean(user.email && user.email_subscribed && unsubscribeToken),
       api_calls_this_month: monthCount,
       last_active: lastActiveMap.get(user.id) || null,
       limits,

@@ -9,6 +9,8 @@
     "lint:fix": "eslint \"api/**/*.ts\" \"utils/**/*.{ts,js}\" --fix",
     "check:blog-plan": "node scripts/check-blog-plan.mjs",
     "growth": "node scripts/growth-scorecard.mjs",
+    "ops:delete-user": "node scripts/delete-user-by-email.mjs",
+    "ops:privacy-reply": "node scripts/send-privacy-reply.mjs",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format-check": "prettier --check \"**/*.{ts,js,json,md}\"",

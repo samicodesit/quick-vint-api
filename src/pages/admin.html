@@ -2667,7 +2667,7 @@
         async function renderOverview(container) {
             const todayRange = getLocalTodayRange();
             const [data, todaysUsers, growthData, eventLogData] = await Promise.all([
-                fetchAPI('/api/admin?action=usage-stats'),
+                fetchAPI(`/api/admin?action=usage-stats&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`),
                 fetchAPI(`/api/admin?action=list-users&segment=today&page=1&limit=5&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`),
                 fetchAPI('/api/admin?action=growth-stats&days=30'),
                 fetchAPI('/api/admin?action=view-logs&log_type=events&page=1&limit=6')

@@ -918,12 +918,47 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
   try {
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
+    const todayStart = getQueryString(req.query.today_start);
+    const todayEnd = getQueryString(req.query.today_end);
 
     const { data: todayStats } = await supabase
       .from("daily_stats")
       .select("*")
       .eq("date", todayStr)
       .single();
+
+    let todayUsage = {
+      totalRequests: todayStats?.total_api_calls || 0,
+      rateLimitErrors: 0,
+      avgTokensPerRequest: 0,
+      estimatedCost: todayStats?.estimated_cost || 0,
+    };
+
+    if (todayStart && todayEnd) {
+      const { data: todayLogs, error: todayLogsError } = await supabase
+        .from("api_logs")
+        .select("openai_tokens_used, response_status, created_at")
+        .gte("created_at", todayStart)
+        .lt("created_at", todayEnd);
+
+      if (todayLogsError) throw todayLogsError;
+
+      const logs = todayLogs || [];
+      const totalTokens = logs.reduce(
+        (sum: number, log: any) => sum + (log.openai_tokens_used || 0),
+        0,
+      );
+
+      todayUsage = {
+        totalRequests: logs.length,
+        rateLimitErrors: logs.filter((log: any) => log.response_status === 429)
+          .length,
+        avgTokensPerRequest: logs.length
+          ? Math.round(totalTokens / logs.length)
+          : 0,
+        estimatedCost: totalTokens * 0.0000005,
+      };
+    }
 
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const weekAgoStr = weekAgo.toISOString().split("T")[0];
@@ -1058,12 +1093,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     );
 
     return res.status(200).json({
-      today: {
-        totalRequests: todayStats?.total_api_calls || 0,
-        rateLimitErrors: 0, // Not currently tracked in daily_stats
-        avgTokensPerRequest: 0, // Not currently tracked
-        estimatedCost: todayStats?.estimated_cost || 0,
-      },
+      today: todayUsage,
       lastWeek: weekStats,
       totalUsers: totalUserCount || 0,
       recentActivity: recentActivityUsers,

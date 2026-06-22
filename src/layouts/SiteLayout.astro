@@ -40,6 +40,8 @@ const homeHref = `${localePrefix}/`;
 const featuresHref = `${localePrefix}/#features`;
 const pricingHref = `${localePrefix}/pricing`;
 const blogHref = `${localePrefix}/blog`;
+const chromeHref =
+  "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 ---
 
 <!doctype html>
@@ -107,10 +109,10 @@ const blogHref = `${localePrefix}/blog`;
         },
         "aggregateRating": {
           "@type": "AggregateRating",
-          "ratingValue": "4.9",
-          "ratingCount": "125"
+          "ratingValue": "4.3",
+          "ratingCount": "6"
         },
-        "url": "https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
+        "url": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl"
       }
     </script>
   </head>
@@ -182,9 +184,11 @@ const blogHref = `${localePrefix}/blog`;
           <!-- CTA -->
           <div class="hidden md:block">
             <a
-              href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
+              href={chromeHref}
               target="_blank"
               rel="noopener noreferrer"
+              data-track-event="chrome_store_click"
+              data-track-context="nav_desktop"
               class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 no-underline"
             >
               {navCopy.cta}
@@ -264,9 +268,11 @@ const blogHref = `${localePrefix}/blog`;
 
           <div class="pt-4 mt-4 border-t border-gray-100">
             <a
-              href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
+              href={chromeHref}
               target="_blank"
               rel="noopener noreferrer"
+              data-track-event="chrome_store_click"
+              data-track-context="nav_mobile"
               class="block w-full text-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 no-underline"
             >
               {navCopy.cta}
@@ -361,6 +367,9 @@ const blogHref = `${localePrefix}/blog`;
           nav.style.background = "rgba(255, 255, 255, 0.9)";
         }
       });
+    </script>
+    <script>
+      import "../scripts/analytics.js";
     </script>
   </body>
 </html>

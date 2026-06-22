@@ -30,6 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleViewLogs(req, res);
     } else if (action === "usage-stats") {
       return handleUsageStats(req, res);
+    } else if (action === "growth-stats") {
+      return handleGrowthStats(req, res);
     } else if (action === "list-users") {
       return handleListUsers(req, res);
     } else if (action === "list-templates") {
@@ -197,6 +199,227 @@ function getLimitCount(limits: RateLimitRow[], windowType: string) {
   return limits
     .filter((limit) => limit.window_type === windowType)
     .reduce((total, limit) => total + (limit.count || 0), 0);
+}
+
+function dayKey(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return date.toISOString().slice(0, 10);
+}
+
+function getEventName(log: any) {
+  if (typeof log.endpoint === "string" && log.endpoint.startsWith("/event/")) {
+    return log.endpoint.slice("/event/".length);
+  }
+
+  const body = log.full_request_body;
+  if (body && typeof body === "object" && typeof body.event === "string") {
+    return body.event;
+  }
+
+  return null;
+}
+
+function getGrowthEmptyDay(date: string) {
+  return {
+    date,
+    signups: 0,
+    paidSignups: 0,
+    activeGenerators: 0,
+    successfulGenerations: 0,
+    generateRequests: 0,
+    generateClicks: 0,
+    limitHits: 0,
+    paywallShown: 0,
+    checkoutStart: 0,
+    checkoutOpened: 0,
+    chromeStoreClicks: 0,
+    magicLinkRequests: 0,
+    phoneUploadStarts: 0,
+    batchStarts: 0,
+  };
+}
+
+function pctValue(part: number, total: number) {
+  if (!total) return 0;
+  return Math.round((part / total) * 1000) / 10;
+}
+
+function sumGrowthDays(days: Array<ReturnType<typeof getGrowthEmptyDay>>) {
+  const totals = getGrowthEmptyDay("total");
+  for (const day of days) {
+    for (const key of Object.keys(totals) as Array<keyof typeof totals>) {
+      if (key === "date") continue;
+      (totals[key] as number) += Number(day[key] || 0);
+    }
+  }
+  return totals;
+}
+
+async function fetchAdminRows(
+  table: string,
+  columns: string,
+  buildQuery?: (query: any) => any,
+  maxRows = 10000,
+) {
+  const rows: any[] = [];
+  for (let from = 0; from < maxRows; from += 1000) {
+    let query = supabase.from(table).select(columns).range(from, from + 999);
+    if (buildQuery) query = buildQuery(query);
+    const { data, error } = await query;
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return rows;
+}
+
+async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
+  try {
+    const days = parsePositiveInt(req.query.days, 30, 90);
+    const now = new Date();
+    const start = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+    start.setUTCHours(0, 0, 0, 0);
+    const startIso = start.toISOString();
+
+    const dayMap = new Map<string, ReturnType<typeof getGrowthEmptyDay>>();
+    const activeGeneratorSets = new Map<string, Set<string>>();
+    for (let i = 0; i < days; i++) {
+      const date = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
+      const key = dayKey(date);
+      dayMap.set(key, getGrowthEmptyDay(key));
+      activeGeneratorSets.set(key, new Set());
+    }
+
+    const [profiles, recentProfiles, logs] = await Promise.all([
+      fetchAdminRows(
+        "profiles",
+        "id, created_at, subscription_status, subscription_tier",
+      ),
+      fetchAdminRows(
+        "profiles",
+        "id, created_at, subscription_status, subscription_tier",
+        (query) => query.gte("created_at", startIso),
+      ),
+      fetchAdminRows(
+        "api_logs",
+        "user_id, endpoint, response_status, created_at, full_request_body",
+        (query) => query.gte("created_at", startIso).order("created_at", {
+          ascending: false,
+        }),
+      ),
+    ]);
+
+    const paidProfiles = profiles.filter(
+      (profile) =>
+        profile.subscription_status === "active" &&
+        profile.subscription_tier &&
+        profile.subscription_tier !== "free",
+    );
+
+    recentProfiles.forEach((profile) => {
+      const bucket = dayMap.get(dayKey(profile.created_at));
+      if (!bucket) return;
+      bucket.signups += 1;
+      if (
+        profile.subscription_status === "active" &&
+        profile.subscription_tier &&
+        profile.subscription_tier !== "free"
+      ) {
+        bucket.paidSignups += 1;
+      }
+    });
+
+    const eventCounts = new Map<string, number>();
+    const activeUsers30 = new Set<string>();
+    const activeDaysByUser = new Map<string, Set<string>>();
+    logs.forEach((log) => {
+      const key = dayKey(log.created_at);
+      const bucket = dayMap.get(key);
+      if (!bucket) return;
+
+      const status = Number(log.response_status);
+      const event = getEventName(log);
+      if (event) {
+        eventCounts.set(event, (eventCounts.get(event) || 0) + 1);
+      }
+
+      if (log.endpoint === "/api/generate") {
+        if (log.user_id) {
+          activeGeneratorSets.get(key)?.add(log.user_id);
+          activeUsers30.add(log.user_id);
+          if (status === 200) {
+            const activeDays = activeDaysByUser.get(log.user_id) || new Set();
+            activeDays.add(key);
+            activeDaysByUser.set(log.user_id, activeDays);
+          }
+        }
+        if (status === 200) bucket.successfulGenerations += 1;
+        if (status === 429 || status === 403) bucket.limitHits += 1;
+      }
+
+      if (event === "generate_request") bucket.generateRequests += 1;
+      if (event === "generate_click") bucket.generateClicks += 1;
+      if (event === "generate_limit_hit") bucket.limitHits += 1;
+      if (event === "paywall_shown") bucket.paywallShown += 1;
+      if (event === "checkout_start") bucket.checkoutStart += 1;
+      if (event === "checkout_opened") bucket.checkoutOpened += 1;
+      if (event === "chrome_store_click") bucket.chromeStoreClicks += 1;
+      if (event === "magic_link_request") bucket.magicLinkRequests += 1;
+      if (event === "phone_upload_start") bucket.phoneUploadStarts += 1;
+      if (event === "batch_start") bucket.batchStarts += 1;
+    });
+
+    for (const [key, users] of activeGeneratorSets.entries()) {
+      const bucket = dayMap.get(key);
+      if (bucket) bucket.activeGenerators = users.size;
+    }
+
+    const daily = Array.from(dayMap.values()).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+    const last7 = sumGrowthDays(daily.slice(-7));
+    const last30 = sumGrowthDays(daily.slice(-30));
+    const today = daily[daily.length - 1] || getGrowthEmptyDay(dayKey(now));
+    const yesterday =
+      daily[daily.length - 2] || getGrowthEmptyDay(dayKey(new Date(now.getTime() - 864e5)));
+    const repeatActiveUsers = Array.from(activeDaysByUser.values()).filter(
+      (activeDays) => activeDays.size >= 2,
+    ).length;
+
+    return res.status(200).json({
+      generatedAt: now.toISOString(),
+      window: { days, start: startIso, end: now.toISOString() },
+      totals: {
+        profiles: profiles.length,
+        activePaidProfiles: paidProfiles.length,
+        activeGenerators: activeUsers30.size,
+        repeatActiveUsers,
+      },
+      today,
+      yesterday,
+      last7,
+      last30,
+      rates: {
+        activationPerSignup30d: pctValue(last30.activeGenerators, last30.signups),
+        repeatActive30d: pctValue(repeatActiveUsers, activeUsers30.size),
+        limitToPaywall30d: pctValue(last30.paywallShown, last30.limitHits),
+        paywallToCheckout30d: pctValue(last30.checkoutStart, last30.paywallShown),
+        checkoutOpenRate30d: pctValue(last30.checkoutOpened, last30.checkoutStart),
+        signupToPaid30d: pctValue(last30.paidSignups, last30.signups),
+      },
+      daily,
+      topEvents: Array.from(eventCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20)
+        .map(([event, count]) => ({ event, count })),
+      notes: [
+        "Chrome Web Store impressions, visitors, installs, uninstall rate, and rating count still need to be read from Chrome Web Store dashboard.",
+        "TrustMRR/Stripe MRR and churn should remain the source of truth for revenue.",
+      ],
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
 }
 
 async function enrichAdminUsers(

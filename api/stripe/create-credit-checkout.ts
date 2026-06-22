@@ -19,7 +19,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { email } = req.body as { email: string };
+    const { email, source, utm } = req.body as {
+      email: string;
+      source?: string;
+      utm?: Record<string, string>;
+    };
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return res.status(400).json({ error: "A valid email is required." });
     }
@@ -88,6 +92,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         pack_id: CREDIT_PACK_CONFIG.id,
         credits: String(CREDIT_PACK_CONFIG.credits),
         profile_id: profileRow.id,
+        source: source || "unknown",
+        utm_source: utm?.utm_source || "",
+        utm_medium: utm?.utm_medium || "",
+        utm_campaign: utm?.utm_campaign || "",
+        utm_content: utm?.utm_content || "",
+        utm_term: utm?.utm_term || "",
       },
     });
 

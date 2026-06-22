@@ -20,9 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { email, tier } = req.body as {
+    const { email, tier, source, utm } = req.body as {
       email: string;
       tier: "starter" | "pro" | "business"; // No 'free' since it's not a paid tier
+      source?: string;
+      utm?: Record<string, string>;
     };
 
     // 1) Validate email
@@ -102,6 +104,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
       allow_promotion_codes: true,
+      metadata: {
+        source: source || "unknown",
+        tier,
+        utm_source: utm?.utm_source || "",
+        utm_medium: utm?.utm_medium || "",
+        utm_campaign: utm?.utm_campaign || "",
+        utm_content: utm?.utm_content || "",
+        utm_term: utm?.utm_term || "",
+      },
     });
 
     return res.status(200).json({ url: session.url });

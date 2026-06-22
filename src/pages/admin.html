@@ -1167,6 +1167,14 @@
                     </svg>
                     <span>Overview</span>
                 </div>
+                <div class="nav-item" onclick="switchView('growth')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                        <polyline points="16 7 22 7 22 13"></polyline>
+                    </svg>
+                    <span>Growth</span>
+                </div>
                 <div class="nav-item" onclick="switchView('logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -1237,6 +1245,7 @@
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
             <button class="mobile-bottom-btn active" data-view="overview"
                 onclick="switchView('overview')">Overview</button>
+            <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
         </nav>
@@ -1372,7 +1381,7 @@
             });
 
             // Update Title
-            const titles = { overview: 'Overview', logs: 'API Logs', users: 'User Management' };
+            const titles = { overview: 'Overview', growth: 'Growth', logs: 'API Logs', users: 'User Management' };
             document.getElementById('pageTitle').textContent = titles[viewName];
 
             loadView(viewName);
@@ -1404,6 +1413,7 @@
 
             try {
                 if (view === 'overview') await renderOverview(content);
+                else if (view === 'growth') await renderGrowth(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
 
@@ -1643,6 +1653,212 @@
                                 color: '#9ca3af'
                             }
                         }
+                    }
+                }
+            });
+        }
+
+        async function renderGrowth(container) {
+            const data = await fetchAPI('/api/admin?action=growth-stats&days=30');
+            const fmt = value => Number(value || 0).toLocaleString();
+            const pct = value => `${Number(value || 0).toFixed(1)}%`;
+            const daily = data.daily || [];
+            const last7 = data.last7 || {};
+            const last30 = data.last30 || {};
+            const rates = data.rates || {};
+
+            container.innerHTML = `
+                <div class="grid-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Today's Signups</div>
+                        <div class="stat-value">${fmt(data.today?.signups)}</div>
+                        <div class="stat-trend"><span>${fmt(last7.signups)} in last 7 days</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Today's Generations</div>
+                        <div class="stat-value">${fmt(data.today?.successfulGenerations)}</div>
+                        <div class="stat-trend"><span>${fmt(last7.successfulGenerations)} in last 7 days</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Paid Profiles</div>
+                        <div class="stat-value">${fmt(data.totals?.activePaidProfiles)}</div>
+                        <div class="stat-trend"><span>${fmt(data.totals?.profiles)} total profiles</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Repeat Active Users</div>
+                        <div class="stat-value">${pct(rates.repeatActive30d)}</div>
+                        <div class="stat-trend"><span>${fmt(data.totals?.repeatActiveUsers)} of ${fmt(data.totals?.activeGenerators)} active generators</span></div>
+                    </div>
+                </div>
+
+                <div class="grid-stats" style="margin-top: -0.75rem;">
+                    <div class="stat-card">
+                        <div class="stat-label">Signup to Paid</div>
+                        <div class="stat-value">${pct(rates.signupToPaid30d)}</div>
+                        <div class="stat-trend"><span>${fmt(last30.paidSignups)} paid from ${fmt(last30.signups)} recent signups</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Limit to Paywall</div>
+                        <div class="stat-value">${pct(rates.limitToPaywall30d)}</div>
+                        <div class="stat-trend"><span>${fmt(last30.paywallShown)} paywalls / ${fmt(last30.limitHits)} limit hits</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Paywall to Checkout</div>
+                        <div class="stat-value">${pct(rates.paywallToCheckout30d)}</div>
+                        <div class="stat-trend"><span>${fmt(last30.checkoutStart)} starts / ${fmt(last30.paywallShown)} paywalls</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Store Clicks</div>
+                        <div class="stat-value">${fmt(last30.chromeStoreClicks)}</div>
+                        <div class="stat-trend"><span>Site clicks only; add CWS dashboard installs manually</span></div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Growth Funnel (Last 30 Days)</h3>
+                            <div class="text-sm text-muted">Generated ${formatDateTime(data.generatedAt)}</div>
+                        </div>
+                    </div>
+                    <div style="height: 320px;">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 2rem;">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Daily Funnel</h3>
+                            <div class="text-sm text-muted">Use this every morning before choosing outreach, product, or store work.</div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Signups</th>
+                                    <th>Active Generators</th>
+                                    <th>Successes</th>
+                                    <th>Limits</th>
+                                    <th>Paywalls</th>
+                                    <th>Checkouts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${daily.slice().reverse().map(day => `
+                                    <tr>
+                                        <td>${escapeHtml(day.date)}</td>
+                                        <td>${fmt(day.signups)}</td>
+                                        <td>${fmt(day.activeGenerators)}</td>
+                                        <td>${fmt(day.successfulGenerations)}</td>
+                                        <td>${fmt(day.limitHits)}</td>
+                                        <td>${fmt(day.paywallShown)}</td>
+                                        <td>${fmt(day.checkoutStart)} / ${fmt(day.checkoutOpened)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <div class="mobile-card-list">
+                            ${daily.slice().reverse().map(day => `
+                                <div class="mobile-card">
+                                    <div class="mobile-card-row"><span class="mobile-card-label">Date</span><span class="mobile-card-value">${escapeHtml(day.date)}</span></div>
+                                    <div class="mobile-card-row"><span class="mobile-card-label">Signups</span><span class="mobile-card-value">${fmt(day.signups)}</span></div>
+                                    <div class="mobile-card-row"><span class="mobile-card-label">Generators</span><span class="mobile-card-value">${fmt(day.activeGenerators)}</span></div>
+                                    <div class="mobile-card-row"><span class="mobile-card-label">Successes</span><span class="mobile-card-value">${fmt(day.successfulGenerations)}</span></div>
+                                    <div class="mobile-card-row"><span class="mobile-card-label">Limits</span><span class="mobile-card-value">${fmt(day.limitHits)}</span></div>
+                                    <div class="mobile-card-row"><span class="mobile-card-label">Paywall -> Checkout</span><span class="mobile-card-value">${fmt(day.paywallShown)} -> ${fmt(day.checkoutStart)}</span></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Top Events</h3>
+                            <div class="text-sm text-muted">First-party tracked events from site and extension.</div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Event</th><th>Count</th></tr></thead>
+                            <tbody>
+                                ${(data.topEvents || []).map(item => `
+                                    <tr>
+                                        <td><code>${escapeHtml(item.event)}</code></td>
+                                        <td>${fmt(item.count)}</td>
+                                    </tr>
+                                `).join('') || '<tr><td colspan="2" style="color: var(--text-muted);">No tracked events yet.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            const labels = daily.map(day => new Date(day.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Signups',
+                            data: daily.map(day => day.signups || 0),
+                            borderColor: '#2563eb',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.25,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Successful generations',
+                            data: daily.map(day => day.successfulGenerations || 0),
+                            borderColor: '#059669',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.25,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Limit hits',
+                            data: daily.map(day => day.limitHits || 0),
+                            borderColor: '#d97706',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
+                            tension: 0.25,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Checkout starts',
+                            data: daily.map(day => day.checkoutStart || 0),
+                            borderColor: '#111827',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.25,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: { usePointStyle: true, boxWidth: 6, font: { family: "var(--font-sans)", size: 11 }, color: '#6b7280' }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { precision: 0, color: '#9ca3af' } },
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
                     }
                 }
             });

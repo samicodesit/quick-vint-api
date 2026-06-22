@@ -27,7 +27,7 @@ const latestPosts = ((await getCollection("blog")) as BlogPost[])
 const blogHref = blogLocale === "en" ? "/blog" : `/${blogLocale}/blog`;
 
 const chromeHref =
-  "https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl";
+  "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 
 const subtitleParts =
   heroSubtitleEmphasis && copy.heroSubtitle.includes(heroSubtitleEmphasis)
@@ -226,6 +226,8 @@ const subtitleParts =
             href={chromeHref}
             target="_blank"
             rel="noopener noreferrer"
+            data-track-event="chrome_store_click"
+            data-track-context="home_hero_primary"
             class="group relative inline-flex min-h-[76px] w-full sm:flex-1 items-center justify-start gap-3 px-6 py-4 text-left text-base font-bold text-white bg-brand-600 rounded-2xl hover:bg-brand-700 transition-all duration-200 hover:-translate-y-1 shadow-lg shadow-brand-600/30 overflow-hidden focus:ring-2 ring-brand-500 no-underline sm:px-7"
           >
             <div
@@ -296,6 +298,8 @@ const subtitleParts =
 
           <button
             data-open-fullscreen
+            data-track-event="demo_video_open"
+            data-track-context="home_hero_secondary"
             class="inline-flex min-h-[76px] w-full sm:w-auto sm:min-w-[220px] items-center justify-start gap-2 px-6 py-4 text-left text-base font-bold text-slate-800 bg-white border-2 border-slate-300 rounded-2xl hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 hover:-translate-y-1 shadow-sm cursor-pointer sm:px-7"
           >
             <svg

@@ -1,3 +1,5 @@
+import { trackEvent } from "./analytics.js";
+
 // Original Pricing Page Logic starts here
 // API Base URL - Use current origin to avoid CORS issues
 const API_BASE = window.location.origin;
@@ -15,6 +17,21 @@ const PLAN_CONFIG = {
   pro: { name: "Pro", price: 9.99 },
   business: { name: "Business", price: 19.99 },
 };
+
+function getUtmParams() {
+  const params = new URLSearchParams(window.location.search);
+  return [
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_content",
+    "utm_term",
+  ].reduce((utm, key) => {
+    const value = params.get(key);
+    if (value) utm[key] = value;
+    return utm;
+  }, {});
+}
 
 function normalizeTier(tier) {
   const map = {
@@ -203,6 +220,15 @@ function updateButtonStates() {
 
 // Handle button clicks
 async function handlePlanClick(planName) {
+  trackEvent("pricing_plan_click", {
+    plan: planName,
+    context: hasExtension
+      ? currentUser
+        ? "signed_in_extension"
+        : "signed_out_extension"
+      : "no_extension",
+  });
+
   const button = document.getElementById(`btn-${planName}`);
   const textSpan = button.querySelector(".btn-text");
   const originalText = textSpan.textContent;
@@ -218,6 +244,7 @@ async function handlePlanClick(planName) {
         "Install AutoLister AI to start free or choose a plan.",
         "info",
       );
+      trackEvent("pricing_install_required", { plan: planName });
       downloadExtension();
       return;
     }
@@ -228,6 +255,7 @@ async function handlePlanClick(planName) {
         "Sign in with AutoLister AI, then choose the plan that fits you.",
         "info",
       );
+      trackEvent("pricing_signin_required", { plan: planName });
       return;
     }
 
@@ -276,6 +304,7 @@ async function handlePlanClick(planName) {
 // Handle paid plan selection (upgrade/switch)
 async function handlePaidPlanSelection(planName) {
   try {
+    trackEvent("checkout_start", { plan: planName, context: "pricing_page" });
     const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
       method: "POST",
       headers: {
@@ -284,6 +313,8 @@ async function handlePaidPlanSelection(planName) {
       body: JSON.stringify({
         email: currentUser.email,
         tier: planName,
+        source: "pricing_page",
+        utm: getUtmParams(),
       }),
     });
 
@@ -291,6 +322,7 @@ async function handlePaidPlanSelection(planName) {
 
     if (response.ok && data.url) {
       showStatusMessage("Opening secure Stripe Checkout.", "success");
+      trackEvent("checkout_opened", { plan: planName, context: "pricing_page" });
       window.open(data.url, "_blank");
     } else {
       console.error("Checkout error:", data);
@@ -303,6 +335,14 @@ async function handlePaidPlanSelection(planName) {
 }
 
 async function handleCreditPackClick() {
+  trackEvent("credit_pack_click", {
+    context: hasExtension
+      ? currentUser
+        ? "signed_in_extension"
+        : "signed_out_extension"
+      : "no_extension",
+  });
+
   const button = document.getElementById("btn-credit-pack");
   const textSpan = button?.querySelector(".btn-text");
   const originalText = textSpan?.textContent || "Buy credits";
@@ -316,6 +356,7 @@ async function handleCreditPackClick() {
         "Install AutoLister AI to start free, choose a plan, or buy credits.",
         "info",
       );
+      trackEvent("pricing_install_required", { plan: "credit_pack" });
       downloadExtension();
       return;
     }
@@ -325,6 +366,7 @@ async function handleCreditPackClick() {
         "Sign in with AutoLister AI, then choose the option that fits you.",
         "info",
       );
+      trackEvent("pricing_signin_required", { plan: "credit_pack" });
       return;
     }
 
@@ -333,13 +375,21 @@ async function handleCreditPackClick() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email: currentUser.email }),
+      body: JSON.stringify({
+        email: currentUser.email,
+        source: "pricing_page",
+        utm: getUtmParams(),
+      }),
     });
 
     const data = await response.json();
 
     if (response.ok && data.url) {
       showStatusMessage("Opening secure Stripe Checkout.", "success");
+      trackEvent("checkout_opened", {
+        plan: "credit_pack",
+        context: "pricing_page",
+      });
       window.open(data.url, "_blank");
     } else {
       console.error("Credit checkout error:", data);
@@ -360,6 +410,7 @@ async function handleCreditPackClick() {
 // Open customer portal for existing subscribers
 async function openCustomerPortal() {
   try {
+    trackEvent("billing_portal_start", { context: "pricing_page" });
     const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
       method: "POST",
       headers: {
@@ -385,8 +436,9 @@ async function openCustomerPortal() {
 
 // Download extension
 function downloadExtension() {
+  trackEvent("chrome_store_click", { context: "pricing_page" });
   window.open(
-    "https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl",
+    "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=website&utm_campaign=pricing_cta&utm_content=pricing_page",
     "_blank",
   );
 }

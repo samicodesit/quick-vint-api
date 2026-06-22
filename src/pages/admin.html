@@ -2407,6 +2407,28 @@
                 return { id, title, body };
             }
 
+            function getDailyCadence(weekday) {
+                if (weekday === 'Monday') {
+                    return [
+                        task('cadence_cws', 'Refresh CWS only if the Last 30 days period changed', 'Do not hunt for 7-day CWS data; Chrome Store minimum useful period is 30 days.', 'Mon'),
+                        task('cadence_choose_focus', 'Use the Growth Operator focus for the week', 'Do not split the week across acquisition, pricing, and product unless the stage gate changes.', 'Mon'),
+                        task('cadence_one_action', 'Complete today’s command and log the result', 'One logged result is enough. Stop after that.', 'Today'),
+                    ];
+                }
+                if (weekday === 'Saturday' || weekday === 'Sunday') {
+                    return [
+                        task('cadence_weekend', 'No dashboard work required', 'Only act if there is an urgent bug or payment issue.', 'Weekend'),
+                        task('cadence_capture', 'Capture one note if something obvious changed', 'Do not change strategy from weekend noise.', 'Optional'),
+                        task('cadence_wait', 'Wait for Monday CWS check-in', 'Chrome Store data should not drive weekend decisions.', 'Next'),
+                    ];
+                }
+                return [
+                    task('cadence_execute', 'Do the current Today command', 'Do not re-plan unless the mode says Ask Codex or Escalate.', 'Today'),
+                    task('cadence_log', 'Write one result and mark done', 'The result is the memory. Empty logs are blocked.', 'Today'),
+                    task('cadence_no_cws', 'Leave CWS alone until Monday', 'Use product/admin events for weekday learning.', 'Rule'),
+                ];
+            }
+
             const diagnostics = [
                 diagnostic(
                     'Chrome Store',
@@ -2666,10 +2688,13 @@
                 escalationRule: advisor.escalationRule,
                 shouldEscalate: advisor.shouldEscalate,
             };
+            const monthPlan = getGrowthMonthPlan(focus);
+            const dailyCadence = getDailyCadence(todayWeekday);
             const codexBrief = buildGrowthCodexBrief({
                 advisor,
                 focus,
                 focusReason,
+                dailyCadence,
                 chromeSnapshot,
                 previousChromeSnapshot,
                 chromePeriod,
@@ -2679,7 +2704,6 @@
                 totals: data.totals || {},
                 diagnostics,
             });
-            const monthPlan = getGrowthMonthPlan(focus);
             const progress = getGrowthTaskProgress();
             const visibleTasks = dailyTasks.slice(0, 3);
             const stopText = advisor.stopCondition || 'Stop after the command is done and recorded. Do not keep refreshing metrics.';
@@ -2780,20 +2804,42 @@
                 <div class="growth-section">
                     <div class="insight-card">
                         <div class="section-kicker">Operating rhythm</div>
-                        <div class="insight-title">This week</div>
-                        <div class="insight-copy">Use this as the Monday frame. The top command still decides what to do today.</div>
+                        <div class="insight-title">${escapeHtml(todayWeekday)} cadence</div>
+                        <div class="insight-copy">This is the default rhythm. The top command still wins if these ever conflict.</div>
                         <div class="task-list">
-                            ${monthPlan.map((item, index) => `
+                            ${dailyCadence.map((item, index) => `
                                 <div class="task-item">
                                     <span class="action-number">${index + 1}</span>
                                     <span>
                                         <span class="task-title">${escapeHtml(item.title)}</span>
                                         <span class="action-note">${escapeHtml(item.note)}</span>
                                     </span>
-                                    <span class="badge badge-neutral">${escapeHtml(item.week)}</span>
+                                    <span class="badge badge-neutral">${escapeHtml(item.count)}</span>
                                 </div>
                             `).join('')}
                         </div>
+                        <details class="advanced-details" style="margin-top:1rem;">
+                            <summary>
+                                <span>
+                                    <span class="advanced-summary-title">This month frame</span>
+                                    <span class="advanced-summary-note">Use only for weekly planning, not daily re-planning.</span>
+                                </span>
+                            </summary>
+                            <div class="advanced-body">
+                                <div class="task-list">
+                                    ${monthPlan.map((item, index) => `
+                                        <div class="task-item">
+                                            <span class="action-number">${index + 1}</span>
+                                            <span>
+                                                <span class="task-title">${escapeHtml(item.title)}</span>
+                                                <span class="action-note">${escapeHtml(item.note)}</span>
+                                            </span>
+                                            <span class="badge badge-neutral">${escapeHtml(item.week)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
                     <div class="insight-card">
@@ -4049,6 +4095,9 @@
                 `Primary action note: ${input.advisor.primaryAction.note}`,
                 `Stop condition: ${input.advisor.stopCondition}`,
                 `Reason: ${input.focusReason}`,
+                '',
+                'Daily cadence:',
+                ...(input.dailyCadence || []).map(item => `${item.count || ''}: ${item.title} - ${item.note}`),
                 '',
                 'Product-specific rules:',
                 'Chrome Web Store dashboard minimum useful reporting period is 30 days; do not ask for 7-day CWS snapshots.',

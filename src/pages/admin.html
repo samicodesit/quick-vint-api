@@ -559,6 +559,76 @@
             width: 1.45rem;
         }
 
+        .manual-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .manual-metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .metric-input-group {
+            display: grid;
+            gap: 0.3rem;
+        }
+
+        .metric-input-group label {
+            color: var(--text-muted);
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .metric-input-group input {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font: inherit;
+            padding: 0.62rem 0.7rem;
+            width: 100%;
+        }
+
+        .manual-metrics-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .manual-metrics-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .manual-metrics-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .manual-metric {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+        }
+
+        .manual-metric strong {
+            display: block;
+            font-size: 1.15rem;
+            margin-bottom: 0.1rem;
+        }
+
+        .manual-metric span {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+
         /* Tables */
         .card {
             background: var(--bg-card);
@@ -1765,10 +1835,17 @@
             const data = await fetchAPI('/api/admin?action=growth-stats&days=30');
             const fmt = value => Number(value || 0).toLocaleString();
             const pct = value => `${Number(value || 0).toFixed(1)}%`;
+            const ratioPct = (part, total) => total ? `${((Number(part || 0) / Number(total || 0)) * 100).toFixed(1)}%` : 'n/a';
             const daily = data.daily || [];
             const last7 = data.last7 || {};
             const last30 = data.last30 || {};
             const rates = data.rates || {};
+            const chromeSnapshot = getChromeStoreSnapshot();
+            const chromeVisitors = Number(chromeSnapshot.visitors || 0);
+            const chromeInstalls = Number(chromeSnapshot.installs || 0);
+            const chromeImpressions = Number(chromeSnapshot.impressions || 0);
+            const chromeRatingCount = Number(chromeSnapshot.ratingCount || 0);
+            const chromeInstallRate = chromeVisitors ? (chromeInstalls / chromeVisitors) * 100 : 0;
             const avgSignups7 = Number(last7.signups || 0) / 7;
             const avgGenerations7 = Number(last7.successfulGenerations || 0) / 7;
 
@@ -1781,6 +1858,24 @@
             }
 
             const diagnostics = [
+                diagnostic(
+                    'Chrome Store',
+                    chromeSnapshot.updatedAt ? `${chromeInstalls} installs / ${chromeVisitors} visitors` : 'No snapshot',
+                    !chromeSnapshot.updatedAt
+                        ? 'watch'
+                        : chromeVisitors < 50
+                            ? 'watch'
+                            : chromeInstallRate >= 20
+                                ? 'good'
+                                : 'problem',
+                    !chromeSnapshot.updatedAt
+                        ? 'Paste today\'s Chrome Web Store numbers below so this dashboard can interpret store performance.'
+                        : chromeVisitors < 50
+                            ? 'Not enough listing traffic yet. Focus on store impressions and outreach.'
+                            : chromeInstallRate >= 20
+                                ? 'Store listing converts visitors into installs well enough for now.'
+                                : 'Store visitors are not installing. Improve screenshots, first lines, and trust.'
+                ),
                 diagnostic(
                     'Acquisition',
                     `${avgSignups7.toFixed(1)} signups/day`,
@@ -1842,10 +1937,28 @@
             let actions = [
                 action('Talk to 5 users who generated once but did not return.', 'Ask what stopped their next listing session: forgot, no need, friction, trust, price, or Vinted workflow.'),
                 action('Do 20 targeted seller outreaches today.', 'Prioritize active Vinted sellers with many listings and weak descriptions. Offer the Chrome extension directly.'),
-                action('Check Chrome Web Store dashboard manually.', 'Record impressions, visitors, installs, uninstall rate, rating count, and search terms in your notes.'),
+                chromeSnapshot.updatedAt
+                    ? action('Refresh the Chrome Store snapshot if it changed today.', 'Use the form below. It keeps store metrics next to product metrics so you do not need a separate sheet.')
+                    : action('Paste Chrome Web Store numbers into the form below.', 'Use impressions, visitors, installs, uninstall rate, users, and rating count from the Chrome dashboard.'),
             ];
 
-            if (avgSignups7 < 4) {
+            if (!chromeSnapshot.updatedAt) {
+                focus = 'Measurement';
+                focusReason = 'Chrome Store numbers are missing, so acquisition quality is partly blind.';
+                actions = [
+                    action('Open Chrome Web Store Developer Dashboard.', 'Copy impressions, visitors, installs, uninstall rate, users, and rating count.'),
+                    action('Paste them into the Chrome Store Snapshot form below.', 'After saving, the Growth tab will interpret install conversion for you.'),
+                    action('Then follow the updated focus recommendation.', 'Refresh the page or click Growth again after saving if needed.'),
+                ];
+            } else if (chromeVisitors >= 50 && chromeInstallRate < 15) {
+                focus = 'Store Listing';
+                focusReason = 'Chrome Store visitors are not converting into enough installs.';
+                actions = [
+                    action('Improve one Chrome Store asset today.', 'Start with screenshot order, first two description lines, or clearer before/after value.'),
+                    action('Keep "Vinted description generator" in the first line.', 'Do not replace search-intent copy with generic benefit copy.'),
+                    action('Ask 3 happy users for ratings.', `Current rating count snapshot: ${chromeRatingCount || 'unknown'}.`),
+                ];
+            } else if (avgSignups7 < 4) {
                 focus = 'Acquisition';
                 focusReason = 'There are not enough new users per day to learn quickly.';
                 actions = [
@@ -1912,6 +2025,68 @@
                                     </div>
                                 </div>
                             `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 1.25rem; margin-bottom: 2rem;">
+                    <div class="card-header" style="padding: 0 0 1rem 0;">
+                        <div>
+                            <h3 class="card-title">Chrome Store Snapshot</h3>
+                            <div class="text-sm text-muted">
+                                Paste these from Chrome Web Store Developer Dashboard. Saved locally in this browser.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="manual-metrics-grid">
+                        <div class="metric-input-group">
+                            <label for="chromeImpressions">Impressions</label>
+                            <input id="chromeImpressions" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.impressions || '')}" placeholder="e.g. 1200">
+                        </div>
+                        <div class="metric-input-group">
+                            <label for="chromeVisitors">Visitors</label>
+                            <input id="chromeVisitors" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.visitors || '')}" placeholder="e.g. 180">
+                        </div>
+                        <div class="metric-input-group">
+                            <label for="chromeInstalls">Installs</label>
+                            <input id="chromeInstalls" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.installs || '')}" placeholder="e.g. 36">
+                        </div>
+                        <div class="metric-input-group">
+                            <label for="chromeUninstallRate">Uninstall rate %</label>
+                            <input id="chromeUninstallRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="${escapeAttribute(chromeSnapshot.uninstallRate || '')}" placeholder="e.g. 4.5">
+                        </div>
+                        <div class="metric-input-group">
+                            <label for="chromeUsers">Public users</label>
+                            <input id="chromeUsers" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.users || '')}" placeholder="e.g. 305">
+                        </div>
+                        <div class="metric-input-group">
+                            <label for="chromeRatingCount">Rating count</label>
+                            <input id="chromeRatingCount" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.ratingCount || '')}" placeholder="e.g. 6">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:0.75rem; align-items:center; margin-top:1rem; flex-wrap:wrap;">
+                        <button class="btn-primary" style="width:auto; padding:0.6rem 1rem;" onclick="saveChromeStoreSnapshot()">Save snapshot</button>
+                        <button class="btn-secondary" onclick="clearChromeStoreSnapshot()">Clear</button>
+                        <span class="text-sm text-muted">
+                            ${chromeSnapshot.updatedAt ? `Last saved ${formatDateTime(chromeSnapshot.updatedAt)}` : 'No snapshot saved yet'}
+                        </span>
+                    </div>
+                    <div class="manual-metrics-summary">
+                        <div class="manual-metric">
+                            <strong>${ratioPct(chromeSnapshot.visitors, chromeSnapshot.impressions)}</strong>
+                            <span>visitor rate from impressions</span>
+                        </div>
+                        <div class="manual-metric">
+                            <strong>${ratioPct(chromeSnapshot.installs, chromeSnapshot.visitors)}</strong>
+                            <span>install rate from visitors</span>
+                        </div>
+                        <div class="manual-metric">
+                            <strong>${chromeSnapshot.uninstallRate ? `${Number(chromeSnapshot.uninstallRate).toFixed(1)}%` : 'n/a'}</strong>
+                            <span>uninstall rate</span>
+                        </div>
+                        <div class="manual-metric">
+                            <strong>${fmt(chromeSnapshot.ratingCount)}</strong>
+                            <span>ratings; target 15+</span>
                         </div>
                     </div>
                 </div>
@@ -2547,6 +2722,42 @@
                     </div>
                 </div>
             `;
+        }
+
+        function getChromeStoreSnapshot() {
+            try {
+                return JSON.parse(localStorage.getItem('chrome_store_snapshot') || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function readNumberInput(id) {
+            const value = document.getElementById(id)?.value;
+            if (value === undefined || value === null || value === '') return '';
+            const parsed = Number(value);
+            return Number.isFinite(parsed) && parsed >= 0 ? String(parsed) : '';
+        }
+
+        function saveChromeStoreSnapshot() {
+            const snapshot = {
+                impressions: readNumberInput('chromeImpressions'),
+                visitors: readNumberInput('chromeVisitors'),
+                installs: readNumberInput('chromeInstalls'),
+                uninstallRate: readNumberInput('chromeUninstallRate'),
+                users: readNumberInput('chromeUsers'),
+                ratingCount: readNumberInput('chromeRatingCount'),
+                updatedAt: new Date().toISOString(),
+            };
+            localStorage.setItem('chrome_store_snapshot', JSON.stringify(snapshot));
+            showToast('Chrome Store snapshot saved', 'success');
+            renderGrowth(document.getElementById('contentArea'));
+        }
+
+        function clearChromeStoreSnapshot() {
+            localStorage.removeItem('chrome_store_snapshot');
+            showToast('Chrome Store snapshot cleared', 'success');
+            renderGrowth(document.getElementById('contentArea'));
         }
 
         // --- Helpers ---

@@ -1,5 +1,41 @@
 # AutoLister AI Growth Playbook
 
+## Daily Operating Guide
+
+Do not start by reading this whole file.
+
+Every morning:
+
+1. Open `/admin` -> `Growth`.
+2. Paste Chrome Web Store numbers into `Chrome Store Snapshot`:
+   - impressions
+   - visitors
+   - installs
+   - uninstall rate
+   - public users
+   - rating count
+3. Read `What this means`.
+4. Do the 3 items in `What to do today`.
+
+That is the workflow. The rest of this file is reference material.
+
+If the dashboard says:
+
+- `Measurement`: paste Chrome Store numbers first.
+- `Store Listing`: improve screenshots, first description lines, or ratings.
+- `Acquisition`: do direct seller outreach and SEO.
+- `Activation`: fix first-generation onboarding.
+- `Retention`: talk to one-time users and improve second-day usage.
+- `Paywall`: simplify upgrade choices.
+- `Scale`: increase outreach volume or test creators/paid channels.
+
+Terminal scorecard, only when needed:
+
+```bash
+cd /home/mests/projects/autolister/quick-vint-api
+pnpm run growth
+```
+
 ## Baseline
 
 Use this as the starting point for the next growth cycle.

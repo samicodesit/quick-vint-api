@@ -1948,7 +1948,7 @@
                 left: 0;
                 right: 0;
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(5, 1fr);
                 gap: 0.5rem;
                 padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
                 background: rgba(255, 255, 255, 0.95);
@@ -2040,6 +2040,16 @@
                     </svg>
                     <span>Growth</span>
                 </div>
+                <div class="nav-item" data-view="events" onclick="switchView('events')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4h16v16H4z"></path>
+                        <path d="M8 9h8"></path>
+                        <path d="M8 13h5"></path>
+                        <path d="M8 17h8"></path>
+                    </svg>
+                    <span>Events</span>
+                </div>
                 <div class="nav-item" data-view="logs" onclick="switchView('logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2119,6 +2129,7 @@
             <button class="mobile-bottom-btn active" data-view="overview"
                 onclick="switchView('overview')">Overview</button>
             <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
+            <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Events</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
         </nav>
@@ -2160,7 +2171,7 @@
 
         function getInitialAdminView() {
             const view = window.location.hash.replace('#', '');
-            return ['overview', 'growth', 'logs', 'users'].includes(view) ? view : 'overview';
+            return ['overview', 'growth', 'events', 'logs', 'users'].includes(view) ? view : 'overview';
         }
 
         // --- Auth Logic ---
@@ -2267,7 +2278,7 @@
                 btn.classList.toggle('active', btn.dataset.view === viewName);
             });
 
-            const titles = { overview: 'Overview', growth: 'Growth', logs: 'API Logs', users: 'User Management' };
+            const titles = { overview: 'Overview', growth: 'Growth', events: 'Event Workbench', logs: 'API Logs', users: 'User Management' };
             document.getElementById('pageTitle').textContent = titles[viewName] || 'Overview';
         }
 
@@ -2307,6 +2318,7 @@
             try {
                 if (view === 'overview') await renderOverview(content);
                 else if (view === 'growth') await renderGrowth(content);
+                else if (view === 'events') await renderEvents(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
 
@@ -3645,6 +3657,160 @@
                     }
                 }
             });
+        }
+
+        async function renderEvents(container) {
+            const [growthData, logData] = await Promise.all([
+                fetchAPI('/api/admin?action=growth-stats&days=30'),
+                fetchAPI('/api/admin?action=view-logs&log_type=events&page=1&limit=25')
+            ]);
+
+            const fmt = value => Number(value || 0).toLocaleString();
+            const eventSummary = growthData.eventSummary || {};
+            const eventCategories = eventSummary.categories || [];
+            const uninstallReasons = eventSummary.uninstallReasons || [];
+            const recentImportantEvents = eventSummary.recentImportantEvents || [];
+            const topEvents = growthData.topEvents || [];
+            const last30 = growthData.last30 || {};
+            const acquisitionEventCount = getEventCategoryCount(eventCategories, 'Acquisition Quality');
+            const productEventCount = getEventCategoryCount(eventCategories, 'Product Usage');
+            const revenueEventCount = getEventCategoryCount(eventCategories, 'Revenue Intent');
+            const authEventCount = getEventCategoryCount(eventCategories, 'Auth');
+            const uninstallFeedbackCount = getEventCount(topEvents, 'uninstall_feedback_submitted');
+            const generateErrorCount = getEventCount(topEvents, 'generate_error');
+            const missingPhotoCount = getEventCount(topEvents, 'generate_missing_photo');
+            const checkoutStartCount = getEventCount(topEvents, 'checkout_start');
+            const logs = logData.logs || [];
+
+            container.innerHTML = `
+                <div class="growth-hero" style="margin-bottom:1rem;">
+                    <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Event Workbench</div>
+                    <div class="insight-title" style="font-size: 1.35rem;">Signals from installs, usage, paywalls, and uninstalls</div>
+                    <div class="insight-copy">
+                        This is the operational view for why users move forward or drop off. Start with uninstall reasons, then inspect priority events before opening raw logs.
+                    </div>
+                    <div class="operator-answer-row">
+                        <div class="operator-answer-card">
+                            <div class="operator-answer-label">Uninstall feedback</div>
+                            <div class="operator-answer-copy">${fmt(uninstallFeedbackCount)} responses</div>
+                        </div>
+                        <div class="operator-answer-card">
+                            <div class="operator-answer-label">Generation friction</div>
+                            <div class="operator-answer-copy">${fmt(generateErrorCount + missingPhotoCount)} error/missing-photo events</div>
+                        </div>
+                        <div class="operator-answer-card">
+                            <div class="operator-answer-label">Paid intent</div>
+                            <div class="operator-answer-copy">${fmt(last30.paywallShown)} paywalls -> ${fmt(checkoutStartCount)} checkout starts</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-workbench">
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Uninstall Reasons</div>
+                                <div class="event-panel-title">Why users leave</div>
+                                <div class="event-panel-note">Anonymous one-tap feedback from `/uninstall`. This is the clearest signal for promise mismatch and first-value failure.</div>
+                            </div>
+                            <span class="badge badge-neutral">${fmt(uninstallFeedbackCount)} total</span>
+                        </div>
+                        <div class="reason-list">
+                            ${renderUninstallReasons(uninstallReasons)}
+                        </div>
+                    </div>
+
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Event Families</div>
+                                <div class="event-panel-title">What kind of signal is this?</div>
+                                <div class="event-panel-note">Grouped so you do not have to remember raw event names.</div>
+                            </div>
+                        </div>
+                        <div class="event-card-grid">
+                            ${renderEventCategoryCard('Acquisition Quality', acquisitionEventCount, 'Store clicks and uninstall feedback. Use this to judge install quality, not just volume.', ['chrome_store_click', 'uninstall_feedback_submitted'])}
+                            ${renderEventCategoryCard('Product Usage', productEventCount, `${fmt(generateErrorCount)} generation errors and ${fmt(missingPhotoCount)} missing-photo events.`, ['generate_request', 'generate_success', 'generate_error', 'phone_upload_start', 'batch_start'])}
+                            ${renderEventCategoryCard('Revenue Intent', revenueEventCount, `${fmt(last30.paywallShown)} paywalls and ${fmt(checkoutStartCount)} checkout starts.`, ['paywall_shown', 'checkout_start', 'checkout_opened'])}
+                            ${renderEventCategoryCard('Auth', authEventCount, `${fmt(last30.magicLinkRequests)} magic-link requests.`, ['magic_link_request', 'magic_link_sent'])}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-workbench">
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Priority Feed</div>
+                                <div class="event-panel-title">Recent events worth inspecting</div>
+                                <div class="event-panel-note">Only the noisy/high-signal stuff: uninstalls, generation errors, limit hits, paywalls, and checkout intent.</div>
+                            </div>
+                            <button class="btn-secondary" onclick="state.logsType='events'; switchView('logs')">Raw event logs</button>
+                        </div>
+                        <div class="event-feed">
+                            ${renderRecentEventFeed(recentImportantEvents)}
+                        </div>
+                    </div>
+
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Top Events</div>
+                                <div class="event-panel-title">Volume by raw event</div>
+                                <div class="event-panel-note">Use this to find missing instrumentation or a noisy event.</div>
+                            </div>
+                        </div>
+                        <div class="reason-list">
+                            ${topEvents.slice(0, 12).map(item => `
+                                <div class="reason-row">
+                                    <div class="reason-row-main">
+                                        <span><code>${escapeHtml(item.event)}</code></span>
+                                        <span>${fmt(item.count)}</span>
+                                    </div>
+                                    <div class="event-feed-meta">${escapeHtml(friendlyEventName(item.event))}</div>
+                                </div>
+                            `).join('') || `
+                                <div class="reason-row">
+                                    <div class="reason-row-main"><span>No tracked events yet</span><span>0</span></div>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Latest Event Logs</h3>
+                            <div class="text-sm text-muted">Newest raw event rows. Click any row to inspect context JSON.</div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Event</th>
+                                    <th>User</th>
+                                    <th>Status</th>
+                                    <th>Context</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${logs.map(log => `
+                                    <tr onclick="showLogDetails('${log.id}')" style="cursor:pointer;">
+                                        <td>${formatDateTime(log.created_at)}</td>
+                                        <td><code>${escapeHtml((log.endpoint || '').replace('/event/', ''))}</code></td>
+                                        <td>${getLogActor(log)}</td>
+                                        <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
+                                        <td style="max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${getLogPreview(log)}</td>
+                                    </tr>
+                                `).join('') || '<tr><td colspan="5" class="text-muted">No event logs yet.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
         }
 
         function getLogKind(log) {

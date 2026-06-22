@@ -573,6 +573,45 @@
             font-size: 0.84rem;
         }
 
+        .advisor-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+
+        .memory-strip {
+            display: grid;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .memory-item {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: var(--radius-md);
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 0.82rem;
+            padding: 0.65rem 0.75rem;
+        }
+
+        .advisor-result-input {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius-md);
+            color: #fff;
+            font: inherit;
+            margin-top: 0.85rem;
+            min-height: 72px;
+            padding: 0.75rem;
+            resize: vertical;
+            width: 100%;
+        }
+
+        .advisor-result-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
         .growth-hero .insight-title,
         .growth-hero .insight-copy,
         .growth-hero .action-note {
@@ -2359,10 +2398,12 @@
                     task('measure_scale', 'Record install -> generation -> paid result', 'Do not count clicks as success.', '1'),
                 ];
             }
+            const decisionLog = getGrowthDecisionLog();
             const advisor = buildGrowthAdvisor({
                 focus,
                 focusReason,
                 primaryAction: actions[0],
+                decisionLog,
                 chromeSnapshotReady,
                 chromeWarnings,
                 chromeVisitors,
@@ -2381,6 +2422,13 @@
                 paywallToCheckoutRate,
                 data,
             });
+            const advisorRecord = {
+                date: new Date().toISOString().slice(0, 10),
+                focus,
+                state: advisor.state,
+                actionTitle: advisor.primaryAction.title,
+                confidence: advisor.confidence,
+            };
             const codexBrief = buildGrowthCodexBrief({
                 advisor,
                 focus,
@@ -2424,8 +2472,16 @@
                             `).join('')}
                         </div>
                     </div>
+                    <div class="memory-strip">
+                        ${advisor.memory.map(item => `<div class="memory-item">${escapeHtml(item)}</div>`).join('')}
+                    </div>
                     <div id="growthCodexBrief" style="display:none;">${escapeHtml(codexBrief)}</div>
-                    <button class="btn-secondary" style="margin-top:1rem; background:#fff;" onclick="copyGrowthBrief()">Copy Codex brief</button>
+                    <div id="growthAdvisorRecord" style="display:none;">${escapeHtml(JSON.stringify(advisorRecord))}</div>
+                    <textarea id="growthAdvisorResult" class="advisor-result-input" placeholder="Optional: what did you do or learn? Example: changed next-item CTA, updated screenshot 1, checked logs and saw missing-photo errors."></textarea>
+                    <div class="advisor-buttons">
+                        <button class="btn-secondary" style="background:#fff;" onclick="markGrowthAdvisorDone()">Mark action done</button>
+                        <button class="btn-secondary" style="background:#fff;" onclick="copyGrowthBrief()">Copy Codex brief</button>
+                    </div>
                 </div>
 
                 <div class="operator-note">
@@ -3391,6 +3447,16 @@
         function buildGrowthAdvisor(input) {
             const pctText = (value) => `${Number(value || 0).toFixed(1)}%`;
             const ratioText = (part, total) => total ? `${((Number(part || 0) / Number(total || 0)) * 100).toFixed(1)}%` : 'n/a';
+            const today = new Date().toISOString().slice(0, 10);
+            const recentLog = (input.decisionLog || []).filter(item => {
+                if (!item.date) return false;
+                const ageMs = new Date(`${today}T00:00:00Z`).getTime() - new Date(`${item.date}T00:00:00Z`).getTime();
+                return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= 7 * 24 * 60 * 60 * 1000;
+            });
+            const sameFocusRecent = recentLog.filter(item => item.focus === input.focus);
+            const lastSameFocus = sameFocusRecent[0];
+            const doneToday = recentLog.some(item => item.date === today && item.focus === input.focus && item.status === 'done');
+            const loopDetected = input.focus !== 'Measurement' && sameFocusRecent.length >= 2 && !doneToday;
             const evidence = [
                 {
                     label: 'Store',
@@ -3411,6 +3477,17 @@
                     value: `${pctText(input.rates.signupToPaid30d)} signup -> paid`,
                     note: `${input.paywallShown || 0} paywalls shown; ${pctText(input.paywallToCheckoutRate)} paywall -> checkout.`,
                 },
+                {
+                    label: 'Memory',
+                    value: sameFocusRecent.length
+                        ? `${sameFocusRecent.length} ${input.focus} action${sameFocusRecent.length === 1 ? '' : 's'} logged in 7 days`
+                        : 'No recent actions logged',
+                    note: doneToday
+                        ? 'Today is already marked done for this focus.'
+                        : loopDetected
+                            ? 'The same focus is repeating. Stop repeating the same move; ask for a fresh diagnosis.'
+                            : 'Use Mark action done after you actually complete the recommended action.',
+                },
             ];
 
             const missing = [];
@@ -3429,14 +3506,45 @@
                 Scale: ['Large product rewrites', 'Changing the free limit'],
             };
 
+            const primaryAction = loopDetected
+                ? {
+                    title: 'Copy the Codex brief and ask for a fresh diagnosis',
+                    note: `This has repeated ${sameFocusRecent.length} times in the last 7 days. Do not do the same action again without changing the approach.`,
+                }
+                : doneToday
+                    ? {
+                        title: 'Stop for today unless new data changed',
+                        note: 'This focus is already marked done today. Check again tomorrow or after a real product/store change.',
+                    }
+                    : input.primaryAction || { title: 'Open Growth data', note: 'Save the current data snapshot first.' };
+
             return {
-                state: `${input.focus}: ${confidence === 'low' ? 'data is not strong enough yet' : 'next action is clear'}`,
+                state: loopDetected
+                    ? `${input.focus}: repeating pattern detected`
+                    : doneToday
+                        ? `${input.focus}: today is already handled`
+                        : `${input.focus}: ${confidence === 'low' ? 'data is not strong enough yet' : 'next action is clear'}`,
                 confidence,
                 timebox: input.focus === 'Measurement' ? '10 minutes' : '60-90 minutes',
-                primaryAction: input.primaryAction || { title: 'Open Growth data', note: 'Save the current data snapshot first.' },
+                primaryAction,
                 evidence,
                 missing,
-                notNow: notNowByFocus[input.focus] || ['Adding more metrics', 'Changing multiple things at once'],
+                notNow: loopDetected
+                    ? ['Repeating the same action again', 'Adding more metrics before changing the approach']
+                    : notNowByFocus[input.focus] || ['Adding more metrics', 'Changing multiple things at once'],
+                memory: [
+                    doneToday
+                        ? 'Memory: this focus is marked done today.'
+                        : sameFocusRecent.length
+                            ? `Memory: ${sameFocusRecent.length} recent ${input.focus} action${sameFocusRecent.length === 1 ? '' : 's'} logged.`
+                            : 'Memory: no recent logged action for this focus.',
+                    lastSameFocus?.result ? `Last result: ${lastSameFocus.result}` : '',
+                    loopDetected
+                        ? 'Loop guard: copy the Codex brief before doing more of the same.'
+                        : missing.length
+                            ? `Data gap: ${missing.join(', ')}.`
+                            : 'Data coverage: enough to act today.',
+                ].filter(Boolean),
             };
         }
 
@@ -3448,6 +3556,7 @@
                 `Advisor state: ${input.advisor.state}`,
                 `Confidence: ${input.advisor.confidence}`,
                 `Primary action: ${input.advisor.primaryAction.title}`,
+                `Primary action note: ${input.advisor.primaryAction.note}`,
                 `Reason: ${input.focusReason}`,
                 '',
                 'Chrome Store snapshot:',
@@ -3471,6 +3580,9 @@
                 `Checkout starts: ${input.last30.checkoutStart || 0}`,
                 `Signup to paid: ${input.rates.signupToPaid30d || 0}%`,
                 '',
+                'Advisor memory:',
+                ...input.advisor.memory,
+                '',
                 'Question for Codex:',
                 'Given this exact state, what should I do next today? Be specific and do not suggest vague user research.',
             ];
@@ -3486,6 +3598,41 @@
             } catch (e) {
                 showToast('Could not copy automatically. Select the brief manually.', 'error');
             }
+        }
+
+        function getGrowthDecisionLog() {
+            try {
+                return JSON.parse(localStorage.getItem('growth_decision_log') || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveGrowthDecisionLog(log) {
+            localStorage.setItem('growth_decision_log', JSON.stringify(log.slice(0, 30)));
+        }
+
+        function markGrowthAdvisorDone() {
+            const recordText = document.getElementById('growthAdvisorRecord')?.textContent || '';
+            if (!recordText) return;
+            let record;
+            try {
+                record = JSON.parse(recordText);
+            } catch (e) {
+                showToast('Could not read advisor state', 'error');
+                return;
+            }
+            const result = document.getElementById('growthAdvisorResult')?.value || '';
+            const log = getGrowthDecisionLog().filter(item => !(item.date === record.date && item.focus === record.focus));
+            log.unshift({
+                ...record,
+                status: 'done',
+                result: result.trim() || record.actionTitle,
+                completedAt: new Date().toISOString(),
+            });
+            saveGrowthDecisionLog(log);
+            showToast('Growth action marked done', 'success');
+            renderGrowth(document.getElementById('contentArea'));
         }
 
         function getGrowthTaskProgress() {

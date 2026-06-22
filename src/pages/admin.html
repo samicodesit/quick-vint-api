@@ -3597,9 +3597,10 @@
                         : isPaused
                             ? 'Do not email paused users'
                             : 'Send one-time honest review request';
+            const disabledStyle = canSendReview ? '' : 'opacity: 0.55;';
             return `
                 <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
-                    <button class="btn-secondary" title="${escapeAttribute(reviewTitle)}" ${canSendReview ? '' : 'disabled'} onclick="sendReviewRequest('${encodedEmail}')">Review email</button>
+                    <button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
                         ? `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'active')">Unpause</button>`
@@ -4353,7 +4354,12 @@
             }
         }
 
-        async function sendReviewRequest(encodedEmail) {
+        async function sendReviewRequest(encodedEmail, canSend, blockedReason) {
+            if (!canSend) {
+                showToast(blockedReason || 'This user is not eligible for a review request', 'error');
+                return;
+            }
+
             const email = decodeURIComponent(encodedEmail || '');
             if (!email) return showToast('No email address found', 'error');
             if (!confirm(`Send the one-time honest review request to ${email}?`)) return;

@@ -649,6 +649,42 @@
             font-size: 0.82rem;
         }
 
+        .operator-answer-row {
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .operator-answer-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .operator-answer-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            padding: 0.85rem;
+        }
+
+        .operator-answer-label {
+            color: var(--text-light);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+        }
+
+        .operator-answer-copy {
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
         .advisor-meta {
             align-items: center;
             display: flex;
@@ -2624,6 +2660,20 @@
                     <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Growth Operator</div>
                     <div class="insight-title" style="font-size: 1.25rem;">${escapeHtml(advisor.state)}</div>
                     <div class="insight-copy">${escapeHtml(advisor.plainDiagnosis || focusReason)}</div>
+                    <div class="operator-answer-row">
+                        <div class="operator-answer-card">
+                            <div class="operator-answer-label">Today</div>
+                            <div class="operator-answer-copy">${escapeHtml(advisor.todayAnswer)}</div>
+                        </div>
+                        <div class="operator-answer-card">
+                            <div class="operator-answer-label">This week</div>
+                            <div class="operator-answer-copy">${escapeHtml(advisor.weekAnswer)}</div>
+                        </div>
+                        <div class="operator-answer-card">
+                            <div class="operator-answer-label">Ask me when</div>
+                            <div class="operator-answer-copy">${escapeHtml(advisor.askWhen)}</div>
+                        </div>
+                    </div>
                     <div class="advisor-panel">
                         <div class="advisor-action">
                             <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Today's command</div>
@@ -3832,6 +3882,24 @@
                     : sameFocusRecent.length >= 1 && input.focus !== 'Measurement'
                         ? 'Ask Codex before repeating yesterday’s action.'
                         : 'No handoff needed unless new data contradicts the command.';
+            const weekAnswerByFocus = {
+                Measurement: 'Get one valid 30-day CWS snapshot, then stop touching CWS until Monday.',
+                'Store Listing': 'Change one store trust/intent asset, then wait for the next CWS period.',
+                Acquisition: 'Run controlled distribution and judge by installs plus first generations.',
+                Activation: 'Remove one blocker before first successful generation.',
+                'Value Depth': 'Make the second generation easier; paid conversion depends on depth.',
+                Paywall: 'Simplify one upgrade choice and record the objection.',
+                Scale: 'Run one capped channel test and track quality, not clicks.',
+            };
+            const askWhen = shouldEscalate
+                ? escalationRule
+                : 'Only if fresh data contradicts the command or you would repeat the same action.';
+            const todayAnswer = doneToday
+                ? 'Stop. This focus is already logged today.'
+                : loopDetected
+                    ? 'Copy the brief and ask for a fresh diagnosis.'
+                    : primaryAction.title;
+            const weekAnswer = weekAnswerByFocus[input.focus] || 'Follow the current focus until the data or logged result changes.';
             const plainDiagnosisByFocus = {
                 Measurement: 'The system cannot make a strong call until the Chrome Store snapshot is saved with the same 30-day reporting period.',
                 'Store Listing': 'Enough people see the listing, but too many do not install or churn quickly. Fix trust and intent before building more product.',
@@ -3865,6 +3933,9 @@
                 mode,
                 shouldEscalate,
                 escalationRule,
+                todayAnswer,
+                weekAnswer,
+                askWhen,
                 confidence,
                 timebox: input.focus === 'Measurement' ? '10 minutes' : '60-90 minutes',
                 primaryAction,
@@ -3904,6 +3975,9 @@
                 `Operating mode: ${input.advisor.mode}`,
                 `Confidence: ${input.advisor.confidence}`,
                 `Escalation rule: ${input.advisor.escalationRule}`,
+                `Today answer: ${input.advisor.todayAnswer}`,
+                `This week answer: ${input.advisor.weekAnswer}`,
+                `Ask Codex when: ${input.advisor.askWhen}`,
                 `Primary action: ${input.advisor.primaryAction.title}`,
                 `Primary action note: ${input.advisor.primaryAction.note}`,
                 `Stop condition: ${input.advisor.stopCondition}`,

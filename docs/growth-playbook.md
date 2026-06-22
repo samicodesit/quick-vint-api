@@ -13,7 +13,7 @@ Do this once per day. Stop after the checklist is done.
    - installs
    - uninstalls
    - weekly users
-   - current public users
+   - public listing users, if Chrome shows it
    - lifetime rating count
 4. Read `What this means`.
 5. Do the checkboxes in `Today's Workbench`.

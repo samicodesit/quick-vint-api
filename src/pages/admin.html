@@ -490,6 +490,89 @@
             padding: 1.25rem;
         }
 
+        .advisor-panel {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .advisor-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .advisor-action {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+        }
+
+        .advisor-action-title {
+            color: #fff;
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .advisor-evidence {
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .advisor-evidence-item {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.8rem;
+        }
+
+        .advisor-evidence-label {
+            color: var(--text-light);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.15rem;
+            text-transform: uppercase;
+        }
+
+        .advisor-evidence-value {
+            color: var(--text-main);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .advisor-meta {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            margin-top: 0.75rem;
+        }
+
+        .advisor-chip {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 999px;
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.32rem 0.6rem;
+        }
+
+        .not-now-list {
+            display: grid;
+            gap: 0.45rem;
+            margin-top: 0.75rem;
+        }
+
+        .not-now-item {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.84rem;
+        }
+
         .growth-hero .insight-title,
         .growth-hero .insight-copy,
         .growth-hero .action-note {
@@ -2276,29 +2359,77 @@
                     task('measure_scale', 'Record install -> generation -> paid result', 'Do not count clicks as success.', '1'),
                 ];
             }
+            const advisor = buildGrowthAdvisor({
+                focus,
+                focusReason,
+                primaryAction: actions[0],
+                chromeSnapshotReady,
+                chromeWarnings,
+                chromeVisitors,
+                chromeInstalls,
+                chromeImpressions,
+                chromeUninstalls,
+                chromeRatingCount,
+                chromeInstallRate,
+                avgSignups7,
+                last30,
+                rates,
+                quotaPressureRate,
+                twoPlusGenerationRate,
+                avgGenerationsPerActive,
+                paywallShown,
+                paywallToCheckoutRate,
+                data,
+            });
+            const codexBrief = buildGrowthCodexBrief({
+                advisor,
+                focus,
+                focusReason,
+                chromeSnapshot,
+                chromePeriod,
+                last7,
+                last30,
+                rates,
+                totals: data.totals || {},
+                diagnostics,
+            });
             const monthPlan = getGrowthMonthPlan(focus);
             const progress = getGrowthTaskProgress();
 
             container.innerHTML = `
                 <div class="growth-hero">
-                    <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Today</div>
-                    <div class="insight-title" style="font-size: 1.25rem;">Focus: ${escapeHtml(focus)}</div>
+                    <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Growth Advisor</div>
+                    <div class="insight-title" style="font-size: 1.25rem;">${escapeHtml(advisor.state)}</div>
                     <div class="insight-copy">${escapeHtml(focusReason)}</div>
-                    <div class="action-list">
-                        ${actions.map((item, index) => `
-                            <div class="action-item">
-                                <span class="action-number">${index + 1}</span>
-                                <div>
-                                    <div style="font-weight: 750; font-size: 0.95rem;">${escapeHtml(item.title)}</div>
-                                    <div class="action-note">${escapeHtml(item.note)}</div>
-                                </div>
+                    <div class="advisor-panel">
+                        <div class="advisor-action">
+                            <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Do next</div>
+                            <div class="advisor-action-title">${escapeHtml(advisor.primaryAction.title)}</div>
+                            <div class="action-note">${escapeHtml(advisor.primaryAction.note)}</div>
+                            <div class="advisor-meta">
+                                <span class="advisor-chip">Confidence: ${escapeHtml(advisor.confidence)}</span>
+                                <span class="advisor-chip">${escapeHtml(advisor.timebox)}</span>
                             </div>
-                        `).join('')}
+                            <div class="not-now-list">
+                                ${advisor.notNow.map(item => `<div class="not-now-item">Not now: ${escapeHtml(item)}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="advisor-evidence">
+                            ${advisor.evidence.map(item => `
+                                <div class="advisor-evidence-item">
+                                    <div class="advisor-evidence-label">${escapeHtml(item.label)}</div>
+                                    <div class="advisor-evidence-value">${escapeHtml(item.value)}</div>
+                                    <div class="diagnostic-note">${escapeHtml(item.note)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
+                    <div id="growthCodexBrief" style="display:none;">${escapeHtml(codexBrief)}</div>
+                    <button class="btn-secondary" style="margin-top:1rem; background:#fff;" onclick="copyGrowthBrief()">Copy Codex brief</button>
                 </div>
 
                 <div class="operator-note">
-                    <span>Use this page top-to-bottom: do Today's Workbench first, then update the Chrome snapshot, then inspect diagnostics only if something looks off.</span>
+                    <span>This page now chooses one main action. Use the checklist only to execute that action; use Copy Codex brief when you want me to reason from the exact current state.</span>
                 </div>
 
                 <div class="growth-section">
@@ -2441,7 +2572,7 @@
                             <input id="chromeWeeklyUsers" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.weeklyUsers || '')}" placeholder="e.g. 248">
                         </div>
                         <div class="metric-input-group">
-                            <label for="chromeUsers">Current public users</label>
+                            <label for="chromeUsers">Public listing users (optional)</label>
                             <input id="chromeUsers" type="number" min="0" inputmode="numeric" value="${escapeAttribute(chromeSnapshot.users || '')}" placeholder="e.g. 305">
                         </div>
                         <div class="metric-input-group">
@@ -3255,6 +3386,106 @@
             localStorage.removeItem('chrome_store_snapshot');
             showToast('Chrome Store snapshot cleared', 'success');
             renderGrowth(document.getElementById('contentArea'));
+        }
+
+        function buildGrowthAdvisor(input) {
+            const pctText = (value) => `${Number(value || 0).toFixed(1)}%`;
+            const ratioText = (part, total) => total ? `${((Number(part || 0) / Number(total || 0)) * 100).toFixed(1)}%` : 'n/a';
+            const evidence = [
+                {
+                    label: 'Store',
+                    value: input.chromeSnapshotReady
+                        ? `${input.chromeInstalls} installs from ${input.chromeVisitors} page views`
+                        : 'Chrome Store snapshot incomplete',
+                    note: input.chromeSnapshotReady
+                        ? `${ratioText(input.chromeInstalls, input.chromeVisitors)} page-view install rate; ${ratioText(input.chromeUninstalls, input.chromeInstalls)} uninstalls/install.`
+                        : 'Save page views, impressions, installs, uninstalls, weekly users, and ratings before making store decisions.',
+                },
+                {
+                    label: 'Product',
+                    value: `${pctText(input.twoPlusGenerationRate)} reach 2+ generations`,
+                    note: `${pctText(input.quotaPressureRate)} quota pressure; ${Number(input.avgGenerationsPerActive || 0).toFixed(1)} generations per active generator.`,
+                },
+                {
+                    label: 'Money',
+                    value: `${pctText(input.rates.signupToPaid30d)} signup -> paid`,
+                    note: `${input.paywallShown || 0} paywalls shown; ${pctText(input.paywallToCheckoutRate)} paywall -> checkout.`,
+                },
+            ];
+
+            const missing = [];
+            if (!input.chromeSnapshotReady) missing.push('Chrome Store snapshot');
+            if (!Number(input.last30?.activeGenerators || 0)) missing.push('active generator volume');
+            if (Number(input.paywallShown || 0) < 10) missing.push('paywall sample size');
+            const confidence = missing.length === 0 ? 'high' : missing.length === 1 ? 'medium' : 'low';
+
+            const notNowByFocus = {
+                Measurement: ['Changing store copy from incomplete data', 'Scaling outreach volume'],
+                'Store Listing': ['Building new features', 'Changing pricing'],
+                Acquisition: ['Paid ads', 'Big onboarding rewrites'],
+                Activation: ['More top-of-funnel traffic', 'Rating asks'],
+                'Value Depth': ['Paid ads', 'More dashboard analysis'],
+                Paywall: ['Store listing tweaks', 'New acquisition channels'],
+                Scale: ['Large product rewrites', 'Changing the free limit'],
+            };
+
+            return {
+                state: `${input.focus}: ${confidence === 'low' ? 'data is not strong enough yet' : 'next action is clear'}`,
+                confidence,
+                timebox: input.focus === 'Measurement' ? '10 minutes' : '60-90 minutes',
+                primaryAction: input.primaryAction || { title: 'Open Growth data', note: 'Save the current data snapshot first.' },
+                evidence,
+                missing,
+                notNow: notNowByFocus[input.focus] || ['Adding more metrics', 'Changing multiple things at once'],
+            };
+        }
+
+        function buildGrowthCodexBrief(input) {
+            const lines = [
+                'AutoLister AI growth brief',
+                `Date: ${new Date().toISOString().slice(0, 10)}`,
+                `Focus: ${input.focus}`,
+                `Advisor state: ${input.advisor.state}`,
+                `Confidence: ${input.advisor.confidence}`,
+                `Primary action: ${input.advisor.primaryAction.title}`,
+                `Reason: ${input.focusReason}`,
+                '',
+                'Chrome Store snapshot:',
+                `Period: ${input.chromePeriod.label}`,
+                `Page views: ${input.chromeSnapshot.visitors || 'blank'}`,
+                `Impressions: ${input.chromeSnapshot.impressions || 'blank'}`,
+                `Installs: ${input.chromeSnapshot.installs || 'blank'}`,
+                `Uninstalls: ${input.chromeSnapshot.uninstalls || input.chromeSnapshot.uninstallRate || 'blank'}`,
+                `Weekly users: ${input.chromeSnapshot.weeklyUsers || 'blank'}`,
+                `Public users: ${input.chromeSnapshot.users || 'blank'}`,
+                `Rating count: ${input.chromeSnapshot.ratingCount || 'blank'}`,
+                '',
+                'Product metrics:',
+                `30-day signups: ${input.last30.signups || 0}`,
+                `30-day active generators: ${input.totals.activeGenerators || 0}`,
+                `30-day successful generations: ${input.last30.successfulGenerations || 0}`,
+                `2+ generation users: ${input.totals.twoPlusGenerationUsers || 0} (${input.rates.twoPlusGeneration30d || 0}%)`,
+                `Quota pressure users: ${input.totals.quotaPressureUsers || 0} (${input.rates.quotaPressure30d || 0}%)`,
+                `Limit hits: ${input.last30.limitHits || 0}`,
+                `Paywalls shown: ${input.last30.paywallShown || 0}`,
+                `Checkout starts: ${input.last30.checkoutStart || 0}`,
+                `Signup to paid: ${input.rates.signupToPaid30d || 0}%`,
+                '',
+                'Question for Codex:',
+                'Given this exact state, what should I do next today? Be specific and do not suggest vague user research.',
+            ];
+            return lines.join('\n');
+        }
+
+        async function copyGrowthBrief() {
+            const text = document.getElementById('growthCodexBrief')?.textContent || '';
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Copied Codex brief', 'success');
+            } catch (e) {
+                showToast('Could not copy automatically. Select the brief manually.', 'error');
+            }
         }
 
         function getGrowthTaskProgress() {

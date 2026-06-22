@@ -2318,8 +2318,16 @@
             const chromeInstallRate = chromeVisitors ? (chromeInstalls / chromeVisitors) * 100 : 0;
             const chromePeriod = getChromeSnapshotPeriod(chromeSnapshot);
             const chromeWarnings = getChromeSnapshotWarnings(chromeSnapshot);
+            const chromeBlockingWarnings = getChromeSnapshotBlockingWarnings(chromeSnapshot);
             const hasValidChromePeriod = Boolean(chromeSnapshot.periodStart && chromeSnapshot.periodEnd);
-            const chromeSnapshotReady = Boolean(chromeSnapshot.updatedAt && hasValidChromePeriod && chromeWarnings.length === 0);
+            const chromeSnapshotReady = Boolean(chromeSnapshot.updatedAt && hasValidChromePeriod && chromeBlockingWarnings.length === 0);
+            const chromeSnapshotAgeDays = getChromeSnapshotAgeDays(chromeSnapshot);
+            const todayWeekday = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            const snapshotCadence = !chromeSnapshot.updatedAt
+                ? 'Save once to unlock store decisions.'
+                : todayWeekday === 'Monday'
+                    ? 'Monday: refresh CWS only if you have a newer Last 30 days period.'
+                    : `Next normal CWS refresh: Monday. Current snapshot age: ${chromeSnapshotAgeDays === null ? 'unknown' : `${chromeSnapshotAgeDays}d`}.`;
             const avgSignups7 = Number(last7.signups || 0) / 7;
             const avgGenerations7 = Number(last7.successfulGenerations || 0) / 7;
             const avgGenerationsPerActive = Number(data.totals?.avgSuccessfulGenerationsPerActive || 0);
@@ -2433,16 +2441,12 @@
                 action('Find the biggest reason users stop before 2-3 generations.', 'Check generation errors, missing-photo events, and one-generation users. Contact is optional and uses prepared mailto only.'),
                 action('Ship one change that makes the second generation easier.', 'Examples: clearer next-item CTA, better photo handoff, fewer confusing states after first result.'),
                 action('Send 20 Vinted seller outreach messages using the seller script below.', 'Find active sellers manually on Vinted: many listings, weak descriptions, recent uploads. Paste the script, adjust one sentence to their shop.'),
-                chromeSnapshotReady
-                    ? action('Refresh the Chrome Store snapshot if it changed today.', `Use the same CWS period style as last time. Current saved period: ${chromePeriod.label}.`)
-                    : action('Paste Chrome Web Store numbers into the form below.', 'Choose a date range first. Use the same range for page views, impressions, installs, uninstalls, and weekly users.'),
+                action('Leave Chrome Store numbers alone until Monday refresh.', `Current saved period: ${chromePeriod.label}. CWS is a weekly operating input, not a daily task.`),
             ];
             let dailyTasks = [
                 task('value_depth_review', 'Review users below 2 generations', 'Look for errors, missing photos, weak result quality, or confusing next-step flow.', '1'),
                 task('second_generation_fix', 'Ship or write 1 second-generation fix', 'Make it easier to go from first result to next item.', '1'),
-                task('seller_outreach_20', 'Send 20 seller outreach messages', 'Find sellers on Vinted with many listings and weak descriptions.', '20'),
-                task('store_snapshot', 'Save Chrome Store snapshot', 'Paste today’s CWS numbers into the form and click Save.', '1'),
-                task('record_learning', 'Write 1 signal from replies or metrics', 'One sentence is enough: what changed usage, replies, clicks, or installs?', '1'),
+                task('record_learning', 'Write 1 signal from logs or shipped change', 'One sentence is enough: what changed usage, errors, clicks, installs, or paid intent?', '1'),
             ];
             let scripts = [
                 script(
@@ -2468,7 +2472,7 @@
                 actions = [
                     action('Open Chrome Web Store Developer Dashboard.', 'Set the period to Last 30 days. Chrome Store reporting does not expose shorter windows, so use that same 30-day period for all fields.'),
                     action('Paste them into Chrome Store Snapshot below.', 'Fill period start/end, page views, impressions, installs, uninstalls, weekly users, current users, rating count. Click Save.'),
-                    action('Then do the remaining tasks in Today’s Workbench.', 'After saving, the dashboard will update the current focus.'),
+                    action('Then follow the refreshed top command.', 'After saving, the Growth Operator will update the current focus.'),
                 ];
                 dailyTasks = [
                     task('store_snapshot', 'Save Chrome Store snapshot', 'This unlocks useful store interpretation in the dashboard.', '1'),
@@ -2486,8 +2490,7 @@
                 dailyTasks = [
                     task('store_asset_1', 'Improve 1 Chrome Store asset', 'Make one concrete listing change, not five random edits.', '1'),
                     task('rating_3', 'Send 3 prepared rating asks', 'Use the rating script. Count ratings gained, not opens.', '3'),
-                    task('seller_outreach_20', 'Send 20 seller outreach messages', 'Keep acquisition moving while fixing store conversion.', '20'),
-                    task('store_snapshot', 'Save updated Chrome Store snapshot', 'Record today’s store numbers.', '1'),
+                    task('record_store_change', 'Log the store change', 'Write exactly what changed so the next Monday snapshot has context.', '1'),
                 ];
             } else if (avgSignups7 < 4) {
                 focus = 'Acquisition';
@@ -2500,7 +2503,7 @@
                 dailyTasks = [
                     task('seller_outreach_30', 'Send 30 seller outreach messages', 'Use the seller outreach script. Track replies, installs, first generation, and paid conversion.', '30'),
                     task('seo_or_store_1', 'Improve 1 SEO/store asset', 'One page, screenshot, or copy section.', '1'),
-                    task('store_snapshot', 'Save Chrome Store snapshot', 'Record CWS numbers after outreach/listing work.', '1'),
+                    task('record_channel_result', 'Log the channel result', 'Record outreach count, installs noticed, first generations, and paid users if any.', '1'),
                 ];
             } else if (Number(rates.activationPerSignup30d || 0) < 45) {
                 focus = 'Activation';
@@ -2564,6 +2567,8 @@
                 previousChromeSnapshot,
                 chromeSnapshotReady,
                 chromeWarnings,
+                chromeSnapshotAgeDays,
+                snapshotCadence,
                 chromeVisitors,
                 chromeInstalls,
                 chromeImpressions,
@@ -2693,9 +2698,9 @@
 
                     <div class="insight-card">
                         <div class="section-kicker">What this means</div>
-                        <div class="insight-title">Current public users</div>
+                        <div class="insight-title">Store cadence</div>
                         <div class="insight-copy">
-                            Chrome Store does not give enough data here to infer public listing users. Use Weekly users as the operating number, and leave Public users blank unless the store listing shows it.
+                            ${escapeHtml(snapshotCadence)} Public listing users cannot be inferred from these analytics; use Weekly users as the operating number.
                         </div>
                         <div class="manual-metrics-summary" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
                             <div class="manual-metric">
@@ -3540,6 +3545,23 @@
             return Math.floor((endTime - startTime) / (24 * 60 * 60 * 1000)) + 1;
         }
 
+        function getChromeSnapshotAgeDays(snapshot = {}) {
+            if (!snapshot.updatedAt) return null;
+            const updatedTime = new Date(snapshot.updatedAt).getTime();
+            if (!Number.isFinite(updatedTime)) return null;
+            return Math.max(0, Math.floor((Date.now() - updatedTime) / (24 * 60 * 60 * 1000)));
+        }
+
+        function getChromeSnapshotBlockingWarnings(snapshot = {}) {
+            return getChromeSnapshotWarnings(snapshot).filter((warning) =>
+                warning.includes('Choose the Chrome Web Store reporting period') ||
+                warning.includes('Period start is after period end') ||
+                warning.includes('must use at least 30 days') ||
+                warning.includes('Page views are higher than impressions') ||
+                warning.includes('Installs are higher than page views'),
+            );
+        }
+
         function getChromeSnapshotWarnings(snapshot = {}) {
             const warnings = [];
             const impressions = Number(snapshot.impressions || 0);
@@ -3569,9 +3591,9 @@
                 warnings.push('Weekly users are low compared with installs. Check whether many installs churn quickly.');
             }
             if (snapshot.updatedAt) {
-                const ageMs = Date.now() - new Date(snapshot.updatedAt).getTime();
-                if (Number.isFinite(ageMs) && ageMs > 3 * 24 * 60 * 60 * 1000) {
-                    warnings.push('Chrome Store snapshot is over 3 days old. Refresh it before making store decisions.');
+                const ageDays = getChromeSnapshotAgeDays(snapshot);
+                if (ageDays !== null && ageDays > 8) {
+                    warnings.push('Chrome Store snapshot is over one week old. Refresh it on the next Monday check-in if Chrome has a newer Last 30 days period.');
                 }
             }
             return warnings;
@@ -3662,7 +3684,9 @@
             const warnings = getChromeSnapshotWarnings(snapshot);
             const blockingWarning = warnings.find((warning) =>
                 warning.includes('Period start is after period end') ||
-                warning.includes('must use at least 30 days'),
+                warning.includes('must use at least 30 days') ||
+                warning.includes('Page views are higher than impressions') ||
+                warning.includes('Installs are higher than page views'),
             );
             if (blockingWarning) {
                 showToast(blockingWarning, 'error');

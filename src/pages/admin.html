@@ -617,7 +617,7 @@
         .operator-status-row {
             display: grid;
             gap: 0.55rem;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
             margin-top: 1rem;
         }
 
@@ -2657,6 +2657,8 @@
                 focus,
                 state: advisor.state,
                 mode: advisor.mode,
+                stage: advisor.stage,
+                stageGate: advisor.stageGate,
                 actionTitle: advisor.primaryAction.title,
                 actionNote: advisor.primaryAction.note,
                 confidence: advisor.confidence,
@@ -2700,8 +2702,8 @@
                             <div class="operator-answer-copy">${escapeHtml(advisor.weekAnswer)}</div>
                         </div>
                         <div class="operator-answer-card">
-                            <div class="operator-answer-label">Ask me when</div>
-                            <div class="operator-answer-copy">${escapeHtml(advisor.askWhen)}</div>
+                            <div class="operator-answer-label">Stage gate</div>
+                            <div class="operator-answer-copy">${escapeHtml(`${advisor.stage}: ${advisor.stageGate}`)}</div>
                         </div>
                     </div>
                     <div class="advisor-panel">
@@ -2734,6 +2736,10 @@
                                 <div class="operator-status-card">
                                     <div class="operator-status-title">Mode</div>
                                     <div class="operator-status-copy">${escapeHtml(advisor.mode)}</div>
+                                </div>
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Ask me when</div>
+                                    <div class="operator-status-copy">${escapeHtml(advisor.askWhen)}</div>
                                 </div>
                                 <div class="operator-status-card">
                                     <div class="operator-status-title">Stop when</div>
@@ -3937,6 +3943,23 @@
                     ? 'Copy the brief and ask for a fresh diagnosis.'
                     : primaryAction.title;
             const weekAnswer = weekAnswerByFocus[input.focus] || 'Follow the current focus until the data or logged result changes.';
+            const stage = !input.chromeSnapshotReady
+                ? 'Setup'
+                : uninstallToInstallRate >= 40 || Number(input.rates.activationPerSignup30d || 0) < 45
+                    ? 'Quality'
+                    : input.quotaPressureRate < 20 && input.avgGenerationsPerActive < 1.7
+                        ? 'Depth'
+                        : Number(input.rates.signupToPaid30d || 0) < 4 || (input.paywallShown >= 10 && input.paywallToCheckoutRate < 10)
+                            ? 'Monetization'
+                            : 'Scale';
+            const stageGateByStage = {
+                Setup: 'Valid 30-day CWS snapshot plus active generator data.',
+                Quality: 'Uninstalls/install below 40% and activation at least 45%.',
+                Depth: 'At least 20% quota pressure or 1.7 generations per active generator.',
+                Monetization: 'Signup -> paid at least 4% and paywall -> checkout at least 10% when sample is large enough.',
+                Scale: 'Keep install -> first generation -> paid quality stable while increasing volume.',
+            };
+            const stageGate = stageGateByStage[stage] || 'Keep today’s focus until the logged result changes.';
             const plainDiagnosisByFocus = {
                 Measurement: 'The system cannot make a strong call until the Chrome Store snapshot is saved with the same 30-day reporting period.',
                 'Store Listing': 'Enough people see the listing, but too many do not install or churn quickly. Fix trust and intent before building more product.',
@@ -3972,6 +3995,8 @@
                 mode,
                 shouldEscalate,
                 escalationRule,
+                stage,
+                stageGate,
                 todayAnswer,
                 weekAnswer,
                 askWhen,
@@ -3996,6 +4021,7 @@
                             : 'Memory: no recent logged action for this focus.',
                     lastSameFocus?.result ? `Last result: ${lastSameFocus.result}` : '',
                     lastSameFocus?.mode ? `Last mode: ${lastSameFocus.mode}.` : '',
+                    lastSameFocus?.stage ? `Last stage: ${lastSameFocus.stage}.` : '',
                     loopDetected
                         ? 'Loop guard: copy the Codex brief before doing more of the same.'
                         : missing.length
@@ -4012,6 +4038,8 @@
                 `Focus: ${input.focus}`,
                 `Advisor state: ${input.advisor.state}`,
                 `Operating mode: ${input.advisor.mode}`,
+                `Product stage: ${input.advisor.stage}`,
+                `Stage gate: ${input.advisor.stageGate}`,
                 `Confidence: ${input.advisor.confidence}`,
                 `Escalation rule: ${input.advisor.escalationRule}`,
                 `Today answer: ${input.advisor.todayAnswer}`,

@@ -310,42 +310,6 @@
             color: var(--text-muted);
         }
 
-        .sidebar-status {
-            background: #111827;
-            border: 1px solid #111827;
-            border-radius: var(--radius-md);
-            color: rgba(255, 255, 255, 0.72);
-            display: grid;
-            gap: 0.45rem;
-            margin: 0.5rem 0 0.9rem;
-            padding: 0.85rem;
-        }
-
-        .sidebar-status-title {
-            color: #fff;
-            font-size: 0.82rem;
-            font-weight: 850;
-        }
-
-        .sidebar-status-copy {
-            font-size: 0.76rem;
-            line-height: 1.35;
-        }
-
-        .sidebar-status-link {
-            appearance: none;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: var(--radius-sm);
-            color: #fff;
-            cursor: pointer;
-            font: inherit;
-            font-size: 0.76rem;
-            font-weight: 750;
-            padding: 0.45rem 0.55rem;
-            text-align: left;
-        }
-
         .sidebar-footer {
             padding: 1rem;
             border-top: 1px solid var(--border-color);
@@ -2326,11 +2290,6 @@
             </div>
 
             <nav class="sidebar-nav">
-                <div class="sidebar-status">
-                    <div class="sidebar-status-title">Newest signal: uninstall feedback</div>
-                    <div class="sidebar-status-copy">Version 1.3.19+ can report why users leave. Start in Events before scaling installs.</div>
-                    <button type="button" class="sidebar-status-link" onclick="switchView('events')">Open feedback workbench</button>
-                </div>
                 <div class="nav-item active" data-view="overview" onclick="switchView('overview')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2748,23 +2707,23 @@
                 <div class="command-shell">
                     <div class="command-grid">
                         <section class="command-hero">
-                            <div class="command-kicker">Admin Command Center</div>
-                            <div class="command-title">Start here when deciding what to do next.</div>
+                            <div class="command-kicker">Today</div>
+                            <div class="command-title">Admin overview</div>
                             <div class="command-copy">
-                                This screen combines usage, growth, uninstall feedback, and important product events so the next action is visible without opening three different tabs.
+                                A quiet snapshot of usage, user activity, uninstall feedback, and paid intent.
                             </div>
                             <div class="operator-answer-row">
                                 <div class="operator-status-card">
-                                    <div class="operator-status-title">Acquisition quality</div>
-                                    <div class="operator-status-copy">${uninstallFeedback.toLocaleString()} uninstall feedback event${uninstallFeedback === 1 ? '' : 's'} in 30 days. Top reason: ${escapeHtml(topReason)}.</div>
+                                    <div class="operator-status-title">Uninstall feedback</div>
+                                    <div class="operator-status-copy">${uninstallFeedback.toLocaleString()} response${uninstallFeedback === 1 ? '' : 's'} · ${escapeHtml(topReason)}</div>
                                 </div>
                                 <div class="operator-status-card">
-                                    <div class="operator-status-title">Product health</div>
-                                    <div class="operator-status-copy">${generationActivity.toLocaleString()} product event${generationActivity === 1 ? '' : 's'}, ${generationErrors.toLocaleString()} generation error${generationErrors === 1 ? '' : 's'}, ${limitHits.toLocaleString()} limit hit${limitHits === 1 ? '' : 's'}.</div>
+                                    <div class="operator-status-title">Product friction</div>
+                                    <div class="operator-status-copy">${generationErrors.toLocaleString()} errors · ${limitHits.toLocaleString()} limit hits</div>
                                 </div>
                                 <div class="operator-status-card">
                                     <div class="operator-status-title">Revenue intent</div>
-                                    <div class="operator-status-copy">${revenueIntent.toLocaleString()} paywall, checkout, pricing, or billing event${revenueIntent === 1 ? '' : 's'} in the current 30-day window.</div>
+                                    <div class="operator-status-copy">${revenueIntent.toLocaleString()} pricing/paywall/checkout event${revenueIntent === 1 ? '' : 's'}</div>
                                 </div>
                             </div>
                         </section>
@@ -2772,10 +2731,10 @@
                         <section class="command-panel">
                             <div class="command-panel-header">
                                 <div>
-                                    <div class="command-panel-title">Uninstall Pulse</div>
-                                    <div class="command-panel-note">Use this to decide what to fix before pushing for more installs.</div>
+                                    <div class="command-panel-title">Uninstall Reasons</div>
+                                    <div class="command-panel-note">Latest one-tap exit feedback.</div>
                                 </div>
-                                <button class="btn-secondary" onclick="switchView('events')">Open events</button>
+                                <button class="btn-secondary" onclick="switchView('events')">Details</button>
                             </div>
                             <div class="reason-list">
                                 ${renderUninstallReasons(uninstallReasons)}
@@ -2784,39 +2743,10 @@
                     </div>
 
                     <div class="command-action-row">
-                        ${commandAction('Events', `${recentEventCount.toLocaleString()} recent`, 'Uninstall reasons, errors, limit hits, checkouts, and raw event logs.', 'events', 'acquisition')}
-                        ${commandAction('Users', `${todaysUsers.pagination.total.toLocaleString()} today`, 'New signups and account states that may need review requests or support.', 'users', 'ops')}
-                        ${commandAction('Growth', `${Number(growthData.days || 30).toLocaleString()} days`, 'Chrome Store numbers, KPI interpretation, and weekly operating playbook.', 'growth', 'product')}
-                        ${commandAction('Logs', `${data.today.totalRequests.toLocaleString()} calls`, 'Generation logs and API behavior when debugging user problems.', 'logs', 'revenue')}
-                    </div>
-
-                    <div class="event-workbench">
-                        <section class="event-panel">
-                            <div class="event-panel-header">
-                                <div>
-                                    <div class="event-panel-title">Event Families</div>
-                                    <div class="event-panel-note">Grouped by the decisions they support, not raw event names.</div>
-                                </div>
-                            </div>
-                            <div class="event-card-grid">
-                                ${renderEventCategoryCard('Acquisition Quality', getEventCategoryCount(categories, 'Acquisition Quality'), 'Store clicks and uninstall feedback. Watch this before scaling traffic.', ['chrome_store_click', 'uninstall_feedback_submitted'])}
-                                ${renderEventCategoryCard('Product Usage', getEventCategoryCount(categories, 'Product Usage'), 'Generation, upload, batch, limit, and error behavior.', ['generate_request', 'generate_error', 'generate_limit_hit'])}
-                                ${renderEventCategoryCard('Revenue Intent', getEventCategoryCount(categories, 'Revenue Intent'), 'Paywall, checkout, billing, pricing, and credit signals.', ['paywall_shown', 'checkout_start'])}
-                                ${renderEventCategoryCard('Auth', getEventCategoryCount(categories, 'Auth'), 'Magic link and sign-in events that can block activation.', ['magic_link_request', 'magic_link_sent'])}
-                            </div>
-                        </section>
-
-                        <section class="event-panel">
-                            <div class="event-panel-header">
-                                <div>
-                                    <div class="event-panel-title">Priority Feed</div>
-                                    <div class="event-panel-note">Recent events worth investigating first.</div>
-                                </div>
-                            </div>
-                            <div class="event-feed">
-                                ${renderRecentEventFeed(importantEvents.length ? importantEvents : rawEventFeed)}
-                            </div>
-                        </section>
+                        ${commandAction('Events', `${recentEventCount.toLocaleString()} recent`, 'Uninstall feedback and high-signal product events.', 'events', 'acquisition')}
+                        ${commandAction('Users', `${todaysUsers.pagination.total.toLocaleString()} today`, 'Accounts, usage, review email, reset, pause.', 'users', 'ops')}
+                        ${commandAction('Growth', `${Number(growthData.days || 30).toLocaleString()} days`, 'Chrome Store and product funnel decisions.', 'growth', 'product')}
+                        ${commandAction('Logs', `${data.today.totalRequests.toLocaleString()} calls`, 'Raw debugging when something looks wrong.', 'logs', 'revenue')}
                     </div>
                 </div>
 
@@ -3736,7 +3666,7 @@
                     <div class="event-panel">
                         <div class="event-panel-header">
                             <div>
-                                <div class="section-kicker">Priority Feed</div>
+                                <div class="section-kicker">Recent Signals</div>
                                 <div class="event-panel-title">Recent signals to inspect</div>
                                 <div class="event-panel-note">Only critical events: uninstall feedback, generation errors, limit hits, paywalls, and checkout intent.</div>
                             </div>
@@ -4143,10 +4073,6 @@
             const recentImportantEvents = eventSummary.recentImportantEvents || [];
             const topEvents = growthData.topEvents || [];
             const last30 = growthData.last30 || {};
-            const acquisitionEventCount = getEventCategoryCount(eventCategories, 'Acquisition Quality');
-            const productEventCount = getEventCategoryCount(eventCategories, 'Product Usage');
-            const revenueEventCount = getEventCategoryCount(eventCategories, 'Revenue Intent');
-            const authEventCount = getEventCategoryCount(eventCategories, 'Auth');
             const uninstallFeedbackCount = getEventCount(topEvents, 'uninstall_feedback_submitted');
             const generateErrorCount = getEventCount(topEvents, 'generate_error');
             const missingPhotoCount = getEventCount(topEvents, 'generate_missing_photo');
@@ -4154,37 +4080,14 @@
             const logs = logData.logs || [];
 
             container.innerHTML = `
-                <div class="growth-hero" style="margin-bottom:1rem;">
-                    <div class="section-kicker" style="color: rgba(255,255,255,0.58);">Event Workbench</div>
-                    <div class="insight-title" style="font-size: 1.35rem;">Signals from installs, usage, paywalls, and uninstalls</div>
-                    <div class="insight-copy">
-                        This is the operational view for why users move forward or drop off. Start with uninstall reasons, then inspect priority events before opening raw logs.
-                    </div>
-                    <div class="operator-answer-row">
-                        <div class="operator-answer-card">
-                            <div class="operator-answer-label">Uninstall feedback</div>
-                            <div class="operator-answer-copy">${fmt(uninstallFeedbackCount)} responses</div>
-                        </div>
-                        <div class="operator-answer-card">
-                            <div class="operator-answer-label">Generation friction</div>
-                            <div class="operator-answer-copy">${fmt(generateErrorCount + missingPhotoCount)} error/missing-photo events</div>
-                        </div>
-                        <div class="operator-answer-card">
-                            <div class="operator-answer-label">Paid intent</div>
-                            <div class="operator-answer-copy">${fmt(last30.paywallShown)} paywalls -> ${fmt(checkoutStartCount)} checkout starts</div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="event-workbench">
                     <div class="event-panel">
                         <div class="event-panel-header">
                             <div>
                                 <div class="section-kicker">Uninstall Reasons</div>
                                 <div class="event-panel-title">Why users leave</div>
-                                <div class="event-panel-note">Anonymous one-tap feedback from <code>/uninstall</code>. This is the clearest signal for promise mismatch and first-value failure.</div>
+                                <div class="event-panel-note">${fmt(uninstallFeedbackCount)} response${uninstallFeedbackCount === 1 ? '' : 's'} from the uninstall page.</div>
                             </div>
-                            <span class="badge badge-neutral">${fmt(uninstallFeedbackCount)} total</span>
                         </div>
                         <div class="reason-list">
                             ${renderUninstallReasons(uninstallReasons)}
@@ -4194,57 +4097,14 @@
                     <div class="event-panel">
                         <div class="event-panel-header">
                             <div>
-                                <div class="section-kicker">Event Families</div>
-                                <div class="event-panel-title">What kind of signal is this?</div>
-                                <div class="event-panel-note">Grouped so you do not have to remember raw event names.</div>
+                                <div class="section-kicker">Recent Signals</div>
+                                <div class="event-panel-title">Recent signals</div>
+                                <div class="event-panel-note">Uninstalls, errors, limit hits, paywalls, and checkout intent.</div>
                             </div>
-                        </div>
-                        <div class="event-card-grid">
-                            ${renderEventCategoryCard('Acquisition Quality', acquisitionEventCount, 'Store clicks and uninstall feedback. Use this to judge install quality, not just volume.', ['chrome_store_click', 'uninstall_feedback_submitted'])}
-                            ${renderEventCategoryCard('Product Usage', productEventCount, `${fmt(generateErrorCount)} generation errors and ${fmt(missingPhotoCount)} missing-photo events.`, ['generate_request', 'generate_success', 'generate_error', 'phone_upload_start', 'batch_start'])}
-                            ${renderEventCategoryCard('Revenue Intent', revenueEventCount, `${fmt(last30.paywallShown)} paywalls and ${fmt(checkoutStartCount)} checkout starts.`, ['paywall_shown', 'checkout_start', 'checkout_opened'])}
-                            ${renderEventCategoryCard('Auth', authEventCount, `${fmt(last30.magicLinkRequests)} magic-link requests.`, ['magic_link_request', 'magic_link_sent'])}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="event-workbench">
-                    <div class="event-panel">
-                        <div class="event-panel-header">
-                            <div>
-                                <div class="section-kicker">Priority Feed</div>
-                                <div class="event-panel-title">Recent events worth inspecting</div>
-                                <div class="event-panel-note">Only the noisy/high-signal stuff: uninstalls, generation errors, limit hits, paywalls, and checkout intent.</div>
-                            </div>
-                            <button class="btn-secondary" onclick="state.logsType='events'; switchView('logs')">Raw event logs</button>
+                            <button class="btn-secondary" onclick="state.logsType='events'; switchView('logs')">Raw logs</button>
                         </div>
                         <div class="event-feed">
                             ${renderRecentEventFeed(recentImportantEvents)}
-                        </div>
-                    </div>
-
-                    <div class="event-panel">
-                        <div class="event-panel-header">
-                            <div>
-                                <div class="section-kicker">Top Events</div>
-                                <div class="event-panel-title">Volume by raw event</div>
-                                <div class="event-panel-note">Use this to find missing instrumentation or a noisy event.</div>
-                            </div>
-                        </div>
-                        <div class="reason-list">
-                            ${topEvents.slice(0, 12).map(item => `
-                                <div class="reason-row">
-                                    <div class="reason-row-main">
-                                        <span><code>${escapeHtml(item.event)}</code></span>
-                                        <span>${fmt(item.count)}</span>
-                                    </div>
-                                    <div class="event-feed-meta">${escapeHtml(friendlyEventName(item.event))}</div>
-                                </div>
-                            `).join('') || `
-                                <div class="reason-row">
-                                    <div class="reason-row-main"><span>No tracked events yet</span><span>0</span></div>
-                                </div>
-                            `}
                         </div>
                     </div>
                 </div>
@@ -4252,8 +4112,8 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">Latest Event Logs</h3>
-                            <div class="text-sm text-muted">Newest raw event rows. Click any row to inspect context JSON.</div>
+                            <h3 class="card-title">Latest Raw Events</h3>
+                            <div class="text-sm text-muted">${fmt(generateErrorCount)} generation errors · ${fmt(missingPhotoCount)} missing-photo events · ${fmt(checkoutStartCount)} checkout starts</div>
                         </div>
                     </div>
                     <div class="table-container">
@@ -4304,7 +4164,132 @@
                 const detail = context.reasonLabel || context.message || context.code || context.tier || context.source || '';
                 return escapeHtml(detail ? `${friendlyEventName(event)}: ${detail}` : friendlyEventName(event));
             }
-            return escapeHtml(log.endpoint || 'No prompt');
+            return escapeHtml(log.endpoint || 'No details');
+        }
+
+        function getLogContext(log) {
+            const body = log.full_request_body || {};
+            const context = body.context || {};
+            return context.reasonLabel || context.message || context.code || context.tier || context.source || log.endpoint || 'No details';
+        }
+
+        function renderEventLogRows(logs) {
+            return logs.map(log => `
+                <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
+                    <td>${formatDateTime(log.created_at)}</td>
+                    <td>
+                        <code>${escapeHtml((log.endpoint || '').replace('/event/', '') || 'event')}</code>
+                        <div class="text-sm text-muted" style="font-size: 0.72rem;">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
+                    </td>
+                    <td>${getLogActor(log)}</td>
+                    <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
+                    <td style="max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(getLogContext(log))}</td>
+                    <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderEventLogMobileCards(logs) {
+            return logs.map(log => `
+                <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">${formatDateTime(log.created_at)} · ${getLogActor(log)}</div>
+                    <div class="mobile-card-row">
+                        <span class="mobile-card-label">Status</span>
+                        <span class="mobile-card-value"><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></span>
+                    </div>
+                    <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(getLogContext(log))}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderGenerationLogRows(logs) {
+            return logs.map(log => {
+                const cost = (log.openai_tokens_used || 0) * 0.0000005;
+                const logKind = getLogKind(log);
+                const actor = getLogActor(log);
+                const preview = getLogPreview(log);
+
+                let images = [];
+                try {
+                    if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
+                    else if (Array.isArray(log.image_urls)) images = log.image_urls;
+                } catch (e) { }
+
+                const thumb = images.length > 0 ?
+                    `<img src="${images[0]}" class="gallery-img" style="width: 36px; height: 36px;" loading="lazy" alt="Item image">` :
+                    `<div style="width: 36px; height: 36px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light);">-</div>`;
+
+                return `
+                    <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
+                        <td>${new Date(log.created_at).toLocaleTimeString()}</td>
+                        <td>
+                            <span class="badge badge-neutral">${escapeHtml(logKind)}</span>
+                            <div class="text-sm text-muted" style="font-size: 0.72rem;">${escapeHtml(log.endpoint || '-')}</div>
+                        </td>
+                        <td>
+                            <div class="text-sm font-medium">${actor}</div>
+                            <div class="text-sm text-muted" style="font-size: 0.75rem;">${log.user_id ? log.user_id.substring(0, 8) + '...' : '-'}</div>
+                        </td>
+                        <td>
+                            <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
+                            ${log.suspicious_activity ? '<span class="badge badge-warning">Flagged</span>' : ''}
+                        </td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                ${thumb}
+                                ${images.length > 1 ? `<span style="font-size:10px; background:#eee; padding:2px 4px; border-radius:4px;">+${images.length - 1}</span>` : ''}
+                            </div>
+                        </td>
+                        <td><span class="badge badge-neutral">${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'n/a'))}</span></td>
+                        <td>$${cost.toFixed(5)}</td>
+                        <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${preview}</td>
+                        <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderGenerationLogMobileCards(logs) {
+            return logs.map(log => {
+                const cost = (log.openai_tokens_used || 0) * 0.0000005;
+                const logKind = getLogKind(log);
+                let images = [];
+                try {
+                    if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
+                    else if (Array.isArray(log.image_urls)) images = log.image_urls;
+                } catch (e) { }
+
+                const thumb = images.length > 0 ?
+                    `<img src="${images[0]}" style="width: 48px; height: 48px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-color);" loading="lazy" alt="Item image">` :
+                    `<div style="width: 48px; height: 48px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light); border: 1px solid var(--border-color);">-</div>`;
+
+                return `
+                    <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
+                            ${thumb}
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 500; margin-bottom: 0.25rem;">${getLogActor(log)}</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(logKind)} - ${escapeHtml(log.endpoint || '-')}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(log.created_at).toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Status</span>
+                            <span class="mobile-card-value"><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Model</span>
+                            <span class="mobile-card-value"><span class="badge badge-neutral">${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'n/a'))}</span></span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Cost</span>
+                            <span class="mobile-card-value" style="font-weight: 500;">$${cost.toFixed(5)}</span>
+                        </div>
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${getLogPreview(log)}</div>
+                    </div>
+                `;
+            }).join('');
         }
 
         async function renderLogs(container) {
@@ -4316,21 +4301,39 @@
             });
 
             const data = await fetchAPI(`/api/admin?${params}`);
+            const isEventLogView = (state.logsType || 'generation') === 'events';
+            const desktopHeaders = isEventLogView
+                ? `
+                    <tr>
+                        <th>Time</th>
+                        <th>Event</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Context</th>
+                        <th>Actions</th>
+                    </tr>
+                `
+                : `
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Images</th>
+                        <th>Model</th>
+                        <th>Cost</th>
+                        <th>Prompt Preview</th>
+                        <th>Actions</th>
+                    </tr>
+                `;
+            const desktopRows = isEventLogView
+                ? renderEventLogRows(data.logs || [])
+                : renderGenerationLogRows(data.logs || []);
+            const mobileRows = isEventLogView
+                ? renderEventLogMobileCards(data.logs || [])
+                : renderGenerationLogMobileCards(data.logs || []);
 
             const logsHtml = `
-                <div class="view-brief">
-                    <div class="view-brief-top">
-                        <div>
-                            <div class="view-brief-title">Debug by signal type</div>
-                            <div class="view-brief-copy">Use Generation logs for AI output problems, Event logs for uninstall feedback and product behavior, and System logs for backend issues.</div>
-                        </div>
-                        <div class="view-brief-actions">
-                            <button class="btn-secondary" onclick="state.logsType='events'; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">Event logs</button>
-                            <button class="btn-secondary" onclick="state.logsType='generation'; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">Generation logs</button>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="filters-bar">
                     <input type="text" placeholder="Search by User ID..." class="filter-input" id="logSearch">
                     <select class="filter-input" onchange="state.logsType=this.value; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">
@@ -4350,117 +4353,14 @@
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Type</th>
-                                    <th>User</th>
-                                    <th>Status</th>
-                                    <th>Input</th>
-                                    <th>Model</th>
-                                    <th>Cost</th>
-                                    <th>Prompt Preview</th>
-                                    <th>Actions</th>
-                                </tr>
+                                ${desktopHeaders}
                             </thead>
                             <tbody>
-                                ${data.logs.map(log => {
-                const cost = (log.openai_tokens_used || 0) * 0.0000005; // ~$0.50 per 1M tokens
-                const logKind = getLogKind(log);
-                const actor = getLogActor(log);
-                const preview = getLogPreview(log);
-
-                // Parse images
-                let images = [];
-                try {
-                    if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
-                    else if (Array.isArray(log.image_urls)) images = log.image_urls;
-                } catch (e) { }
-
-                const thumb = images.length > 0 ?
-                    `<img src="${images[0]}" class="gallery-img" style="width: 36px; height: 36px;" loading="lazy" alt="Input">` :
-                    `<div style="width: 36px; height: 36px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light);">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                                         </div>`;
-
-                return `
-                                    <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
-                                        <td>${new Date(log.created_at).toLocaleTimeString()}</td>
-                                        <td>
-                                            <span class="badge badge-neutral">${escapeHtml(logKind)}</span>
-                                            <div class="text-sm text-muted" style="font-size: 0.72rem;">${escapeHtml(log.endpoint || '-')}</div>
-                                        </td>
-                                        <td>
-                                            <div class="text-sm font-medium">${actor}</div>
-                                            <div class="text-sm text-muted" style="font-size: 0.75rem;">${log.user_id ? log.user_id.substring(0, 8) + '...' : '-'}</div>
-                                        </td>
-                                        <td>
-                                            <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">
-                                                ${log.response_status}
-                                            </span>
-                                            ${log.suspicious_activity ? '<span class="badge badge-warning">Flagged</span>' : ''}
-                                        </td>
-                                        <td>
-                                            <div style="display:flex; align-items:center; gap:4px;">
-                                                ${thumb}
-                                                ${images.length > 1 ? `<span style="font-size:10px; background:#eee; padding:2px 4px; border-radius:4px;">+${images.length - 1}</span>` : ''}
-                                            </div>
-                                        </td>
-                                        <td><span class="badge badge-neutral">${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'n/a'))}</span></td>
-                                        <td>$${cost.toFixed(5)}</td>
-                                        <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                            ${preview}
-                                        </td>
-                                        <td>
-                                            <button class="btn-secondary" style="background: #fff; border: 1px solid var(--border-color); padding: 4px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; color: var(--text-main); transition: all 0.15s;" onclick="showLogDetails('${log.id}')">View</button>
-                                        </td>
-                                    </tr>
-                                `}).join('')}
+                                ${desktopRows || `<tr><td colspan="${isEventLogView ? 6 : 9}" class="text-muted">No logs found.</td></tr>`}
                             </tbody>
                         </table>
                         <div class="mobile-card-list">
-                            ${data.logs.map(log => {
-                    const cost = (log.openai_tokens_used || 0) * 0.0000005;
-                    const logKind = getLogKind(log);
-                    let images = [];
-                    try {
-                        if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
-                        else if (Array.isArray(log.image_urls)) images = log.image_urls;
-                    } catch (e) { }
-
-                    const thumb = images.length > 0 ?
-                        `<img src="${images[0]}" style="width: 48px; height: 48px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-color);" loading="lazy" alt="Input">` :
-                        `<div style="width: 48px; height: 48px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light); border: 1px solid var(--border-color);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                    </div>`;
-
-                    return `
-                                <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
-                                    <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
-                                        ${thumb}
-                                        <div style="flex: 1; min-width: 0;">
-                                            <div style="font-weight: 500; margin-bottom: 0.25rem;">${getLogActor(log)}</div>
-                                            <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(logKind)} - ${escapeHtml(log.endpoint || '-')}</div>
-                                            <div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(log.created_at).toLocaleString()}</div>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Status</span>
-                                        <span class="mobile-card-value">
-                                            <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
-                                            ${log.suspicious_activity ? '<span class="badge badge-warning">Flagged</span>' : ''}
-                                        </span>
-                                    </div>
-                                    <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Model</span>
-                                        <span class="mobile-card-value"><span class="badge badge-neutral">${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'n/a'))}</span></span>
-                                    </div>
-                                    <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Cost</span>
-                                        <span class="mobile-card-value" style="font-weight: 500;">$${cost.toFixed(5)}</span>
-                                    </div>
-                                    <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${getLogPreview(log)}</div>
-                                </div>
-                            `}).join('')}
+                            ${mobileRows || `<div class="empty-state">No logs found.</div>`}
                         </div>
                     </div>
                 </div>
@@ -4499,20 +4399,6 @@
             ];
 
             const usersHtml = `
-                <div class="view-brief">
-                    <div class="view-brief-top">
-                        <div>
-                            <div class="view-brief-title">User operations</div>
-                            <div class="view-brief-copy">Segment users by what you can act on: today signups, recent activity, high usage, paid accounts, and review-email candidates. The review button respects unsubscribe and paused-account rules.</div>
-                        </div>
-                        <div class="view-brief-actions">
-                            <button class="btn-secondary" onclick="setUsersSegment('today')">Today</button>
-                            <button class="btn-secondary" onclick="setUsersSegment('at-risk')">High usage</button>
-                            <button class="btn-secondary" onclick="window.open('/email-templates', '_blank', 'noopener')">Email templates</button>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="segmented-control" aria-label="User segments">
                     ${segments.map(([value, label]) => `
                         <button class="segment-btn ${state.usersSegment === value ? 'active' : ''}" onclick="setUsersSegment('${value}')">${label}</button>
@@ -5522,6 +5408,44 @@
             if (!log) return;
             const logKind = getLogKind(log);
 
+            let metadata = {};
+            try {
+                if (typeof log.full_request_body === 'string') metadata = JSON.parse(log.full_request_body);
+                else if (log.full_request_body && typeof log.full_request_body === 'object') metadata = log.full_request_body;
+            } catch (e) { }
+
+            if (logKind === 'Event') {
+                const eventName = (log.endpoint || '').replace('/event/', '') || 'event';
+                const content = `
+                    <div style="display: grid; gap: 1rem;">
+                        <div>
+                            <label class="text-sm font-bold text-muted">Event</label>
+                            <div class="p-2 bg-gray-100 rounded mt-1" style="border: 1px solid var(--border-color);">
+                                <div style="font-weight: 700;">${escapeHtml(friendlyEventName(eventName))}</div>
+                                <code>${escapeHtml(eventName)}</code>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-bold text-muted">Context</label>
+                            <div class="p-2 bg-gray-100 rounded mt-1" style="white-space: pre-wrap; font-size: 0.875rem; border: 1px solid var(--border-color);">${escapeHtml(getLogContext(log))}</div>
+                        </div>
+                        <div class="text-sm text-muted">
+                            ID: ${escapeHtml(log.id)}<br>
+                            Time: ${escapeHtml(formatDateTime(log.created_at))}<br>
+                            Actor: ${getLogActor(log)}<br>
+                            Status: ${escapeHtml(log.response_status || 'N/A')}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-bold text-muted">Raw JSON</label>
+                        <div class="json-view">${escapeHtml(JSON.stringify(metadata, null, 2))}</div>
+                    </div>
+                `;
+
+                openModal('Event Details', content);
+                return;
+            }
+
             // Parse images
             let images = [];
             try {
@@ -5529,32 +5453,26 @@
                 else if (Array.isArray(log.image_urls)) images = log.image_urls;
             } catch (e) { }
 
-            let metadata = {};
-            try {
-                if (typeof log.full_request_body === 'string') metadata = JSON.parse(log.full_request_body);
-                else if (log.full_request_body && typeof log.full_request_body === 'object') metadata = log.full_request_body;
-            } catch (e) { }
-
             const imagesHtml = images.length > 0 ?
                 `<div class="image-gallery">
                     ${images.map(url => `<img src="${escapeHtml(url)}" class="gallery-img" onclick="window.open('${escapeHtml(url)}', '_blank')" loading="lazy">`).join('')}
                  </div>` :
-                `<div style="padding: 2rem; text-align: center; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">No input images for this ${escapeHtml(logKind.toLowerCase())} log</div>`;
+                `<div style="padding: 2rem; text-align: center; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">No item images for this ${escapeHtml(logKind.toLowerCase())} log</div>`;
 
             const content = `
                 <div>
-                    <h4 style="margin-bottom: 1rem; font-weight: 600;">Input Images</h4>
+                    <h4 style="margin-bottom: 1rem; font-weight: 600;">Item Images</h4>
                     ${imagesHtml}
                     
                     <div style="margin-top: 1.5rem;">
-                        <label class="text-sm font-bold text-muted">Prompt / Event</label>
+                        <label class="text-sm font-bold text-muted">Prompt</label>
                         <div class="p-2 bg-gray-100 rounded mt-1" style="max-height: 200px; overflow-y: auto; white-space: pre-wrap; font-size: 0.875rem;">${getLogPreview(log)}</div>
                     </div>
                 </div>
                 
                 <div style="display: flex; flex-direction: column; gap: 1.5rem;">
                     <div>
-                        <label class="text-sm font-bold text-muted">Generated Output</label>
+                        <label class="text-sm font-bold text-muted">Generated Listing</label>
                         <div class="p-2 bg-gray-100 rounded mt-1" style="border: 1px solid var(--border-color);">
                             <div style="font-weight: 600; margin-bottom: 0.5rem;">${escapeHtml(log.generated_title || (logKind === 'Generation' ? 'No Title' : 'Not a generation log'))}</div>
                             <div style="white-space: pre-wrap; font-size: 0.875rem;">${escapeHtml(log.generated_description || (logKind === 'Generation' ? 'No Description' : 'This row records admin/extension telemetry, not AI output.'))}</div>

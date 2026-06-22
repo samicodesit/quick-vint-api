@@ -231,20 +231,33 @@ function buildAdminHarness() {
   vm.runInContext(script, context, { filename: "admin.html" });
 
   return {
-    context: context as typeof context & { loadView: (view: string) => Promise<void>; state: { currentView: string } },
+    context: context as typeof context & {
+      loadView: (view: string) => Promise<void>;
+      showLogDetails: (id: string) => void;
+      state: { currentView: string; logsType: string };
+    },
     content: el("contentArea"),
+    modalBody: el("modalBody"),
+    modalTitle: el("modalTitle"),
   };
 }
 
 describe("admin HTML", () => {
   it("renders every admin view without runtime view errors", async () => {
-    const { context, content } = buildAdminHarness();
+    const { context, content, modalBody, modalTitle } = buildAdminHarness();
 
     for (const view of ["overview", "growth", "events", "logs", "users"]) {
+      if (view === "logs") context.state.logsType = "events";
       context.state.currentView = view;
       await context.loadView(view);
       expect(content.innerHTML, view).not.toContain("Error loading view");
       expect(content.innerHTML.length, view).toBeGreaterThan(1000);
     }
+
+    context.showLogDetails("log-1");
+    expect(modalTitle.textContent).toBe("Event Details");
+    expect(modalBody.innerHTML).toContain("Context");
+    expect(modalBody.innerHTML).not.toContain("Input Images");
+    expect(modalBody.innerHTML).not.toContain("Generated Output");
   });
 });

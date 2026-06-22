@@ -234,16 +234,37 @@
             gap: 0.75rem;
         }
 
+        .sidebar-brand {
+            display: grid;
+            gap: 0.05rem;
+            min-width: 0;
+        }
+
+        .sidebar-brand-name {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 750;
+            line-height: 1.15;
+        }
+
+        .sidebar-brand-meta {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
         .sidebar-nav {
             padding: 1.5rem 0.75rem;
             flex: 1;
         }
 
         .nav-item {
-            display: flex;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
             align-items: center;
             gap: 0.75rem;
-            padding: 0.5rem 0.75rem;
+            padding: 0.65rem 0.75rem;
             color: var(--text-muted);
             text-decoration: none;
             border-radius: var(--radius-sm);
@@ -264,6 +285,65 @@
             color: var(--text-main);
             box-shadow: var(--shadow-sm);
             border: 1px solid var(--border-color);
+        }
+
+        .nav-copy {
+            display: grid;
+            gap: 0.02rem;
+            min-width: 0;
+        }
+
+        .nav-label {
+            color: inherit;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .nav-meta {
+            color: var(--text-light);
+            font-size: 0.72rem;
+            font-weight: 500;
+            line-height: 1.25;
+        }
+
+        .nav-item.active .nav-meta {
+            color: var(--text-muted);
+        }
+
+        .sidebar-status {
+            background: #111827;
+            border: 1px solid #111827;
+            border-radius: var(--radius-md);
+            color: rgba(255, 255, 255, 0.72);
+            display: grid;
+            gap: 0.45rem;
+            margin: 0.5rem 0 0.9rem;
+            padding: 0.85rem;
+        }
+
+        .sidebar-status-title {
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 850;
+        }
+
+        .sidebar-status-copy {
+            font-size: 0.76rem;
+            line-height: 1.35;
+        }
+
+        .sidebar-status-link {
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: var(--radius-sm);
+            color: #fff;
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.76rem;
+            font-weight: 750;
+            padding: 0.45rem 0.55rem;
+            text-align: left;
         }
 
         .sidebar-footer {
@@ -322,9 +402,26 @@
             color: var(--text-main);
         }
 
+        .page-heading {
+            display: grid;
+            gap: 0.05rem;
+            min-width: 0;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 500;
+            line-height: 1.25;
+        }
+
         @media (max-width: 768px) {
             .page-title {
                 font-size: 1rem;
+            }
+
+            .page-subtitle {
+                display: none;
             }
         }
 
@@ -614,6 +711,50 @@
             color: var(--text-muted);
             font-size: 0.83rem;
             line-height: 1.35;
+        }
+
+        .view-brief {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            display: grid;
+            gap: 0.85rem;
+            margin-bottom: 1rem;
+            padding: 1.1rem 1.25rem;
+        }
+
+        .view-brief-top {
+            align-items: flex-start;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 720px) {
+            .view-brief-top {
+                display: grid;
+            }
+        }
+
+        .view-brief-title {
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 850;
+            margin-bottom: 0.18rem;
+        }
+
+        .view-brief-copy {
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            line-height: 1.4;
+            max-width: 760px;
+        }
+
+        .view-brief-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
         }
 
         .insight-grid {
@@ -2178,10 +2319,18 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <img src="/logo.svg" alt="Logo" style="width: 24px; height: 24px;">
-                <span>AutoLister AI</span>
+                <div class="sidebar-brand">
+                    <span class="sidebar-brand-name">AutoLister AI</span>
+                    <span class="sidebar-brand-meta">Operator console</span>
+                </div>
             </div>
 
             <nav class="sidebar-nav">
+                <div class="sidebar-status">
+                    <div class="sidebar-status-title">Newest signal: uninstall feedback</div>
+                    <div class="sidebar-status-copy">Version 1.3.19+ can report why users leave. Start in Events before scaling installs.</div>
+                    <button type="button" class="sidebar-status-link" onclick="switchView('events')">Open feedback workbench</button>
+                </div>
                 <div class="nav-item active" data-view="overview" onclick="switchView('overview')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2190,7 +2339,10 @@
                         <rect x="14" y="14" width="7" height="7"></rect>
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
-                    <span>Command</span>
+                    <span class="nav-copy">
+                        <span class="nav-label">Command</span>
+                        <span class="nav-meta">What to inspect next</span>
+                    </span>
                 </div>
                 <div class="nav-item" data-view="growth" onclick="switchView('growth')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -2198,7 +2350,10 @@
                         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
                         <polyline points="16 7 22 7 22 13"></polyline>
                     </svg>
-                    <span>Growth</span>
+                    <span class="nav-copy">
+                        <span class="nav-label">Growth</span>
+                        <span class="nav-meta">Store KPIs and playbook</span>
+                    </span>
                 </div>
                 <div class="nav-item" data-view="events" onclick="switchView('events')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -2208,7 +2363,10 @@
                         <path d="M8 13h5"></path>
                         <path d="M8 17h8"></path>
                     </svg>
-                    <span>Events</span>
+                    <span class="nav-copy">
+                        <span class="nav-label">Events</span>
+                        <span class="nav-meta">Uninstall reasons and signals</span>
+                    </span>
                 </div>
                 <div class="nav-item" data-view="logs" onclick="switchView('logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -2217,7 +2375,10 @@
                             d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
                         </path>
                     </svg>
-                    <span>API Logs</span>
+                    <span class="nav-copy">
+                        <span class="nav-label">Logs</span>
+                        <span class="nav-meta">Debug requests and events</span>
+                    </span>
                 </div>
                 <div class="nav-item" data-view="users" onclick="switchView('users')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -2227,7 +2388,10 @@
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
-                    <span>Users</span>
+                    <span class="nav-copy">
+                        <span class="nav-label">Users</span>
+                        <span class="nav-meta">Accounts, usage, review email</span>
+                    </span>
                 </div>
                 <a class="nav-item" href="/email-templates" target="_blank" rel="noopener" style="text-decoration: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -2235,7 +2399,10 @@
                         <path d="M4 4h16v16H4z"></path>
                         <path d="m22 6-10 7L2 6"></path>
                     </svg>
-                    <span>Email Templates</span>
+                    <span class="nav-copy">
+                        <span class="nav-label">Email Templates</span>
+                        <span class="nav-meta">Preview outbound copy</span>
+                    </span>
                 </a>
             </nav>
 
@@ -2264,7 +2431,10 @@
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
                     </button>
-                    <h2 id="pageTitle" class="page-title">Command Center</h2>
+                    <div class="page-heading">
+                        <h2 id="pageTitle" class="page-title">Command Center</h2>
+                        <div id="pageSubtitle" class="page-subtitle">What to inspect next across growth, users, events, and logs.</div>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span id="lastUpdated" class="text-sm text-muted" style="display: none;">Updated just now</span>
@@ -2438,8 +2608,40 @@
                 btn.classList.toggle('active', btn.dataset.view === viewName);
             });
 
-            const titles = { overview: 'Command Center', growth: 'Growth', events: 'Event Workbench', logs: 'API Logs', users: 'User Management' };
-            document.getElementById('pageTitle').textContent = titles[viewName] || 'Command Center';
+            const routeMeta = getRouteMeta(viewName);
+            document.getElementById('pageTitle').textContent = routeMeta.title;
+            document.getElementById('pageSubtitle').textContent = routeMeta.subtitle;
+        }
+
+        function getRouteMeta(viewName) {
+            const routes = {
+                overview: {
+                    title: 'Command Center',
+                    subtitle: 'What to inspect next across growth, users, events, and logs.',
+                    loading: 'Combining usage, growth, uninstall feedback, and recent events...'
+                },
+                growth: {
+                    title: 'Growth',
+                    subtitle: 'Chrome Store KPIs, funnel quality, and the current operating playbook.',
+                    loading: 'Loading growth funnel, Chrome Store context, and KPI guidance...'
+                },
+                events: {
+                    title: 'Event Workbench',
+                    subtitle: 'Uninstall reasons, checkout intent, product errors, and raw event signals.',
+                    loading: 'Loading uninstall feedback, event families, and priority signals...'
+                },
+                logs: {
+                    title: 'Logs',
+                    subtitle: 'Raw generation, system, and event logs for debugging user problems.',
+                    loading: 'Loading request logs and event traces...'
+                },
+                users: {
+                    title: 'Users',
+                    subtitle: 'Accounts, usage limits, review email eligibility, and support actions.',
+                    loading: 'Loading users, usage counters, and account actions...'
+                }
+            };
+            return routes[viewName] || routes.overview;
         }
 
         window.addEventListener('hashchange', () => {
@@ -2471,7 +2673,8 @@
         async function loadView(view) {
             const content = document.getElementById('contentArea');
 
-            content.innerHTML = `<div class="loading-state"><div class="spinner"></div><span>Loading ${escapeHtml(view)}...</span></div>`;
+            const routeMeta = getRouteMeta(view);
+            content.innerHTML = `<div class="loading-state"><div class="spinner"></div><span>${escapeHtml(routeMeta.loading)}</span></div>`;
             content.style.opacity = '1';
             content.style.transition = 'opacity 0.15s ease';
 
@@ -4115,6 +4318,19 @@
             const data = await fetchAPI(`/api/admin?${params}`);
 
             const logsHtml = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">Debug by signal type</div>
+                            <div class="view-brief-copy">Use Generation logs for AI output problems, Event logs for uninstall feedback and product behavior, and System logs for backend issues.</div>
+                        </div>
+                        <div class="view-brief-actions">
+                            <button class="btn-secondary" onclick="state.logsType='events'; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">Event logs</button>
+                            <button class="btn-secondary" onclick="state.logsType='generation'; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">Generation logs</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="filters-bar">
                     <input type="text" placeholder="Search by User ID..." class="filter-input" id="logSearch">
                     <select class="filter-input" onchange="state.logsType=this.value; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">
@@ -4283,6 +4499,20 @@
             ];
 
             const usersHtml = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">User operations</div>
+                            <div class="view-brief-copy">Segment users by what you can act on: today signups, recent activity, high usage, paid accounts, and review-email candidates. The review button respects unsubscribe and paused-account rules.</div>
+                        </div>
+                        <div class="view-brief-actions">
+                            <button class="btn-secondary" onclick="setUsersSegment('today')">Today</button>
+                            <button class="btn-secondary" onclick="setUsersSegment('at-risk')">High usage</button>
+                            <button class="btn-secondary" onclick="window.open('/email-templates', '_blank', 'noopener')">Email templates</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="segmented-control" aria-label="User segments">
                     ${segments.map(([value, label]) => `
                         <button class="segment-btn ${state.usersSegment === value ? 'active' : ''}" onclick="setUsersSegment('${value}')">${label}</button>

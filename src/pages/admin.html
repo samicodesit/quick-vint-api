@@ -456,6 +456,109 @@
             color: var(--danger-text);
         }
 
+        .insight-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .insight-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .insight-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 1.25rem;
+        }
+
+        .insight-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
+
+        .insight-copy {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .diagnostic-list,
+        .action-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .diagnostic-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            background: var(--bg-subtle);
+        }
+
+        .diagnostic-item.good {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+        }
+
+        .diagnostic-item.watch {
+            border-color: #fde68a;
+            background: #fffbeb;
+        }
+
+        .diagnostic-item.problem {
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+
+        .diagnostic-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .diagnostic-note,
+        .action-note {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        .action-item {
+            display: flex;
+            gap: 0.65rem;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .action-item:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .action-number {
+            align-items: center;
+            background: var(--primary);
+            border-radius: 999px;
+            color: var(--primary-text);
+            display: inline-flex;
+            flex: 0 0 auto;
+            font-size: 0.75rem;
+            font-weight: 700;
+            height: 1.45rem;
+            justify-content: center;
+            width: 1.45rem;
+        }
+
         /* Tables */
         .card {
             background: var(--bg-card);
@@ -1666,8 +1769,153 @@
             const last7 = data.last7 || {};
             const last30 = data.last30 || {};
             const rates = data.rates || {};
+            const avgSignups7 = Number(last7.signups || 0) / 7;
+            const avgGenerations7 = Number(last7.successfulGenerations || 0) / 7;
+
+            function diagnostic(label, value, state, note) {
+                return { label, value, state, note };
+            }
+
+            function action(title, note) {
+                return { title, note };
+            }
+
+            const diagnostics = [
+                diagnostic(
+                    'Acquisition',
+                    `${avgSignups7.toFixed(1)} signups/day`,
+                    avgSignups7 >= 10 ? 'good' : avgSignups7 >= 4 ? 'watch' : 'problem',
+                    avgSignups7 >= 10
+                        ? 'Enough top-of-funnel to learn quickly.'
+                        : avgSignups7 >= 4
+                            ? 'Okay for now, but still founder-led and SEO-driven.'
+                            : 'Too little traffic. Work on outreach, store listing, and SEO before product experiments.'
+                ),
+                diagnostic(
+                    'Activation',
+                    pct(rates.activationPerSignup30d),
+                    Number(rates.activationPerSignup30d || 0) >= 70 ? 'good' : Number(rates.activationPerSignup30d || 0) >= 45 ? 'watch' : 'problem',
+                    Number(rates.activationPerSignup30d || 0) >= 70
+                        ? 'New users are reaching generation at a healthy rate.'
+                        : Number(rates.activationPerSignup30d || 0) >= 45
+                            ? 'Usable, but onboarding and first-generation friction still matter.'
+                            : 'People sign up but do not generate. Fix onboarding before adding traffic.'
+                ),
+                diagnostic(
+                    'Retention',
+                    pct(rates.repeatActive30d),
+                    Number(rates.repeatActive30d || 0) >= 40 ? 'good' : Number(rates.repeatActive30d || 0) >= 30 ? 'watch' : 'problem',
+                    Number(rates.repeatActive30d || 0) >= 40
+                        ? 'Strong enough to scale acquisition more confidently.'
+                        : Number(rates.repeatActive30d || 0) >= 30
+                            ? 'Improving, but keep working on second-day usage.'
+                            : 'This is the current bottleneck. Do not spend heavily on ads yet.'
+                ),
+                diagnostic(
+                    'Monetization',
+                    pct(rates.signupToPaid30d),
+                    Number(rates.signupToPaid30d || 0) >= 8 ? 'good' : Number(rates.signupToPaid30d || 0) >= 4 ? 'watch' : 'problem',
+                    Number(rates.signupToPaid30d || 0) >= 8
+                        ? 'Paid conversion is strong for this stage.'
+                        : Number(rates.signupToPaid30d || 0) >= 4
+                            ? 'Acceptable; improve after retention.'
+                            : 'Paid conversion is weak. Revisit pricing, paywall timing, and value proof.'
+                ),
+                diagnostic(
+                    'Paywall',
+                    `${fmt(last30.paywallShown)} shown -> ${fmt(last30.checkoutStart)} checkout starts`,
+                    Number(last30.paywallShown || 0) < 10
+                        ? 'watch'
+                        : Number(rates.paywallToCheckout30d || 0) >= 15
+                            ? 'good'
+                            : 'problem',
+                    Number(last30.paywallShown || 0) < 10
+                        ? 'Not enough paywall volume yet. Read this directionally only.'
+                        : Number(rates.paywallToCheckout30d || 0) >= 15
+                            ? 'The upgrade prompt is converting enough to keep.'
+                            : 'Users hit limits but do not start checkout. Simplify the paywall or pricing choice.'
+                ),
+            ];
+
+            let focus = 'Retention';
+            let focusReason = 'Repeat active usage is below the level where paid acquisition makes sense.';
+            let actions = [
+                action('Talk to 5 users who generated once but did not return.', 'Ask what stopped their next listing session: forgot, no need, friction, trust, price, or Vinted workflow.'),
+                action('Do 20 targeted seller outreaches today.', 'Prioritize active Vinted sellers with many listings and weak descriptions. Offer the Chrome extension directly.'),
+                action('Check Chrome Web Store dashboard manually.', 'Record impressions, visitors, installs, uninstall rate, rating count, and search terms in your notes.'),
+            ];
+
+            if (avgSignups7 < 4) {
+                focus = 'Acquisition';
+                focusReason = 'There are not enough new users per day to learn quickly.';
+                actions = [
+                    action('Do 30 founder-led outreaches today.', 'Use sellers with many active listings. Do not send generic SaaS copy. Show the exact Vinted listing pain.'),
+                    action('Improve one Chrome Web Store asset.', 'Screenshot, short description, or first paragraph. Keep "Vinted description generator" visible.'),
+                    action('Publish or improve one SEO page.', 'Use one keyword: Vinted description generator, Vinted title generator, or Vinted listing description template.'),
+                ];
+            } else if (Number(rates.activationPerSignup30d || 0) < 45) {
+                focus = 'Activation';
+                focusReason = 'People are signing up but not reaching a successful generation.';
+                actions = [
+                    action('Watch the first-generation flow end to end.', 'Install fresh, sign in, upload photo, generate. Remove the first confusing step you see.'),
+                    action('Inspect generate_missing_photo and generate_error events.', 'If these are high, the product is failing before users see value.'),
+                    action('Make first success obvious.', 'The first user job is one complete Vinted title and description, not exploring settings.'),
+                ];
+            } else if (Number(rates.repeatActive30d || 0) >= 30 && Number(rates.paywallToCheckout30d || 0) < 10 && Number(last30.paywallShown || 0) >= 10) {
+                focus = 'Paywall';
+                focusReason = 'Users hit limits, but the upgrade prompt is not creating enough checkout starts.';
+                actions = [
+                    action('Simplify paywall choice.', 'Default to Starter, keep credit pack secondary, and reduce competing copy.'),
+                    action('Review price objection messages from users.', 'If people say they only list occasionally, make one-time credits more visible.'),
+                    action('Compare checkout_start by source.', 'Extension paywall should outperform generic pricing-page clicks.'),
+                ];
+            } else if (Number(rates.repeatActive30d || 0) >= 40 && Number(rates.signupToPaid30d || 0) >= 8) {
+                focus = 'Scale';
+                focusReason = 'The funnel is healthy enough to increase acquisition volume.';
+                actions = [
+                    action('Increase outreach volume or test creator posts.', 'Keep tests small and measure install -> first generation -> paid conversion.'),
+                    action('Ask 5 paid users for a Chrome Store rating.', 'Rating count is still low, and store trust matters.'),
+                    action('Test one paid channel with a hard cap.', 'Only continue if active generators and paid users move, not just clicks.'),
+                ];
+            }
 
             container.innerHTML = `
+                <div class="insight-grid">
+                    <div class="insight-card">
+                        <div class="insight-title">What this means</div>
+                        <div class="insight-copy">
+                            Current focus: <strong>${escapeHtml(focus)}</strong>. ${escapeHtml(focusReason)}
+                        </div>
+                        <div class="diagnostic-list">
+                            ${diagnostics.map(item => `
+                                <div class="diagnostic-item ${item.state}">
+                                    <div class="diagnostic-head">
+                                        <span>${escapeHtml(item.label)}</span>
+                                        <span>${escapeHtml(item.value)}</span>
+                                    </div>
+                                    <div class="diagnostic-note">${escapeHtml(item.note)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="insight-card">
+                        <div class="insight-title">What to do today</div>
+                        <div class="insight-copy">Do these before staring at more charts.</div>
+                        <div class="action-list">
+                            ${actions.map((item, index) => `
+                                <div class="action-item">
+                                    <span class="action-number">${index + 1}</span>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 0.9rem;">${escapeHtml(item.title)}</div>
+                                        <div class="action-note">${escapeHtml(item.note)}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid-stats">
                     <div class="stat-card">
                         <div class="stat-label">Today's Signups</div>

@@ -63,6 +63,29 @@ Check this every morning:
 - Limit hits -> paywall shown -> checkout started -> checkout opened
 - Chrome Store clicks from the site
 
+How to read it:
+
+- The top `What this means` panel is the main thing. It chooses a current focus from Acquisition, Activation, Retention, Paywall, or Scale.
+- The `What to do today` panel is the operating checklist. Do those actions before spending more time interpreting charts.
+- The chart and tables explain why the recommendation exists; they are not the work by themselves.
+
+Thresholds:
+
+- Acquisition is weak below 4 signups/day over the last 7 days.
+- Activation is weak below 45% of 30-day signups becoming active generators.
+- Retention is weak below 30% repeat active users. Do not spend heavily on ads below this.
+- Retention is strong above 40% repeat active users.
+- Signup-to-paid is acceptable at 4% to 8% and strong above 8% at this stage.
+- Paywall is weak if 10+ paywalls were shown and fewer than 10% became checkout starts.
+
+Decision map:
+
+- If acquisition is weak, do founder-led outreach, Chrome Store listing work, and one SEO asset.
+- If activation is weak, fix first-generation onboarding before adding traffic.
+- If retention is weak, talk to one-time users and improve second-day usage.
+- If paywall is weak, simplify pricing/paywall choices.
+- If retention and monetization are both strong, then scale acquisition volume.
+
 Manual daily inputs still needed:
 
 - Chrome Web Store listing impressions

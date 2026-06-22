@@ -618,7 +618,7 @@
         .operator-status-row {
             display: grid;
             gap: 0.55rem;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             margin-top: 1rem;
         }
 
@@ -2653,6 +2653,10 @@
                     </div>
                     <div class="operator-status-row">
                         <div class="operator-status-card">
+                            <div class="operator-status-title">Mode</div>
+                            <div class="operator-status-copy">${escapeHtml(advisor.mode)}</div>
+                        </div>
+                        <div class="operator-status-card">
                             <div class="operator-status-title">Stop when</div>
                             <div class="operator-status-copy">${escapeHtml(stopText)}</div>
                         </div>
@@ -2673,7 +2677,7 @@
                     <textarea id="growthAdvisorResult" class="advisor-result-input" placeholder="Optional: what did you do or learn? Example: changed next-item CTA, updated screenshot 1, checked logs and saw missing-photo errors."></textarea>
                     <div class="advisor-buttons">
                         <button class="btn-secondary" style="background:#fff;" onclick="markGrowthAdvisorDone()">Mark action done</button>
-                        <button class="btn-secondary" style="background:#fff;" onclick="copyGrowthBrief()">Copy Codex brief</button>
+                        <button class="btn-secondary" style="background:#fff;" onclick="copyGrowthBrief()">${advisor.shouldEscalate ? 'Ask Codex with brief' : 'Copy Codex brief'}</button>
                     </div>
                 </div>
 
@@ -3806,6 +3810,23 @@
                         note: 'This focus is already marked done today. Check again tomorrow or after a real product/store change.',
                     }
                     : input.primaryAction || { title: 'Open Growth data', note: 'Save the current data snapshot first.' };
+            const shouldEscalate = loopDetected || confidence === 'low' || (sameFocusRecent.length >= 1 && !doneToday && input.focus !== 'Measurement');
+            const mode = doneToday
+                ? 'Closed for today'
+                : loopDetected
+                    ? 'Escalate to Codex'
+                    : input.focus === 'Measurement'
+                        ? 'Setup data'
+                        : confidence === 'low'
+                            ? 'Act, but ask Codex if unsure'
+                            : 'Execute one action';
+            const escalationRule = loopDetected
+                ? 'Ask Codex now because the same focus repeated twice in 7 days.'
+                : confidence === 'low'
+                    ? 'Ask Codex if the command still feels unclear after reading the scorecards.'
+                    : sameFocusRecent.length >= 1 && input.focus !== 'Measurement'
+                        ? 'Ask Codex before repeating yesterday’s action.'
+                        : 'No handoff needed unless new data contradicts the command.';
             const plainDiagnosisByFocus = {
                 Measurement: 'The system cannot make a strong call until the Chrome Store snapshot is saved with the same 30-day reporting period.',
                 'Store Listing': 'Enough people see the listing, but too many do not install or churn quickly. Fix trust and intent before building more product.',
@@ -3836,6 +3857,9 @@
                     : doneToday
                         ? `Today's ${input.focus} action is already recorded. Only reopen this if new data changed.`
                         : plainDiagnosisByFocus[input.focus] || input.focusReason,
+                mode,
+                shouldEscalate,
+                escalationRule,
                 confidence,
                 timebox: input.focus === 'Measurement' ? '10 minutes' : '60-90 minutes',
                 primaryAction,
@@ -3871,10 +3895,21 @@
                 `Date: ${new Date().toISOString().slice(0, 10)}`,
                 `Focus: ${input.focus}`,
                 `Advisor state: ${input.advisor.state}`,
+                `Operating mode: ${input.advisor.mode}`,
                 `Confidence: ${input.advisor.confidence}`,
+                `Escalation rule: ${input.advisor.escalationRule}`,
                 `Primary action: ${input.advisor.primaryAction.title}`,
                 `Primary action note: ${input.advisor.primaryAction.note}`,
+                `Stop condition: ${input.advisor.stopCondition}`,
                 `Reason: ${input.focusReason}`,
+                '',
+                'Product-specific rules:',
+                'Chrome Web Store dashboard minimum useful reporting period is 30 days; do not ask for 7-day CWS snapshots.',
+                'This product has a 5-free-generation limit, so repeat free usage is not the main KPI.',
+                'Prioritize install -> first successful generation -> 2+ generations/quota pressure -> paid intent.',
+                'Do not suggest vague user research. If contact is needed, provide exact scripts and who to contact.',
+                'Do not suggest email campaigns unless there is a specific trigger, audience, copy, and success metric.',
+                'Keep the answer short: today action, this week action, what not to do.',
                 '',
                 'Chrome Store snapshot:',
                 `Period: ${input.chromePeriod.label}`,

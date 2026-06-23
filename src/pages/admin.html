@@ -1897,6 +1897,124 @@
             white-space: nowrap;
         }
 
+        .activity-feed {
+            display: grid;
+            gap: 0;
+        }
+
+        .activity-row {
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: grid;
+            gap: 0.85rem;
+            grid-template-columns: 74px 34px 48px minmax(0, 1fr) auto;
+            padding: 0.75rem 1rem;
+        }
+
+        .activity-row:last-child {
+            border-bottom: 0;
+        }
+
+        .activity-row:hover {
+            background: var(--bg-subtle);
+        }
+
+        .activity-icon {
+            align-items: center;
+            background: #f3f4f6;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            color: var(--text-muted);
+            display: inline-flex;
+            font-size: 0.9rem;
+            font-weight: 850;
+            height: 32px;
+            justify-content: center;
+            width: 32px;
+        }
+
+        .activity-icon.success {
+            background: var(--success-bg);
+            border-color: rgba(5, 150, 105, 0.16);
+            color: var(--success-text);
+        }
+
+        .activity-icon.warning {
+            background: var(--warning-bg);
+            border-color: rgba(217, 119, 6, 0.16);
+            color: var(--warning-text);
+        }
+
+        .activity-icon.danger {
+            background: var(--danger-bg);
+            border-color: rgba(220, 38, 38, 0.16);
+            color: var(--danger-text);
+        }
+
+        .activity-thumb {
+            align-items: center;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-light);
+            display: inline-flex;
+            font-size: 0.78rem;
+            font-weight: 750;
+            height: 42px;
+            justify-content: center;
+            overflow: hidden;
+            width: 42px;
+        }
+
+        .activity-thumb img {
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .activity-main {
+            min-width: 0;
+        }
+
+        .activity-title {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-weight: 800;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .activity-meta {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            line-height: 1.35;
+            margin-top: 0.15rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .activity-side {
+            align-items: flex-end;
+            display: grid;
+            gap: 0.35rem;
+            justify-items: end;
+        }
+
+        @media (max-width: 760px) {
+            .activity-row {
+                grid-template-columns: 54px 32px minmax(0, 1fr);
+            }
+
+            .activity-thumb,
+            .activity-side {
+                display: none;
+            }
+        }
+
         .usage-stack {
             display: grid;
             gap: 0.45rem;
@@ -4383,28 +4501,71 @@
             }).join('');
         }
 
-        function renderMixedLogRows(logs) {
-            return logs.map(log => {
-                const logKind = getLogKind(log);
-                const isGeneration = logKind === 'Generation';
+        function parseLogImages(log) {
+            try {
+                if (typeof log.image_urls === 'string') return JSON.parse(log.image_urls);
+                if (Array.isArray(log.image_urls)) return log.image_urls;
+            } catch (e) { }
+            return [];
+        }
+
+        function getActivityIcon(log, eventName) {
+            const kind = getLogKind(log);
+            if (log.response_status >= 400 || eventName === 'generate_error') return { symbol: '!', className: 'danger' };
+            if (eventName === 'generate_cancelled') return { symbol: 'x', className: 'warning' };
+            if (eventName === 'generate_success' || log.endpoint === '/api/generate') return { symbol: '✓', className: 'success' };
+            if (kind === 'Event') return { symbol: '•', className: '' };
+            return { symbol: 'i', className: '' };
+        }
+
+        function getActivitySummary(log) {
+            const kind = getLogKind(log);
+            if (kind === 'Event') {
+                const eventName = (log.endpoint || '').replace('/event/', '');
+                return friendlyEventName(eventName);
+            }
+            if (kind === 'Generation') {
+                return log.generated_title || 'Generated listing request';
+            }
+            return log.endpoint || 'System log';
+        }
+
+        function getActivityDetail(log) {
+            const kind = getLogKind(log);
+            if (kind === 'Event') return getLogContext(log);
+            if (kind === 'Generation') {
                 const cost = (log.openai_tokens_used || 0) * 0.0000005;
-                const model = log.openai_model || (isGeneration ? 'unknown model' : 'n/a');
-                const detail = isGeneration
-                    ? `${getLogPreview(log)} · ${model} · $${cost.toFixed(5)}`
-                    : getLogContext(log);
+                const imageCount = parseLogImages(log).length;
+                return `${imageCount || 0} image${imageCount === 1 ? '' : 's'} · ${log.openai_model || 'unknown model'} · $${cost.toFixed(5)}`;
+            }
+            return getLogPreview(log);
+        }
+
+        function renderActivityFeed(logs) {
+            return logs.map(log => {
+                const eventName = typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')
+                    ? log.endpoint.replace('/event/', '')
+                    : '';
+                const icon = getActivityIcon(log, eventName);
+                const images = parseLogImages(log);
+                const thumb = images.length
+                    ? `<img src="${escapeHtml(images[0])}" alt="Item preview" loading="lazy">`
+                    : (getLogKind(log) === 'Generation' ? 'img' : '');
 
                 return `
-                    <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
-                        <td><div class="log-time">${formatDateTime(log.created_at)}</div></td>
-                        <td>
-                            <div class="log-primary">${escapeHtml(logKind)}</div>
-                            <div class="log-secondary">${escapeHtml(log.endpoint || '-')}</div>
-                        </td>
-                        <td><div class="log-primary">${getLogActor(log)}</div></td>
-                        <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
-                        <td><div class="log-detail">${escapeHtml(detail)}</div></td>
-                        <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
-                    </tr>
+                    <div class="activity-row" onclick="showLogDetails('${log.id}')">
+                        <div class="log-time">${formatDateTime(log.created_at)}</div>
+                        <div class="activity-icon ${icon.className}">${escapeHtml(icon.symbol)}</div>
+                        <div class="activity-thumb">${thumb}</div>
+                        <div class="activity-main">
+                            <div class="activity-title">${escapeHtml(getActivitySummary(log))}</div>
+                            <div class="activity-meta">${getLogActor(log)} · ${escapeHtml(getActivityDetail(log))}</div>
+                        </div>
+                        <div class="activity-side">
+                            <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
+                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
+                        </div>
+                    </div>
                 `;
             }).join('');
         }
@@ -4481,12 +4642,15 @@
                 ? renderEventLogRows(data.logs || [])
                 : isGenerationLogView
                     ? renderGenerationLogRows(data.logs || [])
-                    : renderMixedLogRows(data.logs || []);
+                    : '';
             const mobileRows = isEventLogView
                 ? renderEventLogMobileCards(data.logs || [])
                 : isGenerationLogView
                     ? renderGenerationLogMobileCards(data.logs || [])
                     : renderMixedLogMobileCards(data.logs || []);
+            const activityFeed = !isEventLogView && !isGenerationLogView
+                ? renderActivityFeed(data.logs || [])
+                : '';
 
             const logsHtml = `
                 <div class="logs-toolbar">
@@ -4513,19 +4677,21 @@
                 </div>
 
                 <div class="card log-table">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                ${desktopHeaders}
-                            </thead>
-                            <tbody>
-                                ${desktopRows || `<tr><td colspan="${isGenerationLogView ? 9 : 6}" class="text-muted">No logs found.</td></tr>`}
-                            </tbody>
-                        </table>
-                        <div class="mobile-card-list">
-                            ${mobileRows || `<div class="empty-state">No logs found.</div>`}
-                        </div>
-                    </div>
+                    ${activityFeed
+                        ? `<div class="activity-feed">${activityFeed}</div>`
+                        : `<div class="table-container">
+                            <table>
+                                <thead>
+                                    ${desktopHeaders}
+                                </thead>
+                                <tbody>
+                                    ${desktopRows || `<tr><td colspan="${isGenerationLogView ? 9 : 6}" class="text-muted">No logs found.</td></tr>`}
+                                </tbody>
+                            </table>
+                            <div class="mobile-card-list">
+                                ${mobileRows || `<div class="empty-state">No logs found.</div>`}
+                            </div>
+                        </div>`}
                 </div>
             `;
 

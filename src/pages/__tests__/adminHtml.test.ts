@@ -166,6 +166,20 @@ function buildAdminHarness() {
         },
         image_urls: [],
       },
+      {
+        id: "log-2",
+        created_at: now,
+        endpoint: "/api/generate",
+        response_status: 200,
+        user_id: "user-1",
+        user_email: "test@example.com",
+        full_request_body: {},
+        image_urls: JSON.stringify(["https://example.com/item.jpg"]),
+        openai_model: "gpt-4o",
+        openai_tokens_used: 1100,
+        generated_title: "Blue denim jacket",
+        generated_description: "A clean generated listing.",
+      },
     ],
   };
 
@@ -260,5 +274,12 @@ describe("admin HTML", () => {
     expect(modalBody.innerHTML).toContain("existing-description choice");
     expect(modalBody.innerHTML).not.toContain("Input Images");
     expect(modalBody.innerHTML).not.toContain("Generated Output");
+
+    context.state.logsType = "all";
+    context.state.currentView = "logs";
+    await context.loadView("logs");
+    expect(content.innerHTML).toContain("activity-feed");
+    expect(content.innerHTML).toContain("Blue denim jacket");
+    expect(content.innerHTML).toContain("https://example.com/item.jpg");
   });
 });

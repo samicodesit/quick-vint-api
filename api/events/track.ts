@@ -48,6 +48,23 @@ function parseBody(body: unknown) {
   }
 }
 
+function normalizeEventItems(body: Record<string, any>) {
+  const rawItems = Array.isArray(body.events) ? body.events : [body];
+  return rawItems
+    .slice(0, 25)
+    .map((item) => (item && typeof item === "object" ? item : {}))
+    .map((item) => ({
+      event: sanitizeEventName(item.event),
+      source: item.source ?? body.source ?? null,
+      page: item.page ?? body.page ?? null,
+      plan: item.plan ?? body.plan ?? null,
+      context: item.context ?? null,
+      extensionVersion: item.extensionVersion ?? body.extensionVersion ?? null,
+      utm: item.utm ?? body.utm ?? null,
+    }))
+    .filter((item) => item.event);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await runCors(req, res);
@@ -65,8 +82,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const body = parseBody(req.body) as Record<string, any>;
-  const event = sanitizeEventName(body.event);
-  if (!event) {
+  const eventItems = normalizeEventItems(body);
+  if (!eventItems.length) {
     return res.status(400).json({ error: "Missing event name" });
   }
 
@@ -83,22 +100,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const metadata = ApiLogger.extractRequestMetadata(req);
-  await ApiLogger.logRequest({
-    ...metadata,
-    userId,
-    userEmail,
-    endpoint: `/event/${event}`,
-    responseStatus: 204,
-    fullRequestBody: {
-      event,
-      source: body.source || null,
-      page: body.page || null,
-      plan: body.plan || null,
-      context: body.context || null,
-      extensionVersion: body.extensionVersion || null,
-      utm: body.utm || null,
-    },
-  });
+  await ApiLogger.logRequests(
+    eventItems.map((item) => ({
+      ...metadata,
+      userId,
+      userEmail,
+      endpoint: `/event/${item.event}`,
+      responseStatus: 204,
+      fullRequestBody: item,
+    })),
+  );
 
   return res.status(204).end();
 }

@@ -359,7 +359,9 @@
                 nextOrder: 0,
                 completeSent: false,
                 completeFailed: false,
-                wakeLock: null
+                wakeLock: null,
+                eventQueue: [],
+                eventFlushTimer: null
             };
 
             function createSessionId() {
@@ -380,18 +382,44 @@
 
             function trackUploadEvent(event, context = {}) {
                 try {
+                    state.eventQueue.push({
+                        event,
+                        source: 'phone_upload_page',
+                        page: `${location.origin}${location.pathname}`,
+                        context: {
+                            mode: getTrackingMode(),
+                            sessionId: state.sessionId,
+                            ...context
+                        }
+                    });
+
+                    if (state.eventQueue.length >= 6) {
+                        flushUploadEvents();
+                        return;
+                    }
+
+                    if (!state.eventFlushTimer) {
+                        state.eventFlushTimer = setTimeout(flushUploadEvents, 1200);
+                    }
+                } catch (error) {
+                    // Upload analytics must never block photo transfer.
+                }
+            }
+
+            function flushUploadEvents() {
+                if (state.eventFlushTimer) {
+                    clearTimeout(state.eventFlushTimer);
+                    state.eventFlushTimer = null;
+                }
+                if (!state.eventQueue.length) return;
+
+                const events = state.eventQueue.splice(0, state.eventQueue.length);
+                try {
                     fetch('/api/events/track', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            event,
-                            source: 'phone_upload_page',
-                            page: `${location.origin}${location.pathname}`,
-                            context: {
-                                mode: getTrackingMode(),
-                                sessionId: state.sessionId,
-                                ...context
-                            }
+                            events
                         })
                     }).catch(() => {});
                 } catch (error) {
@@ -530,11 +558,6 @@
                             item.done = true;
                             item.failed = false;
                             item.uploading = false;
-                            trackUploadEvent('phone_upload_file_success', {
-                                order: item.order,
-                                fileSize: item.file?.size || null,
-                                fileType: item.file?.type || null
-                            });
                             renderBatchProgress();
                             resolve();
                         } else {
@@ -545,10 +568,6 @@
                             }
                             item.failed = true;
                             item.uploading = false;
-                            trackUploadEvent('phone_upload_file_error', {
-                                order: item.order,
-                                status: xhr.status || null
-                            });
                             renderBatchProgress();
                             reject(new Error('Upload failed'));
                         }
@@ -561,11 +580,6 @@
                         }
                         item.failed = true;
                         item.uploading = false;
-                        trackUploadEvent('phone_upload_file_error', {
-                            order: item.order,
-                            status: null,
-                            reason: 'network'
-                        });
                         renderBatchProgress();
                         reject(new Error('Upload error'));
                     };
@@ -817,10 +831,34 @@
                 mainBtn.disabled = state.completeSent;
                 await releaseWakeLock();
                 renderBatchProgress();
+                flushUploadEvents();
+            }
+
+            async function sendSingleFiles(items) {
+                if (!items.length) return;
+                trackUploadEvent('phone_upload_send_start', {
+                    fileCount: items.length,
+                    retryCount: 0
+                });
+
+                let failedCount = 0;
+                await Promise.all(items.map(async (item) => {
+                    const ok = await prepareAndUploadItem(item, item.ui);
+                    if (!ok) failedCount += 1;
+                }));
+
+                trackUploadEvent('phone_upload_send_finished', {
+                    fileCount: items.length,
+                    sentCount: items.filter((item) => item.done).length,
+                    failedCount,
+                    completeSent: items.every((item) => item.done)
+                });
+                flushUploadEvents();
             }
 
             function handleFiles(files) {
-                Array.from(files).forEach(async (originalFile) => {
+                const singleItems = [];
+                Array.from(files).forEach((originalFile) => {
                     const order = state.nextOrder++;
 
                     const item = {
@@ -846,11 +884,13 @@
                         return;
                     }
 
-                    await prepareAndUploadItem(item, ui);
+                    singleItems.push(item);
                 });
 
                 if (isBatchMode() && files.length > 0) {
                     setTimeout(sendBatchFiles, 0);
+                } else if (singleItems.length > 0) {
+                    setTimeout(() => sendSingleFiles(singleItems), 0);
                 }
             }
 
@@ -891,6 +931,7 @@
                     requestWakeLock();
                 }
             });
+            window.addEventListener('pagehide', flushUploadEvents);
 
             sessionFooter.addEventListener('click', () => {
                 const modeParam = isBatchMode() ? '&mode=batch' : '';

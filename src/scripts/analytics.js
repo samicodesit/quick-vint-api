@@ -15,6 +15,37 @@ function getUtmParams() {
   }, {});
 }
 
+const eventQueue = [];
+let eventFlushTimer = null;
+
+function sendEventPayload(events) {
+  const body = JSON.stringify({ events });
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(
+      "/api/events/track",
+      new Blob([body], { type: "application/json" }),
+    );
+    return;
+  }
+
+  fetch("/api/events/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => {});
+}
+
+function flushTrackedEvents() {
+  if (eventFlushTimer) {
+    clearTimeout(eventFlushTimer);
+    eventFlushTimer = null;
+  }
+  if (!eventQueue.length) return;
+
+  sendEventPayload(eventQueue.splice(0, eventQueue.length));
+}
+
 export function trackEvent(event, properties = {}) {
   if (!event) return;
 
@@ -30,21 +61,15 @@ export function trackEvent(event, properties = {}) {
     window.gtag("event", event, payload);
   }
 
-  const body = JSON.stringify(payload);
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(
-      "/api/events/track",
-      new Blob([body], { type: "application/json" }),
-    );
+  eventQueue.push(payload);
+  if (eventQueue.length >= 6) {
+    flushTrackedEvents();
     return;
   }
 
-  fetch("/api/events/track", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {});
+  if (!eventFlushTimer) {
+    eventFlushTimer = setTimeout(flushTrackedEvents, 700);
+  }
 }
 
 function appendUtmToChromeLink(link) {
@@ -79,3 +104,4 @@ function bindTrackedClicks() {
 
 bindTrackedClicks();
 document.addEventListener("astro:page-load", bindTrackedClicks);
+window.addEventListener("pagehide", flushTrackedEvents);

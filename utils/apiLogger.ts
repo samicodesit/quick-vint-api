@@ -36,46 +36,58 @@ export interface ApiLogData {
 }
 
 export class ApiLogger {
+  private static buildInsertRow(data: ApiLogData) {
+    return {
+      user_id: data.userId,
+      endpoint: data.endpoint || "/api/generate",
+      request_method: data.requestMethod,
+      user_agent: data.userAgent,
+      origin: data.origin,
+      ip_address: data.ipAddress,
+
+      image_urls: data.imageUrls ? JSON.stringify(data.imageUrls) : null,
+      raw_prompt: data.rawPrompt,
+      full_request_body: data.fullRequestBody,
+
+      generated_title: data.generatedTitle,
+      generated_description: data.generatedDescription,
+      response_status: data.responseStatus,
+      openai_model: data.openaiModel,
+      openai_tokens_used: data.openaiTokensUsed,
+
+      user_email: data.userEmail,
+      subscription_tier: data.subscriptionTier,
+      subscription_status: data.subscriptionStatus,
+      api_calls_count: data.apiCallsCount,
+
+      processing_duration_ms: data.processingDurationMs,
+
+      suspicious_activity: data.suspiciousActivity || false,
+      flagged_reason: data.flaggedReason,
+    };
+  }
+
   /**
    * Log an API request with comprehensive data for monitoring and security
    */
   static async logRequest(data: ApiLogData): Promise<void> {
+    await this.logRequests([data]);
+  }
+
+  static async logRequests(items: ApiLogData[]): Promise<void> {
+    if (!items.length) return;
+
     try {
-      const { error } = await supabase.from("api_logs").insert({
-        user_id: data.userId,
-        endpoint: data.endpoint || "/api/generate",
-        request_method: data.requestMethod,
-        user_agent: data.userAgent,
-        origin: data.origin,
-        ip_address: data.ipAddress,
-
-        image_urls: data.imageUrls ? JSON.stringify(data.imageUrls) : null,
-        raw_prompt: data.rawPrompt,
-        full_request_body: data.fullRequestBody,
-
-        generated_title: data.generatedTitle,
-        generated_description: data.generatedDescription,
-        response_status: data.responseStatus,
-        openai_model: data.openaiModel,
-        openai_tokens_used: data.openaiTokensUsed,
-
-        user_email: data.userEmail,
-        subscription_tier: data.subscriptionTier,
-        subscription_status: data.subscriptionStatus,
-        api_calls_count: data.apiCallsCount,
-
-        processing_duration_ms: data.processingDurationMs,
-
-        suspicious_activity: data.suspiciousActivity || false,
-        flagged_reason: data.flaggedReason,
-      });
+      const { error } = await supabase
+        .from("api_logs")
+        .insert(items.map((item) => this.buildInsertRow(item)));
 
       if (error) {
-        console.error("Failed to log API request:", error);
+        console.error("Failed to log API request(s):", error);
         // Don't throw error to avoid disrupting the main API flow
       }
     } catch (err) {
-      console.error("Error in ApiLogger.logRequest:", err);
+      console.error("Error in ApiLogger.logRequests:", err);
       // Don't throw error to avoid disrupting the main API flow
     }
   }

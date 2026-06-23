@@ -954,6 +954,9 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
 
     let todayUsage = {
       totalRequests: todayStats?.total_api_calls || 0,
+      generationRequests: todayStats?.total_api_calls || 0,
+      eventLogs: 0,
+      totalTokens: 0,
       rateLimitErrors: 0,
       avgTokensPerRequest: 0,
       estimatedCost: todayStats?.estimated_cost || 0,
@@ -962,13 +965,18 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     if (todayStart && todayEnd) {
       const { data: todayLogs, error: todayLogsError } = await supabase
         .from("api_logs")
-        .select("openai_tokens_used, response_status, created_at")
+        .select("endpoint, openai_tokens_used, response_status, created_at")
         .gte("created_at", todayStart)
         .lt("created_at", todayEnd);
 
       if (todayLogsError) throw todayLogsError;
 
       const logs = todayLogs || [];
+      const generationLogs = logs.filter((log: any) => log.endpoint === "/api/generate");
+      const eventLogs = logs.filter(
+        (log: any) =>
+          typeof log.endpoint === "string" && log.endpoint.startsWith("/event/"),
+      );
       const totalTokens = logs.reduce(
         (sum: number, log: any) => sum + (log.openai_tokens_used || 0),
         0,
@@ -976,10 +984,13 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
 
       todayUsage = {
         totalRequests: logs.length,
+        generationRequests: generationLogs.length,
+        eventLogs: eventLogs.length,
+        totalTokens,
         rateLimitErrors: logs.filter((log: any) => log.response_status === 429)
           .length,
-        avgTokensPerRequest: logs.length
-          ? Math.round(totalTokens / logs.length)
+        avgTokensPerRequest: generationLogs.length
+          ? Math.round(totalTokens / generationLogs.length)
           : 0,
         estimatedCost: totalTokens * 0.0000005,
       };

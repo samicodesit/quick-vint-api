@@ -2879,6 +2879,19 @@
             const importantEvents = eventSummary.recentImportantEvents || [];
             const categories = eventSummary.categories || [];
             const eventRows = eventLogData.logs || [];
+            const todayTotalLogs = Number(data.today.totalRequests || 0);
+            const todayGenerationRequests = Number(data.today.generationRequests || 0);
+            const todayEventLogs = Number(data.today.eventLogs || 0);
+            const todayEstimatedCost = Number(data.today.estimatedCost || 0);
+            const generationLimitRate = todayGenerationRequests
+                ? (Number(data.today.rateLimitErrors || 0) / todayGenerationRequests) * 100
+                : 0;
+            const formatMoney = (value) => {
+                const amount = Number(value) || 0;
+                if (amount === 0) return '$0.00';
+                if (amount > 0 && amount < 0.01) return `$${amount.toFixed(4)}`;
+                return `$${amount.toFixed(2)}`;
+            };
             const rawEventFeed = eventRows.map(log => ({
                 event: typeof log.endpoint === 'string' ? log.endpoint.replace('/event/', '') : 'unknown_event',
                 category: 'Event Log',
@@ -2946,16 +2959,16 @@
                         ${commandAction('Events', `${recentEventCount.toLocaleString()} recent`, 'Uninstall feedback and high-signal product events.', 'events', 'acquisition')}
                         ${commandAction('Users', `${todaysUsers.pagination.total.toLocaleString()} today`, 'Accounts, usage, review email, reset, pause.', 'users', 'ops')}
                         ${commandAction('Growth', `${Number(growthData.days || 30).toLocaleString()} days`, 'Chrome Store and product funnel decisions.', 'growth', 'product')}
-                        ${commandAction('Logs', `${data.today.totalRequests.toLocaleString()} calls`, 'Raw debugging when something looks wrong.', 'logs', 'revenue')}
+                        ${commandAction('Logs', `${todayTotalLogs.toLocaleString()} rows`, 'Raw debugging when something looks wrong.', 'logs', 'revenue')}
                     </div>
                 </div>
 
                 <div class="grid-stats">
                     <div class="stat-card">
-                        <div class="stat-label">Today's Requests</div>
-                        <div class="stat-value">${data.today.totalRequests}</div>
+                        <div class="stat-label">AI Generations Today</div>
+                        <div class="stat-value">${todayGenerationRequests.toLocaleString()}</div>
                         <div class="stat-trend trend-up">
-                            <span>Est. Cost: $${(data.today.estimatedCost || 0).toFixed(2)}</span>
+                            <span>Est. AI Cost: ${formatMoney(todayEstimatedCost)}</span>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -2966,19 +2979,19 @@
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Error Rate</div>
+                        <div class="stat-label">Generation Limit Rate</div>
                         <div class="stat-value" style="color: ${data.today.rateLimitErrors > 0 ? 'var(--danger-text)' : 'var(--success-text)'}">
-                            ${((data.today.rateLimitErrors / (data.today.totalRequests || 1)) * 100).toFixed(1)}%
+                            ${generationLimitRate.toFixed(1)}%
                         </div>
                         <div class="stat-trend">
-                            <span>${data.today.rateLimitErrors} Rate Limits</span>
+                            <span>${data.today.rateLimitErrors} rate limits · ${todayEventLogs.toLocaleString()} event logs</span>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Avg Tokens/Req</div>
+                        <div class="stat-label">Avg Tokens/Generation</div>
                         <div class="stat-value">${data.today.avgTokensPerRequest}</div>
                         <div class="stat-trend">
-                            <span>~${(data.today.avgTokensPerRequest * 0.0000005).toFixed(5)} cost/req</span>
+                            <span>~${formatMoney(data.today.avgTokensPerRequest * 0.0000005)} / generation</span>
                         </div>
                     </div>
                 </div>

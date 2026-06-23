@@ -1,0 +1,238 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { CHROME_WEB_STORE_URL } from "../utils/blog.js";
+
+const pageUrl = "https://autolister.app/vinted-description-generator";
+const faqJsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is a Vinted description generator?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "A Vinted description generator is a tool that helps write listing titles and descriptions for Vinted items. AutoLister AI uses your item photos to draft buyer-friendly Vinted listing text that you can review before publishing.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can AI write Vinted descriptions from photos?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. AutoLister AI analyses item photos and drafts a Vinted title and description with details such as item type, color, style, visible condition, and useful search keywords. You should still check the final text before using it.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does AutoLister AI publish listings automatically?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "No. AutoLister AI is a writing assistant for Vinted titles and descriptions. It does not auto-publish, relist, message buyers, send offers, automate likes, or automate follows.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is AutoLister AI affiliated with Vinted?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "No. AutoLister AI is an independent Chrome extension and is not affiliated with, endorsed by, or sponsored by Vinted.",
+      },
+    },
+  ],
+});
+---
+
+<SiteLayout
+  canonical={pageUrl}
+  title="Vinted Description Generator from Photos | AutoLister AI"
+  description="Use AutoLister AI as a Vinted description generator. Turn item photos into searchable Vinted titles, descriptions, and hashtags with a free Chrome extension."
+  ogUrl={pageUrl}
+  ogImage="https://autolister.app/banner.png"
+>
+  <script type="application/ld+json" set:html={faqJsonLd} />
+
+  <main class="bg-white">
+    <section class="border-b border-slate-200 bg-slate-50 pt-32 pb-16 lg:pt-36">
+      <div class="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+        <div>
+          <p class="mb-4 text-sm font-bold uppercase tracking-wide text-brand-600">
+            Vinted description generator
+          </p>
+          <h1 class="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+            Generate Vinted descriptions from item photos
+          </h1>
+          <p class="mt-6 max-w-2xl text-lg font-medium leading-8 text-slate-600">
+            AutoLister AI is a Chrome extension that turns your Vinted item photos into a
+            searchable title, buyer-friendly description, and useful hashtags. Upload photos,
+            click generate, review the text, then paste it into your listing.
+          </p>
+          <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a
+              href={CHROME_WEB_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-track-event="chrome_store_click"
+              data-track-context="vinted_description_generator_hero"
+              class="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-7 py-4 text-base font-bold text-white no-underline shadow-lg shadow-brand-600/20 transition hover:bg-brand-700"
+            >
+              Add to Chrome free
+            </a>
+            <a
+              href="#examples"
+              class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-base font-bold text-slate-900 no-underline transition hover:border-slate-400"
+            >
+              See description examples
+            </a>
+          </div>
+          <p class="mt-4 text-sm font-medium text-slate-500">
+            Independent tool. Not affiliated with Vinted. No auto-publishing or risky Vinted automation.
+          </p>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+              <span class="text-sm font-bold text-slate-500">AutoLister AI output</span>
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                Photo to listing
+              </span>
+            </div>
+            <div class="mt-4 space-y-4">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Title</p>
+                <p class="mt-1 text-lg font-bold text-slate-950">
+                  Zara Black Satin Midi Skirt Size M
+                </p>
+              </div>
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Description</p>
+                <p class="mt-1 leading-7 text-slate-700">
+                  Black satin midi skirt from Zara, size M. Smooth lightweight fabric with a
+                  clean straight fit and side zip. Good condition with no visible stains or holes.
+                  Easy to style with boots, trainers, or a simple knit.
+                </p>
+              </div>
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Search hashtags</p>
+                <p class="mt-1 text-sm font-semibold text-brand-700">
+                  #zaraskirt #midiskirt #satin #blackskirt #vinted
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-16">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="text-3xl font-extrabold tracking-tight text-slate-950">
+          Why Vinted sellers use a description generator
+        </h2>
+        <div class="mt-8 grid gap-5 md:grid-cols-3">
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <h3 class="text-lg font-bold text-slate-950">Better search keywords</h3>
+            <p class="mt-2 leading-7 text-slate-600">
+              Strong Vinted listings include the words buyers search for: brand, item type,
+              color, size, material, style, and condition.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <h3 class="text-lg font-bold text-slate-950">Faster listing workflow</h3>
+            <p class="mt-2 leading-7 text-slate-600">
+              Instead of writing every title and description from scratch, start with a draft
+              from your photos and quickly correct any item-specific details.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <h3 class="text-lg font-bold text-slate-950">Clearer buyer trust</h3>
+            <p class="mt-2 leading-7 text-slate-600">
+              Useful descriptions answer buyer questions before they ask: what it is, how it
+              fits, what condition it is in, and which flaws are visible.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="examples" class="border-y border-slate-200 bg-slate-50 py-16">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="text-3xl font-extrabold tracking-tight text-slate-950">
+          Vinted description examples by item type
+        </h2>
+        <div class="mt-8 grid gap-5 lg:grid-cols-2">
+          <article class="rounded-2xl border border-slate-200 bg-white p-6">
+            <p class="text-sm font-bold uppercase tracking-wide text-brand-600">Clothing</p>
+            <h3 class="mt-2 text-xl font-bold text-slate-950">Mango wool coat</h3>
+            <p class="mt-3 leading-7 text-slate-700">
+              Mango wool-blend coat in camel, size S. Relaxed straight fit with button closure
+              and two front pockets. Warm mid-weight fabric, ideal for autumn and winter.
+              Good condition with light natural wear, no visible stains or holes.
+            </p>
+          </article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-6">
+            <p class="text-sm font-bold uppercase tracking-wide text-brand-600">Shoes</p>
+            <h3 class="mt-2 text-xl font-bold text-slate-950">Nike trainers</h3>
+            <p class="mt-3 leading-7 text-slate-700">
+              Nike white trainers, EU 38. Classic low-top shape with lace-up front and cushioned
+              sole. Light wear on the sole and small marks shown in photos, otherwise clean and
+              ready to wear.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-16">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6">
+        <h2 class="text-3xl font-extrabold tracking-tight text-slate-950">
+          What a good Vinted description should include
+        </h2>
+        <ol class="mt-8 space-y-4 text-lg leading-8 text-slate-700">
+          <li><strong>1. Item basics:</strong> brand, item type, color, size, and material.</li>
+          <li><strong>2. Condition:</strong> specific wear notes instead of vague words like "good".</li>
+          <li><strong>3. Fit:</strong> oversized, slim, cropped, stretchy, structured, or relaxed.</li>
+          <li><strong>4. Measurements:</strong> especially for jeans, vintage items, coats, and shoes.</li>
+          <li><strong>5. Flaws:</strong> marks, pulls, fading, missing buttons, repairs, or wear.</li>
+          <li><strong>6. Search context:</strong> natural style keywords buyers might type into Vinted.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="bg-slate-950 py-16 text-white">
+      <div class="mx-auto max-w-4xl px-4 text-center sm:px-6">
+        <h2 class="text-3xl font-extrabold tracking-tight">
+          Try the Vinted description generator on your next listing
+        </h2>
+        <p class="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-300">
+          Add AutoLister AI to Chrome, open Vinted, upload item photos, and generate a listing
+          draft in the flow you already use.
+        </p>
+        <a
+          href={CHROME_WEB_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-track-event="chrome_store_click"
+          data-track-context="vinted_description_generator_bottom"
+          class="mt-8 inline-flex items-center justify-center rounded-2xl bg-white px-7 py-4 text-base font-bold text-slate-950 no-underline transition hover:bg-slate-100"
+        >
+          Add AutoLister AI to Chrome
+        </a>
+      </div>
+    </section>
+
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur md:hidden">
+      <a
+        href={CHROME_WEB_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-track-event="chrome_store_click"
+        data-track-context="vinted_description_generator_sticky_mobile"
+        class="flex items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-bold text-white no-underline"
+      >
+        Add free Vinted description generator
+      </a>
+    </div>
+  </main>
+</SiteLayout>

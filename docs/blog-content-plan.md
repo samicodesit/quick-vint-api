@@ -24,6 +24,28 @@ Product placements may only mention current AutoLister AI capabilities: generati
 
 Do not use product placements for pricing recommendations, price calculation, bulk listing, automated publishing, offer handling, buyer messaging, follower or like automation, relisting, shipping, returns, disputes, refunds, blocked accounts, scams, prohibited-item workflows, or any other Vinted account action.
 
+## Google Trends Refresh - 2026-06-23
+
+Source files: the four Google Trends CSV exports from Downloads for `vinted` top/rising searches over 90 days and 24 hours.
+
+Use these clusters when choosing and briefing posts:
+
+- Product-intent anchor: `vinted description generator`, `AI Vinted description generator`, `Vinted description template`, `Vinted title keywords`.
+- Beginner/research: `what is vinted`, `how does vinted work`, `how does vinted make money`.
+- Trust/review: `vinted reviews`, `is vinted legit`, `is vinted safe`.
+- Logistics: `vinted go`, `vinted go locker`, `locker vinted go`, `relais vinted go`, `point relais vinted go`.
+- Comparison: `vinted vs depop`, `depop`, `ebay`, `wallapop`, `best second hand clothing app`.
+- Country demand to mention naturally in localized copy: `vinted uk`, `vinted de`, `vinted fr`, `vinted france`, `vinted it`, `vinted es`, `vinted polska`, `vinted portugal`, `vinted australia`.
+- Avoid as acquisition priorities unless specifically requested: `vinted login`, `vinted support`, `vinted contact`, `contact vinted`, `vinted skandal`, `vinted kinder`. These are official-support, navigational, or news-spike queries with weak product fit.
+
+Conversion guidance: assertive but honest CTAs are allowed, including sticky mobile CTAs, example-output previews, and "try with your own photos" prompts. Do not use fake urgency, hidden disclosures, fake affiliation with Vinted, or claims that AutoLister AI automates Vinted account actions.
+
+## SEO Landing Pages
+
+| Priority | Page | Target query | Status | URL | Notes |
+|---|---|---|---|---|---|
+| P0 | Vinted description generator | vinted description generator | [x] | /vinted-description-generator | High-intent product landing page. Link to it from seller posts and keep exact-match wording visible. |
+
 ## AI Writing Prompt
 
 Short command for future AI agents:
@@ -64,6 +86,10 @@ Rules:
 | P1 | Search visibility | Vinted title keywords | selling-tips | vinted-title-keyword-guide | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | ProductMention | Tie to generating searchable titles and hashtags from item photos. |
 | P1 | Listing template | Vinted description template | selling-tips | vinted-description-template-by-item-type | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | WritingStyleCTA | Suitable for formatting, bullets, tone, and optional writing controls. |
 | P1 | Home photo setup | how to take Vinted photos at home | selling-tips | how-to-take-vinted-photos-at-home | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | PhotoToListingCTA | CTA can explain clearer photos improve title and description output. |
+| P1 | Beginner research | what is Vinted and how does Vinted work | marketplace-guide | what-is-vinted-how-it-works | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | EndOfPostCTA | Trends-backed broad funnel. Explain Vinted simply, then route seller-readers to listing quality guides. |
+| P1 | Trust research | Vinted reviews is Vinted legit and safe | marketplace-guide | vinted-reviews-legit-safe | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Cite official Vinted sources for safety and buyer/seller protection. Do not sound like Vinted support. |
+| P1 | Shipping research | Vinted Go locker guide | marketplace-guide | vinted-go-locker-guide | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Cover Vinted Go, lockers, relais, and pickup points from seller perspective. Cite official sources. |
+| P1 | Marketplace comparison | Vinted vs Depop vs eBay best second hand clothing app | tool-comparison | vinted-vs-depop-vs-ebay-sellers | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | ProductMention | Compare seller workflows honestly; mention AutoLister only for Vinted listing text. |
 | P2 | Offers and bundles | how to handle offers and bundles on Vinted | marketplace-guide | how-to-handle-vinted-offers-and-bundles | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Do not imply offer handling or buyer messaging automation. |
 | P2 | Pricing research | how to price items on Vinted | pricing-strategy | how-to-price-items-on-vinted | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Do not market pricing advice or price calculation. |
 | P2 | Seller dispute guidance | Vinted buyer says item not as described | marketplace-guide | vinted-item-not-as-described-seller-guide | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Cite official Vinted sources; avoid sounding like Vinted support. |

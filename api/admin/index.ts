@@ -248,6 +248,8 @@ function getEventCategory(event: string | null) {
   if (
     event.startsWith("magic_link_") ||
     event.startsWith("auth_") ||
+    event === "signin_cta_click" ||
+    event === "signed_out_tools_ready" ||
     event === "listing_tools_ready"
   ) {
     return "Auth";

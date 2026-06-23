@@ -281,5 +281,7 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("activity-feed");
     expect(content.innerHTML).toContain("Blue denim jacket");
     expect(content.innerHTML).toContain("https://example.com/item.jpg");
+    expect(content.innerHTML).toContain(">CXL<");
+    expect(content.innerHTML).toContain(">API<");
   });
 });

@@ -1908,7 +1908,7 @@
             cursor: pointer;
             display: grid;
             gap: 0.85rem;
-            grid-template-columns: 74px 34px 48px minmax(0, 1fr) auto;
+            grid-template-columns: 74px 48px 48px minmax(0, 1fr) auto;
             padding: 0.75rem 1rem;
         }
 
@@ -1927,11 +1927,13 @@
             border-radius: 999px;
             color: var(--text-muted);
             display: inline-flex;
-            font-size: 0.9rem;
+            font-size: 0.68rem;
             font-weight: 850;
-            height: 32px;
+            height: 28px;
             justify-content: center;
-            width: 32px;
+            letter-spacing: 0.02em;
+            padding: 0 0.45rem;
+            width: 44px;
         }
 
         .activity-icon.success {
@@ -1957,9 +1959,9 @@
             background: var(--bg-subtle);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            color: var(--text-light);
+            color: var(--text-muted);
             display: inline-flex;
-            font-size: 0.78rem;
+            font-size: 0.68rem;
             font-weight: 750;
             height: 42px;
             justify-content: center;
@@ -4511,11 +4513,16 @@
 
         function getActivityIcon(log, eventName) {
             const kind = getLogKind(log);
-            if (log.response_status >= 400 || eventName === 'generate_error') return { symbol: '!', className: 'danger' };
-            if (eventName === 'generate_cancelled') return { symbol: 'x', className: 'warning' };
-            if (eventName === 'generate_success' || log.endpoint === '/api/generate') return { symbol: '✓', className: 'success' };
-            if (kind === 'Event') return { symbol: '•', className: '' };
-            return { symbol: 'i', className: '' };
+            if (log.response_status >= 400 || eventName === 'generate_error') return { symbol: 'ERR', className: 'danger' };
+            if (eventName === 'generate_cancelled') return { symbol: 'CXL', className: 'warning' };
+            if (eventName === 'generate_success') return { symbol: 'OK', className: 'success' };
+            if (eventName === 'generate_limit_hit') return { symbol: 'LIM', className: 'warning' };
+            if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_')) return { symbol: 'PAY', className: 'warning' };
+            if (eventName.startsWith('magic_link_')) return { symbol: 'AUTH', className: '' };
+            if (eventName === 'generate_click' || eventName === 'generate_request') return { symbol: 'GEN', className: '' };
+            if (log.endpoint === '/api/generate') return { symbol: 'API', className: 'success' };
+            if (kind === 'Event') return { symbol: 'EVT', className: '' };
+            return { symbol: 'SYS', className: '' };
         }
 
         function getActivitySummary(log) {
@@ -4550,7 +4557,7 @@
                 const images = parseLogImages(log);
                 const thumb = images.length
                     ? `<img src="${escapeHtml(images[0])}" alt="Item preview" loading="lazy">`
-                    : (getLogKind(log) === 'Generation' ? 'img' : '');
+                    : (getLogKind(log) === 'Generation' ? 'no img' : '-');
 
                 return `
                     <div class="activity-row" onclick="showLogDetails('${log.id}')">

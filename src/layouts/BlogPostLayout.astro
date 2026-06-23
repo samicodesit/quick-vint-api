@@ -40,6 +40,9 @@ const categoryUrl = locale === "en"
   ? `/blog/category/${post.data.category}`
   : `/${locale}/blog/category/${post.data.category}`;
 const blogUrl = locale === "en" ? "/blog" : `/${locale}/blog`;
+const localizedUrls = Object.fromEntries(
+  translations.map((translation) => [translation.locale, translation.url]),
+) as Partial<Record<BlogLocale, string>>;
 
 const blogPostingSchema = {
   "@context": "https://schema.org",
@@ -117,6 +120,7 @@ const faqSchema = post.data.faqItems?.length
   currentLocale={locale}
   localeBasePath={`/blog/${post.data.slug}`}
   switcherLocales={translations.map((translation) => translation.locale)}
+  localizedUrls={localizedUrls}
 >
   <Fragment slot="head">
     <meta property="article:published_time" content={post.data.publishDate.toISOString()} />

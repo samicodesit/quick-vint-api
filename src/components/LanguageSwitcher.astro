@@ -14,6 +14,7 @@ export interface Props {
   className?: string;
   pathPattern?: string;
   switcherLocales?: SiteLocale[];
+  localizedUrls?: Partial<Record<SiteLocale, string>>;
 }
 
 const {
@@ -22,6 +23,7 @@ const {
   className = "",
   pathPattern,
   switcherLocales,
+  localizedUrls,
 } = Astro.props;
 
 const locale = normalizeSiteLocale(currentLocale);
@@ -76,7 +78,9 @@ const availableLocales = switcherLocales?.length
     {
       availableLocales.map((langCode: SiteLocale) => {
         const isSelected = langCode === locale;
-        const href = pathPattern ? pathPattern.replace("{lang}", langCode) : localizedPath(langCode, basePath);
+        const href =
+          localizedUrls?.[langCode] ||
+          (pathPattern ? pathPattern.replace("{lang}", langCode) : localizedPath(langCode, basePath));
         return (
           <li role="none">
             <a

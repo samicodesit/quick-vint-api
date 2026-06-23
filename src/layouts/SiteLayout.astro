@@ -16,6 +16,7 @@ export interface Props {
   localeBasePath?: string;
   pathPattern?: string;
   switcherLocales?: SiteLocale[];
+  localizedUrls?: Partial<Record<SiteLocale, string>>;
 }
 
 const {
@@ -30,6 +31,7 @@ const {
   localeBasePath = "/",
   pathPattern,
   switcherLocales,
+  localizedUrls,
 } = Astro.props;
 
 const resolvedLocale = normalizeSiteLocale(currentLocale || htmlLang);
@@ -176,6 +178,7 @@ const chromeHref =
                   basePath={localeBasePath}
                   pathPattern={pathPattern}
                   switcherLocales={switcherLocales}
+                  localizedUrls={localizedUrls}
                 />
               </div>
             )
@@ -261,6 +264,7 @@ const chromeHref =
                   className="w-full"
                   pathPattern={pathPattern}
                   switcherLocales={switcherLocales}
+                  localizedUrls={localizedUrls}
                 />
               </div>
             )

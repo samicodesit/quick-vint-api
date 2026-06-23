@@ -3,11 +3,15 @@ import { trackEvent } from "./analytics.js";
 // Original Pricing Page Logic starts here
 // API Base URL - Use current origin to avoid CORS issues
 const API_BASE = window.location.origin;
+const EXTENSION_ID = "mommklhpammnlojjobejddmidmdcalcl";
+const EXTENSION_MESSAGE_TIMEOUT_MS = 900;
 
 // Current user state
 let currentUser = null;
 let currentProfile = null;
 let hasExtension = false;
+let isPricingStateLoading = true;
+let pricingActionsBound = false;
 
 // Plan configuration
 const PLAN_CONFIG = {
@@ -44,6 +48,37 @@ function normalizeTier(tier) {
   };
 
   return map[tier] || "free";
+}
+
+function sendExtensionMessage(message, timeoutMs = EXTENSION_MESSAGE_TIMEOUT_MS) {
+  return new Promise((resolve) => {
+    if (!window.chrome?.runtime?.sendMessage) {
+      resolve(null);
+      return;
+    }
+
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      resolve(value || null);
+    };
+
+    try {
+      chrome.runtime.sendMessage(EXTENSION_ID, message, (response) => {
+        if (chrome.runtime.lastError) {
+          finish(null);
+          return;
+        }
+        finish(response);
+      });
+    } catch (e) {
+      finish(null);
+      return;
+    }
+
+    setTimeout(() => finish(null), timeoutMs);
+  });
 }
 
 function showStatusMessage(message, type = "info") {
@@ -83,50 +118,14 @@ function showStatusMessage(message, type = "info") {
 
 // Check if extension is installed
 async function checkExtensionInstalled() {
-  return new Promise((resolve) => {
-    // Try to communicate with extension
-    if (window.chrome && chrome.runtime) {
-      try {
-        chrome.runtime.sendMessage(
-          "mommklhpammnlojjobejddmidmdcalcl",
-          { type: "PING" },
-          (response) => {
-            resolve(!!response);
-          },
-        );
-      } catch (e) {
-        resolve(false);
-      }
-    } else {
-      resolve(false);
-    }
-    // Timeout after 1 second
-    setTimeout(() => resolve(false), 1000);
-  });
+  const response = await sendExtensionMessage({ type: "PING" });
+  return response?.installed === true || response === true || Boolean(response);
 }
 
 // Get user data from extension
 async function getUserFromExtension() {
-  return new Promise((resolve) => {
-    if (!hasExtension) {
-      resolve(null);
-      return;
-    }
-
-    try {
-      chrome.runtime.sendMessage(
-        "mommklhpammnlojjobejddmidmdcalcl",
-        { type: "GET_USER_PROFILE" },
-        (response) => {
-          resolve(response);
-        },
-      );
-    } catch (e) {
-      resolve(null);
-    }
-    // Timeout after 2 seconds
-    setTimeout(() => resolve(null), 2000);
-  });
+  if (!hasExtension) return null;
+  return sendExtensionMessage({ type: "GET_USER_PROFILE" }, 1200);
 }
 
 // Utility functions for token handling
@@ -181,6 +180,14 @@ function updateButtonStates() {
       "state-disabled",
     );
 
+    button.disabled = isPricingStateLoading;
+
+    if (isPricingStateLoading) {
+      textSpan.textContent = "Checking...";
+      statusSpan.textContent = "";
+      return;
+    }
+
     if (!hasExtension) {
       textSpan.textContent = "Get AutoLister AI";
       statusSpan.textContent = "";
@@ -216,6 +223,36 @@ function updateButtonStates() {
       }
     }
   });
+}
+
+function applyExtensionUserData(userData) {
+  if (!userData) return false;
+
+  hasExtension = true;
+  currentUser = userData.user || null;
+  currentProfile = userData.profile || null;
+  return true;
+}
+
+function bindPricingActions() {
+  if (pricingActionsBound) return;
+  pricingActionsBound = true;
+
+  document
+    .getElementById("btn-free")
+    ?.addEventListener("click", () => handlePlanClick("free"));
+  document
+    .getElementById("btn-starter")
+    ?.addEventListener("click", () => handlePlanClick("starter"));
+  document
+    .getElementById("btn-pro")
+    ?.addEventListener("click", () => handlePlanClick("pro"));
+  document
+    .getElementById("btn-business")
+    ?.addEventListener("click", () => handlePlanClick("business"));
+  document
+    .getElementById("btn-credit-pack")
+    ?.addEventListener("click", handleCreditPackClick);
 }
 
 // Handle button clicks
@@ -445,19 +482,25 @@ function downloadExtension() {
 
 // Initialize page
 async function initializePage() {
+  bindPricingActions();
+  isPricingStateLoading = true;
+  updateButtonStates();
+
   // Check URL parameters first (they have priority if coming from extension)
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
+  let hasTrustedExtensionContext = false;
 
   if (token) {
     // New token-based approach
     const userData = decodeUserData(token);
     if (userData && userData.source === "extension") {
       hasExtension = true;
+      hasTrustedExtensionContext = true;
 
       if (userData.signed_in && userData.email) {
         // Create user object from decoded token
-        currentUser = { email: userData.email };
+        currentUser = { id: userData.id || null, email: userData.email };
         currentProfile = {
           subscription_tier: userData.plan,
           subscription_status:
@@ -496,6 +539,7 @@ async function initializePage() {
           subscription_status: userPlan !== "free" ? "active" : "free",
         };
       }
+      hasTrustedExtensionContext = true;
 
       console.log("Initialized from extension URL params (legacy):", {
         hasExtension,
@@ -507,38 +551,19 @@ async function initializePage() {
   }
 
   // If no extension context found, fallback to extension detection for direct visits
-  if (!hasExtension) {
+  if (!hasTrustedExtensionContext) {
     hasExtension = await checkExtensionInstalled();
 
     if (hasExtension) {
       // Get user data from extension
       const userData = await getUserFromExtension();
-      if (userData) {
-        currentUser = userData.user;
-        currentProfile = userData.profile;
-      }
+      applyExtensionUserData(userData);
     }
   }
 
   // Update button states
+  isPricingStateLoading = false;
   updateButtonStates();
-
-  // Add event listeners
-  document
-    .getElementById("btn-free")
-    .addEventListener("click", () => handlePlanClick("free"));
-  document
-    .getElementById("btn-starter")
-    .addEventListener("click", () => handlePlanClick("starter"));
-  document
-    .getElementById("btn-pro")
-    .addEventListener("click", () => handlePlanClick("pro"));
-  document
-    .getElementById("btn-business")
-    .addEventListener("click", () => handlePlanClick("business"));
-  document
-    .getElementById("btn-credit-pack")
-    ?.addEventListener("click", handleCreditPackClick);
 }
 
 // Initialize on page load

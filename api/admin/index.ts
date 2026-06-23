@@ -894,7 +894,11 @@ function getJourneyStage(log: any) {
   if (event === "generate_error") return "Generation error";
   if (event === "generate_limit_hit") return "Limit hit";
   if (event === "phone_upload_start") return "Phone upload started";
+  if (event === "phone_upload_complete") return "Phone upload completed";
+  if (event === "phone_upload_error") return "Phone upload error";
   if (event === "batch_start") return "Batch started";
+  if (event === "batch_complete") return "Batch completed";
+  if (event === "batch_error") return "Batch error";
   if (event === "uninstall_feedback_submitted") return "Uninstall feedback";
   return event;
 }
@@ -927,6 +931,106 @@ function compactJourneyLog(log: any) {
       }
       return 0;
     })(),
+  };
+}
+
+const JOURNEY_STEPS = [
+  {
+    key: "signed_out_vinted",
+    label: "Reached Vinted",
+    events: ["signed_out_tools_ready", "listing_tools_ready"],
+  },
+  {
+    key: "signin_clicked",
+    label: "Clicked sign in",
+    events: ["signin_cta_click", "magic_link_request", "magic_link_sent", "auth_success"],
+  },
+  {
+    key: "auth_completed",
+    label: "Signed in",
+    events: ["auth_success"],
+  },
+  {
+    key: "returned_to_vinted",
+    label: "Returned to Vinted",
+    events: ["auth_vinted_cta_click", "listing_tools_ready"],
+  },
+  {
+    key: "tools_loaded",
+    label: "Tools loaded",
+    events: ["listing_tools_ready"],
+  },
+  {
+    key: "generate_attempted",
+    label: "Tried generate",
+    events: ["generate_click", "generate_missing_photo", "generate_request", "/api/generate", "generate_success"],
+  },
+  {
+    key: "generated",
+    label: "Got output",
+    events: ["generate_success"],
+  },
+];
+
+function getJourneySummary(events: any[]) {
+  const eventNames = new Set(events.map((event) => event.event));
+  const lastEvent = events[events.length - 1] || null;
+  const latestUninstall = [...events]
+    .reverse()
+    .find((event) => event.event === "uninstall_feedback_submitted");
+  const uninstallReason = latestUninstall?.context?.reasonLabel || latestUninstall?.context?.reason;
+
+  const steps = JOURNEY_STEPS.map((step) => ({
+    key: step.key,
+    label: step.label,
+    complete: step.events.some((event) => eventNames.has(event)),
+  }));
+
+  let status = "No tracked activity";
+  let tone = "neutral";
+
+  if (latestUninstall) {
+    status = uninstallReason ? `Uninstalled: ${uninstallReason}` : "Uninstalled";
+    tone = "danger";
+  } else if (eventNames.has("generate_success")) {
+    status = "Generated successfully";
+    tone = "success";
+  } else if (eventNames.has("generate_limit_hit")) {
+    status = "Hit usage limit";
+    tone = "warning";
+  } else if (eventNames.has("generate_error")) {
+    status = "Generation error";
+    tone = "danger";
+  } else if (eventNames.has("generate_request")) {
+    status = "Generation requested";
+    tone = "warning";
+  } else if (eventNames.has("generate_missing_photo")) {
+    status = "Missing photos";
+    tone = "warning";
+  } else if (eventNames.has("generate_click")) {
+    status = "Clicked generate";
+    tone = "neutral";
+  } else if (eventNames.has("listing_tools_ready")) {
+    status = "Tools loaded";
+    tone = "neutral";
+  } else if (eventNames.has("auth_success")) {
+    status = "Signed in";
+    tone = "neutral";
+  } else if (eventNames.has("signin_cta_click")) {
+    status = "Clicked sign in";
+    tone = "neutral";
+  } else if (eventNames.has("signed_out_tools_ready")) {
+    status = "Reached Vinted signed out";
+    tone = "neutral";
+  } else if (lastEvent) {
+    status = lastEvent.stage || lastEvent.event || "Tracked activity";
+  }
+
+  return {
+    status,
+    tone,
+    lastStage: lastEvent?.stage || null,
+    steps,
   };
 }
 
@@ -1002,23 +1106,8 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map(compactJourneyLog);
 
-    const eventNames = new Set(events.map((event) => event.event));
     const lastEvent = events[events.length - 1] || null;
-    const dropoff = (() => {
-      if (!events.length) return "No tracked activity in this window";
-      if (eventNames.has("generate_success")) return "Generated successfully";
-      if (eventNames.has("generate_limit_hit")) return "Hit usage limit";
-      if (eventNames.has("generate_error")) return "Generation errored";
-      if (eventNames.has("generate_request")) return "Requested generation, no success logged";
-      if (eventNames.has("generate_click")) return "Clicked generate, request did not complete";
-      if (eventNames.has("generate_missing_photo")) return "Tried without photos";
-      if (eventNames.has("listing_tools_ready")) return "Tools loaded, no generate click";
-      if (eventNames.has("auth_callback_exit")) return "Signed in, left callback";
-      if (eventNames.has("auth_success")) return "Signed in, no Vinted action tracked";
-      if (eventNames.has("signin_cta_click")) return "Clicked sign in, no auth success tracked";
-      if (eventNames.has("signed_out_tools_ready")) return "Reached Vinted signed out";
-      return `Last seen: ${lastEvent?.stage || "unknown"}`;
-    })();
+    const journeySummary = getJourneySummary(events);
 
     return res.status(200).json({
       profile,
@@ -1028,7 +1117,8 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
         eventCount: events.length,
         firstSeenAt: events[0]?.created_at || null,
         lastSeenAt: lastEvent?.created_at || null,
-        dropoff,
+        dropoff: journeySummary.status,
+        ...journeySummary,
       },
       events,
     });

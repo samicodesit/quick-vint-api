@@ -2006,6 +2006,134 @@
             justify-items: end;
         }
 
+        .journey-shell {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .journey-summary {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            display: grid;
+            gap: 0.85rem;
+            padding: 1rem;
+        }
+
+        .journey-summary-top {
+            align-items: flex-start;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .journey-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .journey-subtitle {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            margin-top: 0.15rem;
+        }
+
+        .journey-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .journey-step {
+            align-items: center;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            color: var(--text-muted);
+            display: inline-flex;
+            font-size: 0.74rem;
+            font-weight: 700;
+            gap: 0.35rem;
+            padding: 0.28rem 0.58rem;
+        }
+
+        .journey-step.complete {
+            background: var(--success-bg);
+            border-color: rgba(5, 150, 105, 0.16);
+            color: var(--success-text);
+        }
+
+        .journey-timeline {
+            display: grid;
+            gap: 0;
+        }
+
+        .journey-event {
+            display: grid;
+            grid-template-columns: 118px 18px minmax(0, 1fr);
+            gap: 0.75rem;
+            padding: 0.35rem 0;
+        }
+
+        .journey-time {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            padding-top: 0.55rem;
+        }
+
+        .journey-dot {
+            background: #f3f4f6;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            height: 14px;
+            margin-top: 0.65rem;
+            width: 14px;
+        }
+
+        .journey-dot.success {
+            background: var(--success-bg);
+            border-color: var(--success-text);
+        }
+
+        .journey-dot.warning {
+            background: var(--warning-bg);
+            border-color: var(--warning-text);
+        }
+
+        .journey-dot.danger {
+            background: var(--danger-bg);
+            border-color: var(--danger-text);
+        }
+
+        .journey-event-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+        }
+
+        .journey-event-head {
+            align-items: flex-start;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+        }
+
+        .journey-event-title {
+            font-size: 0.88rem;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .journey-event-meta {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            line-height: 1.35;
+            margin-top: 0.15rem;
+            overflow-wrap: anywhere;
+        }
+
         @media (max-width: 760px) {
             .activity-row {
                 grid-template-columns: 54px 32px minmax(0, 1fr);
@@ -2013,6 +2141,19 @@
 
             .activity-thumb,
             .activity-side {
+                display: none;
+            }
+
+            .journey-summary-top {
+                display: grid;
+            }
+
+            .journey-event {
+                grid-template-columns: 1fr;
+                gap: 0.35rem;
+            }
+
+            .journey-dot {
                 display: none;
             }
         }
@@ -5802,6 +5943,13 @@
             return 'neutral';
         }
 
+        function getJourneyBadgeClass(tone) {
+            if (tone === 'success') return 'badge-success';
+            if (tone === 'warning') return 'badge-warning';
+            if (tone === 'danger') return 'badge-danger';
+            return 'badge-neutral';
+        }
+
         function getJourneyContextSummary(event) {
             const context = event.context || {};
             const parts = [];
@@ -5814,29 +5962,42 @@
             return parts.length ? parts.join(' · ') : (event.origin || event.endpoint || '-');
         }
 
+        function renderJourneySteps(steps) {
+            if (!steps?.length) return '';
+            return `
+                <div class="journey-steps">
+                    ${steps.map(step => `
+                        <span class="journey-step ${step.complete ? 'complete' : ''}">
+                            <span>${step.complete ? 'ok' : '-'}</span>
+                            ${escapeHtml(step.label)}
+                        </span>
+                    `).join('')}
+                </div>
+            `;
+        }
+
         function renderJourneyTimeline(events) {
             if (!events?.length) {
                 return `<div class="empty-state">No journey events found in the selected window.</div>`;
             }
 
             return `
-                <div style="display:grid; gap:0.75rem;">
+                <div class="journey-timeline">
                     ${events.map(event => {
                         const tone = getJourneyEventTone(event);
-                        const dotColor = tone === 'success' ? 'var(--success)' : tone === 'danger' ? 'var(--danger)' : tone === 'warning' ? 'var(--warning)' : 'var(--text-muted)';
                         return `
-                            <div style="display:grid; grid-template-columns: 110px 18px minmax(0, 1fr); gap:0.75rem; align-items:start;">
-                                <div style="font-size:0.78rem; color:var(--text-muted);">${escapeHtml(formatDateTime(event.created_at))}</div>
-                                <div style="width:14px;height:14px;border-radius:50%;background:${dotColor};margin-top:0.2rem;box-shadow:0 0 0 4px rgba(148,163,184,0.14);"></div>
-                                <div style="border:1px solid var(--border-color);border-radius:8px;padding:0.75rem;background:#fff;">
-                                    <div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start;">
+                            <div class="journey-event">
+                                <div class="journey-time">${escapeHtml(formatDateTime(event.created_at))}</div>
+                                <div class="journey-dot ${tone}"></div>
+                                <div class="journey-event-card">
+                                    <div class="journey-event-head">
                                         <div>
-                                            <div style="font-weight:750;">${escapeHtml(event.stage || friendlyEventName(event.event))}</div>
-                                            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem;">${escapeHtml(getJourneyContextSummary(event))}</div>
+                                            <div class="journey-event-title">${escapeHtml(event.stage || friendlyEventName(event.event))}</div>
+                                            <div class="journey-event-meta">${escapeHtml(getJourneyContextSummary(event))}</div>
                                         </div>
                                         <span class="badge ${event.response_status >= 400 ? 'badge-danger' : 'badge-neutral'}">${escapeHtml(event.response_status || 'n/a')}</span>
                                     </div>
-                                    ${event.generated_title ? `<div style="margin-top:0.5rem;font-size:0.82rem;"><strong>Generated:</strong> ${escapeHtml(event.generated_title)}</div>` : ''}
+                                    ${event.generated_title ? `<div class="journey-event-meta" style="margin-top:0.45rem;"><strong>Generated:</strong> ${escapeHtml(event.generated_title)}</div>` : ''}
                                 </div>
                             </div>
                         `;
@@ -5862,19 +6023,21 @@
                 const summary = data.summary || {};
                 const clientIds = data.analyticsClientIds || [];
                 const content = `
-                    <div style="display:grid;gap:1rem;">
-                        <div style="border:1px solid var(--border-color);border-radius:8px;padding:1rem;background:#f8fafc;">
-                            <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+                    <div class="journey-shell">
+                        <div class="journey-summary">
+                            <div class="journey-summary-top">
                                 <div>
-                                    <div style="font-weight:800;">${escapeHtml(profile.email || email || userId)}</div>
-                                    <div style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;">${escapeHtml(profile.id || userId || '-')}</div>
+                                    <div class="journey-title">${escapeHtml(profile.email || email || userId)}</div>
+                                    <div class="journey-subtitle">${escapeHtml(profile.id || userId || '-')}</div>
                                 </div>
                                 <div style="text-align:right;">
-                                    <div style="font-weight:800;">${escapeHtml(summary.dropoff || 'Unknown')}</div>
-                                    <div style="font-size:0.8rem;color:var(--text-muted);">${Number(summary.eventCount || 0)} events · last ${summary.lastSeenAt ? escapeHtml(formatDateTime(summary.lastSeenAt)) : 'never'}</div>
+                                    <span class="badge ${getJourneyBadgeClass(summary.tone)}">${escapeHtml(summary.status || summary.dropoff || 'Unknown')}</span>
+                                    <div class="journey-subtitle">${Number(summary.eventCount || 0)} events · last ${summary.lastSeenAt ? escapeHtml(formatDateTime(summary.lastSeenAt)) : 'never'}</div>
                                 </div>
                             </div>
-                            ${clientIds.length ? `<div style="margin-top:0.75rem;font-size:0.78rem;color:var(--text-muted);">Correlation IDs: ${clientIds.map(id => `<code>${escapeHtml(id)}</code>`).join(' ')}</div>` : ''}
+                            ${summary.lastStage ? `<div class="journey-subtitle">Last stage: ${escapeHtml(summary.lastStage)}</div>` : ''}
+                            ${renderJourneySteps(summary.steps || [])}
+                            ${clientIds.length ? `<div class="journey-subtitle">Correlation IDs: ${clientIds.map(id => `<code>${escapeHtml(id)}</code>`).join(' ')}</div>` : ''}
                         </div>
                         ${renderJourneyTimeline(data.events || [])}
                     </div>
@@ -5999,10 +6162,20 @@
                 const data = await fetchAPI(`/api/admin?${params}`);
                 const summary = data.summary || {};
                 const content = `
-                    <div style="display:grid;gap:1rem;">
-                        <div style="border:1px solid var(--border-color);border-radius:8px;padding:1rem;background:#f8fafc;">
-                            <div style="font-weight:800;">${escapeHtml(summary.dropoff || 'Unknown')}</div>
-                            <div style="font-size:0.8rem;color:var(--text-muted);">${Number(summary.eventCount || 0)} events · client <code>${escapeHtml(analyticsClientId)}</code></div>
+                    <div class="journey-shell">
+                        <div class="journey-summary">
+                            <div class="journey-summary-top">
+                                <div>
+                                    <div class="journey-title">Correlated journey</div>
+                                    <div class="journey-subtitle">client <code>${escapeHtml(analyticsClientId)}</code></div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span class="badge ${getJourneyBadgeClass(summary.tone)}">${escapeHtml(summary.status || summary.dropoff || 'Unknown')}</span>
+                                    <div class="journey-subtitle">${Number(summary.eventCount || 0)} events · last ${summary.lastSeenAt ? escapeHtml(formatDateTime(summary.lastSeenAt)) : 'never'}</div>
+                                </div>
+                            </div>
+                            ${summary.lastStage ? `<div class="journey-subtitle">Last stage: ${escapeHtml(summary.lastStage)}</div>` : ''}
+                            ${renderJourneySteps(summary.steps || [])}
                         </div>
                         ${renderJourneyTimeline(data.events || [])}
                     </div>

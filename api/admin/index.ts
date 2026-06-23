@@ -854,6 +854,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const startDate = req.query.start_date as string;
     const endDate = req.query.end_date as string;
     const logType = (req.query.log_type as string) || "generation";
+    const search = (getQueryString(req.query.search) || "").trim();
 
     const applyLogTypeFilter = (query: any) => {
       if (logType === "all") return query;
@@ -880,6 +881,18 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (userId) query = query.eq("user_id", userId);
     if (startDate) query = query.gte("created_at", startDate);
     if (endDate) query = query.lte("created_at", endDate);
+    if (search) {
+      const safeSearch = search.replace(/[%_,]/g, "\\$&");
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          search,
+        );
+      query = isUuid
+        ? query.or(
+            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%,user_id.eq.${search}`,
+          )
+        : query.or(`user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%`);
+    }
 
     const { data: logs, error: logsError } = await query;
 
@@ -896,6 +909,20 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (userId) countQuery = countQuery.eq("user_id", userId);
     if (startDate) countQuery = countQuery.gte("created_at", startDate);
     if (endDate) countQuery = countQuery.lte("created_at", endDate);
+    if (search) {
+      const safeSearch = search.replace(/[%_,]/g, "\\$&");
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          search,
+        );
+      countQuery = isUuid
+        ? countQuery.or(
+            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%,user_id.eq.${search}`,
+          )
+        : countQuery.or(
+            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%`,
+          );
+    }
 
     const { count } = await countQuery;
 

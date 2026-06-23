@@ -1819,6 +1819,84 @@
             margin-bottom: 0.75rem;
         }
 
+        .logs-toolbar {
+            align-items: center;
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(150px, 220px));
+            margin-bottom: 0.75rem;
+        }
+
+        @media (max-width: 860px) {
+            .logs-toolbar {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .quick-filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .quick-filter-btn {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.36rem 0.65rem;
+        }
+
+        .quick-filter-btn.active {
+            background: #111827;
+            border-color: #111827;
+            color: #fff;
+        }
+
+        .log-table table {
+            min-width: 900px;
+        }
+
+        .log-table td {
+            padding-bottom: 0.75rem;
+            padding-top: 0.75rem;
+        }
+
+        .log-time {
+            color: var(--text-main);
+            font-size: 0.82rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .log-primary {
+            color: var(--text-main);
+            font-size: 0.86rem;
+            font-weight: 750;
+            line-height: 1.25;
+        }
+
+        .log-secondary {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            line-height: 1.35;
+            margin-top: 0.12rem;
+        }
+
+        .log-detail {
+            color: var(--text-main);
+            font-size: 0.84rem;
+            line-height: 1.35;
+            max-width: 520px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .usage-stack {
             display: grid;
             gap: 0.45rem;
@@ -2447,6 +2525,8 @@
             data: null,
             logsPage: 1,
             logsType: 'generation',
+            logsSearch: '',
+            logsSearchTimer: null,
             usersPage: 1,
             usersSegment: 'today',
             usersSearch: '',
@@ -4187,14 +4267,14 @@
         function renderEventLogRows(logs) {
             return logs.map(log => `
                 <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
-                    <td>${formatDateTime(log.created_at)}</td>
+                    <td><div class="log-time">${formatDateTime(log.created_at)}</div></td>
                     <td>
-                        <code>${escapeHtml((log.endpoint || '').replace('/event/', '') || 'event')}</code>
-                        <div class="text-sm text-muted" style="font-size: 0.72rem;">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
+                        <div class="log-primary">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
+                        <div class="log-secondary"><code>${escapeHtml((log.endpoint || '').replace('/event/', '') || 'event')}</code></div>
                     </td>
-                    <td>${getLogActor(log)}</td>
+                    <td><div class="log-primary">${getLogActor(log)}</div></td>
                     <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
-                    <td style="max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(getLogContext(log))}</td>
+                    <td><div class="log-detail">${escapeHtml(getLogContext(log))}</div></td>
                     <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
                 </tr>
             `).join('');
@@ -4315,14 +4395,14 @@
 
                 return `
                     <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
-                        <td>${formatDateTime(log.created_at)}</td>
+                        <td><div class="log-time">${formatDateTime(log.created_at)}</div></td>
                         <td>
-                            <span class="badge badge-neutral">${escapeHtml(logKind)}</span>
-                            <div class="text-sm text-muted" style="font-size: 0.72rem;">${escapeHtml(log.endpoint || '-')}</div>
+                            <div class="log-primary">${escapeHtml(logKind)}</div>
+                            <div class="log-secondary">${escapeHtml(log.endpoint || '-')}</div>
                         </td>
-                        <td>${getLogActor(log)}</td>
+                        <td><div class="log-primary">${getLogActor(log)}</div></td>
                         <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
-                        <td style="max-width:520px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(detail)}</td>
+                        <td><div class="log-detail">${escapeHtml(detail)}</div></td>
                         <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
                     </tr>
                 `;
@@ -4355,7 +4435,8 @@
                 action: 'view-logs',
                 page: state.logsPage,
                 limit: 50,
-                log_type: state.logsType || 'generation'
+                log_type: state.logsType || 'generation',
+                search: state.logsSearch || ''
             });
 
             const data = await fetchAPI(`/api/admin?${params}`);
@@ -4408,8 +4489,8 @@
                     : renderMixedLogMobileCards(data.logs || []);
 
             const logsHtml = `
-                <div class="filters-bar">
-                    <input type="text" placeholder="Search by User ID..." class="filter-input" id="logSearch">
+                <div class="logs-toolbar">
+                    <input type="search" placeholder="Search email, user id, or event..." class="filter-input" value="${escapeAttribute(state.logsSearch)}" oninput="queueLogsSearch(this.value)">
                     <select class="filter-input" onchange="state.logsType=this.value; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">
                         ${renderOption('generation', 'Generation logs', state.logsType || 'generation')}
                         ${renderOption('events', 'Event logs', state.logsType || 'generation')}
@@ -4423,7 +4504,15 @@
                     </select>
                 </div>
 
-                <div class="card">
+                <div class="quick-filter-row">
+                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_cancelled' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_cancelled')">Cancelled</button>
+                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_success' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_success')">Success</button>
+                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_request' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_request')">Request</button>
+                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_click' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_click')">Click</button>
+                    <button class="quick-filter-btn ${!state.logsSearch ? 'active' : ''}" onclick="setLogsQuickFilter(state.logsType || 'generation', '')">Clear</button>
+                </div>
+
+                <div class="card log-table">
                     <div class="table-container">
                         <table>
                             <thead>
@@ -4444,6 +4533,22 @@
 
             // Cache logs for modal lookup
             state.currentLogs = data.logs;
+        }
+
+        function setLogsQuickFilter(type, search) {
+            state.logsType = type;
+            state.logsSearch = search;
+            state.logsPage = 1;
+            renderLogs(document.getElementById('contentArea'));
+        }
+
+        function queueLogsSearch(value) {
+            state.logsSearch = value.trim();
+            state.logsPage = 1;
+            clearTimeout(state.logsSearchTimer);
+            state.logsSearchTimer = setTimeout(() => {
+                renderLogs(document.getElementById('contentArea'));
+            }, 250);
         }
 
         async function renderUsers(container) {

@@ -156,12 +156,12 @@ function buildAdminHarness() {
       {
         id: "log-1",
         created_at: now,
-        endpoint: "/event/uninstall_feedback_submitted",
+        endpoint: "/event/generate_cancelled",
         response_status: 200,
-        user_id: null,
-        user_email: null,
+        user_id: "user-1",
+        user_email: "test@example.com",
         full_request_body: {
-          context: { reasonLabel: "Results were not good enough" },
+          context: { reason: "description_apply_choice" },
           extensionVersion: "1.3.19",
         },
         image_urls: [],
@@ -257,6 +257,7 @@ describe("admin HTML", () => {
     context.showLogDetails("log-1");
     expect(modalTitle.textContent).toBe("Event Details");
     expect(modalBody.innerHTML).toContain("Context");
+    expect(modalBody.innerHTML).toContain("existing-description choice");
     expect(modalBody.innerHTML).not.toContain("Input Images");
     expect(modalBody.innerHTML).not.toContain("Generated Output");
   });

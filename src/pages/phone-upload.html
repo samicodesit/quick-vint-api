@@ -374,6 +374,31 @@
                 return url.searchParams.get('mode') === 'batch';
             }
 
+            function getTrackingMode() {
+                return isBatchMode() ? 'batch' : 'single';
+            }
+
+            function trackUploadEvent(event, context = {}) {
+                try {
+                    fetch('/api/events/track', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            event,
+                            source: 'phone_upload_page',
+                            page: `${location.origin}${location.pathname}`,
+                            context: {
+                                mode: getTrackingMode(),
+                                sessionId: state.sessionId,
+                                ...context
+                            }
+                        })
+                    }).catch(() => {});
+                } catch (error) {
+                    // Upload analytics must never block photo transfer.
+                }
+            }
+
             function syncPageCopy() {
                 if (!isBatchMode()) return;
                 document.body.classList.add('batch-mode');
@@ -505,6 +530,11 @@
                             item.done = true;
                             item.failed = false;
                             item.uploading = false;
+                            trackUploadEvent('phone_upload_file_success', {
+                                order: item.order,
+                                fileSize: item.file?.size || null,
+                                fileType: item.file?.type || null
+                            });
                             renderBatchProgress();
                             resolve();
                         } else {
@@ -515,6 +545,10 @@
                             }
                             item.failed = true;
                             item.uploading = false;
+                            trackUploadEvent('phone_upload_file_error', {
+                                order: item.order,
+                                status: xhr.status || null
+                            });
                             renderBatchProgress();
                             reject(new Error('Upload failed'));
                         }
@@ -527,6 +561,11 @@
                         }
                         item.failed = true;
                         item.uploading = false;
+                        trackUploadEvent('phone_upload_file_error', {
+                            order: item.order,
+                            status: null,
+                            reason: 'network'
+                        });
                         renderBatchProgress();
                         reject(new Error('Upload error'));
                     };
@@ -703,11 +742,18 @@
                 if (!response?.ok) {
                     state.completeFailed = true;
                     renderBatchProgress();
+                    trackUploadEvent('phone_upload_batch_complete_error', {
+                        fileCount: state.files.length,
+                        status: response?.status || null
+                    });
                     throw new Error('Could not mark batch complete');
                 }
 
                 state.completeSent = true;
                 state.completeFailed = false;
+                trackUploadEvent('phone_upload_batch_complete_success', {
+                    fileCount: state.files.length
+                });
                 pageTitle.textContent = 'Photos Sent';
                 pageCopy.innerHTML = 'Return to your desktop to group photos into listings.';
                 renderBatchProgress();
@@ -722,6 +768,10 @@
                 state.completeFailed = false;
                 renderBatchProgress();
                 await requestWakeLock();
+                trackUploadEvent('phone_upload_send_start', {
+                    fileCount: state.files.length,
+                    retryCount: state.files.filter((item) => item.failed && !item.done).length
+                });
 
                 let failedCount = 0;
                 let cursor = 0;
@@ -755,6 +805,13 @@
                 } else if (failedCount > 0) {
                     showToast(`${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Retry when ready.`);
                 }
+
+                trackUploadEvent('phone_upload_send_finished', {
+                    fileCount: state.files.length,
+                    sentCount: state.files.filter((item) => item.done).length,
+                    failedCount,
+                    completeSent: state.completeSent
+                });
 
                 state.isSending = false;
                 mainBtn.disabled = state.completeSent;
@@ -801,6 +858,10 @@
                 const files = Array.from(e.target.files || []);
                 e.target.value = '';
                 if (!files.length) return;
+                trackUploadEvent('phone_upload_files_selected', {
+                    fileCount: files.length,
+                    totalFileCount: state.files.length + files.length
+                });
 
                 let didStart = false;
                 const startHandling = () => {
@@ -817,6 +878,9 @@
             state.sessionId = createSessionId();
             sessionCodeEl.textContent = state.sessionId;
             syncPageCopy();
+            trackUploadEvent('phone_upload_page_open', {
+                hasSessionParam: new URL(window.location.href).searchParams.has('s')
+            });
 
             mainBtn.addEventListener('click', () => fileInput.click());
             sendBtn.addEventListener('click', sendBatchFiles);
@@ -841,6 +905,11 @@
             container.addEventListener('drop', e => {
                 e.preventDefault();
                 container.style.transform = 'scale(1)';
+                trackUploadEvent('phone_upload_files_selected', {
+                    fileCount: e.dataTransfer.files.length,
+                    totalFileCount: state.files.length + e.dataTransfer.files.length,
+                    input: 'drop'
+                });
                 handleFiles(e.dataTransfer.files);
             });
 

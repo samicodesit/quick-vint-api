@@ -231,10 +231,8 @@ function getEventCategory(event: string | null) {
   }
   if (
     event.startsWith("generate_") ||
-    event === "phone_upload_start" ||
-    event === "batch_start" ||
-    event === "batch_start_blocked" ||
-    event === "phone_upload_blocked"
+    event.startsWith("phone_upload_") ||
+    event.startsWith("batch_")
   ) {
     return "Product Usage";
   }

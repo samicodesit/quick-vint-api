@@ -3212,6 +3212,11 @@
                 chrome_store_click: 'Chrome Store click',
                 magic_link_request: 'Magic link request',
                 magic_link_sent: 'Magic link sent',
+                auth_success: 'Auth success',
+                auth_vinted_cta_click: 'Opened Vinted after auth',
+                auth_plans_click: 'Viewed plans after auth',
+                auth_close_click: 'Closed auth callback',
+                listing_tools_ready: 'Listing tools ready',
                 phone_upload_page_open: 'Phone page opened',
                 phone_upload_files_selected: 'Phone files selected',
                 phone_upload_send_start: 'Phone upload started',
@@ -4547,7 +4552,8 @@
             if (eventName === 'generate_success') return { symbol: 'OK', className: 'success' };
             if (eventName === 'generate_limit_hit') return { symbol: 'LIM', className: 'warning' };
             if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_')) return { symbol: 'PAY', className: 'warning' };
-            if (eventName.startsWith('magic_link_')) return { symbol: 'AUTH', className: '' };
+            if (eventName.startsWith('magic_link_') || eventName.startsWith('auth_')) return { symbol: 'AUTH', className: '' };
+            if (eventName === 'listing_tools_ready') return { symbol: 'READY', className: 'success' };
             if (eventName === 'generate_click' || eventName === 'generate_request') return { symbol: 'GEN', className: '' };
             if (log.endpoint === '/api/generate') return { symbol: 'API', className: 'success' };
             if (kind === 'Event') return { symbol: 'EVT', className: '' };

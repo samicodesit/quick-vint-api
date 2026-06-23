@@ -245,7 +245,11 @@ function getEventCategory(event: string | null) {
   ) {
     return "Revenue Intent";
   }
-  if (event.startsWith("magic_link_")) {
+  if (
+    event.startsWith("magic_link_") ||
+    event.startsWith("auth_") ||
+    event === "listing_tools_ready"
+  ) {
     return "Auth";
   }
   return "Other";

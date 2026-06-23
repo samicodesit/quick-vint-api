@@ -204,6 +204,7 @@ const reasons = [
       const error = document.querySelector(".error");
       const params = new URLSearchParams(window.location.search);
       const extensionVersion = params.get("version") || null;
+      const analyticsClientId = params.get("cid") || null;
 
       async function sendFeedback(button) {
         const reason = button.dataset.reason;
@@ -227,6 +228,7 @@ const reasons = [
                 reason,
                 reasonLabel,
                 extensionVersion,
+                analyticsClientId,
               },
               extensionVersion,
             }),

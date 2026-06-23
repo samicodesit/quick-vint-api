@@ -34,6 +34,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleGrowthStats(req, res);
     } else if (action === "list-users") {
       return handleListUsers(req, res);
+    } else if (action === "user-journey") {
+      return handleUserJourney(req, res);
     } else if (action === "list-templates") {
       return handleListTemplates(req, res);
     } else if (action === "preview-template") {
@@ -96,6 +98,9 @@ type RateLimitRow = {
 
 const PROFILE_SELECT =
   "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token";
+
+const LOG_SELECT =
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 function getQueryString(
   value: string | string[] | undefined,
@@ -842,6 +847,193 @@ async function handleListUsers(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error("Error listing admin users:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+function getLogBody(log: any) {
+  if (!log?.full_request_body) return {};
+  if (typeof log.full_request_body === "string") {
+    try {
+      return JSON.parse(log.full_request_body);
+    } catch {
+      return {};
+    }
+  }
+  return log.full_request_body;
+}
+
+function getLogEventName(log: any) {
+  return typeof log?.endpoint === "string" && log.endpoint.startsWith("/event/")
+    ? log.endpoint.replace("/event/", "")
+    : log?.endpoint || "unknown";
+}
+
+function getLogAnalyticsClientId(log: any) {
+  const body = getLogBody(log);
+  return body?.context?.analyticsClientId || null;
+}
+
+function getJourneyStage(log: any) {
+  const event = getLogEventName(log);
+  if (event === "signed_out_tools_ready") return "Reached Vinted signed out";
+  if (event === "signin_cta_click") return "Clicked sign in";
+  if (event === "magic_link_request" || event === "magic_link_sent") {
+    return "Email sign in";
+  }
+  if (event === "auth_success") return "Signed in";
+  if (event === "auth_vinted_cta_click") return "Opened Vinted after auth";
+  if (event === "auth_callback_exit") return "Left auth success page";
+  if (event === "auth_plans_click") return "Viewed plans after auth";
+  if (event === "listing_tools_ready") return "Tools loaded on Vinted";
+  if (event === "generate_click") return "Clicked generate";
+  if (event === "generate_request") return "Generation requested";
+  if (event === "/api/generate") return "Generation API";
+  if (event === "generate_success") return "Generated";
+  if (event === "generate_missing_photo") return "No photo uploaded";
+  if (event === "generate_error") return "Generation error";
+  if (event === "generate_limit_hit") return "Limit hit";
+  if (event === "phone_upload_start") return "Phone upload started";
+  if (event === "batch_start") return "Batch started";
+  if (event === "uninstall_feedback_submitted") return "Uninstall feedback";
+  return event;
+}
+
+function compactJourneyLog(log: any) {
+  const body = getLogBody(log);
+  const context = body?.context || null;
+  return {
+    id: log.id,
+    created_at: log.created_at,
+    endpoint: log.endpoint,
+    event: getLogEventName(log),
+    stage: getJourneyStage(log),
+    user_id: log.user_id,
+    user_email: log.user_email,
+    response_status: log.response_status,
+    origin: log.origin,
+    page: body?.page || null,
+    source: body?.source || null,
+    context,
+    analyticsClientId: context?.analyticsClientId || null,
+    generated_title: log.generated_title || null,
+    has_generated_description: Boolean(log.generated_description),
+    image_count: (() => {
+      try {
+        if (typeof log.image_urls === "string") return JSON.parse(log.image_urls).length;
+        if (Array.isArray(log.image_urls)) return log.image_urls.length;
+      } catch {
+        return 0;
+      }
+      return 0;
+    })(),
+  };
+}
+
+async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
+  try {
+    const userId = getQueryString(req.query.user_id);
+    let email = getQueryString(req.query.email);
+    const requestedClientId = getQueryString(req.query.analytics_client_id);
+    const days = parsePositiveInt(req.query.days, 14, 90);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    if (!userId && !email && !requestedClientId) {
+      return res
+        .status(400)
+        .json({ error: "user_id, email, or analytics_client_id is required" });
+    }
+
+    let profile: ProfileRow | null = null;
+    if (userId || email) {
+      let profileQuery = supabase.from("profiles").select(PROFILE_SELECT).limit(1);
+      profileQuery = userId
+        ? profileQuery.eq("id", userId)
+        : profileQuery.eq("email", email);
+      const { data: profiles, error } = await profileQuery;
+      if (error) throw error;
+      profile = ((profiles || [])[0] || null) as ProfileRow | null;
+      if (!email && profile?.email) email = profile.email;
+    }
+
+    const linkedFilters: string[] = [];
+    if (userId) linkedFilters.push(`user_id.eq.${userId}`);
+    if (email) linkedFilters.push(`user_email.eq.${email}`);
+
+    let linkedLogs: any[] = [];
+    if (linkedFilters.length) {
+      const { data, error } = await supabase
+        .from("api_logs")
+        .select(LOG_SELECT)
+        .or(linkedFilters.join(","))
+        .gte("created_at", since)
+        .order("created_at", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      linkedLogs = data || [];
+    }
+
+    const clientIds = new Set<string>();
+    if (requestedClientId) clientIds.add(requestedClientId);
+    linkedLogs.forEach((log) => {
+      const clientId = getLogAnalyticsClientId(log);
+      if (clientId) clientIds.add(clientId);
+    });
+
+    let correlatedLogs: any[] = [];
+    if (clientIds.size) {
+      const { data, error } = await supabase
+        .from("api_logs")
+        .select(LOG_SELECT)
+        .in("full_request_body->context->>analyticsClientId", Array.from(clientIds))
+        .gte("created_at", since)
+        .order("created_at", { ascending: true })
+        .limit(1000);
+      if (error) throw error;
+      correlatedLogs = data || [];
+    }
+
+    const deduped = new Map<string, any>();
+    [...linkedLogs, ...correlatedLogs].forEach((log) => {
+      if (log?.id) deduped.set(log.id, log);
+    });
+
+    const events = Array.from(deduped.values())
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map(compactJourneyLog);
+
+    const eventNames = new Set(events.map((event) => event.event));
+    const lastEvent = events[events.length - 1] || null;
+    const dropoff = (() => {
+      if (!events.length) return "No tracked activity in this window";
+      if (eventNames.has("generate_success")) return "Generated successfully";
+      if (eventNames.has("generate_limit_hit")) return "Hit usage limit";
+      if (eventNames.has("generate_error")) return "Generation errored";
+      if (eventNames.has("generate_request")) return "Requested generation, no success logged";
+      if (eventNames.has("generate_click")) return "Clicked generate, request did not complete";
+      if (eventNames.has("generate_missing_photo")) return "Tried without photos";
+      if (eventNames.has("listing_tools_ready")) return "Tools loaded, no generate click";
+      if (eventNames.has("auth_callback_exit")) return "Signed in, left callback";
+      if (eventNames.has("auth_success")) return "Signed in, no Vinted action tracked";
+      if (eventNames.has("signin_cta_click")) return "Clicked sign in, no auth success tracked";
+      if (eventNames.has("signed_out_tools_ready")) return "Reached Vinted signed out";
+      return `Last seen: ${lastEvent?.stage || "unknown"}`;
+    })();
+
+    return res.status(200).json({
+      profile,
+      analyticsClientIds: Array.from(clientIds),
+      summary: {
+        days,
+        eventCount: events.length,
+        firstSeenAt: events[0]?.created_at || null,
+        lastSeenAt: lastEvent?.created_at || null,
+        dropoff,
+      },
+      events,
+    });
+  } catch (error: any) {
+    console.error("Error loading user journey:", error);
     return res.status(500).json({ error: error.message });
   }
 }

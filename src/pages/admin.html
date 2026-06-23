@@ -3346,6 +3346,7 @@
                 generate_limit_hit: 'Limit hit',
                 generate_click: 'Generate click',
                 generate_cancelled: 'Generation cancelled',
+                account_paused_shown: 'Account paused shown',
                 paywall_shown: 'Paywall shown',
                 paywall_option_select: 'Paywall option select',
                 checkout_start: 'Checkout start',
@@ -4694,7 +4695,7 @@
             if (log.response_status >= 400 || eventName === 'generate_error') return { symbol: 'ERR', className: 'danger' };
             if (eventName === 'generate_cancelled') return { symbol: 'CXL', className: 'warning' };
             if (eventName === 'generate_success') return { symbol: 'OK', className: 'success' };
-            if (eventName === 'generate_limit_hit') return { symbol: 'LIM', className: 'warning' };
+            if (eventName === 'generate_limit_hit' || eventName === 'account_paused_shown') return { symbol: 'LIM', className: 'warning' };
             if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_')) return { symbol: 'PAY', className: 'warning' };
             if (eventName.startsWith('magic_link_') || eventName.startsWith('auth_') || eventName === 'signin_cta_click' || eventName === 'signed_out_tools_ready') return { symbol: 'AUTH', className: '' };
             if (eventName === 'listing_tools_ready') return { symbol: 'READY', className: 'success' };
@@ -5938,7 +5939,7 @@
         function getJourneyEventTone(event) {
             if (event.event === 'generate_success') return 'success';
             if (event.event === 'generate_error' || event.response_status >= 400) return 'danger';
-            if (event.event === 'generate_limit_hit' || event.event === 'auth_callback_exit' || event.event === 'generate_missing_photo') return 'warning';
+            if (event.event === 'generate_limit_hit' || event.event === 'account_paused_shown' || event.event === 'auth_callback_exit' || event.event === 'generate_missing_photo') return 'warning';
             if (event.event === 'auth_success' || event.event === 'listing_tools_ready') return 'success';
             return 'neutral';
         }

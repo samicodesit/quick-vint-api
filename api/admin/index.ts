@@ -237,7 +237,8 @@ function getEventCategory(event: string | null) {
   if (
     event.startsWith("generate_") ||
     event.startsWith("phone_upload_") ||
-    event.startsWith("batch_")
+    event.startsWith("batch_") ||
+    event === "account_paused_shown"
   ) {
     return "Product Usage";
   }
@@ -893,6 +894,7 @@ function getJourneyStage(log: any) {
   if (event === "generate_missing_photo") return "No photo uploaded";
   if (event === "generate_error") return "Generation error";
   if (event === "generate_limit_hit") return "Limit hit";
+  if (event === "account_paused_shown") return "Account paused shown";
   if (event === "phone_upload_start") return "Phone upload started";
   if (event === "phone_upload_complete") return "Phone upload completed";
   if (event === "phone_upload_error") return "Phone upload error";
@@ -979,6 +981,12 @@ function getJourneySummary(events: any[]) {
     .reverse()
     .find((event) => event.event === "uninstall_feedback_submitted");
   const uninstallReason = latestUninstall?.context?.reasonLabel || latestUninstall?.context?.reason;
+  const latestPaused = [...events].reverse().find((event) => {
+    return (
+      event.event === "account_paused_shown" ||
+      (event.event === "generate_limit_hit" && event.context?.code === "account_paused")
+    );
+  });
 
   const steps = JOURNEY_STEPS.map((step) => ({
     key: step.key,
@@ -992,6 +1000,9 @@ function getJourneySummary(events: any[]) {
   if (latestUninstall) {
     status = uninstallReason ? `Uninstalled: ${uninstallReason}` : "Uninstalled";
     tone = "danger";
+  } else if (latestPaused) {
+    status = "Account paused shown";
+    tone = "warning";
   } else if (eventNames.has("generate_success")) {
     status = "Generated successfully";
     tone = "success";

@@ -2991,6 +2991,7 @@
                 generate_missing_photo: 'Missing photo',
                 generate_limit_hit: 'Limit hit',
                 generate_click: 'Generate click',
+                generate_cancelled: 'Generation cancelled',
                 paywall_shown: 'Paywall shown',
                 paywall_option_select: 'Paywall option select',
                 checkout_start: 'Checkout start',
@@ -4161,16 +4162,26 @@
             if (typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')) {
                 const event = log.endpoint.replace('/event/', '');
                 const context = log.full_request_body?.context || {};
-                const detail = context.reasonLabel || context.message || context.code || context.tier || context.source || '';
+                const detail = getEventContextSummary(event, context);
                 return escapeHtml(detail ? `${friendlyEventName(event)}: ${detail}` : friendlyEventName(event));
             }
             return escapeHtml(log.endpoint || 'No details');
         }
 
+        function getEventContextSummary(event, context = {}) {
+            if (event === 'generate_cancelled' && context.reason === 'description_apply_choice') {
+                return 'User cancelled the existing-description choice before generation started';
+            }
+            return context.reasonLabel || context.message || context.code || context.tier || context.source || context.reason || '';
+        }
+
         function getLogContext(log) {
             const body = log.full_request_body || {};
             const context = body.context || {};
-            return context.reasonLabel || context.message || context.code || context.tier || context.source || log.endpoint || 'No details';
+            const event = typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')
+                ? log.endpoint.replace('/event/', '')
+                : '';
+            return getEventContextSummary(event, context) || log.endpoint || 'No details';
         }
 
         function renderEventLogRows(logs) {
@@ -4292,6 +4303,53 @@
             }).join('');
         }
 
+        function renderMixedLogRows(logs) {
+            return logs.map(log => {
+                const logKind = getLogKind(log);
+                const isGeneration = logKind === 'Generation';
+                const cost = (log.openai_tokens_used || 0) * 0.0000005;
+                const model = log.openai_model || (isGeneration ? 'unknown model' : 'n/a');
+                const detail = isGeneration
+                    ? `${getLogPreview(log)} · ${model} · $${cost.toFixed(5)}`
+                    : getLogContext(log);
+
+                return `
+                    <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
+                        <td>${formatDateTime(log.created_at)}</td>
+                        <td>
+                            <span class="badge badge-neutral">${escapeHtml(logKind)}</span>
+                            <div class="text-sm text-muted" style="font-size: 0.72rem;">${escapeHtml(log.endpoint || '-')}</div>
+                        </td>
+                        <td>${getLogActor(log)}</td>
+                        <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
+                        <td style="max-width:520px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(detail)}</td>
+                        <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderMixedLogMobileCards(logs) {
+            return logs.map(log => {
+                const logKind = getLogKind(log);
+                return `
+                    <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
+                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtml(logKind)}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">${formatDateTime(log.created_at)} · ${escapeHtml(log.endpoint || '-')}</div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">User</span>
+                            <span class="mobile-card-value">${getLogActor(log)}</span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Status</span>
+                            <span class="mobile-card-value"><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></span>
+                        </div>
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.78rem; color: var(--text-muted);">${getLogPreview(log)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         async function renderLogs(container) {
             const params = new URLSearchParams({
                 action: 'view-logs',
@@ -4301,7 +4359,9 @@
             });
 
             const data = await fetchAPI(`/api/admin?${params}`);
-            const isEventLogView = (state.logsType || 'generation') === 'events';
+            const logViewType = state.logsType || 'generation';
+            const isEventLogView = logViewType === 'events';
+            const isGenerationLogView = logViewType === 'generation';
             const desktopHeaders = isEventLogView
                 ? `
                     <tr>
@@ -4313,7 +4373,7 @@
                         <th>Actions</th>
                     </tr>
                 `
-                : `
+                : isGenerationLogView ? `
                     <tr>
                         <th>Time</th>
                         <th>Type</th>
@@ -4325,13 +4385,27 @@
                         <th>Prompt Preview</th>
                         <th>Actions</th>
                     </tr>
+                `
+                : `
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                        <th>Actions</th>
+                    </tr>
                 `;
             const desktopRows = isEventLogView
                 ? renderEventLogRows(data.logs || [])
-                : renderGenerationLogRows(data.logs || []);
+                : isGenerationLogView
+                    ? renderGenerationLogRows(data.logs || [])
+                    : renderMixedLogRows(data.logs || []);
             const mobileRows = isEventLogView
                 ? renderEventLogMobileCards(data.logs || [])
-                : renderGenerationLogMobileCards(data.logs || []);
+                : isGenerationLogView
+                    ? renderGenerationLogMobileCards(data.logs || [])
+                    : renderMixedLogMobileCards(data.logs || []);
 
             const logsHtml = `
                 <div class="filters-bar">
@@ -4356,7 +4430,7 @@
                                 ${desktopHeaders}
                             </thead>
                             <tbody>
-                                ${desktopRows || `<tr><td colspan="${isEventLogView ? 6 : 9}" class="text-muted">No logs found.</td></tr>`}
+                                ${desktopRows || `<tr><td colspan="${isGenerationLogView ? 9 : 6}" class="text-muted">No logs found.</td></tr>`}
                             </tbody>
                         </table>
                         <div class="mobile-card-list">

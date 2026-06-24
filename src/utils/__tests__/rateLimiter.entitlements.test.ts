@@ -45,7 +45,10 @@ function createQueryBuilder(table: string) {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    contains: vi.fn(() => builder),
     gte: vi.fn(() => builder),
+    insert: vi.fn(() => builder),
+    update: vi.fn(() => builder),
     order: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     single: vi.fn(async () => popSingle(table)),
@@ -486,6 +489,68 @@ describe("RateLimiter entitlement decisions", () => {
       allowed: false,
       code: "service_unavailable",
       limitScope: "service",
+    });
+  });
+
+  it("reserves one free no-emoji retry without consuming listing quota", async () => {
+    queueSingle("system_settings", { data: null, error: null });
+    queueSingle("daily_stats", {
+      data: { total_api_calls: 3, estimated_cost: 0.06 },
+      error: null,
+    });
+    queueSingle("generation_reservations", {
+      data: null,
+      error: { code: "PGRST116" },
+    });
+    queueSingle("generation_reservations", {
+      data: { id: "emoji-retry-reservation" },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveEmojiRetry("user-free", {
+      subscription_status: "free",
+      subscription_tier: "free",
+      api_calls_this_month: 5,
+      free_lifetime_generations_used: 5,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      reservationId: "emoji-retry-reservation",
+      remainingRequests: {
+        freeLifetime: 0,
+        packCredits: 0,
+      },
+    });
+    expect(fromCalls).toContain("generation_reservations");
+    expect(fromCalls).toContain("daily_stats");
+  });
+
+  it("does not reserve a second free no-emoji retry", async () => {
+    queueSingle("system_settings", { data: null, error: null });
+    queueSingle("daily_stats", {
+      data: { total_api_calls: 3, estimated_cost: 0.06 },
+      error: null,
+    });
+    queueSingle("generation_reservations", {
+      data: { id: "existing-emoji-retry" },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveEmojiRetry("user-free", {
+      subscription_status: "free",
+      subscription_tier: "free",
+      api_calls_this_month: 5,
+      free_lifetime_generations_used: 5,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      code: "emoji_retry_used",
     });
   });
 

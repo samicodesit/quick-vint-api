@@ -240,6 +240,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     descriptionLanguageCode,
     tone,
     useEmojis,
+    emojiRetry,
     useBulletPoints,
   } = req.body;
 
@@ -309,11 +310,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- RATE LIMITING ---
   // Reserve after request validation so malformed calls do not consume a user's
   // listing entitlement, but before OpenAI so parallel calls cannot overspend.
-  const rateLimitResult = await RateLimiter.reserveGenerationRequest(
-    user.id,
-    userProfile,
-    pricingLimitsMode,
-  );
+  const isEmojiRetryRequest =
+    (emojiRetry === true || emojiRetry === "true") && emojisDisabledByUser;
+  const rateLimitResult = isEmojiRetryRequest
+    ? await RateLimiter.reserveEmojiRetry(
+        user.id,
+        userProfile,
+        pricingLimitsMode,
+      )
+    : await RateLimiter.reserveGenerationRequest(
+        user.id,
+        userProfile,
+        pricingLimitsMode,
+      );
 
   if (!rateLimitResult.allowed) {
     logData.responseStatus = 429;

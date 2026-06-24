@@ -22,6 +22,7 @@ interface RateLimitResult {
     | "daily_limit"
     | "monthly_limit"
     | "free_lifetime_limit"
+    | "emoji_retry_used"
     | "burst_limit"
     | "service_unavailable";
   currentTier?: string;
@@ -548,6 +549,139 @@ export class RateLimiter {
         code: "service_unavailable",
         limitScope: "service",
         error: "Could not reserve generation capacity. Please try again.",
+      };
+    }
+  }
+
+  static async reserveEmojiRetry(
+    userId: string,
+    profile: UserProfile,
+    pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+  ): Promise<RateLimitResult> {
+    const tierKey = getEffectiveTier(profile);
+
+    if (pricingLimitsMode !== "current" || tierKey !== "free") {
+      return {
+        allowed: false,
+        code: "emoji_retry_used",
+        currentTier: tierKey,
+        nextTier: getNextTier(tierKey),
+        limitScope: "month",
+        error:
+          "The free no-emoji retry is only available during the free trial.",
+      };
+    }
+
+    try {
+      const { data: emergencyBrake } = await supabase
+        .from("system_settings")
+        .select("value, reason")
+        .eq("key", "emergency_brake")
+        .single();
+
+      if (emergencyBrake?.value === "true") {
+        return {
+          allowed: false,
+          code: "service_unavailable",
+          limitScope: "service",
+          error: "Service temporarily unavailable. Please try again later.",
+        };
+      }
+
+      const globalBudgetOk = await this.checkGlobalBudget();
+      if (!globalBudgetOk) {
+        return {
+          allowed: false,
+          code: "service_unavailable",
+          limitScope: "service",
+          error:
+            "Service temporarily unavailable due to daily budget limits. Please try again later.",
+        };
+      }
+
+      const { data: existingRetry, error: existingError } = await supabase
+        .from("generation_reservations")
+        .select("id")
+        .eq("user_id", userId)
+        .contains("metadata", { emoji_retry: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingError && existingError.code !== "PGRST116") {
+        console.error("Emoji retry lookup failed:", existingError);
+        return {
+          allowed: false,
+          code: "service_unavailable",
+          limitScope: "service",
+          error: "Could not reserve the no-emoji retry. Please try again.",
+        };
+      }
+
+      if (existingRetry) {
+        return {
+          allowed: false,
+          code: "emoji_retry_used",
+          currentTier: tierKey,
+          nextTier: getNextTier(tierKey),
+          limitScope: "month",
+          error: "The free no-emoji retry was already used for this account.",
+        };
+      }
+
+      const { data: reservation, error: insertError } = await supabase
+        .from("generation_reservations")
+        .insert({
+          user_id: userId,
+          status: "pending",
+          entitlement_type: "free_lifetime",
+          counted_month: false,
+          counted_day: false,
+          metadata: {
+            source: "api_generate",
+            reservation: true,
+            emoji_retry: true,
+            pricing_limits_mode: pricingLimitsMode,
+          },
+        })
+        .select("id")
+        .single();
+
+      if (insertError) {
+        console.error("Emoji retry reservation failed:", insertError);
+        return {
+          allowed: false,
+          code: "emoji_retry_used",
+          currentTier: tierKey,
+          nextTier: getNextTier(tierKey),
+          limitScope: "month",
+          error: "The free no-emoji retry was already used for this account.",
+        };
+      }
+
+      await this.updateGlobalStats();
+
+      return {
+        allowed: true,
+        remainingRequests: {
+          minute: 0,
+          day: null,
+          month: 0,
+          freeLifetime: Math.max(
+            0,
+            FREE_LIFETIME_LIMIT -
+              Math.max(0, profile.free_lifetime_generations_used || 0),
+          ),
+          packCredits: Math.max(0, profile.pack_credits || 0),
+        },
+        reservationId: reservation?.id ?? null,
+      };
+    } catch (err) {
+      console.error("Emoji retry reservation exception:", err);
+      return {
+        allowed: false,
+        code: "service_unavailable",
+        limitScope: "service",
+        error: "Could not reserve the no-emoji retry. Please try again.",
       };
     }
   }

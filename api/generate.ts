@@ -13,6 +13,10 @@ import {
   buildAccountPausedResponse,
   isAccountPaused,
 } from "../src/utils/accountPause";
+import {
+  maybeCreateGenerationOffer,
+  normalizeGenerationMode,
+} from "../utils/generationOffers";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -242,7 +246,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     useEmojis,
     emojiRetry,
     useBulletPoints,
+    generationMode,
   } = req.body;
+  const normalizedGenerationMode = normalizeGenerationMode(generationMode);
 
   const titleLanguageCodeStr = String(
     titleLanguageCode || languageCode || "en",
@@ -460,11 +466,21 @@ Reply only in JSON: {"title":"...","description":"..."}
     // Log the successful request
     await ApiLogger.logRequest(logData);
     await RateLimiter.commitGenerationReservation(generationReservationId);
+    const offers = await maybeCreateGenerationOffer({
+      userId: user.id,
+      profile: userProfile,
+      pricingLimitsMode,
+      generationMode: normalizedGenerationMode,
+      isClothing,
+      reservationId: generationReservationId,
+      extensionVersion,
+    });
 
     return res.status(200).json({
       title,
       description,
       measurementAdvice,
+      offers,
     });
   } catch (err: any) {
     console.error("Generation error:", err);

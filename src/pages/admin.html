@@ -4724,8 +4724,11 @@
         function getLogActor(log) {
             if (log.user_email) return escapeHtml(log.user_email);
             if (log.user_id) return escapeHtml(`${shortId(log.user_id)}...`);
+            const correlatedUser = log.correlated_user || {};
+            if (correlatedUser.email) return `<span title="Matched by analytics client">Likely user: ${escapeHtml(correlatedUser.email)}</span>`;
+            if (correlatedUser.id) return `<span title="Matched by analytics client">Likely user: ${escapeHtml(shortId(correlatedUser.id))}...</span>`;
             const analyticsClientId = getLogAnalyticsClientId(log);
-            if (analyticsClientId) return `<span title="${escapeAttribute(analyticsClientId)}">Client ${escapeHtml(shortId(analyticsClientId))}...</span>`;
+            if (analyticsClientId) return `<span title="Analytics client ${escapeAttribute(analyticsClientId)}">Anonymous client ${escapeHtml(shortId(analyticsClientId))}...</span>`;
             return getLogKind(log) === 'Event' ? 'Anonymous event' : 'No user context';
         }
 
@@ -4733,6 +4736,9 @@
             const analyticsClientId = getLogAnalyticsClientId(log);
             if (log.user_id) {
                 return `<button class="btn-secondary" onclick="event.stopPropagation(); showUserJourney('${escapeAttribute(log.user_id)}', '${escapeAttribute(encodeURIComponent(log.user_email || ''))}')">${escapeHtml(label)}</button>`;
+            }
+            if (log.correlated_user?.id) {
+                return `<button class="btn-secondary" onclick="event.stopPropagation(); showUserJourney('${escapeAttribute(log.correlated_user.id)}', '${escapeAttribute(encodeURIComponent(log.correlated_user.email || ''))}')">${escapeHtml(label)}</button>`;
             }
             if (analyticsClientId) {
                 return `<button class="btn-secondary" onclick="event.stopPropagation(); showClientJourney('${escapeAttribute(analyticsClientId)}')">${escapeHtml(label)}</button>`;
@@ -4768,8 +4774,9 @@
                 ? log.endpoint.replace('/event/', '')
                 : '';
             const summary = getEventContextSummary(event, context);
-            const analyticsClientId = context.analyticsClientId ? `client ${shortId(context.analyticsClientId)}...` : '';
-            return [summary, analyticsClientId].filter(Boolean).join(' · ') || log.endpoint || 'No details';
+            const page = context.path || context.page || body.page || '';
+            const source = body.source || context.source || '';
+            return [summary, page, source].filter(Boolean).join(' · ') || log.endpoint || 'No details';
         }
 
         function renderEventLogRows(logs) {
@@ -6486,6 +6493,10 @@
             const logsAction = logsActionSearch
                 ? `<button class="btn-secondary" onclick="openLogsForSearch('${escapeAttribute(logsActionSearch)}', 'all')">Open related logs</button>`
                 : '';
+            const correlatedUser = log.correlated_user || {};
+            const correlatedUserLine = !log.user_id && (correlatedUser.email || correlatedUser.id)
+                ? `Likely user: ${escapeHtml(correlatedUser.email || correlatedUser.id)}<br>`
+                : '';
 
             let metadata = {};
             try {
@@ -6512,6 +6523,7 @@
                             ID: ${escapeHtml(log.id)}<br>
                             Time: ${escapeHtml(formatDateTime(log.created_at))}<br>
                             Actor: ${getLogActor(log)}<br>
+                            ${correlatedUserLine}
                             ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
                             Status: ${escapeHtml(log.response_status || 'N/A')}
                         </div>
@@ -6577,6 +6589,7 @@
                             Type: ${escapeHtml(logKind)}<br>
                             Endpoint: ${escapeHtml(log.endpoint || 'N/A')}<br>
                             Actor: ${getLogActor(log)}<br>
+                            ${correlatedUserLine}
                             ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
                             Status: ${escapeHtml(log.response_status || 'N/A')}<br>
                             Model: ${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'N/A'))}

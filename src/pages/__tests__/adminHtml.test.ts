@@ -177,6 +177,11 @@ function buildAdminHarness() {
           context: { analyticsClientId: "cid-anon-123", visiblePhotoCount: 8 },
           extensionVersion: "1.3.24",
         },
+        correlated_user: {
+          id: "user-1",
+          email: "test@example.com",
+          lastSeenAt: now,
+        },
         image_urls: [],
       },
       {
@@ -377,10 +382,12 @@ describe("admin HTML", () => {
     await context.loadView("logs");
     expect(content.innerHTML).toContain("Logs are the forensic stream");
     expect(content.innerHTML).toContain("Cancelled");
-    expect(content.innerHTML).toContain("Client cid-anon...");
+    expect(content.innerHTML).toContain("Likely user: test@example.com");
+    expect(content.innerHTML).not.toContain("Anonymous client cid-anon...");
     context.showLogDetails("log-3");
     expect(modalTitle.textContent).toBe("Event Details");
     expect(modalBody.innerHTML).toContain("Client ID: cid-anon-123");
+    expect(modalBody.innerHTML).toContain("Likely user: test@example.com");
     expect(modalBody.innerHTML).toContain("View correlated journey");
     expect(modalBody.innerHTML).toContain("Open related logs");
 

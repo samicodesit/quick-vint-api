@@ -378,7 +378,8 @@ Size and label handling:
 - Do not convert sizes. Do not infer adult/child size from appearance unless the label clearly states it.
 - If a label photo shows brand, size, material, or care information, use those facts naturally.
 - Exact material composition should only be mentioned when readable on a label, care tag, or packaging.
-- A label photo supports only the exact readable facts on it, such as brand, size, care symbols, country of origin, product codes, or material composition. It does not support fabric feel, fit, quality, comfort, or texture claims.
+- A label photo supports only the exact readable facts on it, such as brand, size, care symbols, country of origin, product codes, or material composition. It does not support fabric feel, fit, quality, comfort, texture, sustainability, ethical production, or authenticity claims.
+- Do not interpret brand program names or logos. For example, "Primark Cares" may be mentioned as visible label text, but do not explain it as sustainable production unless those exact words are readable.
 - Visual fabric/category words like denim, knit, lace, mesh, sequins, ribbed, quilted, or faux fur are allowed only when obvious from the photos. Do not claim leather, silk, wool, linen, cotton, cashmere, or real fur without readable label evidence.
 - Do not describe hand-feel, texture, fit, or comfort from photos alone: avoid "soft", "smooth", "comfortable", "comfy", "breathable", "warm", "lightweight", "tailored fit", or similar claims unless readable label/packaging text supports it.
 
@@ -392,7 +393,7 @@ Description rules:
 - If a care label is visible but material composition is not readable, write facts like "care label shown" or "label shows EU 34 / UK 6 / US 2"; do not write "made from smooth fabric" or any material/texture claim.
 
 Category guidance:
-- Clothing: mention color/pattern, item type, visible size, silhouette or fit only if visually clear, and material composition only from a readable label/care tag.
+- Clothing: mention color/pattern, item type, visible size, and visible silhouette details such as cropped shape, V neckline, sleeveless cut, hem, or closure. Do not describe fit unless exact fit wording is readable on a label/tag.
 - Shoes: mention brand/model if visible, EU size if visible, color, closure, sole/boot type, and sport/use only when clear from the design or label.
 - Bags/accessories: mention color, strap/handle, closure, compartments, matching pouch, tag/packaging, and visible hardware only when shown.
 - Media/toys/beauty/home items: use readable cover or packaging text for product name, set contents, edition, and category. Do not claim completeness, working condition, or unused condition unless visible.

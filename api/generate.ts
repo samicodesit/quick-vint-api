@@ -269,8 +269,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const tierAllowsExtras =
     effectiveTier === "pro" || effectiveTier === "business";
 
-  let toneInstruction =
-    "natural, factual, and friendly like a real Vinted seller"; // Default for 'standard'
+  let toneInstruction = "plain, factual, and natural like a real Vinted seller"; // Default for 'standard'
   if (tierAllowsExtras) {
     if (tone === "friendly")
       toneInstruction =
@@ -289,7 +288,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? !emojisDisabledByUser
       : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
-    ? "Include exactly 1 relevant emoji in the description, placed naturally in the opening sentence or one bullet. Do not use emojis in the title or hashtags."
+    ? "Include exactly 1 relevant emoji in the description, attached to an existing factual item detail. Do not add a marketing phrase just to use the emoji. Do not use emojis in the title or hashtags."
     : "Do NOT use any emojis in the description.";
 
   // bullet points vs paragraphs
@@ -356,7 +355,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Your priority is buyer trust: use visible evidence, sound natural, and omit uncertain facts. Never invent brand, size, material, fabric composition, fabric feel, fit, model, measurements, authenticity, retail price, rarity, or how often an item was worn. If material composition is not readable, do not mention material, fabric, blend, softness, smoothness, comfort, warmth, or breathability.";
+    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Your priority is buyer trust: use visible evidence, sound natural, and omit uncertain facts. Never invent brand, size, material, fabric composition, fabric feel, fit, model, measurements, authenticity, retail price, rarity, styling use cases, or how often an item was worn. Do not write marketing copy, subjective praise, outfit advice, or generic buyer benefits. If material composition is not readable, do not mention material, fabric, blend, softness, smoothness, comfort, warmth, or breathability.";
   const userPrompt = `
 Analyze the image(s) and generate a Vinted title and description.
 First, silently inspect the photos for: visible label text, brand logos, size tags, care/material tags, model names, item type, color/pattern, category, visible tags/packaging, and useful buyer search terms. Do not show this inspection.
@@ -388,7 +387,7 @@ Size and label handling:
 
 Description rules:
 - Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
-- Use a plain factual opening sentence. Do not use subjective praise such as "stylish", "chic", "beautiful", "lovely", "great", or "addition to your wardrobe".
+- Use a plain factual opening sentence that names the item, color, and brand when known. Do not use subjective praise such as "check out", "cute", "stylish", "chic", "beautiful", "lovely", "great", or "addition to your wardrobe".
 - Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
 - Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, readable size facts, and exact readable material composition.
 - Do not add styling advice, outfit suggestions, or benefit endings unless supported by readable label/packaging text.

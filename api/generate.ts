@@ -378,8 +378,9 @@ Size and label handling:
 - Do not convert sizes. Do not infer adult/child size from appearance unless the label clearly states it.
 - If a label photo shows brand, size, material, or care information, use those facts naturally.
 - Exact material composition should only be mentioned when readable on a label, care tag, or packaging.
+- A label photo supports only the exact readable facts on it, such as brand, size, care symbols, country of origin, product codes, or material composition. It does not support fabric feel, fit, quality, comfort, or texture claims.
 - Visual fabric/category words like denim, knit, lace, mesh, sequins, ribbed, quilted, or faux fur are allowed only when obvious from the photos. Do not claim leather, silk, wool, linen, cotton, cashmere, or real fur without readable label evidence.
-- Do not describe hand-feel or comfort from photos alone: avoid "soft", "comfortable", "comfy", "breathable", "warm", "lightweight", or similar feel claims unless readable label/packaging text supports it.
+- Do not describe hand-feel, texture, fit, or comfort from photos alone: avoid "soft", "smooth", "comfortable", "comfy", "breathable", "warm", "lightweight", "tailored fit", or similar claims unless readable label/packaging text supports it.
 
 Description rules:
 - Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
@@ -388,6 +389,7 @@ Description rules:
 - Do not add styling advice, outfit suggestions, or benefit endings unless supported by readable label/packaging text.
 - Avoid lazy repetition: each sentence or bullet should add a new visible detail, not just a buyer benefit.
 - Avoid subjective or filler phrases such as "check out", "stylish", "sleek", "ideal", "perfect", "tailored fit", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
+- If a care label is visible but material composition is not readable, write facts like "care label shown" or "label shows EU 34 / UK 6 / US 2"; do not write "made from smooth fabric" or any material/texture claim.
 
 Category guidance:
 - Clothing: mention color/pattern, item type, visible size, silhouette or fit only if visually clear, and material composition only from a readable label/care tag.

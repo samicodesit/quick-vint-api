@@ -301,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one short opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 7-14 words. Each bullet must add a concrete visible detail, not a generic benefit. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
+      ? `Use one short factual opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 8-16 words. Each bullet must include concrete visible evidence, ideally combining two visible facts. Do not write generic benefit bullets. Bad: "Button-up front for easy wear". Good: "Button-up front with visible V neckline and cropped shape". Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
       : `Use 2 short paragraphs separated by a line break, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
 
   if (
@@ -384,9 +384,10 @@ Size and label handling:
 Description rules:
 - Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
 - Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
-- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, print, set contents, packaging, and visible labels. Add a brief use or styling phrase only when it follows directly from the visible item category.
-- Avoid lazy repetition: each sentence or bullet should add a new detail, not just a buyer benefit.
-- Avoid filler phrases such as "check out", "stylish", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
+- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, and visible labels.
+- Do not add styling advice, outfit suggestions, or benefit endings unless supported by readable label/packaging text.
+- Avoid lazy repetition: each sentence or bullet should add a new visible detail, not just a buyer benefit.
+- Avoid subjective or filler phrases such as "check out", "stylish", "sleek", "ideal", "perfect", "tailored fit", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
 
 Category guidance:
 - Clothing: mention color/pattern, item type, visible size, silhouette or fit only if visually clear, and material composition only from a readable label/care tag.

@@ -260,13 +260,16 @@ describe("admin HTML", () => {
   it("renders every admin view without runtime view errors", async () => {
     const { context, content, modalBody, modalTitle } = buildAdminHarness();
 
-    for (const view of ["overview", "growth", "events", "logs", "users"]) {
+    for (const view of ["overview", "growth", "events", "logs", "users", "ui-pages"]) {
       if (view === "logs") context.state.logsType = "events";
       context.state.currentView = view;
       await context.loadView(view);
       expect(content.innerHTML, view).not.toContain("Error loading view");
       expect(content.innerHTML.length, view).toBeGreaterThan(1000);
     }
+
+    expect(content.innerHTML).toContain('src="/welcome/en"');
+    expect(content.innerHTML).toContain("Rendered welcome page preview");
 
     context.showLogDetails("log-1");
     expect(modalTitle.textContent).toBe("Event Details");

@@ -229,6 +229,7 @@ function getEventName(log: any) {
 function getEventCategory(event: string | null) {
   if (!event) return null;
   if (
+    event === "extension_uninstalled" ||
     event === "uninstall_feedback_submitted" ||
     event === "chrome_store_click"
   ) {
@@ -425,6 +426,7 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
 
         if (
           [
+            "extension_uninstalled",
             "uninstall_feedback_submitted",
             "generate_error",
             "generate_limit_hit",
@@ -901,6 +903,7 @@ function getJourneyStage(log: any) {
   if (event === "batch_start") return "Batch started";
   if (event === "batch_complete") return "Batch completed";
   if (event === "batch_error") return "Batch error";
+  if (event === "extension_uninstalled") return "Extension uninstalled";
   if (event === "uninstall_feedback_submitted") return "Uninstall feedback";
   return event;
 }
@@ -979,7 +982,11 @@ function getJourneySummary(events: any[]) {
   const lastEvent = events[events.length - 1] || null;
   const latestUninstall = [...events]
     .reverse()
-    .find((event) => event.event === "uninstall_feedback_submitted");
+    .find(
+      (event) =>
+        event.event === "extension_uninstalled" ||
+        event.event === "uninstall_feedback_submitted",
+    );
   const uninstallReason = latestUninstall?.context?.reasonLabel || latestUninstall?.context?.reason;
   const latestPaused = [...events].reverse().find((event) => {
     return (

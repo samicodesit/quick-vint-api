@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../../utils/supabaseClient";
 import { RateLimiter } from "../../utils/rateLimiter";
+import { ApiLogger } from "../../utils/apiLogger";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Secure the endpoint
@@ -13,6 +14,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const results = {
     rateLimits: { success: false, error: null as string | null },
     tempUploads: { success: false, deleted: 0, error: null as string | null },
+    apiLogs: {
+      success: false,
+      compacted: 0,
+      cutoffDays: 90,
+      error: null as string | null,
+    },
   };
 
   // 1. Cleanup Rate Limits
@@ -87,6 +94,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("Temp uploads cleanup failed:", error);
     results.tempUploads.error = error.message;
+  }
+
+  // 3. Compact old API logs while preserving lightweight long-term metrics
+  try {
+    const apiLogResult = await ApiLogger.compactOldLogs({
+      cutoffDays: 90,
+      batchSize: 1000,
+    });
+    results.apiLogs.success = true;
+    results.apiLogs.compacted = apiLogResult.compacted;
+    results.apiLogs.cutoffDays = apiLogResult.cutoffDays;
+  } catch (error: any) {
+    console.error("API log compaction failed:", error);
+    results.apiLogs.error = error.message;
   }
 
   return res.status(200).json({

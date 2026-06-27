@@ -24,6 +24,9 @@ type WelcomeCopy = {
   heroSubtitle: string;
   stepsTitle: string;
   steps: [string, string, string];
+  labelTipBadge: string;
+  labelTipTitle: string;
+  labelTipBody: string;
   primaryCta: string;
   secondaryCta: string;
   fallbackCta: string;
@@ -48,6 +51,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Go to Vinted and open your listing flow",
       "Click Generate to create title and description",
     ],
+    labelTipBadge: "Photo tip",
+    labelTipTitle: "Add a label photo when you can",
+    labelTipBody: "It helps AutoLister read the brand, size, and material.",
     primaryCta: "Go to Vinted and list now",
     secondaryCta: "See pricing plans",
     fallbackCta: "Open default Vinted listing page",
@@ -72,6 +78,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Allez sur Vinted et ouvrez le flux de création d'annonce",
       "Cliquez sur Générer pour créer le titre et la description",
     ],
+    labelTipBadge: "Conseil photo",
+    labelTipTitle: "Ajoutez une photo de l'étiquette si possible",
+    labelTipBody: "Cela aide AutoLister à lire la marque, la taille et la matière.",
     primaryCta: "Aller sur Vinted et publier",
     secondaryCta: "Voir les offres",
     fallbackCta: "Ouvrir la page Vinted par défaut",
@@ -96,6 +105,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Gehe zu Vinted und öffne den Inserat-Flow",
       "Klicke auf Generieren für Titel und Beschreibung",
     ],
+    labelTipBadge: "Foto-Tipp",
+    labelTipTitle: "Füge wenn möglich ein Etikett-Foto hinzu",
+    labelTipBody: "So erkennt AutoLister Marke, Größe und Material besser.",
     primaryCta: "Zu Vinted und jetzt inserieren",
     secondaryCta: "Preise ansehen",
     fallbackCta: "Standard-Vinted-Seite öffnen",
@@ -120,6 +132,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Ga naar Vinted en open je advertentieflow",
       "Klik op Genereren voor titel en beschrijving",
     ],
+    labelTipBadge: "Fototip",
+    labelTipTitle: "Voeg indien mogelijk een label-foto toe",
+    labelTipBody: "Zo kan AutoLister merk, maat en materiaal beter lezen.",
     primaryCta: "Ga naar Vinted en plaats nu",
     secondaryCta: "Bekijk prijzen",
     fallbackCta: "Open standaard Vinted-pagina",
@@ -144,6 +159,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Wejdź na Vinted i otwórz tworzenie ogłoszenia",
       "Kliknij Generuj, aby utworzyć tytuł i opis",
     ],
+    labelTipBadge: "Wskazówka",
+    labelTipTitle: "Dodaj zdjęcie metki, jeśli możesz",
+    labelTipBody: "To pomaga AutoLister odczytać markę, rozmiar i materiał.",
     primaryCta: "Przejdź do Vinted i wystaw teraz",
     secondaryCta: "Zobacz plany",
     fallbackCta: "Otwórz domyślną stronę Vinted",
@@ -168,6 +186,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Ve a Vinted y abre el flujo de anuncio",
       "Pulsa Generar para crear título y descripción",
     ],
+    labelTipBadge: "Consejo",
+    labelTipTitle: "Añade una foto de la etiqueta si puedes",
+    labelTipBody: "Ayuda a AutoLister a leer marca, talla y material.",
     primaryCta: "Ir a Vinted y publicar ahora",
     secondaryCta: "Ver planes",
     fallbackCta: "Abrir página predeterminada de Vinted",
@@ -192,6 +213,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Vai su Vinted e apri il flusso di pubblicazione",
       "Fai clic su Genera per creare titolo e descrizione",
     ],
+    labelTipBadge: "Consiglio",
+    labelTipTitle: "Aggiungi una foto dell'etichetta se puoi",
+    labelTipBody: "Aiuta AutoLister a leggere marca, taglia e materiale.",
     primaryCta: "Vai su Vinted e pubblica ora",
     secondaryCta: "Vedi i piani",
     fallbackCta: "Apri pagina Vinted predefinita",
@@ -216,6 +240,9 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Vá ao Vinted e abra o fluxo de criação de anúncio",
       "Clique em Gerar para criar título e descrição",
     ],
+    labelTipBadge: "Dica",
+    labelTipTitle: "Adicione uma foto da etiqueta se puder",
+    labelTipBody: "Ajuda o AutoLister a ler marca, tamanho e material.",
     primaryCta: "Ir para o Vinted e publicar agora",
     secondaryCta: "Ver planos",
     fallbackCta: "Abrir página padrão do Vinted",

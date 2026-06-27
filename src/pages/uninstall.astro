@@ -205,6 +205,46 @@ const reasons = [
       const params = new URLSearchParams(window.location.search);
       const extensionVersion = params.get("version") || null;
       const analyticsClientId = params.get("cid") || null;
+      const userId = params.get("uid") || null;
+
+      function buildTrackingBody(event, context = {}) {
+        return {
+          event,
+          source: "uninstall_page",
+          page: "/uninstall",
+          userId,
+          context: {
+            ...context,
+            extensionVersion,
+            analyticsClientId,
+            userId,
+          },
+          extensionVersion,
+        };
+      }
+
+      function trackUninstallOpen() {
+        const body = JSON.stringify(
+          buildTrackingBody("extension_uninstalled", {
+            hasUserId: Boolean(userId),
+          }),
+        );
+
+        if (navigator.sendBeacon) {
+          const sent = navigator.sendBeacon(
+            "/api/events/track",
+            new Blob([body], { type: "application/json" }),
+          );
+          if (sent) return;
+        }
+
+        fetch("/api/events/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      }
 
       async function sendFeedback(button) {
         const reason = button.dataset.reason;
@@ -220,18 +260,12 @@ const reasons = [
           const response = await fetch("/api/events/track", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event: "uninstall_feedback_submitted",
-              source: "uninstall_page",
-              page: "/uninstall",
-              context: {
+            body: JSON.stringify(
+              buildTrackingBody("uninstall_feedback_submitted", {
                 reason,
                 reasonLabel,
-                extensionVersion,
-                analyticsClientId,
-              },
-              extensionVersion,
-            }),
+              }),
+            ),
             keepalive: true,
           });
           if (!response.ok) {
@@ -249,6 +283,7 @@ const reasons = [
       buttons.forEach((button) => {
         button.addEventListener("click", () => sendFeedback(button));
       });
+      trackUninstallOpen();
     </script>
   </body>
 </html>

@@ -39,6 +39,14 @@ function sanitizeEventName(value: unknown) {
 }
 
 function parseBody(body: unknown) {
+  if (Buffer.isBuffer(body)) {
+    try {
+      return JSON.parse(body.toString("utf8") || "{}");
+    } catch {
+      return {};
+    }
+  }
+
   if (typeof body !== "string") return body && typeof body === "object" ? body : {};
 
   try {
@@ -48,7 +56,7 @@ function parseBody(body: unknown) {
   }
 }
 
-function normalizeEventItems(body: Record<string, any>) {
+export function normalizeEventItems(body: Record<string, any>) {
   const rawItems = Array.isArray(body.events) ? body.events : [body];
   return rawItems
     .slice(0, 25)
@@ -61,8 +69,51 @@ function normalizeEventItems(body: Record<string, any>) {
       context: item.context ?? null,
       extensionVersion: item.extensionVersion ?? body.extensionVersion ?? null,
       utm: item.utm ?? body.utm ?? null,
+      userId: item.userId ?? body.userId ?? item.context?.userId ?? null,
     }))
     .filter((item) => item.event);
+}
+
+export function isUuid(value: unknown) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || ""),
+  );
+}
+
+export function canAttributePublicUninstallEvent(item: {
+  event: string;
+  source: unknown;
+  page: unknown;
+  userId: unknown;
+}) {
+  return (
+    (item.event === "extension_uninstalled" ||
+      item.event === "uninstall_feedback_submitted") &&
+    item.source === "uninstall_page" &&
+    item.page === "/uninstall" &&
+    isUuid(item.userId)
+  );
+}
+
+async function resolvePublicUninstallUser(eventItems: ReturnType<typeof normalizeEventItems>) {
+  const attributedItem = eventItems.find(canAttributePublicUninstallEvent);
+  if (!attributedItem) return {};
+
+  const userId = String(attributedItem.userId);
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return {};
+  }
+
+  return {
+    userId: data.id as string,
+    userEmail: (data.email as string | null) || undefined,
+  };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -97,6 +148,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } = await supabase.auth.getUser(token);
     userId = user?.id;
     userEmail = user?.email;
+  }
+
+  if (!userId) {
+    const publicIdentity = await resolvePublicUninstallUser(eventItems);
+    userId = publicIdentity.userId;
+    userEmail = publicIdentity.userEmail;
   }
 
   const metadata = ApiLogger.extractRequestMetadata(req);

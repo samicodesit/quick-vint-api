@@ -1,10 +1,78 @@
-import { describe, expect, it, beforeAll } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+const fromCalls: string[] = [];
+const selectCalls: string[] = [];
+const ltCalls: Array<[string, string]> = [];
+const orCalls: string[] = [];
+const orderCalls: Array<[string, any]> = [];
+const limitCalls: number[] = [];
+const updateCalls: any[] = [];
+const inCalls: Array<[string, string[]]> = [];
+let selectResponse: { data: any[]; error: any } = { data: [], error: null };
+let updateResponse: { error: any } = { error: null };
+
+function createBuilder() {
+  const builder = {
+    select: vi.fn((columns: string) => {
+      selectCalls.push(columns);
+      return builder;
+    }),
+    lt: vi.fn((column: string, value: string) => {
+      ltCalls.push([column, value]);
+      return builder;
+    }),
+    or: vi.fn((filter: string) => {
+      orCalls.push(filter);
+      return builder;
+    }),
+    order: vi.fn((column: string, options: any) => {
+      orderCalls.push([column, options]);
+      return builder;
+    }),
+    limit: vi.fn(async (limit: number) => {
+      limitCalls.push(limit);
+      return selectResponse;
+    }),
+    update: vi.fn((values: any) => {
+      updateCalls.push(values);
+      return builder;
+    }),
+    in: vi.fn(async (column: string, values: string[]) => {
+      inCalls.push([column, values]);
+      return updateResponse;
+    }),
+  };
+  return builder;
+}
+
+vi.mock("../../../utils/supabaseClient", () => ({
+  supabase: {
+    from: vi.fn((table: string) => {
+      fromCalls.push(table);
+      return createBuilder();
+    }),
+  },
+}));
 
 describe("ApiLogger.detectSuspiciousActivity", () => {
   beforeAll(() => {
     process.env.VERCEL_APP_SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY =
       "test-service-role-key-for-import-only";
+  });
+
+  beforeEach(() => {
+    fromCalls.length = 0;
+    selectCalls.length = 0;
+    ltCalls.length = 0;
+    orCalls.length = 0;
+    orderCalls.length = 0;
+    limitCalls.length = 0;
+    updateCalls.length = 0;
+    inCalls.length = 0;
+    selectResponse = { data: [], error: null };
+    updateResponse = { error: null };
+    vi.clearAllMocks();
   });
 
   it("does not flag static generated prompt safety instructions", async () => {
@@ -30,5 +98,59 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
 
     expect(result.suspicious).toBe(true);
     expect(result.reasons[0]).toContain("phishing");
+  });
+
+  it("compacts heavy fields for old API logs in a bounded batch", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-27T12:00:00.000Z"));
+    selectResponse = {
+      data: [{ id: "log-1" }, { id: "log-2" }],
+      error: null,
+    };
+
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+    const result = await ApiLogger.compactOldLogs({
+      cutoffDays: 90,
+      batchSize: 500,
+    });
+
+    expect(result).toMatchObject({
+      cutoffDays: 90,
+      batchSize: 500,
+      compacted: 2,
+    });
+    expect(fromCalls).toEqual(["api_logs", "api_logs"]);
+    expect(selectCalls).toEqual(["id"]);
+    expect(ltCalls[0]).toEqual(["created_at", "2026-03-29T12:00:00.000Z"]);
+    expect(orCalls[0]).toContain("generated_description.not.is.null");
+    expect(orCalls[0]).toContain("full_request_body.not.is.null");
+    expect(orderCalls[0]).toEqual(["created_at", { ascending: true }]);
+    expect(limitCalls).toEqual([500]);
+    expect(updateCalls[0]).toEqual({
+      image_urls: null,
+      raw_prompt: null,
+      full_request_body: null,
+      generated_title: null,
+      generated_description: null,
+      user_agent: null,
+      origin: null,
+      ip_address: null,
+      user_email: null,
+    });
+    expect(inCalls[0]).toEqual(["id", ["log-1", "log-2"]]);
+
+    vi.useRealTimers();
+  });
+
+  it("does not issue an update when no old logs need compaction", async () => {
+    selectResponse = { data: [], error: null };
+
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+    const result = await ApiLogger.compactOldLogs();
+
+    expect(result.compacted).toBe(0);
+    expect(fromCalls).toEqual(["api_logs"]);
+    expect(updateCalls).toHaveLength(0);
+    expect(inCalls).toHaveLength(0);
   });
 });

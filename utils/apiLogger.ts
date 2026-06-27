@@ -35,6 +35,13 @@ export interface ApiLogData {
   flaggedReason?: string;
 }
 
+export interface ApiLogCompactionResult {
+  cutoffDays: number;
+  cutoffIso: string;
+  batchSize: number;
+  compacted: number;
+}
+
 export class ApiLogger {
   private static buildInsertRow(data: ApiLogData) {
     return {
@@ -90,6 +97,80 @@ export class ApiLogger {
       console.error("Error in ApiLogger.logRequests:", err);
       // Don't throw error to avoid disrupting the main API flow
     }
+  }
+
+  static async compactOldLogs({
+    cutoffDays = 90,
+    batchSize = 1000,
+  }: {
+    cutoffDays?: number;
+    batchSize?: number;
+  } = {}): Promise<ApiLogCompactionResult> {
+    const safeCutoffDays = Math.max(1, Math.floor(cutoffDays));
+    const safeBatchSize = Math.max(1, Math.min(Math.floor(batchSize), 5000));
+    const cutoffIso = new Date(
+      Date.now() - safeCutoffDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
+    const heavyFieldFilter = [
+      "image_urls.not.is.null",
+      "raw_prompt.not.is.null",
+      "full_request_body.not.is.null",
+      "generated_title.not.is.null",
+      "generated_description.not.is.null",
+      "user_agent.not.is.null",
+      "origin.not.is.null",
+      "ip_address.not.is.null",
+      "user_email.not.is.null",
+    ].join(",");
+
+    const { data: rows, error: selectError } = await supabase
+      .from("api_logs")
+      .select("id")
+      .lt("created_at", cutoffIso)
+      .or(heavyFieldFilter)
+      .order("created_at", { ascending: true })
+      .limit(safeBatchSize);
+
+    if (selectError) {
+      throw selectError;
+    }
+
+    const ids = (rows || []).map((row: { id: string }) => row.id).filter(Boolean);
+    if (!ids.length) {
+      return {
+        cutoffDays: safeCutoffDays,
+        cutoffIso,
+        batchSize: safeBatchSize,
+        compacted: 0,
+      };
+    }
+
+    const { error: updateError } = await supabase
+      .from("api_logs")
+      .update({
+        image_urls: null,
+        raw_prompt: null,
+        full_request_body: null,
+        generated_title: null,
+        generated_description: null,
+        user_agent: null,
+        origin: null,
+        ip_address: null,
+        user_email: null,
+      })
+      .in("id", ids);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return {
+      cutoffDays: safeCutoffDays,
+      cutoffIso,
+      batchSize: safeBatchSize,
+      compacted: ids.length,
+    };
   }
 
   /**

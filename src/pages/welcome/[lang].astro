@@ -224,6 +224,69 @@ const canonical = `${baseUrl}${welcomePath}`;
             </div>
           </div>
 
+          <div
+            class="overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-5 shadow-sm shadow-emerald-100/50"
+          >
+            <div class="flex items-start gap-4">
+              <div class="grid w-28 shrink-0 grid-cols-2 gap-1.5">
+                <img
+                  src="/welcome-label-2.webp"
+                  alt="Clothing label with brand and size"
+                  width="640"
+                  height="640"
+                  loading="lazy"
+                  class="col-span-2 aspect-[2/1.18] w-full rounded-xl border border-white object-cover object-center shadow-sm"
+                />
+                <img
+                  src="/welcome-label-3.webp"
+                  alt="Clothing size label"
+                  width="640"
+                  height="640"
+                  loading="lazy"
+                  class="aspect-square w-full rounded-lg border border-white object-cover object-center shadow-sm"
+                />
+                <img
+                  src="/welcome-label-1.webp"
+                  alt="Product label with barcode"
+                  width="640"
+                  height="480"
+                  loading="lazy"
+                  class="aspect-square w-full rounded-lg border border-white object-cover object-center shadow-sm"
+                />
+              </div>
+              <div class="min-w-0 pt-0.5">
+                <div
+                  class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100"
+                >
+                  <svg
+                    class="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    ><path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 7h3l2-3h8l2 3h3v13H3V7z"
+                    ></path><path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 17a4 4 0 100-8 4 4 0 000 8z"
+                    ></path></svg
+                  >
+                  {copy.labelTipBadge}
+                </div>
+                <h3 class="text-base font-extrabold leading-snug text-slate-950">
+                  {copy.labelTipTitle}
+                </h3>
+                <p class="mt-1.5 text-sm font-medium leading-relaxed text-slate-600">
+                  {copy.labelTipBody}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div class="mt-1 text-center px-4 w-full">
             <p
               class="text-[13px] font-medium text-slate-500 flex items-center justify-center gap-2 mx-auto bg-slate-50/80 rounded-full py-2 px-5 w-fit border border-slate-200/60"

@@ -2691,6 +2691,19 @@
                         <span class="nav-meta">Accounts, usage, review email</span>
                     </span>
                 </div>
+                <div class="nav-item" data-view="ui-pages" onclick="switchView('ui-pages')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+                        <path d="M8 7h8"></path>
+                        <path d="M8 11h8"></path>
+                        <path d="M8 15h5"></path>
+                    </svg>
+                    <span class="nav-copy">
+                        <span class="nav-label">UI Pages</span>
+                        <span class="nav-meta">Inspect rendered pages</span>
+                    </span>
+                </div>
                 <a class="nav-item" href="/email-templates" target="_blank" rel="noopener" style="text-decoration: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2773,6 +2786,7 @@
             <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Events</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
+            <button class="mobile-bottom-btn" data-view="ui-pages" onclick="switchView('ui-pages')">UI</button>
         </nav>
     </div>
 
@@ -2814,7 +2828,7 @@
 
         function getInitialAdminView() {
             const view = window.location.hash.replace('#', '');
-            return ['overview', 'growth', 'events', 'logs', 'users'].includes(view) ? view : 'overview';
+            return ['overview', 'growth', 'events', 'logs', 'users', 'ui-pages'].includes(view) ? view : 'overview';
         }
 
         // --- Auth Logic ---
@@ -2952,6 +2966,11 @@
                     title: 'Users',
                     subtitle: 'Accounts, usage limits, review email eligibility, and support actions.',
                     loading: 'Loading users, usage counters, and account actions...'
+                },
+                'ui-pages': {
+                    title: 'UI Pages',
+                    subtitle: 'Inspect the real rendered pages users see, without duplicating page code.',
+                    loading: 'Loading rendered page preview...'
                 }
             };
             return routes[viewName] || routes.overview;
@@ -2997,6 +3016,7 @@
                 else if (view === 'events') await renderEvents(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
+                else if (view === 'ui-pages') await renderUiPages(content);
 
                 // Fade in
                 setTimeout(() => {
@@ -3018,6 +3038,41 @@
         }
 
         // --- Renderers ---
+        async function renderUiPages(container) {
+            container.innerHTML = `
+                <div style="display:grid; gap:1rem;">
+                    <div class="logs-toolbar">
+                        <select id="uiPageLocale" class="filter-input" onchange="updateUiPagePreview()">
+                            ${['en', 'fr', 'de', 'nl', 'pl', 'es', 'it', 'pt'].map(locale => `<option value="${locale}">${locale.toUpperCase()} welcome</option>`).join('')}
+                        </select>
+                        <select id="uiPageViewport" class="filter-input" onchange="updateUiPagePreview()">
+                            <option value="100%">Desktop fluid</option>
+                            <option value="390px">Mobile 390px</option>
+                            <option value="768px">Tablet 768px</option>
+                        </select>
+                        <a id="uiPageOpen" class="btn-secondary" href="/welcome/en" target="_blank" rel="noopener">Open page</a>
+                    </div>
+                    <div style="border:1px solid var(--border-color); border-radius:var(--radius-xl); background:var(--bg-card); padding:1rem; overflow:auto;">
+                        <iframe id="uiPageFrame" title="Rendered welcome page preview" src="/welcome/en" style="display:block; width:100%; max-width:100%; height:80vh; margin:0 auto; border:1px solid var(--border-color); border-radius:var(--radius-lg); background:white;"></iframe>
+                    </div>
+                </div>
+            `;
+            updateUiPagePreview();
+        }
+
+        function updateUiPagePreview() {
+            const locale = document.getElementById('uiPageLocale')?.value || 'en';
+            const width = document.getElementById('uiPageViewport')?.value || '100%';
+            const path = `/welcome/${locale}`;
+            const frame = document.getElementById('uiPageFrame');
+            const openLink = document.getElementById('uiPageOpen');
+            if (frame) {
+                frame.src = path;
+                frame.style.width = width;
+            }
+            if (openLink) openLink.href = path;
+        }
+
         async function renderOverview(container) {
             const todayRange = getLocalTodayRange();
             const [data, todaysUsers, growthData, eventLogData] = await Promise.all([
@@ -3351,6 +3406,7 @@
 
         function friendlyEventName(event) {
             const names = {
+                extension_uninstalled: 'Extension uninstalled',
                 uninstall_feedback_submitted: 'Uninstall feedback',
                 generate_request: 'Generation request',
                 generate_success: 'Generation success',
@@ -4549,6 +4605,19 @@
             return getLogKind(log) === 'Event' ? 'Anonymous event' : 'No user context';
         }
 
+        function renderLogJourneyAction(log, label = 'Journey') {
+            const metadata = log.full_request_body || {};
+            const context = metadata.context || {};
+            const analyticsClientId = context.analyticsClientId || '';
+            if (log.user_id) {
+                return `<button class="btn-secondary" onclick="event.stopPropagation(); showUserJourney('${escapeAttribute(log.user_id)}', '${escapeAttribute(encodeURIComponent(log.user_email || ''))}')">${escapeHtml(label)}</button>`;
+            }
+            if (analyticsClientId) {
+                return `<button class="btn-secondary" onclick="event.stopPropagation(); showClientJourney('${escapeAttribute(analyticsClientId)}')">${escapeHtml(label)}</button>`;
+            }
+            return '';
+        }
+
         function getLogPreview(log) {
             if (log.raw_prompt) return escapeHtml(log.raw_prompt);
             if (typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')) {
@@ -4563,6 +4632,9 @@
         function getEventContextSummary(event, context = {}) {
             if (event === 'generate_cancelled' && context.reason === 'description_apply_choice') {
                 return 'User cancelled the existing-description choice before generation started';
+            }
+            if (event === 'extension_uninstalled') {
+                return context.hasUserId === false ? 'Uninstall opened without signed-in user id' : 'Uninstall opened with linked user id';
             }
             return context.reasonLabel || context.message || context.code || context.tier || context.source || context.reason || '';
         }
@@ -4587,7 +4659,10 @@
                     <td><div class="log-primary">${getLogActor(log)}</div></td>
                     <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
                     <td><div class="log-detail">${escapeHtml(getLogContext(log))}</div></td>
-                    <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
+                    <td style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                        ${renderLogJourneyAction(log)}
+                        <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -4873,6 +4948,7 @@
                     <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_success' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_success')">Success</button>
                     <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_request' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_request')">Request</button>
                     <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_click' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_click')">Click</button>
+                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'extension_uninstalled' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'extension_uninstalled')">Uninstalls</button>
                     <button class="quick-filter-btn ${!state.logsSearch ? 'active' : ''}" onclick="setLogsQuickFilter(state.logsType || 'generation', '')">Clear</button>
                 </div>
 
@@ -6076,6 +6152,9 @@
             if (logKind === 'Event') {
                 const eventName = (log.endpoint || '').replace('/event/', '') || 'event';
                 const analyticsClientId = metadata?.context?.analyticsClientId || '';
+                const journeyAction = log.user_id
+                    ? `<button class="btn-secondary" onclick="showUserJourney('${escapeAttribute(log.user_id)}', '${escapeAttribute(encodeURIComponent(log.user_email || ''))}')">View user journey</button>`
+                    : (analyticsClientId ? `<button class="btn-secondary" onclick="showClientJourney('${escapeAttribute(analyticsClientId)}')">View correlated journey</button>` : '');
                 const content = `
                     <div style="display: grid; gap: 1rem;">
                         <div>
@@ -6095,7 +6174,7 @@
                             Actor: ${getLogActor(log)}<br>
                             Status: ${escapeHtml(log.response_status || 'N/A')}
                         </div>
-                        ${analyticsClientId ? `<button class="btn-secondary" onclick="showClientJourney('${escapeAttribute(analyticsClientId)}')">View correlated journey</button>` : ''}
+                        ${journeyAction}
                     </div>
                     <div>
                         <label class="text-sm font-bold text-muted">Raw JSON</label>

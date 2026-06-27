@@ -301,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one short factual opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 8-16 words. Each bullet must include concrete visible evidence, ideally combining two visible facts. Do not write generic benefit bullets. Bad: "Button-up front for easy wear". Good: "Button-up front with visible V neckline and cropped shape". Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
+      ? `Use one short factual opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 8-16 words. Each bullet must be anchored in concrete visible details, ideally combining two useful facts. Do not write generic benefit bullets, styling advice, or evidence narration. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
       : `Use 2 short paragraphs separated by a line break, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
 
   if (
@@ -379,20 +379,21 @@ Size and label handling:
 - Do not convert sizes. Do not infer adult/child size from appearance unless the label clearly states it.
 - If a label photo shows brand, size, material, or care information, use those facts naturally.
 - Exact material composition should only be mentioned when readable on a label, care tag, or packaging.
-- A label photo supports only the exact readable facts on it, such as brand, size, care symbols, country of origin, product codes, or material composition. It does not support fabric feel, fit, quality, comfort, texture, sustainability, ethical production, or authenticity claims.
-- Do not treat brand program names, campaign text, collection marks, care programs, or sustainability logos as the brand. For example, if the label says "Primark Cares", use "Primark" as the brand and do not use "Primark Cares" in the title, opening sentence, or hashtags unless it is clearly the product line.
-- Do not interpret brand program names or logos. For example, do not explain "Primark Cares" as sustainable production unless those exact words are readable.
+- A label photo supports useful listing facts such as brand, size, and material composition when readable. It does not support fabric feel, fit, quality, comfort, texture, sustainability, ethical production, authenticity, country-of-origin, product-code, or care-instruction claims.
+- Do not treat brand program names, campaign text, collection marks, care programs, or sustainability logos as the brand. Use the primary brand name only, unless the secondary text is clearly a product line or model.
+- Do not interpret brand program names or logos. You may omit secondary label text when it is not useful to a buyer search.
 - Visual fabric/category words like denim, knit, lace, mesh, sequins, ribbed, quilted, or faux fur are allowed only when obvious from the photos. Do not claim leather, silk, wool, linen, cotton, cashmere, or real fur without readable label evidence.
 - Do not describe hand-feel, texture, fit, or comfort from photos alone: avoid "soft", "smooth", "comfortable", "comfy", "breathable", "warm", "lightweight", "tailored fit", or similar claims unless readable label/packaging text supports it.
 
 Description rules:
 - Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
 - Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
-- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, and visible labels.
+- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, and readable size/material facts.
 - Do not add styling advice, outfit suggestions, or benefit endings unless supported by readable label/packaging text.
+- Do not mention country of origin, product/reference codes, or care instructions for ordinary clothing listings.
 - Avoid lazy repetition: each sentence or bullet should add a new visible detail, not just a buyer benefit.
-- Avoid subjective or filler phrases such as "check out", "stylish", "sleek", "ideal", "perfect", "tailored fit", "versatile styling", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
-- If a care label is visible but material composition is not readable, use only the readable facts directly, such as "EU 34 / UK 6 / US 2". Do not write "as shown on label", "label shows", "made from smooth fabric", or any material/texture claim.
+- Avoid subjective or filler phrases such as "check out", "stylish", "flattering", "sleek", "ideal", "perfect", "tailored fit", "versatile styling", "addition to your wardrobe", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
+- If a care label is visible but material composition is not readable, use only buyer-useful readable facts directly. Do not write "as shown on label", "label shows", "made from smooth fabric", "made in Bangladesh", "care instructions included", or any material/texture claim.
 
 Category guidance:
 - Clothing: mention color/pattern, item type, visible size, and visible silhouette details such as cropped shape, V neckline, sleeveless cut, hem, or closure. Do not describe fit unless exact fit wording is readable on a label/tag.

@@ -356,7 +356,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Your priority is buyer trust: use visible evidence, sound natural, and omit uncertain facts. Never invent brand, size, material, model, measurements, authenticity, retail price, rarity, or how often an item was worn.";
+    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Your priority is buyer trust: use visible evidence, sound natural, and omit uncertain facts. Never invent brand, size, material, fabric composition, fabric feel, fit, model, measurements, authenticity, retail price, rarity, or how often an item was worn. If material composition is not readable, do not mention material, fabric, blend, softness, smoothness, comfort, warmth, or breathability.";
   const userPrompt = `
 Analyze the image(s) and generate a Vinted title and description.
 First, silently inspect the photos for: visible label text, brand logos, size tags, care/material tags, model names, item type, color/pattern, category, visible tags/packaging, and useful buyer search terms. Do not show this inspection.
@@ -388,12 +388,13 @@ Size and label handling:
 
 Description rules:
 - Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
+- Use a plain factual opening sentence. Do not use subjective praise such as "stylish", "chic", "beautiful", "lovely", "great", or "addition to your wardrobe".
 - Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
 - Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, readable size facts, and exact readable material composition.
 - Do not add styling advice, outfit suggestions, or benefit endings unless supported by readable label/packaging text.
 - Do not mention country of origin, product/reference codes, or care instructions for ordinary clothing listings.
 - Avoid lazy repetition: each sentence or bullet should add a new visible detail, not just a buyer benefit.
-- Avoid subjective or filler phrases such as "check out", "stylish", "flattering", "sleek", "ideal", "perfect", "tailored fit", "versatile styling", "addition to your wardrobe", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
+- Avoid subjective or filler phrases such as "check out", "stylish", "chic", "beautiful", "lovely", "great", "flattering", "sleek", "ideal", "perfect", "tailored fit", "versatile styling", "addition to your wardrobe", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
 - If a care label is visible but material composition is not readable, use only buyer-useful readable facts directly. Do not write "as shown on label", "label shows", "made from", "made from smooth fabric", "made in Bangladesh", "care instructions included", or any material/texture claim.
 
 Category guidance:
@@ -424,6 +425,7 @@ Tone and format:
 - ${emojiInstruction}
 - ${bulletpointInstruction}
 - Target length: bullet descriptions should usually be 50-95 words before hashtags; paragraph descriptions should usually be 65-110 words before hashtags. Simple low-information items can be shorter. Do not pad with unsupported details.
+- Final self-check before replying: remove any sentence or bullet that mentions fabric, material, blend, softness, smoothness, comfort, warmth, breathability, fit, styling advice, or wardrobe benefits unless that exact fact is readable on a label, tag, or packaging. This rule overrides the target length.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

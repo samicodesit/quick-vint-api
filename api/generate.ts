@@ -301,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one short factual opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 8-16 words. Each bullet must be anchored in concrete visible details, ideally combining two useful facts. Do not write generic benefit bullets, styling advice, or evidence narration. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
+      ? `Use one short factual opening sentence, then a line break, then 3-5 bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 8-16 words. Each bullet must be anchored in concrete visible details, ideally combining two useful facts. Do not write generic benefit bullets, styling advice, or evidence narration. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
       : `Use 2 short paragraphs separated by a line break, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
 
   if (
@@ -422,7 +422,7 @@ Tone and format:
 - Tone: ${toneInstruction}.
 - ${emojiInstruction}
 - ${bulletpointInstruction}
-- Target length: bullet descriptions should usually be 50-95 words before hashtags; paragraph descriptions should usually be 65-110 words before hashtags. Simple low-information items can be shorter. Be concise, but not too thin or padded.
+- Target length: bullet descriptions should usually be 50-95 words before hashtags; paragraph descriptions should usually be 65-110 words before hashtags. Simple low-information items can be shorter. Do not pad with unsupported details.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

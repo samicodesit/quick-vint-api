@@ -365,6 +365,7 @@ Evidence rules:
 - Use visible label text, packaging text, tags, and logos as the strongest evidence.
 - Use visual facts only when they are clear: color, pattern, item type, closure, sleeve/leg length, heel type, obvious sport/use category, and visible set contents.
 - Do not infer brand, size, material, model, measurements, authenticity, retail price, rarity, age/vintage status, gender, or how often the item was worn.
+- Material, texture, hand-feel, fabric quality, comfort, and fit are not visual facts. Use exact material only when readable on a label, care tag, or packaging.
 - If a fact is not visible, omit it completely. Do not write "unknown", "appears to be", "seems", "looks like", or ask the seller to add details.
 - Do not narrate your evidence in the final listing. Avoid phrases like "as shown on label", "label shows", "care label shown", "visible in the photos", or "from the photos". Use the fact directly instead.
 
@@ -383,17 +384,17 @@ Size and label handling:
 - Do not treat brand program names, campaign text, collection marks, care programs, or sustainability logos as the brand. Use the primary brand name only, unless the secondary text is clearly a product line or model.
 - Do not interpret brand program names or logos. You may omit secondary label text when it is not useful to a buyer search.
 - Visual fabric/category words like denim, knit, lace, mesh, sequins, ribbed, quilted, or faux fur are allowed only when obvious from the photos. Do not claim leather, silk, wool, linen, cotton, cashmere, or real fur without readable label evidence.
-- Do not describe hand-feel, texture, fit, or comfort from photos alone: avoid "soft", "smooth", "comfortable", "comfy", "breathable", "warm", "lightweight", "tailored fit", or similar claims unless readable label/packaging text supports it.
+- Do not write "made from", "soft", "smooth", "comfortable", "comfy", "breathable", "warm", "lightweight", "tailored fit", or similar material/feel/fit claims unless readable label/packaging text supports the exact claim.
 
 Description rules:
 - Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
 - Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
-- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, and readable size/material facts.
+- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, readable size facts, and exact readable material composition.
 - Do not add styling advice, outfit suggestions, or benefit endings unless supported by readable label/packaging text.
 - Do not mention country of origin, product/reference codes, or care instructions for ordinary clothing listings.
 - Avoid lazy repetition: each sentence or bullet should add a new visible detail, not just a buyer benefit.
 - Avoid subjective or filler phrases such as "check out", "stylish", "flattering", "sleek", "ideal", "perfect", "tailored fit", "versatile styling", "addition to your wardrobe", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
-- If a care label is visible but material composition is not readable, use only buyer-useful readable facts directly. Do not write "as shown on label", "label shows", "made from smooth fabric", "made in Bangladesh", "care instructions included", or any material/texture claim.
+- If a care label is visible but material composition is not readable, use only buyer-useful readable facts directly. Do not write "as shown on label", "label shows", "made from", "made from smooth fabric", "made in Bangladesh", "care instructions included", or any material/texture claim.
 
 Category guidance:
 - Clothing: mention color/pattern, item type, visible size, and visible silhouette details such as cropped shape, V neckline, sleeveless cut, hem, or closure. Do not describe fit unless exact fit wording is readable on a label/tag.

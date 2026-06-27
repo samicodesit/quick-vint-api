@@ -289,7 +289,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? !emojisDisabledByUser
       : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
-    ? "Use relevant emojis lightly: at most 1-2 total, only where they feel natural."
+    ? "Include exactly 1 relevant emoji in the description, placed naturally in the opening sentence or one bullet. Do not use emojis in the title or hashtags."
     : "Do NOT use any emojis in the description.";
 
   // bullet points vs paragraphs

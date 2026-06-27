@@ -288,7 +288,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? !emojisDisabledByUser
       : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
-    ? "Include exactly 1 relevant emoji in the description, attached to an existing factual item detail. Do not add a marketing phrase just to use the emoji. Do not use emojis in the title or hashtags."
+    ? "Mandatory: include exactly 1 relevant emoji at the end of the plain factual opening sentence. Do not add a marketing phrase just to use the emoji. Do not use emojis in the title, bullets, or hashtags."
     : "Do NOT use any emojis in the description.";
 
   // bullet points vs paragraphs
@@ -300,7 +300,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one short factual opening sentence, then a line break, then 3-5 bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 8-16 words. Each bullet must be anchored in concrete visible details, ideally combining two useful facts. Do not write generic benefit bullets, styling advice, or evidence narration. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
+      ? `Use one factual opening sentence, then a line break, then 3-5 bullet points. Use fewer bullets for simple items and more only when the photos contain more useful facts. Each bullet starts with '• ' and should describe a different visible or readable fact.${bulletEmojiInstruction}`
       : `Use 2 short paragraphs separated by a line break, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
 
   if (
@@ -355,76 +355,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Your priority is buyer trust: use visible evidence, sound natural, and omit uncertain facts. Never invent brand, size, material, fabric composition, fabric feel, fit, model, measurements, authenticity, retail price, rarity, styling use cases, or how often an item was worn. Do not write marketing copy, subjective praise, outfit advice, or generic buyer benefits. If material composition is not readable, do not mention material, fabric, blend, softness, smoothness, comfort, warmth, or breathability.";
+    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Write plain seller-style copy based on visible evidence. Use readable labels for exact facts. If a fact is not visible or readable, omit it. Do not add marketing copy, styling advice, subjective praise, or assumptions about material, feel, fit, condition, authenticity, price, rarity, or wear history.";
   const userPrompt = `
 Analyze the image(s) and generate a Vinted title and description.
-First, silently inspect the photos for: visible label text, brand logos, size tags, care/material tags, model names, item type, color/pattern, category, visible tags/packaging, and useful buyer search terms. Do not show this inspection.
 
-Evidence rules:
-- Use visible label text, packaging text, tags, and logos as the strongest evidence.
-- Use visual facts only when they are clear: color, pattern, item type, closure, sleeve/leg length, heel type, obvious sport/use category, and visible set contents.
-- Do not infer brand, size, material, model, measurements, authenticity, retail price, rarity, age/vintage status, gender, or how often the item was worn.
-- Material, texture, hand-feel, fabric quality, comfort, and fit are not visual facts. Use exact material only when readable on a label, care tag, or packaging.
-- If a fact is not visible, omit it completely. Do not write "unknown", "appears to be", "seems", "looks like", or ask the seller to add details.
-- Do not narrate your evidence in the final listing. Avoid phrases like "as shown on label", "label shows", "care label shown", "visible in the photos", or "from the photos". Use the fact directly instead.
+Use these rules:
+- Build the listing only from visible or readable photo evidence.
+- Read labels/tags for exact brand, size, model/product name, and material composition.
+- Use visual evidence for item type, color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
+- Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, styling use, or wear history.
+- Do not mention country of origin, product codes, care instructions, or secondary program/campaign text unless it is clearly useful to the buyer as a product name or model.
+- Do not say how you know a fact. Write "EU 34", not "label shows EU 34".
+- Do not mention defects or negative condition details for now; the seller will handle those separately.
 
-Title rules:
-- Title format: [BRAND - omit if not visible/known] [Model/product name - only if readable or visibly shown] [Color] [Item] - [Size - omit if not visible/not applicable].
-- Keep the title searchable and natural for Vinted. Prioritize brand, item type, size, color/pattern, and model when known.
-- Target 35-70 characters when there are enough visible facts. Shorter is fine when the item is simple or facts are limited.
-- No emojis, hashtags, hype words, or condition claims in the title unless condition is explicit from visible tags/packaging.
+Title:
+- Write only the title in ${titleLanguage}.
+- Use a natural searchable format: brand if known, model/product name if known, color/pattern, item type, size if known.
+- Do not use emojis, hashtags, hype, or condition claims in the title.
 
-Size and label handling:
-- For clothing and shoes, prioritize visible EU size markings over US sizing.
-- Do not convert sizes. Do not infer adult/child size from appearance unless the label clearly states it.
-- If a label photo shows brand, size, material, or care information, use those facts naturally.
-- Exact material composition should only be mentioned when readable on a label, care tag, or packaging.
-- A label photo supports useful listing facts such as brand, size, and material composition when readable. It does not support fabric feel, fit, quality, comfort, texture, sustainability, ethical production, authenticity, country-of-origin, product-code, or care-instruction claims.
-- Do not treat brand program names, campaign text, collection marks, care programs, or sustainability logos as the brand. Use the primary brand name only, unless the secondary text is clearly a product line or model.
-- Do not interpret brand program names or logos. You may omit secondary label text when it is not useful to a buyer search.
-- Visual fabric/category words like denim, knit, lace, mesh, sequins, ribbed, quilted, or faux fur are allowed only when obvious from the photos. Do not claim leather, silk, wool, linen, cotton, cashmere, or real fur without readable label evidence.
-- Do not write "made from", "soft", "smooth", "comfortable", "comfy", "breathable", "warm", "lightweight", "tailored fit", or similar material/feel/fit claims unless readable label/packaging text supports the exact claim.
+Description:
+- Write only the description in ${descriptionLanguage}.
+- Start with a plain factual sentence naming the item, color, brand, and size when known.
+- Add useful visible details without turning them into outfit advice or generic buyer benefits.
+- End with 3-5 relevant hashtags using the visible brand if known, item type, color/style, and product category.
 
-Description rules:
-- Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
-- Use a plain factual opening sentence that names the item, color, and brand when known. Do not use subjective praise such as "check out", "cute", "stylish", "chic", "beautiful", "lovely", "great", or "addition to your wardrobe".
-- Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
-- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, neckline, hem, print, set contents, packaging, readable size facts, and exact readable material composition.
-- Do not add styling advice, outfit suggestions, or benefit endings unless supported by readable label/packaging text.
-- Do not mention country of origin, product/reference codes, or care instructions for ordinary clothing listings.
-- Avoid lazy repetition: each sentence or bullet should add a new visible detail, not just a buyer benefit.
-- Avoid subjective or filler phrases such as "check out", "stylish", "chic", "beautiful", "lovely", "great", "flattering", "sleek", "ideal", "perfect", "tailored fit", "versatile styling", "addition to your wardrobe", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
-- If a care label is visible but material composition is not readable, use only buyer-useful readable facts directly. Do not write "as shown on label", "label shows", "made from", "made from smooth fabric", "made in Bangladesh", "care instructions included", or any material/texture claim.
-
-Category guidance:
-- Clothing: mention color/pattern, item type, visible size, and visible silhouette details such as cropped shape, V neckline, sleeveless cut, hem, or closure. Do not describe fit unless exact fit wording is readable on a label/tag.
-- Shoes: mention brand/model if visible, EU size if visible, color, closure, sole/boot type, and sport/use only when clear from the design or label.
-- Bags/accessories: mention color, strap/handle, closure, compartments, matching pouch, tag/packaging, and visible hardware only when shown.
-- Media/toys/beauty/home items: use readable cover or packaging text for product name, set contents, edition, and category. Do not claim completeness, working condition, or unused condition unless visible.
-
-Condition handling:
-- Keep condition language conservative, as Vinted sellers must review the final text.
-- Mention positive condition only when strongly supported by visible original tags, sealed/new packaging, or clear unused retail packaging.
-- If condition is unclear, do not mention condition.
-- Do not use broad positive condition phrases such as "clean", "like new", "excellent condition", or "well kept" from photos alone.
-- Do not mention negative condition remarks for now. The seller will handle those separately.
-- Do not mention defects, flaws, damage, stains, holes, pilling, scuffs, cracks, discoloration, missing parts, heavy wear, repairs, or other negative condition details.
-- Do not describe normal fabric wrinkles or storage creasing as flaws.
-
-Hashtags:
-- End with 3-5 relevant SEO hashtags on a new line.
-- Use only the actual visible brand if known, the item type, color/style, model/product category, and broad buyer search terms.
-- Do not include unrelated brands, spammy trend tags, repeated near-duplicates, or generic tags like #Fashion. Use item-specific tags instead when brand, item type, color, style, or category is known.
-
-Tone and format:
-- Apply these request settings exactly.
+Request settings:
 - Title language: write only the title in ${titleLanguage}.
 - Description language: write only the description in ${descriptionLanguage}.
 - Tone: ${toneInstruction}.
 - ${emojiInstruction}
 - ${bulletpointInstruction}
-- Target length: bullet descriptions should usually be 50-95 words before hashtags; paragraph descriptions should usually be 65-110 words before hashtags. Simple low-information items can be shorter. Do not pad with unsupported details.
-- Final self-check before replying: remove any sentence or bullet that mentions fabric, material, blend, softness, smoothness, comfort, warmth, breathability, fit, styling advice, or wardrobe benefits unless that exact fact is readable on a label, tag, or packaging. This rule overrides the target length.
+- Use enough detail to be useful, but do not pad when the photos are simple.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

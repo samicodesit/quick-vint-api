@@ -37,7 +37,7 @@ export const GENERATION_OFFER_DEFINITIONS = {
     triggerName: "first_free_clothing_generation",
     enabled: true,
     title: "Forgot the label photo?",
-    body: "Labels help with size and material.",
+    body: "Label photos help create better descriptions.",
     cta: "🎁 Claim 1 free generation",
   },
 } satisfies Record<string, GenerationOfferDefinition>;

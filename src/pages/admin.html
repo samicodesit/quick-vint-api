@@ -2877,6 +2877,7 @@
             logsType: 'generation',
             logsSearch: '',
             logsSearchTimer: null,
+            eventsPage: 1,
             usersPage: 1,
             usersSegment: 'today',
             usersSearch: '',
@@ -4573,9 +4574,10 @@
         }
 
         async function renderEvents(container) {
+            const eventsLimit = 25;
             const [growthData, logData] = await Promise.all([
                 fetchAPI('/api/admin?action=growth-stats&days=30'),
-                fetchAPI('/api/admin?action=view-logs&log_type=events&page=1&limit=25')
+                fetchAPI(`/api/admin?action=view-logs&log_type=events&page=${state.eventsPage}&limit=${eventsLimit}`)
             ]);
 
             const fmt = value => Number(value || 0).toLocaleString();
@@ -4590,6 +4592,7 @@
             const missingPhotoCount = getEventCount(topEvents, 'generate_missing_photo');
             const checkoutStartCount = getEventCount(topEvents, 'checkout_start');
             const logs = logData.logs || [];
+            const pagination = logData.pagination || { page: 1, limit: eventsLimit, total: 0, totalPages: 0 };
 
             container.innerHTML = `
                 <div class="event-workbench">
@@ -4627,6 +4630,7 @@
                             <h3 class="card-title">Latest Raw Events</h3>
                             <div class="text-sm text-muted">${fmt(generateErrorCount)} generation errors · ${fmt(missingPhotoCount)} missing-photo events · ${fmt(checkoutStartCount)} checkout starts</div>
                         </div>
+                        <button class="btn-secondary" onclick="openLogsForSearch('', 'events')">Open event logs</button>
                     </div>
                     <div class="table-container">
                         <table>
@@ -4637,23 +4641,30 @@
                                     <th>User</th>
                                     <th>Status</th>
                                     <th>Context</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${logs.map(log => `
-                                    <tr onclick="showLogDetails('${log.id}')" style="cursor:pointer;">
-                                        <td>${formatDateTime(log.created_at)}</td>
-                                        <td><code>${escapeHtml((log.endpoint || '').replace('/event/', ''))}</code></td>
-                                        <td>${getLogActor(log)}</td>
-                                        <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
-                                        <td style="max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${getLogPreview(log)}</td>
-                                    </tr>
-                                `).join('') || '<tr><td colspan="5" class="text-muted">No event logs yet.</td></tr>'}
+                                ${renderEventLogRows(logs) || '<tr><td colspan="6" class="text-muted">No event logs yet.</td></tr>'}
                             </tbody>
                         </table>
                     </div>
+                    <div class="pagination-bar">
+                        <span>Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}</span>
+                        <span>Page ${pagination.totalPages ? pagination.page : 0} of ${pagination.totalPages || 0}</span>
+                        <div class="flex gap-2">
+                            <button class="btn-secondary" ${pagination.page <= 1 ? 'disabled' : ''} onclick="setEventsPage(${pagination.page - 1})">Previous</button>
+                            <button class="btn-secondary" ${pagination.page >= pagination.totalPages ? 'disabled' : ''} onclick="setEventsPage(${pagination.page + 1})">Next</button>
+                        </div>
+                    </div>
                 </div>
             `;
+            state.currentLogs = logs;
+        }
+
+        function setEventsPage(page) {
+            state.eventsPage = Math.max(1, page);
+            renderEvents(document.getElementById('contentArea'));
         }
 
         function getLogKind(log) {
@@ -4662,16 +4673,26 @@
             return 'System';
         }
 
+        function getLogAnalyticsClientId(log) {
+            const body = log.full_request_body || {};
+            const context = body.context || {};
+            return context.analyticsClientId || '';
+        }
+
+        function shortId(value) {
+            return String(value || '').slice(0, 8);
+        }
+
         function getLogActor(log) {
             if (log.user_email) return escapeHtml(log.user_email);
-            if (log.user_id) return escapeHtml(log.user_id.substring(0, 8) + '...');
+            if (log.user_id) return escapeHtml(`${shortId(log.user_id)}...`);
+            const analyticsClientId = getLogAnalyticsClientId(log);
+            if (analyticsClientId) return `<span title="${escapeAttribute(analyticsClientId)}">Client ${escapeHtml(shortId(analyticsClientId))}...</span>`;
             return getLogKind(log) === 'Event' ? 'Anonymous event' : 'No user context';
         }
 
         function renderLogJourneyAction(log, label = 'Journey') {
-            const metadata = log.full_request_body || {};
-            const context = metadata.context || {};
-            const analyticsClientId = context.analyticsClientId || '';
+            const analyticsClientId = getLogAnalyticsClientId(log);
             if (log.user_id) {
                 return `<button class="btn-secondary" onclick="event.stopPropagation(); showUserJourney('${escapeAttribute(log.user_id)}', '${escapeAttribute(encodeURIComponent(log.user_email || ''))}')">${escapeHtml(label)}</button>`;
             }
@@ -4708,7 +4729,9 @@
             const event = typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')
                 ? log.endpoint.replace('/event/', '')
                 : '';
-            return getEventContextSummary(event, context) || log.endpoint || 'No details';
+            const summary = getEventContextSummary(event, context);
+            const analyticsClientId = context.analyticsClientId ? `client ${shortId(context.analyticsClientId)}...` : '';
+            return [summary, analyticsClientId].filter(Boolean).join(' · ') || log.endpoint || 'No details';
         }
 
         function renderEventLogRows(logs) {
@@ -5071,6 +5094,13 @@
             renderLogs(document.getElementById('contentArea'));
         }
 
+        function openLogsForSearch(search, type = 'all') {
+            state.logsType = type;
+            state.logsSearch = search || '';
+            state.logsPage = 1;
+            switchView('logs');
+        }
+
         async function renderUsers(container) {
             const todayRange = getLocalTodayRange();
             const params = new URLSearchParams({
@@ -5272,6 +5302,7 @@
             return `
                 <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
                     <button class="btn-secondary" onclick="showUserJourney('${userId}', '${encodedEmail}')">Journey</button>
+                    <button class="btn-secondary" onclick="openLogsForSearch('${userId}', 'all')">Logs</button>
                     <button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
@@ -6227,6 +6258,40 @@
             `;
         }
 
+        function renderLinkedJourneyUsers(users) {
+            if (!users?.length) return '';
+            return `
+                <div class="journey-linked-users">
+                    <div class="journey-quality-label">Linked users from correlated logs</div>
+                    <div style="display:grid; gap:0.5rem; margin-top:0.45rem;">
+                        ${users.map(user => {
+                            const id = user.id || '';
+                            const email = user.email || 'Unknown email';
+                            const encodedEmail = encodeURIComponent(user.email || '');
+                            const tier = user.subscription_tier || 'free';
+                            const status = user.subscription_status || 'unknown';
+                            return `
+                                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.65rem 0.75rem; border:1px solid var(--border-color); border-radius:var(--radius-md); background:#fff;">
+                                    <div style="min-width:0;">
+                                        <div style="font-weight:700; color:var(--text-main); overflow:hidden; text-overflow:ellipsis;">${escapeHtml(email)}</div>
+                                        <div class="journey-subtitle">${escapeHtml(id || 'No user id')} · ${Number(user.eventCount || 0)} correlated events · last ${escapeHtml(formatDateTime(user.lastSeenAt))}</div>
+                                        <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-top:0.35rem;">
+                                            <span class="badge badge-info">${escapeHtml(tier)}</span>
+                                            <span class="badge ${statusBadgeClass(status)}">${escapeHtml(status)}</span>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; gap:0.35rem; flex-wrap:wrap; justify-content:flex-end;">
+                                        ${id ? `<button class="btn-secondary" onclick="showUserJourney('${escapeAttribute(id)}', '${escapeAttribute(encodedEmail)}')">Open user</button>` : ''}
+                                        <button class="btn-secondary" onclick="openLogsForSearch('${escapeAttribute(id || email)}', 'all')">Logs</button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
         async function showUserJourney(userId, encodedEmail) {
             const email = decodeURIComponent(encodedEmail || '');
             openModal('User Journey', '<div class="empty-state">Loading journey...</div>');
@@ -6243,6 +6308,7 @@
                 const profile = data.profile || {};
                 const summary = data.summary || {};
                 const clientIds = data.analyticsClientIds || [];
+                const linkedUsers = data.linkedUsers || [];
                 const content = `
                     <div class="journey-shell">
                         <div class="journey-summary">
@@ -6259,6 +6325,7 @@
                             ${summary.lastStage ? `<div class="journey-subtitle">Last stage: ${escapeHtml(summary.lastStage)}</div>` : ''}
                             ${renderJourneySteps(summary.steps || [])}
                             ${clientIds.length ? `<div class="journey-subtitle">Correlation IDs: ${clientIds.map(id => `<code>${escapeHtml(id)}</code>`).join(' ')}</div>` : ''}
+                            ${renderLinkedJourneyUsers(linkedUsers)}
                         </div>
                         ${renderJourneyTimeline(data.events || [])}
                     </div>
@@ -6384,7 +6451,9 @@
                     days: '30'
                 });
                 const data = await fetchAPI(`/api/admin?${params}`);
+                const profile = data.profile || {};
                 const summary = data.summary || {};
+                const linkedUsers = data.linkedUsers || [];
                 const content = `
                     <div class="journey-shell">
                         <div class="journey-summary">
@@ -6392,6 +6461,8 @@
                                 <div>
                                     <div class="journey-title">Correlated journey</div>
                                     <div class="journey-subtitle">client <code>${escapeHtml(analyticsClientId)}</code></div>
+                                    ${profile.email || profile.id ? `<div class="journey-subtitle">Likely user: ${escapeHtml(profile.email || profile.id)}</div>` : ''}
+                                    <button class="btn-secondary" style="margin-top:0.55rem;" onclick="openLogsForSearch('${escapeAttribute(analyticsClientId)}', 'events')">Open client event logs</button>
                                 </div>
                                 <div style="text-align:right;">
                                     <span class="badge ${getJourneyBadgeClass(summary.tone)}">${escapeHtml(summary.status || summary.dropoff || 'Unknown')}</span>
@@ -6400,6 +6471,7 @@
                             </div>
                             ${summary.lastStage ? `<div class="journey-subtitle">Last stage: ${escapeHtml(summary.lastStage)}</div>` : ''}
                             ${renderJourneySteps(summary.steps || [])}
+                            ${renderLinkedJourneyUsers(linkedUsers)}
                         </div>
                         ${renderJourneyTimeline(data.events || [])}
                     </div>

@@ -1122,15 +1122,91 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
       if (log?.id) deduped.set(log.id, log);
     });
 
-    const events = Array.from(deduped.values())
-      .sort((a, b) => a.created_at.localeCompare(b.created_at))
-      .map(compactJourneyLog);
+    const dedupedLogs = Array.from(deduped.values()).sort((a, b) =>
+      a.created_at.localeCompare(b.created_at),
+    );
+    const linkedUserIds = Array.from(
+      new Set(dedupedLogs.map((log) => log.user_id).filter(Boolean)),
+    );
+    const linkedUserEmails = Array.from(
+      new Set(dedupedLogs.map((log) => log.user_email).filter(Boolean)),
+    );
+    let linkedProfiles: ProfileRow[] = [];
+
+    if (linkedUserIds.length || linkedUserEmails.length) {
+      const linkedProfilesQuery = supabase
+        .from("profiles")
+        .select(PROFILE_SELECT)
+        .limit(20);
+      const profileFilters = [
+        ...linkedUserIds.map((id) => `id.eq.${id}`),
+        ...linkedUserEmails.map((linkedEmail) => `email.eq.${linkedEmail}`),
+      ];
+      const { data, error } = await linkedProfilesQuery.or(
+        profileFilters.join(","),
+      );
+      if (error) throw error;
+      linkedProfiles = (data || []) as ProfileRow[];
+    }
+
+    const profileById = new Map(linkedProfiles.map((item) => [item.id, item]));
+    const profileByEmail = new Map(
+      linkedProfiles
+        .filter((item) => item.email)
+        .map((item) => [item.email as string, item]),
+    );
+    const linkedUserMap = new Map<string, any>();
+    dedupedLogs.forEach((log) => {
+      const key = log.user_id || log.user_email;
+      if (!key) return;
+      const linkedProfile =
+        (log.user_id && profileById.get(log.user_id)) ||
+        (log.user_email && profileByEmail.get(log.user_email));
+      const existing = linkedUserMap.get(key) || {
+        id: linkedProfile?.id || log.user_id || null,
+        email: linkedProfile?.email || log.user_email || null,
+        subscription_tier: linkedProfile?.subscription_tier || null,
+        subscription_status: linkedProfile?.subscription_status || null,
+        eventCount: 0,
+        firstSeenAt: log.created_at,
+        lastSeenAt: log.created_at,
+      };
+      existing.eventCount += 1;
+      existing.firstSeenAt =
+        log.created_at < existing.firstSeenAt
+          ? log.created_at
+          : existing.firstSeenAt;
+      existing.lastSeenAt =
+        log.created_at > existing.lastSeenAt
+          ? log.created_at
+          : existing.lastSeenAt;
+      linkedUserMap.set(key, existing);
+    });
+
+    const linkedUsers = Array.from(linkedUserMap.values()).sort((a, b) =>
+      b.lastSeenAt.localeCompare(a.lastSeenAt),
+    );
+    if (!profile && linkedUsers.length === 1) {
+      const linkedUser = linkedUsers[0];
+      profile =
+        (linkedUser.id && profileById.get(linkedUser.id)) ||
+        (linkedUser.email && profileByEmail.get(linkedUser.email)) ||
+        ({
+          id: linkedUser.id,
+          email: linkedUser.email,
+          subscription_tier: linkedUser.subscription_tier,
+          subscription_status: linkedUser.subscription_status,
+        } as ProfileRow);
+    }
+
+    const events = dedupedLogs.map(compactJourneyLog);
 
     const lastEvent = events[events.length - 1] || null;
     const journeySummary = getJourneySummary(events);
 
     return res.status(200).json({
       profile,
+      linkedUsers,
       analyticsClientIds: Array.from(clientIds),
       summary: {
         days,
@@ -1195,9 +1271,16 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         );
       query = isUuid
         ? query.or(
-            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%,user_id.eq.${search}`,
+            [
+              `user_email.ilike.%${safeSearch}%`,
+              `endpoint.ilike.%${safeSearch}%`,
+              `user_id.eq.${search}`,
+              `full_request_body->context->>analyticsClientId.eq.${search}`,
+            ].join(","),
           )
-        : query.or(`user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%`);
+        : query.or(
+            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%`,
+          );
     }
 
     const { data: logs, error: logsError } = await query;
@@ -1223,7 +1306,12 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         );
       countQuery = isUuid
         ? countQuery.or(
-            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%,user_id.eq.${search}`,
+            [
+              `user_email.ilike.%${safeSearch}%`,
+              `endpoint.ilike.%${safeSearch}%`,
+              `user_id.eq.${search}`,
+              `full_request_body->context->>analyticsClientId.eq.${search}`,
+            ].join(","),
           )
         : countQuery.or(
             `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%`,

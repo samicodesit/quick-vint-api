@@ -2876,6 +2876,7 @@
             logsPage: 1,
             logsType: 'generation',
             logsSearch: '',
+            logsStatus: 'all',
             logsSearchTimer: null,
             eventsPage: 1,
             usersPage: 1,
@@ -4763,6 +4764,10 @@
                         <span class="mobile-card-value"><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></span>
                     </div>
                     <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(getLogContext(log))}</div>
+                    <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.75rem;">
+                        ${renderLogJourneyAction(log)}
+                        <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -4808,7 +4813,10 @@
                         <td><span class="badge badge-neutral">${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'n/a'))}</span></td>
                         <td>$${cost.toFixed(5)}</td>
                         <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${preview}</td>
-                        <td><button class="btn-secondary" onclick="showLogDetails('${log.id}')">View</button></td>
+                        <td style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                            ${renderLogJourneyAction(log)}
+                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -4851,6 +4859,10 @@
                             <span class="mobile-card-value" style="font-weight: 500;">$${cost.toFixed(5)}</span>
                         </div>
                         <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${getLogPreview(log)}</div>
+                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.75rem;">
+                            ${renderLogJourneyAction(log)}
+                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -4924,6 +4936,7 @@
                         </div>
                         <div class="activity-side">
                             <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
+                            ${renderLogJourneyAction(log)}
                             <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
                         </div>
                     </div>
@@ -4947,6 +4960,10 @@
                             <span class="mobile-card-value"><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></span>
                         </div>
                         <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.78rem; color: var(--text-muted);">${getLogPreview(log)}</div>
+                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.75rem;">
+                            ${renderLogJourneyAction(log)}
+                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -4958,7 +4975,8 @@
                 page: state.logsPage,
                 limit: 50,
                 log_type: state.logsType || 'generation',
-                search: state.logsSearch || ''
+                search: state.logsSearch || '',
+                status_filter: state.logsStatus || 'all'
             });
 
             const data = await fetchAPI(`/api/admin?${params}`);
@@ -5024,10 +5042,10 @@
                         ${renderOption('system', 'System logs', state.logsType || 'generation')}
                         ${renderOption('all', 'All logs', state.logsType || 'generation')}
                     </select>
-                    <select class="filter-input" onchange="state.logsPage=1; renderLogs(document.getElementById('contentArea'))">
-                        <option value="all">All Statuses</option>
-                        <option value="error">Errors Only</option>
-                        <option value="flagged">Flagged Only</option>
+                    <select class="filter-input" onchange="setLogsStatus(this.value)">
+                        ${renderOption('all', 'All statuses', state.logsStatus)}
+                        ${renderOption('error', 'Errors only', state.logsStatus)}
+                        ${renderOption('flagged', 'Flagged only', state.logsStatus)}
                     </select>
                 </div>
 
@@ -5080,6 +5098,12 @@
             renderLogs(document.getElementById('contentArea'));
         }
 
+        function setLogsStatus(status) {
+            state.logsStatus = status;
+            state.logsPage = 1;
+            renderLogs(document.getElementById('contentArea'));
+        }
+
         function queueLogsSearch(value) {
             state.logsSearch = value.trim();
             state.logsPage = 1;
@@ -5097,6 +5121,7 @@
         function openLogsForSearch(search, type = 'all') {
             state.logsType = type;
             state.logsSearch = search || '';
+            state.logsStatus = 'all';
             state.logsPage = 1;
             switchView('logs');
         }
@@ -5392,6 +5417,10 @@
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Email</span>
                         <span class="mobile-card-value" style="font-weight: 600; word-break: break-all;">${email}</span>
+                    </div>
+                    <div class="mobile-card-row">
+                        <span class="mobile-card-label">User id</span>
+                        <span class="mobile-card-value" style="font-family:monospace; word-break:break-all;">${escapeHtml(u.id || '-')}</span>
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Plan</span>
@@ -6134,6 +6163,42 @@
             }
         }
 
+        async function flagLog(logId) {
+            const reason = prompt('Why should this log be flagged?', 'Manual admin review');
+            if (reason === null) return;
+            const trimmedReason = reason.trim();
+            if (!trimmedReason) {
+                showToast('Flag reason is required', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin?action=flag-activity', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.secret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ logId, reason: trimmedReason })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showToast(data.error || 'Failed to flag log', 'error');
+                    return;
+                }
+
+                const log = state.currentLogs.find(item => item.id === logId);
+                if (log) {
+                    log.suspicious_activity = true;
+                    log.flagged_reason = trimmedReason;
+                    showLogDetails(logId);
+                }
+                showToast('Log flagged for review');
+            } catch (e) {
+                showToast('Connection failed', 'error');
+            }
+        }
+
         function getJourneyEventTone(event) {
             if (event.event === 'generate_success') return 'success';
             if (event.event === 'generate_error' || event.response_status >= 400) return 'danger';
@@ -6340,6 +6405,12 @@
             const log = state.currentLogs.find(l => l.id === id);
             if (!log) return;
             const logKind = getLogKind(log);
+            const analyticsClientId = getLogAnalyticsClientId(log);
+            const journeyAction = renderLogJourneyAction(log, log.user_id ? 'View user journey' : 'View correlated journey');
+            const logsActionSearch = log.user_id || analyticsClientId || log.user_email || '';
+            const logsAction = logsActionSearch
+                ? `<button class="btn-secondary" onclick="openLogsForSearch('${escapeAttribute(logsActionSearch)}', 'all')">Open related logs</button>`
+                : '';
 
             let metadata = {};
             try {
@@ -6349,10 +6420,6 @@
 
             if (logKind === 'Event') {
                 const eventName = (log.endpoint || '').replace('/event/', '') || 'event';
-                const analyticsClientId = metadata?.context?.analyticsClientId || '';
-                const journeyAction = log.user_id
-                    ? `<button class="btn-secondary" onclick="showUserJourney('${escapeAttribute(log.user_id)}', '${escapeAttribute(encodeURIComponent(log.user_email || ''))}')">View user journey</button>`
-                    : (analyticsClientId ? `<button class="btn-secondary" onclick="showClientJourney('${escapeAttribute(analyticsClientId)}')">View correlated journey</button>` : '');
                 const content = `
                     <div style="display: grid; gap: 1rem;">
                         <div>
@@ -6370,9 +6437,16 @@
                             ID: ${escapeHtml(log.id)}<br>
                             Time: ${escapeHtml(formatDateTime(log.created_at))}<br>
                             Actor: ${getLogActor(log)}<br>
+                            ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
                             Status: ${escapeHtml(log.response_status || 'N/A')}
                         </div>
-                        ${journeyAction}
+                        <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+                            ${journeyAction}
+                            ${logsAction}
+                            ${log.suspicious_activity
+                                ? `<span class="badge badge-warning">Flagged: ${escapeHtml(log.flagged_reason || 'Manual review')}</span>`
+                                : `<button class="btn-secondary" onclick="flagLog('${escapeAttribute(log.id)}')">Flag</button>`}
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm font-bold text-muted">Raw JSON</label>
@@ -6427,12 +6501,18 @@
                             ID: ${escapeHtml(log.id)}<br>
                             Type: ${escapeHtml(logKind)}<br>
                             Endpoint: ${escapeHtml(log.endpoint || 'N/A')}<br>
+                            Actor: ${getLogActor(log)}<br>
+                            ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
+                            Status: ${escapeHtml(log.response_status || 'N/A')}<br>
                             Model: ${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'N/A'))}
                         </div>
-                        ${log.suspicious_activity ?
-                    `<button class="btn-primary" style="background: var(--success); width: auto;" onclick="alert('Feature coming soon: Unflag')">Mark Safe</button>` :
-                    `<button class="btn-primary" style="background: var(--danger); width: auto;" onclick="alert('Feature coming soon: Flag')">Flag Suspicious</button>`
-                }
+                        <div style="display:flex; gap:0.45rem; flex-wrap:wrap; justify-content:flex-end;">
+                            ${journeyAction}
+                            ${logsAction}
+                            ${log.suspicious_activity
+                                ? `<span class="badge badge-warning">Flagged: ${escapeHtml(log.flagged_reason || 'Manual review')}</span>`
+                                : `<button class="btn-secondary" onclick="flagLog('${escapeAttribute(log.id)}')">Flag</button>`}
+                        </div>
                     </div>
                 </div>
             `;

@@ -1237,6 +1237,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const endDate = req.query.end_date as string;
     const logType = (req.query.log_type as string) || "generation";
     const search = (getQueryString(req.query.search) || "").trim();
+    const statusFilter = getQueryString(req.query.status_filter) || "all";
 
     const applyLogTypeFilter = (query: any) => {
       if (logType === "all") return query;
@@ -1260,6 +1261,8 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     );
 
     if (suspiciousOnly) query = query.eq("suspicious_activity", true);
+    if (statusFilter === "error") query = query.gte("response_status", 400);
+    if (statusFilter === "flagged") query = query.eq("suspicious_activity", true);
     if (userId) query = query.eq("user_id", userId);
     if (startDate) query = query.gte("created_at", startDate);
     if (endDate) query = query.lte("created_at", endDate);
@@ -1295,6 +1298,8 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     );
 
     if (suspiciousOnly) countQuery = countQuery.eq("suspicious_activity", true);
+    if (statusFilter === "error") countQuery = countQuery.gte("response_status", 400);
+    if (statusFilter === "flagged") countQuery = countQuery.eq("suspicious_activity", true);
     if (userId) countQuery = countQuery.eq("user_id", userId);
     if (startDate) countQuery = countQuery.gte("created_at", startDate);
     if (endDate) countQuery = countQuery.lte("created_at", endDate);

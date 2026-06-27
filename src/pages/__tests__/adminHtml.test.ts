@@ -182,6 +182,41 @@ function buildAdminHarness() {
       },
     ],
   };
+  const journey = {
+    profile: { id: "user-1", email: "test@example.com" },
+    analyticsClientIds: ["cid-test"],
+    summary: {
+      days: 30,
+      eventCount: 1,
+      firstSeenAt: now,
+      lastSeenAt: now,
+      status: "Generated",
+      tone: "warning",
+      lastStage: "Edited generated output",
+      steps: [],
+    },
+    events: [
+      {
+        id: "journey-1",
+        created_at: now,
+        endpoint: "/event/generation_output_edited",
+        event: "generation_output_edited",
+        stage: "Edited generated output",
+        response_status: 200,
+        source: "extension_content",
+        page: "https://www.vinted.de/items/new",
+        context: {
+          titleChanged: true,
+          descriptionChanged: true,
+          editDelayMs: 4200,
+          appliedTitle: "Grey Polka Dot Sweater -",
+          currentTitle: "Grey polka dot sweater",
+          appliedDescription: "This cozy grey polka dot sweater is perfect for cooler days.",
+          currentDescription: "Grey polka dot sweater with a soft knit feel.",
+        },
+      },
+    ],
+  };
 
   const context = {
     console,
@@ -232,6 +267,7 @@ function buildAdminHarness() {
       if (url.includes("growth-stats")) body = growth;
       if (url.includes("list-users")) body = users;
       if (url.includes("view-logs")) body = logs;
+      if (url.includes("user-journey")) body = journey;
       return { ok: true, json: async () => body };
     },
   };
@@ -248,6 +284,7 @@ function buildAdminHarness() {
     context: context as typeof context & {
       loadView: (view: string) => Promise<void>;
       showLogDetails: (id: string) => void;
+      showUserJourney: (userId: string, encodedEmail: string) => Promise<void>;
       state: { currentView: string; logsType: string };
     },
     content: el("contentArea"),
@@ -286,5 +323,11 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("https://example.com/item.jpg");
     expect(content.innerHTML).toContain(">CXL<");
     expect(content.innerHTML).toContain(">API<");
+
+    await context.showUserJourney("user-1", encodeURIComponent("test@example.com"));
+    expect(modalTitle.textContent).toBe("User Journey");
+    expect(modalBody.innerHTML).toContain("Edited title + description");
+    expect(modalBody.innerHTML).toContain("Grey Polka Dot Sweater -");
+    expect(modalBody.innerHTML).toContain("Grey polka dot sweater");
   });
 });

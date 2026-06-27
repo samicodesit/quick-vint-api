@@ -237,6 +237,7 @@ function getEventCategory(event: string | null) {
   }
   if (
     event.startsWith("generate_") ||
+    event.startsWith("generation_") ||
     event.startsWith("phone_upload_") ||
     event.startsWith("batch_") ||
     event === "account_paused_shown"
@@ -893,6 +894,7 @@ function getJourneyStage(log: any) {
   if (event === "generate_request") return "Generation requested";
   if (event === "/api/generate") return "Generation API";
   if (event === "generate_success") return "Generated";
+  if (event === "generation_output_edited") return "Edited generated output";
   if (event === "generate_missing_photo") return "No photo uploaded";
   if (event === "generate_error") return "Generation error";
   if (event === "generate_limit_hit") return "Limit hit";

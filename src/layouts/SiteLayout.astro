@@ -17,6 +17,7 @@ export interface Props {
   pathPattern?: string;
   switcherLocales?: SiteLocale[];
   localizedUrls?: Partial<Record<SiteLocale, string>>;
+  minimalChrome?: boolean;
 }
 
 const {
@@ -32,6 +33,7 @@ const {
   pathPattern,
   switcherLocales,
   localizedUrls,
+  minimalChrome = false,
 } = Astro.props;
 
 const resolvedLocale = normalizeSiteLocale(currentLocale || htmlLang);
@@ -122,7 +124,8 @@ const chromeHref =
   <body
     class="min-h-screen bg-white text-slate-900 overflow-x-hidden antialiased selection:bg-brand-100 selection:text-brand-900"
   >
-    <!-- Navbar -->
+    {
+      !minimalChrome && (
     <nav
       class="fixed top-0 w-full z-50 glass-nav transition-all duration-300"
       id="navbar"
@@ -285,9 +288,13 @@ const chromeHref =
         </div>
       </div>
     </nav>
+      )
+    }
 
     <slot />
 
+    {
+      !minimalChrome && (
     <footer class="bg-slate-50 border-t border-slate-200 pt-16 pb-8">
       <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div
@@ -335,7 +342,11 @@ const chromeHref =
         </div>
       </div>
     </footer>
+      )
+    }
 
+    {
+      !minimalChrome && (
     <script>
       const mobileMenu = document.getElementById("mobile-menu");
 
@@ -372,6 +383,8 @@ const chromeHref =
         }
       });
     </script>
+      )
+    }
     <script>
       import "../scripts/analytics.js";
     </script>

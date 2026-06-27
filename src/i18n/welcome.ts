@@ -22,6 +22,12 @@ type WelcomeCopy = {
   heroBadge: string;
   heroTitle: string;
   heroSubtitle: string;
+  installTitle: string;
+  installSubtitle: string;
+  planBadge: string;
+  pinBadge: string;
+  pinTitle: string;
+  pinBody: string;
   stepsTitle: string;
   steps: [string, string, string];
   labelTipBadge: string;
@@ -45,15 +51,23 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "You are 3 clicks away from your first listing",
     heroSubtitle:
       "Pin AutoLister AI, open Vinted, and generate your listing instantly.",
+    installTitle: "Installation complete.",
+    installSubtitle: "Autolister is added to your browser.",
+    planBadge: "Free plan active",
+    pinBadge: "Optional",
+    pinTitle: "Pin the extension",
+    pinBody:
+      "Click the puzzle icon in your browser toolbar to pin Autolister for easy access.",
     stepsTitle: "How it works",
     steps: [
       "Pin the extension to your Chrome toolbar",
       "Go to Vinted and open your listing flow",
       "Click Generate to create title and description",
     ],
-    labelTipBadge: "Photo tip",
-    labelTipTitle: "Add a label photo when you can",
-    labelTipBody: "It helps AutoLister read the brand, size, and material.",
+    labelTipBadge: "Pro tip",
+    labelTipTitle: "Add label photos",
+    labelTipBody:
+      "Include clear photos of tags, sizes, and materials for accurate AI descriptions.",
     primaryCta: "Go to Vinted and list now",
     secondaryCta: "See pricing plans",
     fallbackCta: "Open default Vinted listing page",
@@ -72,6 +86,13 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "Vous êtes à 3 clics de votre première annonce",
     heroSubtitle:
       "Épinglez AutoLister AI, ouvrez Vinted et générez votre annonce instantanément.",
+    installTitle: "Installation terminée.",
+    installSubtitle: "Autolister a été ajouté à votre navigateur.",
+    planBadge: "Plan gratuit actif",
+    pinBadge: "Optionnel",
+    pinTitle: "Épinglez l'extension",
+    pinBody:
+      "Cliquez sur l'icône puzzle dans la barre d'outils du navigateur pour épingler Autolister et le retrouver facilement.",
     stepsTitle: "Comment ça marche",
     steps: [
       "Épinglez l'extension dans votre barre d'outils Chrome",
@@ -99,6 +120,13 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "Du bist nur 3 Klicks von deinem ersten Inserat entfernt",
     heroSubtitle:
       "Pinne AutoLister AI an, öffne Vinted und erstelle dein Inserat sofort.",
+    installTitle: "Installation abgeschlossen.",
+    installSubtitle: "Autolister wurde deinem Browser hinzugefügt.",
+    planBadge: "Free-Plan aktiv",
+    pinBadge: "Optional",
+    pinTitle: "Erweiterung anpinnen",
+    pinBody:
+      "Klicke auf das Puzzle-Symbol in der Browser-Symbolleiste, um Autolister für schnellen Zugriff anzupinnen.",
     stepsTitle: "So funktioniert es",
     steps: [
       "Pinne die Erweiterung in deine Chrome-Symbolleiste",
@@ -126,6 +154,13 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "Je bent 3 klikken verwijderd van je eerste advertentie",
     heroSubtitle:
       "Pin AutoLister AI, open Vinted en genereer direct je advertentie.",
+    installTitle: "Installatie voltooid.",
+    installSubtitle: "Autolister is toegevoegd aan je browser.",
+    planBadge: "Gratis plan actief",
+    pinBadge: "Optioneel",
+    pinTitle: "Pin de extensie",
+    pinBody:
+      "Klik op het puzzelicoon in de browserwerkbalk om Autolister vast te zetten voor snelle toegang.",
     stepsTitle: "Zo werkt het",
     steps: [
       "Pin de extensie aan je Chrome-werkbalk",
@@ -153,6 +188,13 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "Do pierwszego ogłoszenia dzielą Cię 3 kliknięcia",
     heroSubtitle:
       "Przypnij AutoLister AI, otwórz Vinted i wygeneruj ogłoszenie natychmiast.",
+    installTitle: "Instalacja zakończona.",
+    installSubtitle: "Autolister został dodany do Twojej przeglądarki.",
+    planBadge: "Darmowy plan aktywny",
+    pinBadge: "Opcjonalnie",
+    pinTitle: "Przypnij rozszerzenie",
+    pinBody:
+      "Kliknij ikonę puzzla na pasku narzędzi przeglądarki, aby przypiąć Autolister i mieć do niego szybki dostęp.",
     stepsTitle: "Jak to działa",
     steps: [
       "Przypnij rozszerzenie do paska narzędzi Chrome",
@@ -180,6 +222,13 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "Estás a 3 clics de tu primer anuncio",
     heroSubtitle:
       "Fija AutoLister AI, abre Vinted y genera tu anuncio al instante.",
+    installTitle: "Instalación completada.",
+    installSubtitle: "Autolister se ha añadido a tu navegador.",
+    planBadge: "Plan gratuito activo",
+    pinBadge: "Opcional",
+    pinTitle: "Fija la extensión",
+    pinBody:
+      "Haz clic en el icono de puzzle de la barra de herramientas del navegador para fijar Autolister y acceder fácilmente.",
     stepsTitle: "Cómo funciona",
     steps: [
       "Fija la extensión en la barra de herramientas de Chrome",
@@ -207,6 +256,13 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "Sei a 3 clic dal tuo primo annuncio",
     heroSubtitle:
       "Fissa AutoLister AI, apri Vinted e genera subito il tuo annuncio.",
+    installTitle: "Installazione completata.",
+    installSubtitle: "Autolister è stato aggiunto al tuo browser.",
+    planBadge: "Piano gratuito attivo",
+    pinBadge: "Opzionale",
+    pinTitle: "Fissa l'estensione",
+    pinBody:
+      "Fai clic sull'icona del puzzle nella barra degli strumenti del browser per fissare Autolister e accedervi facilmente.",
     stepsTitle: "Come funziona",
     steps: [
       "Fissa l'estensione nella barra strumenti di Chrome",
@@ -234,6 +290,13 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     heroTitle: "Falta apenas 3 cliques para o seu primeiro anúncio",
     heroSubtitle:
       "Fixe o AutoLister AI, abra o Vinted e gere o seu anúncio instantaneamente.",
+    installTitle: "Instalação concluída.",
+    installSubtitle: "O Autolister foi adicionado ao seu navegador.",
+    planBadge: "Plano gratuito ativo",
+    pinBadge: "Opcional",
+    pinTitle: "Fixe a extensão",
+    pinBody:
+      "Clique no ícone de puzzle na barra de ferramentas do navegador para fixar o Autolister e aceder facilmente.",
     stepsTitle: "Como funciona",
     steps: [
       "Fixe a extensão na barra de ferramentas do Chrome",

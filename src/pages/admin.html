@@ -2134,6 +2134,64 @@
             overflow-wrap: anywhere;
         }
 
+        .journey-quality-signal {
+            border-top: 1px solid var(--border-color);
+            display: grid;
+            gap: 0.55rem;
+            margin-top: 0.7rem;
+            padding-top: 0.65rem;
+        }
+
+        .journey-quality-head {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            justify-content: space-between;
+        }
+
+        .journey-quality-chip {
+            background: var(--warning-bg);
+            border: 1px solid rgba(217, 119, 6, 0.18);
+            border-radius: 999px;
+            color: var(--warning-text);
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 0.18rem 0.5rem;
+        }
+
+        .journey-quality-grid {
+            display: grid;
+            gap: 0.5rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .journey-quality-block {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            min-width: 0;
+            padding: 0.55rem;
+        }
+
+        .journey-quality-label {
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }
+
+        .journey-quality-text {
+            color: var(--text-color);
+            font-size: 0.76rem;
+            line-height: 1.4;
+            max-height: 7rem;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
         @media (max-width: 760px) {
             .activity-row {
                 grid-template-columns: 54px 32px minmax(0, 1fr);
@@ -2155,6 +2213,10 @@
 
             .journey-dot {
                 display: none;
+            }
+
+            .journey-quality-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -3411,6 +3473,7 @@
                 generate_request: 'Generation request',
                 generate_success: 'Generation success',
                 generate_error: 'Generation error',
+                generation_output_edited: 'Generated output edited',
                 generate_missing_photo: 'Missing photo',
                 generate_limit_hit: 'Limit hit',
                 generate_click: 'Generate click',
@@ -6028,7 +6091,7 @@
         function getJourneyEventTone(event) {
             if (event.event === 'generate_success') return 'success';
             if (event.event === 'generate_error' || event.response_status >= 400) return 'danger';
-            if (event.event === 'generate_limit_hit' || event.event === 'account_paused_shown' || event.event === 'auth_callback_exit' || event.event === 'generate_missing_photo') return 'warning';
+            if (event.event === 'generate_limit_hit' || event.event === 'account_paused_shown' || event.event === 'auth_callback_exit' || event.event === 'generate_missing_photo' || event.event === 'generation_output_edited') return 'warning';
             if (event.event === 'auth_success' || event.event === 'listing_tools_ready') return 'success';
             return 'neutral';
         }
@@ -6066,6 +6129,59 @@
             `;
         }
 
+        function formatDurationMs(ms) {
+            const duration = Number(ms || 0);
+            if (!Number.isFinite(duration) || duration <= 0) return '';
+            if (duration < 60000) return `${Math.round(duration / 1000)}s`;
+            return `${Math.round(duration / 60000)}m`;
+        }
+
+        function renderJourneyTextBlock(label, text) {
+            const value = String(text || '').trim();
+            return `
+                <div class="journey-quality-block">
+                    <div class="journey-quality-label">${escapeHtml(label)}</div>
+                    <div class="journey-quality-text">${escapeHtml(value || '(empty)')}</div>
+                </div>
+            `;
+        }
+
+        function renderJourneyEventDetail(event) {
+            if (event.event !== 'generation_output_edited') {
+                return event.generated_title
+                    ? `<div class="journey-event-meta" style="margin-top:0.45rem;"><strong>Generated:</strong> ${escapeHtml(event.generated_title)}</div>`
+                    : '';
+            }
+
+            const context = event.context || {};
+            const changedParts = [];
+            if (context.titleChanged) changedParts.push('title');
+            if (context.descriptionChanged) changedParts.push('description');
+            const changedLabel = changedParts.length ? changedParts.join(' + ') : 'output';
+            const delay = formatDurationMs(context.editDelayMs);
+            const details = [];
+
+            if (context.titleChanged) {
+                details.push(renderJourneyTextBlock('Title before', context.appliedTitle || context.generatedTitle || ''));
+                details.push(renderJourneyTextBlock('Title after', context.currentTitle || ''));
+            }
+
+            if (context.descriptionChanged) {
+                details.push(renderJourneyTextBlock('Description before', context.appliedDescription || context.generatedDescription || ''));
+                details.push(renderJourneyTextBlock('Description after', context.currentDescription || ''));
+            }
+
+            return `
+                <div class="journey-quality-signal">
+                    <div class="journey-quality-head">
+                        <span class="journey-quality-chip">Edited ${escapeHtml(changedLabel)}</span>
+                        ${delay ? `<span class="journey-event-meta" style="margin:0;">${escapeHtml(delay)} after generation</span>` : ''}
+                    </div>
+                    <div class="journey-quality-grid">${details.join('')}</div>
+                </div>
+            `;
+        }
+
         function renderJourneyTimeline(events) {
             if (!events?.length) {
                 return `<div class="empty-state">No journey events found in the selected window.</div>`;
@@ -6087,7 +6203,7 @@
                                         </div>
                                         <span class="badge ${event.response_status >= 400 ? 'badge-danger' : 'badge-neutral'}">${escapeHtml(event.response_status || 'n/a')}</span>
                                     </div>
-                                    ${event.generated_title ? `<div class="journey-event-meta" style="margin-top:0.45rem;"><strong>Generated:</strong> ${escapeHtml(event.generated_title)}</div>` : ''}
+                                    ${renderJourneyEventDetail(event)}
                                 </div>
                             </div>
                         `;

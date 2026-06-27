@@ -1,4 +1,5 @@
 ---
+import LanguageSwitcher from "../../components/LanguageSwitcher.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import {
   DEFAULT_WELCOME_LOCALE,
@@ -29,6 +30,7 @@ const canonical = `${baseUrl}${welcomePath}`;
   htmlLang={locale}
   currentLocale={locale}
   pathPattern="/welcome/{lang}"
+  minimalChrome
 >
   <Fragment slot="head">
     <link rel="alternate" hreflang="en" href={`${baseUrl}/welcome/en`} />
@@ -42,272 +44,213 @@ const canonical = `${baseUrl}${welcomePath}`;
     <link rel="alternate" hreflang="x-default" href={`${baseUrl}/welcome/en`} />
   </Fragment>
 
-  <main
-    class="relative min-h-[calc(100vh-80px)] pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden bg-slate-50 flex items-center"
-  >
-    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+  <main class="welcome-page relative min-h-screen px-6 py-12 text-slate-900">
+    <div class="absolute inset-x-0 top-4 z-20 flex justify-center px-4 sm:top-6">
       <div
-        class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-100 rounded-full blur-3xl opacity-50 mix-blend-multiply"
+        class="animate-enter flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2 shadow-[0_12px_32px_rgba(15,23,42,0.08)] backdrop-blur"
       >
-      </div>
-      <div
-        class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-3xl opacity-50 mix-blend-multiply"
-      >
+        <span class="hidden text-sm font-semibold text-slate-500 sm:inline">
+          {copy.switcherLabel}
+        </span>
+        <LanguageSwitcher
+          currentLocale={locale}
+          pathPattern="/welcome/{lang}"
+          className="welcome-lang-switcher"
+        />
       </div>
     </div>
 
     <section
-      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full"
+      class="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center pt-14 sm:pt-10"
     >
-      <div
-        class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-6 sm:p-10 lg:p-12 shadow-xl shadow-slate-200/40 grid lg:grid-cols-2 gap-10 lg:gap-12 items-center"
-      >
-        <!-- Left Column: Content -->
-        <div class="flex flex-col text-left">
-          <div class="flex flex-col gap-4 mb-8">
-            <span
-              class="inline-flex items-center px-3 py-1 rounded-full bg-brand-100 border border-brand-200 text-brand-800 text-xs font-bold uppercase tracking-wider w-fit"
-            >
-              <svg
-                class="w-4 h-4 mr-1.5 text-brand-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"></path></svg
-              >
-              {copy.heroBadge}
-            </span>
-          </div>
-
-          <h1
-            class="text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.1] text-balance mb-6"
+      <div class="mb-16 w-full max-w-2xl text-center">
+        <div class="success-animation animate-enter">
+          <div class="glow-ring"></div>
+          <svg
+            class="checkmark"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 52 52"
+            aria-hidden="true"
           >
-            {copy.heroTitle}
-          </h1>
-
-          <p class="text-lg text-slate-600 leading-relaxed mb-8 max-w-lg">
-            {copy.heroSubtitle}
-          </p>
-
-          <!-- Streamlined Steps -->
-          <div class="space-y-6 mb-10">
-            <h2
-              class="text-sm font-bold text-slate-400 uppercase tracking-wider"
-            >
-              {copy.stepsTitle}
-            </h2>
-            <div class="space-y-5">
-              {
-                copy.steps.map((step: string, index: number) => (
-                  <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold border border-brand-100 shadow-sm mt-0.5">
-                      {index + 1}
-                    </div>
-                    <div class="pt-1 text-slate-800 font-medium">{step}</div>
-                  </div>
-                ))
-              }
-            </div>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-4 mb-6">
-            <a
-              id="welcome-primary-cta"
-              href="https://www.vinted.com/items/new"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-bold text-white bg-brand-600 rounded-xl hover:bg-brand-700 transition-all hover:-translate-y-1 shadow-lg shadow-brand-600/25 no-underline w-full sm:w-auto"
-            >
-              {copy.primaryCta}
-            </a>
-            <a
-              id="welcome-pricing-cta"
-              href="/pricing"
-              class="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-bold text-slate-700 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all hover:-translate-y-1 no-underline w-full sm:w-auto"
-            >
-              {copy.secondaryCta}
-            </a>
-          </div>
-
-          <div class="mt-4 flex flex-col gap-3">
-            <div
-              class="inline-flex items-start sm:items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100/80 w-fit"
-            >
-              <span
-                class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 shrink-0"
-              >
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 13l4 4L19 7"></path></svg
-                >
-              </span>
-              <p
-                class="text-[15px] font-semibold text-emerald-800 leading-snug m-0"
-              >
-                {copy.reassurance}
-              </p>
-            </div>
-            <p
-              class="text-xs text-slate-400 font-medium pl-1 max-w-sm leading-relaxed"
-            >
-              {copy.compliance}
-            </p>
-          </div>
+            <circle
+              class="checkmark__circle"
+              cx="26"
+              cy="26"
+              r="25"
+              fill="none"></circle>
+            <path
+              class="checkmark__check"
+              fill="none"
+              d="M14.1 27.2l7.1 7.2 16.7-16.8"></path>
+          </svg>
         </div>
 
-        <!-- Right Column: Image Guide -->
-        <div
-          class="relative w-full max-w-[440px] mx-auto lg:mx-0 lg:ml-auto flex flex-col gap-6"
+        <h1
+          class="animate-enter delay-100 mb-4 text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl"
         >
-          <!-- Step 1 Card -->
-          <div
-            class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm shadow-slate-200/50"
-          >
-            <div class="flex flex-col gap-3">
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex-shrink-0 w-7 h-7 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-sm"
-                >
-                  1
-                </div>
-                <h3 class="text-[15px] font-bold text-slate-900">
-                  Click &quot;Extensions&quot;
-                </h3>
-              </div>
-              <div
-                class="rounded-xl overflow-hidden bg-[#f8fafc] flex items-center justify-center p-6 border border-slate-100"
-              >
-                <img
-                  src="/extensions-icon.jpg"
-                  alt="Click the Extensions icon in your browser"
-                  class="w-full h-auto max-w-[280px] object-contain mix-blend-multiply"
-                />
-              </div>
-            </div>
-          </div>
+          {copy.installTitle}
+        </h1>
+        <p class="animate-enter delay-200 mb-8 text-lg text-slate-500">
+          {copy.installSubtitle}
+        </p>
 
-          <!-- Step 2 Card -->
-          <div
-            class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm shadow-slate-200/50"
+        <div
+          class="animate-enter delay-300 mb-8 flex items-center justify-center"
+        >
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm"
           >
-            <div class="flex flex-col gap-3">
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex-shrink-0 w-7 h-7 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-sm"
-                >
-                  2
-                </div>
-                <h3 class="text-[15px] font-bold text-slate-900">
-                  Pin AutoLister AI
-                </h3>
-              </div>
-              <div
-                class="rounded-xl overflow-hidden bg-[#f8fafc] flex items-center justify-center pt-6 pb-0 px-4 sm:px-8 border border-slate-100"
-              >
-                <img
-                  src="/pin-it.png"
-                  alt="Click the pin icon next to AutoLister AI"
-                  class="w-full h-auto max-w-[320px] object-cover object-top border-t border-x border-slate-200/50 rounded-t-lg shadow-sm"
-                />
-              </div>
-            </div>
-          </div>
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.4"
+                d="M5 13l4 4L19 7"></path>
+            </svg>
+            {copy.planBadge}
+          </span>
+        </div>
 
-          <div
-            class="overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-5 shadow-sm shadow-emerald-100/50"
+        <div class="animate-enter delay-400 flex w-full flex-col items-center justify-center gap-4 sm:flex-row">
+          <a
+            id="welcome-primary-cta"
+            href="https://www.vinted.com/items/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-primary inline-flex w-full items-center justify-center rounded-[14px] px-8 py-3.5 text-[15px] font-bold text-white no-underline transition-all duration-200 sm:w-auto"
           >
-            <div class="flex items-start gap-4">
-              <div class="grid w-28 shrink-0 grid-cols-2 gap-1.5">
-                <img
-                  src="/welcome-label-2.webp"
-                  alt="Clothing label with brand and size"
-                  width="640"
-                  height="640"
-                  loading="lazy"
-                  class="col-span-2 aspect-[2/1.18] w-full rounded-xl border border-white object-cover object-center shadow-sm"
-                />
-                <img
-                  src="/welcome-label-3.webp"
-                  alt="Clothing size label"
-                  width="640"
-                  height="640"
-                  loading="lazy"
-                  class="aspect-square w-full rounded-lg border border-white object-cover object-center shadow-sm"
-                />
-                <img
-                  src="/welcome-label-1.webp"
-                  alt="Product label with barcode"
-                  width="640"
-                  height="480"
-                  loading="lazy"
-                  class="aspect-square w-full rounded-lg border border-white object-cover object-center shadow-sm"
-                />
-              </div>
-              <div class="min-w-0 pt-0.5">
-                <div
-                  class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100"
-                >
-                  <svg
-                    class="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    ><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M3 7h3l2-3h8l2 3h3v13H3V7z"
-                    ></path><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 17a4 4 0 100-8 4 4 0 000 8z"
-                    ></path></svg
-                  >
-                  {copy.labelTipBadge}
-                </div>
-                <h3 class="text-base font-extrabold leading-snug text-slate-950">
-                  {copy.labelTipTitle}
-                </h3>
-                <p class="mt-1.5 text-sm font-medium leading-relaxed text-slate-600">
-                  {copy.labelTipBody}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-1 text-center px-4 w-full">
-            <p
-              class="text-[13px] font-medium text-slate-500 flex items-center justify-center gap-2 mx-auto bg-slate-50/80 rounded-full py-2 px-5 w-fit border border-slate-200/60"
-            >
-              <svg
-                class="w-[18px] h-[18px] text-brand-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                ></path></svg
-              >
-              Pin AutoLister AI to easily access it later
-            </p>
-          </div>
+            {copy.primaryCta}
+          </a>
+          <a
+            id="welcome-pricing-cta"
+            href="/pricing"
+            class="btn-secondary inline-flex w-full items-center justify-center rounded-[14px] px-8 py-3.5 text-[15px] font-bold no-underline transition-all duration-200 sm:w-auto"
+          >
+            {copy.secondaryCta}
+          </a>
         </div>
       </div>
+
+      <div
+        class="animate-enter delay-500 grid w-full grid-cols-1 items-stretch gap-6 md:grid-cols-2"
+      >
+        <article class="bento-card group flex h-full flex-col">
+          <div class="grow p-6 sm:p-8">
+            <div class="mb-3 flex items-center gap-2">
+              <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 5.5 18.5 9M5.5 14l4.5 4.5M9 4l11 11M4 9l11 11M13 7 7 13"></path>
+              </svg>
+              <span
+                class="text-xs font-bold uppercase tracking-wider text-indigo-500"
+                >{copy.pinBadge}</span
+              >
+            </div>
+            <h2 class="mb-2 text-xl font-bold text-slate-900">
+              {copy.pinTitle}
+            </h2>
+            <p class="text-sm leading-relaxed text-slate-500">
+              {copy.pinBody}
+            </p>
+          </div>
+          <div
+            class="relative mt-auto flex h-[280px] w-full items-end justify-center overflow-hidden border-t border-slate-100 bg-slate-50 px-4 pt-6"
+          >
+            <div
+              class="absolute bottom-0 h-1/2 w-3/4 rounded-full bg-indigo-500/5 blur-2xl"
+            >
+            </div>
+            <img
+              src="/pin_extension.webp"
+              alt="Pin AutoLister AI from the Chrome extensions menu"
+              width="390"
+              height="247"
+              loading="lazy"
+              class="relative z-10 w-full max-w-[360px] translate-y-6 rounded-t-xl border border-slate-200/80 bg-white object-cover object-top shadow-[0_-8px_30px_rgba(0,0,0,0.10)] transition-transform duration-500 group-hover:translate-y-2"
+            />
+          </div>
+        </article>
+
+        <article class="bento-card group flex h-full flex-col">
+          <div class="grow p-6 sm:p-8">
+            <div class="mb-3 flex items-center gap-2">
+              <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 7h3l2-3h8l2 3h3v13H3V7z"></path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 17a4 4 0 100-8 4 4 0 000 8z"></path>
+              </svg>
+              <span
+                class="text-xs font-bold uppercase tracking-wider text-indigo-500"
+                >{copy.labelTipBadge}</span
+              >
+            </div>
+            <h2 class="mb-2 text-xl font-bold text-slate-900">
+              {copy.labelTipTitle}
+            </h2>
+            <p class="text-sm leading-relaxed text-slate-500">
+              {copy.labelTipBody}
+            </p>
+          </div>
+          <div
+            class="relative mt-auto flex h-[280px] w-full items-center justify-center overflow-hidden border-t border-slate-100 bg-slate-50"
+          >
+            <div
+              class="label-photo label-photo-left absolute z-10 -translate-x-16 -rotate-6 rounded-xl shadow-lg transition-all duration-300 hover:z-40 hover:-translate-y-2 hover:rotate-0 hover:scale-105 sm:-translate-x-20"
+            >
+              <img
+                src="/welcome-label-2-card.webp"
+                alt="Brand clothing label"
+                width="480"
+                height="480"
+                loading="lazy"
+                class="h-48 w-36 rounded-xl border-[4px] border-white bg-white object-cover sm:h-56 sm:w-40"
+              />
+            </div>
+
+            <div
+              class="label-photo label-photo-right absolute z-10 translate-x-16 rotate-6 rounded-xl shadow-lg transition-all duration-300 hover:z-40 hover:-translate-y-2 hover:rotate-0 hover:scale-105 sm:translate-x-20"
+            >
+              <img
+                src="/welcome-label-1-card.webp"
+                alt="Material and care label"
+                width="480"
+                height="360"
+                loading="lazy"
+                class="h-48 w-36 rounded-xl border-[4px] border-white bg-white object-cover sm:h-56 sm:w-40"
+              />
+            </div>
+
+            <div
+              class="label-photo label-photo-center absolute z-30 rounded-xl shadow-xl transition-all duration-300 hover:-translate-y-2 hover:scale-105"
+            >
+              <img
+                src="/welcome-label-3-card.webp"
+                alt="Clothing size label"
+                width="480"
+                height="480"
+                loading="lazy"
+                class="h-56 w-40 rounded-xl border-[4px] border-white bg-white object-cover sm:h-64 sm:w-48"
+              />
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <p
+        class="animate-enter delay-500 mt-16 text-center text-sm text-slate-400"
+      >
+        &copy; 2026 Autolister.app. All rights reserved.
+      </p>
     </section>
   </main>
 
@@ -460,4 +403,229 @@ const canonical = `${baseUrl}${welcomePath}`;
       });
     });
   </script>
+
+  <style>
+    .welcome-page {
+      background-color: #fafcff;
+      background-image:
+        radial-gradient(
+          circle at 50% 0%,
+          rgba(91, 82, 255, 0.05),
+          transparent 50%
+        ),
+        radial-gradient(
+          circle at 10% 100%,
+          rgba(91, 82, 255, 0.03),
+          transparent 40%
+        ),
+        radial-gradient(
+          circle at 90% 100%,
+          rgba(91, 82, 255, 0.03),
+          transparent 40%
+        );
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .animate-enter {
+      animation: slide-up-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    .delay-100 {
+      animation-delay: 100ms;
+    }
+
+    .delay-200 {
+      animation-delay: 200ms;
+    }
+
+    .delay-300 {
+      animation-delay: 300ms;
+    }
+
+    .delay-400 {
+      animation-delay: 400ms;
+    }
+
+    .delay-500 {
+      animation-delay: 500ms;
+    }
+
+    .success-animation {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .checkmark {
+      animation:
+        fill 0.4s ease-in-out 0.4s forwards,
+        scale 0.3s ease-in-out 0.9s both;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 transparent;
+      display: block;
+      height: 80px;
+      position: relative;
+      stroke: #fff;
+      stroke-miterlimit: 10;
+      stroke-width: 3.5;
+      width: 80px;
+      z-index: 10;
+    }
+
+    .checkmark__circle {
+      animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+      fill: none;
+      stroke: #10b981;
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      stroke-miterlimit: 10;
+      stroke-width: 3.5;
+    }
+
+    .checkmark__check {
+      animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      transform-origin: 50% 50%;
+    }
+
+    .glow-ring {
+      animation: pulse-glow 2s cubic-bezier(0.16, 1, 0.3, 1) 1.2s infinite;
+      background-color: #10b981;
+      border-radius: 50%;
+      height: 80px;
+      left: 50%;
+      opacity: 0;
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      z-index: 0;
+    }
+
+    .btn-primary {
+      background-color: #5b52ff;
+      box-shadow: 0 8px 24px -6px rgba(91, 82, 255, 0.5);
+    }
+
+    .btn-primary:hover {
+      background-color: #4f46e5;
+      box-shadow: 0 12px 28px -6px rgba(91, 82, 255, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: white;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      color: #334155;
+    }
+
+    .btn-secondary:hover {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .bento-card {
+      background: white;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 24px;
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      text-align: left;
+      transition: all 0.3s ease;
+    }
+
+    .bento-card:hover {
+      border-color: rgba(91, 82, 255, 0.2);
+      box-shadow: 0 20px 40px -10px rgba(91, 82, 255, 0.08);
+    }
+
+    .label-photo {
+      cursor: pointer;
+    }
+
+    .label-photo img {
+      transition: transform 0.5s ease;
+    }
+
+    .label-photo:hover img {
+      transform: scale(1.05);
+    }
+
+    @keyframes slide-up-fade {
+      0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.98);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes stroke {
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes scale {
+      0%,
+      100% {
+        transform: none;
+      }
+      50% {
+        transform: scale3d(1.1, 1.1, 1);
+      }
+    }
+
+    @keyframes fill {
+      100% {
+        box-shadow: inset 0 0 0 50px #10b981;
+      }
+    }
+
+    @keyframes pulse-glow {
+      0% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.6);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-enter,
+      .checkmark,
+      .checkmark__circle,
+      .checkmark__check,
+      .glow-ring {
+        animation: none;
+      }
+
+      .animate-enter {
+        opacity: 1;
+      }
+
+      .checkmark {
+        box-shadow: inset 0 0 0 50px #10b981;
+      }
+
+      .checkmark__circle,
+      .checkmark__check {
+        stroke-dashoffset: 0;
+      }
+
+      .glow-ring {
+        opacity: 0;
+      }
+    }
+  </style>
 </SiteLayout>

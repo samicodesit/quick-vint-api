@@ -8,14 +8,20 @@ const orderCalls: Array<[string, any]> = [];
 const limitCalls: number[] = [];
 const updateCalls: any[] = [];
 const inCalls: Array<[string, string[]]> = [];
+const insertCalls: any[][] = [];
 let selectResponse: { data: any[]; error: any } = { data: [], error: null };
 let updateResponse: { error: any } = { error: null };
+let insertResponse: { error: any } = { error: null };
 
 function createBuilder() {
   const builder = {
     select: vi.fn((columns: string) => {
       selectCalls.push(columns);
       return builder;
+    }),
+    insert: vi.fn(async (values: any[]) => {
+      insertCalls.push(values);
+      return insertResponse;
     }),
     lt: vi.fn((column: string, value: string) => {
       ltCalls.push([column, value]);
@@ -70,8 +76,10 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     limitCalls.length = 0;
     updateCalls.length = 0;
     inCalls.length = 0;
+    insertCalls.length = 0;
     selectResponse = { data: [], error: null };
     updateResponse = { error: null };
+    insertResponse = { error: null };
     vi.clearAllMocks();
   });
 
@@ -98,6 +106,31 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
 
     expect(result.suspicious).toBe(true);
     expect(result.reasons[0]).toContain("phishing");
+  });
+
+  it("logs OpenAI usage breakdown fields when provided", async () => {
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+
+    await ApiLogger.logRequest({
+      requestMethod: "POST",
+      responseStatus: 200,
+      openaiModel: "gpt-4o",
+      openaiTokensUsed: 1600,
+      openaiPromptTokens: 1300,
+      openaiCompletionTokens: 300,
+      openaiCachedTokens: 1024,
+    });
+
+    expect(fromCalls).toEqual(["api_logs"]);
+    expect(insertCalls[0][0]).toMatchObject({
+      request_method: "POST",
+      response_status: 200,
+      openai_model: "gpt-4o",
+      openai_tokens_used: 1600,
+      openai_prompt_tokens: 1300,
+      openai_completion_tokens: 300,
+      openai_cached_tokens: 1024,
+    });
   });
 
   it("compacts heavy fields for old API logs in a bounded batch", async () => {

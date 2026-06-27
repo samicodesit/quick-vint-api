@@ -25,7 +25,7 @@ import messagesPl from "../messages/pl.json";
 
 const OPEN_AI_MODEL = "gpt-4o";
 const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
-const OPEN_AI_MAX_OUTPUT_TOKENS = 480;
+const OPEN_AI_MAX_OUTPUT_TOKENS = 720;
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -269,13 +269,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const tierAllowsExtras =
     effectiveTier === "pro" || effectiveTier === "business";
 
-  let toneInstruction = "neutral and balanced"; // Default for 'standard'
+  let toneInstruction =
+    "natural, factual, and friendly like a real Vinted seller"; // Default for 'standard'
   if (tierAllowsExtras) {
-    if (tone === "friendly") toneInstruction = "friendly, casual, and warm";
+    if (tone === "friendly")
+      toneInstruction =
+        "warm, casual, and conversational while staying factual";
     else if (tone === "professional")
-      toneInstruction = "professional, clean, and concise";
+      toneInstruction =
+        "clean, concise, and reseller-like with practical buyer details";
     else if (tone === "enthusiastic")
-      toneInstruction = "enthusiastic, sales-oriented, and exciting";
+      toneInstruction =
+        "lightly upbeat and positive, but never exaggerated or salesy";
   }
 
   const emojisDisabledByUser = useEmojis === false || useEmojis === "false";
@@ -284,20 +289,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? !emojisDisabledByUser
       : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
-    ? "Use relevant emojis in the description."
+    ? "Use relevant emojis lightly: at most 1-2 total, only where they feel natural."
     : "Do NOT use any emojis in the description.";
 
   // bullet points vs paragraphs
   const bulletEmojiInstruction = emojisEnabled
-    ? " End each bullet with exactly one relevant emoji."
+    ? " Do not put an emoji on every bullet."
     : "";
   const paragraphEmojiInstruction = emojisEnabled
     ? " Use emojis sparingly in paragraph text."
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one short opening sentence, then a line break, then 3 concise bullet points. Each bullet starts with '• ' and must add a different useful detail than the opening sentence.${bulletEmojiInstruction}`
-      : `Use 2-3 short paragraphs separated by a line break where useful.${paragraphEmojiInstruction}`;
+      ? `Use one short opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and must add a different useful detail than the opening sentence. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
+      : `Use 2 short paragraphs separated by a line break, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
 
   if (
     !Array.isArray(imageUrls) ||
@@ -351,19 +356,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are a savvy Vinted seller writing accurate, buyer-friendly listings. Be specific, natural, and trustworthy. Never guess brand, size, material, model, measurements, authenticity, or how many times an item was worn. Mention defects only when clearly visible. Wrinkles and creasing are not defects.";
+    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Your priority is buyer trust: use visible evidence, sound natural, and omit uncertain facts. Never invent brand, size, material, model, measurements, authenticity, retail price, rarity, or how often an item was worn.";
   const userPrompt = `
-Analyze the image(s) and generate a title in ${titleLanguage} and a description in ${descriptionLanguage}.
-- Title format: [BRAND - Omit if not known] [Model - if electronics or applicable] [Color] [Item] - [Size - Omit if not known/not applicable].
-- Title language: Write only the title in ${titleLanguage}.
-- Size handling: For clothing and shoes, prioritize visible EU size markings over US sizing. Do not convert or infer sizes; omit the size if the system is unclear.
-- Description language: Write only the description in ${descriptionLanguage}.
-- Description: Write like a real Vinted seller, not an ad. Include important searchable facts from the title again in the description when known, especially brand, size, color/pattern, and item type. Translate or restate those facts naturally in ${descriptionLanguage}. Then add useful details such as fit or silhouette when clear, material only if visible from label or unmistakable, and one natural styling/use case when appropriate.
-- Avoid filler and lazy repetition: do not repeat the same fact in multiple bullets, and avoid vague phrases like "modern design", "great quality", "perfect addition", or "stands out".
-- Condition: mention positive condition only when clearly supported by the image(s), such as new with tags, like new, clean, or well kept. If the item looks noticeably worn or the condition is unclear, do not mention the condition. Do not mention wrinkles or creasing or the likes as flaws.
-- Missing info: If brand, size, material, or measurements are not visible, omit them. Do not write "unknown", do not invent measurements, and do not ask the seller to add details.
-- Hashtags: End with 3-5 relevant SEO hashtags on a new line. Use only the actual brand if known, the item type, color/style, and broad search terms. Do not include unrelated brands or spammy keyword stuffing.
-- Tone and format: Your tone should be ${toneInstruction}. ${emojiInstruction} ${bulletpointInstruction}
+Analyze the image(s) and generate a Vinted title and description.
+First, silently inspect the photos for: visible label text, brand logos, size tags, care/material tags, model names, item type, color/pattern, category, visible tags/packaging, and useful buyer search terms. Do not show this inspection.
+
+Evidence rules:
+- Use visible label text, packaging text, tags, and logos as the strongest evidence.
+- Use visual facts only when they are clear: color, pattern, item type, closure, sleeve/leg length, heel type, obvious sport/use category, and visible set contents.
+- Do not infer brand, size, material, model, measurements, authenticity, retail price, rarity, age/vintage status, gender, or how often the item was worn.
+- If a fact is not visible, omit it completely. Do not write "unknown", "appears to be", "seems", "looks like", or ask the seller to add details.
+
+Title rules:
+- Title format: [BRAND - omit if not visible/known] [Model/product name - only if readable or visibly shown] [Color] [Item] - [Size - omit if not visible/not applicable].
+- Keep the title searchable and natural for Vinted. Prioritize brand, item type, size, color/pattern, and model when known.
+- Target 35-70 characters when there are enough visible facts. Shorter is fine when the item is simple or facts are limited.
+- No emojis, hashtags, hype words, or condition claims in the title unless condition is explicit from visible tags/packaging.
+
+Size and label handling:
+- For clothing and shoes, prioritize visible EU size markings over US sizing.
+- Do not convert sizes. Do not infer adult/child size from appearance unless the label clearly states it.
+- If a label photo shows brand, size, material, or care information, use those facts naturally.
+- Exact material composition should only be mentioned when readable on a label, care tag, or packaging.
+- Visual fabric/category words like denim, knit, lace, mesh, sequins, ribbed, quilted, or faux fur are allowed only when obvious from the photos. Do not claim leather, silk, wool, linen, cotton, cashmere, or real fur without readable label evidence.
+
+Description rules:
+- Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
+- Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
+- Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, print, set contents, packaging, and visible labels. Add a brief use or styling phrase only when it follows directly from the visible item category.
+- Avoid lazy repetition: each sentence or bullet should add a new detail.
+- Avoid filler phrases such as "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "stylish and comfortable", and "designed for performance".
+
+Category guidance:
+- Clothing: mention color/pattern, item type, visible size, silhouette or fit only if visually clear, and material composition only from a readable label/care tag.
+- Shoes: mention brand/model if visible, EU size if visible, color, closure, sole/boot type, and sport/use only when clear from the design or label.
+- Bags/accessories: mention color, strap/handle, closure, compartments, matching pouch, tag/packaging, and visible hardware only when shown.
+- Media/toys/beauty/home items: use readable cover or packaging text for product name, set contents, edition, and category. Do not claim completeness, working condition, or unused condition unless visible.
+
+Condition handling:
+- Keep condition language conservative, as Vinted sellers must review the final text.
+- Mention positive condition only when strongly supported by visible original tags, sealed/new packaging, or clear unused retail packaging.
+- If condition is unclear, do not mention condition.
+- Do not use broad positive condition phrases such as "clean", "like new", "excellent condition", or "well kept" from photos alone.
+- Do not mention negative condition remarks for now. The seller will handle those separately.
+- Do not mention defects, flaws, damage, stains, holes, pilling, scuffs, cracks, discoloration, missing parts, heavy wear, repairs, or other negative condition details.
+- Do not describe normal fabric wrinkles or storage creasing as flaws.
+
+Hashtags:
+- End with 3-5 relevant SEO hashtags on a new line.
+- Use only the actual visible brand if known, the item type, color/style, model/product category, and broad buyer search terms.
+- Do not include unrelated brands, spammy trend tags, repeated near-duplicates, or generic tags like #Fashion unless there is no stronger relevant option.
+
+Tone and format:
+- Apply these request settings exactly.
+- Title language: write only the title in ${titleLanguage}.
+- Description language: write only the description in ${descriptionLanguage}.
+- Tone: ${toneInstruction}.
+- ${emojiInstruction}
+- ${bulletpointInstruction}
+- Target length: bullet descriptions should usually be 50-95 words before hashtags; paragraph descriptions should usually be 65-110 words before hashtags. Simple low-information items can be shorter. Be concise, but not too thin or padded.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
@@ -387,6 +438,7 @@ Reply only in JSON: {"title":"...","description":"..."}
   }
 
   // --- GENERATE VIA OPENAI ---
+  logData.openaiModel = OPEN_AI_MODEL;
   try {
     const parts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
       type: "image_url",
@@ -435,6 +487,10 @@ Reply only in JSON: {"title":"...","description":"..."}
 
     // Log token usage and rate limit info
     logData.openaiTokensUsed = chat.usage?.total_tokens;
+    logData.openaiPromptTokens = chat.usage?.prompt_tokens;
+    logData.openaiCompletionTokens = chat.usage?.completion_tokens;
+    logData.openaiCachedTokens =
+      chat.usage?.prompt_tokens_details?.cached_tokens;
     const rateLimitInfo = extractOpenAIRateLimitHeaders(openaiResponse.headers);
     logData.openaiRateLimitInfo = rateLimitInfo;
     console.log("🔄 OpenAI Rate Limit Status:", rateLimitInfo);

@@ -20,6 +20,9 @@ export interface ApiLogData {
   responseStatus?: number;
   openaiModel?: string;
   openaiTokensUsed?: number;
+  openaiPromptTokens?: number;
+  openaiCompletionTokens?: number;
+  openaiCachedTokens?: number;
 
   // User context
   userEmail?: string;
@@ -61,6 +64,9 @@ export class ApiLogger {
       response_status: data.responseStatus,
       openai_model: data.openaiModel,
       openai_tokens_used: data.openaiTokensUsed,
+      openai_prompt_tokens: data.openaiPromptTokens,
+      openai_completion_tokens: data.openaiCompletionTokens,
+      openai_cached_tokens: data.openaiCachedTokens,
 
       user_email: data.userEmail,
       subscription_tier: data.subscriptionTier,
@@ -136,7 +142,9 @@ export class ApiLogger {
       throw selectError;
     }
 
-    const ids = (rows || []).map((row: { id: string }) => row.id).filter(Boolean);
+    const ids = (rows || [])
+      .map((row: { id: string }) => row.id)
+      .filter(Boolean);
     if (!ids.length) {
       return {
         cutoffDays: safeCutoffDays,

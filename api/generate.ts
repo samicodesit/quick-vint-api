@@ -301,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one short opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and must add a different useful detail than the opening sentence. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
+      ? `Use one short opening sentence, then a line break, then 3-5 concise bullet points based on how many distinct useful details are visible. Use 3 for simple or low-information items, 4 for most listings, and 5 only for rich label, packaging, set, or detail photos. Each bullet starts with '• ' and should usually be 7-14 words. Each bullet must add a concrete visible detail, not a generic benefit. Never add a weak bullet just to reach a count.${bulletEmojiInstruction}`
       : `Use 2 short paragraphs separated by a line break, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
 
   if (
@@ -379,13 +379,14 @@ Size and label handling:
 - If a label photo shows brand, size, material, or care information, use those facts naturally.
 - Exact material composition should only be mentioned when readable on a label, care tag, or packaging.
 - Visual fabric/category words like denim, knit, lace, mesh, sequins, ribbed, quilted, or faux fur are allowed only when obvious from the photos. Do not claim leather, silk, wool, linen, cotton, cashmere, or real fur without readable label evidence.
+- Do not describe hand-feel or comfort from photos alone: avoid "soft", "comfortable", "comfy", "breathable", "warm", "lightweight", or similar feel claims unless readable label/packaging text supports it.
 
 Description rules:
 - Write like a real Vinted seller, not an advertisement. Make it useful enough that the seller can paste it with minimal edits.
 - Include the important searchable facts from the title again in natural language: brand when known, size when known, color/pattern, item type, and readable/visible model or product name.
 - Add concrete buyer-relevant details from the photos: shape, closure, pockets, straps, sleeves, print, set contents, packaging, and visible labels. Add a brief use or styling phrase only when it follows directly from the visible item category.
-- Avoid lazy repetition: each sentence or bullet should add a new detail.
-- Avoid filler phrases such as "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "stylish and comfortable", and "designed for performance".
+- Avoid lazy repetition: each sentence or bullet should add a new detail, not just a buyer benefit.
+- Avoid filler phrases such as "check out", "stylish", "modern design", "great quality", "perfect addition", "must-have", "stands out", "elevate your wardrobe", "versatile piece", "easy wear", "for comfort", "perfect for layering", "stylish and comfortable", and "designed for performance".
 
 Category guidance:
 - Clothing: mention color/pattern, item type, visible size, silhouette or fit only if visually clear, and material composition only from a readable label/care tag.
@@ -405,7 +406,7 @@ Condition handling:
 Hashtags:
 - End with 3-5 relevant SEO hashtags on a new line.
 - Use only the actual visible brand if known, the item type, color/style, model/product category, and broad buyer search terms.
-- Do not include unrelated brands, spammy trend tags, repeated near-duplicates, or generic tags like #Fashion unless there is no stronger relevant option.
+- Do not include unrelated brands, spammy trend tags, repeated near-duplicates, or generic tags like #Fashion. Use item-specific tags instead when brand, item type, color, style, or category is known.
 
 Tone and format:
 - Apply these request settings exactly.

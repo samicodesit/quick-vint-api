@@ -2724,8 +2724,8 @@
                         <path d="M8 17h8"></path>
                     </svg>
                     <span class="nav-copy">
-                        <span class="nav-label">Events</span>
-                        <span class="nav-meta">Uninstall reasons and signals</span>
+                        <span class="nav-label">Signals</span>
+                        <span class="nav-meta">Product behavior and exits</span>
                     </span>
                 </div>
                 <div class="nav-item" data-view="logs" onclick="switchView('logs')">
@@ -2737,7 +2737,7 @@
                     </svg>
                     <span class="nav-copy">
                         <span class="nav-label">Logs</span>
-                        <span class="nav-meta">Debug requests and events</span>
+                        <span class="nav-meta">Raw forensic stream</span>
                     </span>
                 </div>
                 <div class="nav-item" data-view="users" onclick="switchView('users')">
@@ -2845,7 +2845,7 @@
             <button class="mobile-bottom-btn active" data-view="overview"
                 onclick="switchView('overview')">Command</button>
             <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
-            <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Events</button>
+            <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Signals</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
             <button class="mobile-bottom-btn" data-view="ui-pages" onclick="switchView('ui-pages')">UI</button>
@@ -2878,7 +2878,6 @@
             logsSearch: '',
             logsStatus: 'all',
             logsSearchTimer: null,
-            eventsPage: 1,
             usersPage: 1,
             usersSegment: 'today',
             usersSearch: '',
@@ -3017,8 +3016,8 @@
                     loading: 'Loading growth funnel, Chrome Store context, and KPI guidance...'
                 },
                 events: {
-                    title: 'Event Workbench',
-                    subtitle: 'Uninstall reasons, checkout intent, product errors, and raw event signals.',
+                    title: 'Signals',
+                    subtitle: 'Product behavior signals, uninstall reasons, checkout intent, and instrumentation health.',
                     loading: 'Loading uninstall feedback, event families, and priority signals...'
                 },
                 logs: {
@@ -3229,7 +3228,7 @@
                     </div>
 
                     <div class="command-action-row">
-                        ${commandAction('Events', `${recentEventCount.toLocaleString()} recent`, 'Uninstall feedback and high-signal product events.', 'events', 'acquisition')}
+                        ${commandAction('Signals', `${recentEventCount.toLocaleString()} recent`, 'Uninstall feedback and high-signal product behavior.', 'events', 'acquisition')}
                         ${commandAction('Users', `${todaysUsers.pagination.total.toLocaleString()} today`, 'Accounts, usage, review email, reset, pause.', 'users', 'ops')}
                         ${commandAction('Growth', `${Number(growthData.days || 30).toLocaleString()} days`, 'Chrome Store and product funnel decisions.', 'growth', 'product')}
                         ${commandAction('Logs', `${todayTotalLogs.toLocaleString()} rows`, 'Raw debugging when something looks wrong.', 'logs', 'revenue')}
@@ -3585,6 +3584,7 @@
                         <div class="event-feed-title">
                             <span>${escapeHtml(friendlyEventName(item.event))}</span>
                             <span class="badge badge-neutral">${escapeHtml(item.category || 'Other')}</span>
+                            <button class="btn-secondary" style="margin-left:auto; padding:0.28rem 0.5rem;" onclick="openLogsForSearch('${escapeAttribute(item.event)}', 'events')">Logs</button>
                         </div>
                         <div class="event-feed-meta">
                             ${item.createdAt ? escapeHtml(formatDateTime(item.createdAt)) : 'Unknown time'}
@@ -4575,11 +4575,7 @@
         }
 
         async function renderEvents(container) {
-            const eventsLimit = 25;
-            const [growthData, logData] = await Promise.all([
-                fetchAPI('/api/admin?action=growth-stats&days=30'),
-                fetchAPI(`/api/admin?action=view-logs&log_type=events&page=${state.eventsPage}&limit=${eventsLimit}`)
-            ]);
+            const growthData = await fetchAPI('/api/admin?action=growth-stats&days=30');
 
             const fmt = value => Number(value || 0).toLocaleString();
             const eventSummary = growthData.eventSummary || {};
@@ -4592,11 +4588,66 @@
             const generateErrorCount = getEventCount(topEvents, 'generate_error');
             const missingPhotoCount = getEventCount(topEvents, 'generate_missing_photo');
             const checkoutStartCount = getEventCount(topEvents, 'checkout_start');
-            const logs = logData.logs || [];
-            const pagination = logData.pagination || { page: 1, limit: eventsLimit, total: 0, totalPages: 0 };
+            const acquisitionEventCount = getEventCategoryCount(eventCategories, 'Acquisition Quality');
+            const productEventCount = getEventCategoryCount(eventCategories, 'Product Usage');
+            const revenueEventCount = getEventCategoryCount(eventCategories, 'Revenue Intent');
+            const authEventCount = getEventCategoryCount(eventCategories, 'Auth');
+            const limitHitCount = getEventCount(topEvents, 'generate_limit_hit');
 
             container.innerHTML = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">Signals are product behavior</div>
+                            <div class="view-brief-copy">Use this page to understand behavior patterns: why sellers leave, where generation breaks, whether free limits create upgrade intent, and which instrumentation is noisy. Open Logs only when you need the exact row.</div>
+                        </div>
+                        <div class="view-brief-actions">
+                            <button class="btn-secondary" onclick="openLogsForSearch('', 'events')">All event logs</button>
+                            <button class="btn-secondary" onclick="openLogsForSearch('generate_error', 'events')">Generation errors</button>
+                            <button class="btn-secondary" onclick="openLogsForSearch('checkout_start', 'events')">Checkout intent</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="event-workbench">
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Signal Map</div>
+                                <div class="event-panel-title">What users are doing</div>
+                                <div class="event-panel-note">Grouped first-party events from the site, extension, paywall, and uninstall page.</div>
+                            </div>
+                        </div>
+                        <div class="event-card-grid">
+                            ${renderEventCategoryCard(
+                                'Acquisition Quality',
+                                acquisitionEventCount,
+                                uninstallFeedbackCount
+                                    ? `${fmt(uninstallFeedbackCount)} uninstall feedback response${uninstallFeedbackCount === 1 ? '' : 's'} to inspect before changing acquisition.`
+                                    : 'Chrome Store clicks and uninstall feedback live here.',
+                                ['chrome_store_click', 'uninstall_feedback_submitted']
+                            )}
+                            ${renderEventCategoryCard(
+                                'Product Usage',
+                                productEventCount,
+                                `${fmt(generateErrorCount)} generation errors, ${fmt(missingPhotoCount)} missing-photo events, ${fmt(limitHitCount)} limit hits.`,
+                                ['generate_request', 'generate_success', 'generate_error', 'generate_limit_hit']
+                            )}
+                            ${renderEventCategoryCard(
+                                'Revenue Intent',
+                                revenueEventCount,
+                                `${fmt(last30.paywallShown)} paywalls and ${fmt(checkoutStartCount)} checkout starts in the last 30 days.`,
+                                ['paywall_shown', 'checkout_start', 'checkout_opened', 'credit_pack_click']
+                            )}
+                            ${renderEventCategoryCard(
+                                'Auth',
+                                authEventCount,
+                                `${fmt(last30.magicLinkRequests)} magic-link requests. If activation is weak, inspect auth flow events.`,
+                                ['magic_link_request', 'magic_link_sent', 'auth_success', 'signin_cta_click']
+                            )}
+                        </div>
+                    </div>
+
                     <div class="event-panel">
                         <div class="event-panel-header">
                             <div>
@@ -4604,68 +4655,54 @@
                                 <div class="event-panel-title">Why users leave</div>
                                 <div class="event-panel-note">${fmt(uninstallFeedbackCount)} response${uninstallFeedbackCount === 1 ? '' : 's'} from the uninstall page.</div>
                             </div>
+                            <button class="btn-secondary" onclick="openLogsForSearch('uninstall_feedback_submitted', 'events')">Feedback logs</button>
                         </div>
                         <div class="reason-list">
                             ${renderUninstallReasons(uninstallReasons)}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-workbench">
+                    <div class="event-panel">
+                        <div class="event-panel-header">
+                            <div>
+                                <div class="section-kicker">Priority Signals</div>
+                                <div class="event-panel-title">Recent signals to inspect</div>
+                                <div class="event-panel-note">Only critical events: uninstall feedback, generation errors, limit hits, paywalls, and checkout intent.</div>
+                            </div>
+                        </div>
+                        <div class="event-feed">
+                            ${renderRecentEventFeed(recentImportantEvents)}
                         </div>
                     </div>
 
                     <div class="event-panel">
                         <div class="event-panel-header">
                             <div>
-                                <div class="section-kicker">Recent Signals</div>
-                                <div class="event-panel-title">Recent signals</div>
-                                <div class="event-panel-note">Uninstalls, errors, limit hits, paywalls, and checkout intent.</div>
+                                <div class="section-kicker">Instrumentation</div>
+                                <div class="event-panel-title">Volume by event type</div>
+                                <div class="event-panel-note">Use this to spot missing or noisy event tracking. Click a row to open matching event logs.</div>
                             </div>
-                            <button class="btn-secondary" onclick="state.logsType='events'; switchView('logs')">Raw logs</button>
                         </div>
-                        <div class="event-feed">
-                            ${renderRecentEventFeed(recentImportantEvents)}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Latest Raw Events</h3>
-                            <div class="text-sm text-muted">${fmt(generateErrorCount)} generation errors · ${fmt(missingPhotoCount)} missing-photo events · ${fmt(checkoutStartCount)} checkout starts</div>
-                        </div>
-                        <button class="btn-secondary" onclick="openLogsForSearch('', 'events')">Open event logs</button>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Event</th>
-                                    <th>User</th>
-                                    <th>Status</th>
-                                    <th>Context</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${renderEventLogRows(logs) || '<tr><td colspan="6" class="text-muted">No event logs yet.</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination-bar">
-                        <span>Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}</span>
-                        <span>Page ${pagination.totalPages ? pagination.page : 0} of ${pagination.totalPages || 0}</span>
-                        <div class="flex gap-2">
-                            <button class="btn-secondary" ${pagination.page <= 1 ? 'disabled' : ''} onclick="setEventsPage(${pagination.page - 1})">Previous</button>
-                            <button class="btn-secondary" ${pagination.page >= pagination.totalPages ? 'disabled' : ''} onclick="setEventsPage(${pagination.page + 1})">Next</button>
+                        <div class="reason-list">
+                            ${topEvents.slice(0, 10).map(item => `
+                                <button type="button" class="reason-row" style="text-align:left; cursor:pointer;" onclick="openLogsForSearch('${escapeAttribute(item.event)}', 'events')">
+                                    <div class="reason-row-main">
+                                        <span><code>${escapeHtml(item.event)}</code></span>
+                                        <span>${fmt(item.count)}</span>
+                                    </div>
+                                    <div class="event-feed-meta">${escapeHtml(friendlyEventName(item.event))}</div>
+                                </button>
+                            `).join('') || `
+                                <div class="reason-row">
+                                    <div class="reason-row-main"><span>No tracked events yet</span><span>0</span></div>
+                                </div>
+                            `}
                         </div>
                     </div>
                 </div>
             `;
-            state.currentLogs = logs;
-        }
-
-        function setEventsPage(page) {
-            state.eventsPage = Math.max(1, page);
-            renderEvents(document.getElementById('contentArea'));
         }
 
         function getLogKind(log) {
@@ -5032,8 +5069,39 @@
             const activityFeed = !isEventLogView && !isGenerationLogView
                 ? renderActivityFeed(logs)
                 : '';
+            const quickFilters = isEventLogView
+                ? `
+                    <div class="quick-filter-row">
+                        <button class="quick-filter-btn ${state.logsSearch === 'generate_cancelled' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_cancelled')">Cancelled</button>
+                        <button class="quick-filter-btn ${state.logsSearch === 'generate_success' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_success')">Success</button>
+                        <button class="quick-filter-btn ${state.logsSearch === 'generate_request' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_request')">Request</button>
+                        <button class="quick-filter-btn ${state.logsSearch === 'generate_click' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_click')">Click</button>
+                        <button class="quick-filter-btn ${state.logsSearch === 'extension_uninstalled' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'extension_uninstalled')">Uninstalls</button>
+                        <button class="quick-filter-btn ${!state.logsSearch ? 'active' : ''}" onclick="setLogsQuickFilter('events', '')">Clear</button>
+                    </div>
+                `
+                : '';
+            const logPurpose = isEventLogView
+                ? 'Event logs are for verifying a specific tracked behavior, anonymous client, or instrumentation gap.'
+                : isGenerationLogView
+                    ? 'Generation logs are for debugging AI output, image input, cost, latency, and prompt/model behavior.'
+                    : 'All logs are for forensic review when you need the exact sequence across generation, events, and system calls.';
 
             const logsHtml = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">Logs are the forensic stream</div>
+                            <div class="view-brief-copy">${escapeHtml(logPurpose)} Search by email, user id, endpoint, or analytics client id, then jump to the linked journey or user from the row.</div>
+                        </div>
+                        <div class="view-brief-actions">
+                            <button class="btn-secondary" onclick="setLogsQuickFilter('generation', '')">Generation logs</button>
+                            <button class="btn-secondary" onclick="setLogsQuickFilter('events', '')">Event logs</button>
+                            <button class="btn-secondary" onclick="openUsersSegment('active')">Active users</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="logs-toolbar">
                     <input type="search" placeholder="Search email, user id, or event..." class="filter-input" value="${escapeAttribute(state.logsSearch)}" oninput="queueLogsSearch(this.value)">
                     <select class="filter-input" onchange="state.logsType=this.value; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">
@@ -5049,14 +5117,7 @@
                     </select>
                 </div>
 
-                <div class="quick-filter-row">
-                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_cancelled' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_cancelled')">Cancelled</button>
-                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_success' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_success')">Success</button>
-                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_request' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_request')">Request</button>
-                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'generate_click' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_click')">Click</button>
-                    <button class="quick-filter-btn ${(state.logsType || 'generation') === 'events' && state.logsSearch === 'extension_uninstalled' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'extension_uninstalled')">Uninstalls</button>
-                    <button class="quick-filter-btn ${!state.logsSearch ? 'active' : ''}" onclick="setLogsQuickFilter(state.logsType || 'generation', '')">Clear</button>
-                </div>
+                ${quickFilters}
 
                 <div class="card log-table">
                     ${activityFeed
@@ -5153,6 +5214,20 @@
             ];
 
             const usersHtml = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">Users are the account workbench</div>
+                            <div class="view-brief-copy">Use this page to inspect real customer/account state: plan, usage pressure, latest activity, contact eligibility, review request, reset, pause, and the user journey. Open Logs only when the account needs forensic detail.</div>
+                        </div>
+                        <div class="view-brief-actions">
+                            <button class="btn-secondary" onclick="openUsersSegment('today')">New today</button>
+                            <button class="btn-secondary" onclick="openUsersSegment('active')">Recently active</button>
+                            <button class="btn-secondary" onclick="openUsersSegment('at-risk')">High usage</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="segmented-control" aria-label="User segments">
                     ${segments.map(([value, label]) => `
                         <button class="segment-btn ${state.usersSegment === value ? 'active' : ''}" onclick="setUsersSegment('${value}')">${label}</button>

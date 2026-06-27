@@ -167,6 +167,19 @@ function buildAdminHarness() {
         image_urls: [],
       },
       {
+        id: "log-3",
+        created_at: now,
+        endpoint: "/event/listing_tools_ready",
+        response_status: 200,
+        user_id: null,
+        user_email: null,
+        full_request_body: {
+          context: { analyticsClientId: "cid-anon-123", visiblePhotoCount: 8 },
+          extensionVersion: "1.3.24",
+        },
+        image_urls: [],
+      },
+      {
         id: "log-2",
         created_at: now,
         endpoint: "/api/generate",
@@ -181,10 +194,22 @@ function buildAdminHarness() {
         generated_description: "A clean generated listing.",
       },
     ],
+    pagination: { page: 1, limit: 50, total: 3, totalPages: 1 },
   };
   const journey = {
     profile: { id: "user-1", email: "test@example.com" },
     analyticsClientIds: ["cid-test"],
+    linkedUsers: [
+      {
+        id: "user-1",
+        email: "test@example.com",
+        subscription_tier: "starter",
+        subscription_status: "active",
+        eventCount: 3,
+        firstSeenAt: now,
+        lastSeenAt: now,
+      },
+    ],
     summary: {
       days: 30,
       eventCount: 1,
@@ -218,6 +243,7 @@ function buildAdminHarness() {
     ],
   };
 
+  const fetchCalls: string[] = [];
   const context = {
     console,
     setTimeout(fn: () => void) {
@@ -261,8 +287,10 @@ function buildAdminHarness() {
     Chart: class {
       constructor() {}
     },
+    fetchCalls,
     fetch: async (endpoint: string) => {
       const url = String(endpoint);
+      fetchCalls.push(url);
       let body: unknown = usage;
       if (url.includes("growth-stats")) body = growth;
       if (url.includes("list-users")) body = users;
@@ -285,7 +313,10 @@ function buildAdminHarness() {
       loadView: (view: string) => Promise<void>;
       showLogDetails: (id: string) => void;
       showUserJourney: (userId: string, encodedEmail: string) => Promise<void>;
-      state: { currentView: string; logsType: string };
+      showClientJourney: (analyticsClientId: string) => Promise<void>;
+      openLogsForSearch: (search: string, type?: string) => void;
+      fetchCalls: string[];
+      state: { currentView: string; logsType: string; logsStatus: string; logsSearch: string };
     },
     content: el("contentArea"),
     modalBody: el("modalBody"),
@@ -329,5 +360,57 @@ describe("admin HTML", () => {
     expect(modalBody.innerHTML).toContain("Edited title + description");
     expect(modalBody.innerHTML).toContain("Grey Polka Dot Sweater -");
     expect(modalBody.innerHTML).toContain("Grey polka dot sweater");
+  });
+
+  it("links anonymous analytics clients to journeys and related logs", async () => {
+    const { context, content, modalBody, modalTitle } = buildAdminHarness();
+
+    context.state.currentView = "events";
+    await context.loadView("events");
+    expect(content.innerHTML).toContain("Signals are product behavior");
+    expect(content.innerHTML).toContain("Signal Map");
+    expect(content.innerHTML).toContain("All event logs");
+    expect(content.innerHTML).not.toContain("Latest Raw Events");
+
+    context.state.currentView = "logs";
+    context.state.logsType = "events";
+    await context.loadView("logs");
+    expect(content.innerHTML).toContain("Logs are the forensic stream");
+    expect(content.innerHTML).toContain("Cancelled");
+    expect(content.innerHTML).toContain("Client cid-anon...");
+    context.showLogDetails("log-3");
+    expect(modalTitle.textContent).toBe("Event Details");
+    expect(modalBody.innerHTML).toContain("Client ID: cid-anon-123");
+    expect(modalBody.innerHTML).toContain("View correlated journey");
+    expect(modalBody.innerHTML).toContain("Open related logs");
+
+    await context.showClientJourney("cid-anon-123");
+    expect(context.fetchCalls.some((url) => url.includes("analytics_client_id=cid-anon-123"))).toBe(true);
+    expect(modalTitle.textContent).toBe("Correlated Journey");
+    expect(modalBody.innerHTML).toContain("Likely user: test@example.com");
+    expect(modalBody.innerHTML).toContain("Linked users from correlated logs");
+    expect(modalBody.innerHTML).toContain("Open client event logs");
+
+    context.openLogsForSearch("cid-anon-123", "events");
+    expect(context.state.logsType).toBe("events");
+    expect(context.state.logsSearch).toBe("cid-anon-123");
+    expect(context.state.logsStatus).toBe("all");
+
+    context.state.currentView = "users";
+    await context.loadView("users");
+    expect(content.innerHTML).toContain("Users are the account workbench");
+    expect(content.innerHTML).toContain("Journey");
+    expect(content.innerHTML).toContain("Logs");
+  });
+
+  it("sends log status filters to the backend", async () => {
+    const { context } = buildAdminHarness();
+
+    context.state.currentView = "logs";
+    context.state.logsType = "all";
+    context.state.logsStatus = "flagged";
+    await context.loadView("logs");
+
+    expect(context.fetchCalls.some((url) => url.includes("status_filter=flagged"))).toBe(true);
   });
 });

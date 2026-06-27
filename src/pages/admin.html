@@ -4939,6 +4939,8 @@
             });
 
             const data = await fetchAPI(`/api/admin?${params}`);
+            const logs = data.logs || [];
+            const pagination = data.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 };
             const logViewType = state.logsType || 'generation';
             const isEventLogView = logViewType === 'events';
             const isGenerationLogView = logViewType === 'generation';
@@ -4977,17 +4979,17 @@
                     </tr>
                 `;
             const desktopRows = isEventLogView
-                ? renderEventLogRows(data.logs || [])
+                ? renderEventLogRows(logs)
                 : isGenerationLogView
-                    ? renderGenerationLogRows(data.logs || [])
+                    ? renderGenerationLogRows(logs)
                     : '';
             const mobileRows = isEventLogView
-                ? renderEventLogMobileCards(data.logs || [])
+                ? renderEventLogMobileCards(logs)
                 : isGenerationLogView
-                    ? renderGenerationLogMobileCards(data.logs || [])
-                    : renderMixedLogMobileCards(data.logs || []);
+                    ? renderGenerationLogMobileCards(logs)
+                    : renderMixedLogMobileCards(logs);
             const activityFeed = !isEventLogView && !isGenerationLogView
-                ? renderActivityFeed(data.logs || [])
+                ? renderActivityFeed(logs)
                 : '';
 
             const logsHtml = `
@@ -5032,12 +5034,20 @@
                             </div>
                         </div>`}
                 </div>
+                <div class="pagination-bar">
+                    <span>Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}</span>
+                    <span>Page ${pagination.totalPages ? pagination.page : 0} of ${pagination.totalPages || 0}</span>
+                    <div class="flex gap-2">
+                        <button class="btn-secondary" ${pagination.page <= 1 ? 'disabled' : ''} onclick="setLogsPage(${pagination.page - 1})">Previous</button>
+                        <button class="btn-secondary" ${pagination.page >= pagination.totalPages ? 'disabled' : ''} onclick="setLogsPage(${pagination.page + 1})">Next</button>
+                    </div>
+                </div>
             `;
 
             container.innerHTML = logsHtml;
 
             // Cache logs for modal lookup
-            state.currentLogs = data.logs;
+            state.currentLogs = logs;
         }
 
         function setLogsQuickFilter(type, search) {
@@ -5054,6 +5064,11 @@
             state.logsSearchTimer = setTimeout(() => {
                 renderLogs(document.getElementById('contentArea'));
             }, 250);
+        }
+
+        function setLogsPage(page) {
+            state.logsPage = Math.max(1, page);
+            renderLogs(document.getElementById('contentArea'));
         }
 
         async function renderUsers(container) {

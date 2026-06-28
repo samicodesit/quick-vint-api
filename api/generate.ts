@@ -255,9 +255,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     useEmojis,
     emojiRetry,
     useBulletPoints,
+    descriptionLength,
     generationMode,
   } = req.body;
   const normalizedGenerationMode = normalizeGenerationMode(generationMode);
+  const normalizedDescriptionLength =
+    descriptionLength === "short" ? "short" : "long";
 
   const titleLanguageCodeStr = String(
     titleLanguageCode || languageCode || "en",
@@ -309,8 +312,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one factual opening sentence, then a line break, then normally 4 bullet points. Use 3 bullets for very simple items and 5-6 only when labels or photos contain more real facts. Each bullet starts with '• ' and should be a complete useful detail, not filler. Bullets may combine closely related visible or readable facts so the description feels substantial without adding assumptions.${bulletEmojiInstruction}`
-      : `Use 2 short paragraphs separated by a line break, usually 3-5 sentences total when evidence allows, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
+      ? normalizedDescriptionLength === "short"
+        ? `Use one factual opening sentence, then a line break, then bullet points. Keep each bullet very short and direct, usually around 4-6 words and one visible or readable fact per bullet. Do not combine extra detail just to make it longer. Each bullet starts with '• '.${bulletEmojiInstruction}`
+        : `Use one factual opening sentence, then a line break, then bullet points with fuller natural detail. Each bullet starts with '• ' and should be a useful seller-style sentence, usually around 12-22 words when real evidence exists. Make the bullets meaningfully more informative than the short version by combining closely related visible or readable facts, without adding assumptions or padding.${bulletEmojiInstruction}`
+      : normalizedDescriptionLength === "short"
+        ? `Use 1-2 short paragraphs separated by a line break. Keep sentences short and direct, with only the strongest visible or readable facts.${paragraphEmojiInstruction}`
+        : `Use 2 paragraphs separated by a line break. Write fuller natural seller-style sentences with more useful visible or readable detail when the photos support it.${paragraphEmojiInstruction}`;
 
   if (
     !Array.isArray(imageUrls) ||
@@ -395,7 +402,8 @@ Request settings:
 - Tone: ${toneInstruction}.
 - ${emojiInstruction}
 - ${bulletpointInstruction}
-- Aim for a fuller useful draft when the photos support it, but do not pad when the photos are simple.
+- Description length: ${normalizedDescriptionLength}.
+- This controls how much useful detail each sentence or bullet contains, not just the number of bullets.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

@@ -17,13 +17,17 @@ import {
   maybeCreateGenerationOffer,
   normalizeGenerationMode,
 } from "../utils/generationOffers";
+import {
+  OPENAI_CONTROL_MODEL,
+  isOpenAIModelCompatibilityError,
+  selectOpenAIModel,
+} from "../utils/openaiModelExperiment";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
 import messagesNl from "../messages/nl.json";
 import messagesPl from "../messages/pl.json";
 
-const OPEN_AI_MODEL = "gpt-4o";
 const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
 const OPEN_AI_MAX_OUTPUT_TOKENS = 720;
 // allow vinted page origins (so extension fetch from page context works)
@@ -154,6 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add user info to log data
   logData.userId = user.id;
   logData.userEmail = user.email;
+  const modelSelection = selectOpenAIModel({ seed: user.id });
 
   if (isDisposableEmail(user.email || "")) {
     logData.responseStatus = 403;
@@ -390,8 +395,8 @@ Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
   // Log the full prompt being sent to OpenAI
-  logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)`;
-  logData.openaiModel = OPEN_AI_MODEL;
+  logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)\nModel route: ${modelSelection.key}`;
+  logData.openaiModel = modelSelection.model;
 
   // Check for suspicious activity
   const suspiciousCheck = ApiLogger.detectSuspiciousActivity({
@@ -409,16 +414,17 @@ Reply only in JSON: {"title":"...","description":"..."}
   }
 
   // --- GENERATE VIA OPENAI ---
-  logData.openaiModel = OPEN_AI_MODEL;
+  logData.openaiModel = modelSelection.model;
   try {
     const parts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
       type: "image_url",
       image_url: { url, detail: OPEN_AI_IMAGE_DETAIL },
     }));
-    const { data: chat, response: openaiResponse } =
-      await openai.chat.completions
+
+    const createCompletion = (model: string) =>
+      openai.chat.completions
         .create({
-          model: OPEN_AI_MODEL,
+          model,
           messages: [
             {
               role: "system",
@@ -455,6 +461,26 @@ Reply only in JSON: {"title":"...","description":"..."}
           temperature: 0.3,
         })
         .withResponse();
+
+    let selectedModel = modelSelection.model;
+    let { data: chat, response: openaiResponse } = await createCompletion(
+      selectedModel,
+    ).catch(async (initialError) => {
+      if (
+        selectedModel !== OPENAI_CONTROL_MODEL &&
+        isOpenAIModelCompatibilityError(initialError)
+      ) {
+        console.warn(
+          `OpenAI model ${selectedModel} rejected by current generation path; retrying ${OPENAI_CONTROL_MODEL}.`,
+          initialError?.message,
+        );
+        const fallback = await createCompletion(OPENAI_CONTROL_MODEL);
+        logData.openaiModel = `${selectedModel}->${OPENAI_CONTROL_MODEL}`;
+        selectedModel = OPENAI_CONTROL_MODEL;
+        return fallback;
+      }
+      throw initialError;
+    });
 
     // Log token usage and rate limit info
     logData.openaiTokensUsed = chat.usage?.total_tokens;

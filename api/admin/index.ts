@@ -13,6 +13,7 @@ import {
   wrapEmailLayout,
   getTemplateIndex,
 } from "../../utils/emailTemplates";
+import { estimateOpenAICostUsd } from "../../utils/openaiModelExperiment";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -100,7 +101,7 @@ const PROFILE_SELECT =
   "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token";
 
 const LOG_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 function getQueryString(
   value: string | string[] | undefined,
@@ -1287,9 +1288,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     let query = applyLogTypeFilter(
       supabase
         .from("api_logs")
-        .select(
-          `id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason`,
-        )
+        .select(LOG_SELECT)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1),
     );
@@ -1401,14 +1400,18 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     if (todayStart && todayEnd) {
       const { data: todayLogs, error: todayLogsError } = await supabase
         .from("api_logs")
-        .select("endpoint, openai_tokens_used, response_status, created_at")
+        .select(
+          "endpoint, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, response_status, created_at",
+        )
         .gte("created_at", todayStart)
         .lt("created_at", todayEnd);
 
       if (todayLogsError) throw todayLogsError;
 
       const logs = todayLogs || [];
-      const generationLogs = logs.filter((log: any) => log.endpoint === "/api/generate");
+      const generationLogs = logs.filter(
+        (log: any) => log.endpoint === "/api/generate",
+      );
       const eventLogs = logs.filter(
         (log: any) =>
           typeof log.endpoint === "string" && log.endpoint.startsWith("/event/"),
@@ -1428,7 +1431,18 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         avgTokensPerRequest: generationLogs.length
           ? Math.round(totalTokens / generationLogs.length)
           : 0,
-        estimatedCost: totalTokens * 0.0000005,
+        estimatedCost: generationLogs.reduce(
+          (sum: number, log: any) =>
+            sum +
+            estimateOpenAICostUsd({
+              model: log.openai_model,
+              promptTokens: log.openai_prompt_tokens,
+              completionTokens: log.openai_completion_tokens,
+              cachedTokens: log.openai_cached_tokens,
+              totalTokens: log.openai_tokens_used,
+            }),
+          0,
+        ),
       };
     }
 
@@ -1437,7 +1451,9 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
 
     const { data: logsLastWeek } = await supabase
       .from("api_logs")
-      .select("created_at, openai_tokens_used")
+      .select(
+        "created_at, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
+      )
       .gte("created_at", `${weekAgoStr}T00:00:00Z`);
 
     const dailyMap = new Map();
@@ -1458,7 +1474,13 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         if (dailyMap.has(dateStr)) {
           const entry = dailyMap.get(dateStr);
           entry.total_api_calls++;
-          entry.estimated_cost += (log.openai_tokens_used || 0) * 0.0000005;
+          entry.estimated_cost += estimateOpenAICostUsd({
+            model: log.openai_model,
+            promptTokens: log.openai_prompt_tokens,
+            completionTokens: log.openai_completion_tokens,
+            cachedTokens: log.openai_cached_tokens,
+            totalTokens: log.openai_tokens_used,
+          });
         }
       });
     }

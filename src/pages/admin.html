@@ -3155,6 +3155,9 @@
             const todayGenerationRequests = Number(data.today.generationRequests || 0);
             const todayEventLogs = Number(data.today.eventLogs || 0);
             const todayEstimatedCost = Number(data.today.estimatedCost || 0);
+            const todayAvgGenerationCost = todayGenerationRequests
+                ? todayEstimatedCost / todayGenerationRequests
+                : 0;
             const generationLimitRate = todayGenerationRequests
                 ? (Number(data.today.rateLimitErrors || 0) / todayGenerationRequests) * 100
                 : 0;
@@ -3263,7 +3266,7 @@
                         <div class="stat-label">Avg Tokens/Generation</div>
                         <div class="stat-value">${data.today.avgTokensPerRequest}</div>
                         <div class="stat-trend">
-                            <span>~${formatMoney(data.today.avgTokensPerRequest * 0.0000005)} / generation</span>
+                            <span>~${formatMoney(todayAvgGenerationCost)} / generation</span>
                         </div>
                     </div>
                 </div>
@@ -4816,9 +4819,32 @@
             `).join('');
         }
 
+        const OPENAI_MODEL_PRICING_USD_PER_MILLION = {
+            'gpt-4o': { input: 2.5, cachedInput: 1.25, output: 10 },
+            'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, output: 4.5 },
+            'gpt-5.4': { input: 2.5, cachedInput: 0.25, output: 15 }
+        };
+
+        function estimateOpenAICost(log) {
+            const model = String(log.openai_model || '').split('->').pop().trim();
+            const pricing = OPENAI_MODEL_PRICING_USD_PER_MILLION[model];
+            if (!pricing) return (Number(log.openai_tokens_used || 0) * 0.5) / 1000000;
+
+            const promptTokens = Math.max(0, Number(log.openai_prompt_tokens || 0));
+            const completionTokens = Math.max(0, Number(log.openai_completion_tokens || 0));
+            const cachedTokens = Math.min(promptTokens, Math.max(0, Number(log.openai_cached_tokens || 0)));
+            const uncachedInputTokens = Math.max(0, promptTokens - cachedTokens);
+
+            if (!promptTokens && !completionTokens && log.openai_tokens_used) {
+                return (Number(log.openai_tokens_used || 0) * pricing.input) / 1000000;
+            }
+
+            return ((uncachedInputTokens * pricing.input) + (cachedTokens * pricing.cachedInput) + (completionTokens * pricing.output)) / 1000000;
+        }
+
         function renderGenerationLogRows(logs) {
             return logs.map(log => {
-                const cost = (log.openai_tokens_used || 0) * 0.0000005;
+                const cost = estimateOpenAICost(log);
                 const logKind = getLogKind(log);
                 const actor = getLogActor(log);
                 const preview = getLogPreview(log);
@@ -4868,7 +4894,7 @@
 
         function renderGenerationLogMobileCards(logs) {
             return logs.map(log => {
-                const cost = (log.openai_tokens_used || 0) * 0.0000005;
+                const cost = estimateOpenAICost(log);
                 const logKind = getLogKind(log);
                 let images = [];
                 try {
@@ -4951,7 +4977,7 @@
             const kind = getLogKind(log);
             if (kind === 'Event') return getLogContext(log);
             if (kind === 'Generation') {
-                const cost = (log.openai_tokens_used || 0) * 0.0000005;
+                const cost = estimateOpenAICost(log);
                 const imageCount = parseLogImages(log).length;
                 return `${imageCount || 0} image${imageCount === 1 ? '' : 's'} · ${log.openai_model || 'unknown model'} · $${cost.toFixed(5)}`;
             }

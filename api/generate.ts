@@ -253,6 +253,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     descriptionLanguageCode,
     tone,
     useEmojis,
+    useHashtags,
     emojiRetry,
     useBulletPoints,
     descriptionLength,
@@ -302,6 +303,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const emojiInstruction = emojisEnabled
     ? "Mandatory: include exactly 1 relevant emoji at the end of the plain factual opening sentence. Do not add a marketing phrase just to use the emoji. Do not use emojis in the title, bullets, or hashtags."
     : "Do NOT use any emojis in the description.";
+  const hashtagsEnabled = useHashtags !== false && useHashtags !== "false";
+  const hashtagInstruction = hashtagsEnabled
+    ? "End with 3-5 relevant hashtags using visible evidence: brand if known, item type, color/style, and product category."
+    : "Do not include hashtags anywhere in the title or description.";
 
   // bullet points vs paragraphs
   const bulletEmojiInstruction = emojisEnabled
@@ -394,7 +399,7 @@ Description:
 - Write only the description in ${descriptionLanguage}.
 - Start with a plain factual sentence naming the item, color, brand, and size when known.
 - Add useful visible or readable details, then stop when the evidence runs out.
-- End with 3-5 relevant hashtags using the visible brand if known, item type, color/style, and product category.
+- ${hashtagInstruction}
 
 Request settings:
 - Title language: write only the title in ${titleLanguage}.

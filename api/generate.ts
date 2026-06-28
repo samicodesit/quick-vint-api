@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { OpenAI } from "openai";
-import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
+import type {
+  ChatCompletionContentPart,
+  ChatCompletionCreateParamsNonStreaming,
+} from "openai/resources/chat/completions";
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 import { RateLimiter } from "../utils/rateLimiter";
@@ -19,6 +22,7 @@ import {
 } from "../utils/generationOffers";
 import {
   OPENAI_CONTROL_MODEL,
+  getOpenAIChatTokenLimitParam,
   isOpenAIModelCompatibilityError,
   selectOpenAIModel,
 } from "../utils/openaiModelExperiment";
@@ -29,7 +33,7 @@ import messagesNl from "../messages/nl.json";
 import messagesPl from "../messages/pl.json";
 
 const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
-const OPEN_AI_MAX_OUTPUT_TOKENS = 720;
+const OPEN_AI_MAX_OUTPUT_TOKENS = 900;
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -305,8 +309,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
-      ? `Use one factual opening sentence, then a line break, then 3-5 bullet points. Use fewer bullets for simple items and more only when the photos contain more useful facts. Each bullet starts with '• ' and should describe a different visible or readable fact.${bulletEmojiInstruction}`
-      : `Use 2 short paragraphs separated by a line break, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
+      ? `Use one factual opening sentence, then a line break, then normally 4 bullet points. Use 3 bullets for very simple items and 5-6 only when labels or photos contain more real facts. Each bullet starts with '• ' and should be a complete useful detail, not filler. Bullets may combine closely related visible or readable facts so the description feels substantial without adding assumptions.${bulletEmojiInstruction}`
+      : `Use 2 short paragraphs separated by a line break, usually 3-5 sentences total when evidence allows, with enough concrete detail to be useful.${paragraphEmojiInstruction}`;
 
   if (
     !Array.isArray(imageUrls) ||
@@ -376,12 +380,13 @@ Use these rules:
 Title:
 - Write only the title in ${titleLanguage}.
 - Use a natural searchable format: brand if known, model/product name if known, color/pattern, item type, size if known.
+- Prefer a fuller searchable title when real evidence exists: include one extra concrete visible detail such as model, cut, closure, neckline, pattern, set count, or product subtype. Aim for about 35-70 characters, but keep simple items shorter and never pad.
 - Do not use emojis, hashtags, hype, or condition claims in the title.
 
 Description:
 - Write only the description in ${descriptionLanguage}.
 - Start with a plain factual sentence naming the item, color, brand, and size when known.
-- Add useful visible details without turning them into outfit advice or generic buyer benefits.
+- Add enough useful visible or readable details that a buyer can identify the item without asking basic questions.
 - End with 3-5 relevant hashtags using the visible brand if known, item type, color/style, and product category.
 
 Request settings:
@@ -390,7 +395,7 @@ Request settings:
 - Tone: ${toneInstruction}.
 - ${emojiInstruction}
 - ${bulletpointInstruction}
-- Use enough detail to be useful, but do not pad when the photos are simple.
+- Aim for a fuller useful draft when the photos support it, but do not pad when the photos are simple.
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
@@ -421,46 +426,47 @@ Reply only in JSON: {"title":"...","description":"..."}
       image_url: { url, detail: OPEN_AI_IMAGE_DETAIL },
     }));
 
-    const createCompletion = (model: string) =>
-      openai.chat.completions
-        .create({
-          model,
-          messages: [
-            {
-              role: "system",
-              content: systemPrompt,
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: userPrompt,
-                },
-                ...parts,
-              ],
-            },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "listing",
-              strict: true,
-              schema: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  title: { type: "string" },
-                  description: { type: "string" },
-                },
-                required: ["title", "description"],
+    const createCompletion = (model: string) => {
+      const completionParams: ChatCompletionCreateParamsNonStreaming = {
+        model,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: userPrompt,
               },
+              ...parts,
+            ],
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "listing",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                title: { type: "string" },
+                description: { type: "string" },
+              },
+              required: ["title", "description"],
             },
           },
-          max_tokens: OPEN_AI_MAX_OUTPUT_TOKENS,
-          temperature: 0.3,
-        })
-        .withResponse();
+        },
+        temperature: 0.3,
+        ...getOpenAIChatTokenLimitParam(model, OPEN_AI_MAX_OUTPUT_TOKENS),
+      };
+
+      return openai.chat.completions.create(completionParams).withResponse();
+    };
 
     let selectedModel = modelSelection.model;
     let { data: chat, response: openaiResponse } = await createCompletion(

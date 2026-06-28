@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_OPENAI_MODEL_EXPERIMENT,
   estimateOpenAICostUsd,
+  getOpenAIChatTokenLimitParam,
   isOpenAIModelCompatibilityError,
   parseOpenAIModelExperiment,
   selectOpenAIModel,
@@ -66,6 +67,18 @@ describe("openaiModelExperiment", () => {
         message: "Rate limit reached",
       }),
     ).toBe(false);
+  });
+
+  it("uses the token limit parameter supported by each chat model family", () => {
+    expect(getOpenAIChatTokenLimitParam("gpt-5.4", 900)).toEqual({
+      max_completion_tokens: 900,
+    });
+    expect(getOpenAIChatTokenLimitParam("gpt-5.4-mini", 900)).toEqual({
+      max_completion_tokens: 900,
+    });
+    expect(getOpenAIChatTokenLimitParam("gpt-4o", 900)).toEqual({
+      max_tokens: 900,
+    });
   });
 
   it("estimates cost from token breakdown and model pricing", () => {

@@ -122,6 +122,18 @@ export function isOpenAIModelCompatibilityError(error: any) {
   );
 }
 
+export function getOpenAIChatTokenLimitParam(
+  model: string,
+  maxOutputTokens: number,
+) {
+  const safeMaxOutputTokens = Math.max(1, Math.floor(maxOutputTokens));
+  if (/^gpt-5(?:[.-]|$)/.test(model)) {
+    return { max_completion_tokens: safeMaxOutputTokens };
+  }
+
+  return { max_tokens: safeMaxOutputTokens };
+}
+
 export function estimateOpenAICostUsd({
   model,
   promptTokens = 0,

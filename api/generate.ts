@@ -313,11 +313,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
       ? normalizedDescriptionLength === "short"
-        ? `Use one factual opening sentence, then a line break, then bullet points. Keep each bullet very short and direct, usually around 4-6 words and one visible or readable fact per bullet. Do not combine extra detail just to make it longer. Each bullet starts with '• '.${bulletEmojiInstruction}`
-        : `Use one factual opening sentence, then a line break, then bullet points with fuller natural detail. Each bullet starts with '• ' and should be a useful seller-style sentence, usually around 8-14 words when real evidence exists. Go longer only when a real label or visible detail needs it. Make the bullets meaningfully more informative than the short version by combining closely related visible or readable facts, without adding assumptions or padding.${bulletEmojiInstruction}`
+        ? `Use one factual opening sentence, then only the useful bullet points the photos support. Usually 2-4 bullets; fewer is fine. Keep each bullet very short, around 4-6 words and one visible or readable fact. Each bullet starts with '• '.${bulletEmojiInstruction}`
+        : `Use one factual opening sentence, then only the useful bullet points the photos support. Usually 3-5 bullets; fewer is fine for simple items. Each bullet starts with '• ' and should be fuller seller-style detail, usually around 8-14 words when real evidence exists. Combine closely related visible or readable facts, without adding assumptions or padding.${bulletEmojiInstruction}`
       : normalizedDescriptionLength === "short"
-        ? `Use 1-2 short paragraphs separated by a line break. Keep sentences short and direct, with only the strongest visible or readable facts.${paragraphEmojiInstruction}`
-        : `Use 2 paragraphs separated by a line break. Write fuller natural seller-style sentences with more useful visible or readable detail when the photos support it.${paragraphEmojiInstruction}`;
+        ? `Use 1 short paragraph, or 2 only when the photos support enough facts. Keep sentences short and direct.${paragraphEmojiInstruction}`
+        : `Use 1-2 paragraphs. Write fuller natural seller-style sentences only when supported by visible or readable details.${paragraphEmojiInstruction}`;
 
   if (
     !Array.isArray(imageUrls) ||
@@ -371,12 +371,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Write plain seller-style copy based on visible evidence. Use readable labels for exact facts. If a fact is not visible or readable, omit it. Do not add marketing copy, styling advice, subjective praise, or assumptions about material, feel, fit, condition, authenticity, price, rarity, or wear history.";
+    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Hard rule: never guess. Write a detail only when it is visible in the photos or readable on a label; if unsure, omit it. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.";
   const userPrompt = `
 Analyze the image(s) and generate a Vinted title and description.
 
 Use these rules:
-- Build the listing only from visible or readable photo evidence.
+- Build the listing only from visible or readable photo evidence. Never fill gaps with likely, common, or nice-sounding details.
 - Read labels/tags for exact brand, size, model/product name, and material composition.
 - Use visual evidence for item type, color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
 - Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, styling use, or wear history.
@@ -393,7 +393,7 @@ Title:
 Description:
 - Write only the description in ${descriptionLanguage}.
 - Start with a plain factual sentence naming the item, color, brand, and size when known.
-- Add enough useful visible or readable details that a buyer can identify the item without asking basic questions.
+- Add useful visible or readable details, then stop when the evidence runs out.
 - End with 3-5 relevant hashtags using the visible brand if known, item type, color/style, and product category.
 
 Request settings:

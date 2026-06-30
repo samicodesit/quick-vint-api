@@ -33,7 +33,7 @@ import messagesNl from "../messages/nl.json";
 import messagesPl from "../messages/pl.json";
 
 const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
-const OPEN_AI_MAX_OUTPUT_TOKENS = 900;
+const OPEN_AI_MAX_OUTPUT_TOKENS = 1000;
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -301,19 +301,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? !emojisDisabledByUser
       : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
-    ? "Mandatory: include exactly 1 relevant emoji at the end of the plain factual opening sentence. Do not add a marketing phrase just to use the emoji. Do not use emojis in the title, bullets, or hashtags."
+    ? "Use 1-2 relevant emojis in the description only where they feel natural. Do not add marketing phrases just to use emojis. Do not use emojis in the title or hashtags."
     : "Do NOT use any emojis in the description.";
   const hashtagsEnabled = useHashtags !== false && useHashtags !== "false";
   const hashtagInstruction = hashtagsEnabled
-    ? "End with 3-5 relevant hashtags using visible evidence: brand if known, item type, color/style, and product category."
+    ? "End with 8-10 relevant hashtags using visible evidence: brand if known, item type, color/style, and product category."
     : "Do not include hashtags anywhere in the title or description.";
 
   // bullet points vs paragraphs
   const bulletEmojiInstruction = emojisEnabled
-    ? " Do not put an emoji on every bullet."
+    ? " Emojis may appear in bullets only when they make the detail easier to scan."
     : "";
   const paragraphEmojiInstruction = emojisEnabled
-    ? " Use emojis sparingly in paragraph text."
+    ? " Use at most 2 emojis total."
     : "";
   const bulletSpacingInstruction =
     " Put one empty line before the first bullet and one empty line after the final bullet before any hashtags.";
@@ -385,6 +385,7 @@ Analyze the image(s) and generate a Vinted title and description.
 Use these rules:
 - Build the listing only from visible or readable photo evidence. Never fill gaps with likely, common, or nice-sounding details.
 - Read labels/tags for exact brand, size, model/product name, and material composition.
+- Keep size wording natural; do not write forms like "T34" unless the label says "T34".
 - Use visual evidence for item type, color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
 - Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, styling use, or wear history.
 - Do not mention country of origin, product codes, care instructions, or secondary program/campaign text unless it is clearly useful to the buyer as a product name or model.

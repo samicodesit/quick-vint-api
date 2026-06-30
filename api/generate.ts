@@ -301,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? !emojisDisabledByUser
       : tierAllowsExtras && (useEmojis === true || useEmojis === "true");
   const emojiInstruction = emojisEnabled
-    ? "Use 1-2 relevant emojis in the description. Do not add marketing phrases just to use emojis. Do not use emojis in the title or hashtags."
+    ? "Use relevant emojis naturally in the description, but do not overdo it. Do not add marketing phrases just to use emojis. Do not use emojis in the title or hashtags."
     : "Do NOT use any emojis in the description.";
   const hashtagsEnabled = useHashtags !== false && useHashtags !== "false";
   const hashtagInstruction = hashtagsEnabled
@@ -310,10 +310,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // bullet points vs paragraphs
   const bulletEmojiInstruction = emojisEnabled
-    ? " Include one relevant emoji in one useful bullet. Do not put emojis on every bullet."
+    ? " Emojis can appear in useful bullets when they improve scanning, but do not overdo it."
     : "";
   const paragraphEmojiInstruction = emojisEnabled
-    ? " Use at most 2 emojis total."
+    ? " Use emojis sparingly."
     : "";
   const bulletSpacingInstruction =
     " Put one empty line before the first bullet and one empty line after the final bullet before any hashtags.";

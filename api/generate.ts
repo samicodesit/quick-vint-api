@@ -317,11 +317,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : "";
   const bulletSpacingInstruction =
     " Put one empty line before the first bullet and one empty line after the final bullet before any hashtags.";
+  const bulletOpeningInstruction =
+    "Use one natural opening sentence before the bullets. It can be fuller when useful and may mention an obvious occasion to wear the item when appropriate, without guessing.";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
       ? normalizedDescriptionLength === "short"
-        ? `Use one factual opening sentence, then only the useful bullet points the photos support. Usually 2-4 bullets; fewer is fine. Keep each bullet very short, around 4-6 words and one visible or readable fact. Each bullet starts with '• '.${bulletSpacingInstruction}${bulletEmojiInstruction}`
-        : `Use one factual opening sentence, then only the useful bullet points the photos support. Usually 3-5 bullets; fewer is fine for simple items. Each bullet starts with '• ' and should be fuller seller-style detail, usually around 8-14 words when real evidence exists. Combine closely related visible or readable facts, without adding assumptions or padding.${bulletSpacingInstruction}${bulletEmojiInstruction}`
+        ? `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 2-4 bullets; fewer is fine. Keep each bullet very short, around 4-6 words and one visible or readable fact. Each bullet starts with '• '.${bulletSpacingInstruction}${bulletEmojiInstruction}`
+        : `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 3-5 bullets; fewer is fine for simple items. Each bullet starts with '• ' and should be fuller seller-style detail, usually around 8-14 words when real evidence exists. Combine closely related visible or readable facts, without adding assumptions or padding.${bulletSpacingInstruction}${bulletEmojiInstruction}`
       : normalizedDescriptionLength === "short"
         ? `Use 1 short paragraph, or 2 only when the photos support enough facts. Keep sentences short and direct.${paragraphEmojiInstruction}`
         : `Use 1-2 paragraphs. Write fuller natural seller-style sentences only when supported by visible or readable details.${paragraphEmojiInstruction}`;

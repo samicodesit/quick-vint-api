@@ -322,8 +322,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
       ? normalizedDescriptionLength === "short"
-        ? `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 2-4 bullets; fewer is fine. Keep each bullet very short, around 4-6 words and one visible or readable fact. Each bullet starts with '• '.${bulletSpacingInstruction}${bulletEmojiInstruction}`
-        : `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 3-5 bullets; fewer is fine for simple items. Each bullet starts with '• ' and should be fuller seller-style detail, usually around 8-14 words when real evidence exists. Combine closely related visible or readable facts, without adding assumptions or padding.${bulletSpacingInstruction}${bulletEmojiInstruction}`
+        ? `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 2-4 bullets; fewer is fine. Keep each bullet very short, around 4-6 words and one visible or readable fact. Each bullet starts with '- '.${bulletSpacingInstruction}${bulletEmojiInstruction}`
+        : `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 3-5 bullets; fewer is fine for simple items. Each bullet starts with '- ' and should be fuller seller-style detail, usually around 8-14 words when real evidence exists. Combine closely related visible or readable facts, without adding assumptions or padding.${bulletSpacingInstruction}${bulletEmojiInstruction}`
       : normalizedDescriptionLength === "short"
         ? `Use 1 short paragraph, or 2 only when the photos support enough facts. Keep sentences short and direct.${paragraphEmojiInstruction}`
         : `Use 1-2 paragraphs. Write fuller natural seller-style sentences only when supported by visible or readable details.${paragraphEmojiInstruction}`;

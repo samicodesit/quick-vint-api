@@ -318,7 +318,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const bulletSpacingInstruction =
     " Put one empty line before the first bullet and one empty line after the final bullet before any hashtags.";
   const bulletOpeningInstruction =
-    "Use one natural opening sentence before the bullets. It can be fuller when useful and may mention an obvious occasion to wear the item when appropriate, without guessing.";
+    "Use one natural opening sentence before the bullets. It can be fuller when useful and should mention a realistic wearing occasion when the item clearly suggests one, without guessing.";
   const bulletpointInstruction =
     useBulletPoints === true || useBulletPoints === "true"
       ? normalizedDescriptionLength === "short"
@@ -389,7 +389,7 @@ Use these rules:
 - Read labels/tags for exact brand, size, model/product name, and material composition.
 - Keep size wording natural; do not write forms like "T34" unless the label says "T34".
 - Use visual evidence for item type, color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
-- Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, styling use, or wear history.
+- Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, or wear history.
 - Do not mention country of origin, product codes, care instructions, or secondary program/campaign text unless it is clearly useful to the buyer as a product name or model.
 - Do not say how you know a fact. Write "EU 34", not "label shows EU 34".
 - Do not mention defects or negative condition details for now; the seller will handle those separately.

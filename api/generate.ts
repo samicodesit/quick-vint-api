@@ -310,7 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // bullet points vs paragraphs
   const bulletEmojiInstruction = emojisEnabled
-    ? " Emojis can appear in useful bullets when they improve scanning, but do not overdo it."
+    ? " Use relevant emojis in bullet points too, not only in the opening sentence. Keep them natural and do not overdo it."
     : "";
   const paragraphEmojiInstruction = emojisEnabled
     ? " Use emojis sparingly."

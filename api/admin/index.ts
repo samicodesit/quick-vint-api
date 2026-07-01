@@ -1972,6 +1972,20 @@ function normalizeEmailForCampaign(email?: string | null) {
   return String(email || "").trim().toLowerCase();
 }
 
+function getLimitFollowupExcludedEmails(input: unknown) {
+  const excludedEmails = new Set(LIMIT_FOLLOWUP_EXCLUDED_EMAILS);
+  if (!Array.isArray(input)) return excludedEmails;
+
+  for (const email of input) {
+    const normalized = normalizeEmailForCampaign(String(email || ""));
+    if (normalized && normalized.includes("@")) {
+      excludedEmails.add(normalized);
+    }
+  }
+
+  return excludedEmails;
+}
+
 function getLimitFollowupLogEventName(row: {
   full_request_body?: any;
   endpoint?: string | null;
@@ -1994,9 +2008,11 @@ function getLogEventContext(row: { full_request_body?: any }) {
 async function findLimitFollowupRecipients({
   sinceHours,
   minDelayMinutes,
+  excludedEmails,
 }: {
   sinceHours: number;
   minDelayMinutes: number;
+  excludedEmails: Set<string>;
 }) {
   const sinceIso = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
   const eligibleBeforeMs = Date.now() - minDelayMinutes * 60 * 1000;
@@ -2091,7 +2107,7 @@ async function findLimitFollowupRecipients({
   }>)
     .filter((profile) => {
       if (!profile.email || !profile.unsubscribe_token) return false;
-      if (LIMIT_FOLLOWUP_EXCLUDED_EMAILS.has(normalizeEmailForCampaign(profile.email))) {
+      if (excludedEmails.has(normalizeEmailForCampaign(profile.email))) {
         return false;
       }
       if (blockedUserIds.has(profile.id)) return false;
@@ -2116,6 +2132,7 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
       dry_run = true,
       since_hours = 168,
       min_delay_minutes = 30,
+      excluded_emails = [],
       test_email,
     } = req.body || {};
 
@@ -2162,7 +2179,9 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
     const recipients = await findLimitFollowupRecipients({
       sinceHours,
       minDelayMinutes,
+      excludedEmails: getLimitFollowupExcludedEmails(excluded_emails),
     });
+    const excludedEmails = Array.from(getLimitFollowupExcludedEmails(excluded_emails));
 
     if (dry_run !== false) {
       return res.status(200).json({
@@ -2171,6 +2190,7 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
         coupon_code: "LISTFASTER20",
         since_hours: sinceHours,
         min_delay_minutes: minDelayMinutes,
+        excluded_emails: excludedEmails,
         total: recipients.length,
         recipients: recipients.map((recipient) => ({
           email: recipient.email,
@@ -2240,6 +2260,7 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
       mode: "send",
       template_key: "limit_hit_followup_v1",
       coupon_code: "LISTFASTER20",
+      excluded_emails: excludedEmails,
       total: recipients.length,
       sent,
       failed,

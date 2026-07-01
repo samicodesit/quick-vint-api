@@ -3046,6 +3046,7 @@
             usersStatus: 'all',
             usersSort: 'created_desc',
             userSearchTimer: null,
+            limitFollowupExcludedEmails: [],
             cachedData: {},
             isTransitioning: false
         };
@@ -3349,6 +3350,8 @@
                         Eligible means: free lifetime limit hit, still free, subscribed, has unsubscribe link, not uninstalled after the limit hit, no previous follow-up after that limit hit, and not samicodesit@gmail.com. Sends run one by one with a 1-second pause.
                     </div>
 
+                    <div id="limitFollowupExcludedList" class="view-brief-copy" style="max-width:none;"></div>
+
                     <div class="view-brief-actions">
                         <button class="btn-secondary" onclick="runLimitFollowupDryRun()">Dry run</button>
                         <button class="btn-secondary" onclick="sendLimitFollowupTest()">Send test</button>
@@ -3360,12 +3363,53 @@
                     <div class="empty-state">Run a dry run to see who would receive the email.</div>
                 </div>
             `;
+            renderLimitFollowupExclusions();
+        }
+
+        function normalizeEmailForAdmin(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
+        function renderLimitFollowupExclusions() {
+            const target = document.getElementById('limitFollowupExcludedList');
+            if (!target) return;
+            const emails = state.limitFollowupExcludedEmails || [];
+            if (!emails.length) {
+                target.innerHTML = 'No extra exclusions for this run.';
+                return;
+            }
+
+            target.innerHTML = `
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.45rem;">
+                    <span>Excluded from this run:</span>
+                    ${emails.map(email => `<span class="badge badge-neutral">${escapeHtml(email)}</span>`).join('')}
+                    <button class="btn-secondary" style="padding:0.28rem 0.55rem;" onclick="clearLimitFollowupExclusions()">Clear</button>
+                </div>
+            `;
+        }
+
+        async function excludeLimitFollowupEmail(encodedEmail) {
+            const email = normalizeEmailForAdmin(decodeURIComponent(encodedEmail || ''));
+            if (!email || !email.includes('@')) return;
+            if (!state.limitFollowupExcludedEmails.includes(email)) {
+                state.limitFollowupExcludedEmails.push(email);
+            }
+            renderLimitFollowupExclusions();
+            showToast(`${email} excluded from this run`);
+            await runLimitFollowupDryRun();
+        }
+
+        async function clearLimitFollowupExclusions() {
+            state.limitFollowupExcludedEmails = [];
+            renderLimitFollowupExclusions();
+            await runLimitFollowupDryRun();
         }
 
         function getLimitFollowupSettings() {
             return {
                 since_hours: Number(document.getElementById('limitFollowupSinceHours')?.value || 168),
-                min_delay_minutes: Number(document.getElementById('limitFollowupDelayMinutes')?.value || 30)
+                min_delay_minutes: Number(document.getElementById('limitFollowupDelayMinutes')?.value || 30),
+                excluded_emails: state.limitFollowupExcludedEmails
             };
         }
 
@@ -3408,8 +3452,10 @@
                         <td>${escapeHtml(recipient.email || '')}</td>
                         <td>${escapeHtml(formatDateTime(recipient.limitHitAt))}</td>
                         <td>eligible</td>
+                        <td><button class="btn-secondary" style="padding:0.28rem 0.55rem;" onclick="excludeLimitFollowupEmail('${escapeAttribute(encodeURIComponent(recipient.email || ''))}')">Exclude</button></td>
                     </tr>
                 `).join('');
+            const excludedCount = Array.isArray(data.excluded_emails) ? data.excluded_emails.length : 0;
 
             target.innerHTML = `
                 <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:0.9rem;">
@@ -3417,8 +3463,8 @@
                         <div class="card-title">${data.mode === 'send' ? 'Send result' : 'Dry run result'}</div>
                         <div class="view-brief-copy">
                             ${data.mode === 'send'
-                                ? `${Number(data.sent || 0)} sent, ${Number(data.failed || 0)} failed.`
-                                : `${Number(data.total || 0)} eligible recipient${Number(data.total || 0) === 1 ? '' : 's'}. No email sent.`}
+                                ? `${Number(data.sent || 0)} sent, ${Number(data.failed || 0)} failed. ${excludedCount} excluded.`
+                                : `${Number(data.total || 0)} eligible recipient${Number(data.total || 0) === 1 ? '' : 's'}. ${excludedCount} excluded. No email sent.`}
                         </div>
                     </div>
                     <span class="badge badge-neutral">${escapeHtml(data.coupon_code || 'LISTFASTER20')}</span>
@@ -3431,6 +3477,7 @@
                                     <th>Email</th>
                                     <th>${data.mode === 'send' ? 'Status' : 'Limit hit'}</th>
                                     <th>${data.mode === 'send' ? 'Error' : 'Reason'}</th>
+                                    ${data.mode === 'send' ? '' : '<th>Action</th>'}
                                 </tr>
                             </thead>
                             <tbody>${rows}</tbody>

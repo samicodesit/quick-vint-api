@@ -2901,6 +2901,17 @@
                         <span class="nav-meta">Product behavior and exits</span>
                     </span>
                 </div>
+                <div class="nav-item" data-view="reports" onclick="switchView('reports')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 11 18-5v12L3 13v-2Z"></path>
+                        <path d="M11.6 14.4 13 20H9.5L8.2 13.6"></path>
+                    </svg>
+                    <span class="nav-copy">
+                        <span class="nav-label">Reports</span>
+                        <span class="nav-meta">User feedback from listing tools</span>
+                    </span>
+                </div>
                 <div class="nav-item" data-view="logs" onclick="switchView('logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -3006,6 +3017,7 @@
                 onclick="switchView('overview')">Command</button>
             <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
             <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Signals</button>
+            <button class="mobile-bottom-btn" data-view="reports" onclick="switchView('reports')">Reports</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
             <button class="mobile-bottom-btn" data-view="emails" onclick="switchView('emails')">Emails</button>
@@ -3053,7 +3065,7 @@
 
         function getInitialAdminView() {
             const view = window.location.hash.replace('#', '');
-            return ['overview', 'growth', 'events', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'overview';
+            return ['overview', 'growth', 'events', 'reports', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'overview';
         }
 
         // --- Auth Logic ---
@@ -3182,6 +3194,11 @@
                     subtitle: 'Product behavior signals, uninstall reasons, checkout intent, and instrumentation health.',
                     loading: 'Loading uninstall feedback, event families, and priority signals...'
                 },
+                reports: {
+                    title: 'Reports',
+                    subtitle: 'Feedback and complaints submitted from the Vinted listing tools.',
+                    loading: 'Loading submitted reports...'
+                },
                 logs: {
                     title: 'Logs',
                     subtitle: 'Raw generation, system, and event logs for debugging user problems.',
@@ -3244,6 +3261,7 @@
                 if (view === 'overview') await renderOverview(content);
                 else if (view === 'growth') await renderGrowth(content);
                 else if (view === 'events') await renderEvents(content);
+                else if (view === 'reports') await renderReports(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
                 else if (view === 'emails') await renderEmails(content);
@@ -3899,6 +3917,8 @@
                 signin_cta_click: 'Sign-in CTA click',
                 signed_out_tools_ready: 'Signed-out tools ready',
                 listing_tools_ready: 'Listing tools ready',
+                listing_report_opened: 'Report form opened',
+                listing_report_submitted: 'Listing tool report',
                 phone_upload_page_open: 'Phone page opened',
                 phone_upload_files_selected: 'Phone files selected',
                 phone_upload_send_start: 'Phone upload started',
@@ -5180,6 +5200,9 @@
                 ].filter(Boolean);
                 return parts.join(' · ');
             }
+            if (event === 'listing_report_submitted') {
+                return [context.category, context.message].filter(Boolean).join(' · ');
+            }
             return context.reasonLabel || context.message || context.code || context.tier || context.source || context.reason || '';
         }
 
@@ -5603,6 +5626,131 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        function getReportContextFromLog(log) {
+            const body = log.full_request_body || {};
+            return body.context || {};
+        }
+
+        function getReportCategoryLabel(category) {
+            const labels = {
+                result_quality: 'Generated result',
+                tool_bug: 'Tool bug',
+                billing_account: 'Billing or account',
+                idea: 'Idea or improvement',
+                other: 'Other'
+            };
+            return labels[category] || String(category || 'Other').replaceAll('_', ' ');
+        }
+
+        function renderReportRows(reports) {
+            if (!reports.length) {
+                return '<tr><td colspan="6" class="text-muted">No submitted reports yet.</td></tr>';
+            }
+
+            return reports.map(log => {
+                const context = getReportContextFromLog(log);
+                const message = context.message || '';
+                const category = getReportCategoryLabel(context.category);
+                const details = [
+                    context.titleValue ? `Title: ${context.titleValue}` : '',
+                    Number.isFinite(Number(context.visiblePhotoCount)) ? `${context.visiblePhotoCount} photos` : '',
+                    Number.isFinite(Number(context.descriptionLength)) ? `${context.descriptionLength} desc chars` : '',
+                    context.path || ''
+                ].filter(Boolean).join(' · ');
+
+                return `
+                    <tr onclick="showLogDetails('${escapeAttribute(log.id)}')">
+                        <td>${formatDateTime(log.created_at)}</td>
+                        <td><span class="badge badge-info">${escapeHtml(category)}</span></td>
+                        <td>${getLogActor(log)}</td>
+                        <td style="max-width: 420px; white-space: pre-wrap;">${escapeHtml(message)}</td>
+                        <td class="text-muted">${escapeHtml(details || 'No listing context')}</td>
+                        <td>
+                            <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+                                ${renderLogJourneyAction(log)}
+                                <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${escapeAttribute(log.id)}')">View</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderReportMobileCards(reports) {
+            if (!reports.length) {
+                return '<div class="mobile-card"><div class="text-muted">No submitted reports yet.</div></div>';
+            }
+
+            return reports.map(log => {
+                const context = getReportContextFromLog(log);
+                const category = getReportCategoryLabel(context.category);
+                return `
+                    <div class="mobile-card" onclick="showLogDetails('${escapeAttribute(log.id)}')">
+                        <div class="mobile-card-header">
+                            <span>${escapeHtml(category)}</span>
+                            <span>${formatDateTime(log.created_at)}</span>
+                        </div>
+                        <div style="margin-top:0.5rem; white-space:pre-wrap;">${escapeHtml(context.message || '')}</div>
+                        <div style="margin-top:0.5rem; color:var(--text-muted); font-size:0.78rem;">${getLogActor(log)}</div>
+                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.75rem;">
+                            ${renderLogJourneyAction(log)}
+                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${escapeAttribute(log.id)}')">View</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function renderReports(container) {
+            const params = new URLSearchParams({
+                action: 'view-logs',
+                log_type: 'events',
+                search: 'listing_report_submitted',
+                page: 1,
+                limit: 100
+            });
+            const data = await fetchAPI(`/api/admin?${params}`);
+            const reports = data.logs || [];
+
+            container.innerHTML = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">Reports from the listing tools</div>
+                            <div class="view-brief-copy">These are short feedback and complaint submissions from the report button beside Generate, Phone, and Batch.</div>
+                        </div>
+                        <div class="view-brief-actions">
+                            <button class="btn-secondary" onclick="openLogsForSearch('listing_report_submitted', 'events')">Open raw events</button>
+                            <button class="btn-secondary" onclick="renderReports(document.getElementById('contentArea'))">Refresh</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card log-table">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Category</th>
+                                    <th>User</th>
+                                    <th>Message</th>
+                                    <th>Listing context</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${renderReportRows(reports)}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mobile-cards">
+                        ${renderReportMobileCards(reports)}
+                    </div>
+                </div>
+            `;
         }
 
         async function renderLogs(container) {

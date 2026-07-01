@@ -257,6 +257,7 @@ function getEventCategory(event: string | null) {
     event.startsWith("generation_") ||
     event.startsWith("phone_upload_") ||
     event.startsWith("batch_") ||
+    event.startsWith("listing_report_") ||
     event === "account_paused_shown"
   ) {
     return "Product Usage";
@@ -454,6 +455,7 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
             "paywall_shown",
             "checkout_start",
             "checkout_opened",
+            "listing_report_submitted",
           ].includes(event) &&
           recentImportantEvents.length < 20
         ) {

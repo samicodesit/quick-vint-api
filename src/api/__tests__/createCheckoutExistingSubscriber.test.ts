@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type CheckoutHandler = (req: any, res: any) => Promise<unknown>;
 
 const customerRetrieveMock = vi.fn();
+const customerListMock = vi.fn();
 const subscriptionRetrieveMock = vi.fn();
 const subscriptionListMock = vi.fn();
 const portalCreateMock = vi.fn();
@@ -27,6 +28,7 @@ vi.mock("stripe", () => {
   function StripeMock(this: any) {
     this.customers = {
       retrieve: customerRetrieveMock,
+      list: customerListMock,
       create: vi.fn(),
     };
     this.subscriptions = {
@@ -83,6 +85,7 @@ describe("create checkout", () => {
     selectResponse.data = null;
     selectResponse.error = null;
     vi.clearAllMocks();
+    customerListMock.mockResolvedValue({ data: [] });
     subscriptionListMock.mockResolvedValue({ data: [] });
   });
 
@@ -193,6 +196,69 @@ describe("create checkout", () => {
         type: "subscription_update",
         subscription_update: {
           subscription: "sub_live",
+        },
+      },
+    });
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("recovers an existing Stripe subscription by email when Supabase has no customer id", async () => {
+    selectResponse.data = {
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerListMock.mockResolvedValue({
+      data: [{ id: "cus_found", email: "customer@example.com" }],
+    });
+    subscriptionListMock.mockResolvedValue({
+      data: [
+        {
+          id: "sub_found",
+          status: "active",
+          customer: "cus_found",
+        },
+      ],
+    });
+    subscriptionRetrieveMock.mockResolvedValue({
+      id: "sub_found",
+      status: "active",
+      customer: "cus_found",
+    });
+    portalCreateMock.mockResolvedValue({
+      url: "https://billing.stripe.com/session/test",
+    });
+
+    const checkoutModule = await import(
+      "../../../api/stripe/create-checkout.js"
+    );
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        email: "customer@example.com",
+        tier: "pro",
+        source: "pricing_page",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      url: "https://billing.stripe.com/session/test",
+      mode: "portal",
+      reason: "existing_active_subscription",
+    });
+    expect(portalCreateMock).toHaveBeenCalledWith({
+      customer: "cus_found",
+      return_url: "https://autolister.app/pricing",
+      flow_data: {
+        type: "subscription_update",
+        subscription_update: {
+          subscription: "sub_found",
         },
       },
     });

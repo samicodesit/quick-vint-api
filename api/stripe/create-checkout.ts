@@ -4,19 +4,18 @@ import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 import { TIER_CONFIGS } from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
-import { createBillingPortalSessionForProfile } from "../../utils/stripeBillingPortal";
+import {
+  createBillingPortalSessionForProfile,
+  findManageableBillingByEmail,
+  findManageableSubscriptionForCustomer,
+  repairProfileStripeCustomerId,
+} from "../../utils/stripeBillingPortal";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
 const PAID_TIERS = new Set(["starter", "pro", "business"]);
-const MANAGEABLE_SUBSCRIPTION_STATUSES = new Set([
-  "active",
-  "trialing",
-  "past_due",
-  "unpaid",
-]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!(await handleCheckoutCors(req, res))) return;
@@ -91,17 +90,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (customerId && !activeSubscriptionId) {
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "all",
-        limit: 10,
-      });
-      const manageableSubscription = subscriptions.data.find((subscription) =>
-        MANAGEABLE_SUBSCRIPTION_STATUSES.has(subscription.status),
-      );
-
+      const manageableSubscription =
+        await findManageableSubscriptionForCustomer(stripe, customerId);
       if (manageableSubscription) {
         activeSubscriptionId = manageableSubscription.id;
+      }
+    }
+
+    if (!customerId) {
+      const existingBilling = await findManageableBillingByEmail(stripe, email);
+      if (existingBilling) {
+        customerId = existingBilling.customerId;
+        activeSubscriptionId = existingBilling.subscriptionId;
+        await repairProfileStripeCustomerId(email, customerId);
       }
     }
 

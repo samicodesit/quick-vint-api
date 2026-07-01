@@ -12,6 +12,13 @@ type CreatePortalInput = {
   context: string;
 };
 
+const MANAGEABLE_SUBSCRIPTION_STATUSES = new Set([
+  "active",
+  "trialing",
+  "past_due",
+  "unpaid",
+]);
+
 function normalizeEmail(email?: string | null) {
   return String(email || "").trim().toLowerCase();
 }
@@ -38,6 +45,60 @@ async function persistResolvedCustomerId(email: string, customerId: string) {
       error,
     });
   }
+}
+
+export async function findManageableSubscriptionForCustomer(
+  stripe: StripeClient,
+  customerId: string,
+) {
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 10,
+  });
+
+  return (
+    subscriptions.data.find((subscription) =>
+      MANAGEABLE_SUBSCRIPTION_STATUSES.has(subscription.status),
+    ) || null
+  );
+}
+
+export async function findManageableBillingByEmail(
+  stripe: StripeClient,
+  email: string,
+) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+
+  const customers = await stripe.customers.list({
+    email: normalizedEmail,
+    limit: 10,
+  });
+
+  for (const customer of customers.data) {
+    if (normalizeEmail(customer.email) !== normalizedEmail) continue;
+
+    const subscription = await findManageableSubscriptionForCustomer(
+      stripe,
+      customer.id,
+    );
+    if (subscription) {
+      return {
+        customerId: customer.id,
+        subscriptionId: subscription.id,
+      };
+    }
+  }
+
+  return null;
+}
+
+export async function repairProfileStripeCustomerId(
+  email: string,
+  customerId: string,
+) {
+  await persistResolvedCustomerId(email, customerId);
 }
 
 export async function createBillingPortalSessionForProfile({

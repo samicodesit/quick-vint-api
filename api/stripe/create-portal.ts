@@ -3,7 +3,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
-import { createBillingPortalSessionForProfile } from "../../utils/stripeBillingPortal";
+import {
+  createBillingPortalSessionForProfile,
+  findManageableBillingByEmail,
+} from "../../utils/stripeBillingPortal";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const RETURN_URL = process.env.STRIPE_PORTAL_RETURN_URL!;
@@ -29,11 +32,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .ilike("email", email)
       .single();
 
-    if (fetchErr || !profileRow?.stripe_customer_id) {
-      console.error("No stripe_customer_id found for:", email, fetchErr);
-      return res
-        .status(400)
-        .json({ error: "No Stripe customer on file for this user." });
+    let customerId = profileRow?.stripe_customer_id || null;
+    let subscriptionId = profileRow?.stripe_subscription_id || null;
+
+    if (fetchErr || !customerId) {
+      const existingBilling = await findManageableBillingByEmail(stripe, email);
+      if (existingBilling) {
+        customerId = existingBilling.customerId;
+        subscriptionId = existingBilling.subscriptionId;
+      } else {
+        console.error("No stripe_customer_id found for:", email, fetchErr);
+        return res
+          .status(400)
+          .json({ error: "No Stripe customer on file for this user." });
+      }
     }
 
     // 2) Create a Customer Portal session that lands on subscription management.
@@ -43,8 +55,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const portalSession = await createBillingPortalSessionForProfile({
       stripe,
       email,
-      customerId: profileRow.stripe_customer_id,
-      subscriptionId: profileRow.stripe_subscription_id,
+      customerId,
+      subscriptionId,
       returnUrl: RETURN_URL,
       context: "create_portal",
     });

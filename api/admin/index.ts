@@ -1965,6 +1965,13 @@ type LimitFollowupRecipient = {
   limitHitAt: string;
 };
 
+const LIMIT_FOLLOWUP_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
+const LIMIT_FOLLOWUP_SEND_DELAY_MS = 1000;
+
+function normalizeEmailForCampaign(email?: string | null) {
+  return String(email || "").trim().toLowerCase();
+}
+
 function getLimitFollowupLogEventName(row: {
   full_request_body?: any;
   endpoint?: string | null;
@@ -2084,6 +2091,9 @@ async function findLimitFollowupRecipients({
   }>)
     .filter((profile) => {
       if (!profile.email || !profile.unsubscribe_token) return false;
+      if (LIMIT_FOLLOWUP_EXCLUDED_EMAILS.has(normalizeEmailForCampaign(profile.email))) {
+        return false;
+      }
       if (blockedUserIds.has(profile.id)) return false;
       return !(
         profile.subscription_status === "active" &&
@@ -2220,7 +2230,7 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
         });
       }
 
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, LIMIT_FOLLOWUP_SEND_DELAY_MS));
     }
 
     const sent = results.filter((result) => result.status === "sent").length;

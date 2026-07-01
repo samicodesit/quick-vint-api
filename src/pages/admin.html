@@ -2926,31 +2926,7 @@
                         <span class="nav-meta">Accounts, usage, review email</span>
                     </span>
                 </div>
-                <div class="nav-item" data-view="ui-pages" onclick="switchView('ui-pages')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="4" y="3" width="16" height="18" rx="2"></rect>
-                        <path d="M8 7h8"></path>
-                        <path d="M8 11h8"></path>
-                        <path d="M8 15h5"></path>
-                    </svg>
-                    <span class="nav-copy">
-                        <span class="nav-label">UI Pages</span>
-                        <span class="nav-meta">Inspect rendered pages</span>
-                    </span>
-                </div>
-                <a class="nav-item" href="/email-templates" target="_blank" rel="noopener" style="text-decoration: none;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 4h16v16H4z"></path>
-                        <path d="m22 6-10 7L2 6"></path>
-                    </svg>
-                    <span class="nav-copy">
-                        <span class="nav-label">Email Templates</span>
-                        <span class="nav-meta">Preview outbound copy</span>
-                    </span>
-                </a>
-                <a class="nav-item" href="http://localhost:8080/design-system/content-components.html" target="_blank" rel="noopener" style="text-decoration: none;">
+                <a class="nav-item" href="/ui-components" target="_blank" rel="noopener" style="text-decoration: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -2960,7 +2936,7 @@
                     </svg>
                     <span class="nav-copy">
                         <span class="nav-label">UI Components</span>
-                        <span class="nav-meta">Local extension states</span>
+                        <span class="nav-meta">Templates, pages, extension states</span>
                     </span>
                 </a>
             </nav>
@@ -3021,7 +2997,7 @@
             <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Signals</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
-            <button class="mobile-bottom-btn" data-view="ui-pages" onclick="switchView('ui-pages')">UI</button>
+            <button class="mobile-bottom-btn" onclick="window.open('/ui-components', '_blank', 'noopener')">UI</button>
         </nav>
     </div>
 

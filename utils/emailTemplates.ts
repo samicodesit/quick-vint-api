@@ -342,6 +342,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       el.p(
         "Want AutoLister to work better for the way you sell? Just reply with one thing you’d change. I’ll add <strong>🎁 10 free extra listings</strong> to your account.",
       ),
+      el.p("I will not keep sending you follow-ups about this."),
       el.p("Thanks,<br />Sami<br />Founder, AutoLister AI"),
     ].join("\n"),
   },

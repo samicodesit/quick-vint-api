@@ -2926,6 +2926,17 @@
                         <span class="nav-meta">Accounts, usage, review email</span>
                     </span>
                 </div>
+                <div class="nav-item" data-view="emails" onclick="switchView('emails')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                        <path d="m3 7 9 6 9-6"></path>
+                    </svg>
+                    <span class="nav-copy">
+                        <span class="nav-label">Emails</span>
+                        <span class="nav-meta">Triggered follow-ups</span>
+                    </span>
+                </div>
                 <a class="nav-item" href="http://localhost:4326/ui-components" target="_blank" rel="noopener" style="text-decoration: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2997,6 +3008,7 @@
             <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Signals</button>
             <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
+            <button class="mobile-bottom-btn" data-view="emails" onclick="switchView('emails')">Emails</button>
             <button class="mobile-bottom-btn" onclick="window.open('http://localhost:4326/ui-components', '_blank', 'noopener')">UI</button>
         </nav>
     </div>
@@ -3040,7 +3052,7 @@
 
         function getInitialAdminView() {
             const view = window.location.hash.replace('#', '');
-            return ['overview', 'growth', 'events', 'logs', 'users', 'ui-pages'].includes(view) ? view : 'overview';
+            return ['overview', 'growth', 'events', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'overview';
         }
 
         // --- Auth Logic ---
@@ -3179,6 +3191,11 @@
                     subtitle: 'Accounts, usage limits, review email eligibility, and support actions.',
                     loading: 'Loading users, usage counters, and account actions...'
                 },
+                emails: {
+                    title: 'Emails',
+                    subtitle: 'Triggered follow-ups, dry runs, and safe sends.',
+                    loading: 'Loading email campaign controls...'
+                },
                 'ui-pages': {
                     title: 'UI Pages',
                     subtitle: 'Inspect the real rendered pages users see, without duplicating page code.',
@@ -3228,6 +3245,7 @@
                 else if (view === 'events') await renderEvents(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
+                else if (view === 'emails') await renderEmails(content);
                 else if (view === 'ui-pages') await renderUiPages(content);
 
                 // Fade in
@@ -3283,6 +3301,193 @@
                 frame.style.width = width;
             }
             if (openLink) openLink.href = path;
+        }
+
+        async function renderEmails(container) {
+            container.innerHTML = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">Free-limit follow-up</div>
+                            <div class="view-brief-copy">Send the LISTFASTER20 email to free users who hit the free limit, stayed installed, and have not already received this follow-up. Dry run first to inspect the exact recipient list.</div>
+                        </div>
+                        <div class="view-brief-actions">
+                            <a class="btn-secondary" href="/email-templates" target="_blank" rel="noopener">Preview templates</a>
+                            <button class="btn-secondary" onclick="openLogsForSearch('limit_followup_email_sent', 'events')">Sent logs</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:1.15rem; display:grid; gap:1rem;">
+                    <div style="display:grid; gap:0.85rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <label style="display:grid; gap:0.35rem;">
+                            <span class="text-sm text-muted">Lookback</span>
+                            <select id="limitFollowupSinceHours" class="filter-input">
+                                <option value="24">Last 24 hours</option>
+                                <option value="72">Last 3 days</option>
+                                <option value="168" selected>Last 7 days</option>
+                                <option value="720">Last 30 days</option>
+                            </select>
+                        </label>
+                        <label style="display:grid; gap:0.35rem;">
+                            <span class="text-sm text-muted">Minimum delay after limit hit</span>
+                            <select id="limitFollowupDelayMinutes" class="filter-input">
+                                <option value="15">15 minutes</option>
+                                <option value="30" selected>30 minutes</option>
+                                <option value="60">1 hour</option>
+                                <option value="120">2 hours</option>
+                                <option value="1440">24 hours</option>
+                            </select>
+                        </label>
+                        <label style="display:grid; gap:0.35rem;">
+                            <span class="text-sm text-muted">Test email</span>
+                            <input id="limitFollowupTestEmail" class="filter-input" type="email" placeholder="you@example.com">
+                        </label>
+                    </div>
+
+                    <div class="view-brief-copy" style="max-width:none;">
+                        Eligible means: free lifetime limit hit, still free, subscribed, has unsubscribe link, not uninstalled after the limit hit, and no previous follow-up after that limit hit.
+                    </div>
+
+                    <div class="view-brief-actions">
+                        <button class="btn-secondary" onclick="runLimitFollowupDryRun()">Dry run</button>
+                        <button class="btn-secondary" onclick="sendLimitFollowupTest()">Send test</button>
+                        <button class="btn-primary" style="width:auto; padding:0.6rem 1rem;" onclick="sendLimitFollowupEligible()">Send eligible users</button>
+                    </div>
+                </div>
+
+                <div id="limitFollowupResult" class="card" style="margin-top:1rem; padding:1.15rem;">
+                    <div class="empty-state">Run a dry run to see who would receive the email.</div>
+                </div>
+            `;
+        }
+
+        function getLimitFollowupSettings() {
+            return {
+                since_hours: Number(document.getElementById('limitFollowupSinceHours')?.value || 168),
+                min_delay_minutes: Number(document.getElementById('limitFollowupDelayMinutes')?.value || 30)
+            };
+        }
+
+        async function postLimitFollowup(payload) {
+            const res = await fetch('/api/admin?action=send-limit-followup', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${state.secret}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Request failed');
+            return data;
+        }
+
+        function renderLimitFollowupResult(data) {
+            const target = document.getElementById('limitFollowupResult');
+            if (!target) return;
+
+            if (data.mode === 'test') {
+                target.innerHTML = `
+                    <div class="card-title">Test sent</div>
+                    <div class="view-brief-copy">Sent ${escapeHtml(data.subject || 'test email')} to ${escapeHtml(data.sent_to || '')}.</div>
+                `;
+                return;
+            }
+
+            const rows = data.mode === 'send'
+                ? (data.results || []).map(result => `
+                    <tr>
+                        <td>${escapeHtml(result.email || '')}</td>
+                        <td><span class="badge ${result.status === 'sent' ? 'badge-success' : 'badge-danger'}">${escapeHtml(result.status || '')}</span></td>
+                        <td>${escapeHtml(result.error || '')}</td>
+                    </tr>
+                `).join('')
+                : (data.recipients || []).map(recipient => `
+                    <tr>
+                        <td>${escapeHtml(recipient.email || '')}</td>
+                        <td>${escapeHtml(formatDateTime(recipient.limitHitAt))}</td>
+                        <td>eligible</td>
+                    </tr>
+                `).join('');
+
+            target.innerHTML = `
+                <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:0.9rem;">
+                    <div>
+                        <div class="card-title">${data.mode === 'send' ? 'Send result' : 'Dry run result'}</div>
+                        <div class="view-brief-copy">
+                            ${data.mode === 'send'
+                                ? `${Number(data.sent || 0)} sent, ${Number(data.failed || 0)} failed.`
+                                : `${Number(data.total || 0)} eligible recipient${Number(data.total || 0) === 1 ? '' : 's'}. No email sent.`}
+                        </div>
+                    </div>
+                    <span class="badge badge-neutral">${escapeHtml(data.coupon_code || 'LISTFASTER20')}</span>
+                </div>
+                ${rows ? `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>${data.mode === 'send' ? 'Status' : 'Limit hit'}</th>
+                                    <th>${data.mode === 'send' ? 'Error' : 'Reason'}</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                ` : `<div class="empty-state">No matching users for these settings.</div>`}
+            `;
+        }
+
+        async function runLimitFollowupDryRun() {
+            const target = document.getElementById('limitFollowupResult');
+            if (target) target.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Checking eligible users...</span></div>';
+            try {
+                const data = await postLimitFollowup({
+                    ...getLimitFollowupSettings(),
+                    dry_run: true
+                });
+                renderLimitFollowupResult(data);
+            } catch (e) {
+                showToast(e.message || 'Dry run failed', 'error');
+                if (target) target.innerHTML = `<div class="empty-state">Dry run failed: ${escapeHtml(e.message || 'Unknown error')}</div>`;
+            }
+        }
+
+        async function sendLimitFollowupTest() {
+            const email = document.getElementById('limitFollowupTestEmail')?.value?.trim();
+            if (!email) return showToast('Enter a test email first', 'error');
+            const target = document.getElementById('limitFollowupResult');
+            if (target) target.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Sending test email...</span></div>';
+            try {
+                const data = await postLimitFollowup({
+                    ...getLimitFollowupSettings(),
+                    test_email: email
+                });
+                renderLimitFollowupResult(data);
+                showToast('Test email sent');
+            } catch (e) {
+                showToast(e.message || 'Test send failed', 'error');
+                if (target) target.innerHTML = `<div class="empty-state">Test send failed: ${escapeHtml(e.message || 'Unknown error')}</div>`;
+            }
+        }
+
+        async function sendLimitFollowupEligible() {
+            if (!confirm('Send the limit follow-up email to every currently eligible user? Run a dry run first if you have not checked the list.')) return;
+            const target = document.getElementById('limitFollowupResult');
+            if (target) target.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Sending follow-up emails...</span></div>';
+            try {
+                const data = await postLimitFollowup({
+                    ...getLimitFollowupSettings(),
+                    dry_run: false
+                });
+                renderLimitFollowupResult(data);
+                showToast(`Sent ${Number(data.sent || 0)} follow-up email${Number(data.sent || 0) === 1 ? '' : 's'}`);
+            } catch (e) {
+                showToast(e.message || 'Send failed', 'error');
+                if (target) target.innerHTML = `<div class="empty-state">Send failed: ${escapeHtml(e.message || 'Unknown error')}</div>`;
+            }
         }
 
         async function renderOverview(container) {

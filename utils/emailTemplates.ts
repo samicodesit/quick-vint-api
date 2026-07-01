@@ -340,7 +340,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       ),
       el.button("View plans", "{{LIMIT_FOLLOWUP_PRICING_URL}}"),
       el.p(
-        "If one thing would make AutoLister more useful for you, just reply and tell me. If it helps us improve the product, I’ll add 10 extra listings to your account as a thank-you.",
+        "Want AutoLister to work better for the way you sell? Just reply with one thing you’d change. I’ll add <strong>🎁 10 free extra listings</strong> to your account.",
       ),
       el.p("Thanks,<br />Sami<br />Founder, AutoLister AI"),
     ].join("\n"),

@@ -206,6 +206,13 @@ const reasons = [
       const extensionVersion = params.get("version") || null;
       const analyticsClientId = params.get("cid") || null;
       const userId = params.get("uid") || null;
+      const uninstallOpenKey = [
+        "autolister",
+        "uninstall-open",
+        userId || "anonymous",
+        analyticsClientId || "no-cid",
+        extensionVersion || "no-version",
+      ].join(":");
 
       function buildTrackingBody(event, context = {}) {
         return {
@@ -224,6 +231,13 @@ const reasons = [
       }
 
       function trackUninstallOpen() {
+        try {
+          if (window.localStorage.getItem(uninstallOpenKey)) return;
+          window.localStorage.setItem(uninstallOpenKey, String(Date.now()));
+        } catch {
+          // Ignore storage failures; the API also dedupes uninstall opens.
+        }
+
         const body = JSON.stringify(
           buildTrackingBody("extension_uninstalled", {
             hasUserId: Boolean(userId),

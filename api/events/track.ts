@@ -24,6 +24,8 @@ const cors = Cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
+const UNINSTALL_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+
 function runCors(req: VercelRequest, res: VercelResponse) {
   return new Promise<void>((resolve, reject) => {
     cors(req, res, (err) => (err ? reject(err) : resolve()));
@@ -95,6 +97,66 @@ export function canAttributePublicUninstallEvent(item: {
   );
 }
 
+function getUninstallOpenFingerprint(
+  item: ReturnType<typeof normalizeEventItems>[number],
+  resolvedUserId?: string,
+) {
+  if (item.event !== "extension_uninstalled") return null;
+  if (item.source !== "uninstall_page" || item.page !== "/uninstall") return null;
+
+  const context = item.context && typeof item.context === "object" ? item.context : {};
+  const userKey = resolvedUserId || item.userId || context.userId || "anonymous";
+  const analyticsClientId = context.analyticsClientId || "no-cid";
+  const extensionVersion = item.extensionVersion || context.extensionVersion || "no-version";
+
+  return [item.event, userKey, analyticsClientId, extensionVersion].join(":");
+}
+
+function getLoggedUninstallOpenFingerprint(row: {
+  user_id?: string | null;
+  full_request_body?: any;
+}) {
+  const body = row.full_request_body || {};
+  return getUninstallOpenFingerprint(
+    {
+      event: body.event,
+      source: body.source,
+      page: body.page,
+      plan: body.plan,
+      context: body.context,
+      extensionVersion: body.extensionVersion,
+      utm: body.utm,
+      userId: body.userId,
+    },
+    row.user_id || undefined,
+  );
+}
+
+async function getRecentUninstallOpenFingerprints(userId?: string) {
+  if (!userId) return new Set<string>();
+
+  const cutoffIso = new Date(Date.now() - UNINSTALL_DEDUPE_WINDOW_MS).toISOString();
+  const { data, error } = await supabase
+    .from("api_logs")
+    .select("user_id, full_request_body")
+    .eq("endpoint", "/event/extension_uninstalled")
+    .eq("user_id", userId)
+    .gte("created_at", cutoffIso)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("Failed to check uninstall duplicate events:", error);
+    return new Set<string>();
+  }
+
+  return new Set(
+    (data || [])
+      .map((row) => getLoggedUninstallOpenFingerprint(row))
+      .filter((fingerprint): fingerprint is string => Boolean(fingerprint)),
+  );
+}
+
 async function resolvePublicUninstallUser(eventItems: ReturnType<typeof normalizeEventItems>) {
   const attributedItem = eventItems.find(canAttributePublicUninstallEvent);
   if (!attributedItem) return {};
@@ -156,9 +218,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     userEmail = publicIdentity.userEmail;
   }
 
+  const hasUninstallOpenEvent = eventItems.some((item) =>
+    Boolean(getUninstallOpenFingerprint(item, userId)),
+  );
+  const recentUninstallOpenFingerprints = hasUninstallOpenEvent
+    ? await getRecentUninstallOpenFingerprints(userId)
+    : new Set<string>();
+  const currentBatchUninstallOpenFingerprints = new Set<string>();
+  const loggableEventItems = eventItems.filter((item) => {
+    const fingerprint = getUninstallOpenFingerprint(item, userId);
+    if (!fingerprint) return true;
+    if (
+      recentUninstallOpenFingerprints.has(fingerprint) ||
+      currentBatchUninstallOpenFingerprints.has(fingerprint)
+    ) {
+      return false;
+    }
+    currentBatchUninstallOpenFingerprints.add(fingerprint);
+    return true;
+  });
+
+  if (!loggableEventItems.length) {
+    return res.status(204).end();
+  }
+
   const metadata = ApiLogger.extractRequestMetadata(req);
   await ApiLogger.logRequests(
-    eventItems.map((item) => ({
+    loggableEventItems.map((item) => ({
       ...metadata,
       userId,
       userEmail,

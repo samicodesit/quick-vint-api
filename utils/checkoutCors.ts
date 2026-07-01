@@ -13,6 +13,8 @@ const allowedOrigins = rawOrigins
 const checkoutCors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
+    if (incomingOrigin === "https://autolister.app") return callback(null, true);
+    if (incomingOrigin === "https://www.autolister.app") return callback(null, true);
     if (allowedOrigins.includes(incomingOrigin)) return callback(null, true);
     if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
     return callback(new Error("CORS origin denied for checkout"), false);

@@ -327,13 +327,13 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     body: [
       el.p("Hi,"),
       el.p(
-        "You used your free AutoLister AI listings. If it helped, you can keep generating Vinted listings with a paid plan.",
+        "You used your free AutoLister AI listings. If it helped, you can keep creating Vinted listings with a paid plan.",
       ),
       el.callout(
         '<strong style="font-size: 16px; color: #111827;">LISTFASTER20</strong><br />20% off your first month.',
       ),
       el.p(
-        "Starter is enough if you only list sometimes. Pro is better if you list often and want tone controls and emoji support.",
+        "<strong>Starter</strong> is enough if you only list sometimes. <strong>Pro</strong> is better if you list often and want tone controls and emoji support.",
       ),
       el.p(
         "AutoLister does not need to connect your Vinted account. You stay in control and review every listing before publishing.",

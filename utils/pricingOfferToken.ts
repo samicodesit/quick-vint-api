@@ -80,13 +80,17 @@ export function createPricingOfferToken(
 export function createPricingOfferUrl(
   payload: Parameters<typeof createPricingOfferToken>[0],
   baseUrl = process.env.AUTOLISTER_SITE_URL || "https://autolister.app",
+  options: { utmCampaign?: string } = {},
 ) {
   const token = createPricingOfferToken(payload);
   const url = new URL("/pricing", baseUrl);
   url.searchParams.set("offer", token);
   url.searchParams.set("utm_source", "email");
   url.searchParams.set("utm_medium", "customer_email");
-  url.searchParams.set("utm_campaign", "charlotte_pro_offer");
+  url.searchParams.set(
+    "utm_campaign",
+    options.utmCampaign || "pricing_offer_email",
+  );
   return url.toString();
 }
 

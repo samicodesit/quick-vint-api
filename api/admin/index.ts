@@ -13,6 +13,7 @@ import {
   wrapEmailLayout,
   getTemplateIndex,
 } from "../../utils/emailTemplates";
+import { ApiLogger } from "../../utils/apiLogger";
 import { estimateOpenAICostUsd } from "../../utils/openaiModelExperiment";
 import { createPricingOfferUrl } from "../../utils/pricingOfferToken";
 
@@ -63,6 +64,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleSetAccountStatus(req, res);
     } else if (action === "send-campaign") {
       return handleSendCampaign(req, res);
+    } else if (action === "send-limit-followup") {
+      return handleSendLimitFollowup(req, res);
     } else {
       return res.status(400).json({ error: "Invalid POST action" });
     }
@@ -262,6 +265,9 @@ function getEventCategory(event: string | null) {
     event.startsWith("paywall_") ||
     event.startsWith("checkout_") ||
     event === "credit_pack_click" ||
+    event === "credit_pack_paid" ||
+    event === "subscription_started" ||
+    event === "limit_followup_email_sent" ||
     event.startsWith("billing_portal_") ||
     event.startsWith("pricing_")
   ) {
@@ -1952,24 +1958,335 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+type LimitFollowupRecipient = {
+  id: string;
+  email: string;
+  unsubscribe_token: string;
+  limitHitAt: string;
+};
+
+function getLimitFollowupLogEventName(row: {
+  full_request_body?: any;
+  endpoint?: string | null;
+}) {
+  const body = row.full_request_body || {};
+  if (typeof body.event === "string") return body.event;
+  if (typeof row.endpoint === "string" && row.endpoint.startsWith("/event/")) {
+    return row.endpoint.slice("/event/".length);
+  }
+  return "";
+}
+
+function getLogEventContext(row: { full_request_body?: any }) {
+  const body = row.full_request_body || {};
+  return body && typeof body.context === "object" && body.context
+    ? body.context
+    : {};
+}
+
+async function findLimitFollowupRecipients({
+  sinceHours,
+  minDelayMinutes,
+}: {
+  sinceHours: number;
+  minDelayMinutes: number;
+}) {
+  const sinceIso = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
+  const eligibleBeforeMs = Date.now() - minDelayMinutes * 60 * 1000;
+
+  const { data: limitRows, error: limitError } = await supabase
+    .from("api_logs")
+    .select("user_id, user_email, endpoint, full_request_body, created_at")
+    .eq("endpoint", "/event/generate_limit_hit")
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+
+  if (limitError) throw limitError;
+
+  const latestLimitByUser = new Map<
+    string,
+    { userId: string; email?: string | null; limitHitAt: string }
+  >();
+
+  for (const row of limitRows || []) {
+    const userId = row.user_id as string | null;
+    if (!userId || latestLimitByUser.has(userId)) continue;
+
+    const context = getLogEventContext(row);
+    const code = context.code || context.reason || null;
+    if (code !== "free_lifetime_limit") continue;
+    if (Date.parse(row.created_at as string) > eligibleBeforeMs) continue;
+
+    latestLimitByUser.set(userId, {
+      userId,
+      email: (row.user_email as string | null) || null,
+      limitHitAt: row.created_at as string,
+    });
+  }
+
+  const userIds = Array.from(latestLimitByUser.keys());
+  if (!userIds.length) return [];
+
+  const { data: laterEvents, error: laterEventsError } = await supabase
+    .from("api_logs")
+    .select("user_id, endpoint, full_request_body, created_at")
+    .in("user_id", userIds)
+    .in("endpoint", [
+      "/event/extension_uninstalled",
+      "/event/uninstall_feedback_submitted",
+      "/event/limit_followup_email_sent",
+    ])
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(2000);
+
+  if (laterEventsError) throw laterEventsError;
+
+  const blockedUserIds = new Set<string>();
+  for (const row of laterEvents || []) {
+    const userId = row.user_id as string | null;
+    if (!userId) continue;
+    const limitHit = latestLimitByUser.get(userId);
+    if (!limitHit) continue;
+    if (Date.parse(row.created_at as string) < Date.parse(limitHit.limitHitAt)) {
+      continue;
+    }
+    const event = getLimitFollowupLogEventName(row);
+    if (
+      event === "extension_uninstalled" ||
+      event === "uninstall_feedback_submitted" ||
+      event === "limit_followup_email_sent"
+    ) {
+      blockedUserIds.add(userId);
+    }
+  }
+
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select(
+      "id, email, subscription_status, subscription_tier, email_subscribed, unsubscribe_token",
+    )
+    .in("id", userIds)
+    .eq("email_subscribed", true)
+    .not("email", "is", null)
+    .not("unsubscribe_token", "is", null);
+
+  if (profileError) throw profileError;
+
+  return ((profiles || []) as Array<{
+    id: string;
+    email: string | null;
+    subscription_status: string | null;
+    subscription_tier: string | null;
+    email_subscribed: boolean | null;
+    unsubscribe_token: string | null;
+  }>)
+    .filter((profile) => {
+      if (!profile.email || !profile.unsubscribe_token) return false;
+      if (blockedUserIds.has(profile.id)) return false;
+      return !(
+        profile.subscription_status === "active" &&
+        profile.subscription_tier &&
+        profile.subscription_tier !== "free"
+      );
+    })
+    .map((profile) => ({
+      id: profile.id,
+      email: profile.email as string,
+      unsubscribe_token: profile.unsubscribe_token as string,
+      limitHitAt: latestLimitByUser.get(profile.id)?.limitHitAt || "",
+    }))
+    .filter((recipient) => recipient.limitHitAt);
+}
+
+async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) {
+  try {
+    const {
+      dry_run = true,
+      since_hours = 168,
+      min_delay_minutes = 30,
+      test_email,
+    } = req.body || {};
+
+    const sinceHours = Math.max(1, Math.min(Number(since_hours) || 168, 24 * 30));
+    const minDelayMinutes = Math.max(
+      0,
+      Math.min(Number(min_delay_minutes) || 30, 24 * 60),
+    );
+    const template = TEMPLATES.limit_hit_followup_v1;
+    if (!template) {
+      return res.status(500).json({ error: "Missing limit follow-up template." });
+    }
+
+    if (test_email) {
+      const demoUnsubUrl =
+        "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
+      const html = wrapEmailLayout(
+        renderEmailTemplateVariables(template.body, {
+          email: test_email,
+          allowUnsignedFallback: isLocalRequest(req),
+        }),
+        template.preheader,
+        demoUnsubUrl,
+      );
+
+      await resend.emails.send({
+        from: BRAND.from,
+        to: test_email,
+        subject: `[TEST] ${template.subject}`,
+        html,
+        headers: {
+          "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${demoUnsubUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      });
+
+      return res.status(200).json({
+        mode: "test",
+        sent_to: test_email,
+        subject: `[TEST] ${template.subject}`,
+      });
+    }
+
+    const recipients = await findLimitFollowupRecipients({
+      sinceHours,
+      minDelayMinutes,
+    });
+
+    if (dry_run !== false) {
+      return res.status(200).json({
+        mode: "dry_run",
+        template_key: "limit_hit_followup_v1",
+        coupon_code: "LISTFASTER20",
+        since_hours: sinceHours,
+        min_delay_minutes: minDelayMinutes,
+        total: recipients.length,
+        recipients: recipients.map((recipient) => ({
+          email: recipient.email,
+          limitHitAt: recipient.limitHitAt,
+        })),
+      });
+    }
+
+    const results: Array<{ email: string; status: string; error?: string }> = [];
+
+    for (const recipient of recipients) {
+      const unsubUrl = `https://autolister.app/api/unsubscribe?token=${recipient.unsubscribe_token}`;
+      const html = wrapEmailLayout(
+        renderEmailTemplateVariables(template.body, {
+          email: recipient.email,
+          allowUnsignedFallback: isLocalRequest(req),
+        }),
+        template.preheader,
+        unsubUrl,
+      );
+
+      try {
+        await resend.emails.send({
+          from: BRAND.from,
+          to: recipient.email,
+          subject: template.subject,
+          html,
+          headers: {
+            "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${unsubUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        });
+        results.push({ email: recipient.email, status: "sent" });
+        await ApiLogger.logRequest({
+          userId: recipient.id,
+          userEmail: recipient.email,
+          endpoint: "/event/limit_followup_email_sent",
+          requestMethod: "POST",
+          responseStatus: 204,
+          fullRequestBody: {
+            event: "limit_followup_email_sent",
+            source: "admin",
+            page: "admin",
+            context: {
+              template: "limit_hit_followup_v1",
+              couponCode: "LISTFASTER20",
+              limitHitAt: recipient.limitHitAt,
+            },
+          },
+        });
+      } catch (err: any) {
+        console.error(`Failed to send limit follow-up to ${recipient.email}:`, err.message);
+        results.push({
+          email: recipient.email,
+          status: "failed",
+          error: err.message,
+        });
+      }
+
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    const sent = results.filter((result) => result.status === "sent").length;
+    const failed = results.filter((result) => result.status === "failed").length;
+
+    return res.status(200).json({
+      mode: "send",
+      template_key: "limit_hit_followup_v1",
+      coupon_code: "LISTFASTER20",
+      total: recipients.length,
+      sent,
+      failed,
+      results,
+    });
+  } catch (error: any) {
+    console.error("Limit follow-up campaign error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
 function renderEmailTemplateVariables(
   html: string,
   options: { email: string; allowUnsignedFallback?: boolean },
 ) {
-  if (!html.includes("{{PRICING_OFFER_URL}}")) return html;
+  const hasCharlotteOffer = html.includes("{{PRICING_OFFER_URL}}");
+  const hasLimitFollowupOffer = html.includes("{{LIMIT_FOLLOWUP_PRICING_URL}}");
+  if (!hasCharlotteOffer && !hasLimitFollowupOffer) return html;
 
-  let pricingOfferUrl: string;
+  let charlottePricingOfferUrl: string | null = null;
+  let limitFollowupPricingOfferUrl: string | null = null;
   try {
-    pricingOfferUrl = createPricingOfferUrl({
-      email: options.email,
-      targetTier: "pro",
-      couponCode: "L1ST3R50",
-      expiresAt: "2026-07-05T21:59:00.000Z",
-    });
+    if (hasCharlotteOffer) {
+      charlottePricingOfferUrl = createPricingOfferUrl(
+        {
+          email: options.email,
+          targetTier: "pro",
+          couponCode: "L1ST3R50",
+          expiresAt: "2026-07-05T21:59:00.000Z",
+        },
+        undefined,
+        { utmCampaign: "charlotte_pro_offer" },
+      );
+    }
+    if (hasLimitFollowupOffer) {
+      limitFollowupPricingOfferUrl = createPricingOfferUrl(
+        {
+          email: options.email,
+          targetTier: "pro",
+          couponCode: "LISTFASTER20",
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        undefined,
+        { utmCampaign: "limit_followup_offer" },
+      );
+    }
   } catch (error) {
     if (!options.allowUnsignedFallback) throw error;
-    pricingOfferUrl = "https://autolister.app/pricing?offer=SIGNED_OFFER_TOKEN";
+    charlottePricingOfferUrl =
+      "https://autolister.app/pricing?offer=SIGNED_OFFER_TOKEN";
+    limitFollowupPricingOfferUrl =
+      "https://autolister.app/pricing?offer=SIGNED_LIMIT_FOLLOWUP_TOKEN";
   }
 
-  return html.split("{{PRICING_OFFER_URL}}").join(pricingOfferUrl);
+  return html
+    .split("{{PRICING_OFFER_URL}}")
+    .join(charlottePricingOfferUrl || "")
+    .split("{{LIMIT_FOLLOWUP_PRICING_URL}}")
+    .join(limitFollowupPricingOfferUrl || "");
 }

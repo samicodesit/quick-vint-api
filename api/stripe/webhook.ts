@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { buffer } from "micro";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
+import { ApiLogger } from "../../utils/apiLogger";
 import {
   CREDIT_PACK_CONFIG,
   getTierByStripePriceId,
@@ -88,6 +89,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             throw unpauseError;
           }
 
+          await ApiLogger.logRequest({
+            userId: profileId,
+            userEmail: email,
+            endpoint: "/event/credit_pack_paid",
+            requestMethod: "POST",
+            userAgent: "stripe-webhook",
+            responseStatus: 204,
+            fullRequestBody: {
+              event: "credit_pack_paid",
+              source: "stripe_webhook",
+              page: "stripe",
+              context: {
+                checkoutSessionId: session.id,
+                stripeCustomerId: customerId,
+                packId: session.metadata.pack_id || CREDIT_PACK_CONFIG.id,
+                credits,
+              },
+            },
+          });
+
           break;
         }
 
@@ -139,6 +160,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .from("profiles")
               .update(updateData)
               .eq("id", profileRow.id);
+
+            await ApiLogger.logRequest({
+              userId: profileRow.id,
+              userEmail: email,
+              endpoint: "/event/subscription_started",
+              requestMethod: "POST",
+              userAgent: "stripe-webhook",
+              responseStatus: 204,
+              subscriptionTier: tier,
+              subscriptionStatus: status,
+              fullRequestBody: {
+                event: "subscription_started",
+                source: "stripe_webhook",
+                page: "stripe",
+                plan: tier,
+                context: {
+                  checkoutSessionId: session.id,
+                  stripeCustomerId: customerId,
+                  stripeSubscriptionId: subscription.id,
+                  status,
+                  tier,
+                },
+              },
+            });
           }
         }
         break;

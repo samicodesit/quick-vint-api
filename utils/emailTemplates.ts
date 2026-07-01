@@ -320,6 +320,32 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].join("\n"),
   },
 
+  limit_hit_followup_v1: {
+    subject: "Keep listing faster on Vinted",
+    preheader:
+      "You used your free AutoLister listings. Here is 20% off the first month if you want to continue.",
+    body: [
+      el.p("Hi,"),
+      el.p(
+        "You used your free AutoLister AI listings. If it helped, you can keep generating Vinted listings with a paid plan.",
+      ),
+      el.callout(
+        '<strong style="font-size: 16px; color: #111827;">LISTFASTER20</strong><br />20% off your first month.',
+      ),
+      el.p(
+        "Starter is enough if you only list sometimes. Pro is better if you list often and want tone controls and emoji support.",
+      ),
+      el.p(
+        "AutoLister does not need to connect your Vinted account. You stay in control and review every listing before publishing.",
+      ),
+      el.button("View plans", "{{LIMIT_FOLLOWUP_PRICING_URL}}"),
+      el.p(
+        "If something felt off or the result was not good enough, just reply here. I read the replies myself.",
+      ),
+      el.p("Thanks,<br />Sami<br />Founder, AutoLister AI"),
+    ].join("\n"),
+  },
+
   charlotte_payment_fix_pro_offer_v1: {
     subject: "A quick AutoLister AI update",
     preheader:

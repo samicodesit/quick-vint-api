@@ -1,5 +1,6 @@
 ---
 const isDev = import.meta.env.DEV;
+const localDevOrigin = "http://localhost:4326";
 
 const devViews = [
   {
@@ -8,6 +9,7 @@ const devViews = [
       "Real content.js states rendered against mocked Vinted listing pages.",
     href: "/ui-components/content-components",
     status: "Local dev",
+    localOnly: true,
   },
   {
     title: "Email Templates",
@@ -34,6 +36,9 @@ const devViews = [
     status: "Public page",
   },
 ];
+
+const viewHref = (view: (typeof devViews)[number]) =>
+  !isDev && view.localOnly ? `${localDevOrigin}${view.href}` : view.href;
 ---
 
 <!doctype html>
@@ -215,33 +220,31 @@ const devViews = [
             page checks, and extension component states.
           </p>
         </div>
-        <div class="badge">Local dev hub</div>
+        <div class="badge">{isDev ? "Local dev hub" : "Deployed bridge"}</div>
       </header>
 
       {!isDev && (
         <p class="notice">
-          This page is intended for the local dev server. Use
-          <strong>npm run dev</strong> and open it locally for live component
-          previews.
+          You are viewing the deployed admin bridge. Local-only previews open
+          <strong>localhost:4326</strong>, so keep the dev server running when
+          inspecting extension components.
         </p>
       )}
 
-      {isDev && (
-        <section class="grid" aria-label="Dev views">
-          {devViews.map((view) => (
-            <a class="card" href={view.href}>
-              <div>
-                <h2 class="card-title">{view.title}</h2>
-                <p class="card-copy">{view.description}</p>
-              </div>
-              <div class="card-foot">
-                <span>{view.status}</span>
-                <span class="arrow" aria-hidden="true">→</span>
-              </div>
-            </a>
-          ))}
-        </section>
-      )}
+      <section class="grid" aria-label="Dev views">
+        {devViews.map((view) => (
+          <a class="card" href={viewHref(view)}>
+            <div>
+              <h2 class="card-title">{view.title}</h2>
+              <p class="card-copy">{view.description}</p>
+            </div>
+            <div class="card-foot">
+              <span>{!isDev && view.localOnly ? "Open local" : view.status}</span>
+              <span class="arrow" aria-hidden="true">→</span>
+            </div>
+          </a>
+        ))}
+      </section>
     </main>
   </body>
 </html>

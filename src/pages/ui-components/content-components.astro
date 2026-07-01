@@ -1,6 +1,7 @@
 ---
 const sourceVersion = "20260701-dev-hub";
 const isDev = import.meta.env.DEV;
+const localPreviewUrl = "http://localhost:4326/ui-components/content-components";
 ---
 
 <!doctype html>
@@ -220,6 +221,11 @@ const isDev = import.meta.env.DEV;
         line-height: 1.45;
       }
 
+      .ds-warning a {
+        color: #7c2d12;
+        font-weight: 800;
+      }
+
       @media (max-width: 820px) {
         .ds-shell {
           width: min(100% - 24px, 1180px);
@@ -272,7 +278,8 @@ const isDev = import.meta.env.DEV;
         </>
       ) : (
         <p class="ds-warning" style="display:block;">
-          This preview is only available on the local dev server.
+          This preview uses local extension files. Open the local dev preview at
+          <a href={localPreviewUrl}>{localPreviewUrl}</a>.
         </p>
       )}
     </main>

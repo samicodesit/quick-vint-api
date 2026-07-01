@@ -25,7 +25,7 @@ const BRAND = {
   name: "AutoLister AI",
   color: "#764BA2",
   url: "https://autolister.app",
-  from: "Autolister AI <updates@autolister.app>",
+  from: "AutoLister AI <updates@autolister.app>",
   supportEmail: "support@autolister.app",
 } as const;
 
@@ -85,15 +85,8 @@ export function wrapEmailLayout(
   <center>
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f5f7;">
 
-      <!-- View in browser -->
       <tr>
-        <td style="padding: 12px 0; text-align: center;">
-          <a href="${BRAND.url}/updates/latest" style="font-size: 12px; color: #999999; text-decoration: underline;">View in browser</a>
-        </td>
-      </tr>
-
-      <tr>
-        <td valign="top" align="center" style="padding-bottom: 40px;">
+        <td valign="top" align="center" style="padding: 24px 0 40px 0;">
 
           <!-- ═══ MAIN CONTAINER ═══ -->
           <table role="presentation" class="email-container" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin: 0 auto;">
@@ -115,14 +108,7 @@ export function wrapEmailLayout(
             <!-- Footer -->
             <tr>
               <td style="padding: 30px 40px 40px 40px; text-align: center; border-top: 1px solid #f0f0f0;" class="mobile-padding">
-                <p style="margin: 0 0 20px 0; font-size: 16px; color: #333; font-weight: 600;">
-                  Happy Selling,
-                </p>
-                <p style="margin: 0 0 30px 0; font-size: 15px; color: #555;">
-                  The ${BRAND.name} Team
-                </p>
                 <p style="margin: 0; font-size: 12px; color: #999; line-height: 1.6;">
-                  To see images in future emails, add <strong style="color: #555;">updates@autolister.app</strong> to your contacts.<br /><br />
                   You're receiving this because you signed up for <strong>${BRAND.name}</strong>.<br />
                   <a href="${unsubUrl}" style="color: #999; text-decoration: underline;">Unsubscribe</a>
                   &nbsp;|&nbsp;
@@ -271,6 +257,45 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].join("\n"),
   },
 
+  business_welcome_v1: {
+    subject: "Welcome to AutoLister AI Business",
+    preheader:
+      "Thanks for choosing Business. Reply anytime with feedback, requests, or workflow ideas.",
+    body: [
+      el.p("Hi,"),
+      el.p(
+        "I saw you upgraded to Business. Thank you — I really appreciate it.",
+      ),
+      el.p(
+        "Business is meant for sellers who list often enough that the small things start to matter: fewer limits, faster drafts, and less time rewriting the same Vinted details over and over.",
+      ),
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 22px 0;">
+        <tr>
+          <td style="background-color: #fbfaff; border: 1px solid #eee8ff; border-radius: 8px; padding: 16px 18px;">
+            <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #333333;"><strong>Your Business plan is active.</strong><br />You now have AutoLister AI's highest limits and Business-level support.</p>
+          </td>
+        </tr>
+      </table>
+      `,
+      el.p(
+        "If something feels slow, unclear, or missing, just reply to this email. No form, no ticket system. I read the replies myself.",
+      ),
+      el.p("The most useful feedback is usually simple:"),
+      `
+      <ul style="margin: -8px 0 22px 0; padding-left: 20px; font-size: 15px; color: #444444; line-height: 1.75;">
+        <li>what still takes too long</li>
+        <li>what AutoLister misses on your items</li>
+        <li>what would make bulk listing easier</li>
+      </ul>
+      `,
+      el.p(
+        "Feature requests are welcome too, even if they are rough ideas. If it would save you time as a serious seller, I want to hear it.",
+      ),
+      el.p("Thanks again,<br />Sami"),
+    ].join("\n"),
+  },
+
   honest_review_request_v1: {
     subject: "Did AutoLister help with your Vinted listings?",
     preheader:
@@ -292,6 +317,51 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       ),
       el.p("This is a one-time request, so I will not keep asking."),
       el.p("Thanks,<br />Sami"),
+    ].join("\n"),
+  },
+
+  charlotte_payment_fix_pro_offer_v1: {
+    subject: "Your AutoLister AI Pro code",
+    preheader:
+      "Payment issue fixed. Use L1ST3R50 before Sunday if you want Pro.",
+    body: [
+      (() => {
+        const pricingUrl = "{{PRICING_OFFER_URL}}";
+        return [
+          `<p style="margin: 0 0 18px 0; font-size: 15px; line-height: 1.65; color: #444;"><strong>Scroll down for French text.</strong></p>`,
+          el.p("Hi Charlotte,"),
+          el.p(
+            "Quick note: we fixed an issue that could stop the pricing page from opening payment.",
+          ),
+          el.p(
+            `Your Starter plan is active. If you want to upgrade to <strong style="color: ${BRAND.color};">Pro</strong>, use this code before Sunday:`,
+          ),
+          el.callout(
+            '<strong style="font-size: 16px; color: #111827;">L1ST3R50</strong><br />Valid until Sunday, July 5 at 11:59 PM CEST.',
+          ),
+          el.p(
+            "With the code, Stripe currently shows €1.00 today for the rest of this month. After that, Pro renews at €9.99/month unless you cancel or change plan.",
+          ),
+          el.button("Open pricing page", pricingUrl),
+          el.p("Thanks,<br />Sami<br />Founder, AutoLister AI"),
+          el.divider(),
+          el.p("Bonjour Charlotte,"),
+          el.p(
+            "Petit message pour vous prévenir que nous avons corrigé un problème qui pouvait empêcher la page de tarifs d’ouvrir le paiement.",
+          ),
+          el.p(
+            `Votre abonnement Starter est bien actif. Si vous souhaitez passer à <strong style="color: ${BRAND.color};">Pro</strong>, vous pouvez utiliser ce code avant dimanche :`,
+          ),
+          el.callout(
+            '<strong style="font-size: 16px; color: #111827;">L1ST3R50</strong><br />Valable jusqu’au dimanche 5 juillet à 23h59 CEST.',
+          ),
+          el.p(
+            "Avec ce code, Stripe affiche actuellement €1.00 à payer aujourd’hui pour le reste du mois. Ensuite, Pro se renouvelle à €9.99/mois, sauf si vous annulez ou changez de formule.",
+          ),
+          el.button("Ouvrir la page de tarifs", pricingUrl),
+          el.p("Merci,<br />Sami<br />Founder, AutoLister AI"),
+        ].join("\n");
+      })(),
     ].join("\n"),
   },
 

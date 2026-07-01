@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1) Look up the user’s stripe_customer_id in Supabase (profiles table).
     const { data: profileRow, error: fetchErr } = await supabase
       .from("profiles")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, stripe_subscription_id")
       .ilike("email", email)
       .single();
 
@@ -36,13 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const customerId = profileRow.stripe_customer_id;
-
-    // Get the user's subscription ID to direct them to subscription management
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("stripe_subscription_id")
-      .ilike("email", email)
-      .single();
+    const subscriptionId = profileRow.stripe_subscription_id;
 
     // 2) Create a Customer Portal session that lands on subscription management
     const portalSessionConfig: any = {
@@ -50,12 +44,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return_url: RETURN_URL,
     };
 
-    // If user has an active subscription, direct them to subscription management
-    if (profileData?.stripe_subscription_id) {
+    if (subscriptionId) {
       portalSessionConfig.flow_data = {
         type: "subscription_update",
         subscription_update: {
-          subscription: profileData.stripe_subscription_id,
+          subscription: subscriptionId,
         },
       };
     }

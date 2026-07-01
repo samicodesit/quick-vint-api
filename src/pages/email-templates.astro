@@ -2,6 +2,34 @@
 // Template viewer — admin-only page to preview email templates
 // Access: /email-templates (protected by admin secret in the UI)
 import "../styles/global.css";
+import {
+  TEMPLATES,
+  getTemplateIndex,
+  wrapEmailLayout,
+} from "../../utils/emailTemplates";
+
+const demoUnsubUrl =
+  "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
+const localTemplatePreviews = import.meta.env.DEV
+  ? Object.fromEntries(
+      Object.entries(TEMPLATES).map(([key, template]) => [
+        key,
+        wrapEmailLayout(
+          template.body
+            .split("{{PRICING_OFFER_URL}}")
+            .join("https://autolister.app/pricing?offer=SIGNED_OFFER_TOKEN"),
+          template.preheader,
+          demoUnsubUrl,
+        ),
+      ]),
+    )
+  : {};
+const localTemplatePayload = import.meta.env.DEV
+  ? {
+      templates: getTemplateIndex(),
+      previews: localTemplatePreviews,
+    }
+  : null;
 ---
 
 <!doctype html>
@@ -300,8 +328,13 @@ import "../styles/global.css";
     </div>
 
     <!-- CLIENT SCRIPT -->
-    <script is:inline>
+    <script define:vars={{ localTemplatePayload }}>
       const API_BASE = window.location.origin;
+      const IS_LOCAL_DEV =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "::1";
+      const LOCAL_TEMPLATE_DATA = localTemplatePayload;
       let adminSecret = "";
       let templates = [];
       let currentHtml = "";
@@ -311,6 +344,11 @@ import "../styles/global.css";
 
       // ── Initialization ──
       document.addEventListener("DOMContentLoaded", () => {
+        if (IS_LOCAL_DEV) {
+          authenticate("");
+          return;
+        }
+
         // Check for stored secret
         const stored = localStorage.getItem("admin_secret");
         if (stored) {
@@ -339,23 +377,16 @@ import "../styles/global.css";
         adminSecret = secret;
 
         try {
-          const res = await fetch(
-            `${API_BASE}/api/admin?action=list-templates`,
-            {
-              headers: { Authorization: `Bearer ${adminSecret}` },
-            },
-          );
-
-          if (!res.ok) {
-            if (res.status === 401) throw new Error("Invalid admin secret");
-            throw new Error("Failed to fetch templates");
-          }
-
-          const data = await res.json();
+          const data =
+            IS_LOCAL_DEV && LOCAL_TEMPLATE_DATA
+              ? LOCAL_TEMPLATE_DATA
+              : await fetchTemplateIndex();
           templates = data.templates;
 
           // Success: Store secret & Show UI
-          localStorage.setItem("admin_secret", adminSecret);
+          if (!IS_LOCAL_DEV) {
+            localStorage.setItem("admin_secret", adminSecret);
+          }
 
           document
             .getElementById("auth-gate")
@@ -389,6 +420,24 @@ import "../styles/global.css";
         } finally {
           setLoadingAuth(false);
         }
+      }
+
+      async function fetchTemplateIndex() {
+        const res = await fetch(
+          `${API_BASE}/api/admin?action=list-templates`,
+          {
+            headers: adminSecret
+              ? { Authorization: `Bearer ${adminSecret}` }
+              : {},
+          },
+        );
+
+        if (!res.ok) {
+          if (res.status === 401) throw new Error("Invalid admin secret");
+          throw new Error("Failed to fetch templates");
+        }
+
+        return res.json();
       }
 
       function setLoadingAuth(isLoading) {
@@ -462,15 +511,10 @@ import "../styles/global.css";
         }
 
         try {
-          const res = await fetch(
-            `${API_BASE}/api/admin?action=preview-template&key=${key}`,
-            {
-              headers: { Authorization: `Bearer ${adminSecret}` },
-            },
-          );
-          if (!res.ok) throw new Error("Failed to load template");
-
-          currentHtml = await res.text();
+          currentHtml =
+            IS_LOCAL_DEV && LOCAL_TEMPLATE_DATA?.previews?.[key]
+              ? LOCAL_TEMPLATE_DATA.previews[key]
+              : await fetchTemplatePreview(key);
           renderPreviewArea();
         } catch (err) {
           document.getElementById("preview-wrapper").innerHTML = `
@@ -482,6 +526,20 @@ import "../styles/global.css";
           loading = false;
           document.getElementById("loading-overlay").classList.add("hidden");
         }
+      }
+
+      async function fetchTemplatePreview(key) {
+        const res = await fetch(
+          `${API_BASE}/api/admin?action=preview-template&key=${key}`,
+          {
+            headers: adminSecret
+              ? { Authorization: `Bearer ${adminSecret}` }
+              : {},
+          },
+        );
+        if (!res.ok) throw new Error("Failed to load template");
+
+        return res.text();
       }
 
       // ── Render Preview/Source ──

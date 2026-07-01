@@ -1,4 +1,5 @@
 import { trackEvent } from "./analytics.js";
+import { getPricingPlanAction, normalizePricingPlanTier } from "../utils/pricingPlanAction.ts";
 
 // Original Pricing Page Logic starts here
 // API Base URL - Use current origin to avoid CORS issues
@@ -12,6 +13,7 @@ let currentProfile = null;
 let hasExtension = false;
 let isPricingStateLoading = true;
 let pricingActionsBound = false;
+let currentPricingOffer = null;
 
 // Plan configuration
 const PLAN_CONFIG = {
@@ -38,16 +40,7 @@ function getUtmParams() {
 }
 
 function normalizeTier(tier) {
-  const map = {
-    unlimited_monthly: "starter",
-    unlimited_annual: "starter",
-    starter: "starter",
-    pro: "pro",
-    business: "business",
-    free: "free",
-  };
-
-  return map[tier] || "free";
+  return normalizePricingPlanTier(tier);
 }
 
 function sendExtensionMessage(message, timeoutMs = EXTENSION_MESSAGE_TIMEOUT_MS) {
@@ -114,6 +107,28 @@ function showStatusMessage(message, type = "info") {
   messageBox.style.background = palette.background;
   messageBox.style.border = `1px solid ${palette.border}`;
   messageBox.style.color = palette.color;
+}
+
+function openExternalWindow() {
+  try {
+    return window.open("about:blank", "_blank");
+  } catch (error) {
+    return null;
+  }
+}
+
+function sendExternalWindowToUrl(pendingWindow, url) {
+  if (pendingWindow && !pendingWindow.closed) {
+    pendingWindow.location.href = url;
+  } else {
+    window.location.href = url;
+  }
+}
+
+function closeExternalWindow(pendingWindow) {
+  if (pendingWindow && !pendingWindow.closed) {
+    pendingWindow.close();
+  }
 }
 
 // Check if extension is installed
@@ -234,6 +249,29 @@ function applyExtensionUserData(userData) {
   return true;
 }
 
+async function applyPricingOfferToken(token) {
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/pricing/offer?token=${encodeURIComponent(token)}`,
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.warn("Pricing offer token rejected:", data);
+      return false;
+    }
+
+    hasExtension = true;
+    currentUser = data.user || null;
+    currentProfile = data.profile || null;
+    currentPricingOffer = data.offer || null;
+    return Boolean(currentUser?.email && currentProfile);
+  } catch (error) {
+    console.error("Failed to apply pricing offer token:", error);
+    return false;
+  }
+}
+
 function bindPricingActions() {
   if (pricingActionsBound) return;
   pricingActionsBound = true;
@@ -312,17 +350,14 @@ async function handlePlanClick(planName) {
     }
 
     // Handle paid plan selection
-    const currentTier = currentProfile?.subscription_status === "active"
-      ? normalizeTier(currentProfile?.subscription_tier)
-      : "free";
-    const isActive = currentProfile?.subscription_status === "active";
+    const planAction = getPricingPlanAction(currentProfile, planName);
 
-    if (
-      isActive &&
-      (currentTier === planName ||
-        (currentTier === "unlimited_monthly" && planName === "starter"))
-    ) {
+    if (planAction === "current_portal") {
       // Already on this plan - open customer portal
+      await openCustomerPortal();
+    } else if (planAction === "subscription_portal") {
+      // Existing paid subscribers must update the current subscription, not
+      // start a second Checkout subscription.
       await openCustomerPortal();
     } else {
       // Upgrade/switch plan
@@ -340,6 +375,8 @@ async function handlePlanClick(planName) {
 
 // Handle paid plan selection (upgrade/switch)
 async function handlePaidPlanSelection(planName) {
+  const pendingWindow = openExternalWindow();
+
   try {
     trackEvent("checkout_start", { plan: planName, context: "pricing_page" });
     const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
@@ -360,12 +397,14 @@ async function handlePaidPlanSelection(planName) {
     if (response.ok && data.url) {
       showStatusMessage("Opening secure Stripe Checkout.", "success");
       trackEvent("checkout_opened", { plan: planName, context: "pricing_page" });
-      window.open(data.url, "_blank");
+      sendExternalWindowToUrl(pendingWindow, data.url);
     } else {
+      closeExternalWindow(pendingWindow);
       console.error("Checkout error:", data);
       showStatusMessage(data.error || "Unable to open Stripe Checkout. Please try again.", "error");
     }
   } catch (error) {
+    closeExternalWindow(pendingWindow);
     console.error("Checkout error:", error);
     showStatusMessage("Connection issue while opening checkout. Please try again.", "error");
   }
@@ -387,6 +426,8 @@ async function handleCreditPackClick() {
   if (button) button.disabled = true;
   if (textSpan) textSpan.textContent = "Loading...";
 
+  let pendingWindow = null;
+
   try {
     if (!hasExtension) {
       showStatusMessage(
@@ -406,6 +447,8 @@ async function handleCreditPackClick() {
       trackEvent("pricing_signin_required", { plan: "credit_pack" });
       return;
     }
+
+    pendingWindow = openExternalWindow();
 
     const response = await fetch(`${API_BASE}/api/stripe/create-credit-checkout`, {
       method: "POST",
@@ -427,8 +470,9 @@ async function handleCreditPackClick() {
         plan: "credit_pack",
         context: "pricing_page",
       });
-      window.open(data.url, "_blank");
+      sendExternalWindowToUrl(pendingWindow, data.url);
     } else {
+      closeExternalWindow(pendingWindow);
       console.error("Credit checkout error:", data);
       showStatusMessage(
         data.error || "Unable to open Stripe Checkout. Please try again.",
@@ -436,6 +480,7 @@ async function handleCreditPackClick() {
       );
     }
   } catch (error) {
+    closeExternalWindow(pendingWindow);
     console.error("Credit checkout error:", error);
     showStatusMessage("Connection issue while opening checkout. Please try again.", "error");
   } finally {
@@ -446,6 +491,8 @@ async function handleCreditPackClick() {
 
 // Open customer portal for existing subscribers
 async function openCustomerPortal() {
+  const pendingWindow = openExternalWindow();
+
   try {
     trackEvent("billing_portal_start", { context: "pricing_page" });
     const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
@@ -460,12 +507,14 @@ async function openCustomerPortal() {
 
     if (response.ok && data.url) {
       showStatusMessage("Opening your Stripe customer portal.", "success");
-      window.open(data.url, "_blank");
+      sendExternalWindowToUrl(pendingWindow, data.url);
     } else {
+      closeExternalWindow(pendingWindow);
       console.error("Portal error:", data);
       showStatusMessage(data.error || "Unable to open your subscription portal. Please try again.", "error");
     }
   } catch (error) {
+    closeExternalWindow(pendingWindow);
     console.error("Portal error:", error);
     showStatusMessage("Connection issue while opening your subscription portal. Please try again.", "error");
   }
@@ -488,10 +537,22 @@ async function initializePage() {
 
   // Check URL parameters first (they have priority if coming from extension)
   const urlParams = new URLSearchParams(window.location.search);
+  const offerToken = urlParams.get("offer") || urlParams.get("offer_token");
   const token = urlParams.get("token");
   let hasTrustedExtensionContext = false;
 
-  if (token) {
+  if (offerToken) {
+    hasTrustedExtensionContext = await applyPricingOfferToken(offerToken);
+
+    if (hasTrustedExtensionContext) {
+      console.log("Initialized from pricing offer token:", {
+        userPlan: currentProfile?.subscription_tier,
+        offerPlan: currentPricingOffer?.targetTier,
+      });
+    }
+  }
+
+  if (!hasTrustedExtensionContext && token) {
     // New token-based approach
     const userData = decodeUserData(token);
     if (userData && userData.source === "extension") {

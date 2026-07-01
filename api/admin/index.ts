@@ -14,17 +14,25 @@ import {
   getTemplateIndex,
 } from "../../utils/emailTemplates";
 import { estimateOpenAICostUsd } from "../../utils/openaiModelExperiment";
+import { createPricingOfferUrl } from "../../utils/pricingOfferToken";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- AUTH with ADMIN_SECRET ---
+  const action = req.query.action as string;
   const adminSecret = process.env.ADMIN_SECRET;
-  if (!adminSecret || req.headers.authorization !== `Bearer ${adminSecret}`) {
+  const isLocalTemplatePreview =
+    req.method === "GET" &&
+    (action === "list-templates" || action === "preview-template") &&
+    isLocalRequest(req);
+
+  if (
+    !isLocalTemplatePreview &&
+    (!adminSecret || req.headers.authorization !== `Bearer ${adminSecret}`)
+  ) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-
-  const action = req.query.action as string;
 
   if (req.method === "GET") {
     if (action === "view-logs" || !action) {
@@ -61,6 +69,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } else {
     return res.status(405).json({ error: "Method not allowed" });
   }
+}
+
+function isLocalRequest(req: VercelRequest) {
+  const host = String(req.headers.host || "").split(":")[0];
+  return host === "localhost" || host === "127.0.0.1" || host === "::1";
 }
 
 type AdminUserSegment = "today" | "recent" | "active" | "paid" | "at-risk";
@@ -1758,7 +1771,14 @@ async function handlePreviewTemplate(req: VercelRequest, res: VercelResponse) {
   const template = TEMPLATES[key];
   const demoUnsubUrl =
     "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
-  const html = wrapEmailLayout(template.body, template.preheader, demoUnsubUrl);
+  const html = wrapEmailLayout(
+    renderEmailTemplateVariables(template.body, {
+      email: "charlotte.lefevre.1807@hotmail.com",
+      allowUnsignedFallback: isLocalRequest(req),
+    }),
+    template.preheader,
+    demoUnsubUrl,
+  );
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
@@ -1802,7 +1822,11 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
     if (test_email) {
       const demoUnsubUrl =
         "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
-      const html = wrapEmailLayout(bodyHtml, preheader, demoUnsubUrl);
+      const html = wrapEmailLayout(
+        renderEmailTemplateVariables(bodyHtml, { email: test_email }),
+        preheader,
+        demoUnsubUrl,
+      );
 
       await resend.emails.send({
         from: BRAND.from,
@@ -1875,7 +1899,11 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
 
     for (const user of users) {
       const unsubUrl = `https://autolister.app/api/unsubscribe?token=${user.unsubscribe_token}`;
-      const html = wrapEmailLayout(bodyHtml, preheader, unsubUrl);
+      const html = wrapEmailLayout(
+        renderEmailTemplateVariables(bodyHtml, { email: user.email }),
+        preheader,
+        unsubUrl,
+      );
 
       try {
         await resend.emails.send({
@@ -1922,4 +1950,26 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
     console.error("Campaign error:", error);
     return res.status(500).json({ error: error.message });
   }
+}
+
+function renderEmailTemplateVariables(
+  html: string,
+  options: { email: string; allowUnsignedFallback?: boolean },
+) {
+  if (!html.includes("{{PRICING_OFFER_URL}}")) return html;
+
+  let pricingOfferUrl: string;
+  try {
+    pricingOfferUrl = createPricingOfferUrl({
+      email: options.email,
+      targetTier: "pro",
+      couponCode: "L1ST3R50",
+      expiresAt: "2026-07-05T21:59:00.000Z",
+    });
+  } catch (error) {
+    if (!options.allowUnsignedFallback) throw error;
+    pricingOfferUrl = "https://autolister.app/pricing?offer=SIGNED_OFFER_TOKEN";
+  }
+
+  return html.split("{{PRICING_OFFER_URL}}").join(pricingOfferUrl);
 }

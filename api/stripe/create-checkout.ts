@@ -42,10 +42,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 3) Look up existing stripe_customer_id in Supabase
     let customerId: string | null = null;
+    let activeSubscriptionId: string | null = null;
     {
       const { data: profileRow, error: fetchErr } = await supabase
         .from("profiles")
-        .select("stripe_customer_id")
+        .select(
+          "stripe_customer_id, stripe_subscription_id, subscription_status, subscription_tier",
+        )
         .ilike("email", email)
         .single();
 
@@ -54,6 +57,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // continue – we can create a new customer
       } else if (profileRow?.stripe_customer_id) {
         customerId = profileRow.stripe_customer_id;
+        if (
+          profileRow.subscription_status === "active" &&
+          profileRow.subscription_tier &&
+          profileRow.subscription_tier !== "free" &&
+          profileRow.stripe_subscription_id
+        ) {
+          activeSubscriptionId = profileRow.stripe_subscription_id;
+        }
       }
     }
 
@@ -68,7 +79,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           stripeErr.message,
         );
         customerId = null;
+        activeSubscriptionId = null;
       }
+    }
+
+    // Existing subscribers should update their current subscription in Stripe's
+    // customer portal. This prevents duplicate subscriptions if the frontend has
+    // stale plan state or an old pricing link.
+    if (customerId && activeSubscriptionId) {
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: process.env.STRIPE_PORTAL_RETURN_URL!,
+        flow_data: {
+          type: "subscription_update",
+          subscription_update: {
+            subscription: activeSubscriptionId,
+          },
+        },
+      });
+
+      return res.status(200).json({
+        url: portalSession.url,
+        mode: "portal",
+        reason: "existing_active_subscription",
+      });
     }
 
     // 5) If no valid customerId, create a new Stripe Customer

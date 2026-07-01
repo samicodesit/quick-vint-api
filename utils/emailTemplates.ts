@@ -321,9 +321,9 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
   },
 
   charlotte_payment_fix_pro_offer_v1: {
-    subject: "Your AutoLister AI Pro code",
+    subject: "A quick AutoLister AI update",
     preheader:
-      "Payment issue fixed. Use L1ST3R50 before Sunday if you want Pro.",
+      "Starter is active. There is also a Pro code inside if you want it.",
     body: [
       (() => {
         const pricingUrl = "{{PRICING_OFFER_URL}}";

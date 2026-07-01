@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type CheckoutHandler = (req: any, res: any) => Promise<unknown>;
 
 const customerRetrieveMock = vi.fn();
+const subscriptionRetrieveMock = vi.fn();
+const subscriptionListMock = vi.fn();
 const portalCreateMock = vi.fn();
 const checkoutCreateMock = vi.fn();
 const selectResponse = {
@@ -26,6 +28,10 @@ vi.mock("stripe", () => {
     this.customers = {
       retrieve: customerRetrieveMock,
       create: vi.fn(),
+    };
+    this.subscriptions = {
+      retrieve: subscriptionRetrieveMock,
+      list: subscriptionListMock,
     };
     this.billingPortal = {
       sessions: {
@@ -77,6 +83,7 @@ describe("create checkout", () => {
     selectResponse.data = null;
     selectResponse.error = null;
     vi.clearAllMocks();
+    subscriptionListMock.mockResolvedValue({ data: [] });
   });
 
   it("routes active paid subscribers to the customer portal instead of creating a second subscription", async () => {
@@ -87,6 +94,11 @@ describe("create checkout", () => {
       subscription_tier: "starter",
     };
     customerRetrieveMock.mockResolvedValue({ id: "cus_existing" });
+    subscriptionRetrieveMock.mockResolvedValue({
+      id: "sub_existing",
+      status: "active",
+      customer: "cus_existing",
+    });
     portalCreateMock.mockResolvedValue({
       url: "https://billing.stripe.com/session/test",
     });
@@ -120,6 +132,67 @@ describe("create checkout", () => {
         type: "subscription_update",
         subscription_update: {
           subscription: "sub_existing",
+        },
+      },
+    });
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("uses Stripe as the source of truth when Supabase says free but the customer has an active subscription", async () => {
+    selectResponse.data = {
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValue({ id: "cus_existing" });
+    subscriptionListMock.mockResolvedValue({
+      data: [
+        {
+          id: "sub_live",
+          status: "active",
+          customer: "cus_existing",
+        },
+      ],
+    });
+    subscriptionRetrieveMock.mockResolvedValue({
+      id: "sub_live",
+      status: "active",
+      customer: "cus_existing",
+    });
+    portalCreateMock.mockResolvedValue({
+      url: "https://billing.stripe.com/session/test",
+    });
+
+    const checkoutModule = await import(
+      "../../../api/stripe/create-checkout.js"
+    );
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        email: "customer@example.com",
+        tier: "pro",
+        source: "pricing_page",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      url: "https://billing.stripe.com/session/test",
+      mode: "portal",
+      reason: "existing_active_subscription",
+    });
+    expect(portalCreateMock).toHaveBeenCalledWith({
+      customer: "cus_existing",
+      return_url: "https://autolister.app/pricing",
+      flow_data: {
+        type: "subscription_update",
+        subscription_update: {
+          subscription: "sub_live",
         },
       },
     });

@@ -4,12 +4,19 @@ import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 import { TIER_CONFIGS } from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
+import { createBillingPortalSessionForProfile } from "../../utils/stripeBillingPortal";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
 const PAID_TIERS = new Set(["starter", "pro", "business"]);
+const MANAGEABLE_SUBSCRIPTION_STATUSES = new Set([
+  "active",
+  "trialing",
+  "past_due",
+  "unpaid",
+]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!(await handleCheckoutCors(req, res))) return;
@@ -83,19 +90,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Existing subscribers should update their current subscription in Stripe's
-    // customer portal. This prevents duplicate subscriptions if the frontend has
-    // stale plan state or an old pricing link.
-    if (customerId && activeSubscriptionId) {
-      const portalSession = await stripe.billingPortal.sessions.create({
+    if (customerId && !activeSubscriptionId) {
+      const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
-        return_url: process.env.STRIPE_PORTAL_RETURN_URL!,
-        flow_data: {
-          type: "subscription_update",
-          subscription_update: {
-            subscription: activeSubscriptionId,
-          },
-        },
+        status: "all",
+        limit: 10,
+      });
+      const manageableSubscription = subscriptions.data.find((subscription) =>
+        MANAGEABLE_SUBSCRIPTION_STATUSES.has(subscription.status),
+      );
+
+      if (manageableSubscription) {
+        activeSubscriptionId = manageableSubscription.id;
+      }
+    }
+
+    // Existing subscribers should update their current subscription in Stripe's
+    // customer portal. This prevents duplicate subscriptions if Supabase or the
+    // frontend has stale plan state. The helper verifies the subscription's real
+    // customer before creating the portal session.
+    if (customerId && activeSubscriptionId) {
+      const portalSession = await createBillingPortalSessionForProfile({
+        stripe,
+        email,
+        customerId,
+        subscriptionId: activeSubscriptionId,
+        returnUrl: process.env.STRIPE_PORTAL_RETURN_URL!,
+        context: "create_checkout_active_subscriber_guard",
       });
 
       return res.status(200).json({

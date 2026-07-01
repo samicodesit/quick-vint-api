@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
+import { createBillingPortalSessionForProfile } from "../../utils/stripeBillingPortal";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const RETURN_URL = process.env.STRIPE_PORTAL_RETURN_URL!;
@@ -35,26 +36,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ error: "No Stripe customer on file for this user." });
     }
 
-    const customerId = profileRow.stripe_customer_id;
-    const subscriptionId = profileRow.stripe_subscription_id;
-
-    // 2) Create a Customer Portal session that lands on subscription management
-    const portalSessionConfig: any = {
-      customer: customerId,
-      return_url: RETURN_URL,
-    };
-
-    if (subscriptionId) {
-      portalSessionConfig.flow_data = {
-        type: "subscription_update",
-        subscription_update: {
-          subscription: subscriptionId,
-        },
-      };
-    }
-
-    const portalSession =
-      await stripe.billingPortal.sessions.create(portalSessionConfig);
+    // 2) Create a Customer Portal session that lands on subscription management.
+    // Verify the subscription's real Stripe customer first, because older
+    // duplicate-checkout flows can leave profile customer/subscription IDs
+    // temporarily out of sync.
+    const portalSession = await createBillingPortalSessionForProfile({
+      stripe,
+      email,
+      customerId: profileRow.stripe_customer_id,
+      subscriptionId: profileRow.stripe_subscription_id,
+      returnUrl: RETURN_URL,
+      context: "create_portal",
+    });
 
     // 3) Return the URL to the popup
     return res.status(200).json({ url: portalSession.url });

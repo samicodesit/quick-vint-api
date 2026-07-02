@@ -74,6 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     excludedEmails: exclusions.excludedEmails,
     excludedUserIds: exclusions.excludedUserIds,
     userId: user.id,
+    requireExplicitLimitHit: true,
   });
   const recipient = recipients[0];
 

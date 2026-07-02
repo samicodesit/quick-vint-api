@@ -95,12 +95,14 @@ export async function findLimitFollowupRecipients({
   excludedEmails,
   excludedUserIds,
   userId,
+  requireExplicitLimitHit = false,
 }: {
   sinceHours: number;
   minDelayMinutes: number;
   excludedEmails: Set<string>;
   excludedUserIds: Set<string>;
   userId?: string;
+  requireExplicitLimitHit?: boolean;
 }) {
   const sinceIso = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
   const eligibleBeforeMs = Date.now() - minDelayMinutes * 60 * 1000;
@@ -141,56 +143,58 @@ export async function findLimitFollowupRecipients({
     });
   }
 
-  let cappedProfilesQuery = supabase
-    .from("profiles")
-    .select("id, email")
-    .gte("free_lifetime_generations_used", FREE_LIFETIME_LIMIT)
-    .eq("email_subscribed", true)
-    .not("email", "is", null)
-    .not("unsubscribe_token", "is", null)
-    .limit(userId ? 1 : 2000);
+  if (!requireExplicitLimitHit) {
+    let cappedProfilesQuery = supabase
+      .from("profiles")
+      .select("id, email")
+      .gte("free_lifetime_generations_used", FREE_LIFETIME_LIMIT)
+      .eq("email_subscribed", true)
+      .not("email", "is", null)
+      .not("unsubscribe_token", "is", null)
+      .limit(userId ? 1 : 2000);
 
-  if (userId) {
-    cappedProfilesQuery = cappedProfilesQuery.eq("id", userId);
-  }
+    if (userId) {
+      cappedProfilesQuery = cappedProfilesQuery.eq("id", userId);
+    }
 
-  const { data: cappedProfiles, error: cappedProfilesError } =
-    await cappedProfilesQuery;
+    const { data: cappedProfiles, error: cappedProfilesError } =
+      await cappedProfilesQuery;
 
-  if (cappedProfilesError) throw cappedProfilesError;
+    if (cappedProfilesError) throw cappedProfilesError;
 
-  const cappedUserIds = ((cappedProfiles || []) as Array<{
-    id: string;
-    email: string | null;
-  }>)
-    .map((profile) => profile.id)
-    .filter((id) => id && !latestLimitByUser.has(id));
+    const cappedUserIds = ((cappedProfiles || []) as Array<{
+      id: string;
+      email: string | null;
+    }>)
+      .map((profile) => profile.id)
+      .filter((id) => id && !latestLimitByUser.has(id));
 
-  if (cappedUserIds.length) {
-    const { data: cappedActivity, error: cappedActivityError } = await supabase
-      .from("api_logs")
-      .select("user_id, user_email, endpoint, response_status, created_at")
-      .in("user_id", cappedUserIds)
-      .in("endpoint", ["/event/generate_success", "/api/generate"])
-      .gte("created_at", sinceIso)
-      .order("created_at", { ascending: false })
-      .limit(userId ? 50 : 3000);
+    if (cappedUserIds.length) {
+      const { data: cappedActivity, error: cappedActivityError } = await supabase
+        .from("api_logs")
+        .select("user_id, user_email, endpoint, response_status, created_at")
+        .in("user_id", cappedUserIds)
+        .in("endpoint", ["/event/generate_success", "/api/generate"])
+        .gte("created_at", sinceIso)
+        .order("created_at", { ascending: false })
+        .limit(userId ? 50 : 3000);
 
-    if (cappedActivityError) throw cappedActivityError;
+      if (cappedActivityError) throw cappedActivityError;
 
-    for (const row of cappedActivity || []) {
-      const rowUserId = row.user_id as string | null;
-      if (!rowUserId || latestLimitByUser.has(rowUserId)) continue;
-      if (Date.parse(row.created_at as string) > eligibleBeforeMs) continue;
-      if (row.endpoint === "/api/generate" && Number(row.response_status) !== 200) {
-        continue;
+      for (const row of cappedActivity || []) {
+        const rowUserId = row.user_id as string | null;
+        if (!rowUserId || latestLimitByUser.has(rowUserId)) continue;
+        if (Date.parse(row.created_at as string) > eligibleBeforeMs) continue;
+        if (row.endpoint === "/api/generate" && Number(row.response_status) !== 200) {
+          continue;
+        }
+
+        latestLimitByUser.set(rowUserId, {
+          userId: rowUserId,
+          email: (row.user_email as string | null) || null,
+          limitHitAt: row.created_at as string,
+        });
       }
-
-      latestLimitByUser.set(rowUserId, {
-        userId: rowUserId,
-        email: (row.user_email as string | null) || null,
-        limitHitAt: row.created_at as string,
-      });
     }
   }
 
@@ -272,4 +276,3 @@ export async function findLimitFollowupRecipients({
     }))
     .filter((recipient) => recipient.limitHitAt);
 }
-

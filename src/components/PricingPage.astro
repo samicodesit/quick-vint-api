@@ -68,7 +68,7 @@ type CreditPack = {
   priceLabel: string;
 };
 
-type FeatureState = "included" | "soon" | "unavailable";
+type FeatureState = "included" | "restrictedSoon" | "unavailable";
 
 type Feature = {
   state: FeatureState;
@@ -100,10 +100,9 @@ export interface Props {
 const { copy, extra, limits, creditPack, isCurrentPricing } = Astro.props;
 
 const phoneUploadLabel = extra.phoneUpload.replace(/\s*\(.+\)\s*$/, "");
-const soonNote = "Coming soon";
-const gatedSoonNote = "Soon: Pro and Business only";
-const unavailableNote = "Not included";
-const notInStarterNote = "Upgrade to Pro";
+const uploadFeatureLabel = `${phoneUploadLabel} + batch upload`;
+const restrictedSoonNote = "Soon restricted to Pro and Business";
+const proFeatureNote = "Pro feature";
 
 const limitFeature = (
   strong: string,
@@ -117,12 +116,12 @@ const limitFeature = (
 });
 
 const includedFeature = (text: string): Feature => ({ state: "included", text });
-const soonFeature = (text: string, note = soonNote): Feature => ({
-  state: "soon",
+const restrictedSoonFeature = (text: string): Feature => ({
+  state: "restrictedSoon",
   text,
-  note,
+  note: restrictedSoonNote,
 });
-const unavailableFeature = (text: string, note = unavailableNote): Feature => ({
+const unavailableFeature = (text: string, note?: string): Feature => ({
   state: "unavailable",
   text,
   note,
@@ -147,7 +146,7 @@ const plans: Plan[] = [
       limitFeature(limits.freePrimaryValue, limits.freePrimaryLabel),
       freeSecondaryFeature,
       includedFeature(extra.aiGeneratedTitles),
-      soonFeature(phoneUploadLabel, gatedSoonNote),
+      restrictedSoonFeature(uploadFeatureLabel),
       includedFeature(extra.seeIfYouLikeIt),
       unavailableFeature(extra.changeAiTone),
       unavailableFeature(extra.emojiSupport),
@@ -164,9 +163,9 @@ const plans: Plan[] = [
       limitFeature(limits.starterDaily, ` ${extra.listingsPerDay}`),
       limitFeature(limits.starterMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
-      unavailableFeature(phoneUploadLabel, gatedSoonNote),
-      unavailableFeature(extra.changeAiTone, notInStarterNote),
-      unavailableFeature(extra.emojiSupport, notInStarterNote),
+      restrictedSoonFeature(uploadFeatureLabel),
+      unavailableFeature(extra.changeAiTone, proFeatureNote),
+      unavailableFeature(extra.emojiSupport, proFeatureNote),
     ],
   },
   {
@@ -183,7 +182,7 @@ const plans: Plan[] = [
       includedFeature(extra.everythingInStarter),
       includedFeature(extra.changeAiTone),
       includedFeature(extra.emojiSupport),
-      soonFeature(phoneUploadLabel),
+      includedFeature(uploadFeatureLabel),
     ],
   },
   {
@@ -203,7 +202,7 @@ const plans: Plan[] = [
       includedFeature(extra.highestDailyLimits),
       includedFeature(extra.dedicatedSupport),
       includedFeature(extra.priorityProcessing),
-      soonFeature(phoneUploadLabel),
+      includedFeature(uploadFeatureLabel),
     ],
   },
 ];
@@ -217,14 +216,14 @@ const buttonClassByPlan: Record<Plan["id"], string> = {
 };
 
 const featureStateClass: Record<FeatureState, string> = {
-  included: "text-slate-700",
-  soon: "text-amber-800",
-  unavailable: "text-slate-400",
+  included: "text-slate-800",
+  restrictedSoon: "text-amber-800",
+  unavailable: "text-slate-500",
 };
 
 const featureIconClass: Record<FeatureState, string> = {
   included: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  soon: "border-amber-200 bg-amber-50 text-amber-700",
+  restrictedSoon: "border-amber-200 bg-amber-50 text-amber-700",
   unavailable: "border-slate-200 bg-slate-50 text-slate-400",
 };
 
@@ -317,9 +316,9 @@ const creditPackCta = extra.creditPackCta.replace(
 
           <div class="my-5 h-px bg-slate-100"></div>
 
-          <ul class="flex-1 space-y-3">
+          <ul class="flex-1 space-y-3.5">
             {plan.features.map((feature) => (
-              <li class:list={["flex gap-3 text-sm leading-6", featureStateClass[feature.state]]}>
+              <li class:list={["flex gap-3 text-[15px] leading-6", featureStateClass[feature.state]]}>
                 <span
                   class:list={[
                     "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
@@ -332,9 +331,10 @@ const creditPackCta = extra.creditPackCta.replace(
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
-                  {feature.state === "soon" && (
+                  {feature.state === "restrictedSoon" && (
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 15v2m0-10a3 3 0 00-3 3v2h6v-2a3 3 0 00-3-3z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M7 12h10v7H7z" />
                     </svg>
                   )}
                   {feature.state === "unavailable" && (
@@ -348,7 +348,7 @@ const creditPackCta = extra.creditPackCta.replace(
                   {feature.suffix}
                   {feature.text}
                   {feature.note && (
-                    <span class="mt-0.5 block text-xs font-medium text-inherit opacity-80">
+                    <span class="mt-1 block text-[13px] font-medium leading-5 text-inherit opacity-85">
                       {feature.note}
                     </span>
                   )}

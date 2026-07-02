@@ -133,6 +133,20 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     });
   });
 
+  it("skips api log writes for internal test emails", async () => {
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+
+    await ApiLogger.logRequest({
+      requestMethod: "POST",
+      responseStatus: 204,
+      endpoint: "/event/generate_success",
+      userEmail: "SamiCodesIt@gmail.com",
+    });
+
+    expect(fromCalls).toEqual([]);
+    expect(insertCalls).toEqual([]);
+  });
+
   it("compacts heavy fields for old API logs in a bounded batch", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-27T12:00:00.000Z"));

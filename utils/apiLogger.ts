@@ -1,6 +1,10 @@
 import type { VercelRequest } from "@vercel/node";
 import { supabase } from "./supabaseClient";
 
+const INTERNAL_LOG_EXCLUDED_EMAILS = new Set([
+  "samicodesit@gmail.com",
+]);
+
 export interface ApiLogData {
   userId?: string;
   endpoint?: string;
@@ -46,6 +50,12 @@ export interface ApiLogCompactionResult {
 }
 
 export class ApiLogger {
+  private static isInternalLogExcludedEmail(email?: string) {
+    return INTERNAL_LOG_EXCLUDED_EMAILS.has(
+      String(email || "").trim().toLowerCase(),
+    );
+  }
+
   private static buildInsertRow(data: ApiLogData) {
     return {
       user_id: data.userId,
@@ -88,12 +98,15 @@ export class ApiLogger {
   }
 
   static async logRequests(items: ApiLogData[]): Promise<void> {
-    if (!items.length) return;
+    const loggableItems = items.filter(
+      (item) => !this.isInternalLogExcludedEmail(item.userEmail),
+    );
+    if (!loggableItems.length) return;
 
     try {
       const { error } = await supabase
         .from("api_logs")
-        .insert(items.map((item) => this.buildInsertRow(item)));
+        .insert(loggableItems.map((item) => this.buildInsertRow(item)));
 
       if (error) {
         console.error("Failed to log API request(s):", error);

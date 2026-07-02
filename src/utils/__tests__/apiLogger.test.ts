@@ -108,6 +108,33 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     expect(result.reasons[0]).toContain("phishing");
   });
 
+  it("does not flag compressed data image URLs as suspicious text", async () => {
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+
+    const result = ApiLogger.detectSuspiciousActivity({
+      imageUrls: ["data:image/jpeg;base64,AAxxxAApornAA"],
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+    });
+
+    expect(result).toEqual({ suspicious: false, reasons: [] });
+  });
+
+  it("still flags suspicious external image URLs", async () => {
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+
+    const result = ApiLogger.detectSuspiciousActivity({
+      imageUrls: ["https://cdn.example.com/adult/item.jpg"],
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+    });
+
+    expect(result.suspicious).toBe(true);
+    expect(result.reasons).toContain(
+      "Potentially inappropriate image URLs detected",
+    );
+  });
+
   it("logs OpenAI usage breakdown fields when provided", async () => {
     const { ApiLogger } = await import("../../../utils/apiLogger.js");
 

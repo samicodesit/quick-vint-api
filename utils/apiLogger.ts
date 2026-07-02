@@ -56,6 +56,29 @@ export class ApiLogger {
     );
   }
 
+  private static isSuspiciousExternalImageUrl(rawUrl: string) {
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(rawUrl);
+    } catch {
+      return false;
+    }
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) return false;
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const trustedImageHost =
+      hostname.includes("vinted") ||
+      hostname.includes("imgur") ||
+      hostname.includes("cloudinary");
+    if (trustedImageHost) return false;
+
+    const inspectedUrl = `${hostname}${parsedUrl.pathname}${parsedUrl.search}`.toLowerCase();
+    return ["adult", "porn", "xxx"].some((keyword) =>
+      inspectedUrl.includes(keyword),
+    );
+  }
+
   private static buildInsertRow(data: ApiLogData) {
     return {
       user_id: data.userId,
@@ -261,15 +284,7 @@ export class ApiLogger {
 
     // Check for non-Vinted related content in URLs
     if (
-      data.imageUrls?.some(
-        (url) =>
-          !url.includes("vinted") &&
-          !url.includes("imgur") &&
-          !url.includes("cloudinary") &&
-          (url.includes("adult") ||
-            url.includes("porn") ||
-            url.includes("xxx")),
-      )
+      data.imageUrls?.some((url) => this.isSuspiciousExternalImageUrl(url))
     ) {
       reasons.push("Potentially inappropriate image URLs detected");
     }

@@ -1,0 +1,466 @@
+---
+import type { PricingDisplayLabels } from "../utils/pricingDisplay.js";
+
+type PricingCopy = {
+  heading: string;
+  headingAccent: string;
+  subtitle: string;
+  subtitleLine2: string;
+};
+
+type ExtraPricingCopy = PricingDisplayLabels & {
+  safetyBannerTitle: string;
+  safetyZeroMass: string;
+  safetyZeroApi: string;
+  safetyZeroBan: string;
+  accountSafe: string;
+  mostPopular: string;
+  perMonth: string;
+  perForever: string;
+  freePlanName: string;
+  freePlanSubtitle: string;
+  freePlanCta: string;
+  starterPlanName: string;
+  starterPlanSubtitle: string;
+  starterPlanCta: string;
+  proPlanName: string;
+  proPlanSubtitle: string;
+  proPlanCta: string;
+  businessPlanName: string;
+  businessPlanSubtitle: string;
+  businessPlanCta: string;
+  creditPackEyebrow: string;
+  creditPackTitle: string;
+  creditPackBody: string;
+  creditPackCta: string;
+  aiGeneratedTitles: string;
+  phoneUpload: string;
+  seeIfYouLikeIt: string;
+  everythingInStarter: string;
+  changeAiTone: string;
+  emojiSupport: string;
+  everythingInPro: string;
+  highestDailyLimits: string;
+  dedicatedSupport: string;
+  priorityProcessing: string;
+  noCard: string;
+  instantAccess: string;
+  helpChoosing: string;
+  emailSupport: string;
+};
+
+type PricingLimits = {
+  freePrimaryValue: string;
+  freePrimaryLabel: string;
+  freeSecondaryText: string | null;
+  freeSecondaryValue: string | null;
+  freeSecondaryLabel: string;
+  starterDaily: string;
+  starterMonthly: string;
+  proDaily: string;
+  proMonthly: string;
+  businessDaily: string;
+  businessMonthly: string;
+};
+
+type CreditPack = {
+  credits: number;
+  priceLabel: string;
+};
+
+type FeatureState = "included" | "soon" | "unavailable";
+
+type Feature = {
+  state: FeatureState;
+  text: string;
+  strong?: string | null;
+  suffix?: string;
+  note?: string;
+};
+
+type Plan = {
+  id: "free" | "starter" | "pro" | "business";
+  name: string;
+  subtitle: string;
+  price: string;
+  period: string;
+  cta: string;
+  featured?: boolean;
+  features: Feature[];
+};
+
+export interface Props {
+  copy: PricingCopy;
+  extra: ExtraPricingCopy;
+  limits: PricingLimits;
+  creditPack: CreditPack;
+  isCurrentPricing: boolean;
+}
+
+const { copy, extra, limits, creditPack, isCurrentPricing } = Astro.props;
+
+const phoneUploadLabel = extra.phoneUpload.replace(/\s*\(.+\)\s*$/, "");
+const soonNote = "Coming soon";
+const gatedSoonNote = "Soon: Pro and Business only";
+const unavailableNote = "Not included";
+const notInStarterNote = "Upgrade to Pro";
+
+const limitFeature = (
+  strong: string,
+  suffix: string,
+  state: FeatureState = "included",
+): Feature => ({
+  state,
+  text: "",
+  strong,
+  suffix,
+});
+
+const includedFeature = (text: string): Feature => ({ state: "included", text });
+const soonFeature = (text: string, note = soonNote): Feature => ({
+  state: "soon",
+  text,
+  note,
+});
+const unavailableFeature = (text: string, note = unavailableNote): Feature => ({
+  state: "unavailable",
+  text,
+  note,
+});
+
+const freeSecondaryFeature: Feature = limits.freeSecondaryText
+  ? includedFeature(limits.freeSecondaryText)
+  : limitFeature(
+      limits.freeSecondaryValue || "",
+      limits.freeSecondaryLabel,
+    );
+
+const plans: Plan[] = [
+  {
+    id: "free",
+    name: extra.freePlanName,
+    subtitle: extra.freePlanSubtitle,
+    price: "€0",
+    period: extra.perForever,
+    cta: extra.freePlanCta,
+    features: [
+      limitFeature(limits.freePrimaryValue, limits.freePrimaryLabel),
+      freeSecondaryFeature,
+      includedFeature(extra.aiGeneratedTitles),
+      soonFeature(phoneUploadLabel, gatedSoonNote),
+      includedFeature(extra.seeIfYouLikeIt),
+      unavailableFeature(extra.changeAiTone),
+      unavailableFeature(extra.emojiSupport),
+    ],
+  },
+  {
+    id: "starter",
+    name: extra.starterPlanName,
+    subtitle: extra.starterPlanSubtitle,
+    price: "€3.99",
+    period: extra.perMonth,
+    cta: extra.starterPlanCta,
+    features: [
+      limitFeature(limits.starterDaily, ` ${extra.listingsPerDay}`),
+      limitFeature(limits.starterMonthly, ` ${extra.listingsPerMonth}`),
+      includedFeature(extra.aiGeneratedTitles),
+      unavailableFeature(phoneUploadLabel, gatedSoonNote),
+      unavailableFeature(extra.changeAiTone, notInStarterNote),
+      unavailableFeature(extra.emojiSupport, notInStarterNote),
+    ],
+  },
+  {
+    id: "pro",
+    name: extra.proPlanName,
+    subtitle: extra.proPlanSubtitle,
+    price: "€9.99",
+    period: extra.perMonth,
+    cta: extra.proPlanCta,
+    featured: true,
+    features: [
+      limitFeature(limits.proDaily, ` ${extra.listingsPerDay}`),
+      limitFeature(limits.proMonthly, ` ${extra.listingsPerMonth}`),
+      includedFeature(extra.everythingInStarter),
+      includedFeature(extra.changeAiTone),
+      includedFeature(extra.emojiSupport),
+      soonFeature(phoneUploadLabel),
+    ],
+  },
+  {
+    id: "business",
+    name: extra.businessPlanName,
+    subtitle: extra.businessPlanSubtitle,
+    price: "€19.99",
+    period: extra.perMonth,
+    cta: extra.businessPlanCta,
+    features: [
+      limitFeature(
+        limits.businessDaily,
+        isCurrentPricing ? ` ${extra.listingsPerDay}` : "",
+      ),
+      limitFeature(limits.businessMonthly, ` ${extra.listingsPerMonth}`),
+      includedFeature(extra.everythingInPro),
+      includedFeature(extra.highestDailyLimits),
+      includedFeature(extra.dedicatedSupport),
+      includedFeature(extra.priorityProcessing),
+      soonFeature(phoneUploadLabel),
+    ],
+  },
+];
+
+const buttonClassByPlan: Record<Plan["id"], string> = {
+  free:
+    "border border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50",
+  starter: "bg-slate-900 text-white hover:bg-slate-800",
+  pro: "bg-brand-600 text-white shadow-md shadow-brand-600/20 hover:bg-brand-700",
+  business: "bg-slate-900 text-white hover:bg-slate-800",
+};
+
+const featureStateClass: Record<FeatureState, string> = {
+  included: "text-slate-700",
+  soon: "text-amber-800",
+  unavailable: "text-slate-400",
+};
+
+const featureIconClass: Record<FeatureState, string> = {
+  included: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  soon: "border-amber-200 bg-amber-50 text-amber-700",
+  unavailable: "border-slate-200 bg-slate-50 text-slate-400",
+};
+
+const creditPackBody = extra.creditPackBody
+  .replace("{credits}", String(creditPack.credits))
+  .replace("{price}", creditPack.priceLabel);
+const creditPackCta = extra.creditPackCta.replace(
+  "{credits}",
+  String(creditPack.credits),
+);
+---
+
+<section class="bg-slate-50 px-4 pb-10 pt-24 sm:px-6 lg:px-8 lg:pt-28">
+  <div class="mx-auto max-w-4xl text-center">
+    <h1 class="text-4xl font-semibold tracking-tight text-slate-950 md:text-5xl">
+      {copy.heading}
+      <span class="text-brand-600">{copy.headingAccent}</span>
+    </h1>
+    <p class="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
+      {copy.subtitle}
+      <span class="block">{copy.subtitleLine2}</span>
+    </p>
+  </div>
+
+  <div class="mx-auto mt-8 max-w-6xl">
+    <div
+      class="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div class="flex items-center gap-2 font-medium">
+        <span
+          class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700"
+          aria-hidden="true"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" />
+          </svg>
+        </span>
+        {extra.safetyBannerTitle}
+      </div>
+      <div class="flex flex-wrap gap-2 text-xs font-medium text-emerald-800">
+        <span class="rounded-full bg-white px-2.5 py-1">{extra.safetyZeroMass}</span>
+        <span class="rounded-full bg-white px-2.5 py-1">{extra.safetyZeroApi}</span>
+        <span class="rounded-full bg-white px-2.5 py-1">{extra.safetyZeroBan}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid mx-auto mt-5 max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    {
+      plans.map((plan) => (
+        <article
+          class:list={[
+            "relative flex min-h-[560px] flex-col rounded-xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+            plan.featured
+              ? "border-brand-500 ring-1 ring-brand-500"
+              : "border-slate-200",
+          ]}
+        >
+          {plan.featured && (
+            <div class="absolute left-5 top-0 -translate-y-1/2">
+              <span class="rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                {extra.mostPopular}
+              </span>
+            </div>
+          )}
+
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-semibold text-slate-950">{plan.name}</h2>
+              <p class="mt-1 min-h-[42px] text-sm leading-6 text-slate-500">
+                {plan.subtitle}
+              </p>
+            </div>
+            <span class="shrink-0 whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+              {extra.accountSafe}
+            </span>
+          </div>
+
+          <div class="mt-5 flex items-end gap-2">
+            <span
+              class:list={[
+                "text-4xl font-semibold tracking-tight",
+                plan.featured ? "text-brand-600" : "text-slate-950",
+              ]}
+            >
+              {plan.price}
+            </span>
+            <span class="pb-1 text-sm text-slate-500">{plan.period}</span>
+          </div>
+
+          <div class="my-5 h-px bg-slate-100"></div>
+
+          <ul class="flex-1 space-y-3">
+            {plan.features.map((feature) => (
+              <li class:list={["flex gap-3 text-sm leading-6", featureStateClass[feature.state]]}>
+                <span
+                  class:list={[
+                    "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
+                    featureIconClass[feature.state],
+                  ]}
+                  aria-hidden="true"
+                >
+                  {feature.state === "included" && (
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {feature.state === "soon" && (
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  {feature.state === "unavailable" && (
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </span>
+                <span>
+                  {feature.strong && <strong class="font-semibold text-inherit">{feature.strong}</strong>}
+                  {feature.suffix}
+                  {feature.text}
+                  {feature.note && (
+                    <span class="mt-0.5 block text-xs font-medium text-inherit opacity-80">
+                      {feature.note}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <button
+            class:list={[
+              "mt-6 inline-flex w-full cursor-pointer items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition active:scale-[0.99]",
+              buttonClassByPlan[plan.id],
+            ]}
+            data-plan={plan.id}
+            id={`btn-${plan.id}`}
+          >
+            <span class="btn-text">{plan.cta}</span>
+            <span class="btn-status ml-2 text-sm opacity-90"></span>
+          </button>
+        </article>
+      ))
+    }
+  </div>
+
+  <div class="mx-auto mt-5 max-w-2xl">
+    <div class="rounded-xl border border-slate-200 bg-white px-5 py-5 text-center shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-600">
+        {extra.creditPackEyebrow}
+      </p>
+      <h2 class="mt-1 text-lg font-semibold text-slate-950">{extra.creditPackTitle}</h2>
+      <p class="mx-auto mt-1 max-w-xl text-sm leading-6 text-slate-600">
+        {creditPackBody}
+      </p>
+      <button
+        class="mt-4 inline-flex w-full min-w-[180px] cursor-pointer items-center justify-center rounded-lg bg-brand-50 px-5 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 active:scale-[0.99] sm:w-auto"
+        id="btn-credit-pack"
+      >
+        <span class="btn-text">{creditPackCta}</span>
+        <span class="btn-status ml-2 text-sm opacity-90"></span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="border-t border-slate-200 bg-white">
+  <div
+    class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-7 text-center md:flex-row md:text-left"
+  >
+    <div>
+      <p class="inline-flex items-center gap-2 font-medium text-slate-800">
+        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+        {extra.noCard}
+      </p>
+      <p class="mt-1 text-sm text-slate-500">{extra.instantAccess}</p>
+    </div>
+
+    <div>
+      <p class="text-sm text-slate-500">{extra.helpChoosing}</p>
+      <a
+        href="mailto:support@autolister.app"
+        class="font-medium text-slate-950 underline-offset-4 hover:underline"
+      >
+        {extra.emailSupport}
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  button.state-download {
+    background-color: #059669 !important;
+    color: white !important;
+    border-color: #059669 !important;
+  }
+  button.state-download:hover {
+    background-color: #047857 !important;
+    border-color: #047857 !important;
+  }
+
+  button.state-signin {
+    background-color: #7c3aed !important;
+    color: white !important;
+    border-color: #7c3aed !important;
+  }
+  button.state-signin:hover {
+    background-color: #6d28d9 !important;
+    border-color: #6d28d9 !important;
+  }
+
+  button.state-current {
+    background-color: #10b981 !important;
+    color: white !important;
+    border-color: #10b981 !important;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  button.state-disabled {
+    background-color: #9ca3af !important;
+    color: white !important;
+    border-color: #9ca3af !important;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  button:disabled {
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+</style>

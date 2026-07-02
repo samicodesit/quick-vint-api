@@ -506,6 +506,7 @@
   </div>
 
   <script>
+    const EXTENSION_ID = 'mommklhpammnlojjobejddmidmdcalcl';
     const VERIFY_RETRIES = 8;
     const VERIFY_DELAY_MS = 2000;
 
@@ -557,6 +558,24 @@
       document.getElementById('error').classList.add('hidden');
       document.getElementById('success').classList.remove('hidden');
       initializeVintedRedirect();
+      notifyExtensionCheckoutFulfilled();
+    }
+
+    function notifyExtensionCheckoutFulfilled() {
+      try {
+        if (!window.chrome?.runtime?.sendMessage) return;
+        chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          { type: 'CHECKOUT_FULFILLED' },
+          () => {
+            if (chrome.runtime.lastError) {
+              console.debug('AutoLister extension refresh skipped:', chrome.runtime.lastError.message);
+            }
+          },
+        );
+      } catch (error) {
+        console.debug('AutoLister extension refresh skipped:', error);
+      }
     }
 
     async function verifySession(sessionId) {

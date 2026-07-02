@@ -3365,7 +3365,7 @@
                     </div>
 
                     <div class="view-brief-copy" style="max-width:none;">
-                        Eligible means: free lifetime limit hit, still free, subscribed, has unsubscribe link, not uninstalled after the limit hit, no previous follow-up after that limit hit, and not samicodesit@gmail.com. Sends run one by one with a 1-second pause.
+                        Eligible means: free lifetime limit hit or reached 5/5, still free, subscribed, has unsubscribe link, not uninstalled after that point, no previous follow-up after that point, and not permanently excluded. Sends run one by one with a 1-second pause.
                     </div>
 
                     <div id="limitFollowupExcludedList" class="view-brief-copy" style="max-width:none;"></div>
@@ -3393,15 +3393,14 @@
             if (!target) return;
             const emails = state.limitFollowupExcludedEmails || [];
             if (!emails.length) {
-                target.innerHTML = 'No extra exclusions for this run.';
+                target.innerHTML = 'No permanent exclusions loaded yet. Run a dry run to refresh them.';
                 return;
             }
 
             target.innerHTML = `
                 <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.45rem;">
-                    <span>Excluded from this run:</span>
+                    <span>Permanently excluded:</span>
                     ${emails.map(email => `<span class="badge badge-neutral">${escapeHtml(email)}</span>`).join('')}
-                    <button class="btn-secondary" style="padding:0.28rem 0.55rem;" onclick="clearLimitFollowupExclusions()">Clear</button>
                 </div>
             `;
         }
@@ -3409,25 +3408,29 @@
         async function excludeLimitFollowupEmail(encodedEmail) {
             const email = normalizeEmailForAdmin(decodeURIComponent(encodedEmail || ''));
             if (!email || !email.includes('@')) return;
-            if (!state.limitFollowupExcludedEmails.includes(email)) {
-                state.limitFollowupExcludedEmails.push(email);
+            try {
+                const res = await fetch('/api/admin?action=exclude-limit-followup', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.secret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Could not exclude user');
+                showToast(`${email} permanently excluded`);
+                await runLimitFollowupDryRun();
+            } catch (error) {
+                showToast(error.message || 'Could not exclude user', 'error');
             }
-            renderLimitFollowupExclusions();
-            showToast(`${email} excluded from this run`);
-            await runLimitFollowupDryRun();
-        }
-
-        async function clearLimitFollowupExclusions() {
-            state.limitFollowupExcludedEmails = [];
-            renderLimitFollowupExclusions();
-            await runLimitFollowupDryRun();
         }
 
         function getLimitFollowupSettings() {
             return {
                 since_hours: Number(document.getElementById('limitFollowupSinceHours')?.value || 168),
                 min_delay_minutes: Number(document.getElementById('limitFollowupDelayMinutes')?.value || 30),
-                excluded_emails: state.limitFollowupExcludedEmails
+                excluded_emails: []
             };
         }
 
@@ -3470,10 +3473,12 @@
                         <td>${escapeHtml(recipient.email || '')}</td>
                         <td>${escapeHtml(formatDateTime(recipient.limitHitAt))}</td>
                         <td>eligible</td>
-                        <td><button class="btn-secondary" style="padding:0.28rem 0.55rem;" onclick="excludeLimitFollowupEmail('${escapeAttribute(encodeURIComponent(recipient.email || ''))}')">Exclude</button></td>
+                        <td><button class="btn-secondary" style="padding:0.28rem 0.55rem;" onclick="excludeLimitFollowupEmail('${escapeAttribute(encodeURIComponent(recipient.email || ''))}')">Exclude permanently</button></td>
                     </tr>
                 `).join('');
             const excludedCount = Array.isArray(data.excluded_emails) ? data.excluded_emails.length : 0;
+            state.limitFollowupExcludedEmails = Array.isArray(data.excluded_emails) ? data.excluded_emails : [];
+            renderLimitFollowupExclusions();
 
             target.innerHTML = `
                 <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:0.9rem;">

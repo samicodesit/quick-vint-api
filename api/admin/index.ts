@@ -66,6 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleSendCampaign(req, res);
     } else if (action === "send-limit-followup") {
       return handleSendLimitFollowup(req, res);
+    } else if (action === "exclude-limit-followup") {
+      return handleExcludeLimitFollowup(req, res);
     } else {
       return res.status(400).json({ error: "Invalid POST action" });
     }
@@ -1969,6 +1971,7 @@ type LimitFollowupRecipient = {
 
 const LIMIT_FOLLOWUP_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
 const LIMIT_FOLLOWUP_SEND_DELAY_MS = 1000;
+const LIMIT_FOLLOWUP_EXCLUSION_EVENT = "/event/limit_followup_email_excluded";
 
 function normalizeEmailForCampaign(email?: string | null) {
   return String(email || "").trim().toLowerCase();
@@ -1986,6 +1989,45 @@ function getLimitFollowupExcludedEmails(input: unknown) {
   }
 
   return excludedEmails;
+}
+
+async function getPermanentLimitFollowupExclusions() {
+  const excludedEmails = new Set<string>();
+  const excludedUserIds = new Set<string>();
+
+  const { data, error } = await supabase
+    .from("api_logs")
+    .select("user_id, user_email, full_request_body, created_at")
+    .eq("endpoint", LIMIT_FOLLOWUP_EXCLUSION_EVENT)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  if (error) throw error;
+
+  for (const row of data || []) {
+    if (row.user_id) excludedUserIds.add(String(row.user_id));
+    const body = row.full_request_body || {};
+    const email = normalizeEmailForCampaign(
+      row.user_email || body?.context?.email || body?.email,
+    );
+    if (email) excludedEmails.add(email);
+  }
+
+  return { excludedEmails, excludedUserIds };
+}
+
+async function getAllLimitFollowupExclusions(input: unknown) {
+  const requestExcludedEmails = getLimitFollowupExcludedEmails(input);
+  const permanent = await getPermanentLimitFollowupExclusions();
+
+  for (const email of permanent.excludedEmails) {
+    requestExcludedEmails.add(email);
+  }
+
+  return {
+    excludedEmails: requestExcludedEmails,
+    excludedUserIds: permanent.excludedUserIds,
+  };
 }
 
 function getLimitFollowupLogEventName(row: {
@@ -2011,10 +2053,12 @@ async function findLimitFollowupRecipients({
   sinceHours,
   minDelayMinutes,
   excludedEmails,
+  excludedUserIds,
 }: {
   sinceHours: number;
   minDelayMinutes: number;
   excludedEmails: Set<string>;
+  excludedUserIds: Set<string>;
 }) {
   const sinceIso = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
   const eligibleBeforeMs = Date.now() - minDelayMinutes * 60 * 1000;
@@ -2048,6 +2092,52 @@ async function findLimitFollowupRecipients({
       email: (row.user_email as string | null) || null,
       limitHitAt: row.created_at as string,
     });
+  }
+
+  const { data: cappedProfiles, error: cappedProfilesError } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .gte("free_lifetime_generations_used", FREE_LIFETIME_LIMIT)
+    .eq("email_subscribed", true)
+    .not("email", "is", null)
+    .not("unsubscribe_token", "is", null)
+    .limit(2000);
+
+  if (cappedProfilesError) throw cappedProfilesError;
+
+  const cappedUserIds = ((cappedProfiles || []) as Array<{
+    id: string;
+    email: string | null;
+  }>)
+    .map((profile) => profile.id)
+    .filter((id) => id && !latestLimitByUser.has(id));
+
+  if (cappedUserIds.length) {
+    const { data: cappedActivity, error: cappedActivityError } = await supabase
+      .from("api_logs")
+      .select("user_id, user_email, endpoint, response_status, created_at")
+      .in("user_id", cappedUserIds)
+      .in("endpoint", ["/event/generate_success", "/api/generate"])
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .limit(3000);
+
+    if (cappedActivityError) throw cappedActivityError;
+
+    for (const row of cappedActivity || []) {
+      const userId = row.user_id as string | null;
+      if (!userId || latestLimitByUser.has(userId)) continue;
+      if (Date.parse(row.created_at as string) > eligibleBeforeMs) continue;
+      if (row.endpoint === "/api/generate" && Number(row.response_status) !== 200) {
+        continue;
+      }
+
+      latestLimitByUser.set(userId, {
+        userId,
+        email: (row.user_email as string | null) || null,
+        limitHitAt: row.created_at as string,
+      });
+    }
   }
 
   const userIds = Array.from(latestLimitByUser.keys());
@@ -2109,6 +2199,7 @@ async function findLimitFollowupRecipients({
   }>)
     .filter((profile) => {
       if (!profile.email || !profile.unsubscribe_token) return false;
+      if (excludedUserIds.has(profile.id)) return false;
       if (excludedEmails.has(normalizeEmailForCampaign(profile.email))) {
         return false;
       }
@@ -2178,12 +2269,14 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
       });
     }
 
+    const exclusions = await getAllLimitFollowupExclusions(excluded_emails);
     const recipients = await findLimitFollowupRecipients({
       sinceHours,
       minDelayMinutes,
-      excludedEmails: getLimitFollowupExcludedEmails(excluded_emails),
+      excludedEmails: exclusions.excludedEmails,
+      excludedUserIds: exclusions.excludedUserIds,
     });
-    const excludedEmails = Array.from(getLimitFollowupExcludedEmails(excluded_emails));
+    const excludedEmails = Array.from(exclusions.excludedEmails);
 
     if (dry_run !== false) {
       return res.status(200).json({
@@ -2270,6 +2363,48 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
     });
   } catch (error: any) {
     console.error("Limit follow-up campaign error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function handleExcludeLimitFollowup(req: VercelRequest, res: VercelResponse) {
+  try {
+    const email = normalizeEmailForCampaign(req.body?.email);
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ error: "Valid email is required." });
+    }
+
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("id, email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    await ApiLogger.logRequest({
+      userId: (profile?.id as string | undefined) || undefined,
+      userEmail: (profile?.email as string | undefined) || email,
+      endpoint: LIMIT_FOLLOWUP_EXCLUSION_EVENT,
+      requestMethod: "POST",
+      responseStatus: 204,
+      fullRequestBody: {
+        event: "limit_followup_email_excluded",
+        source: "admin",
+        page: "admin",
+        context: {
+          email,
+        },
+      },
+    });
+
+    return res.status(200).json({
+      ok: true,
+      email,
+      user_id: profile?.id || null,
+    });
+  } catch (error: any) {
+    console.error("Limit follow-up exclusion error:", error);
     return res.status(500).json({ error: error.message });
   }
 }

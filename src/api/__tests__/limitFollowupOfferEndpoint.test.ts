@@ -112,6 +112,24 @@ describe("limit follow-up on-page offer endpoint", () => {
     });
   });
 
+  it("allows the extension origin used by content-script authenticated requests", async () => {
+    const handlerModule = await import(
+      "../../../api/user/limit-followup-offer.js"
+    );
+
+    expect(
+      handlerModule.isAllowedLimitFollowupOrigin(
+        "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      ),
+    ).toBe(true);
+    expect(
+      handlerModule.isAllowedLimitFollowupOrigin("https://www.vinted.nl"),
+    ).toBe(true);
+    expect(
+      handlerModule.isAllowedLimitFollowupOrigin("https://evil.example"),
+    ).toBe(false);
+  });
+
   it("lets the internal test account preview the on-page offer without email campaign eligibility", async () => {
     getUserMock.mockResolvedValue({
       data: { user: { id: "test-user-1", email: "samicodesit@gmail.com" } },

@@ -12,6 +12,7 @@ import { FREE_LIFETIME_LIMIT } from "../../utils/tierConfig";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
+const chromeExtensionOriginPattern = /^chrome-extension:\/\/[a-p]{32}$/;
 
 const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
 const ALLOWED_ORIGINS = rawOrigins
@@ -20,15 +21,23 @@ const ALLOWED_ORIGINS = rawOrigins
   .filter(Boolean);
 const INTERNAL_OFFER_TEST_EMAILS = new Set(["samicodesit@gmail.com"]);
 
+export function isAllowedLimitFollowupOrigin(incomingOrigin?: string | null) {
+  if (!incomingOrigin) return true;
+  if (ALLOWED_ORIGINS.includes(incomingOrigin)) return true;
+  if (vintedOriginPattern.test(incomingOrigin)) return true;
+  if (chromeExtensionOriginPattern.test(incomingOrigin)) return true;
+  return false;
+}
+
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
-    if (!incomingOrigin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(incomingOrigin)) return callback(null, true);
-    if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
+    if (isAllowedLimitFollowupOrigin(incomingOrigin)) {
+      return callback(null, true);
+    }
     return callback(new Error("CORS origin denied for limit follow-up offer"), false);
   },
   methods: ["GET", "OPTIONS"],
-  allowedHeaders: ["Authorization", "X-Autolister-Extension-Version"],
+  allowedHeaders: ["Authorization", "Content-Type", "X-Autolister-Extension-Version"],
 });
 
 function runCors(req: VercelRequest, res: VercelResponse) {

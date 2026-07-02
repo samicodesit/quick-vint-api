@@ -6,6 +6,59 @@ import { getPricingPlanAction, normalizePricingPlanTier } from "../utils/pricing
 const API_BASE = window.location.origin;
 const EXTENSION_ID = "mommklhpammnlojjobejddmidmdcalcl";
 const EXTENSION_MESSAGE_TIMEOUT_MS = 900;
+const SIGN_IN_REFRESH_INTERVAL_MS = 1500;
+const SIGN_IN_REFRESH_MAX_ATTEMPTS = 200;
+
+const PRICING_MESSAGES = {
+  en: {
+    openingSignIn: "Opening AutoLister AI...",
+    popupOpened: "Sign in, then return here.",
+    manualSignIn: "Open AutoLister AI from Chrome, sign in, then return.",
+    signedIn: "Signed in. Choose a plan.",
+  },
+  fr: {
+    openingSignIn: "Ouverture d'AutoLister AI...",
+    popupOpened: "Connectez-vous, puis revenez ici.",
+    manualSignIn: "Ouvrez AutoLister AI dans Chrome, connectez-vous, puis revenez.",
+    signedIn: "Connecté. Choisissez une offre.",
+  },
+  de: {
+    openingSignIn: "AutoLister AI wird geöffnet...",
+    popupOpened: "Einloggen, dann hierher zurückkehren.",
+    manualSignIn: "AutoLister AI in Chrome öffnen, einloggen, dann zurückkehren.",
+    signedIn: "Eingeloggt. Wähle einen Plan.",
+  },
+  nl: {
+    openingSignIn: "AutoLister AI openen...",
+    popupOpened: "Log in en kom daarna hier terug.",
+    manualSignIn: "Open AutoLister AI in Chrome, log in en kom terug.",
+    signedIn: "Ingelogd. Kies een plan.",
+  },
+  pl: {
+    openingSignIn: "Otwieranie AutoLister AI...",
+    popupOpened: "Zaloguj się, potem wróć tutaj.",
+    manualSignIn: "Otwórz AutoLister AI w Chrome, zaloguj się i wróć.",
+    signedIn: "Zalogowano. Wybierz plan.",
+  },
+  es: {
+    openingSignIn: "Abriendo AutoLister AI...",
+    popupOpened: "Inicia sesión y vuelve aquí.",
+    manualSignIn: "Abre AutoLister AI en Chrome, inicia sesión y vuelve.",
+    signedIn: "Sesión iniciada. Elige un plan.",
+  },
+  it: {
+    openingSignIn: "Apertura di AutoLister AI...",
+    popupOpened: "Accedi, poi torna qui.",
+    manualSignIn: "Apri AutoLister AI in Chrome, accedi e torna qui.",
+    signedIn: "Accesso effettuato. Scegli un piano.",
+  },
+  pt: {
+    openingSignIn: "A abrir o AutoLister AI...",
+    popupOpened: "Inicie sessão e volte aqui.",
+    manualSignIn: "Abra o AutoLister AI no Chrome, inicie sessão e volte.",
+    signedIn: "Sessão iniciada. Escolha um plano.",
+  },
+};
 
 // Current user state
 let currentUser = null;
@@ -14,6 +67,7 @@ let hasExtension = false;
 let isPricingStateLoading = true;
 let pricingActionsBound = false;
 let currentPricingOffer = null;
+let signInRefreshTimer = null;
 
 // Plan configuration
 const PLAN_CONFIG = {
@@ -41,6 +95,16 @@ function getUtmParams() {
 
 function normalizeTier(tier) {
   return normalizePricingPlanTier(tier);
+}
+
+function getPricingLocale() {
+  const lang = document.documentElement.lang || "en";
+  return PRICING_MESSAGES[lang] ? lang : lang.split("-")[0] || "en";
+}
+
+function pricingMessage(key) {
+  const locale = getPricingLocale();
+  return (PRICING_MESSAGES[locale] || PRICING_MESSAGES.en)[key];
 }
 
 function sendExtensionMessage(message, timeoutMs = EXTENSION_MESSAGE_TIMEOUT_MS) {
@@ -141,6 +205,55 @@ async function checkExtensionInstalled() {
 async function getUserFromExtension() {
   if (!hasExtension) return null;
   return sendExtensionMessage({ type: "GET_USER_PROFILE" }, 1200);
+}
+
+async function openExtensionSignInPopup() {
+  if (!hasExtension) return false;
+  const response = await sendExtensionMessage(
+    { type: "OPEN_SIGNIN_POPUP" },
+    1200,
+  );
+  return response?.ok === true;
+}
+
+function stopSignInRefreshPolling() {
+  if (!signInRefreshTimer) return;
+  window.clearInterval(signInRefreshTimer);
+  signInRefreshTimer = null;
+}
+
+async function refreshUserFromExtension() {
+  if (!hasExtension) return false;
+  const userData = await getUserFromExtension();
+  if (!userData) return false;
+
+  const wasSignedOut = !currentUser;
+  applyExtensionUserData(userData);
+  updateButtonStates();
+
+  return wasSignedOut && Boolean(currentUser?.email);
+}
+
+function startSignInRefreshPolling() {
+  stopSignInRefreshPolling();
+
+  let attempts = 0;
+  signInRefreshTimer = window.setInterval(async () => {
+    attempts += 1;
+
+    if (await refreshUserFromExtension()) {
+      stopSignInRefreshPolling();
+      showStatusMessage(
+        pricingMessage("signedIn"),
+        "success",
+      );
+      return;
+    }
+
+    if (attempts >= SIGN_IN_REFRESH_MAX_ATTEMPTS) {
+      stopSignInRefreshPolling();
+    }
+  }, SIGN_IN_REFRESH_INTERVAL_MS);
 }
 
 // Utility functions for token handling
@@ -325,12 +438,16 @@ async function handlePlanClick(planName) {
     }
 
     if (!currentUser) {
-      // Prompt to sign in through extension
+      showStatusMessage(pricingMessage("openingSignIn"), "info");
+      trackEvent("pricing_signin_required", { plan: planName });
+      const popupOpened = await openExtensionSignInPopup();
       showStatusMessage(
-        "Sign in with AutoLister AI, then choose the plan that fits you.",
+        popupOpened
+          ? pricingMessage("popupOpened")
+          : pricingMessage("manualSignIn"),
         "info",
       );
-      trackEvent("pricing_signin_required", { plan: planName });
+      startSignInRefreshPolling();
       return;
     }
 
@@ -440,11 +557,16 @@ async function handleCreditPackClick() {
     }
 
     if (!currentUser?.email) {
+      showStatusMessage(pricingMessage("openingSignIn"), "info");
+      trackEvent("pricing_signin_required", { plan: "credit_pack" });
+      const popupOpened = await openExtensionSignInPopup();
       showStatusMessage(
-        "Sign in with AutoLister AI, then choose the option that fits you.",
+        popupOpened
+          ? pricingMessage("popupOpened")
+          : pricingMessage("manualSignIn"),
         "info",
       );
-      trackEvent("pricing_signin_required", { plan: "credit_pack" });
+      startSignInRefreshPolling();
       return;
     }
 

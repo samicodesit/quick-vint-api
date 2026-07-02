@@ -8,23 +8,23 @@ This is the source-of-truth checklist for the public pricing page and product ti
 
 The pricing page reads limits from `src/utils/pricingDisplay.ts`.
 
-By default, `PUBLIC_PRICING_DISPLAY_MODE` is `legacy`, which shows compatibility limits while the extension rollout continues:
+By default, `PUBLIC_PRICING_DISPLAY_MODE` is `current`, which shows the current entitlement limits:
 
-| Tier | Public price | Public limit display |
+| Tier | Public price | Current entitlement limits |
 | --- | ---: | --- |
-| Free Trial | EUR 0 | 2 listings/day, 8 listings/month |
-| Starter | EUR 3.99/month | 15 listings/day, 300 listings/month |
-| Pro | EUR 9.99/month | 40 listings/day, 800 listings/month |
-| Business | EUR 19.99/month | No daily limit, 1,500 listings/month |
+| Free Trial | EUR 0 | 5 lifetime listings, no daily/monthly reset |
+| Starter | EUR 3.99/month | 10 listings/day, 75 listings/month |
+| Pro | EUR 9.99/month | 25 listings/day, 250 listings/month |
+| Business | EUR 19.99/month | 60 listings/day, 600 listings/month |
 
-When `PUBLIC_PRICING_DISPLAY_MODE=current`, the public page switches to the current entitlement limits:
+When `PUBLIC_PRICING_DISPLAY_MODE=legacy`, the public page switches to compatibility limits:
 
-| Tier | Current entitlement limits |
+| Tier | Compatibility limit display |
 | --- | --- |
-| Free Trial | 5 lifetime listings, no daily/monthly reset |
-| Starter | 10 listings/day, 75 listings/month |
-| Pro | 25 listings/day, 250 listings/month |
-| Business | 60 listings/day, 600 listings/month |
+| Free Trial | 2 listings/day, 8 listings/month |
+| Starter | 15 listings/day, 300 listings/month |
+| Pro | 40 listings/day, 800 listings/month |
+| Business | No daily limit, 1,500 listings/month |
 
 ## Feature Matrix
 
@@ -43,6 +43,7 @@ When `PUBLIC_PRICING_DISPLAY_MODE=current`, the public page switches to the curr
 - Tier limits and Stripe price IDs live in `utils/tierConfig.ts`.
 - Public limit copy is derived in `src/utils/pricingDisplay.ts`.
 - The pricing UI is rendered by `src/components/PricingPage.astro`.
+- `PRICING_LIMITS_MODE` defaults to `current`. Set it to `legacy` only for an explicit compatibility rollback.
 - Free Trial currently allows emojis by default in `api/generate.ts`.
 - Tone customization and paid emoji controls are only enabled for `pro` and `business` in `api/generate.ts`.
 - Batch capacity uses the same generation entitlement checks through `api/user/batch-capacity.ts`.

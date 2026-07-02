@@ -26,7 +26,7 @@ function formatNumber(value: number): string {
 export function getPublicPricingDisplayMode(
   value?: string,
 ): PublicPricingDisplayMode {
-  return value === "current" ? "current" : "legacy";
+  return value === "legacy" ? "legacy" : "current";
 }
 
 export function getPricingDisplay(

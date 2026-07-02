@@ -17,16 +17,19 @@ describe("tier entitlements", () => {
     delete process.env.PRICING_LIMITS_MODE;
   });
 
-  it("defaults to legacy compatibility mode when the env var is missing", () => {
+  it("defaults to current mode when the env var is missing", () => {
     delete process.env.PRICING_LIMITS_MODE;
 
-    expect(getPricingLimitsMode()).toBe("legacy");
+    expect(getPricingLimitsMode()).toBe("current");
     expect(
       getTierConfigForProfile({
         subscription_status: "free",
         subscription_tier: "free",
       }).limits,
-    ).toMatchObject({ daily: 2, monthly: 8 });
+    ).toMatchObject({
+      daily: FREE_LIFETIME_LIMIT,
+      monthly: FREE_LIFETIME_LIMIT,
+    });
   });
 
   it("uses extension version gating while global mode is legacy", () => {

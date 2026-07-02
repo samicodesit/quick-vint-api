@@ -70,7 +70,7 @@ export function getNextTier(tier: TierKey): TierKey | null {
 }
 
 export function getPricingLimitsMode(): PricingLimitsMode {
-  return process.env.PRICING_LIMITS_MODE === "current" ? "current" : "legacy";
+  return process.env.PRICING_LIMITS_MODE === "legacy" ? "legacy" : "current";
 }
 
 export function compareSemver(a: string, b: string): number {
@@ -130,7 +130,7 @@ export const TIER_CONFIGS: Record<TierKey, TierConfig> = {
     id: "starter",
     name: "starter",
     displayName: "Starter",
-    description: "Perfect for casual Vinted sellers",
+    description: "For casual sellers",
     monthlyPrice: 3.99,
     stripe: {
       productId: "prod_T5HLgwjVpMBXzZ", // Replace with actual Stripe product ID
@@ -234,9 +234,8 @@ export const LEGACY_TIER_CONFIGS: Record<TierKey, TierConfig> = {
   },
 };
 
-// Compatibility mode preserves the old public limits while the Chrome extension
-// update rolls out. Flip PRICING_LIMITS_MODE=current when the new UI is broadly
-// available.
+// Compatibility mode preserves the old public limits for explicit rollbacks.
+// Active legacy subscribers still keep legacy paid limits in current mode.
 export const COMPATIBILITY_TIER_CONFIGS: Record<TierKey, TierConfig> = {
   ...LEGACY_TIER_CONFIGS,
   free: {

@@ -7,17 +7,18 @@ import {
 } from "../pricingDisplay.js";
 
 describe("public pricing display", () => {
-  it("defaults to legacy display mode", () => {
-    expect(getPublicPricingDisplayMode()).toBe("legacy");
+  it("defaults to current display mode", () => {
+    expect(getPublicPricingDisplayMode()).toBe("current");
     expect(getPricingDisplay().limits).toMatchObject({
-      freePrimaryValue: "2",
-      starterDaily: "15",
-      proMonthly: "800",
-      businessDaily: "No Daily Limit",
+      freePrimaryValue: "5",
+      freeSecondaryText: "No daily or monthly free reset",
+      starterDaily: "10",
+      proMonthly: "250",
+      businessDaily: "60",
     });
   });
 
-  it("returns current display copy only when explicitly enabled", () => {
+  it("returns current display copy unless legacy is explicitly enabled", () => {
     expect(getPublicPricingDisplayMode("current")).toBe("current");
     expect(getPricingDisplay("current").limits).toMatchObject({
       freePrimaryValue: "5",
@@ -28,6 +29,16 @@ describe("public pricing display", () => {
     expect(getPricingDisplay("current").creditPack).toMatchObject({
       credits: 20,
       priceLabel: "€5.99",
+    });
+  });
+
+  it("keeps legacy display available for explicit compatibility mode", () => {
+    expect(getPublicPricingDisplayMode("legacy")).toBe("legacy");
+    expect(getPricingDisplay("legacy").limits).toMatchObject({
+      freePrimaryValue: "2",
+      starterDaily: "15",
+      proMonthly: "800",
+      businessDaily: "No Daily Limit",
     });
   });
 

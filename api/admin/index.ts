@@ -16,6 +16,13 @@ import {
 import { ApiLogger } from "../../utils/apiLogger";
 import { estimateOpenAICostUsd } from "../../utils/openaiModelExperiment";
 import { createPricingOfferUrl } from "../../utils/pricingOfferToken";
+import {
+  LIMIT_FOLLOWUP_COUPON_CODE,
+  LIMIT_FOLLOWUP_EXCLUSION_EVENT,
+  findLimitFollowupRecipients,
+  getAllLimitFollowupExclusions,
+  normalizeEmailForCampaign,
+} from "../../utils/limitFollowupEligibility";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -1962,262 +1969,7 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-type LimitFollowupRecipient = {
-  id: string;
-  email: string;
-  unsubscribe_token: string;
-  limitHitAt: string;
-};
-
-const LIMIT_FOLLOWUP_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
 const LIMIT_FOLLOWUP_SEND_DELAY_MS = 1000;
-const LIMIT_FOLLOWUP_EXCLUSION_EVENT = "/event/limit_followup_email_excluded";
-
-function normalizeEmailForCampaign(email?: string | null) {
-  return String(email || "").trim().toLowerCase();
-}
-
-function getLimitFollowupExcludedEmails(input: unknown) {
-  const excludedEmails = new Set(LIMIT_FOLLOWUP_EXCLUDED_EMAILS);
-  if (!Array.isArray(input)) return excludedEmails;
-
-  for (const email of input) {
-    const normalized = normalizeEmailForCampaign(String(email || ""));
-    if (normalized && normalized.includes("@")) {
-      excludedEmails.add(normalized);
-    }
-  }
-
-  return excludedEmails;
-}
-
-async function getPermanentLimitFollowupExclusions() {
-  const excludedEmails = new Set<string>();
-  const excludedUserIds = new Set<string>();
-
-  const { data, error } = await supabase
-    .from("api_logs")
-    .select("user_id, user_email, full_request_body, created_at")
-    .eq("endpoint", LIMIT_FOLLOWUP_EXCLUSION_EVENT)
-    .order("created_at", { ascending: false })
-    .limit(5000);
-
-  if (error) throw error;
-
-  for (const row of data || []) {
-    if (row.user_id) excludedUserIds.add(String(row.user_id));
-    const body = row.full_request_body || {};
-    const email = normalizeEmailForCampaign(
-      row.user_email || body?.context?.email || body?.email,
-    );
-    if (email) excludedEmails.add(email);
-  }
-
-  return { excludedEmails, excludedUserIds };
-}
-
-async function getAllLimitFollowupExclusions(input: unknown) {
-  const requestExcludedEmails = getLimitFollowupExcludedEmails(input);
-  const permanent = await getPermanentLimitFollowupExclusions();
-
-  for (const email of permanent.excludedEmails) {
-    requestExcludedEmails.add(email);
-  }
-
-  return {
-    excludedEmails: requestExcludedEmails,
-    excludedUserIds: permanent.excludedUserIds,
-  };
-}
-
-function getLimitFollowupLogEventName(row: {
-  full_request_body?: any;
-  endpoint?: string | null;
-}) {
-  const body = row.full_request_body || {};
-  if (typeof body.event === "string") return body.event;
-  if (typeof row.endpoint === "string" && row.endpoint.startsWith("/event/")) {
-    return row.endpoint.slice("/event/".length);
-  }
-  return "";
-}
-
-function getLogEventContext(row: { full_request_body?: any }) {
-  const body = row.full_request_body || {};
-  return body && typeof body.context === "object" && body.context
-    ? body.context
-    : {};
-}
-
-async function findLimitFollowupRecipients({
-  sinceHours,
-  minDelayMinutes,
-  excludedEmails,
-  excludedUserIds,
-}: {
-  sinceHours: number;
-  minDelayMinutes: number;
-  excludedEmails: Set<string>;
-  excludedUserIds: Set<string>;
-}) {
-  const sinceIso = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
-  const eligibleBeforeMs = Date.now() - minDelayMinutes * 60 * 1000;
-
-  const { data: limitRows, error: limitError } = await supabase
-    .from("api_logs")
-    .select("user_id, user_email, endpoint, full_request_body, created_at")
-    .eq("endpoint", "/event/generate_limit_hit")
-    .gte("created_at", sinceIso)
-    .order("created_at", { ascending: false })
-    .limit(1000);
-
-  if (limitError) throw limitError;
-
-  const latestLimitByUser = new Map<
-    string,
-    { userId: string; email?: string | null; limitHitAt: string }
-  >();
-
-  for (const row of limitRows || []) {
-    const userId = row.user_id as string | null;
-    if (!userId || latestLimitByUser.has(userId)) continue;
-
-    const context = getLogEventContext(row);
-    const code = context.code || context.reason || null;
-    if (code !== "free_lifetime_limit") continue;
-    if (Date.parse(row.created_at as string) > eligibleBeforeMs) continue;
-
-    latestLimitByUser.set(userId, {
-      userId,
-      email: (row.user_email as string | null) || null,
-      limitHitAt: row.created_at as string,
-    });
-  }
-
-  const { data: cappedProfiles, error: cappedProfilesError } = await supabase
-    .from("profiles")
-    .select("id, email")
-    .gte("free_lifetime_generations_used", FREE_LIFETIME_LIMIT)
-    .eq("email_subscribed", true)
-    .not("email", "is", null)
-    .not("unsubscribe_token", "is", null)
-    .limit(2000);
-
-  if (cappedProfilesError) throw cappedProfilesError;
-
-  const cappedUserIds = ((cappedProfiles || []) as Array<{
-    id: string;
-    email: string | null;
-  }>)
-    .map((profile) => profile.id)
-    .filter((id) => id && !latestLimitByUser.has(id));
-
-  if (cappedUserIds.length) {
-    const { data: cappedActivity, error: cappedActivityError } = await supabase
-      .from("api_logs")
-      .select("user_id, user_email, endpoint, response_status, created_at")
-      .in("user_id", cappedUserIds)
-      .in("endpoint", ["/event/generate_success", "/api/generate"])
-      .gte("created_at", sinceIso)
-      .order("created_at", { ascending: false })
-      .limit(3000);
-
-    if (cappedActivityError) throw cappedActivityError;
-
-    for (const row of cappedActivity || []) {
-      const userId = row.user_id as string | null;
-      if (!userId || latestLimitByUser.has(userId)) continue;
-      if (Date.parse(row.created_at as string) > eligibleBeforeMs) continue;
-      if (row.endpoint === "/api/generate" && Number(row.response_status) !== 200) {
-        continue;
-      }
-
-      latestLimitByUser.set(userId, {
-        userId,
-        email: (row.user_email as string | null) || null,
-        limitHitAt: row.created_at as string,
-      });
-    }
-  }
-
-  const userIds = Array.from(latestLimitByUser.keys());
-  if (!userIds.length) return [];
-
-  const { data: laterEvents, error: laterEventsError } = await supabase
-    .from("api_logs")
-    .select("user_id, endpoint, full_request_body, created_at")
-    .in("user_id", userIds)
-    .in("endpoint", [
-      "/event/extension_uninstalled",
-      "/event/uninstall_feedback_submitted",
-      "/event/limit_followup_email_sent",
-    ])
-    .gte("created_at", sinceIso)
-    .order("created_at", { ascending: false })
-    .limit(2000);
-
-  if (laterEventsError) throw laterEventsError;
-
-  const blockedUserIds = new Set<string>();
-  for (const row of laterEvents || []) {
-    const userId = row.user_id as string | null;
-    if (!userId) continue;
-    const limitHit = latestLimitByUser.get(userId);
-    if (!limitHit) continue;
-    if (Date.parse(row.created_at as string) < Date.parse(limitHit.limitHitAt)) {
-      continue;
-    }
-    const event = getLimitFollowupLogEventName(row);
-    if (
-      event === "extension_uninstalled" ||
-      event === "uninstall_feedback_submitted" ||
-      event === "limit_followup_email_sent"
-    ) {
-      blockedUserIds.add(userId);
-    }
-  }
-
-  const { data: profiles, error: profileError } = await supabase
-    .from("profiles")
-    .select(
-      "id, email, subscription_status, subscription_tier, email_subscribed, unsubscribe_token",
-    )
-    .in("id", userIds)
-    .eq("email_subscribed", true)
-    .not("email", "is", null)
-    .not("unsubscribe_token", "is", null);
-
-  if (profileError) throw profileError;
-
-  return ((profiles || []) as Array<{
-    id: string;
-    email: string | null;
-    subscription_status: string | null;
-    subscription_tier: string | null;
-    email_subscribed: boolean | null;
-    unsubscribe_token: string | null;
-  }>)
-    .filter((profile) => {
-      if (!profile.email || !profile.unsubscribe_token) return false;
-      if (excludedUserIds.has(profile.id)) return false;
-      if (excludedEmails.has(normalizeEmailForCampaign(profile.email))) {
-        return false;
-      }
-      if (blockedUserIds.has(profile.id)) return false;
-      return !(
-        profile.subscription_status === "active" &&
-        profile.subscription_tier &&
-        profile.subscription_tier !== "free"
-      );
-    })
-    .map((profile) => ({
-      id: profile.id,
-      email: profile.email as string,
-      unsubscribe_token: profile.unsubscribe_token as string,
-      limitHitAt: latestLimitByUser.get(profile.id)?.limitHitAt || "",
-    }))
-    .filter((recipient) => recipient.limitHitAt);
-}
 
 async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) {
   try {
@@ -2282,7 +2034,7 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
       return res.status(200).json({
         mode: "dry_run",
         template_key: "limit_hit_followup_v1",
-        coupon_code: "LISTFASTER20",
+        coupon_code: LIMIT_FOLLOWUP_COUPON_CODE,
         since_hours: sinceHours,
         min_delay_minutes: minDelayMinutes,
         excluded_emails: excludedEmails,
@@ -2331,7 +2083,7 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
             page: "admin",
             context: {
               template: "limit_hit_followup_v1",
-              couponCode: "LISTFASTER20",
+              couponCode: LIMIT_FOLLOWUP_COUPON_CODE,
               limitHitAt: recipient.limitHitAt,
             },
           },
@@ -2354,7 +2106,7 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
     return res.status(200).json({
       mode: "send",
       template_key: "limit_hit_followup_v1",
-      coupon_code: "LISTFASTER20",
+      coupon_code: LIMIT_FOLLOWUP_COUPON_CODE,
       excluded_emails: excludedEmails,
       total: recipients.length,
       sent,
@@ -2437,7 +2189,7 @@ function renderEmailTemplateVariables(
         {
           email: options.email,
           targetTier: "pro",
-          couponCode: "LISTFASTER20",
+          couponCode: LIMIT_FOLLOWUP_COUPON_CODE,
           expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         },
         undefined,

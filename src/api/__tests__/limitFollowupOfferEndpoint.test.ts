@@ -96,7 +96,7 @@ describe("limit follow-up on-page offer endpoint", () => {
     expect(findLimitFollowupRecipientsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "user-1",
-        minDelayMinutes: 30,
+        minDelayMinutes: 0,
         requireExplicitLimitHit: true,
       }),
     );

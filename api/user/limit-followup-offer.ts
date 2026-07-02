@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const exclusions = await getAllLimitFollowupExclusions([]);
   const recipients = await findLimitFollowupRecipients({
     sinceHours: 168,
-    minDelayMinutes: 30,
+    minDelayMinutes: 0,
     excludedEmails: exclusions.excludedEmails,
     excludedUserIds: exclusions.excludedUserIds,
     userId: user.id,

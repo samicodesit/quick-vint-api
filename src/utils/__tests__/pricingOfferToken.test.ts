@@ -57,7 +57,7 @@ describe("pricing offer tokens", () => {
     );
   });
 
-  it("builds a pricing URL with an offer parameter", () => {
+  it("builds a pricing URL with a default offer campaign", () => {
     const url = createPricingOfferUrl(
       {
         email: "charlotte.lefevre.1807@hotmail.com",
@@ -71,6 +71,23 @@ describe("pricing offer tokens", () => {
     expect(parsed.origin).toBe("https://autolister.app");
     expect(parsed.pathname).toBe("/pricing");
     expect(parsed.searchParams.get("offer")).toBeTruthy();
+    expect(parsed.searchParams.get("utm_campaign")).toBe(
+      "pricing_offer_email",
+    );
+  });
+
+  it("builds a pricing URL with an explicit offer campaign", () => {
+    const url = createPricingOfferUrl(
+      {
+        email: "charlotte.lefevre.1807@hotmail.com",
+        targetTier: "pro",
+        expiresAt: "2099-07-05T21:59:00.000Z",
+      },
+      "https://autolister.app",
+      { utmCampaign: "charlotte_pro_offer" },
+    );
+
+    const parsed = new URL(url);
     expect(parsed.searchParams.get("utm_campaign")).toBe("charlotte_pro_offer");
   });
 });

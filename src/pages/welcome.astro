@@ -15,6 +15,10 @@ const fallbackPath = `/welcome/${DEFAULT_WELCOME_LOCALE}`;
   ogUrl="https://autolister.app/welcome"
   htmlLang="en"
 >
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow" />
+  </Fragment>
+
   <main class="pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
     <section
       class="rounded-3xl border border-slate-200 bg-white shadow-sm p-8 text-center"

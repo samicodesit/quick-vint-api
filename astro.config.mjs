@@ -10,8 +10,24 @@ export default defineConfig({
   integrations: [
     mdx(),
     sitemap({
-      filter: (page) =>
-        !page.endsWith("/uninstall/") && !page.endsWith("/email-templates/"),
+      filter: (page) => {
+        const pathname = new URL(page).pathname;
+        const excludedPaths = new Set([
+          "/admin/",
+          "/cancel/",
+          "/email-templates/",
+          "/phone-upload/",
+          "/success/",
+          "/ui-components/",
+          "/ui-components/content-components/",
+          "/uninstall/",
+          "/unsubscribe/",
+          "/updates/latest/",
+          "/welcome/",
+        ]);
+
+        return !excludedPaths.has(pathname) && !pathname.startsWith("/welcome/");
+      },
     }),
   ],
 

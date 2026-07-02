@@ -14,8 +14,8 @@ export type PricingDisplayLabels = {
 };
 
 const ENGLISH_LABELS: PricingDisplayLabels = {
-  listingsPerDay: "listings per day",
-  listingsPerMonth: "listings per month",
+  listingsPerDay: "/ day",
+  listingsPerMonth: "/ month",
   noDailyLimit: "No Daily Limit",
 };
 

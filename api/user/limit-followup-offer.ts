@@ -6,7 +6,9 @@ import {
   LIMIT_FOLLOWUP_COUPON_CODE,
   findLimitFollowupRecipients,
   getAllLimitFollowupExclusions,
+  normalizeEmailForCampaign,
 } from "../../utils/limitFollowupEligibility";
+import { FREE_LIFETIME_LIMIT } from "../../utils/tierConfig";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -16,6 +18,7 @@ const ALLOWED_ORIGINS = rawOrigins
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const INTERNAL_OFFER_TEST_EMAILS = new Set(["samicodesit@gmail.com"]);
 
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
@@ -67,7 +70,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 
+  const normalizedUserEmail = normalizeEmailForCampaign(user.email);
+  const isInternalOfferTester =
+    normalizedUserEmail && INTERNAL_OFFER_TEST_EMAILS.has(normalizedUserEmail);
   const exclusions = await getAllLimitFollowupExclusions([]);
+  if (isInternalOfferTester) {
+    exclusions.excludedEmails.delete(normalizedUserEmail);
+    exclusions.excludedUserIds.delete(user.id);
+  }
   const recipients = await findLimitFollowupRecipients({
     sinceHours: 168,
     minDelayMinutes: 0,
@@ -76,7 +86,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     userId: user.id,
     requireExplicitLimitHit: true,
   });
-  const recipient = recipients[0];
+  let recipient = recipients[0];
+
+  if (!recipient && isInternalOfferTester) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select(
+        "id, email, subscription_status, subscription_tier, email_subscribed, unsubscribe_token, free_lifetime_generations_used",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return res.status(500).json({ error: "Failed to check tester profile" });
+    }
+
+    const isFree =
+      profile &&
+      (!profile.subscription_status ||
+        profile.subscription_status !== "active" ||
+        !profile.subscription_tier ||
+        profile.subscription_tier === "free");
+    const hasReachedFreeLimit =
+      Number(profile?.free_lifetime_generations_used || 0) >= FREE_LIFETIME_LIMIT;
+
+    if (
+      profile?.email &&
+      profile?.unsubscribe_token &&
+      profile.email_subscribed &&
+      isFree &&
+      hasReachedFreeLimit
+    ) {
+      recipient = {
+        id: profile.id,
+        email: profile.email,
+        unsubscribe_token: profile.unsubscribe_token,
+        limitHitAt: new Date().toISOString(),
+      };
+    }
+  }
 
   if (!recipient) {
     return res.status(200).json({ eligible: false });

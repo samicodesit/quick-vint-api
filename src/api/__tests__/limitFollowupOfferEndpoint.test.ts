@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getUserMock = vi.fn();
+const fromMock = vi.fn();
 const findLimitFollowupRecipientsMock = vi.fn();
 const getAllLimitFollowupExclusionsMock = vi.fn();
 const createPricingOfferUrlMock = vi.fn();
@@ -16,6 +17,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
     auth: {
       getUser: getUserMock,
     },
+    from: fromMock,
   },
 }));
 
@@ -27,6 +29,8 @@ vi.mock("../../../utils/limitFollowupEligibility", () => ({
   LIMIT_FOLLOWUP_COUPON_CODE: "LISTFASTER20",
   findLimitFollowupRecipients: findLimitFollowupRecipientsMock,
   getAllLimitFollowupExclusions: getAllLimitFollowupExclusionsMock,
+  normalizeEmailForCampaign: (email?: string | null) =>
+    String(email || "").trim().toLowerCase(),
 }));
 
 function createResponse() {
@@ -70,6 +74,7 @@ describe("limit follow-up on-page offer endpoint", () => {
     createPricingOfferUrlMock.mockReturnValue(
       "https://autolister.app/pricing?offer=test-token",
     );
+    fromMock.mockReset();
   });
 
   it("requires a real free-limit hit before showing the on-page discount offer", async () => {
@@ -100,6 +105,60 @@ describe("limit follow-up on-page offer endpoint", () => {
         requireExplicitLimitHit: true,
       }),
     );
+    expect(res.body).toMatchObject({
+      eligible: true,
+      couponCode: "LISTFASTER20",
+      pricingUrl: "https://autolister.app/pricing?offer=test-token",
+    });
+  });
+
+  it("lets the internal test account preview the on-page offer without email campaign eligibility", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "test-user-1", email: "samicodesit@gmail.com" } },
+      error: null,
+    });
+    getAllLimitFollowupExclusionsMock.mockResolvedValue({
+      excludedEmails: new Set<string>(["samicodesit@gmail.com"]),
+      excludedUserIds: new Set<string>(["test-user-1"]),
+    });
+    findLimitFollowupRecipientsMock.mockResolvedValue([]);
+    fromMock.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "test-user-1",
+          email: "samicodesit@gmail.com",
+          subscription_status: "free",
+          subscription_tier: "free",
+          email_subscribed: true,
+          unsubscribe_token: "unsub-test",
+          free_lifetime_generations_used: 5,
+        },
+        error: null,
+      }),
+    });
+
+    const handlerModule = await import(
+      "../../../api/user/limit-followup-offer.js"
+    );
+    const handler = handlerModule.default as unknown as (
+      req: unknown,
+      res: unknown,
+    ) => Promise<unknown>;
+
+    const req = {
+      method: "GET",
+      headers: {
+        authorization: "Bearer access-token",
+        origin: "https://www.vinted.fr",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
     expect(res.body).toMatchObject({
       eligible: true,
       couponCode: "LISTFASTER20",

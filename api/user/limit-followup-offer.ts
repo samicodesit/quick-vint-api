@@ -97,10 +97,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     campaignKey: "limit_followup_offer_v1",
     couponCode: LIMIT_FOLLOWUP_COUPON_CODE,
     discountLabel: "20% off your first month",
-    title: "Keep listing faster",
-    body: `You used your free listings. Use ${LIMIT_FOLLOWUP_COUPON_CODE} for 20% off your first month.`,
+    title: "Keep listing without waiting",
+    body: "You reached the free limit. Upgrade when you're ready and keep your next listings moving today.",
     trust: "No Vinted account connection needed.",
-    cta: "View plans",
+    cta: "View upgrade options",
     pricingUrl,
     limitHitAt: recipient.limitHitAt,
   });

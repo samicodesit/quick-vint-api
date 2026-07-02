@@ -108,7 +108,7 @@ const starterSubtitle =
     : extra.starterPlanSubtitle;
 const safetyNoLoginLabel =
   extra.safetyZeroMass === "0 mass actions"
-    ? "No Vinted login required"
+    ? "No need to connect your Vinted account"
     : extra.safetyZeroMass;
 
 const limitFeature = (
@@ -154,8 +154,8 @@ const plans: Plan[] = [
       freeSecondaryFeature,
       includedFeature(extra.aiGeneratedTitles),
       restrictedSoonFeature(uploadFeatureLabel),
-      includedFeature(extra.seeIfYouLikeIt),
       includedFeature(extra.emojiSupport),
+      includedFeature(extra.seeIfYouLikeIt),
       unavailableFeature(extra.changeAiTone),
     ],
   },
@@ -358,7 +358,7 @@ const creditPackCta = extra.creditPackCta.replace(
                   )}
                 </span>
                 <span>
-                  {feature.strong && <strong class="font-semibold text-inherit">{feature.strong}</strong>}
+                  {feature.strong && <strong class="font-bold text-slate-950">{feature.strong}</strong>}
                   {feature.suffix}
                   {feature.text}
                   {feature.note && (

@@ -592,7 +592,7 @@ export const SITE_EXTRA_COPY: Record<
     pricing: {
       safetyBannerTitle:
         "The only Vinted tool your account is genuinely safe with.",
-      safetyZeroMass: "0 mass actions",
+      safetyZeroMass: "No need to connect your Vinted account",
       safetyZeroApi: "0 API hooks",
       safetyZeroBan: "0 ban risk",
       accountSafe: "Account-Safe",
@@ -728,7 +728,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Le seul outil Vinted vraiment sûr pour votre compte.",
-      safetyZeroMass: "0 action de masse",
+      safetyZeroMass: "Pas besoin de connecter votre compte Vinted",
       safetyZeroApi: "0 accès API",
       safetyZeroBan: "0 risque de ban",
       accountSafe: "Sécurisé",
@@ -865,7 +865,7 @@ export const SITE_EXTRA_COPY: Record<
     pricing: {
       safetyBannerTitle:
         "Das einzige Vinted-Tool, das dein Konto wirklich schutzt.",
-      safetyZeroMass: "0 Massenaktionen",
+      safetyZeroMass: "Kein Vinted-Konto verbinden nötig",
       safetyZeroApi: "0 API-Zugriffe",
       safetyZeroBan: "0 Bannrisiko",
       accountSafe: "Kontosicher",
@@ -1002,7 +1002,7 @@ export const SITE_EXTRA_COPY: Record<
     pricing: {
       safetyBannerTitle:
         "De enige Vinted-tool die je account echt veilig houdt.",
-      safetyZeroMass: "0 massa-acties",
+      safetyZeroMass: "Je hoeft je Vinted-account niet te koppelen",
       safetyZeroApi: "0 API-koppelingen",
       safetyZeroBan: "0 ban-risico",
       accountSafe: "Accountveilig",
@@ -1140,7 +1140,7 @@ export const SITE_EXTRA_COPY: Record<
     pricing: {
       safetyBannerTitle:
         "Jedyne narzedzie Vinted, ktore naprawde chroni Twoje konto.",
-      safetyZeroMass: "0 akcji masowych",
+      safetyZeroMass: "Nie musisz łączyć konta Vinted",
       safetyZeroApi: "0 dostepu API",
       safetyZeroBan: "0 ryzyka bana",
       accountSafe: "Bezpieczne",
@@ -1276,7 +1276,7 @@ export const SITE_EXTRA_COPY: Record<
     pricing: {
       safetyBannerTitle:
         "La unica herramienta de Vinted que protege de verdad tu cuenta.",
-      safetyZeroMass: "0 acciones masivas",
+      safetyZeroMass: "No necesitas conectar tu cuenta de Vinted",
       safetyZeroApi: "0 accesos API",
       safetyZeroBan: "0 riesgo de baneo",
       accountSafe: "Cuenta segura",
@@ -1412,7 +1412,7 @@ export const SITE_EXTRA_COPY: Record<
     pricing: {
       safetyBannerTitle:
         "L'unico strumento Vinted che protegge davvero il tuo account.",
-      safetyZeroMass: "0 azioni di massa",
+      safetyZeroMass: "Non devi collegare il tuo account Vinted",
       safetyZeroApi: "0 accessi API",
       safetyZeroBan: "0 rischio ban",
       accountSafe: "Account sicuro",
@@ -1548,7 +1548,7 @@ export const SITE_EXTRA_COPY: Record<
     pricing: {
       safetyBannerTitle:
         "A unica ferramenta Vinted que protege mesmo a sua conta.",
-      safetyZeroMass: "0 acoes em massa",
+      safetyZeroMass: "Nao precisa ligar a sua conta Vinted",
       safetyZeroApi: "0 acessos API",
       safetyZeroBan: "0 risco de ban",
       accountSafe: "Conta segura",

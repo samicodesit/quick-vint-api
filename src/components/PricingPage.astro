@@ -102,11 +102,14 @@ const { copy, extra, limits, creditPack, isCurrentPricing } = Astro.props;
 const phoneUploadLabel = extra.phoneUpload.replace(/\s*\(.+\)\s*$/, "");
 const uploadFeatureLabel = `${phoneUploadLabel} + batch upload`;
 const restrictedSoonNote = "Soon restricted to Pro and Business";
-const proFeatureNote = "Pro feature";
 const starterSubtitle =
   extra.starterPlanSubtitle === "Perfect for casual Vinted sellers"
     ? "For casual sellers"
     : extra.starterPlanSubtitle;
+const safetyNoLoginLabel =
+  extra.safetyZeroMass === "0 mass actions"
+    ? "No Vinted login required"
+    : extra.safetyZeroMass;
 
 const limitFeature = (
   strong: string,
@@ -152,8 +155,8 @@ const plans: Plan[] = [
       includedFeature(extra.aiGeneratedTitles),
       restrictedSoonFeature(uploadFeatureLabel),
       includedFeature(extra.seeIfYouLikeIt),
+      includedFeature(extra.emojiSupport),
       unavailableFeature(extra.changeAiTone),
-      unavailableFeature(extra.emojiSupport),
     ],
   },
   {
@@ -168,8 +171,8 @@ const plans: Plan[] = [
       limitFeature(limits.starterMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
       restrictedSoonFeature(uploadFeatureLabel),
-      unavailableFeature(extra.changeAiTone, proFeatureNote),
-      unavailableFeature(extra.emojiSupport, proFeatureNote),
+      unavailableFeature(extra.changeAiTone),
+      unavailableFeature(extra.emojiSupport),
     ],
   },
   {
@@ -183,9 +186,10 @@ const plans: Plan[] = [
     features: [
       limitFeature(limits.proDaily, ` ${extra.listingsPerDay}`),
       limitFeature(limits.proMonthly, ` ${extra.listingsPerMonth}`),
-      includedFeature(extra.everythingInStarter),
+      includedFeature(extra.aiGeneratedTitles),
       includedFeature(extra.changeAiTone),
       includedFeature(extra.emojiSupport),
+      includedFeature(extra.priorityProcessing),
       includedFeature(uploadFeatureLabel),
     ],
   },
@@ -205,7 +209,6 @@ const plans: Plan[] = [
       includedFeature(extra.everythingInPro),
       includedFeature(extra.highestDailyLimits),
       includedFeature(extra.dedicatedSupport),
-      includedFeature(extra.priorityProcessing),
       includedFeature(uploadFeatureLabel),
     ],
   },
@@ -268,7 +271,7 @@ const creditPackCta = extra.creditPackCta.replace(
         {extra.safetyBannerTitle}
       </div>
       <div class="flex flex-wrap gap-2 text-xs font-medium text-emerald-800">
-        <span class="rounded-full bg-white px-2.5 py-1">{extra.safetyZeroMass}</span>
+        <span class="rounded-full bg-white px-2.5 py-1">{safetyNoLoginLabel}</span>
         <span class="rounded-full bg-white px-2.5 py-1">{extra.safetyZeroApi}</span>
         <span class="rounded-full bg-white px-2.5 py-1">{extra.safetyZeroBan}</span>
       </div>

@@ -2865,7 +2865,7 @@
             </div>
 
             <nav class="sidebar-nav">
-                <div class="nav-item active" data-view="overview" onclick="switchView('overview')">
+                <div class="nav-item" data-view="overview" onclick="switchView('overview')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -2913,7 +2913,7 @@
                         <span class="nav-meta">User feedback from listing tools</span>
                     </span>
                 </div>
-                <div class="nav-item" data-view="logs" onclick="switchView('logs')">
+                <div class="nav-item active" data-view="logs" onclick="switchView('logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path
@@ -2990,8 +2990,8 @@
                         </svg>
                     </button>
                     <div class="page-heading">
-                        <h2 id="pageTitle" class="page-title">Command Center</h2>
-                        <div id="pageSubtitle" class="page-subtitle">What to inspect next across growth, users, events, and logs.</div>
+                        <h2 id="pageTitle" class="page-title">Logs</h2>
+                        <div id="pageSubtitle" class="page-subtitle">Raw generation, system, and event logs for debugging user problems.</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -3014,12 +3014,12 @@
         </main>
 
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-            <button class="mobile-bottom-btn active" data-view="overview"
+            <button class="mobile-bottom-btn" data-view="overview"
                 onclick="switchView('overview')">Command</button>
             <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
             <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Signals</button>
             <button class="mobile-bottom-btn" data-view="reports" onclick="switchView('reports')">Reports</button>
-            <button class="mobile-bottom-btn" data-view="logs" onclick="switchView('logs')">Logs</button>
+            <button class="mobile-bottom-btn active" data-view="logs" onclick="switchView('logs')">Logs</button>
             <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
             <button class="mobile-bottom-btn" data-view="emails" onclick="switchView('emails')">Emails</button>
             <button class="mobile-bottom-btn" onclick="window.open('http://localhost:4326/ui-components', '_blank', 'noopener')">UI</button>
@@ -3051,6 +3051,8 @@
             logsType: 'generation',
             logsSearch: '',
             logsStatus: 'all',
+            logsRelatedUserId: '',
+            logsRelatedEmail: '',
             logsSearchTimer: null,
             usersPage: 1,
             usersSegment: 'today',
@@ -3060,13 +3062,13 @@
             usersSort: 'created_desc',
             userSearchTimer: null,
             limitFollowupExcludedEmails: [],
-            cachedData: {},
+            inflightRequests: {},
             isTransitioning: false
         };
 
         function getInitialAdminView() {
             const view = window.location.hash.replace('#', '');
-            return ['overview', 'growth', 'events', 'reports', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'overview';
+            return ['overview', 'growth', 'events', 'reports', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'logs';
         }
 
         // --- Auth Logic ---
@@ -3105,7 +3107,7 @@
             const dashboard = document.getElementById('dashboardLayout');
 
             try {
-                const res = await fetch('/api/admin?action=usage-stats', {
+                const res = await fetch('/api/admin?action=auth-check', {
                     headers: { 'Authorization': `Bearer ${state.secret}` }
                 });
 
@@ -3281,8 +3283,8 @@
         }
 
         function refreshData() {
-            // Clear cached data to force fresh fetch
-            state.cachedData = {};
+            // Drop shared in-flight requests and force the active view to fetch fresh data.
+            state.inflightRequests = {};
             loadView(state.currentView);
             showToast('Data refreshed', 'success');
         }
@@ -5768,6 +5770,8 @@
                 search: state.logsSearch || '',
                 status_filter: state.logsStatus || 'all'
             });
+            if (state.logsRelatedUserId) params.set('related_user_id', state.logsRelatedUserId);
+            if (state.logsRelatedEmail) params.set('related_email', state.logsRelatedEmail);
 
             const data = await fetchAPI(`/api/admin?${params}`);
             const logs = data.logs || [];
@@ -5845,7 +5849,7 @@
                     <div class="view-brief-top">
                         <div>
                             <div class="view-brief-title">Logs are the forensic stream</div>
-                            <div class="view-brief-copy">${escapeHtml(logPurpose)} Search by email, user id, endpoint, or analytics client id, then jump to the linked journey or user from the row.</div>
+                            <div class="view-brief-copy">${escapeHtml(logPurpose)} Search by email, user id, endpoint, or analytics client id, then jump to the linked journey or user from the row.${state.logsRelatedUserId || state.logsRelatedEmail ? ` Showing logs related to ${escapeHtml(state.logsRelatedEmail || state.logsRelatedUserId)} across account and correlated client activity.` : ''}</div>
                         </div>
                         <div class="view-brief-actions">
                             <button class="btn-secondary" onclick="setLogsQuickFilter('generation', '')">Generation logs</button>
@@ -5908,6 +5912,8 @@
         function setLogsQuickFilter(type, search) {
             state.logsType = type;
             state.logsSearch = search;
+            state.logsRelatedUserId = '';
+            state.logsRelatedEmail = '';
             state.logsPage = 1;
             renderLogs(document.getElementById('contentArea'));
         }
@@ -5920,6 +5926,8 @@
 
         function queueLogsSearch(value) {
             state.logsSearch = value.trim();
+            state.logsRelatedUserId = '';
+            state.logsRelatedEmail = '';
             state.logsPage = 1;
             clearTimeout(state.logsSearchTimer);
             state.logsSearchTimer = setTimeout(() => {
@@ -5936,8 +5944,31 @@
             state.logsType = type;
             state.logsSearch = search || '';
             state.logsStatus = 'all';
+            state.logsRelatedUserId = '';
+            state.logsRelatedEmail = '';
             state.logsPage = 1;
-            switchView('logs');
+            if (state.currentView === 'logs') {
+                updateNavigationState('logs');
+                renderLogs(document.getElementById('contentArea'));
+            } else {
+                switchView('logs');
+            }
+        }
+
+        function openLogsForUser(userId, encodedEmail = '', type = 'all') {
+            const email = decodeURIComponent(encodedEmail || '');
+            state.logsType = type;
+            state.logsSearch = email || userId || '';
+            state.logsStatus = 'all';
+            state.logsRelatedUserId = userId || '';
+            state.logsRelatedEmail = email || '';
+            state.logsPage = 1;
+            if (state.currentView === 'logs') {
+                updateNavigationState('logs');
+                renderLogs(document.getElementById('contentArea'));
+            } else {
+                switchView('logs');
+            }
         }
 
         async function renderUsers(container) {
@@ -6155,7 +6186,7 @@
             return `
                 <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
                     <button class="btn-secondary" onclick="showUserJourney('${userId}', '${encodedEmail}')">Journey</button>
-                    <button class="btn-secondary" onclick="openLogsForSearch('${userId}', 'all')">Logs</button>
+                    <button class="btn-secondary" onclick="openLogsForUser('${userId}', '${encodedEmail}', 'all')">Logs</button>
                     <button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
@@ -6881,12 +6912,34 @@
         }
 
         // --- Helpers ---
-        async function fetchAPI(endpoint) {
-            const res = await fetch(endpoint, {
+        async function fetchAPI(endpoint, options = {}) {
+            const cacheKey = String(endpoint);
+            if (!options.force && state.inflightRequests[cacheKey]) {
+                return state.inflightRequests[cacheKey];
+            }
+
+            const request = fetch(endpoint, {
                 headers: { 'Authorization': `Bearer ${state.secret}` }
+            }).then(async res => {
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ error: res.statusText || 'Request failed' }));
+                    throw new Error(error.error || res.statusText || 'Request failed');
+                }
+
+                const data = await res.json();
+                return data;
+            }).finally(() => {
+                delete state.inflightRequests[cacheKey];
             });
-            if (!res.ok) throw new Error(res.statusText);
-            return await res.json();
+
+            state.inflightRequests[cacheKey] = request;
+            return request;
+        }
+
+        function invalidateAdminCache(match) {
+            Object.keys(state.inflightRequests).forEach(key => {
+                if (!match || key.includes(match)) delete state.inflightRequests[key];
+            });
         }
 
         async function resetUsage(userId) {
@@ -6905,6 +6958,8 @@
                 const data = await res.json();
                 if (data.success) {
                     showToast('Usage limits reset successfully');
+                    invalidateAdminCache('action=list-users');
+                    invalidateAdminCache('action=usage-stats');
                     loadView('users'); // Refresh list
                 } else {
                     showToast(data.error || 'Failed to reset usage', 'error');
@@ -6982,6 +7037,8 @@
                 const data = await res.json();
                 if (data.success) {
                     showToast(data.message || 'Account status updated');
+                    invalidateAdminCache('action=list-users');
+                    invalidateAdminCache('action=user-journey');
                     loadView('users');
                 } else {
                     showToast(data.error || 'Failed to update account status', 'error');
@@ -7021,6 +7078,7 @@
                     log.flagged_reason = trimmedReason;
                     showLogDetails(logId);
                 }
+                invalidateAdminCache('action=view-logs');
                 showToast('Log flagged for review');
             } catch (e) {
                 showToast('Connection failed', 'error');
@@ -7164,7 +7222,7 @@
                                     </div>
                                     <div style="display:flex; gap:0.35rem; flex-wrap:wrap; justify-content:flex-end;">
                                         ${id ? `<button class="btn-secondary" onclick="showUserJourney('${escapeAttribute(id)}', '${escapeAttribute(encodedEmail)}')">Open user</button>` : ''}
-                                        <button class="btn-secondary" onclick="openLogsForSearch('${escapeAttribute(id || email)}', 'all')">Logs</button>
+                                        <button class="btn-secondary" onclick="openLogsForUser('${escapeAttribute(id)}', '${escapeAttribute(encodedEmail)}', 'all')">Logs</button>
                                     </div>
                                 </div>
                             `;
@@ -7218,8 +7276,22 @@
             }
         }
 
-        function showLogDetails(id) {
-            const log = state.currentLogs.find(l => l.id === id);
+        async function showLogDetails(id) {
+            let log = (state.currentLogs || []).find(l => l.id === id);
+            try {
+                const data = await fetchAPI(`/api/admin?action=log-detail&id=${encodeURIComponent(id)}`);
+                if (data.log) {
+                    log = data.log;
+                    const index = (state.currentLogs || []).findIndex(item => item.id === id);
+                    if (index >= 0) state.currentLogs[index] = data.log;
+                    else state.currentLogs = [...(state.currentLogs || []), data.log];
+                }
+            } catch (e) {
+                if (!log) {
+                    showToast(e.message || 'Could not load log details', 'error');
+                    return;
+                }
+            }
             if (!log) return;
             const logKind = getLogKind(log);
             const analyticsClientId = getLogAnalyticsClientId(log);

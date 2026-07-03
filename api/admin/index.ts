@@ -43,7 +43,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === "GET") {
-    if (action === "view-logs" || !action) {
+    if (action === "auth-check") {
+      return res.status(200).json({ ok: true });
+    } else if (action === "log-detail") {
+      return handleLogDetail(req, res);
+    } else if (action === "view-logs" || !action) {
       return handleViewLogs(req, res);
     } else if (action === "usage-stats") {
       return handleUsageStats(req, res);
@@ -127,6 +131,12 @@ const PROFILE_SELECT =
 
 const LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+
+const LOG_LIST_SELECT =
+  "id, user_id, user_email, endpoint, request_method, origin, image_urls, full_request_body, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+
+const LOG_GENERATION_LIST_SELECT =
+  "id, user_id, user_email, endpoint, request_method, origin, image_urls, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 function getQueryString(
   value: string | string[] | undefined,
@@ -1289,6 +1299,68 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+async function getRelatedLogFilters(req: VercelRequest) {
+  const relatedUserId = (getQueryString(req.query.related_user_id) || "").trim();
+  let relatedEmail = (getQueryString(req.query.related_email) || "").trim();
+
+  if (!relatedUserId && !relatedEmail) return null;
+
+  if (relatedUserId && !relatedEmail) {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", relatedUserId)
+      .maybeSingle();
+    if (error) throw error;
+    relatedEmail = profile?.email || "";
+  }
+
+  const directFilters = [
+    relatedUserId ? `user_id.eq.${relatedUserId}` : "",
+    relatedEmail ? `user_email.eq.${relatedEmail}` : "",
+  ].filter(Boolean);
+  const allFilters = [...directFilters];
+
+  if (directFilters.length) {
+    const { data: linkedLogs, error } = await supabase
+      .from("api_logs")
+      .select("full_request_body")
+      .or(directFilters.join(","))
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw error;
+
+    const clientIds = Array.from(
+      new Set((linkedLogs || []).map(getLogAnalyticsClientId).filter(Boolean)),
+    );
+    clientIds.forEach((clientId) => {
+      allFilters.push(`full_request_body->context->>analyticsClientId.eq.${clientId}`);
+    });
+  }
+
+  return allFilters.length ? allFilters.join(",") : null;
+}
+
+async function handleLogDetail(req: VercelRequest, res: VercelResponse) {
+  try {
+    const id = (getQueryString(req.query.id) || "").trim();
+    if (!id) return res.status(400).json({ error: "id is required" });
+
+    const { data, error } = await supabase
+      .from("api_logs")
+      .select(LOG_SELECT)
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+
+    const [log] = await attachCorrelatedUsersToLogs(data ? [data] : []);
+    return res.status(200).json({ log });
+  } catch (error: any) {
+    console.error("Error fetching log detail:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
 // --- LOGIC: View Logs ---
 async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
   try {
@@ -1303,6 +1375,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const logType = (req.query.log_type as string) || "generation";
     const search = (getQueryString(req.query.search) || "").trim();
     const statusFilter = getQueryString(req.query.status_filter) || "all";
+    const relatedLogFilters = await getRelatedLogFilters(req);
 
     const applyLogTypeFilter = (query: any) => {
       if (logType === "all") return query;
@@ -1315,10 +1388,13 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       return query.eq("endpoint", "/api/generate");
     };
 
+    const logListSelect: string =
+      logType === "generation" ? LOG_GENERATION_LIST_SELECT : LOG_LIST_SELECT;
+
     let query = applyLogTypeFilter(
       supabase
         .from("api_logs")
-        .select(LOG_SELECT)
+        .select(logListSelect)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1),
     );
@@ -1329,7 +1405,9 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (userId) query = query.eq("user_id", userId);
     if (startDate) query = query.gte("created_at", startDate);
     if (endDate) query = query.lte("created_at", endDate);
-    if (search) {
+    if (relatedLogFilters) {
+      query = query.or(relatedLogFilters);
+    } else if (search) {
       const safeSearch = search.replace(/[%_,]/g, "\\$&");
       const isUuid =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -1366,7 +1444,9 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (userId) countQuery = countQuery.eq("user_id", userId);
     if (startDate) countQuery = countQuery.gte("created_at", startDate);
     if (endDate) countQuery = countQuery.lte("created_at", endDate);
-    if (search) {
+    if (relatedLogFilters) {
+      countQuery = countQuery.or(relatedLogFilters);
+    } else if (search) {
       const safeSearch = search.replace(/[%_,]/g, "\\$&");
       const isUuid =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(

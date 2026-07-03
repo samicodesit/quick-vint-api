@@ -297,9 +297,14 @@ function buildAdminHarness() {
       const url = String(endpoint);
       fetchCalls.push(url);
       let body: unknown = usage;
+      if (url.includes("auth-check")) body = { ok: true };
       if (url.includes("growth-stats")) body = growth;
       if (url.includes("list-users")) body = users;
       if (url.includes("view-logs")) body = logs;
+      if (url.includes("log-detail")) {
+        const id = new URL(url, "https://admin.test").searchParams.get("id");
+        body = { log: logs.logs.find((log) => log.id === id) || logs.logs[0] };
+      }
       if (url.includes("user-journey")) body = journey;
       return { ok: true, json: async () => body };
     },
@@ -316,12 +321,20 @@ function buildAdminHarness() {
   return {
     context: context as typeof context & {
       loadView: (view: string) => Promise<void>;
-      showLogDetails: (id: string) => void;
+      showLogDetails: (id: string) => Promise<void>;
       showUserJourney: (userId: string, encodedEmail: string) => Promise<void>;
       showClientJourney: (analyticsClientId: string) => Promise<void>;
       openLogsForSearch: (search: string, type?: string) => void;
+      openLogsForUser: (userId: string, encodedEmail?: string, type?: string) => void;
       fetchCalls: string[];
-      state: { currentView: string; logsType: string; logsStatus: string; logsSearch: string };
+      state: {
+        currentView: string;
+        logsType: string;
+        logsStatus: string;
+        logsSearch: string;
+        logsRelatedUserId: string;
+        logsRelatedEmail: string;
+      };
     },
     content: el("contentArea"),
     modalBody: el("modalBody"),
@@ -344,7 +357,7 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain('src="/welcome/en"');
     expect(content.innerHTML).toContain("Rendered welcome page preview");
 
-    context.showLogDetails("log-1");
+    await context.showLogDetails("log-1");
     expect(modalTitle.textContent).toBe("Event Details");
     expect(modalBody.innerHTML).toContain("Context");
     expect(modalBody.innerHTML).toContain("existing-description choice");
@@ -384,7 +397,7 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("Cancelled");
     expect(content.innerHTML).toContain("Likely user: test@example.com");
     expect(content.innerHTML).not.toContain("Anonymous client cid-anon...");
-    context.showLogDetails("log-3");
+    await context.showLogDetails("log-3");
     expect(modalTitle.textContent).toBe("Event Details");
     expect(modalBody.innerHTML).toContain("Client ID: cid-anon-123");
     expect(modalBody.innerHTML).toContain("Likely user: test@example.com");
@@ -402,12 +415,20 @@ describe("admin HTML", () => {
     expect(context.state.logsType).toBe("events");
     expect(context.state.logsSearch).toBe("cid-anon-123");
     expect(context.state.logsStatus).toBe("all");
+    expect(context.state.logsRelatedUserId).toBe("");
 
     context.state.currentView = "users";
     await context.loadView("users");
     expect(content.innerHTML).toContain("Users are the account workbench");
     expect(content.innerHTML).toContain("Journey");
     expect(content.innerHTML).toContain("Logs");
+
+    context.openLogsForUser("user-1", encodeURIComponent("test@example.com"));
+    expect(context.state.logsType).toBe("all");
+    expect(context.state.logsSearch).toBe("test@example.com");
+    expect(context.state.logsRelatedUserId).toBe("user-1");
+    expect(context.state.logsRelatedEmail).toBe("test@example.com");
+    expect(context.fetchCalls.some((url) => url.includes("related_user_id=user-1"))).toBe(true);
   });
 
   it("sends log status filters to the backend", async () => {

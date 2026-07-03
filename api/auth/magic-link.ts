@@ -3,6 +3,7 @@ import Cors from "cors";
 import { ApiLogger } from "../../utils/apiLogger";
 import { supabase } from "../../utils/supabaseClient";
 import { isDisposableEmail } from "../../utils/disposableDomains";
+import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 
 // Read and parse allowed origins from env for CORS
 // This should primarily be your Chrome extension's origin
@@ -84,7 +85,11 @@ function normalizeErrorMessage(error: unknown) {
       (error as any).error_description ||
       (error as any).error ||
       (error as any).code;
-    if (typeof candidate === "string" && candidate.trim() && candidate !== "{}") {
+    if (
+      typeof candidate === "string" &&
+      candidate.trim() &&
+      candidate !== "{}"
+    ) {
       return candidate;
     }
   }
@@ -111,7 +116,10 @@ function serializeError(error: unknown) {
   return String(error);
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
@@ -223,6 +231,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       startedAt,
       error: "invalid_redirect_configuration",
     });
+    reportCriticalEndpointFailure({
+      endpoint: "/api/auth/magic-link",
+      status: 500,
+      details: {
+        stage: "redirect_configuration",
+        error: "invalid_redirect_configuration",
+      },
+    });
     return res
       .status(500)
       .json({ error: "Server configuration error related to redirect URL." });
@@ -251,6 +267,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       startedAt,
       error,
     });
+    reportCriticalEndpointFailure({
+      endpoint: "/api/auth/magic-link",
+      status: 504,
+      details: {
+        stage: "otp_timeout_or_exception",
+        emailDomain: email.split("@")[1]?.toLowerCase() || null,
+        error: normalizeErrorMessage(error),
+      },
+    });
     return res.status(504).json({
       error:
         "The sign-in email is taking too long to send. Please wait a minute and try again.",
@@ -269,7 +294,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       startedAt,
       error: otpResult.error,
     });
-    return res.status(502).json({ error: normalizeErrorMessage(otpResult.error) });
+    reportCriticalEndpointFailure({
+      endpoint: "/api/auth/magic-link",
+      status: 502,
+      details: {
+        stage: "otp_provider_error",
+        emailDomain: email.split("@")[1]?.toLowerCase() || null,
+        error: normalizeErrorMessage(otpResult.error),
+      },
+    });
+    return res
+      .status(502)
+      .json({ error: normalizeErrorMessage(otpResult.error) });
   }
 
   await logMagicLinkAttempt({

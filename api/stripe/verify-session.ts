@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
+import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
@@ -111,6 +112,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    reportCriticalEndpointFailure({
+      endpoint: "/api/stripe/verify-session",
+      status: 500,
+      details: {
+        sessionId:
+          typeof req.query.session_id === "string"
+            ? req.query.session_id
+            : null,
+        error: error?.message || String(error),
+        errorName: error?.name,
+      },
+    });
     return res.status(500).json({
       valid: false,
       error: "Failed to verify session",

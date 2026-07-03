@@ -32,6 +32,7 @@ import {
   redactDescriptionFooterFromBody,
   validateDescriptionFooterText,
 } from "../utils/descriptionFooter";
+import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -196,6 +197,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = "Profile fetch error";
     await ApiLogger.logRequest(logData);
+    reportCriticalEndpointFailure({
+      endpoint: "/api/generate",
+      status: 500,
+      userId: user.id,
+      details: {
+        stage: "profile_fetch",
+        extensionVersion,
+        pricingLimitsMode,
+        error: profileError.message,
+        errorCode: profileError.code,
+      },
+    });
     return res.status(500).json({ error: "Could not retrieve profile." });
   }
 
@@ -218,6 +231,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logData.processingDurationMs = Date.now() - startTime;
       logData.flaggedReason = "Profile initialization error";
       await ApiLogger.logRequest(logData);
+      reportCriticalEndpointFailure({
+        endpoint: "/api/generate",
+        status: 500,
+        userId: user.id,
+        details: {
+          stage: "profile_initialization",
+          extensionVersion,
+          pricingLimitsMode,
+          error: upsertError.message,
+          errorCode: upsertError.code,
+        },
+      });
       return res
         .status(500)
         .json({ error: "Failed to initialize user profile." });
@@ -624,6 +649,22 @@ Reply only in JSON: {"title":"...","description":"..."}
       statusCode === 400 ? "invalid_generation_input" : "generation_failed",
     );
     await ApiLogger.logRequest(logData);
+    if (statusCode >= 500) {
+      reportCriticalEndpointFailure({
+        endpoint: "/api/generate",
+        status: statusCode,
+        userId: user.id,
+        details: {
+          stage: "generation",
+          subscriptionTier: logData.subscriptionTier,
+          extensionVersion,
+          pricingLimitsMode,
+          openaiModel: logData.openaiModel,
+          error: err?.message || String(err),
+          errorName: err?.name,
+        },
+      });
+    }
 
     // Return generic error to user (protecting sensitive details)
     return res.status(statusCode).json({

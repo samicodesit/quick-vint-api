@@ -10,6 +10,7 @@ import {
   findManageableSubscriptionForCustomer,
   repairProfileStripeCustomerId,
 } from "../../utils/stripeBillingPortal";
+import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
@@ -25,6 +26,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
+  let alertContext: {
+    userId?: string;
+    tier?: string;
+    source?: string;
+  } = {};
+
   try {
     const { email, tier, source, utm } = req.body as {
       email: string;
@@ -32,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       source?: string;
       utm?: Record<string, string>;
     };
+    alertContext = { tier, source };
 
     // 1) Validate email
     if (!email || typeof email !== "string" || !email.includes("@")) {
@@ -53,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data: profileRow, error: fetchErr } = await supabase
         .from("profiles")
         .select(
-          "stripe_customer_id, stripe_subscription_id, subscription_status, subscription_tier",
+          "id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_tier",
         )
         .ilike("email", email)
         .single();
@@ -61,15 +69,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (fetchErr) {
         console.error("Error fetching profile for checkout:", fetchErr);
         // continue – we can create a new customer
-      } else if (profileRow?.stripe_customer_id) {
-        customerId = profileRow.stripe_customer_id;
-        if (
-          profileRow.subscription_status === "active" &&
-          profileRow.subscription_tier &&
-          profileRow.subscription_tier !== "free" &&
-          profileRow.stripe_subscription_id
-        ) {
-          activeSubscriptionId = profileRow.stripe_subscription_id;
+      } else if (profileRow) {
+        alertContext.userId = profileRow.id;
+        if (profileRow.stripe_customer_id) {
+          customerId = profileRow.stripe_customer_id;
+          if (
+            profileRow.subscription_status === "active" &&
+            profileRow.subscription_tier &&
+            profileRow.subscription_tier !== "free" &&
+            profileRow.stripe_subscription_id
+          ) {
+            activeSubscriptionId = profileRow.stripe_subscription_id;
+          }
         }
       }
     }
@@ -174,6 +185,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
     console.error("❌ create-checkout error:", err);
+    reportCriticalEndpointFailure({
+      endpoint: "/api/stripe/create-checkout",
+      status: 500,
+      userId: alertContext.userId,
+      details: {
+        tier: alertContext.tier,
+        source: alertContext.source,
+        error: err?.message || String(err),
+        errorName: err?.name,
+      },
+    });
     return res.status(500).json({ error: err.message });
   }
 }

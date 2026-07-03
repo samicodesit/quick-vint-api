@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 import { CREDIT_PACK_CONFIG } from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
+import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
@@ -18,17 +19,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
+  let alertContext: {
+    source?: string;
+    profileId?: string;
+  } = {};
+
   try {
     const { email, source, utm } = req.body as {
       email: string;
       source?: string;
       utm?: Record<string, string>;
     };
+    alertContext = { source };
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return res.status(400).json({ error: "A valid email is required." });
     }
 
     if (!CREDIT_PACK_PRICE_ID) {
+      reportCriticalEndpointFailure({
+        endpoint: "/api/stripe/create-credit-checkout",
+        status: 500,
+        details: {
+          source,
+          error: "Credit pack Stripe price is not configured.",
+        },
+      });
       return res
         .status(500)
         .json({ error: "Credit pack Stripe price is not configured." });
@@ -45,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error("Profile not found for credit checkout:", email, fetchErr);
       return res.status(404).json({ error: "User profile was not found." });
     }
+    alertContext.profileId = profileRow.id;
 
     if (profileRow.stripe_customer_id) {
       try {
@@ -104,6 +120,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
     console.error("❌ create-credit-checkout error:", err);
+    reportCriticalEndpointFailure({
+      endpoint: "/api/stripe/create-credit-checkout",
+      status: 500,
+      userId: alertContext.profileId,
+      details: {
+        source: alertContext.source,
+        error: err?.message || String(err),
+        errorName: err?.name,
+      },
+    });
     return res.status(500).json({ error: err.message });
   }
 }

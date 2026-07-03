@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type CheckoutHandler = (req: any, res: any) => Promise<unknown>;
 
 const customerRetrieveMock = vi.fn();
+const customerCreateMock = vi.fn();
 const customerListMock = vi.fn();
 const subscriptionRetrieveMock = vi.fn();
 const subscriptionListMock = vi.fn();
 const portalCreateMock = vi.fn();
 const checkoutCreateMock = vi.fn();
+const reportCriticalEndpointFailureMock = vi.fn();
 const selectResponse = {
   data: null as unknown,
   error: null as unknown,
@@ -29,7 +31,7 @@ vi.mock("stripe", () => {
     this.customers = {
       retrieve: customerRetrieveMock,
       list: customerListMock,
-      create: vi.fn(),
+      create: customerCreateMock,
     };
     this.subscriptions = {
       retrieve: subscriptionRetrieveMock,
@@ -60,6 +62,10 @@ vi.mock("../../../utils/checkoutCors", () => ({
   handleCheckoutCors: vi.fn(async () => true),
 }));
 
+vi.mock("../../../utils/criticalEndpointAlert", () => ({
+  reportCriticalEndpointFailure: reportCriticalEndpointFailureMock,
+}));
+
 function createResponse() {
   const res = {
     statusCode: 200,
@@ -86,6 +92,7 @@ describe("create checkout", () => {
     selectResponse.error = null;
     vi.clearAllMocks();
     customerListMock.mockResolvedValue({ data: [] });
+    customerCreateMock.mockResolvedValue({ id: "cus_new" });
     subscriptionListMock.mockResolvedValue({ data: [] });
   });
 
@@ -106,9 +113,8 @@ describe("create checkout", () => {
       url: "https://billing.stripe.com/session/test",
     });
 
-    const checkoutModule = await import(
-      "../../../api/stripe/create-checkout.js"
-    );
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
     const handler = checkoutModule.default as unknown as CheckoutHandler;
     const req = {
       method: "POST",
@@ -143,6 +149,7 @@ describe("create checkout", () => {
 
   it("uses Stripe as the source of truth when Supabase says free but the customer has an active subscription", async () => {
     selectResponse.data = {
+      id: "profile_123",
       stripe_customer_id: "cus_existing",
       stripe_subscription_id: null,
       subscription_status: "free",
@@ -167,9 +174,8 @@ describe("create checkout", () => {
       url: "https://billing.stripe.com/session/test",
     });
 
-    const checkoutModule = await import(
-      "../../../api/stripe/create-checkout.js"
-    );
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
     const handler = checkoutModule.default as unknown as CheckoutHandler;
     const req = {
       method: "POST",
@@ -230,9 +236,8 @@ describe("create checkout", () => {
       url: "https://billing.stripe.com/session/test",
     });
 
-    const checkoutModule = await import(
-      "../../../api/stripe/create-checkout.js"
-    );
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
     const handler = checkoutModule.default as unknown as CheckoutHandler;
     const req = {
       method: "POST",
@@ -263,5 +268,45 @@ describe("create checkout", () => {
       },
     });
     expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("logs a critical failure when subscription checkout creation fails", async () => {
+    selectResponse.data = {
+      id: "profile_123",
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValue({ id: "cus_existing" });
+    checkoutCreateMock.mockRejectedValue(new Error("Stripe unavailable"));
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        email: "customer@example.com",
+        tier: "pro",
+        source: "pricing_page",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(500);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      endpoint: "/api/stripe/create-checkout",
+      status: 500,
+      userId: "profile_123",
+      details: {
+        tier: "pro",
+        source: "pricing_page",
+        error: "Stripe unavailable",
+        errorName: "Error",
+      },
+    });
   });
 });

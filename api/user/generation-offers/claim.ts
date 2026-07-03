@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
 import { supabase } from "../../../utils/supabaseClient";
 import { claimGenerationOffer } from "../../../utils/generationOffers";
+import { reportCriticalEndpointFailure } from "../../../utils/criticalEndpointAlert";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -17,7 +18,10 @@ const cors = Cors({
     if (!incomingOrigin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(incomingOrigin)) return callback(null, true);
     if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
-    return callback(new Error("CORS origin denied for generation offer claim"), false);
+    return callback(
+      new Error("CORS origin denied for generation offer claim"),
+      false,
+    );
   },
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],
@@ -67,5 +71,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const result = await claimGenerationOffer(user.id, offerId);
+  if (result.status >= 500) {
+    reportCriticalEndpointFailure({
+      endpoint: "/api/user/generation-offers/claim",
+      status: result.status,
+      userId: user.id,
+      details: {
+        offerId,
+        response: result.body,
+      },
+    });
+  }
+
   return res.status(result.status).json(result.body);
 }

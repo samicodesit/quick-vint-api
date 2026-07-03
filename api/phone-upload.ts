@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Busboy from "busboy";
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
+import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 
 // Initialize CORS middleware
 const cors = Cors({
@@ -174,6 +175,16 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error("List error:", error);
+    reportCriticalEndpointFailure({
+      endpoint: "/api/phone-upload",
+      status: 500,
+      details: {
+        action: "list",
+        sessionId,
+        error: error?.message || String(error),
+        errorName: error?.name,
+      },
+    });
     res.status(500).json({ error: error.message });
   }
 }
@@ -261,6 +272,17 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       });
     } catch (error: any) {
       console.error("Upload error:", error);
+      reportCriticalEndpointFailure({
+        endpoint: "/api/phone-upload",
+        status: 500,
+        details: {
+          action: "upload",
+          sessionId: sessionId || (req.query.sessionId as string) || null,
+          fileCount: fileUploads.length,
+          error: error?.message || String(error),
+          errorName: error?.name,
+        },
+      });
       sendError(500, error.message);
     }
   });
@@ -344,6 +366,16 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error("Complete error:", error);
+    reportCriticalEndpointFailure({
+      endpoint: "/api/phone-upload",
+      status: 500,
+      details: {
+        action: "complete",
+        sessionId,
+        error: error?.message || String(error),
+        errorName: error?.name,
+      },
+    });
     res.status(500).json({ error: error.message });
   }
 }

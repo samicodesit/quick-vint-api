@@ -10,6 +10,7 @@ import {
 } from "../../utils/tierConfig";
 import { buildSubscriptionProfileUpdate } from "../../src/utils/subscriptionUsageReset";
 import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
+import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 
 export const config = { api: { bodyParser: false } };
 
@@ -296,8 +297,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     return res.json({ received: true });
-  } catch (err) {
+  } catch (err: any) {
     console.error("❌ Error handling Stripe webhook:", err);
+    reportCriticalEndpointFailure({
+      endpoint: "/api/stripe/webhook",
+      status: 500,
+      details: {
+        eventId: event.id,
+        eventType: event.type,
+        error: err?.message || String(err),
+        errorName: err?.name,
+      },
+    });
     return res.status(500).end();
   }
 }

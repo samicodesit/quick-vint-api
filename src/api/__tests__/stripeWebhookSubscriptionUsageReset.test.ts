@@ -6,11 +6,18 @@ const constructEventMock = vi.fn();
 const retrieveSubscriptionMock = vi.fn();
 const retrieveCustomerMock = vi.fn();
 const rpcMock = vi.fn();
+const reportCriticalEndpointFailureMock = vi.fn();
 const updateCalls: Array<{ table: string; values: Record<string, unknown> }> =
   [];
-const selectQueues = new Map<string, Array<{ data: unknown; error?: unknown }>>();
+const selectQueues = new Map<
+  string,
+  Array<{ data: unknown; error?: unknown }>
+>();
 
-function queueSelect(table: string, response: { data: unknown; error?: unknown }) {
+function queueSelect(
+  table: string,
+  response: { data: unknown; error?: unknown },
+) {
   const queue = selectQueues.get(table) || [];
   queue.push(response);
   selectQueues.set(table, queue);
@@ -68,6 +75,10 @@ vi.mock("../../../utils/supabaseClient", () => ({
     from: vi.fn((table: string) => createQueryBuilder(table)),
     rpc: rpcMock,
   },
+}));
+
+vi.mock("../../../utils/criticalEndpointAlert", () => ({
+  reportCriticalEndpointFailure: reportCriticalEndpointFailureMock,
 }));
 
 function createResponse() {
@@ -270,6 +281,50 @@ describe("Stripe webhook subscription usage reset", () => {
         abuse_notes: null,
         paused_at: null,
         paused_by: null,
+      },
+    });
+  });
+
+  it("logs a critical failure when webhook processing fails", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_credit_pack",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_credit_pack",
+          mode: "payment",
+          payment_status: "paid",
+          customer: "cus_123",
+          customer_details: { email: "seller@example.com" },
+          metadata: {
+            purchase_type: "credit_pack",
+            profile_id: "profile_123",
+            credits: "20",
+            pack_id: "credits_20",
+          },
+        },
+      },
+    });
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: new Error("constraint failed"),
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(500);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      endpoint: "/api/stripe/webhook",
+      status: 500,
+      details: {
+        eventId: "evt_credit_pack",
+        eventType: "checkout.session.completed",
+        error: "constraint failed",
+        errorName: "Error",
       },
     });
   });

@@ -1,5 +1,5 @@
 ---
-const sourceVersion = "20260702-limit-followup-localized-card";
+const sourceVersion = "20260703-vinted-sell-layout";
 const isDev = import.meta.env.DEV;
 const localPreviewUrl = "http://localhost:4326/ui-components/content-components";
 ---
@@ -19,6 +19,7 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
         --muted: #667085;
         --line: #e5e7eb;
         --panel: #ffffff;
+        --preview-frame-width: 2048px;
       }
 
       * {
@@ -35,7 +36,7 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
       }
 
       .ds-shell {
-        width: min(1220px, calc(100vw - 40px));
+        width: min(var(--preview-frame-width), calc(100vw - 48px));
         margin: 0 auto;
         padding: 28px 0 48px;
       }
@@ -102,13 +103,15 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
 
       .ds-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: minmax(var(--preview-frame-width), 1fr);
         gap: 18px;
+        overflow-x: auto;
+        padding-bottom: 8px;
       }
 
       .ds-panel {
         min-height: 255px;
-        padding: 14px;
+        padding: 16px;
         border: 1px solid var(--line);
         border-radius: 8px;
         background: var(--panel);
@@ -121,10 +124,6 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
 
       .ds-panel.needs-attention {
         border-color: #fecaca;
-      }
-
-      .ds-panel.wide {
-        grid-column: 1 / -1;
       }
 
       .ds-panel-head {
@@ -157,8 +156,8 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
 
       .ds-stage {
         position: relative;
-        min-height: 180px;
-        overflow: hidden;
+        min-height: 620px;
+        overflow: auto;
         border-radius: 8px;
         border: 1px solid #edf0f5;
         background: #f8fafc;
@@ -167,8 +166,10 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
       .ds-frame {
         display: block;
         width: 100%;
+        min-width: var(--preview-frame-width);
         border: 0;
         background: #fff;
+        border-radius: 8px;
       }
 
       .ds-scenario-badge {
@@ -241,9 +242,6 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
           margin-top: 16px;
         }
 
-        .ds-grid {
-          grid-template-columns: 1fr;
-        }
       }
     </style>
   </head>

@@ -22,6 +22,10 @@ export async function GET() {
     .replace(
       "`../language-defaults.js?v=${Date.now()}`",
       "`/ui-components/language-defaults.js?v=${Date.now()}`",
+    )
+    .replace(
+      'const extensionAssetBaseUrl = new URL("../", window.location.href).href;',
+      'const extensionAssetBaseUrl = new URL("/ui-components/", window.location.href).href;',
     );
 
   return new Response(body, {

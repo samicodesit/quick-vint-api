@@ -31,7 +31,7 @@ When `PUBLIC_PRICING_DISPLAY_MODE=legacy`, the public page switches to compatibi
 | Feature | Free Trial | Starter | Pro | Business |
 | --- | --- | --- | --- | --- |
 | AI-generated titles and descriptions | Yes | Yes | Yes | Yes |
-| Saved note before hashtags | Yes | No | Yes | Yes |
+| Reusable seller note | Yes | No | Yes | Yes |
 | Emoji support in generated descriptions | Yes | No | Yes | Yes |
 | Change AI writing tone | No | No | Yes | Yes |
 | Phone upload + batch upload | Soon restricted to Pro/Business | Soon restricted to Pro/Business | Yes | Yes |
@@ -47,7 +47,7 @@ When `PUBLIC_PRICING_DISPLAY_MODE=legacy`, the public page switches to compatibi
 - The pricing UI is rendered by `src/components/PricingPage.astro`.
 - `PRICING_LIMITS_MODE` defaults to `current`. Set it to `legacy` only for an explicit compatibility rollback.
 - Free Trial currently allows emojis by default in `api/generate.ts`.
-- Saved note before hashtags is enabled for Free Trial, Pro, and Business, but not Starter, through `canUseDescriptionFooter()` in `utils/descriptionFooter.ts`.
+- Reusable seller note is enabled for Free Trial, Pro, and Business, but not Starter, through `canUseDescriptionFooter()` in `utils/descriptionFooter.ts`.
 - Tone customization and paid emoji controls are only enabled for `pro` and `business` in `api/generate.ts`.
 - Batch capacity uses the same generation entitlement checks through `api/user/batch-capacity.ts`.
 - `api/phone-upload.ts` stores and lists uploaded photos; the public pricing promise is that phone upload and batch upload will be restricted to Pro and Business.

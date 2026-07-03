@@ -1,3 +1,5 @@
+import { getSentry } from "./sentry";
+
 export type CriticalEndpointFailure = {
   endpoint: string;
   status: number;
@@ -21,11 +23,34 @@ function normalizeDetails(details?: Record<string, unknown>) {
 export function reportCriticalEndpointFailure(
   failure: CriticalEndpointFailure,
 ) {
+  const details = normalizeDetails(failure.details);
+
   console.error("CRITICAL_ENDPOINT_FAILURE", {
     timestamp: new Date().toISOString(),
     endpoint: failure.endpoint,
     status: failure.status,
     userId: failure.userId || null,
-    details: normalizeDetails(failure.details),
+    details,
+  });
+
+  const sentry = getSentry();
+  if (!sentry) return;
+
+  sentry.withScope((scope) => {
+    scope.setLevel("error");
+    scope.setTag("critical_endpoint", "true");
+    scope.setTag("endpoint", failure.endpoint);
+    scope.setTag("status", String(failure.status));
+    if (failure.userId) {
+      scope.setUser({ id: failure.userId });
+    }
+    scope.setContext("critical_endpoint_failure", {
+      endpoint: failure.endpoint,
+      status: failure.status,
+      details,
+    });
+    sentry.captureException(
+      new Error(`Critical endpoint failure: ${failure.endpoint}`),
+    );
   });
 }

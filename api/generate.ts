@@ -26,6 +26,12 @@ import {
   isOpenAIModelCompatibilityError,
   selectOpenAIModel,
 } from "../utils/openaiModelExperiment";
+import {
+  appendDescriptionFooter,
+  canUseDescriptionFooter,
+  redactDescriptionFooterFromBody,
+  validateDescriptionFooterText,
+} from "../utils/descriptionFooter";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -95,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let logData: any = {
     ...requestMetadata,
     endpoint: "/api/generate",
-    fullRequestBody: req.body,
+    fullRequestBody: redactDescriptionFooterFromBody(req.body),
     extensionVersion,
     pricingLimitsMode,
   };
@@ -257,6 +263,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     emojiRetry,
     useBulletPoints,
     descriptionLength,
+    descriptionFooterText,
     generationMode,
   } = req.body;
   const normalizedGenerationMode = normalizeGenerationMode(generationMode);
@@ -281,6 +288,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : "free";
   const tierAllowsExtras =
     effectiveTier === "pro" || effectiveTier === "business";
+  const tierAllowsDescriptionFooter = canUseDescriptionFooter(effectiveTier);
+
+  let effectiveDescriptionFooterText = "";
+  if (tierAllowsDescriptionFooter) {
+    const footerValidation = validateDescriptionFooterText(
+      descriptionFooterText,
+    );
+    if (!footerValidation.ok) {
+      logData.responseStatus = 400;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason = "Invalid saved note";
+      await ApiLogger.logRequest(logData);
+      return res.status(400).json({ error: footerValidation.error });
+    }
+    effectiveDescriptionFooterText = footerValidation.text;
+  }
 
   let toneInstruction = "plain, factual, and natural like a real Vinted seller"; // Default for 'standard'
   if (tierAllowsExtras) {
@@ -521,6 +544,10 @@ Reply only in JSON: {"title":"...","description":"..."}
     const title = (parsed.title ?? "").trim() || "Untitled";
     const description =
       (parsed.description ?? "").trim() || "No description available.";
+    const finalDescription = appendDescriptionFooter(
+      description,
+      effectiveDescriptionFooterText,
+    );
 
     // Generate localized measurement advice if item is clothing
     const messagesMap: Record<string, any> = {
@@ -531,7 +558,7 @@ Reply only in JSON: {"title":"...","description":"..."}
       pl: messagesPl,
     };
     const messages = messagesMap[descriptionLanguageCodeStr] || messagesEn;
-    const isClothing = isClothingItem(title, description);
+    const isClothing = isClothingItem(title, finalDescription);
     const measurementAdvice = getMeasurementAdvice(isClothing, messages);
 
     // Add generated content to log
@@ -555,7 +582,7 @@ Reply only in JSON: {"title":"...","description":"..."}
 
     return res.status(200).json({
       title,
-      description,
+      description: finalDescription,
       measurementAdvice,
       offers,
     });

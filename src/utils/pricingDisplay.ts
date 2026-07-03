@@ -48,7 +48,7 @@ export function getPricingDisplay(
       ? {
           freePrimaryValue: String(FREE_LIFETIME_LIMIT),
           freePrimaryLabel: " lifetime listings",
-          freeSecondaryText: "No daily or monthly free reset",
+          freeSecondaryText: null,
           freeSecondaryValue: null,
           freeSecondaryLabel: "",
           starterDaily: formatNumber(configs.starter.limits.daily),

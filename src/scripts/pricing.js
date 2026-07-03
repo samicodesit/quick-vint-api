@@ -299,6 +299,8 @@ function updateButtonStates() {
 
     const textSpan = button.querySelector(".btn-text");
     const statusSpan = button.querySelector(".btn-status");
+    const loggedOutLabel =
+      button.dataset.loggedOutLabel || textSpan.textContent;
 
     // Remove all state classes
     button.classList.remove(
@@ -317,11 +319,13 @@ function updateButtonStates() {
     }
 
     if (!hasExtension) {
-      textSpan.textContent = "Get AutoLister AI";
+      textSpan.textContent =
+        plan === "free" ? loggedOutLabel : "Get AutoLister AI";
       statusSpan.textContent = "";
       button.classList.add("state-download");
     } else if (!currentUser) {
-      textSpan.textContent = "Sign in to continue";
+      textSpan.textContent =
+        plan === "free" ? loggedOutLabel : "Sign in to continue";
       statusSpan.textContent = "";
       button.classList.add("state-signin");
     } else if (

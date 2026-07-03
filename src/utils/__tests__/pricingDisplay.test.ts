@@ -11,7 +11,7 @@ describe("public pricing display", () => {
     expect(getPublicPricingDisplayMode()).toBe("current");
     expect(getPricingDisplay().limits).toMatchObject({
       freePrimaryValue: "5",
-      freeSecondaryText: "No daily or monthly free reset",
+      freeSecondaryText: null,
       starterDaily: "10",
       proMonthly: "250",
       businessDaily: "60",
@@ -22,7 +22,7 @@ describe("public pricing display", () => {
     expect(getPublicPricingDisplayMode("current")).toBe("current");
     expect(getPricingDisplay("current").limits).toMatchObject({
       freePrimaryValue: "5",
-      freeSecondaryText: "No daily or monthly free reset",
+      freeSecondaryText: null,
       starterMonthly: "75",
       businessDaily: "60",
     });

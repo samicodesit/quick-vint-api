@@ -12,7 +12,7 @@ By default, `PUBLIC_PRICING_DISPLAY_MODE` is `current`, which shows the current 
 
 | Tier | Public price | Current entitlement limits |
 | --- | ---: | --- |
-| Free Trial | EUR 0 | 5 lifetime listings, no daily/monthly reset |
+| Free Trial | EUR 0 | 5 lifetime listings |
 | Starter | EUR 3.99/month | 10 listings/day, 75 listings/month |
 | Pro | EUR 9.99/month | 25 listings/day, 250 listings/month |
 | Business | EUR 19.99/month | 60 listings/day, 600 listings/month |
@@ -36,6 +36,7 @@ When `PUBLIC_PRICING_DISPLAY_MODE=legacy`, the public page switches to compatibi
 | Phone upload + batch upload | Soon restricted to Pro/Business | Soon restricted to Pro/Business | Yes | Yes |
 | One-time credit pack | Available | Available | Available | Available |
 | Dedicated support | No | No | No | Yes |
+| Custom limits by email | No | No | No | Available |
 | Priority processing | No | No | Yes | Yes |
 
 ## Implementation Notes

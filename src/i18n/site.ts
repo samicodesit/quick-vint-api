@@ -476,6 +476,7 @@ type SiteExtraPricingCopy = {
   creditPackCta: string;
   // Shared feature bullets
   aiGeneratedTitles: string;
+  savedNote: string;
   phoneUpload: string;
   seeIfYouLikeIt: string;
   everythingInStarter: string;
@@ -617,6 +618,7 @@ export const SITE_EXTRA_COPY: Record<
         "Buy {credits} extra listing credits for {price}. One-time payment. No commitment.",
       creditPackCta: "Buy {credits} credits",
       aiGeneratedTitles: "AI-generated titles & descriptions",
+      savedNote: "Saved note before hashtags",
       phoneUpload: "Phone upload (Soon only available to Pro and Business)",
       seeIfYouLikeIt: "See if you like it first",
       everythingInStarter: "Everything in Starter",
@@ -753,6 +755,7 @@ export const SITE_EXTRA_COPY: Record<
         "Achetez {credits} credits d'annonces en plus pour {price}. Paiement unique. Sans engagement.",
       creditPackCta: "Acheter {credits} credits",
       aiGeneratedTitles: "Titres et descriptions générés par IA",
+      savedNote: "Note enregistrée avant les hashtags",
       phoneUpload: "Photo depuis mobile (bientôt réservé Pro et Business)",
       seeIfYouLikeIt: "Testez avant de vous engager",
       everythingInStarter: "Tout ce qu'inclut Starter",
@@ -890,6 +893,7 @@ export const SITE_EXTRA_COPY: Record<
         "Kaufe {credits} extra Inserat-Credits fur {price}. Einmalige Zahlung. Kein Abo.",
       creditPackCta: "{credits} Credits kaufen",
       aiGeneratedTitles: "KI-generierte Titel und Beschreibungen",
+      savedNote: "Gespeicherte Notiz vor Hashtags",
       phoneUpload: "Foto-Upload per Handy (bald nur fur Pro und Business)",
       seeIfYouLikeIt: "Testen, bevor du dich entscheidest",
       everythingInStarter: "Alles aus Starter",
@@ -1027,6 +1031,7 @@ export const SITE_EXTRA_COPY: Record<
         "Koop {credits} extra listingcredits voor {price}. Eenmalige betaling. Geen verplichting.",
       creditPackCta: "{credits} credits kopen",
       aiGeneratedTitles: "AI-gegenereerde titels en beschrijvingen",
+      savedNote: "Opgeslagen notitie voor hashtags",
       phoneUpload:
         "Foto-upload via telefoon (binnenkort alleen Pro en Business)",
       seeIfYouLikeIt: "Probeer het eerst",
@@ -1165,6 +1170,7 @@ export const SITE_EXTRA_COPY: Record<
         "Kup {credits} dodatkowych kredytow na ogloszenia za {price}. Platnosc jednorazowa. Bez zobowiazan.",
       creditPackCta: "Kup {credits} kredytow",
       aiGeneratedTitles: "Tytuly i opisy generowane przez AI",
+      savedNote: "Zapisana notatka przed hashtagami",
       phoneUpload: "Upload zdjec przez telefon (wkrotce tylko Pro i Business)",
       seeIfYouLikeIt: "Sprawdz zanim sie zdecydujesz",
       everythingInStarter: "Wszystko ze Starter",
@@ -1301,6 +1307,7 @@ export const SITE_EXTRA_COPY: Record<
         "Compra {credits} creditos extra para anuncios por {price}. Pago unico. Sin compromiso.",
       creditPackCta: "Comprar {credits} creditos",
       aiGeneratedTitles: "Titulos y descripciones generados por IA",
+      savedNote: "Nota guardada antes de hashtags",
       phoneUpload: "Subida desde movil (pronto solo para Pro y Business)",
       seeIfYouLikeIt: "Pruebalo primero",
       everythingInStarter: "Todo lo de Starter",
@@ -1437,6 +1444,7 @@ export const SITE_EXTRA_COPY: Record<
         "Compra {credits} crediti extra per annunci a {price}. Pagamento unico. Nessun impegno.",
       creditPackCta: "Compra {credits} crediti",
       aiGeneratedTitles: "Titoli e descrizioni generati dall'AI",
+      savedNote: "Nota salvata prima degli hashtag",
       phoneUpload: "Upload da telefono (presto solo per Pro e Business)",
       seeIfYouLikeIt: "Provalo prima di decidere",
       everythingInStarter: "Tutto di Starter",
@@ -1573,6 +1581,7 @@ export const SITE_EXTRA_COPY: Record<
         "Compre {credits} creditos extra para anuncios por {price}. Pagamento unico. Sem compromisso.",
       creditPackCta: "Comprar {credits} creditos",
       aiGeneratedTitles: "Titulos e descricoes gerados por IA",
+      savedNote: "Nota guardada antes das hashtags",
       phoneUpload: "Upload por telefone (brevemente so para Pro e Business)",
       seeIfYouLikeIt: "Experimente primeiro",
       everythingInStarter: "Tudo do Starter",

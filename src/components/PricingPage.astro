@@ -34,6 +34,7 @@ type ExtraPricingCopy = PricingDisplayLabels & {
   creditPackBody: string;
   creditPackCta: string;
   aiGeneratedTitles: string;
+  savedNote: string;
   phoneUpload: string;
   seeIfYouLikeIt: string;
   everythingInStarter: string;
@@ -158,6 +159,7 @@ const plans: Plan[] = [
       limitFeature(limits.freePrimaryValue, limits.freePrimaryLabel),
       ...(freeSecondaryFeature ? [freeSecondaryFeature] : []),
       includedFeature(extra.aiGeneratedTitles),
+      includedFeature(extra.savedNote),
       restrictedSoonFeature(uploadFeatureLabel),
       includedFeature(extra.emojiSupport),
       includedFeature(extra.seeIfYouLikeIt),
@@ -175,6 +177,7 @@ const plans: Plan[] = [
       limitFeature(limits.starterDaily, ` ${extra.listingsPerDay}`),
       limitFeature(limits.starterMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
+      unavailableFeature(extra.savedNote),
       restrictedSoonFeature(uploadFeatureLabel),
       unavailableFeature(extra.emojiSupport),
       unavailableFeature(extra.changeAiTone),
@@ -192,6 +195,7 @@ const plans: Plan[] = [
       limitFeature(limits.proDaily, ` ${extra.listingsPerDay}`),
       limitFeature(limits.proMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
+      includedFeature(extra.savedNote),
       includedFeature(uploadFeatureLabel),
       includedFeature(extra.emojiSupport),
       includedFeature(extra.changeAiTone),
@@ -212,6 +216,7 @@ const plans: Plan[] = [
       ),
       limitFeature(limits.businessMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
+      includedFeature(extra.savedNote),
       includedFeature(uploadFeatureLabel),
       includedFeature(extra.emojiSupport),
       includedFeature(extra.changeAiTone),

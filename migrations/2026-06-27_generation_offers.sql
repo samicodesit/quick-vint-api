@@ -91,7 +91,7 @@ BEGIN
   )
   VALUES (
     p_user_id,
-    'grant',
+    'adjustment',
     offer_row.credit_amount,
     COALESCE(new_pack_balance, 0),
     jsonb_build_object(

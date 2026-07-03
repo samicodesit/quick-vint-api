@@ -45,7 +45,12 @@ export const GENERATION_OFFER_DEFINITIONS = {
 export const MIN_EXTENSION_VERSION_FOR_GENERATION_OFFERS = "1.3.24";
 
 function serializeOffer(
-  row: { id: string; campaign_key: string; offer_code: string; credit_amount: number },
+  row: {
+    id: string;
+    campaign_key: string;
+    offer_code: string;
+    credit_amount: number;
+  },
   definition: GenerationOfferDefinition,
 ): GenerationOfferPayload {
   return {
@@ -86,7 +91,10 @@ export async function maybeCreateGenerationOffer({
 
   if (
     !extensionVersion ||
-    compareSemver(extensionVersion, MIN_EXTENSION_VERSION_FOR_GENERATION_OFFERS) < 0 ||
+    compareSemver(
+      extensionVersion,
+      MIN_EXTENSION_VERSION_FOR_GENERATION_OFFERS,
+    ) < 0 ||
     !definition.enabled ||
     pricingLimitsMode !== "current" ||
     tierKey !== "free" ||
@@ -132,14 +140,15 @@ export async function maybeCreateGenerationOffer({
 }
 
 export async function claimGenerationOffer(userId: string, offerId: string) {
-  const { data, error } = await supabase.rpc("claim_generation_offer", {
-    p_user_id: userId,
-    p_offer_id: offerId,
-  });
-  const result = data as any;
+  const { data: offer, error: offerError } = await supabase
+    .from("generation_offers")
+    .select("id, campaign_key, offer_code, credit_amount, status")
+    .eq("id", offerId)
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  if (error) {
-    console.error("Generation offer claim failed:", error);
+  if (offerError) {
+    console.error("Generation offer lookup failed:", offerError);
     return {
       ok: false,
       status: 500,
@@ -147,14 +156,71 @@ export async function claimGenerationOffer(userId: string, offerId: string) {
     };
   }
 
-  if (!result?.ok) {
+  if (!offer) {
     return {
       ok: false,
-      status: result?.code === "offer_not_found" ? 404 : 409,
+      status: 404,
       body: {
-        code: result?.code || "offer_claim_failed",
-        error: result?.error || "Could not claim this offer.",
+        code: "offer_not_found",
+        error: "Offer not found.",
       },
+    };
+  }
+
+  if (offer.status !== "offered") {
+    return {
+      ok: false,
+      status: 409,
+      body: {
+        code: "offer_already_claimed",
+        error: "This offer was already claimed.",
+      },
+    };
+  }
+
+  const ledgerSessionId = `generation_offer:${offer.id}`;
+  const { data: packCredits, error: grantError } = await supabase.rpc(
+    "grant_credit_pack",
+    {
+      p_user_id: userId,
+      p_stripe_session_id: ledgerSessionId,
+      p_credits: offer.credit_amount,
+      p_metadata: {
+        source: "generation_offer",
+        campaign_key: offer.campaign_key,
+        offer_code: offer.offer_code,
+        offer_id: offer.id,
+      },
+    },
+  );
+
+  if (grantError) {
+    console.error("Generation offer credit grant failed:", grantError);
+    return {
+      ok: false,
+      status: 500,
+      body: { error: "Could not claim this offer. Please try again." },
+    };
+  }
+
+  const now = new Date().toISOString();
+  const { error: claimError } = await supabase
+    .from("generation_offers")
+    .update({
+      status: "claimed",
+      claimed_at: now,
+      updated_at: now,
+    })
+    .eq("id", offer.id)
+    .eq("user_id", userId)
+    .eq("status", "offered");
+
+  if (claimError) {
+    console.error("Generation offer status update failed:", claimError);
+    return {
+      ok: false,
+      status: 500,
+      body: { error: "Could not claim this offer. Please try again." },
     };
   }
 
@@ -163,11 +229,11 @@ export async function claimGenerationOffer(userId: string, offerId: string) {
     status: 200,
     body: {
       ok: true,
-      offerId: result.offerId,
-      campaignKey: result.campaignKey,
-      offerCode: result.offerCode,
-      creditAmount: result.creditAmount,
-      packCredits: result.packCredits,
+      offerId: offer.id,
+      campaignKey: offer.campaign_key,
+      offerCode: offer.offer_code,
+      creditAmount: offer.credit_amount,
+      packCredits: Number(packCredits || 0),
     },
   };
 }

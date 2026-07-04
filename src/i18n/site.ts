@@ -547,7 +547,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Add to Chrome",
       addToChromeNote: "It's Free",
       testimonialQuote:
-        "Makes listing so much quicker. I still edit small details, but having the title and description already there helps a lot when I upload several items.",
+        "So much faster when I upload several items. The first draft is ready in seconds.",
       testimonialAuthor: "— Otília N., Vinted seller",
       safetyHeading: "Zero Risk. 100% Control.",
       safetyBody:
@@ -698,7 +698,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Ajouter à Chrome",
       addToChromeNote: "C'est gratuit",
       testimonialQuote:
-        "Ça rend la mise en ligne beaucoup plus rapide. Je retouche encore quelques détails, mais avoir déjà le titre et la description aide vraiment quand j'ajoute plusieurs articles.",
+        "Tellement plus rapide quand j'ajoute plusieurs articles. Le premier brouillon est prêt en quelques secondes.",
       testimonialAuthor: "— Otília N., vendeuse Vinted",
       safetyHeading: "Zéro risque. 100% de contrôle.",
       safetyBody:
@@ -849,7 +849,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Zu Chrome hinzufugen",
       addToChromeNote: "Kostenlos",
       testimonialQuote:
-        "Das Einstellen geht viel schneller. Ein paar Details aendere ich noch, aber Titel und Beschreibung schon fertig zu haben hilft sehr, wenn ich mehrere Artikel hochlade.",
+        "So viel schneller, wenn ich mehrere Artikel hochlade. Der erste Entwurf ist in Sekunden fertig.",
       testimonialAuthor: "— Otília N., Vinted-Verkaeuferin",
       safetyHeading: "Null Risiko. 100% Kontrolle.",
       safetyBody:
@@ -1001,7 +1001,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Toevoegen aan Chrome",
       addToChromeNote: "Gratis",
       testimonialQuote:
-        "Advertenties maken gaat zoveel sneller. Ik pas nog kleine dingen aan, maar dat titel en beschrijving er al staan helpt echt als ik meerdere items upload.",
+        "Zoveel sneller als ik meerdere items upload. De eerste versie staat er binnen een paar seconden.",
       testimonialAuthor: "— Otília N., Vinted-verkoper",
       safetyHeading: "Nul risico. 100% controle.",
       safetyBody:
@@ -1153,7 +1153,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Dodaj do Chrome",
       addToChromeNote: "To jest darmowe",
       testimonialQuote:
-        "Wystawianie idzie duzo szybciej. Nadal poprawiam male szczegoly, ale gotowy tytul i opis bardzo pomagaja, gdy dodaje kilka rzeczy naraz.",
+        "Duzo szybciej, gdy dodaje kilka rzeczy naraz. Pierwszy szkic jest gotowy w kilka sekund.",
       testimonialAuthor: "— Otília N., sprzedawczyni Vinted",
       safetyHeading: "Zero ryzyka. 100% kontroli.",
       safetyBody:
@@ -1305,7 +1305,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Anadir a Chrome",
       addToChromeNote: "Es gratis",
       testimonialQuote:
-        "Publicar va mucho mas rapido. Todavia cambio pequenos detalles, pero tener ya el titulo y la descripcion ayuda mucho cuando subo varios articulos.",
+        "Mucho mas rapido cuando subo varios articulos. El primer borrador esta listo en segundos.",
       testimonialAuthor: "— Otília N., vendedora de Vinted",
       safetyHeading: "Cero riesgo. 100% de control.",
       safetyBody:
@@ -1456,7 +1456,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Aggiungi a Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
-        "Pubblicare e molto piu veloce. Cambio ancora qualche dettaglio, ma avere gia titolo e descrizione aiuta davvero quando carico piu articoli.",
+        "Molto piu veloce quando carico piu articoli insieme. La prima bozza e pronta in pochi secondi.",
       testimonialAuthor: "— Otília N., venditrice Vinted",
       safetyHeading: "Zero rischi. 100% controllo.",
       safetyBody:
@@ -1607,7 +1607,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Adicionar ao Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
-        "Criar anuncios ficou muito mais rapido. Ainda ajusto pequenos detalhes, mas ter o titulo e a descricao prontos ajuda imenso quando carrego varios artigos.",
+        "Muito mais rapido quando carrego varios artigos de uma vez. O primeiro rascunho fica pronto em segundos.",
       testimonialAuthor: "— Otília N., vendedora Vinted",
       safetyHeading: "Zero risco. 100% controlo.",
       safetyBody:

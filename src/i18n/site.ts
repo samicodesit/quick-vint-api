@@ -388,6 +388,11 @@ export type SiteExtraHomeCopy = {
   heroBadgePrimary: string;
   watchDemo: string;
   videoCaption: string;
+  screenshotPreviewLabel: string;
+  screenshotPreviewHint: string;
+  screenshotPreviewBadge: string;
+  screenshotPreviewPrimary: string;
+  screenshotPreviewSecondary: string;
   // Hero bullets
   heroBullet1: string;
   heroBullet2: string;
@@ -520,6 +525,11 @@ export const SITE_EXTRA_COPY: Record<
       heroBadgePrimary: "Vinted description generator + listing assistant",
       watchDemo: "Watch Demo",
       videoCaption: "See how it works in 15 seconds",
+      screenshotPreviewLabel: "New version screenshots",
+      screenshotPreviewHint: "Open full size",
+      screenshotPreviewBadge: "New",
+      screenshotPreviewPrimary: "New main screenshot",
+      screenshotPreviewSecondary: "New feature screenshot",
       heroBullet1:
         "Generates SEO-ready titles, descriptions, and hashtags automatically",
       heroBullet2: "No copy-paste needed. No emailing photos.",
@@ -659,6 +669,11 @@ export const SITE_EXTRA_COPY: Record<
         "Générateur de descriptions Vinted + assistant d'annonces",
       watchDemo: "Voir la démo",
       videoCaption: "Voyez le résultat en 15 secondes",
+      screenshotPreviewLabel: "Nouvelles captures",
+      screenshotPreviewHint: "Ouvrir en grand",
+      screenshotPreviewBadge: "Nouveau",
+      screenshotPreviewPrimary: "Nouvelle capture principale",
+      screenshotPreviewSecondary: "Nouvelle capture fonctionnalité",
       heroBullet1:
         "Génère des titres, descriptions et hashtags SEO automatiquement",
       heroBullet2: "Aucun copier-coller. Aucun envoi de photos par e-mail.",
@@ -798,6 +813,11 @@ export const SITE_EXTRA_COPY: Record<
         "Vinted-Beschreibungsgenerator + Anzeigen-Assistent",
       watchDemo: "Demo ansehen",
       videoCaption: "So funktioniert es in 15 Sekunden",
+      screenshotPreviewLabel: "Neue Versions-Screenshots",
+      screenshotPreviewHint: "Groß öffnen",
+      screenshotPreviewBadge: "Neu",
+      screenshotPreviewPrimary: "Neuer Haupt-Screenshot",
+      screenshotPreviewSecondary: "Neuer Funktions-Screenshot",
       heroBullet1:
         "Erstellt SEO-optimierte Titel, Beschreibungen und Hashtags automatisch",
       heroBullet2: "Kein Kopieren und Einfugen. Keine Fotos per E-Mail senden.",
@@ -938,6 +958,11 @@ export const SITE_EXTRA_COPY: Record<
         "Vinted beschrijving generator + advertentie-assistent",
       watchDemo: "Bekijk demo",
       videoCaption: "Zie hoe het werkt in 15 seconden",
+      screenshotPreviewLabel: "Nieuwe versie-screenshots",
+      screenshotPreviewHint: "Open groot",
+      screenshotPreviewBadge: "Nieuw",
+      screenshotPreviewPrimary: "Nieuwe hoofdscreenshot",
+      screenshotPreviewSecondary: "Nieuwe functiescreenshot",
       heroBullet1:
         "Genereert automatisch SEO-klare titels, beschrijvingen en hashtags",
       heroBullet2: "Geen kopieer-plak. Geen foto's mailen.",
@@ -1078,6 +1103,11 @@ export const SITE_EXTRA_COPY: Record<
       heroBadgePrimary: "Generator opisów Vinted + asystent ogłoszeń",
       watchDemo: "Obejrzyj demo",
       videoCaption: "Zobacz jak to dziala w 15 sekund",
+      screenshotPreviewLabel: "Zrzuty nowej wersji",
+      screenshotPreviewHint: "Otwórz pełny rozmiar",
+      screenshotPreviewBadge: "Nowe",
+      screenshotPreviewPrimary: "Nowy główny zrzut",
+      screenshotPreviewSecondary: "Nowy zrzut funkcji",
       heroBullet1:
         "Automatycznie generuje tytuly, opisy i hashtagi zoptymalizowane pod SEO",
       heroBullet2: "Bez kopiowania i wklejania. Bez wysylania zdjec mailem.",
@@ -1218,6 +1248,11 @@ export const SITE_EXTRA_COPY: Record<
         "Generador de descripciones Vinted + asistente de anuncios",
       watchDemo: "Ver demo",
       videoCaption: "Mira como funciona en 15 segundos",
+      screenshotPreviewLabel: "Capturas de la nueva versión",
+      screenshotPreviewHint: "Abrir a tamaño completo",
+      screenshotPreviewBadge: "Nuevo",
+      screenshotPreviewPrimary: "Nueva captura principal",
+      screenshotPreviewSecondary: "Nueva captura de función",
       heroBullet1:
         "Genera titulos, descripciones y hashtags optimizados para SEO automaticamente",
       heroBullet2: "Sin copiar y pegar. Sin enviar fotos por correo.",
@@ -1357,6 +1392,11 @@ export const SITE_EXTRA_COPY: Record<
         "Generatore di descrizioni Vinted + assistente annunci",
       watchDemo: "Guarda demo",
       videoCaption: "Scopri come funziona in 15 secondi",
+      screenshotPreviewLabel: "Screenshot nuova versione",
+      screenshotPreviewHint: "Apri a schermo intero",
+      screenshotPreviewBadge: "Nuovo",
+      screenshotPreviewPrimary: "Nuovo screenshot principale",
+      screenshotPreviewSecondary: "Nuovo screenshot funzione",
       heroBullet1:
         "Genera automaticamente titoli, descrizioni e hashtag ottimizzati per il SEO",
       heroBullet2: "Nessun copia-incolla. Nessun invio di foto via email.",
@@ -1496,6 +1536,11 @@ export const SITE_EXTRA_COPY: Record<
         "Gerador de descrições Vinted + assistente de anúncios",
       watchDemo: "Ver demo",
       videoCaption: "Veja como funciona em 15 segundos",
+      screenshotPreviewLabel: "Capturas da nova versão",
+      screenshotPreviewHint: "Abrir em tamanho real",
+      screenshotPreviewBadge: "Novo",
+      screenshotPreviewPrimary: "Nova captura principal",
+      screenshotPreviewSecondary: "Nova captura de funcionalidade",
       heroBullet1:
         "Gera automaticamente titulos, descricoes e hashtags otimizados para SEO",
       heroBullet2: "Sem copiar e colar. Sem enviar fotos por email.",

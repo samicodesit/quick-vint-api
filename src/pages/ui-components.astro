@@ -35,6 +35,27 @@ const devViews = [
     href: "/pricing",
     status: "Public page",
   },
+  {
+    title: "Payment Complete - Subscription",
+    description: "Local preview of the post-checkout subscription success state.",
+    href: "/success.html?preview=subscription",
+    status: "Local preview",
+    localOnly: true,
+  },
+  {
+    title: "Payment Complete - Credits",
+    description: "Local preview of the one-time credit pack success state.",
+    href: "/success.html?preview=credit_pack",
+    status: "Local preview",
+    localOnly: true,
+  },
+  {
+    title: "Payment Complete - Error",
+    description: "Local preview of the payment verification failure state.",
+    href: "/success.html?preview=error",
+    status: "Local preview",
+    localOnly: true,
+  },
 ];
 
 const viewHref = (view: (typeof devViews)[number]) =>

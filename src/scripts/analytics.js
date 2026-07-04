@@ -94,8 +94,15 @@ function bindTrackedClicks() {
     if (element.dataset.trackBound === "true") return;
     element.dataset.trackBound = "true";
     element.addEventListener("click", () => {
+      const context = element.dataset.trackCopyVersion
+        ? {
+            source: element.dataset.trackContext || null,
+            heroCopyVersion: element.dataset.trackCopyVersion,
+          }
+        : element.dataset.trackContext || null;
+
       trackEvent(element.dataset.trackEvent, {
-        context: element.dataset.trackContext || null,
+        context,
         plan: element.dataset.trackPlan || null,
       });
     });

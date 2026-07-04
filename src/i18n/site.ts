@@ -69,12 +69,13 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "All rights reserved.",
     },
     home: {
-      seoTitle: "AutoLister AI - The #1 Vinted Description Generator & Lister",
+      seoTitle:
+        "Vinted AI Listing Assistant & Description Generator | AutoLister AI",
       seoDescription:
-        "The best AI Vinted lister that generates descriptions from photos. Stop typing and start selling with our automatic Vinted description generator. 100% account-safe, ban-free alternative to Vinted bots.",
-      heroTitle: "The Only AI Vinted Lister You Need.",
+        "Create Vinted titles, descriptions, and hashtags from item photos with AutoLister AI. Save seller notes, work directly inside Vinted, and never connect your Vinted account.",
+      heroTitle: "Vinted AI listing assistant that helps you sell faster",
       heroSubtitle:
-        "Sell faster on Vinted. AutoLister is the Vinted description generator that turns photos into fully optimized listings in seconds.",
+        "Create Vinted titles, descriptions, and hashtags from your item photos. Save your own seller notes and reuse them on future listings. Works directly inside Vinted, with no Vinted account connection needed.",
       heroBadgeSafe: "100% Account-Safe · Vinted ToS Compliant",
       heroBulletSafety:
         "Zero ban risk - never hooks into Vinted's servers like automation bots do",
@@ -107,12 +108,14 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Tous droits réservés.",
     },
     home: {
-      seoTitle: "AutoLister AI - Le meilleur générateur de descriptions Vinted",
+      seoTitle:
+        "Assistant IA pour annonces Vinted et générateur de descriptions | AutoLister AI",
       seoDescription:
-        "Le meilleur outil IA pour Vinted qui génère des descriptions depuis des photos, rapidement et en toute sécurité.",
-      heroTitle: "Le seul assistant IA Vinted dont vous avez besoin.",
+        "Créez des titres, descriptions et hashtags Vinted depuis vos photos avec AutoLister AI. Enregistrez vos notes vendeur, travaillez directement dans Vinted et ne connectez jamais votre compte Vinted.",
+      heroTitle:
+        "Assistant IA pour annonces Vinted qui vous aide à vendre plus vite",
       heroSubtitle:
-        "Vendez plus vite sur Vinted. AutoLister transforme vos photos en annonces Vinted optimisées en quelques secondes.",
+        "Créez des titres, descriptions et hashtags Vinted depuis vos photos d'articles. Enregistrez vos propres notes vendeur et réutilisez-les sur vos prochaines annonces. Fonctionne directement dans Vinted, sans connecter votre compte Vinted.",
       heroBadgeSafe: "100% Sécurisé · Conforme aux règles Vinted",
       heroBulletSafety:
         "Risque de ban nul - aucune connexion aux serveurs Vinted comme les bots",
@@ -145,12 +148,14 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Alle Rechte vorbehalten.",
     },
     home: {
-      seoTitle: "AutoLister AI - Der beste Vinted-Beschreibungsgenerator",
+      seoTitle:
+        "Vinted-KI-Assistent für Anzeigen & Beschreibungsgenerator | AutoLister AI",
       seoDescription:
-        "Der beste KI-Textgenerator fur Vinted. Erstelle bessere Inserate aus Fotos in Sekunden.",
-      heroTitle: "Der einzige KI-Vinted-Assistent, den du brauchst.",
+        "Erstelle Vinted-Titel, Beschreibungen und Hashtags aus Artikelfotos mit AutoLister AI. Speichere Verkäufernotizen, arbeite direkt in Vinted und verbinde nie dein Vinted-Konto.",
+      heroTitle:
+        "Vinted-KI-Assistent für Anzeigen, mit dem du schneller verkaufst",
       heroSubtitle:
-        "Verkaufe schneller auf Vinted. AutoLister verwandelt Fotos in optimierte Vinted-Inserate in Sekunden.",
+        "Erstelle Vinted-Titel, Beschreibungen und Hashtags aus deinen Artikelfotos. Speichere eigene Verkäufernotizen und nutze sie in zukünftigen Anzeigen wieder. Funktioniert direkt in Vinted, ohne dein Vinted-Konto zu verbinden.",
       heroBadgeSafe: "100% Sicher · Vinted-Regelkonform",
       heroBulletSafety:
         "Kein Bannrisiko - keine Verbindung zu Vinted-Servern wie bei Bots",
@@ -182,12 +187,14 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Alle rechten voorbehouden.",
     },
     home: {
-      seoTitle: "AutoLister AI - De beste Vinted beschrijving generator",
+      seoTitle:
+        "Vinted AI-assistent voor advertenties & beschrijving generator | AutoLister AI",
       seoDescription:
-        "Maak Vinted-beschrijvingen met AI vanuit foto's, snel en veilig.",
-      heroTitle: "De enige AI Vinted-assistent die je nodig hebt.",
+        "Maak Vinted-titels, beschrijvingen en hashtags vanuit itemfoto's met AutoLister AI. Bewaar verkopersnotities, werk direct in Vinted en koppel nooit je Vinted-account.",
+      heroTitle:
+        "Vinted AI-assistent voor advertenties waarmee je sneller verkoopt",
       heroSubtitle:
-        "Verkoop sneller op Vinted. AutoLister zet foto's om naar geoptimaliseerde Vinted-teksten in seconden.",
+        "Maak Vinted-titels, beschrijvingen en hashtags vanuit je itemfoto's. Bewaar je eigen verkopersnotities en gebruik ze opnieuw bij toekomstige advertenties. Werkt direct in Vinted, zonder je Vinted-account te koppelen.",
       heroBadgeSafe: "100% Veilig · Vinted-conform",
       heroBulletSafety:
         "Geen ban-risico - geen koppeling met Vinted-servers zoals bots",
@@ -220,12 +227,14 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Wszelkie prawa zastrzezone.",
     },
     home: {
-      seoTitle: "AutoLister AI - Najlepszy generator opisow Vinted",
+      seoTitle:
+        "Asystent AI do ogłoszeń Vinted i generator opisów | AutoLister AI",
       seoDescription:
-        "Tworz opisy Vinted z AI na podstawie zdjec szybko i bezpiecznie.",
-      heroTitle: "Jeden asystent AI do Vinted, ktorego potrzebujesz.",
+        "Twórz tytuły, opisy i hashtagi Vinted ze zdjęć produktów dzięki AutoLister AI. Zapisuj notatki sprzedawcy, pracuj bezpośrednio w Vinted i nigdy nie łącz konta Vinted.",
+      heroTitle:
+        "Asystent AI do ogłoszeń Vinted, który pomaga sprzedawać szybciej",
       heroSubtitle:
-        "Sprzedawaj szybciej na Vinted. AutoLister zamienia zdjecia w zoptymalizowane oferty Vinted w kilka sekund.",
+        "Twórz tytuły, opisy i hashtagi Vinted ze zdjęć swoich produktów. Zapisuj własne notatki sprzedawcy i używaj ich ponownie w przyszłych ogłoszeniach. Działa bezpośrednio w Vinted, bez łączenia konta Vinted.",
       heroBadgeSafe: "100% Bezpieczne · Zgodne z zasadami Vinted",
       heroBulletSafety:
         "Brak ryzyka bana - brak polaczen z serwerami Vinted jak w botach",
@@ -258,12 +267,13 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     },
     home: {
       seoTitle:
-        "AutoLister AI - El mejor generador de descripciones para Vinted",
+        "Asistente IA para anuncios de Vinted y generador de descripciones | AutoLister AI",
       seoDescription:
-        "Genera descripciones para Vinted desde fotos con IA, rapido y seguro.",
-      heroTitle: "El unico asistente IA para Vinted que necesitas.",
+        "Crea títulos, descripciones y hashtags para Vinted desde fotos de artículos con AutoLister AI. Guarda notas de vendedor, trabaja directamente dentro de Vinted y nunca conectes tu cuenta de Vinted.",
+      heroTitle:
+        "Asistente IA para anuncios de Vinted que te ayuda a vender más rápido",
       heroSubtitle:
-        "Vende mas rapido en Vinted. AutoLister convierte fotos en anuncios optimizados para Vinted en segundos.",
+        "Crea títulos, descripciones y hashtags para Vinted desde las fotos de tus artículos. Guarda tus propias notas de vendedor y reutilízalas en futuros anuncios. Funciona directamente dentro de Vinted, sin conectar tu cuenta de Vinted.",
       heroBadgeSafe: "100% Seguro · Cumple normas de Vinted",
       heroBulletSafety:
         "Riesgo de baneo cero - sin conexion a servidores de Vinted como los bots",
@@ -296,12 +306,14 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Tutti i diritti riservati.",
     },
     home: {
-      seoTitle: "AutoLister AI - Il miglior generatore di descrizioni Vinted",
+      seoTitle:
+        "Assistente IA per annunci Vinted e generatore di descrizioni | AutoLister AI",
       seoDescription:
-        "Genera descrizioni Vinted da foto con IA, in modo rapido e sicuro.",
-      heroTitle: "L'unico assistente IA per Vinted di cui hai bisogno.",
+        "Crea titoli, descrizioni e hashtag Vinted dalle foto degli articoli con AutoLister AI. Salva note venditore, lavora direttamente dentro Vinted e non collegare mai il tuo account Vinted.",
+      heroTitle:
+        "Assistente IA per annunci Vinted che ti aiuta a vendere più velocemente",
       heroSubtitle:
-        "Vendi piu velocemente su Vinted. AutoLister trasforma le foto in annunci Vinted ottimizzati in pochi secondi.",
+        "Crea titoli, descrizioni e hashtag Vinted dalle foto dei tuoi articoli. Salva le tue note venditore e riutilizzale negli annunci futuri. Funziona direttamente dentro Vinted, senza collegare il tuo account Vinted.",
       heroBadgeSafe: "100% Sicuro · Conforme alle regole Vinted",
       heroBulletSafety:
         "Rischio ban zero - nessun collegamento ai server Vinted come i bot",
@@ -333,12 +345,14 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Todos os direitos reservados.",
     },
     home: {
-      seoTitle: "AutoLister AI - O melhor gerador de descricoes para Vinted",
+      seoTitle:
+        "Assistente IA para anúncios Vinted e gerador de descrições | AutoLister AI",
       seoDescription:
-        "Crie descricoes para Vinted a partir de fotos com IA, de forma rapida e segura.",
-      heroTitle: "O unico assistente IA para Vinted de que precisa.",
+        "Crie títulos, descrições e hashtags Vinted a partir de fotografias dos artigos com o AutoLister AI. Guarde notas de vendedor, trabalhe diretamente na Vinted e nunca ligue a sua conta Vinted.",
+      heroTitle:
+        "Assistente IA para anúncios Vinted que ajuda a vender mais rápido",
       heroSubtitle:
-        "Venda mais rapido na Vinted. O AutoLister transforma fotos em anuncios Vinted otimizados em segundos.",
+        "Crie títulos, descrições e hashtags Vinted a partir das fotografias dos seus artigos. Guarde as suas próprias notas de vendedor e reutilize-as em anúncios futuros. Funciona diretamente na Vinted, sem ligar a sua conta Vinted.",
       heroBadgeSafe: "100% Seguro · Em conformidade com a Vinted",
       heroBulletSafety:
         "Risco de banimento zero - sem ligacoes aos servidores da Vinted como bots",
@@ -371,6 +385,7 @@ export function normalizeSiteLocale(input?: string | null): SiteLocale {
 }
 
 export type SiteExtraHomeCopy = {
+  heroBadgePrimary: string;
   watchDemo: string;
   videoCaption: string;
   // Hero bullets
@@ -502,6 +517,7 @@ export const SITE_EXTRA_COPY: Record<
 > = {
   en: {
     home: {
+      heroBadgePrimary: "Vinted description generator + listing assistant",
       watchDemo: "Watch Demo",
       videoCaption: "See how it works in 15 seconds",
       heroBullet1:
@@ -639,6 +655,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   fr: {
     home: {
+      heroBadgePrimary:
+        "Générateur de descriptions Vinted + assistant d'annonces",
       watchDemo: "Voir la démo",
       videoCaption: "Voyez le résultat en 15 secondes",
       heroBullet1:
@@ -776,6 +794,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   de: {
     home: {
+      heroBadgePrimary:
+        "Vinted-Beschreibungsgenerator + Anzeigen-Assistent",
       watchDemo: "Demo ansehen",
       videoCaption: "So funktioniert es in 15 Sekunden",
       heroBullet1:
@@ -914,6 +934,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   nl: {
     home: {
+      heroBadgePrimary:
+        "Vinted beschrijving generator + advertentie-assistent",
       watchDemo: "Bekijk demo",
       videoCaption: "Zie hoe het werkt in 15 seconden",
       heroBullet1:
@@ -1053,6 +1075,7 @@ export const SITE_EXTRA_COPY: Record<
   },
   pl: {
     home: {
+      heroBadgePrimary: "Generator opisów Vinted + asystent ogłoszeń",
       watchDemo: "Obejrzyj demo",
       videoCaption: "Zobacz jak to dziala w 15 sekund",
       heroBullet1:
@@ -1191,6 +1214,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   es: {
     home: {
+      heroBadgePrimary:
+        "Generador de descripciones Vinted + asistente de anuncios",
       watchDemo: "Ver demo",
       videoCaption: "Mira como funciona en 15 segundos",
       heroBullet1:
@@ -1328,6 +1353,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   it: {
     home: {
+      heroBadgePrimary:
+        "Generatore di descrizioni Vinted + assistente annunci",
       watchDemo: "Guarda demo",
       videoCaption: "Scopri come funziona in 15 secondi",
       heroBullet1:
@@ -1465,6 +1492,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   pt: {
     home: {
+      heroBadgePrimary:
+        "Gerador de descrições Vinted + assistente de anúncios",
       watchDemo: "Ver demo",
       videoCaption: "Veja como funciona em 15 segundos",
       heroBullet1:

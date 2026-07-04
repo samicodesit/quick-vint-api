@@ -1,30 +1,261 @@
 ---
-const reasons = [
-  {
-    value: "results_not_good_enough",
-    label: "The results were not good enough",
-  },
-  {
-    value: "could_not_get_it_to_work",
-    label: "I could not get it to work",
-  },
-  {
-    value: "not_what_i_expected",
-    label: "It was not what I expected",
-  },
-  {
-    value: "wrong_app",
-    label: "I thought it worked for another app",
-  },
-  {
-    value: "free_limit_too_low",
-    label: "The free limit was too low",
-  },
-  {
-    value: "did_not_understand",
-    label: "I did not understand how to use it",
-  },
+const chromeStoreUrl =
+  "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=uninstall_page&utm_campaign=uninstall_winback_offer";
+const pricingUrl =
+  "/pricing?utm_source=uninstall_page&utm_medium=winback&utm_campaign=uninstall_offer&utm_content=pricing_link";
+const couponCode = "LISTFASTER20";
+
+const feedbackReasons = [
+  "results_not_good_enough",
+  "could_not_get_it_to_work",
+  "not_what_i_expected",
+  "wrong_app",
+  "free_limit_too_low",
+  "did_not_understand",
 ];
+
+const copy = {
+  en: {
+    htmlLang: "en",
+    title: "Come back with 20% off - AutoLister AI",
+    preview: "Preview mode",
+    brand: "AutoLister AI",
+    eyebrow: "Before you go",
+    headline: "Come back with 20% off",
+    body:
+      "Reinstall AutoLister and use this code for 20% off your first month. Your Vinted account stays safe: no Vinted connection, no bots, no mass actions.",
+    couponLabel: "Use code",
+    copyCode: "Copy code",
+    copied: "Copied",
+    primaryCta: "Reinstall AutoLister",
+    secondaryCta: "See plans first",
+    trustOne: "Works from your listing page",
+    trustTwo: "No Vinted login required",
+    trustThree: "Secure checkout by Stripe",
+    feedbackTitle: "What made you uninstall?",
+    feedbackSubtitle: "One tap helps us fix the right thing.",
+    thanks: "Thanks, that helps.",
+    error: "Could not send feedback. You can close this page.",
+    reasons: {
+      results_not_good_enough: "The results were not good enough",
+      could_not_get_it_to_work: "I could not get it to work",
+      not_what_i_expected: "It was not what I expected",
+      wrong_app: "I thought it worked for another app",
+      free_limit_too_low: "The free limit was too low",
+      did_not_understand: "I did not understand how to use it",
+    },
+  },
+  fr: {
+    htmlLang: "fr",
+    title: "Revenez avec -20 % - AutoLister AI",
+    preview: "Mode aperçu",
+    brand: "AutoLister AI",
+    eyebrow: "Avant de partir",
+    headline: "Revenez avec -20 %",
+    body:
+      "Réinstallez AutoLister et utilisez ce code pour -20 % sur votre premier mois. Votre compte Vinted reste protégé : aucun compte Vinted à connecter, pas de bot, pas d'actions en masse.",
+    couponLabel: "Code promo",
+    copyCode: "Copier le code",
+    copied: "Copié",
+    primaryCta: "Réinstaller AutoLister",
+    secondaryCta: "Voir les offres",
+    trustOne: "Fonctionne depuis votre annonce",
+    trustTwo: "Aucune connexion Vinted requise",
+    trustThree: "Paiement sécurisé par Stripe",
+    feedbackTitle: "Pourquoi avez-vous désinstallé ?",
+    feedbackSubtitle: "Un clic nous aide à corriger le bon problème.",
+    thanks: "Merci, c'est utile.",
+    error: "Impossible d'envoyer le retour. Vous pouvez fermer cette page.",
+    reasons: {
+      results_not_good_enough: "Les résultats n'étaient pas assez bons",
+      could_not_get_it_to_work: "Je n'ai pas réussi à le faire fonctionner",
+      not_what_i_expected: "Ce n'était pas ce que j'attendais",
+      wrong_app: "Je pensais que cela marchait avec une autre app",
+      free_limit_too_low: "La limite gratuite était trop basse",
+      did_not_understand: "Je n'ai pas compris comment l'utiliser",
+    },
+  },
+  de: {
+    htmlLang: "de",
+    title: "Komm mit 20 % Rabatt zurück - AutoLister AI",
+    preview: "Vorschaumodus",
+    brand: "AutoLister AI",
+    eyebrow: "Bevor du gehst",
+    headline: "Komm mit 20 % Rabatt zurück",
+    body:
+      "Installiere AutoLister erneut und nutze diesen Code für 20 % Rabatt im ersten Monat. Dein Vinted-Konto bleibt sicher: keine Vinted-Verbindung, keine Bots, keine Massenaktionen.",
+    couponLabel: "Code verwenden",
+    copyCode: "Code kopieren",
+    copied: "Kopiert",
+    primaryCta: "AutoLister erneut installieren",
+    secondaryCta: "Tarife ansehen",
+    trustOne: "Funktioniert direkt in deinem Angebot",
+    trustTwo: "Kein Vinted-Login nötig",
+    trustThree: "Sichere Zahlung mit Stripe",
+    feedbackTitle: "Warum hast du deinstalliert?",
+    feedbackSubtitle: "Ein Klick hilft uns, das Richtige zu verbessern.",
+    thanks: "Danke, das hilft.",
+    error: "Feedback konnte nicht gesendet werden. Du kannst die Seite schließen.",
+    reasons: {
+      results_not_good_enough: "Die Ergebnisse waren nicht gut genug",
+      could_not_get_it_to_work: "Ich habe es nicht zum Laufen gebracht",
+      not_what_i_expected: "Es war nicht das, was ich erwartet habe",
+      wrong_app: "Ich dachte, es funktioniert mit einer anderen App",
+      free_limit_too_low: "Das kostenlose Limit war zu niedrig",
+      did_not_understand: "Ich habe nicht verstanden, wie man es benutzt",
+    },
+  },
+  nl: {
+    htmlLang: "nl",
+    title: "Kom terug met 20% korting - AutoLister AI",
+    preview: "Voorbeeldmodus",
+    brand: "AutoLister AI",
+    eyebrow: "Voordat je gaat",
+    headline: "Kom terug met 20% korting",
+    body:
+      "Installeer AutoLister opnieuw en gebruik deze code voor 20% korting op je eerste maand. Je Vinted-account blijft veilig: geen Vinted-koppeling, geen bots, geen massa-acties.",
+    couponLabel: "Gebruik code",
+    copyCode: "Code kopiëren",
+    copied: "Gekopieerd",
+    primaryCta: "AutoLister opnieuw installeren",
+    secondaryCta: "Bekijk plannen",
+    trustOne: "Werkt vanaf je advertentiepagina",
+    trustTwo: "Geen Vinted-login nodig",
+    trustThree: "Veilig afrekenen via Stripe",
+    feedbackTitle: "Waarom heb je verwijderd?",
+    feedbackSubtitle: "Eén klik helpt ons het juiste te verbeteren.",
+    thanks: "Bedankt, dat helpt.",
+    error: "Feedback kon niet worden verzonden. Je kunt deze pagina sluiten.",
+    reasons: {
+      results_not_good_enough: "De resultaten waren niet goed genoeg",
+      could_not_get_it_to_work: "Ik kreeg het niet werkend",
+      not_what_i_expected: "Het was niet wat ik verwachtte",
+      wrong_app: "Ik dacht dat het voor een andere app werkte",
+      free_limit_too_low: "De gratis limiet was te laag",
+      did_not_understand: "Ik begreep niet hoe ik het moest gebruiken",
+    },
+  },
+  pl: {
+    htmlLang: "pl",
+    title: "Wróć z 20% zniżki - AutoLister AI",
+    preview: "Tryb podglądu",
+    brand: "AutoLister AI",
+    eyebrow: "Zanim odejdziesz",
+    headline: "Wróć z 20% zniżki",
+    body:
+      "Zainstaluj AutoLister ponownie i użyj tego kodu, aby dostać 20% zniżki na pierwszy miesiąc. Twoje konto Vinted pozostaje bezpieczne: bez łączenia z Vinted, bez botów, bez masowych akcji.",
+    couponLabel: "Użyj kodu",
+    copyCode: "Kopiuj kod",
+    copied: "Skopiowano",
+    primaryCta: "Zainstaluj AutoLister ponownie",
+    secondaryCta: "Zobacz plany",
+    trustOne: "Działa z poziomu ogłoszenia",
+    trustTwo: "Bez logowania do Vinted",
+    trustThree: "Bezpieczna płatność przez Stripe",
+    feedbackTitle: "Dlaczego odinstalowano?",
+    feedbackSubtitle: "Jedno kliknięcie pomaga nam poprawić właściwą rzecz.",
+    thanks: "Dziękujemy, to pomaga.",
+    error: "Nie udało się wysłać opinii. Możesz zamknąć tę stronę.",
+    reasons: {
+      results_not_good_enough: "Wyniki nie były wystarczająco dobre",
+      could_not_get_it_to_work: "Nie udało mi się tego uruchomić",
+      not_what_i_expected: "To nie było to, czego oczekiwałem",
+      wrong_app: "Myślałem, że działa z inną aplikacją",
+      free_limit_too_low: "Darmowy limit był za niski",
+      did_not_understand: "Nie rozumiałem, jak tego używać",
+    },
+  },
+  es: {
+    htmlLang: "es",
+    title: "Vuelve con un 20% de descuento - AutoLister AI",
+    preview: "Modo vista previa",
+    brand: "AutoLister AI",
+    eyebrow: "Antes de irte",
+    headline: "Vuelve con un 20% de descuento",
+    body:
+      "Reinstala AutoLister y usa este código para tener un 20% de descuento el primer mes. Tu cuenta de Vinted sigue segura: sin conectar Vinted, sin bots, sin acciones masivas.",
+    couponLabel: "Usa el código",
+    copyCode: "Copiar código",
+    copied: "Copiado",
+    primaryCta: "Reinstalar AutoLister",
+    secondaryCta: "Ver planes",
+    trustOne: "Funciona desde tu anuncio",
+    trustTwo: "No requiere iniciar sesión en Vinted",
+    trustThree: "Pago seguro con Stripe",
+    feedbackTitle: "¿Por qué lo desinstalaste?",
+    feedbackSubtitle: "Un toque nos ayuda a mejorar lo correcto.",
+    thanks: "Gracias, eso ayuda.",
+    error: "No se pudo enviar el comentario. Puedes cerrar esta página.",
+    reasons: {
+      results_not_good_enough: "Los resultados no fueron suficientemente buenos",
+      could_not_get_it_to_work: "No conseguí hacerlo funcionar",
+      not_what_i_expected: "No era lo que esperaba",
+      wrong_app: "Pensé que funcionaba con otra app",
+      free_limit_too_low: "El límite gratis era demasiado bajo",
+      did_not_understand: "No entendí cómo usarlo",
+    },
+  },
+  it: {
+    htmlLang: "it",
+    title: "Torna con il 20% di sconto - AutoLister AI",
+    preview: "Modalità anteprima",
+    brand: "AutoLister AI",
+    eyebrow: "Prima di andare",
+    headline: "Torna con il 20% di sconto",
+    body:
+      "Reinstalla AutoLister e usa questo codice per avere il 20% di sconto sul primo mese. Il tuo account Vinted resta al sicuro: nessun collegamento a Vinted, niente bot, niente azioni di massa.",
+    couponLabel: "Usa il codice",
+    copyCode: "Copia codice",
+    copied: "Copiato",
+    primaryCta: "Reinstalla AutoLister",
+    secondaryCta: "Vedi i piani",
+    trustOne: "Funziona dalla pagina dell'annuncio",
+    trustTwo: "Nessun accesso a Vinted richiesto",
+    trustThree: "Pagamento sicuro con Stripe",
+    feedbackTitle: "Perché hai disinstallato?",
+    feedbackSubtitle: "Un clic ci aiuta a sistemare la cosa giusta.",
+    thanks: "Grazie, ci aiuta.",
+    error: "Impossibile inviare il feedback. Puoi chiudere questa pagina.",
+    reasons: {
+      results_not_good_enough: "I risultati non erano abbastanza buoni",
+      could_not_get_it_to_work: "Non sono riuscito a farlo funzionare",
+      not_what_i_expected: "Non era quello che mi aspettavo",
+      wrong_app: "Pensavo funzionasse con un'altra app",
+      free_limit_too_low: "Il limite gratuito era troppo basso",
+      did_not_understand: "Non ho capito come usarlo",
+    },
+  },
+  pt: {
+    htmlLang: "pt",
+    title: "Volte com 20% de desconto - AutoLister AI",
+    preview: "Modo de pré-visualização",
+    brand: "AutoLister AI",
+    eyebrow: "Antes de sair",
+    headline: "Volte com 20% de desconto",
+    body:
+      "Reinstale o AutoLister e use este código para ter 20% de desconto no primeiro mês. A sua conta Vinted continua segura: sem ligação à Vinted, sem bots, sem ações em massa.",
+    couponLabel: "Use o código",
+    copyCode: "Copiar código",
+    copied: "Copiado",
+    primaryCta: "Reinstalar AutoLister",
+    secondaryCta: "Ver planos",
+    trustOne: "Funciona na página do anúncio",
+    trustTwo: "Sem login da Vinted",
+    trustThree: "Pagamento seguro com Stripe",
+    feedbackTitle: "Porque desinstalou?",
+    feedbackSubtitle: "Um toque ajuda-nos a corrigir o que importa.",
+    thanks: "Obrigado, isso ajuda.",
+    error: "Não foi possível enviar o feedback. Pode fechar esta página.",
+    reasons: {
+      results_not_good_enough: "Os resultados não foram bons o suficiente",
+      could_not_get_it_to_work: "Não consegui fazê-lo funcionar",
+      not_what_i_expected: "Não era o que eu esperava",
+      wrong_app: "Achei que funcionava com outra aplicação",
+      free_limit_too_low: "O limite gratuito era demasiado baixo",
+      did_not_understand: "Não percebi como usar",
+    },
+  },
+};
 ---
 
 <!doctype html>
@@ -33,18 +264,21 @@ const reasons = [
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>AutoLister AI feedback</title>
+    <title>AutoLister AI uninstall offer</title>
     <style>
       :root {
         color-scheme: light;
-        --bg: #f7f7fb;
+        --bg: #f5f7fb;
         --panel: #ffffff;
         --text: #171923;
         --muted: #667085;
-        --border: #e6e7ee;
+        --border: #e5e7eb;
+        --soft-border: #eef1f6;
         --brand: #4f46e5;
         --brand-dark: #4338ca;
         --success: #047857;
+        --success-bg: #ecfdf5;
+        --warning: #b45309;
       }
 
       * {
@@ -54,81 +288,259 @@ const reasons = [
       body {
         min-height: 100vh;
         margin: 0;
-        background: var(--bg);
+        background:
+          radial-gradient(circle at top left, rgba(79, 70, 229, 0.13), transparent 32%),
+          linear-gradient(180deg, #fbfcff 0%, var(--bg) 100%);
         color: var(--text);
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
           Arial, sans-serif;
         display: grid;
         place-items: center;
-        padding: 24px;
+        padding: 28px;
       }
 
       main {
-        width: min(100%, 520px);
-        background: var(--panel);
+        width: min(100%, 960px);
+        display: grid;
+        grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.82fr);
+        gap: 18px;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.94);
         border: 1px solid var(--border);
-        border-radius: 8px;
-        box-shadow: 0 18px 50px rgba(17, 24, 39, 0.08);
+        border-radius: 18px;
+        box-shadow: 0 24px 70px rgba(17, 24, 39, 0.1);
+      }
+
+      .offer {
         padding: 34px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .offer::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #10b981, #38bdf8, var(--brand));
+      }
+
+      .brand-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 30px;
       }
 
       .brand {
         color: var(--brand);
         font-size: 18px;
-        font-weight: 800;
-        margin: 0 0 28px;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 24px;
-        line-height: 1.18;
+        font-weight: 850;
         letter-spacing: 0;
       }
 
-      p {
-        margin: 10px 0 22px;
+      .preview-pill {
+        display: none;
+        border: 1px solid #fed7aa;
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: #fff7ed;
+        color: var(--warning);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      [data-preview="true"] .preview-pill {
+        display: inline-flex;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--success);
+        font-size: 13px;
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      h1 {
+        max-width: 680px;
+        margin: 0;
+        font-size: clamp(34px, 5vw, 52px);
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+
+      .body-copy {
+        max-width: 620px;
+        margin: 18px 0 24px;
         color: var(--muted);
+        font-size: 17px;
+        line-height: 1.58;
+      }
+
+      .coupon-card {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        width: fit-content;
+        max-width: 100%;
+        margin-bottom: 24px;
+        padding: 9px;
+        border: 1px solid #c7d2fe;
+        border-radius: 14px;
+        background: #eef2ff;
+      }
+
+      .coupon-label {
+        padding: 0 6px;
+        color: #4338ca;
+        font-size: 12px;
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .coupon-code {
+        border: 1px solid #a5b4fc;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #111827;
+        padding: 9px 12px;
         font-size: 15px;
-        line-height: 1.55;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+      }
+
+      .copy-code {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        background: var(--brand);
+        color: #ffffff;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 850;
+        padding: 10px 12px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+
+      .cta,
+      .secondary-link {
+        min-height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        padding: 0 18px;
+        font-size: 15px;
+        font-weight: 850;
+        text-decoration: none;
+      }
+
+      .cta {
+        background: #111827;
+        color: #ffffff;
+        box-shadow: 0 14px 32px rgba(17, 24, 39, 0.18);
+      }
+
+      .cta:hover,
+      .cta:focus-visible {
+        background: #1f2937;
+      }
+
+      .secondary-link {
+        border: 1px solid var(--border);
+        background: #ffffff;
+        color: #344054;
+      }
+
+      .trust-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .trust-list li {
+        border: 1px solid #bbf7d0;
+        border-radius: 999px;
+        background: var(--success-bg);
+        color: var(--success);
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .feedback {
+        padding: 26px;
+        align-self: stretch;
+      }
+
+      .feedback h2 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.16;
+        letter-spacing: 0;
+      }
+
+      .feedback p {
+        margin: 8px 0 18px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.5;
       }
 
       .reasons {
         display: grid;
-        gap: 10px;
+        gap: 9px;
       }
 
-      button {
+      .reason-button {
         width: 100%;
-        min-height: 50px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
+        min-height: 46px;
+        border: 1px solid var(--soft-border);
+        border-radius: 11px;
         background: #ffffff;
         color: var(--text);
         cursor: pointer;
         font: inherit;
-        font-size: 15px;
-        font-weight: 700;
+        font-size: 14px;
+        font-weight: 750;
         line-height: 1.25;
-        padding: 12px 14px;
+        padding: 11px 12px;
         text-align: left;
         transition:
           border-color 140ms ease,
           background 140ms ease,
-          color 140ms ease,
           transform 140ms ease;
       }
 
-      button:hover:not(:disabled),
-      button:focus-visible:not(:disabled) {
+      .reason-button:hover:not(:disabled),
+      .reason-button:focus-visible:not(:disabled) {
         border-color: rgba(79, 70, 229, 0.58);
         background: #f7f7ff;
         outline: none;
         transform: translateY(-1px);
       }
 
-      button:disabled {
+      .reason-button:disabled {
         cursor: wait;
         opacity: 0.72;
       }
@@ -138,10 +550,10 @@ const reasons = [
         border: 1px solid #bbf7d0;
         background: #f0fdf4;
         color: var(--success);
-        border-radius: 8px;
-        padding: 14px;
-        font-size: 15px;
-        font-weight: 750;
+        border-radius: 11px;
+        padding: 13px;
+        font-size: 14px;
+        font-weight: 800;
       }
 
       .error {
@@ -151,8 +563,7 @@ const reasons = [
         margin-top: 12px;
       }
 
-      [data-state="submitted"] .reasons,
-      [data-state="submitted"] .intro {
+      [data-state="submitted"] .reasons {
         display: none;
       }
 
@@ -160,45 +571,107 @@ const reasons = [
         display: block;
       }
 
-      @media (max-width: 520px) {
+      @media (max-width: 820px) {
         body {
-          align-items: start;
+          place-items: start center;
           padding: 16px;
         }
 
         main {
-          padding: 24px;
+          grid-template-columns: 1fr;
         }
 
-        h1 {
-          font-size: 22px;
+        .offer {
+          padding: 26px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .offer,
+        .feedback {
+          padding: 22px;
+          border-radius: 14px;
+        }
+
+        .brand-row {
+          margin-bottom: 22px;
+        }
+
+        .coupon-card,
+        .actions,
+        .cta,
+        .secondary-link {
+          width: 100%;
         }
       }
     </style>
   </head>
   <body>
-    <main data-state="ready">
-      <div class="brand">AutoLister AI</div>
-      <section class="intro">
-        <h1>What made you uninstall AutoLister AI?</h1>
-        <p>One tap helps us improve.</p>
+    <main data-state="ready" data-preview="false">
+      <section class="offer panel" aria-labelledby="uninstall-offer-title">
+        <div class="brand-row">
+          <div class="brand" data-i18n="brand">AutoLister AI</div>
+          <div class="preview-pill" data-i18n="preview">Preview mode</div>
+        </div>
+        <p class="eyebrow" data-i18n="eyebrow">Before you go</p>
+        <h1 id="uninstall-offer-title" data-i18n="headline">
+          Come back with 20% off
+        </h1>
+        <p class="body-copy" data-i18n="body">
+          Reinstall AutoLister and use this code for 20% off your first month.
+        </p>
+
+        <div class="coupon-card" aria-label="Discount code">
+          <span class="coupon-label" data-i18n="couponLabel">Use code</span>
+          <span class="coupon-code" data-coupon-code>{couponCode}</span>
+          <button class="copy-code" type="button" data-copy-code data-i18n="copyCode">
+            Copy code
+          </button>
+        </div>
+
+        <div class="actions">
+          <a class="cta" data-reinstall-cta href={chromeStoreUrl} data-i18n="primaryCta">
+            Reinstall AutoLister
+          </a>
+          <a class="secondary-link" data-pricing-link href={pricingUrl} data-i18n="secondaryCta">
+            See plans first
+          </a>
+        </div>
+
+        <ul class="trust-list" aria-label="AutoLister safety notes">
+          <li data-i18n="trustOne">Works from your listing page</li>
+          <li data-i18n="trustTwo">No Vinted login required</li>
+          <li data-i18n="trustThree">Secure checkout by Stripe</li>
+        </ul>
       </section>
-      <section class="reasons" aria-label="Uninstall feedback reasons">
-        {
-          reasons.map((reason) => (
-            <button type="button" data-reason={reason.value} data-label={reason.label}>
-              {reason.label}
-            </button>
-          ))
-        }
+
+      <section class="feedback panel" aria-labelledby="uninstall-feedback-title">
+        <h2 id="uninstall-feedback-title" data-i18n="feedbackTitle">
+          What made you uninstall?
+        </h2>
+        <p data-i18n="feedbackSubtitle">One tap helps us fix the right thing.</p>
+        <section class="reasons" aria-label="Uninstall feedback reasons">
+          {
+            feedbackReasons.map((reason) => (
+              <button
+                class="reason-button"
+                type="button"
+                data-reason={reason}
+                data-label={copy.en.reasons[reason]}
+              >
+                {copy.en.reasons[reason]}
+              </button>
+            ))
+          }
+        </section>
+        <div class="thanks" role="status" data-i18n="thanks">Thanks, that helps.</div>
+        <div class="error" role="alert" data-i18n="error">
+          Could not send feedback. You can close this page.
+        </div>
       </section>
-      <div class="thanks" role="status">Thanks, that helps.</div>
-      <div class="error" role="alert">
-        Could not send feedback. You can close this page.
-      </div>
     </main>
 
-    <script>
+    <script define:vars={{ copy, couponCode }}>
       const page = document.querySelector("main");
       const buttons = Array.from(document.querySelectorAll("[data-reason]"));
       const error = document.querySelector(".error");
@@ -206,6 +679,8 @@ const reasons = [
       const extensionVersion = params.get("version") || null;
       const analyticsClientId = params.get("cid") || null;
       const userId = params.get("uid") || null;
+      const previewMode = params.get("preview") === "1";
+      const supportedLocales = Object.keys(copy);
       const uninstallOpenKey = [
         "autolister",
         "uninstall-open",
@@ -213,6 +688,38 @@ const reasons = [
         analyticsClientId || "no-cid",
         extensionVersion || "no-version",
       ].join(":");
+
+      function normalizeLocale(value) {
+        const locale = String(value || "").toLowerCase().slice(0, 2);
+        return supportedLocales.includes(locale) ? locale : "en";
+      }
+
+      function getPreferredLocale() {
+        return normalizeLocale(
+          params.get("lang") ||
+            params.get("locale") ||
+            navigator.language ||
+            navigator.languages?.[0],
+        );
+      }
+
+      const locale = getPreferredLocale();
+      const strings = copy[locale] || copy.en;
+      document.documentElement.lang = strings.htmlLang || locale;
+      document.title = strings.title || copy.en.title;
+      page.dataset.preview = previewMode ? "true" : "false";
+
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        const key = element.dataset.i18n;
+        if (strings[key]) element.textContent = strings[key];
+      });
+
+      buttons.forEach((button) => {
+        const reason = button.dataset.reason;
+        const label = strings.reasons?.[reason] || copy.en.reasons[reason];
+        button.textContent = label;
+        button.dataset.label = label;
+      });
 
       function buildTrackingBody(event, context = {}) {
         return {
@@ -225,12 +732,35 @@ const reasons = [
             extensionVersion,
             analyticsClientId,
             userId,
+            locale,
+            couponCode,
           },
           extensionVersion,
         };
       }
 
+      function trackEvent(event, context = {}, options = {}) {
+        if (previewMode) return Promise.resolve();
+        const body = JSON.stringify(buildTrackingBody(event, context));
+
+        if (options.beacon && navigator.sendBeacon) {
+          const sent = navigator.sendBeacon(
+            "/api/events/track",
+            new Blob([body], { type: "application/json" }),
+          );
+          if (sent) return Promise.resolve();
+        }
+
+        return fetch("/api/events/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      }
+
       function trackUninstallOpen() {
+        if (previewMode) return;
         try {
           if (window.localStorage.getItem(uninstallOpenKey)) return;
           window.localStorage.setItem(uninstallOpenKey, String(Date.now()));
@@ -238,26 +768,14 @@ const reasons = [
           // Ignore storage failures; the API also dedupes uninstall opens.
         }
 
-        const body = JSON.stringify(
-          buildTrackingBody("extension_uninstalled", {
+        trackEvent(
+          "extension_uninstalled",
+          {
             hasUserId: Boolean(userId),
-          }),
+            offerCampaign: "uninstall_winback_offer_v1",
+          },
+          { beacon: true },
         );
-
-        if (navigator.sendBeacon) {
-          const sent = navigator.sendBeacon(
-            "/api/events/track",
-            new Blob([body], { type: "application/json" }),
-          );
-          if (sent) return;
-        }
-
-        fetch("/api/events/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: true,
-        }).catch(() => {});
       }
 
       async function sendFeedback(button) {
@@ -270,6 +788,11 @@ const reasons = [
         });
         error.style.display = "none";
 
+        if (previewMode) {
+          page.dataset.state = "submitted";
+          return;
+        }
+
         try {
           const response = await fetch("/api/events/track", {
             method: "POST",
@@ -278,6 +801,7 @@ const reasons = [
               buildTrackingBody("uninstall_feedback_submitted", {
                 reason,
                 reasonLabel,
+                offerCampaign: "uninstall_winback_offer_v1",
               }),
             ),
             keepalive: true,
@@ -293,6 +817,42 @@ const reasons = [
           });
         }
       }
+
+      document.querySelector("[data-copy-code]")?.addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        try {
+          await navigator.clipboard?.writeText(couponCode);
+        } catch {
+          // Clipboard can fail on older browsers; the visible code still works.
+        }
+        button.textContent = strings.copied || copy.en.copied;
+        trackEvent("uninstall_coupon_copied", {
+          offerCampaign: "uninstall_winback_offer_v1",
+        });
+        window.setTimeout(() => {
+          button.textContent = strings.copyCode || copy.en.copyCode;
+        }, 1600);
+      });
+
+      document.querySelector("[data-reinstall-cta]")?.addEventListener("click", () => {
+        trackEvent(
+          "uninstall_reinstall_cta_click",
+          {
+            offerCampaign: "uninstall_winback_offer_v1",
+          },
+          { beacon: true },
+        );
+      });
+
+      document.querySelector("[data-pricing-link]")?.addEventListener("click", () => {
+        trackEvent(
+          "uninstall_pricing_click",
+          {
+            offerCampaign: "uninstall_winback_offer_v1",
+          },
+          { beacon: true },
+        );
+      });
 
       buttons.forEach((button) => {
         button.addEventListener("click", () => sendFeedback(button));

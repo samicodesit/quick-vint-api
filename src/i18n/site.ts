@@ -393,6 +393,10 @@ export type SiteExtraHomeCopy = {
   screenshotPreviewBadge: string;
   screenshotPreviewPrimary: string;
   screenshotPreviewSecondary: string;
+  screenshotModalEyebrow: string;
+  screenshotModalHint: string;
+  screenshotModalClose: string;
+  screenshotModalCta: string;
   // Hero bullets
   heroBullet1: string;
   heroBullet2: string;
@@ -530,6 +534,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "New",
       screenshotPreviewPrimary: "New main screenshot",
       screenshotPreviewSecondary: "New feature screenshot",
+      screenshotModalEyebrow: "New AutoLister screenshots",
+      screenshotModalHint: "Close this preview to continue on the page.",
+      screenshotModalClose: "Close preview",
+      screenshotModalCta: "Add to Chrome free",
       heroBullet1:
         "Generates SEO-ready titles, descriptions, and hashtags automatically",
       heroBullet2: "No copy-paste needed. No emailing photos.",
@@ -674,6 +682,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "Nouveau",
       screenshotPreviewPrimary: "Nouvelle capture principale",
       screenshotPreviewSecondary: "Nouvelle capture fonctionnalité",
+      screenshotModalEyebrow: "Nouvelles captures AutoLister",
+      screenshotModalHint: "Fermez cet aperçu pour continuer sur la page.",
+      screenshotModalClose: "Fermer l'aperçu",
+      screenshotModalCta: "Ajouter à Chrome gratuitement",
       heroBullet1:
         "Génère des titres, descriptions et hashtags SEO automatiquement",
       heroBullet2: "Aucun copier-coller. Aucun envoi de photos par e-mail.",
@@ -818,6 +830,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "Neu",
       screenshotPreviewPrimary: "Neuer Haupt-Screenshot",
       screenshotPreviewSecondary: "Neuer Funktions-Screenshot",
+      screenshotModalEyebrow: "Neue AutoLister-Screenshots",
+      screenshotModalHint: "Schließe die Vorschau, um auf der Seite weiterzumachen.",
+      screenshotModalClose: "Vorschau schließen",
+      screenshotModalCta: "Kostenlos zu Chrome hinzufügen",
       heroBullet1:
         "Erstellt SEO-optimierte Titel, Beschreibungen und Hashtags automatisch",
       heroBullet2: "Kein Kopieren und Einfugen. Keine Fotos per E-Mail senden.",
@@ -963,6 +979,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "Nieuw",
       screenshotPreviewPrimary: "Nieuwe hoofdscreenshot",
       screenshotPreviewSecondary: "Nieuwe functiescreenshot",
+      screenshotModalEyebrow: "Nieuwe AutoLister-screenshots",
+      screenshotModalHint: "Sluit deze preview om verder te gaan op de pagina.",
+      screenshotModalClose: "Preview sluiten",
+      screenshotModalCta: "Gratis toevoegen aan Chrome",
       heroBullet1:
         "Genereert automatisch SEO-klare titels, beschrijvingen en hashtags",
       heroBullet2: "Geen kopieer-plak. Geen foto's mailen.",
@@ -1108,6 +1128,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "Nowe",
       screenshotPreviewPrimary: "Nowy główny zrzut",
       screenshotPreviewSecondary: "Nowy zrzut funkcji",
+      screenshotModalEyebrow: "Nowe zrzuty AutoLister",
+      screenshotModalHint: "Zamknij podgląd, aby kontynuować na stronie.",
+      screenshotModalClose: "Zamknij podgląd",
+      screenshotModalCta: "Dodaj do Chrome za darmo",
       heroBullet1:
         "Automatycznie generuje tytuly, opisy i hashtagi zoptymalizowane pod SEO",
       heroBullet2: "Bez kopiowania i wklejania. Bez wysylania zdjec mailem.",
@@ -1253,6 +1277,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "Nuevo",
       screenshotPreviewPrimary: "Nueva captura principal",
       screenshotPreviewSecondary: "Nueva captura de función",
+      screenshotModalEyebrow: "Nuevas capturas de AutoLister",
+      screenshotModalHint: "Cierra esta vista previa para seguir en la página.",
+      screenshotModalClose: "Cerrar vista previa",
+      screenshotModalCta: "Añadir a Chrome gratis",
       heroBullet1:
         "Genera titulos, descripciones y hashtags optimizados para SEO automaticamente",
       heroBullet2: "Sin copiar y pegar. Sin enviar fotos por correo.",
@@ -1397,6 +1425,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "Nuovo",
       screenshotPreviewPrimary: "Nuovo screenshot principale",
       screenshotPreviewSecondary: "Nuovo screenshot funzione",
+      screenshotModalEyebrow: "Nuovi screenshot AutoLister",
+      screenshotModalHint: "Chiudi questa anteprima per continuare nella pagina.",
+      screenshotModalClose: "Chiudi anteprima",
+      screenshotModalCta: "Aggiungi a Chrome gratis",
       heroBullet1:
         "Genera automaticamente titoli, descrizioni e hashtag ottimizzati per il SEO",
       heroBullet2: "Nessun copia-incolla. Nessun invio di foto via email.",
@@ -1541,6 +1573,10 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewBadge: "Novo",
       screenshotPreviewPrimary: "Nova captura principal",
       screenshotPreviewSecondary: "Nova captura de funcionalidade",
+      screenshotModalEyebrow: "Novas capturas AutoLister",
+      screenshotModalHint: "Feche esta pré-visualização para continuar na página.",
+      screenshotModalClose: "Fechar pré-visualização",
+      screenshotModalCta: "Adicionar ao Chrome grátis",
       heroBullet1:
         "Gera automaticamente titulos, descricoes e hashtags otimizados para SEO",
       heroBullet2: "Sem copiar e colar. Sem enviar fotos por email.",

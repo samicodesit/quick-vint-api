@@ -146,8 +146,9 @@ export async function findLimitFollowupRecipients({
   if (!requireExplicitLimitHit) {
     let cappedProfilesQuery = supabase
       .from("profiles")
-      .select("id, email")
+      .select("id, email, pack_credits")
       .gte("free_lifetime_generations_used", FREE_LIFETIME_LIMIT)
+      .lte("pack_credits", 0)
       .eq("email_subscribed", true)
       .not("email", "is", null)
       .not("unsubscribe_token", "is", null)
@@ -238,10 +239,11 @@ export async function findLimitFollowupRecipients({
   const { data: profiles, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "id, email, subscription_status, subscription_tier, email_subscribed, unsubscribe_token",
+      "id, email, subscription_status, subscription_tier, email_subscribed, unsubscribe_token, pack_credits",
     )
     .in("id", userIds)
     .eq("email_subscribed", true)
+    .lte("pack_credits", 0)
     .not("email", "is", null)
     .not("unsubscribe_token", "is", null);
 
@@ -254,9 +256,11 @@ export async function findLimitFollowupRecipients({
     subscription_tier: string | null;
     email_subscribed: boolean | null;
     unsubscribe_token: string | null;
+    pack_credits?: number | null;
   }>)
     .filter((profile) => {
       if (!profile.email || !profile.unsubscribe_token) return false;
+      if (Number(profile.pack_credits || 0) > 0) return false;
       if (excludedUserIds.has(profile.id)) return false;
       if (excludedEmails.has(normalizeEmailForCampaign(profile.email))) {
         return false;

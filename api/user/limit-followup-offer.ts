@@ -101,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select(
-        "id, email, subscription_status, subscription_tier, email_subscribed, unsubscribe_token, free_lifetime_generations_used",
+        "id, email, subscription_status, subscription_tier, email_subscribed, unsubscribe_token, free_lifetime_generations_used, pack_credits",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -118,13 +118,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         profile.subscription_tier === "free");
     const hasReachedFreeLimit =
       Number(profile?.free_lifetime_generations_used || 0) >= FREE_LIFETIME_LIMIT;
+    const hasAvailableCredits = Number(profile?.pack_credits || 0) > 0;
 
     if (
       profile?.email &&
       profile?.unsubscribe_token &&
       profile.email_subscribed &&
       isFree &&
-      hasReachedFreeLimit
+      hasReachedFreeLimit &&
+      !hasAvailableCredits
     ) {
       recipient = {
         id: profile.id,

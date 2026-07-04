@@ -152,6 +152,7 @@ describe("limit follow-up on-page offer endpoint", () => {
           email_subscribed: true,
           unsubscribe_token: "unsub-test",
           free_lifetime_generations_used: 5,
+          pack_credits: 0,
         },
         error: null,
       }),
@@ -182,5 +183,56 @@ describe("limit follow-up on-page offer endpoint", () => {
       couponCode: "LISTFASTER20",
       pricingUrl: "https://autolister.app/pricing?offer=test-token",
     });
+  });
+
+  it("does not show the on-page offer when a capped free user still has pack credits", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "test-user-1", email: "samicodesit@gmail.com" } },
+      error: null,
+    });
+    getAllLimitFollowupExclusionsMock.mockResolvedValue({
+      excludedEmails: new Set<string>(["samicodesit@gmail.com"]),
+      excludedUserIds: new Set<string>(["test-user-1"]),
+    });
+    findLimitFollowupRecipientsMock.mockResolvedValue([]);
+    fromMock.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "test-user-1",
+          email: "samicodesit@gmail.com",
+          subscription_status: "free",
+          subscription_tier: "free",
+          email_subscribed: true,
+          unsubscribe_token: "unsub-test",
+          free_lifetime_generations_used: 5,
+          pack_credits: 1,
+        },
+        error: null,
+      }),
+    });
+
+    const handlerModule = await import(
+      "../../../api/user/limit-followup-offer.js"
+    );
+    const handler = handlerModule.default as unknown as (
+      req: unknown,
+      res: unknown,
+    ) => Promise<unknown>;
+
+    const req = {
+      method: "GET",
+      headers: {
+        authorization: "Bearer access-token",
+        origin: "https://www.vinted.fr",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ eligible: false });
   });
 });

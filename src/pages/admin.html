@@ -5202,6 +5202,8 @@
                 if (context.descriptionChanged) changed.push(`description delta ${context.descriptionLengthDelta ?? 0}`);
                 const delay = formatDurationMs(context.editDelayMs);
                 const parts = [
+                    context.editSequence ? `snapshot ${context.editSequence}` : '',
+                    context.editSnapshotReason ? context.editSnapshotReason.replace(/_/g, ' ') : '',
                     changed.length ? changed.join(' · ') : 'output edited',
                     context.descriptionApplyChoice ? `apply ${context.descriptionApplyChoice}` : '',
                     delay ? `${delay} after generation` : '',
@@ -5348,16 +5350,26 @@
             const delay = formatDurationMs(context.editDelayMs);
             const chips = [
                 `<span class="edit-diff-chip changed">Edited ${escapeHtml(changedParts.join(' + ') || 'output')}</span>`,
+                context.editSequence ? `<span class="edit-diff-chip">Snapshot ${escapeHtml(String(context.editSequence))}</span>` : '',
+                context.editSnapshotReason ? `<span class="edit-diff-chip">${escapeHtml(String(context.editSnapshotReason).replace(/_/g, ' '))}</span>` : '',
                 context.descriptionApplyChoice ? `<span class="edit-diff-chip">Apply: ${escapeHtml(context.descriptionApplyChoice)}</span>` : '',
                 delay ? `<span class="edit-diff-chip">${escapeHtml(delay)} after generation</span>` : '',
                 context.descriptionLengthDelta !== undefined ? `<span class="edit-diff-chip">Description delta ${escapeHtml(String(context.descriptionLengthDelta))}</span>` : '',
                 context.titleLengthDelta !== undefined ? `<span class="edit-diff-chip">Title delta ${escapeHtml(String(context.titleLengthDelta))}</span>` : '',
+                context.descriptionLengthDeltaSincePrevious !== undefined ? `<span class="edit-diff-chip">Description since previous ${escapeHtml(String(context.descriptionLengthDeltaSincePrevious))}</span>` : '',
+                context.titleLengthDeltaSincePrevious !== undefined ? `<span class="edit-diff-chip">Title since previous ${escapeHtml(String(context.titleLengthDeltaSincePrevious))}</span>` : '',
                 context.photoCount !== undefined ? `<span class="edit-diff-chip">${escapeHtml(String(context.photoCount))} photos</span>` : '',
                 context.titleLanguageCode ? `<span class="edit-diff-chip">Title ${escapeHtml(context.titleLanguageCode)}</span>` : '',
                 context.descriptionLanguageCode ? `<span class="edit-diff-chip">Description ${escapeHtml(context.descriptionLanguageCode)}</span>` : '',
             ].filter(Boolean).join('');
 
             const sections = [];
+            if (context.editSequence > 1 && (context.previousTitle !== undefined || context.currentTitle !== undefined) && context.previousTitle !== context.currentTitle) {
+                sections.push(renderTextDiffSection('Title since previous snapshot', context.previousTitle ?? '', context.currentTitle ?? ''));
+            }
+            if (context.editSequence > 1 && (context.previousDescription !== undefined || context.currentDescription !== undefined) && context.previousDescription !== context.currentDescription) {
+                sections.push(renderTextDiffSection('Description since previous snapshot', context.previousDescription ?? '', context.currentDescription ?? ''));
+            }
             if (titleChanged || titleBefore || titleAfter) {
                 sections.push(renderTextDiffSection('Title', titleBefore, titleAfter));
             }

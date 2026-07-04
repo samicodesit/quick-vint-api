@@ -547,7 +547,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Add to Chrome",
       addToChromeNote: "It's Free",
       testimonialQuote:
-        "I still tweak a few words, but the boring part is gone. After I buy stock, I can turn a pile of photos into Vinted drafts without putting it off until tomorrow.",
+        "Makes listing so much quicker. I still edit small details, but having the title and description already there helps a lot when I upload several items.",
       testimonialAuthor: "— Otília N., Vinted seller",
       safetyHeading: "Zero Risk. 100% Control.",
       safetyBody:
@@ -698,7 +698,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Ajouter à Chrome",
       addToChromeNote: "C'est gratuit",
       testimonialQuote:
-        "Je retouche encore quelques mots, mais la partie pénible a disparu. Après une journée de sourcing, je peux transformer une pile de photos en brouillons Vinted sans repousser au lendemain.",
+        "Ça rend la mise en ligne beaucoup plus rapide. Je retouche encore quelques détails, mais avoir déjà le titre et la description aide vraiment quand j'ajoute plusieurs articles.",
       testimonialAuthor: "— Otília N., vendeuse Vinted",
       safetyHeading: "Zéro risque. 100% de contrôle.",
       safetyBody:
@@ -849,7 +849,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Zu Chrome hinzufugen",
       addToChromeNote: "Kostenlos",
       testimonialQuote:
-        "Ein paar Woerter passe ich noch an, aber der nervige Teil ist weg. Nach einem Einkaufstag mache ich aus einem Stapel Fotos Vinted-Entwuerfe, statt es auf morgen zu schieben.",
+        "Das Einstellen geht viel schneller. Ein paar Details aendere ich noch, aber Titel und Beschreibung schon fertig zu haben hilft sehr, wenn ich mehrere Artikel hochlade.",
       testimonialAuthor: "— Otília N., Vinted-Verkaeuferin",
       safetyHeading: "Null Risiko. 100% Kontrolle.",
       safetyBody:
@@ -1001,7 +1001,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Toevoegen aan Chrome",
       addToChromeNote: "Gratis",
       testimonialQuote:
-        "Ik pas nog steeds een paar woorden aan, maar het saaie werk is weg. Na een inkoopdag maak ik van een stapel foto's Vinted-concepten, zonder het weer naar morgen te schuiven.",
+        "Advertenties maken gaat zoveel sneller. Ik pas nog kleine dingen aan, maar dat titel en beschrijving er al staan helpt echt als ik meerdere items upload.",
       testimonialAuthor: "— Otília N., Vinted-verkoper",
       safetyHeading: "Nul risico. 100% controle.",
       safetyBody:
@@ -1153,7 +1153,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Dodaj do Chrome",
       addToChromeNote: "To jest darmowe",
       testimonialQuote:
-        "Wciaz poprawiam kilka slow, ale nudna czesc znika. Po dniu zakupow moge zamienic stos zdjec w szkice ogloszen na Vinted, zamiast odkladac to na jutro.",
+        "Wystawianie idzie duzo szybciej. Nadal poprawiam male szczegoly, ale gotowy tytul i opis bardzo pomagaja, gdy dodaje kilka rzeczy naraz.",
       testimonialAuthor: "— Otília N., sprzedawczyni Vinted",
       safetyHeading: "Zero ryzyka. 100% kontroli.",
       safetyBody:
@@ -1305,7 +1305,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Anadir a Chrome",
       addToChromeNote: "Es gratis",
       testimonialQuote:
-        "Todavia cambio algunas palabras, pero la parte pesada ya no esta. Despues de un dia comprando stock, convierto un monton de fotos en borradores para Vinted sin dejarlo para manana.",
+        "Publicar va mucho mas rapido. Todavia cambio pequenos detalles, pero tener ya el titulo y la descripcion ayuda mucho cuando subo varios articulos.",
       testimonialAuthor: "— Otília N., vendedora de Vinted",
       safetyHeading: "Cero riesgo. 100% de control.",
       safetyBody:
@@ -1456,7 +1456,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Aggiungi a Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
-        "Qualche parola la cambio ancora, ma la parte noiosa non c'e piu. Dopo una giornata di acquisti, trasformo una pila di foto in bozze Vinted senza rimandare tutto al giorno dopo.",
+        "Pubblicare e molto piu veloce. Cambio ancora qualche dettaglio, ma avere gia titolo e descrizione aiuta davvero quando carico piu articoli.",
       testimonialAuthor: "— Otília N., venditrice Vinted",
       safetyHeading: "Zero rischi. 100% controllo.",
       safetyBody:
@@ -1607,7 +1607,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Adicionar ao Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
-        "Ainda ajusto algumas palavras, mas a parte chata desapareceu. Depois de um dia a comprar stock, transformo uma pilha de fotos em rascunhos Vinted sem deixar para amanha.",
+        "Criar anuncios ficou muito mais rapido. Ainda ajusto pequenos detalhes, mas ter o titulo e a descricao prontos ajuda imenso quando carrego varios artigos.",
       testimonialAuthor: "— Otília N., vendedora Vinted",
       safetyHeading: "Zero risco. 100% controlo.",
       safetyBody:

@@ -242,10 +242,7 @@
     }
 
     .plan-summary-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 14px;
+      display: block;
     }
 
     .plan-label {
@@ -263,17 +260,6 @@
       font-size: 1.45rem;
       line-height: 1.05;
       font-weight: 900;
-    }
-
-    .plan-price {
-      flex: 0 0 auto;
-      padding: 8px 11px;
-      border-radius: 999px;
-      background: #eef2ff;
-      color: var(--brand-strong);
-      font-size: 0.9rem;
-      font-weight: 850;
-      white-space: nowrap;
     }
 
     .limit-grid {
@@ -512,17 +498,8 @@
         width: 100%;
       }
 
-      .plan-summary-header,
       .limit-grid {
         grid-template-columns: 1fr;
-      }
-
-      .plan-summary-header {
-        display: grid;
-      }
-
-      .plan-price {
-        justify-self: start;
       }
     }
   </style>
@@ -687,7 +664,6 @@
             <p class="plan-label">Subscription active</p>
             <h2 class="plan-name">${plan.name}</h2>
           </div>
-          <div class="plan-price">${plan.price}</div>
         </div>
         <div class="limit-grid">
           <div class="limit-pill">

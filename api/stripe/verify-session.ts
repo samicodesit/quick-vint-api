@@ -2,6 +2,11 @@ import { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import {
+  CREDIT_PACK_CONFIG,
+  TIER_CONFIGS,
+  normalizeTier,
+} from "../../utils/tierConfig";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
@@ -10,6 +15,35 @@ function getStripeId(
 ) {
   if (!value) return null;
   return typeof value === "string" ? value : value.id;
+}
+
+function getTierFromPriceId(priceId?: string | null) {
+  if (!priceId) return null;
+  const match = Object.values(TIER_CONFIGS).find(
+    (config) => config.stripe.priceId === priceId,
+  );
+  return match?.id || null;
+}
+
+function getSubscriptionPlanDetails(session: Stripe.Checkout.Session) {
+  if (session.mode !== "subscription") return null;
+
+  const lineItems = session.line_items?.data || [];
+  const priceId = lineItems[0]?.price?.id || null;
+  const tier = normalizeTier(
+    session.metadata?.tier || getTierFromPriceId(priceId),
+  );
+  const config = TIER_CONFIGS[tier];
+
+  if (!config || tier === "free") return null;
+
+  return {
+    tier,
+    name: config.displayName,
+    monthly_price_eur: config.monthlyPrice,
+    daily_limit: config.limits.daily,
+    monthly_limit: config.limits.monthly,
+  };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -27,7 +61,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const session = await stripe.checkout.sessions.retrieve(session_id);
+    const session = await stripe.checkout.sessions.retrieve(session_id, {
+      expand: ["line_items.data.price"],
+    });
 
     const isValid =
       session &&
@@ -97,6 +133,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         payment_status: session.payment_status,
         session_status: session.status,
         purchase_type: session.metadata?.purchase_type || null,
+        tier: session.metadata?.tier || null,
+        plan: getSubscriptionPlanDetails(session),
+        credit_pack:
+          fulfillmentType === "credit_pack"
+            ? {
+                id: session.metadata?.pack_id || CREDIT_PACK_CONFIG.id,
+                credits: Number(
+                  session.metadata?.credits || CREDIT_PACK_CONFIG.credits,
+                ),
+              }
+            : null,
         subscription_id: getStripeId(session.subscription),
         created: session.created,
       },

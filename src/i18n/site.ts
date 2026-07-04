@@ -547,7 +547,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Add to Chrome",
       addToChromeNote: "It's Free",
       testimonialQuote:
-        "I list in batches now. AutoLister keeps my titles, descriptions, hashtags, and my usual seller note consistent without connecting to my Vinted account.",
+        "I still tweak a few words, but the boring part is gone. After I buy stock, I can turn a pile of photos into Vinted drafts without putting it off until tomorrow.",
       testimonialAuthor: "— Otília N., Vinted seller",
       safetyHeading: "Zero Risk. 100% Control.",
       safetyBody:
@@ -698,7 +698,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Ajouter à Chrome",
       addToChromeNote: "C'est gratuit",
       testimonialQuote:
-        "Je prépare mes annonces par lots maintenant. AutoLister garde mes titres, descriptions, hashtags et ma note vendeur habituelle cohérents, sans connecter mon compte Vinted.",
+        "Je retouche encore quelques mots, mais la partie pénible a disparu. Après une journée de sourcing, je peux transformer une pile de photos en brouillons Vinted sans repousser au lendemain.",
       testimonialAuthor: "— Otília N., vendeuse Vinted",
       safetyHeading: "Zéro risque. 100% de contrôle.",
       safetyBody:
@@ -849,7 +849,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Zu Chrome hinzufugen",
       addToChromeNote: "Kostenlos",
       testimonialQuote:
-        "Ich erstelle meine Anzeigen jetzt in Bloecken. AutoLister haelt Titel, Beschreibungen, Hashtags und meine uebliche Verkaeufernotiz einheitlich, ohne mein Vinted-Konto zu verbinden.",
+        "Ein paar Woerter passe ich noch an, aber der nervige Teil ist weg. Nach einem Einkaufstag mache ich aus einem Stapel Fotos Vinted-Entwuerfe, statt es auf morgen zu schieben.",
       testimonialAuthor: "— Otília N., Vinted-Verkaeuferin",
       safetyHeading: "Null Risiko. 100% Kontrolle.",
       safetyBody:
@@ -1001,7 +1001,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Toevoegen aan Chrome",
       addToChromeNote: "Gratis",
       testimonialQuote:
-        "Ik maak mijn advertenties nu in batches. AutoLister houdt mijn titels, beschrijvingen, hashtags en mijn vaste verkoopnotitie consistent, zonder mijn Vinted-account te koppelen.",
+        "Ik pas nog steeds een paar woorden aan, maar het saaie werk is weg. Na een inkoopdag maak ik van een stapel foto's Vinted-concepten, zonder het weer naar morgen te schuiven.",
       testimonialAuthor: "— Otília N., Vinted-verkoper",
       safetyHeading: "Nul risico. 100% controle.",
       safetyBody:
@@ -1153,7 +1153,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Dodaj do Chrome",
       addToChromeNote: "To jest darmowe",
       testimonialQuote:
-        "Teraz przygotowuje ogloszenia partiami. AutoLister utrzymuje spojne tytuly, opisy, hashtagi i moja stala notatke sprzedawcy, bez laczenia mojego konta Vinted.",
+        "Wciaz poprawiam kilka slow, ale nudna czesc znika. Po dniu zakupow moge zamienic stos zdjec w szkice ogloszen na Vinted, zamiast odkladac to na jutro.",
       testimonialAuthor: "— Otília N., sprzedawczyni Vinted",
       safetyHeading: "Zero ryzyka. 100% kontroli.",
       safetyBody:
@@ -1305,7 +1305,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Anadir a Chrome",
       addToChromeNote: "Es gratis",
       testimonialQuote:
-        "Ahora preparo anuncios por lotes. AutoLister mantiene coherentes mis titulos, descripciones, hashtags y mi nota habitual de vendedora, sin conectar mi cuenta de Vinted.",
+        "Todavia cambio algunas palabras, pero la parte pesada ya no esta. Despues de un dia comprando stock, convierto un monton de fotos en borradores para Vinted sin dejarlo para manana.",
       testimonialAuthor: "— Otília N., vendedora de Vinted",
       safetyHeading: "Cero riesgo. 100% de control.",
       safetyBody:
@@ -1456,7 +1456,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Aggiungi a Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
-        "Ora preparo gli annunci in batch. AutoLister mantiene coerenti titoli, descrizioni, hashtag e la mia solita nota venditore, senza collegare il mio account Vinted.",
+        "Qualche parola la cambio ancora, ma la parte noiosa non c'e piu. Dopo una giornata di acquisti, trasformo una pila di foto in bozze Vinted senza rimandare tutto al giorno dopo.",
       testimonialAuthor: "— Otília N., venditrice Vinted",
       safetyHeading: "Zero rischi. 100% controllo.",
       safetyBody:
@@ -1607,7 +1607,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChrome: "Adicionar ao Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
-        "Agora preparo anuncios em lote. O AutoLister mantem titulos, descricoes, hashtags e a minha nota de vendedor habitual consistentes, sem ligar a minha conta Vinted.",
+        "Ainda ajusto algumas palavras, mas a parte chata desapareceu. Depois de um dia a comprar stock, transformo uma pilha de fotos em rascunhos Vinted sem deixar para amanha.",
       testimonialAuthor: "— Otília N., vendedora Vinted",
       safetyHeading: "Zero risco. 100% controlo.",
       safetyBody:

@@ -228,6 +228,83 @@
       max-width: 470px;
     }
 
+    .plan-summary {
+      display: grid;
+      gap: 16px;
+      margin: 0 0 26px;
+      padding: 20px;
+      border: 1px solid rgba(79, 70, 229, 0.16);
+      border-radius: 22px;
+      background:
+        linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(16, 185, 129, 0.08)),
+        #ffffff;
+      text-align: left;
+    }
+
+    .plan-summary-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .plan-label {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .plan-name {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1.45rem;
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .plan-price {
+      flex: 0 0 auto;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: var(--brand-strong);
+      font-size: 0.9rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .limit-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .limit-pill {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .limit-value {
+      display: block;
+      color: var(--ink);
+      font-size: 1.25rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .limit-label {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
     .benefits {
       display: grid;
       gap: 12px;
@@ -434,6 +511,19 @@
       .btn {
         width: 100%;
       }
+
+      .plan-summary-header,
+      .limit-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .plan-summary-header {
+        display: grid;
+      }
+
+      .plan-price {
+        justify-self: start;
+      }
     }
   </style>
 </head>
@@ -478,6 +568,8 @@
     <div id="successDescription" class="description">
       Your AutoLister AI account has been updated.
     </div>
+
+    <div id="planSummary" class="plan-summary hidden"></div>
 
     <div class="benefits" id="successBenefits">
       <h3>What's Ready Now</h3>
@@ -526,33 +618,137 @@
       document.getElementById('error').classList.remove('hidden');
     }
 
+    const PLAN_DETAILS = {
+      starter: {
+        name: 'Starter',
+        price: '€3.99/month',
+        daily: 10,
+        monthly: 75,
+        headline: 'Starter is active.',
+        description: 'You can keep creating Vinted listings with a higher monthly allowance.',
+        features: [
+          'AI-generated titles, descriptions, and hashtags',
+          '10 listings per day and 75 listings per month',
+          'No need to connect your Vinted account',
+        ],
+      },
+      pro: {
+        name: 'Pro',
+        price: '€9.99/month',
+        daily: 25,
+        monthly: 250,
+        headline: 'Pro is active.',
+        description: 'Your active-seller workflow is unlocked for larger listing sessions.',
+        features: [
+          '25 listings per day and 250 listings per month',
+          'Phone upload and batch upload',
+          'Reusable seller note, emojis, tone control, and priority processing',
+        ],
+      },
+      business: {
+        name: 'Business',
+        price: '€19.99/month',
+        daily: 60,
+        monthly: 600,
+        headline: 'Business is active.',
+        description: 'Your high-volume listing workflow is ready for larger batches.',
+        features: [
+          '60 listings per day and 600 listings per month',
+          'Phone upload, batch upload, saved notes, emojis, and tone control',
+          'Priority processing, dedicated support, and custom limits by email',
+        ],
+      },
+    };
+
+    function getPlanDetails(data) {
+      const apiPlan = data?.session?.plan;
+      const tier = apiPlan?.tier || data?.session?.tier || data?.tier || 'pro';
+      const fallback = PLAN_DETAILS[tier];
+
+      if (!fallback) return null;
+
+      return {
+        ...fallback,
+        tier,
+        name: apiPlan?.name || fallback.name,
+        price:
+          typeof apiPlan?.monthly_price_eur === 'number'
+            ? `€${apiPlan.monthly_price_eur.toFixed(2)}/month`
+            : fallback.price,
+        daily: apiPlan?.daily_limit || fallback.daily,
+        monthly: apiPlan?.monthly_limit || fallback.monthly,
+      };
+    }
+
+    function renderPlanSummary(plan) {
+      return `
+        <div class="plan-summary-header">
+          <div>
+            <p class="plan-label">Subscription active</p>
+            <h2 class="plan-name">${plan.name}</h2>
+          </div>
+          <div class="plan-price">${plan.price}</div>
+        </div>
+        <div class="limit-grid">
+          <div class="limit-pill">
+            <span class="limit-value">${plan.daily}</span>
+            <span class="limit-label">listings per day</span>
+          </div>
+          <div class="limit-pill">
+            <span class="limit-value">${plan.monthly}</span>
+            <span class="limit-label">listings per month</span>
+          </div>
+        </div>
+      `;
+    }
+
     function showSuccess(data) {
       const type = data?.fulfillment_type || data?.session?.purchase_type;
       const titleEl = document.getElementById('successTitle');
       const subtitleEl = document.getElementById('successSubtitle');
       const descriptionEl = document.getElementById('successDescription');
       const benefitsEl = document.getElementById('successBenefits');
+      const planSummaryEl = document.getElementById('planSummary');
 
       if (type === 'credit_pack') {
+        const credits = Number(data?.session?.credit_pack?.credits || 20);
         titleEl.textContent = 'Credits added.';
-        subtitleEl.textContent = "You're ready to continue.";
-        descriptionEl.textContent = 'Your top-up credits are available on your AutoLister AI account.';
+        subtitleEl.textContent = `${credits} extra listings are ready.`;
+        descriptionEl.textContent = 'Your one-time top-up is available on your AutoLister AI account.';
+        planSummaryEl.classList.add('hidden');
+        planSummaryEl.innerHTML = '';
         benefitsEl.innerHTML = `
           <h3>Ready in your account</h3>
-          <div class="benefit-item">20 top-up credits added</div>
+          <div class="benefit-item">${credits} top-up credits added</div>
+          <div class="benefit-item">Use them when your plan or free allowance runs out</div>
           <div class="benefit-item">Works on Vinted item listing pages</div>
           <div class="benefit-item">Secure billing handled by Stripe</div>
         `;
       } else {
+        const plan = getPlanDetails(data);
         titleEl.textContent = "You're all set.";
-        subtitleEl.textContent = 'Your plan is active.';
-        descriptionEl.textContent = 'Your AutoLister AI subscription is ready to use.';
-        benefitsEl.innerHTML = `
-          <h3>Ready in your account</h3>
-          <div class="benefit-item">Your plan is active</div>
-          <div class="benefit-item">Updated usage allowance in AutoLister AI</div>
-          <div class="benefit-item">Secure billing handled by Stripe</div>
-        `;
+        if (plan) {
+          subtitleEl.textContent = plan.headline;
+          descriptionEl.textContent = plan.description;
+          planSummaryEl.innerHTML = renderPlanSummary(plan);
+          planSummaryEl.classList.remove('hidden');
+          benefitsEl.innerHTML = `
+            <h3>Ready in your account</h3>
+            ${plan.features.map((feature) => `<div class="benefit-item">${feature}</div>`).join('')}
+            <div class="benefit-item">Secure billing handled by Stripe</div>
+          `;
+        } else {
+          subtitleEl.textContent = 'Your subscription is active.';
+          descriptionEl.textContent = 'Your AutoLister AI account has been updated and is ready to use.';
+          planSummaryEl.classList.add('hidden');
+          planSummaryEl.innerHTML = '';
+          benefitsEl.innerHTML = `
+            <h3>Ready in your account</h3>
+            <div class="benefit-item">Your paid plan is active</div>
+            <div class="benefit-item">Your updated allowance is available in AutoLister AI</div>
+            <div class="benefit-item">Secure billing handled by Stripe</div>
+          `;
+        }
       }
 
       document.getElementById('loading').classList.add('hidden');
@@ -612,8 +808,17 @@
           return;
         }
 
-        if (previewState === 'credit_pack' || previewState === 'subscription') {
-          showSuccess({ fulfillment_type: previewState });
+        if (previewState === 'credit_pack') {
+          showSuccess({
+            fulfillment_type: 'credit_pack',
+            session: { credit_pack: { credits: 20 } },
+          });
+          return;
+        }
+
+        if (previewState === 'subscription') {
+          const previewTier = urlParams.get('tier') || 'pro';
+          showSuccess({ fulfillment_type: 'subscription', session: { tier: previewTier } });
           return;
         }
       }

@@ -403,6 +403,8 @@ export type SiteExtraHomeCopy = {
   heroBullet3: string;
   addToChrome: string;
   addToChromeNote: string;
+  testimonialQuote: string;
+  testimonialAuthor: string;
   // Safety section
   safetyHeading: string;
   safetyBody: string;
@@ -544,6 +546,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Compliant with Vinted terms of service",
       addToChrome: "Add to Chrome",
       addToChromeNote: "It's Free",
+      testimonialQuote:
+        "I list in batches now. AutoLister keeps my titles, descriptions, hashtags, and my usual seller note consistent without connecting to my Vinted account.",
+      testimonialAuthor: "— Otília N., Vinted seller",
       safetyHeading: "Zero Risk. 100% Control.",
       safetyBody:
         "Unlike DotB and Vintex — which hook into Vinted's private API to mass auto-follow and auto-like — AutoLister operates strictly as a browser productivity tool. It writes text for you. Nothing more.",
@@ -692,6 +697,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Conforme aux conditions générales de Vinted",
       addToChrome: "Ajouter à Chrome",
       addToChromeNote: "C'est gratuit",
+      testimonialQuote:
+        "Je prépare mes annonces par lots maintenant. AutoLister garde mes titres, descriptions, hashtags et ma note vendeur habituelle cohérents, sans connecter mon compte Vinted.",
+      testimonialAuthor: "— Otília N., vendeuse Vinted",
       safetyHeading: "Zéro risque. 100% de contrôle.",
       safetyBody:
         "Contrairement à DotB et Vintex — qui se connectent à l'API privée de Vinted — AutoLister est un simple outil de rédaction. Il écrit du texte pour vous. Rien de plus.",
@@ -840,6 +848,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Konform mit den Vinted-Nutzungsbedingungen",
       addToChrome: "Zu Chrome hinzufugen",
       addToChromeNote: "Kostenlos",
+      testimonialQuote:
+        "Ich erstelle meine Anzeigen jetzt in Bloecken. AutoLister haelt Titel, Beschreibungen, Hashtags und meine uebliche Verkaeufernotiz einheitlich, ohne mein Vinted-Konto zu verbinden.",
+      testimonialAuthor: "— Otília N., Vinted-Verkaeuferin",
       safetyHeading: "Null Risiko. 100% Kontrolle.",
       safetyBody:
         "Anders als DotB und Vintex — die sich in Vinteds private API einklinken — arbeitet AutoLister rein als Browser-Produktivitatswerkzeug. Es schreibt Text fur dich. Nichts weiter.",
@@ -989,6 +1000,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Conform de voorwaarden van Vinted",
       addToChrome: "Toevoegen aan Chrome",
       addToChromeNote: "Gratis",
+      testimonialQuote:
+        "Ik maak mijn advertenties nu in batches. AutoLister houdt mijn titels, beschrijvingen, hashtags en mijn vaste verkoopnotitie consistent, zonder mijn Vinted-account te koppelen.",
+      testimonialAuthor: "— Otília N., Vinted-verkoper",
       safetyHeading: "Nul risico. 100% controle.",
       safetyBody:
         "In tegenstelling tot DotB en Vintex — die zich koppelen aan Vinteds prive-API — werkt AutoLister puur als een browser-productiviteitstool. Het schrijft tekst voor jou. Niets meer.",
@@ -1138,6 +1152,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Zgodne z regulaminem Vinted",
       addToChrome: "Dodaj do Chrome",
       addToChromeNote: "To jest darmowe",
+      testimonialQuote:
+        "Teraz przygotowuje ogloszenia partiami. AutoLister utrzymuje spojne tytuly, opisy, hashtagi i moja stala notatke sprzedawcy, bez laczenia mojego konta Vinted.",
+      testimonialAuthor: "— Otília N., sprzedawczyni Vinted",
       safetyHeading: "Zero ryzyka. 100% kontroli.",
       safetyBody:
         "W przeciwienstwie do DotB i Vintex — ktore lacza sie z prywatnym API Vinted — AutoLister dziala wylacznie jako narzedzie produktywnosci. Pisze dla Ciebie tekst. Nic wiecej.",
@@ -1287,6 +1304,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Cumple con los terminos de servicio de Vinted",
       addToChrome: "Anadir a Chrome",
       addToChromeNote: "Es gratis",
+      testimonialQuote:
+        "Ahora preparo anuncios por lotes. AutoLister mantiene coherentes mis titulos, descripciones, hashtags y mi nota habitual de vendedora, sin conectar mi cuenta de Vinted.",
+      testimonialAuthor: "— Otília N., vendedora de Vinted",
       safetyHeading: "Cero riesgo. 100% de control.",
       safetyBody:
         "A diferencia de DotB y Vintex — que se conectan a la API privada de Vinted para auto-seguir y auto-dar likes — AutoLister funciona estrictamente como una herramienta de productividad del navegador. Escribe texto por ti. Nada mas.",
@@ -1435,6 +1455,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Conforme ai termini di servizio di Vinted",
       addToChrome: "Aggiungi a Chrome",
       addToChromeNote: "E gratis",
+      testimonialQuote:
+        "Ora preparo gli annunci in batch. AutoLister mantiene coerenti titoli, descrizioni, hashtag e la mia solita nota venditore, senza collegare il mio account Vinted.",
+      testimonialAuthor: "— Otília N., venditrice Vinted",
       safetyHeading: "Zero rischi. 100% controllo.",
       safetyBody:
         "A differenza di DotB e Vintex — che si collegano all'API privata di Vinted per auto-seguire e auto-mettere like — AutoLister opera strettamente come uno strumento di produttivita del browser. Scrive testo per te. Nient'altro.",
@@ -1583,6 +1606,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet3: "Em conformidade com os termos de servico da Vinted",
       addToChrome: "Adicionar ao Chrome",
       addToChromeNote: "E gratis",
+      testimonialQuote:
+        "Agora preparo anuncios em lote. O AutoLister mantem titulos, descricoes, hashtags e a minha nota de vendedor habitual consistentes, sem ligar a minha conta Vinted.",
+      testimonialAuthor: "— Otília N., vendedora Vinted",
       safetyHeading: "Zero risco. 100% controlo.",
       safetyBody:
         "Ao contrario do DotB e Vintex — que se ligam a API privada da Vinted para auto-seguir e auto-dar gostos — o AutoLister funciona estritamente como uma ferramenta de produtividade do navegador. Escreve texto por si. Nada mais.",

@@ -2,8 +2,12 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
 import { ApiLogger } from "../../utils/apiLogger";
 import { supabase } from "../../utils/supabaseClient";
-import { isDisposableEmail } from "../../utils/disposableDomains";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import {
+  checkMagicLinkRateLimit,
+  getAuthEmailBlockReason,
+  getEmailDomain,
+} from "../../utils/authAbuseGuard";
 
 // Read and parse allowed origins from env for CORS
 // This should primarily be your Chrome extension's origin
@@ -140,22 +144,27 @@ async function logMagicLinkAttempt({
   status,
   startedAt,
   error,
+  flaggedReason,
 }: {
   req: VercelRequest;
   email?: string;
   status: number;
   startedAt: number;
   error?: unknown;
+  flaggedReason?: string;
 }) {
   await ApiLogger.logRequest({
     ...ApiLogger.extractRequestMetadata(req),
     endpoint: "/api/auth/magic-link",
-    userEmail: email,
+    userEmail: email?.trim().toLowerCase(),
     responseStatus: status,
     processingDurationMs: Date.now() - startedAt,
+    suspiciousActivity: Boolean(flaggedReason),
+    flaggedReason,
     fullRequestBody: {
-      emailDomain: email?.split("@")[1]?.toLowerCase() || null,
+      emailDomain: email ? getEmailDomain(email) || null : null,
       error: error ? serializeError(error) : null,
+      flaggedReason: flaggedReason || null,
     },
   });
 }
@@ -163,7 +172,8 @@ async function logMagicLinkAttempt({
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startedAt = Date.now();
   const body = parseBody(req.body);
-  const email = typeof body.email === "string" ? body.email.trim() : "";
+  const email =
+    typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 
   try {
     await runCors(req, res);
@@ -205,17 +215,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "A valid email address is required" });
   }
 
-  if (isDisposableEmail(email)) {
+  const emailBlockReason = getAuthEmailBlockReason(email);
+  if (emailBlockReason) {
     await logMagicLinkAttempt({
       req,
       email,
       status: 400,
       startedAt,
-      error: "disposable_email",
+      error: emailBlockReason,
+      flaggedReason: emailBlockReason,
     });
     return res.status(400).json({
       error:
         "Disposable emails are not allowed. If you have previously used or attempt to use one, you risk legal action. Contact us for appeal, or if you believe this is a mistake.",
+    });
+  }
+
+  const rateLimit = await checkMagicLinkRateLimit({ req, email });
+  if (rateLimit.limited) {
+    await logMagicLinkAttempt({
+      req,
+      email,
+      status: 429,
+      startedAt,
+      error: rateLimit.reason,
+      flaggedReason: rateLimit.reason,
+    });
+    return res.status(429).json({
+      error:
+        "Too many sign-in email requests. Please wait a few minutes before trying again.",
     });
   }
 
@@ -272,7 +300,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: 504,
       details: {
         stage: "otp_timeout_or_exception",
-        emailDomain: email.split("@")[1]?.toLowerCase() || null,
+        emailDomain: getEmailDomain(email) || null,
         error: normalizeErrorMessage(error),
       },
     });
@@ -299,7 +327,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: 502,
       details: {
         stage: "otp_provider_error",
-        emailDomain: email.split("@")[1]?.toLowerCase() || null,
+        emailDomain: getEmailDomain(email) || null,
         error: normalizeErrorMessage(otpResult.error),
       },
     });

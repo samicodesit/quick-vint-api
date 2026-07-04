@@ -1376,6 +1376,7 @@ export const disposableDomains = new Set([
   "emailnow.net",
   "emailnow.one",
   "emailo.pro",
+  "emailos.de",
   "emailondeck.com",
   "emailportal.info",
   "emailproxsy.com",

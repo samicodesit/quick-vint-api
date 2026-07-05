@@ -1888,6 +1888,17 @@
             margin-top: 0.12rem;
         }
 
+        .log-ip {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            white-space: nowrap;
+        }
+
+        .log-ip code {
+            color: inherit;
+            font-size: inherit;
+        }
+
         .log-detail {
             color: var(--text-main);
             font-size: 0.84rem;
@@ -2659,6 +2670,78 @@
             box-shadow: var(--shadow-sm);
         }
 
+        .image-gallery-button {
+            appearance: none;
+            background: transparent;
+            border: 0;
+            cursor: zoom-in;
+            padding: 0;
+            text-align: left;
+        }
+
+        .image-preview-backdrop {
+            align-items: center;
+            background: rgba(15, 23, 42, 0.78);
+            display: flex;
+            inset: 0;
+            justify-content: center;
+            opacity: 0;
+            padding: 1.5rem;
+            pointer-events: none;
+            position: fixed;
+            transition: opacity 0.18s ease;
+            z-index: 1200;
+        }
+
+        .image-preview-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .image-preview-panel {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.26);
+            display: grid;
+            gap: 0.75rem;
+            max-height: 92vh;
+            max-width: min(1100px, 96vw);
+            padding: 0.85rem;
+            width: fit-content;
+        }
+
+        .image-preview-top {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .image-preview-title {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .image-preview-meta {
+            color: var(--text-light);
+            font-size: 0.76rem;
+            margin-top: 0.15rem;
+        }
+
+        .image-preview-img {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            max-height: 78vh;
+            max-width: calc(96vw - 2rem);
+            object-fit: contain;
+        }
+
         .json-view {
             background: #f9fafb;
             color: #374151;
@@ -3038,6 +3121,19 @@
                     style="background: none; border: none; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
             <div id="modalBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="imagePreviewBackdrop" class="image-preview-backdrop" onclick="handleImagePreviewBackdropClick(event)">
+        <div class="image-preview-panel" role="dialog" aria-modal="true" aria-labelledby="imagePreviewTitle">
+            <div class="image-preview-top">
+                <div style="min-width:0;">
+                    <div id="imagePreviewTitle" class="image-preview-title">AI prompt image</div>
+                    <div id="imagePreviewMeta" class="image-preview-meta">Exact image payload sent to the AI request</div>
+                </div>
+                <button class="btn-secondary" onclick="closeImagePreview()">Close</button>
+            </div>
+            <img id="imagePreviewImg" class="image-preview-img" alt="Item image preview">
         </div>
     </div>
 
@@ -5178,6 +5274,19 @@
             return '';
         }
 
+        function renderLogIp(log, options = {}) {
+            const ip = String(log?.ip_address || '').trim();
+            if (!ip) return '';
+            const label = options.label === false ? '' : 'IP ';
+            const title = options.title || 'Request IP address';
+            return `<span class="log-ip" title="${escapeAttribute(title)}">${escapeHtml(label)}<code>${escapeHtml(ip)}</code></span>`;
+        }
+
+        function getLogIpLine(log) {
+            const ip = renderLogIp(log, { label: false });
+            return ip ? `<div class="log-secondary">${ip}</div>` : '';
+        }
+
         function getLogPreview(log) {
             if (log.raw_prompt) return escapeHtml(log.raw_prompt);
             if (typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')) {
@@ -5399,7 +5508,10 @@
                         <div class="log-primary">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
                         <div class="log-secondary"><code>${escapeHtml((log.endpoint || '').replace('/event/', '') || 'event')}</code></div>
                     </td>
-                    <td><div class="log-primary">${getLogActor(log)}</div></td>
+                    <td>
+                        <div class="log-primary">${getLogActor(log)}</div>
+                        ${getLogIpLine(log)}
+                    </td>
                     <td><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></td>
                     <td><div class="log-detail">${escapeHtml(getLogContext(log))}</div></td>
                     <td style="display:flex; gap:0.4rem; flex-wrap:wrap;">
@@ -5414,7 +5526,7 @@
             return logs.map(log => `
                 <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
                     <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">${formatDateTime(log.created_at)} · ${getLogActor(log)}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">${formatDateTime(log.created_at)} · ${getLogActor(log)} ${log.ip_address ? `· ${renderLogIp(log)}` : ''}</div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Status</span>
                         <span class="mobile-card-value"><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></span>
@@ -5458,14 +5570,10 @@
                 const actor = getLogActor(log);
                 const preview = getLogPreview(log);
 
-                let images = [];
-                try {
-                    if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
-                    else if (Array.isArray(log.image_urls)) images = log.image_urls;
-                } catch (e) { }
+                const images = getSafeLogImageUrls(log);
 
                 const thumb = images.length > 0 ?
-                    `<img src="${images[0]}" class="gallery-img" style="width: 36px; height: 36px;" loading="lazy" alt="Item image">` :
+                    `<img src="${escapeAttribute(images[0])}" class="gallery-img" style="width: 36px; height: 36px;" loading="lazy" alt="Item image">` :
                     `<div style="width: 36px; height: 36px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light);">-</div>`;
 
                 return `
@@ -5478,6 +5586,7 @@
                         <td>
                             <div class="text-sm font-medium">${actor}</div>
                             <div class="text-sm text-muted" style="font-size: 0.75rem;">${log.user_id ? log.user_id.substring(0, 8) + '...' : '-'}</div>
+                            ${getLogIpLine(log)}
                         </td>
                         <td>
                             <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
@@ -5505,14 +5614,10 @@
             return logs.map(log => {
                 const cost = estimateOpenAICost(log);
                 const logKind = getLogKind(log);
-                let images = [];
-                try {
-                    if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
-                    else if (Array.isArray(log.image_urls)) images = log.image_urls;
-                } catch (e) { }
+                const images = getSafeLogImageUrls(log);
 
                 const thumb = images.length > 0 ?
-                    `<img src="${images[0]}" style="width: 48px; height: 48px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-color);" loading="lazy" alt="Item image">` :
+                    `<img src="${escapeAttribute(images[0])}" style="width: 48px; height: 48px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-color);" loading="lazy" alt="Item image">` :
                     `<div style="width: 48px; height: 48px; background: var(--bg-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-light); border: 1px solid var(--border-color);">-</div>`;
 
                 return `
@@ -5522,6 +5627,7 @@
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 500; margin-bottom: 0.25rem;">${getLogActor(log)}</div>
                                 <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(logKind)} - ${escapeHtml(log.endpoint || '-')}</div>
+                                ${log.ip_address ? `<div style="font-size: 0.72rem; color: var(--text-muted);">${renderLogIp(log)}</div>` : ''}
                                 <div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(log.created_at).toLocaleString()}</div>
                             </div>
                         </div>
@@ -5553,6 +5659,20 @@
                 if (Array.isArray(log.image_urls)) return log.image_urls;
             } catch (e) { }
             return [];
+        }
+
+        function getSafeLogImageUrls(log) {
+            return parseLogImages(log)
+                .filter(url => typeof url === 'string' && url.trim())
+                .map(url => url.trim());
+        }
+
+        function renderLogImageButton(log, url, index) {
+            return `
+                <button type="button" class="image-gallery-button" onclick="showLogImagePreview('${escapeAttribute(log.id)}', ${index})" title="Inspect AI prompt image ${index + 1}">
+                    <img src="${escapeAttribute(url)}" class="gallery-img" loading="lazy" alt="AI prompt image ${index + 1}">
+                </button>
+            `;
         }
 
         function getActivityIcon(log, eventName) {
@@ -5611,7 +5731,7 @@
                         <div class="activity-thumb">${thumb}</div>
                         <div class="activity-main">
                             <div class="activity-title">${escapeHtml(getActivitySummary(log))}</div>
-                            <div class="activity-meta">${getLogActor(log)} · ${escapeHtml(getActivityDetail(log))}</div>
+                            <div class="activity-meta">${getLogActor(log)} · ${escapeHtml(getActivityDetail(log))}${log.ip_address ? ` · ${renderLogIp(log)}` : ''}</div>
                         </div>
                         <div class="activity-side">
                             <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
@@ -5634,6 +5754,10 @@
                             <span class="mobile-card-label">User</span>
                             <span class="mobile-card-value">${getLogActor(log)}</span>
                         </div>
+                        ${log.ip_address ? `<div class="mobile-card-row">
+                            <span class="mobile-card-label">IP</span>
+                            <span class="mobile-card-value">${renderLogIp(log, { label: false })}</span>
+                        </div>` : ''}
                         <div class="mobile-card-row">
                             <span class="mobile-card-label">Status</span>
                             <span class="mobile-card-value"><span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span></span>
@@ -5872,7 +5996,7 @@
                 </div>
 
                 <div class="logs-toolbar">
-                    <input type="search" placeholder="Search email, user id, or event..." class="filter-input" value="${escapeAttribute(state.logsSearch)}" oninput="queueLogsSearch(this.value)">
+                    <input type="search" placeholder="Search email, user id, event, or IP..." class="filter-input" value="${escapeAttribute(state.logsSearch)}" oninput="queueLogsSearch(this.value)">
                     <select class="filter-input" onchange="state.logsType=this.value; state.logsPage=1; renderLogs(document.getElementById('contentArea'))">
                         ${renderOption('generation', 'Generation logs', state.logsType || 'generation')}
                         ${renderOption('events', 'Event logs', state.logsType || 'generation')}
@@ -7121,6 +7245,7 @@
             if (context.photoCount !== undefined) parts.push(`${context.photoCount} photos`);
             if (event.image_count) parts.push(`${event.image_count} images`);
             if (context.analyticsClientId) parts.push(`cid ${String(context.analyticsClientId).slice(0, 8)}...`);
+            if (event.ip_address) parts.push(`ip ${event.ip_address}`);
             return parts.length ? parts.join(' · ') : (event.origin || event.endpoint || '-');
         }
 
@@ -7346,6 +7471,7 @@
                             Actor: ${getLogActor(log)}<br>
                             ${correlatedUserLine}
                             ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
+                            ${log.ip_address ? `IP: ${renderLogIp(log, { label: false })}<br>` : ''}
                             Status: ${escapeHtml(log.response_status || 'N/A')}
                         </div>
                         <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
@@ -7366,16 +7492,11 @@
                 return;
             }
 
-            // Parse images
-            let images = [];
-            try {
-                if (typeof log.image_urls === 'string') images = JSON.parse(log.image_urls);
-                else if (Array.isArray(log.image_urls)) images = log.image_urls;
-            } catch (e) { }
+            const images = getSafeLogImageUrls(log);
 
             const imagesHtml = images.length > 0 ?
                 `<div class="image-gallery">
-                    ${images.map(url => `<img src="${escapeHtml(url)}" class="gallery-img" onclick="window.open('${escapeHtml(url)}', '_blank')" loading="lazy">`).join('')}
+                    ${images.map((url, index) => renderLogImageButton(log, url, index)).join('')}
                  </div>` :
                 `<div style="padding: 2rem; text-align: center; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">No item images for this ${escapeHtml(logKind.toLowerCase())} log</div>`;
 
@@ -7412,6 +7533,7 @@
                             Actor: ${getLogActor(log)}<br>
                             ${correlatedUserLine}
                             ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
+                            ${log.ip_address ? `IP: ${renderLogIp(log, { label: false })}<br>` : ''}
                             Status: ${escapeHtml(log.response_status || 'N/A')}<br>
                             Model: ${escapeHtml(log.openai_model || (logKind === 'Generation' ? 'unknown model' : 'N/A'))}
                         </div>
@@ -7479,6 +7601,49 @@
 
         function closeModal() {
             document.getElementById('modalBackdrop').classList.remove('open');
+        }
+
+        function showLogImagePreview(logId, index) {
+            const log = (state.currentLogs || []).find(item => item.id === logId);
+            const images = getSafeLogImageUrls(log || {});
+            const url = images[Number(index)];
+            if (!url) {
+                showToast('Could not load image preview', 'error');
+                return;
+            }
+
+            const backdrop = document.getElementById('imagePreviewBackdrop');
+            const image = document.getElementById('imagePreviewImg');
+            const title = document.getElementById('imagePreviewTitle');
+            const meta = document.getElementById('imagePreviewMeta');
+            title.textContent = `AI prompt image ${Number(index) + 1} of ${images.length}`;
+            meta.textContent = 'Exact image payload sent to the AI request';
+            image.removeAttribute('src');
+            image.onload = () => {
+                const dimensions = image.naturalWidth && image.naturalHeight
+                    ? `${image.naturalWidth} x ${image.naturalHeight}px`
+                    : 'Dimensions unavailable';
+                const sourceType = url.startsWith('data:') ? 'compressed data URL' : 'URL fallback';
+                meta.textContent = `${dimensions} · ${sourceType}`;
+            };
+            image.onerror = () => {
+                meta.textContent = 'Could not render this AI prompt image';
+            };
+            image.src = url;
+            backdrop.classList.add('open');
+        }
+
+        function closeImagePreview() {
+            const backdrop = document.getElementById('imagePreviewBackdrop');
+            const image = document.getElementById('imagePreviewImg');
+            backdrop.classList.remove('open');
+            image.onload = null;
+            image.onerror = null;
+            image.removeAttribute('src');
+        }
+
+        function handleImagePreviewBackdropClick(event) {
+            if (event.target?.id === 'imagePreviewBackdrop') closeImagePreview();
         }
 
         function showToast(msg, type = 'success') {

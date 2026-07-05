@@ -9,6 +9,7 @@ class StubElement {
   dataset: Record<string, string> = {};
   value = "";
   checked = false;
+  src = "";
   private html = "";
   private text = "";
   classList = {
@@ -46,6 +47,10 @@ class StubElement {
         return { addColorStop() {} };
       },
     };
+  }
+
+  removeAttribute(name: string) {
+    if (name === "src") this.src = "";
   }
 }
 
@@ -160,6 +165,7 @@ function buildAdminHarness() {
         response_status: 200,
         user_id: "user-1",
         user_email: "test@example.com",
+        ip_address: "203.0.113.24",
         full_request_body: {
           context: { reason: "description_apply_choice" },
           extensionVersion: "1.3.19",
@@ -173,6 +179,7 @@ function buildAdminHarness() {
         response_status: 200,
         user_id: null,
         user_email: null,
+        ip_address: "198.51.100.12",
         full_request_body: {
           context: { analyticsClientId: "cid-anon-123", visiblePhotoCount: 8 },
           extensionVersion: "1.3.24",
@@ -191,6 +198,7 @@ function buildAdminHarness() {
         response_status: 200,
         user_id: "user-1",
         user_email: "test@example.com",
+        ip_address: "203.0.113.24",
         full_request_body: {},
         image_urls: JSON.stringify(["https://example.com/item.jpg"]),
         openai_model: "gpt-4o",
@@ -233,6 +241,7 @@ function buildAdminHarness() {
         event: "generation_output_edited",
         stage: "Edited generated output",
         response_status: 200,
+        ip_address: "203.0.113.24",
         source: "extension_content",
         page: "https://www.vinted.de/items/new",
         context: {
@@ -361,6 +370,7 @@ describe("admin HTML", () => {
     expect(modalTitle.textContent).toBe("Event Details");
     expect(modalBody.innerHTML).toContain("Context");
     expect(modalBody.innerHTML).toContain("existing-description choice");
+    expect(modalBody.innerHTML).toContain("203.0.113.24");
     expect(modalBody.innerHTML).not.toContain("Input Images");
     expect(modalBody.innerHTML).not.toContain("Generated Output");
 
@@ -370,14 +380,24 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("activity-feed");
     expect(content.innerHTML).toContain("Blue denim jacket");
     expect(content.innerHTML).toContain("https://example.com/item.jpg");
+    expect(content.innerHTML).toContain("203.0.113.24");
     expect(content.innerHTML).toContain(">CXL<");
     expect(content.innerHTML).toContain(">API<");
+
+    await context.showLogDetails("log-2");
+    expect(modalTitle.textContent).toBe("Log Details");
+    expect(modalBody.innerHTML).toContain("showLogImagePreview");
+    expect(modalBody.innerHTML).not.toContain("window.open");
+    context.showLogImagePreview("log-2", 0);
+    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 1");
+    expect(context.document.getElementById("imagePreviewImg").src).toBe("https://example.com/item.jpg");
 
     await context.showUserJourney("user-1", encodeURIComponent("test@example.com"));
     expect(modalTitle.textContent).toBe("User Journey");
     expect(modalBody.innerHTML).toContain("Edited title + description");
     expect(modalBody.innerHTML).toContain("Grey Polka Dot Sweater -");
     expect(modalBody.innerHTML).toContain("Grey polka dot sweater");
+    expect(modalBody.innerHTML).toContain("ip 203.0.113.24");
   });
 
   it("links anonymous analytics clients to journeys and related logs", async () => {
@@ -396,10 +416,12 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("Logs are the forensic stream");
     expect(content.innerHTML).toContain("Cancelled");
     expect(content.innerHTML).toContain("Likely user: test@example.com");
+    expect(content.innerHTML).toContain("198.51.100.12");
     expect(content.innerHTML).not.toContain("Anonymous client cid-anon...");
     await context.showLogDetails("log-3");
     expect(modalTitle.textContent).toBe("Event Details");
     expect(modalBody.innerHTML).toContain("Client ID: cid-anon-123");
+    expect(modalBody.innerHTML).toContain("198.51.100.12");
     expect(modalBody.innerHTML).toContain("Likely user: test@example.com");
     expect(modalBody.innerHTML).toContain("View correlated journey");
     expect(modalBody.innerHTML).toContain("Open related logs");

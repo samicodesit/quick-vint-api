@@ -61,7 +61,7 @@ const subtitleParts =
       <div
         class="lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start opacity-0 animate-[fadeInUp_0.8s_ease-out_forwards]"
       >
-        <div class="flex flex-wrap items-center gap-2 mb-8">
+        <div class="hidden sm:flex flex-wrap items-center gap-2 mb-8">
           <div
             class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-600 text-xs font-bold uppercase tracking-wider shadow-sm transition-colors cursor-default"
           >
@@ -96,7 +96,7 @@ const subtitleParts =
         </div>
 
         <h1
-          class="text-4xl sm:text-5xl lg:text-5xl xl:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6 text-slate-900 mt-4 lg:mt-0 text-balance"
+          class="text-[2.55rem] sm:text-5xl lg:text-5xl xl:text-7xl font-extrabold tracking-tight leading-[1.06] sm:leading-[1.1] mb-4 sm:mb-6 text-slate-900 mt-2 sm:mt-4 lg:mt-0 text-balance"
         >
           {
             heroTitleAccent ? (
@@ -112,7 +112,7 @@ const subtitleParts =
         </h1>
 
         <p
-          class="text-lg sm:text-xl text-slate-600 mb-8 max-w-lg leading-relaxed font-medium"
+          class="hidden sm:block text-lg sm:text-xl text-slate-600 mb-8 max-w-lg leading-relaxed font-medium"
         >
           {
             subtitleParts ? (
@@ -129,8 +129,14 @@ const subtitleParts =
           }
         </p>
 
+        <p
+          class="sm:hidden text-base text-slate-600 mb-5 max-w-sm leading-relaxed font-semibold"
+        >
+          {copy.heroMobileSubtitle}
+        </p>
+
         <ul
-          class="space-y-3 mb-10 text-left w-full max-w-md px-2 sm:px-0 list-none"
+          class="hidden sm:block space-y-3 mb-10 text-left w-full max-w-md px-2 sm:px-0 list-none"
         >
           <li class="flex items-start gap-3">
             <div
@@ -220,7 +226,7 @@ const subtitleParts =
         </ul>
 
         <div
-          class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-4 w-full max-w-2xl px-2 sm:px-0"
+          class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:gap-4 w-full max-w-2xl px-1 sm:px-0"
         >
           <a
             href={chromeHref}
@@ -229,7 +235,7 @@ const subtitleParts =
             data-track-event="chrome_store_click"
             data-track-context="home_hero_primary"
             data-track-copy-version="vinted_ai_listing_assistant_v1"
-            class="group relative inline-flex min-h-[76px] w-full sm:flex-1 items-center justify-start gap-3 px-6 py-4 text-left text-base font-bold text-white bg-brand-600 rounded-2xl hover:bg-brand-700 transition-all duration-200 hover:-translate-y-1 shadow-lg shadow-brand-600/30 overflow-hidden focus:ring-2 ring-brand-500 no-underline sm:px-7"
+            class="group relative inline-flex min-h-[60px] sm:min-h-[76px] w-full sm:flex-1 items-center justify-start gap-3 px-5 py-3.5 sm:px-7 sm:py-4 text-left text-base font-bold text-white bg-brand-600 rounded-2xl hover:bg-brand-700 transition-all duration-200 hover:-translate-y-1 shadow-lg shadow-brand-600/30 overflow-hidden focus:ring-2 ring-brand-500 no-underline"
           >
             <div
               class="bg-white rounded-full p-0.5 shadow-sm shrink-0 self-center"
@@ -302,7 +308,7 @@ const subtitleParts =
             data-track-event="demo_video_open"
             data-track-context="home_hero_secondary"
             data-track-copy-version="vinted_ai_listing_assistant_v1"
-            class="inline-flex min-h-[76px] w-full sm:w-auto sm:min-w-[220px] items-center justify-start gap-2 px-6 py-4 text-left text-base font-bold text-slate-800 bg-white border-2 border-slate-300 rounded-2xl hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 hover:-translate-y-1 shadow-sm cursor-pointer sm:px-7"
+            class="inline-flex min-h-[56px] sm:min-h-[76px] w-full sm:w-auto sm:min-w-[220px] items-center justify-start gap-2 px-5 py-3.5 sm:px-7 sm:py-4 text-left text-base font-bold text-slate-800 bg-white border-2 border-slate-300 rounded-2xl hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 hover:-translate-y-1 shadow-sm cursor-pointer"
           >
             <svg
               class="w-5 h-5 text-slate-900 shrink-0"
@@ -316,7 +322,62 @@ const subtitleParts =
         </div>
 
         <div
-          class="mt-8 flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
+          class="sm:hidden mt-5 grid w-full max-w-sm grid-cols-1 gap-2 px-1 text-left"
+          aria-label="AutoLister highlights"
+        >
+          <div
+            class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-bold leading-tight text-slate-800 shadow-sm"
+          >
+            <svg
+              class="h-4 w-4 shrink-0 text-brand-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>{extra.heroBadgePrimary}</span>
+          </div>
+          <div
+            class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-bold leading-tight text-slate-800 shadow-sm"
+          >
+            <svg
+              class="h-4 w-4 shrink-0 text-brand-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>{extra.heroBullet2}</span>
+          </div>
+          <div
+            class="flex items-center gap-2 rounded-xl border border-green-100 bg-green-50 px-3 py-2 text-sm font-bold leading-tight text-green-800 shadow-sm"
+          >
+            <svg
+              class="h-4 w-4 shrink-0 text-green-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              ></path>
+            </svg>
+            <span>{copy.heroBadgeSafe}</span>
+          </div>
+        </div>
+
+        <div
+          class="mt-8 hidden sm:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
         >
           <img
             class="w-10 h-10 rounded-full border-2 border-white shadow-md shrink-0"

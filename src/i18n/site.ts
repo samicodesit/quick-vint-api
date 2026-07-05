@@ -31,6 +31,7 @@ type HomeCopy = {
   seoDescription: string;
   heroTitle: string;
   heroSubtitle: string;
+  heroMobileSubtitle: string;
   heroBadgeSafe: string;
   heroBulletSafety: string;
   comparisonTitle: string;
@@ -76,6 +77,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "Vinted AI listing assistant that helps you sell faster",
       heroSubtitle:
         "Create Vinted titles, descriptions, and hashtags from your item photos. Save your own seller notes and reuse them on future listings. Works directly inside Vinted, with no Vinted account connection needed.",
+      heroMobileSubtitle:
+        "Create better Vinted listings in seconds, directly inside Vinted.",
       heroBadgeSafe: "100% Account-Safe · Vinted ToS Compliant",
       heroBulletSafety:
         "Zero ban risk - never hooks into Vinted's servers like automation bots do",
@@ -116,6 +119,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Assistant IA pour annonces Vinted qui vous aide à vendre plus vite",
       heroSubtitle:
         "Créez des titres, descriptions et hashtags Vinted depuis vos photos d'articles. Enregistrez vos propres notes vendeur et réutilisez-les sur vos prochaines annonces. Fonctionne directement dans Vinted, sans connecter votre compte Vinted.",
+      heroMobileSubtitle:
+        "Créez de meilleures annonces Vinted en quelques secondes, directement dans Vinted.",
       heroBadgeSafe: "100% Sécurisé · Conforme aux règles Vinted",
       heroBulletSafety:
         "Risque de ban nul - aucune connexion aux serveurs Vinted comme les bots",
@@ -156,6 +161,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Vinted-KI-Assistent für Anzeigen, mit dem du schneller verkaufst",
       heroSubtitle:
         "Erstelle Vinted-Titel, Beschreibungen und Hashtags aus deinen Artikelfotos. Speichere eigene Verkäufernotizen und nutze sie in zukünftigen Anzeigen wieder. Funktioniert direkt in Vinted, ohne dein Vinted-Konto zu verbinden.",
+      heroMobileSubtitle:
+        "Erstelle bessere Vinted-Anzeigen in Sekunden, direkt in Vinted.",
       heroBadgeSafe: "100% Sicher · Vinted-Regelkonform",
       heroBulletSafety:
         "Kein Bannrisiko - keine Verbindung zu Vinted-Servern wie bei Bots",
@@ -195,6 +202,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Vinted AI-assistent voor advertenties waarmee je sneller verkoopt",
       heroSubtitle:
         "Maak Vinted-titels, beschrijvingen en hashtags vanuit je itemfoto's. Bewaar je eigen verkopersnotities en gebruik ze opnieuw bij toekomstige advertenties. Werkt direct in Vinted, zonder je Vinted-account te koppelen.",
+      heroMobileSubtitle:
+        "Maak betere Vinted-advertenties in seconden, direct in Vinted.",
       heroBadgeSafe: "100% Veilig · Vinted-conform",
       heroBulletSafety:
         "Geen ban-risico - geen koppeling met Vinted-servers zoals bots",
@@ -235,6 +244,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Asystent AI do ogłoszeń Vinted, który pomaga sprzedawać szybciej",
       heroSubtitle:
         "Twórz tytuły, opisy i hashtagi Vinted ze zdjęć swoich produktów. Zapisuj własne notatki sprzedawcy i używaj ich ponownie w przyszłych ogłoszeniach. Działa bezpośrednio w Vinted, bez łączenia konta Vinted.",
+      heroMobileSubtitle:
+        "Twórz lepsze ogłoszenia Vinted w kilka sekund, bezpośrednio w Vinted.",
       heroBadgeSafe: "100% Bezpieczne · Zgodne z zasadami Vinted",
       heroBulletSafety:
         "Brak ryzyka bana - brak polaczen z serwerami Vinted jak w botach",
@@ -274,6 +285,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Asistente IA para anuncios de Vinted que te ayuda a vender más rápido",
       heroSubtitle:
         "Crea títulos, descripciones y hashtags para Vinted desde las fotos de tus artículos. Guarda tus propias notas de vendedor y reutilízalas en futuros anuncios. Funciona directamente dentro de Vinted, sin conectar tu cuenta de Vinted.",
+      heroMobileSubtitle:
+        "Crea mejores anuncios de Vinted en segundos, directamente en Vinted.",
       heroBadgeSafe: "100% Seguro · Cumple normas de Vinted",
       heroBulletSafety:
         "Riesgo de baneo cero - sin conexion a servidores de Vinted como los bots",
@@ -314,6 +327,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Assistente IA per annunci Vinted che ti aiuta a vendere più velocemente",
       heroSubtitle:
         "Crea titoli, descrizioni e hashtag Vinted dalle foto dei tuoi articoli. Salva le tue note venditore e riutilizzale negli annunci futuri. Funziona direttamente dentro Vinted, senza collegare il tuo account Vinted.",
+      heroMobileSubtitle:
+        "Crea annunci Vinted migliori in pochi secondi, direttamente su Vinted.",
       heroBadgeSafe: "100% Sicuro · Conforme alle regole Vinted",
       heroBulletSafety:
         "Rischio ban zero - nessun collegamento ai server Vinted come i bot",
@@ -353,6 +368,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Assistente IA para anúncios Vinted que ajuda a vender mais rápido",
       heroSubtitle:
         "Crie títulos, descrições e hashtags Vinted a partir das fotografias dos seus artigos. Guarde as suas próprias notas de vendedor e reutilize-as em anúncios futuros. Funciona diretamente na Vinted, sem ligar a sua conta Vinted.",
+      heroMobileSubtitle:
+        "Crie melhores anúncios Vinted em segundos, diretamente na Vinted.",
       heroBadgeSafe: "100% Seguro · Em conformidade com a Vinted",
       heroBulletSafety:
         "Risco de banimento zero - sem ligacoes aos servidores da Vinted como bots",

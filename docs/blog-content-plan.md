@@ -40,6 +40,18 @@ Use these clusters when choosing and briefing posts:
 
 Conversion guidance: assertive but honest CTAs are allowed, including sticky mobile CTAs, example-output previews, and "try with your own photos" prompts. Do not use fake urgency, hidden disclosures, fake affiliation with Vinted, or claims that AutoLister AI automates Vinted account actions.
 
+## Editorial Quality Rule
+
+Every blog post must deliver practical value without filler. Keep examples, checklists, templates, official-source context, and specific seller actions. Remove redundant setup paragraphs, repeated transitions, unsupported superiority claims, and generic reassurance that does not help the reader make a better listing or decision.
+
+Before publishing or updating a post, do one compression pass:
+
+- Cut any paragraph that only restates the heading.
+- Keep one clear explanation before an example, not multiple.
+- Prefer concrete bullets, tables, and before/after examples over broad advice.
+- Do not add a product CTA before the article has already solved part of the reader's problem.
+- If a sentence does not change what the seller should do next, delete it or make it specific.
+
 ## SEO Landing Pages
 
 | Priority | Page | Target query | Status | URL | Notes |
@@ -65,6 +77,7 @@ Rules:
 - Use the row's Translation key exactly.
 - Choose clear SEO slugs based on the target query. Localized posts may use localized slugs when natural.
 - Include practical, original article sections and FAQ items in each locale.
+- Run a compression pass before publishing: remove filler, repeated setup, and unsupported claims while preserving useful examples, templates, and checklists.
 - Use only the approved Product placement component from the row.
 - Follow the Product Placement Rules in this file exactly.
 - Do not mention pricing advice, bulk listing, automated publishing, offer handling, buyer messaging, follower/like automation, relisting, or any Vinted account actions as AutoLister AI features.
@@ -77,16 +90,16 @@ Rules:
 
 | Priority | Search intent | Target query | Category | Translation key | en | fr | de | nl | URL | Publish date | Last reviewed | Product placement | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| P0 | Improve listing text | how to write Vinted descriptions that sell | selling-tips | vinted-descriptions-that-sell | [x] | [x] | [x] | [x] | /blog/how-to-write-vinted-descriptions-that-sell | 2026-05-04 | 2026-05-17 | ProductMention | German and Dutch localizations completed. |
-| P0 | Improve listing photos | Vinted photos that sell | selling-tips | vinted-photos-that-sell | [x] | [x] | [x] | [x] | /blog/vinted-photos-that-sell | 2026-05-04 | 2026-05-17 | PhotoToListingCTA | German and Dutch localizations completed. |
-| P1 | Beginner setup | how to sell on Vinted | marketplace-guide | how-to-sell-on-vinted-beginner-checklist | [x] | [x] | [x] | [x] | /blog/how-to-sell-on-vinted | 2026-05-13 | 2026-05-13 | EndOfPostCTA | Beginner checklist; CTA only after listing quality section. |
-| P1 | Diagnose poor sales | why are my Vinted items not selling | selling-tips | why-vinted-items-not-selling | [x] | [x] | [x] | [x] | /blog/why-are-my-vinted-items-not-selling | 2026-05-13 | 2026-05-13 | PhotoToListingCTA | Mention only when causes involve poor photos, weak titles, or thin descriptions. |
+| P0 | Improve listing text | how to write Vinted descriptions that sell | selling-tips | vinted-descriptions-that-sell | [x] | [x] | [x] | [x] | /blog/how-to-write-vinted-descriptions-that-sell | 2026-05-04 | 2026-07-05 | ProductMention | German and Dutch localizations completed. |
+| P0 | Improve listing photos | Vinted photos that sell | selling-tips | vinted-photos-that-sell | [x] | [x] | [x] | [x] | /blog/vinted-photos-that-sell | 2026-05-04 | 2026-07-05 | PhotoToListingCTA | German and Dutch localizations completed. |
+| P1 | Beginner setup | how to sell on Vinted | marketplace-guide | how-to-sell-on-vinted-beginner-checklist | [x] | [x] | [x] | [x] | /blog/how-to-sell-on-vinted | 2026-05-13 | 2026-07-05 | EndOfPostCTA | Beginner checklist; CTA only after listing quality section. |
+| P1 | Diagnose poor sales | why are my Vinted items not selling | selling-tips | why-vinted-items-not-selling | [x] | [x] | [x] | [x] | /blog/why-are-my-vinted-items-not-selling | 2026-05-13 | 2026-07-05 | PhotoToListingCTA | Mention only when causes involve poor photos, weak titles, or thin descriptions. |
 | P1 | Sell-through improvement | how to sell faster on Vinted | selling-tips | how-to-sell-faster-on-vinted | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | PhotoToListingCTA | Avoid claims about automation or account growth. |
 | P1 | Timing question | best time to upload on Vinted | selling-tips | best-time-to-upload-on-vinted | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Product is not directly relevant unless article includes a short listing-quality section. |
 | P1 | Search visibility | Vinted title keywords | selling-tips | vinted-title-keyword-guide | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | ProductMention | Tie to generating searchable titles and hashtags from item photos. |
 | P1 | Listing template | Vinted description template | selling-tips | vinted-description-template-by-item-type | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | WritingStyleCTA | Suitable for formatting, bullets, tone, and optional writing controls. |
 | P1 | Home photo setup | how to take Vinted photos at home | selling-tips | how-to-take-vinted-photos-at-home | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | PhotoToListingCTA | CTA can explain clearer photos improve title and description output. |
-| P1 | Beginner research | what is Vinted and how does Vinted work | marketplace-guide | what-is-vinted-how-it-works | [x] | [x] | [x] | [x] | /blog/what-is-vinted-how-it-works | 2026-06-23 | 2026-06-23 | EndOfPostCTA | Trends-backed broad funnel. Explain Vinted simply, then route seller-readers to listing quality guides. |
+| P1 | Beginner research | what is Vinted and how does Vinted work | marketplace-guide | what-is-vinted-how-it-works | [x] | [x] | [x] | [x] | /blog/what-is-vinted-how-it-works | 2026-06-23 | 2026-07-05 | EndOfPostCTA | Trends-backed broad funnel. Explain Vinted simply, then route seller-readers to listing quality guides. |
 | P1 | Trust research | Vinted reviews is Vinted legit and safe | marketplace-guide | vinted-reviews-legit-safe | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Cite official Vinted sources for safety and buyer/seller protection. Do not sound like Vinted support. |
 | P1 | Shipping research | Vinted Go locker guide | marketplace-guide | vinted-go-locker-guide | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | none | Cover Vinted Go, lockers, relais, and pickup points from seller perspective. Cite official sources. |
 | P1 | Marketplace comparison | Vinted vs Depop vs eBay best second hand clothing app | tool-comparison | vinted-vs-depop-vs-ebay-sellers | [ ] | [ ] | [ ] | [ ] | TBD | TBD | TBD | ProductMention | Compare seller workflows honestly; mention AutoLister only for Vinted listing text. |

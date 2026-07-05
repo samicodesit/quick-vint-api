@@ -766,9 +766,6 @@
 
                 state.completeSent = true;
                 state.completeFailed = false;
-                trackUploadEvent('phone_upload_batch_complete_success', {
-                    fileCount: state.files.length
-                });
                 pageTitle.textContent = 'Photos Sent';
                 pageCopy.innerHTML = 'Return to your desktop to group photos into listings.';
                 renderBatchProgress();
@@ -783,10 +780,8 @@
                 state.completeFailed = false;
                 renderBatchProgress();
                 await requestWakeLock();
-                trackUploadEvent('phone_upload_send_start', {
-                    fileCount: state.files.length,
-                    retryCount: state.files.filter((item) => item.failed && !item.done).length
-                });
+                const retryCount = state.files.filter((item) => item.failed && !item.done).length;
+                const startedAt = Date.now();
 
                 let failedCount = 0;
                 let cursor = 0;
@@ -821,11 +816,13 @@
                     showToast(`${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Retry when ready.`);
                 }
 
-                trackUploadEvent('phone_upload_send_finished', {
+                trackUploadEvent('phone_upload_send_summary', {
                     fileCount: state.files.length,
                     sentCount: state.files.filter((item) => item.done).length,
                     failedCount,
-                    completeSent: state.completeSent
+                    completeSent: state.completeSent,
+                    retryCount,
+                    durationMs: Date.now() - startedAt
                 });
 
                 state.isSending = false;
@@ -837,10 +834,7 @@
 
             async function sendSingleFiles(items) {
                 if (!items.length) return;
-                trackUploadEvent('phone_upload_send_start', {
-                    fileCount: items.length,
-                    retryCount: 0
-                });
+                const startedAt = Date.now();
 
                 let failedCount = 0;
                 await Promise.all(items.map(async (item) => {
@@ -848,11 +842,13 @@
                     if (!ok) failedCount += 1;
                 }));
 
-                trackUploadEvent('phone_upload_send_finished', {
+                trackUploadEvent('phone_upload_send_summary', {
                     fileCount: items.length,
                     sentCount: items.filter((item) => item.done).length,
                     failedCount,
-                    completeSent: items.every((item) => item.done)
+                    completeSent: items.every((item) => item.done),
+                    retryCount: 0,
+                    durationMs: Date.now() - startedAt
                 });
                 flushUploadEvents();
             }
@@ -899,11 +895,6 @@
                 const files = Array.from(e.target.files || []);
                 e.target.value = '';
                 if (!files.length) return;
-                trackUploadEvent('phone_upload_files_selected', {
-                    fileCount: files.length,
-                    totalFileCount: state.files.length + files.length
-                });
-
                 let didStart = false;
                 const startHandling = () => {
                     if (didStart) return;
@@ -919,10 +910,6 @@
             state.sessionId = createSessionId();
             sessionCodeEl.textContent = state.sessionId;
             syncPageCopy();
-            trackUploadEvent('phone_upload_page_open', {
-                hasSessionParam: new URL(window.location.href).searchParams.has('s')
-            });
-
             mainBtn.addEventListener('click', () => fileInput.click());
             sendBtn.addEventListener('click', sendBatchFiles);
             fileInput.addEventListener('change', handleFileInputChange);
@@ -947,11 +934,6 @@
             container.addEventListener('drop', e => {
                 e.preventDefault();
                 container.style.transform = 'scale(1)';
-                trackUploadEvent('phone_upload_files_selected', {
-                    fileCount: e.dataTransfer.files.length,
-                    totalFileCount: state.files.length + e.dataTransfer.files.length,
-                    input: 'drop'
-                });
                 handleFiles(e.dataTransfer.files);
             });
 

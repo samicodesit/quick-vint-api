@@ -975,6 +975,7 @@ function getJourneyStage(log: any) {
   if (event === "generate_limit_hit") return "Limit hit";
   if (event === "account_paused_shown") return "Account paused shown";
   if (event === "phone_upload_start") return "Phone upload started";
+  if (event === "phone_upload_send_summary") return "Phone upload sent";
   if (event === "phone_upload_complete") return "Phone upload completed";
   if (event === "phone_upload_error") return "Phone upload error";
   if (event === "batch_start") return "Batch started";

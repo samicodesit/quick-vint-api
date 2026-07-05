@@ -1363,6 +1363,39 @@ async function handleLogDetail(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const IPV4_PATTERN =
+  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+const IPV6_PATTERN = /^[0-9a-f:.]{2,45}$/i;
+
+function isLikelyIpSearch(value: string) {
+  const search = value.trim();
+  if (IPV4_PATTERN.test(search)) return true;
+  return search.includes(":") && IPV6_PATTERN.test(search);
+}
+
+function buildLogSearchFilter(search: string) {
+  const safeSearch = search.replace(/[%_,]/g, "\\$&");
+  const filters = [
+    `user_email.ilike.%${safeSearch}%`,
+    `endpoint.ilike.%${safeSearch}%`,
+  ];
+
+  if (UUID_PATTERN.test(search)) {
+    filters.push(
+      `user_id.eq.${search}`,
+      `full_request_body->context->>analyticsClientId.eq.${search}`,
+    );
+  }
+
+  if (isLikelyIpSearch(search)) {
+    filters.push(`ip_address.eq.${search}`);
+  }
+
+  return filters.join(",");
+}
+
 // --- LOGIC: View Logs ---
 async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
   try {
@@ -1410,24 +1443,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (relatedLogFilters) {
       query = query.or(relatedLogFilters);
     } else if (search) {
-      const safeSearch = search.replace(/[%_,]/g, "\\$&");
-      const isUuid =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          search,
-        );
-      query = isUuid
-        ? query.or(
-            [
-              `user_email.ilike.%${safeSearch}%`,
-              `endpoint.ilike.%${safeSearch}%`,
-              `ip_address.ilike.%${safeSearch}%`,
-              `user_id.eq.${search}`,
-              `full_request_body->context->>analyticsClientId.eq.${search}`,
-            ].join(","),
-          )
-        : query.or(
-            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%,ip_address.ilike.%${safeSearch}%`,
-          );
+      query = query.or(buildLogSearchFilter(search));
     }
 
     const { data: logs, error: logsError } = await query;
@@ -1450,27 +1466,15 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (relatedLogFilters) {
       countQuery = countQuery.or(relatedLogFilters);
     } else if (search) {
-      const safeSearch = search.replace(/[%_,]/g, "\\$&");
-      const isUuid =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          search,
-        );
-      countQuery = isUuid
-        ? countQuery.or(
-            [
-              `user_email.ilike.%${safeSearch}%`,
-              `endpoint.ilike.%${safeSearch}%`,
-              `ip_address.ilike.%${safeSearch}%`,
-              `user_id.eq.${search}`,
-              `full_request_body->context->>analyticsClientId.eq.${search}`,
-            ].join(","),
-          )
-        : countQuery.or(
-            `user_email.ilike.%${safeSearch}%,endpoint.ilike.%${safeSearch}%,ip_address.ilike.%${safeSearch}%`,
-          );
+      countQuery = countQuery.or(buildLogSearchFilter(search));
     }
 
-    const { count } = await countQuery;
+    const { count, error: countError } = await countQuery;
+    if (countError) {
+      console.error("Error counting logs:", countError);
+      return res.status(500).json({ error: "Failed to count logs" });
+    }
+
     const enrichedLogs = await attachCorrelatedUsersToLogs(logs || []);
 
     return res.status(200).json({

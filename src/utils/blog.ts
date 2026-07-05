@@ -1,7 +1,7 @@
 import { BLOG_COPY, type BlogCategory, type BlogLocale } from "../i18n/blog.js";
 
 export const CHROME_WEB_STORE_URL =
-  "https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl";
+  "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 
 export type BlogPost = {
   id: string;

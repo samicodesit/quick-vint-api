@@ -299,6 +299,64 @@ const faqSchema = post.data.faqItems?.length
     font-weight: 900;
   }
 
+  .blog-content :global(table) {
+    display: table;
+    width: 100%;
+    max-width: 100%;
+    margin: 1.75rem 0;
+    overflow: hidden;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 1rem;
+    border-spacing: 0;
+    table-layout: fixed;
+    background: white;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  }
+
+  .blog-content :global(thead) {
+    background: rgb(248 250 252);
+  }
+
+  .blog-content :global(th),
+  .blog-content :global(td) {
+    min-width: 12rem;
+    padding: 0.9rem 1rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid rgb(226 232 240);
+  }
+
+  .blog-content :global(th) {
+    color: rgb(15 23 42);
+    font-size: 0.875rem;
+    line-height: 1.35;
+    font-weight: 900;
+  }
+
+  .blog-content :global(td) {
+    color: rgb(51 65 85);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .blog-content :global(th:first-child),
+  .blog-content :global(td:first-child) {
+    width: 35%;
+  }
+
+  .blog-content :global(th + th),
+  .blog-content :global(td + td) {
+    border-left: 1px solid rgb(241 245 249);
+  }
+
+  .blog-content :global(tbody tr:nth-child(even)) {
+    background: rgba(248, 250, 252, 0.72);
+  }
+
+  .blog-content :global(tbody tr:last-child td) {
+    border-bottom: 0;
+  }
+
   .blog-content :global(blockquote) {
     margin: 2rem 0;
     border-left: 4px solid rgb(99 102 241);

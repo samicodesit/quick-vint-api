@@ -331,6 +331,7 @@ function buildAdminHarness() {
     context: context as typeof context & {
       loadView: (view: string) => Promise<void>;
       showLogDetails: (id: string) => Promise<void>;
+      showLogImagePreview: (logId: string, index: number) => void;
       showUserJourney: (userId: string, encodedEmail: string) => Promise<void>;
       showClientJourney: (analyticsClientId: string) => Promise<void>;
       openLogsForSearch: (search: string, type?: string) => void;

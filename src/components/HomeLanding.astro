@@ -1572,6 +1572,43 @@ const subtitleParts =
     return Math.min(targetValue, safeStartValue + elapsedSteps);
   }
 
+  function setPublicStatNumber({
+    element,
+    value,
+    speed = "slow",
+    animate = true,
+  }: {
+    element: HTMLElement;
+    value: number;
+    speed?: "fast" | "slow";
+    animate?: boolean;
+  }) {
+    const text = formatPublicStat(value);
+    if (!text || element.textContent === text) return;
+
+    element.classList.remove(
+      "public-stat-number--flip-fast",
+      "public-stat-number--flip-slow",
+    );
+    element.textContent = text;
+    element.dataset.displayValue = String(value);
+
+    if (
+      !animate ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    // Restart the transform animation even when the same class was used before.
+    void element.offsetWidth;
+    element.classList.add(
+      speed === "fast"
+        ? "public-stat-number--flip-fast"
+        : "public-stat-number--flip-slow",
+    );
+  }
+
   function animatePublicStat({
     element,
     targetValue,
@@ -1602,36 +1639,61 @@ const subtitleParts =
         displayStartedAt,
         stepMs,
       });
-      statElement.textContent = formatPublicStat(displayValue);
-      statElement.dataset.displayValue = String(displayValue);
+      setPublicStatNumber({
+        element: statElement,
+        value: displayValue,
+        animate: false,
+      });
       return;
     }
 
-    let displayValue = getSharedDisplayValue({
+    const previousDisplayValue = Number(statElement.dataset.displayValue || 0);
+    let displayValue = Math.min(
       targetValue,
-      startValue,
-      displayStartedAt,
-      stepMs,
-    });
+      Math.max(
+        previousDisplayValue,
+        getSharedDisplayValue({
+          targetValue,
+          startValue,
+          displayStartedAt,
+          stepMs,
+        }),
+      ),
+    );
 
     if (displayValue >= targetValue) {
-      statElement.textContent = formatPublicStat(targetValue);
-      statElement.dataset.displayValue = String(targetValue);
+      setPublicStatNumber({
+        element: statElement,
+        value: targetValue,
+        speed: "fast",
+      });
       return;
     }
 
-    statElement.textContent = formatPublicStat(displayValue);
-    statElement.dataset.displayValue = String(displayValue);
+    setPublicStatNumber({
+      element: statElement,
+      value: displayValue,
+      speed: "fast",
+    });
 
     publicStatsRevealTimer = window.setInterval(() => {
-      displayValue = getSharedDisplayValue({
+      displayValue = Math.min(
         targetValue,
-        startValue,
-        displayStartedAt,
-        stepMs,
+        Math.max(
+          displayValue,
+          getSharedDisplayValue({
+            targetValue,
+            startValue,
+            displayStartedAt,
+            stepMs,
+          }),
+        ),
+      );
+      setPublicStatNumber({
+        element: statElement,
+        value: displayValue,
+        speed: "slow",
       });
-      statElement.textContent = formatPublicStat(displayValue);
-      statElement.dataset.displayValue = String(displayValue);
 
       if (displayValue >= targetValue && publicStatsRevealTimer) {
         window.clearInterval(publicStatsRevealTimer);
@@ -1672,6 +1734,10 @@ const subtitleParts =
         "[data-stat-generations]",
       );
 
+      publicStatsRoot.classList.remove("hidden");
+      publicStatsRoot.classList.add("flex");
+      publicStatsRoot.dataset.loaded = "true";
+
       animatePublicStat({
         element: generationsEl,
         targetValue: Math.floor(generations),
@@ -1679,10 +1745,6 @@ const subtitleParts =
         displayStartedAt,
         stepMs: displayStepMs,
       });
-
-      publicStatsRoot.classList.remove("hidden");
-      publicStatsRoot.classList.add("flex");
-      publicStatsRoot.dataset.loaded = "true";
     } catch (error) {
       publicStatsRoot.classList.add("hidden");
       publicStatsRoot.classList.remove("flex");
@@ -1723,8 +1785,22 @@ const subtitleParts =
   }
 
   .public-stat-number {
+    display: inline-block;
     font-variant-numeric: tabular-nums;
+    min-width: 4.5ch;
+    perspective: 400px;
     text-shadow: 0 10px 28px rgba(79, 70, 229, 0.18);
+    transform-origin: 50% 45%;
+    transform-style: preserve-3d;
+    will-change: transform, opacity;
+  }
+
+  .public-stat-number--flip-fast {
+    animation: publicStatFlip 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .public-stat-number--flip-slow {
+    animation: publicStatFlip 720ms cubic-bezier(0.19, 1, 0.22, 1) both;
   }
 
   .public-stats-dot {
@@ -1754,9 +1830,26 @@ const subtitleParts =
     }
   }
 
+  @keyframes publicStatFlip {
+    0% {
+      opacity: 0.62;
+      transform: rotateX(-72deg) translateY(-3px);
+    }
+    48% {
+      opacity: 1;
+      transform: rotateX(12deg) translateY(1px);
+    }
+    100% {
+      opacity: 1;
+      transform: rotateX(0deg) translateY(0);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .public-stats-card[data-loaded="true"],
-    .public-stats-dot {
+    .public-stats-dot,
+    .public-stat-number--flip-fast,
+    .public-stat-number--flip-slow {
       animation: none;
     }
   }

@@ -405,6 +405,9 @@ export type SiteExtraHomeCopy = {
   heroBadgePrimary: string;
   watchDemo: string;
   videoCaption: string;
+  publicStatsAriaLabel: string;
+  publicStatsUsersLabel: string;
+  publicStatsGenerationsLabel: string;
   screenshotPreviewLabel: string;
   screenshotPreviewHint: string;
   screenshotPreviewBadge: string;
@@ -548,6 +551,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBadgePrimary: "Vinted description generator + listing assistant",
       watchDemo: "Watch Demo",
       videoCaption: "See how it works in 15 seconds",
+      publicStatsAriaLabel: "AutoLister public usage stats",
+      publicStatsUsersLabel: "users",
+      publicStatsGenerationsLabel: "generations",
       screenshotPreviewLabel: "New version screenshots",
       screenshotPreviewHint: "Open full size",
       screenshotPreviewBadge: "New",
@@ -699,6 +705,9 @@ export const SITE_EXTRA_COPY: Record<
         "Générateur de descriptions Vinted + assistant d'annonces",
       watchDemo: "Voir la démo",
       videoCaption: "Voyez le résultat en 15 secondes",
+      publicStatsAriaLabel: "Statistiques publiques d'utilisation d'AutoLister",
+      publicStatsUsersLabel: "utilisateurs",
+      publicStatsGenerationsLabel: "générations",
       screenshotPreviewLabel: "Nouvelles captures",
       screenshotPreviewHint: "Ouvrir en grand",
       screenshotPreviewBadge: "Nouveau",
@@ -850,6 +859,9 @@ export const SITE_EXTRA_COPY: Record<
         "Vinted-Beschreibungsgenerator + Anzeigen-Assistent",
       watchDemo: "Demo ansehen",
       videoCaption: "So funktioniert es in 15 Sekunden",
+      publicStatsAriaLabel: "Öffentliche Nutzungsstatistiken von AutoLister",
+      publicStatsUsersLabel: "Nutzer",
+      publicStatsGenerationsLabel: "Generierungen",
       screenshotPreviewLabel: "Neue Versions-Screenshots",
       screenshotPreviewHint: "Groß öffnen",
       screenshotPreviewBadge: "Neu",
@@ -1002,6 +1014,9 @@ export const SITE_EXTRA_COPY: Record<
         "Vinted beschrijving generator + advertentie-assistent",
       watchDemo: "Bekijk demo",
       videoCaption: "Zie hoe het werkt in 15 seconden",
+      publicStatsAriaLabel: "Openbare gebruiksstatistieken van AutoLister",
+      publicStatsUsersLabel: "gebruikers",
+      publicStatsGenerationsLabel: "generaties",
       screenshotPreviewLabel: "Nieuwe versie-screenshots",
       screenshotPreviewHint: "Open groot",
       screenshotPreviewBadge: "Nieuw",
@@ -1154,6 +1169,9 @@ export const SITE_EXTRA_COPY: Record<
       heroBadgePrimary: "Generator opisów Vinted + asystent ogłoszeń",
       watchDemo: "Obejrzyj demo",
       videoCaption: "Zobacz jak to dziala w 15 sekund",
+      publicStatsAriaLabel: "Publiczne statystyki użycia AutoLister",
+      publicStatsUsersLabel: "użytkowników",
+      publicStatsGenerationsLabel: "generacji",
       screenshotPreviewLabel: "Zrzuty nowej wersji",
       screenshotPreviewHint: "Otwórz pełny rozmiar",
       screenshotPreviewBadge: "Nowe",
@@ -1306,6 +1324,9 @@ export const SITE_EXTRA_COPY: Record<
         "Generador de descripciones Vinted + asistente de anuncios",
       watchDemo: "Ver demo",
       videoCaption: "Mira como funciona en 15 segundos",
+      publicStatsAriaLabel: "Estadísticas públicas de uso de AutoLister",
+      publicStatsUsersLabel: "usuarios",
+      publicStatsGenerationsLabel: "generaciones",
       screenshotPreviewLabel: "Capturas de la nueva versión",
       screenshotPreviewHint: "Abrir a tamaño completo",
       screenshotPreviewBadge: "Nuevo",
@@ -1457,6 +1478,9 @@ export const SITE_EXTRA_COPY: Record<
         "Generatore di descrizioni Vinted + assistente annunci",
       watchDemo: "Guarda demo",
       videoCaption: "Scopri come funziona in 15 secondi",
+      publicStatsAriaLabel: "Statistiche pubbliche di utilizzo di AutoLister",
+      publicStatsUsersLabel: "utenti",
+      publicStatsGenerationsLabel: "generazioni",
       screenshotPreviewLabel: "Screenshot nuova versione",
       screenshotPreviewHint: "Apri a schermo intero",
       screenshotPreviewBadge: "Nuovo",
@@ -1608,6 +1632,9 @@ export const SITE_EXTRA_COPY: Record<
         "Gerador de descrições Vinted + assistente de anúncios",
       watchDemo: "Ver demo",
       videoCaption: "Veja como funciona em 15 segundos",
+      publicStatsAriaLabel: "Estatísticas públicas de utilização do AutoLister",
+      publicStatsUsersLabel: "utilizadores",
+      publicStatsGenerationsLabel: "gerações",
       screenshotPreviewLabel: "Capturas da nova versão",
       screenshotPreviewHint: "Abrir em tamanho real",
       screenshotPreviewBadge: "Novo",

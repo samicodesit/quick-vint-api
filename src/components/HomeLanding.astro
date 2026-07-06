@@ -427,6 +427,52 @@ const subtitleParts =
             >
             </video>
 
+            <div
+              data-public-stats
+              data-stats-endpoint="/api/public-stats"
+              data-refresh-ms="600000"
+              class="public-stats-card absolute left-3 right-14 top-3 z-20 hidden max-w-[430px] items-center gap-2 rounded-2xl border border-white/70 bg-white/90 p-2 shadow-[0_18px_45px_-24px_rgba(15,23,42,0.75)] backdrop-blur-xl ring-1 ring-slate-950/5 sm:left-4 sm:right-auto sm:top-4 sm:p-2.5"
+              aria-label={extra.publicStatsAriaLabel}
+              aria-live="polite"
+            >
+              <div
+                class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl bg-slate-950 px-3 py-2 text-white sm:min-w-[132px]"
+              >
+                <span
+                  class="public-stats-dot h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.14)]"
+                  aria-hidden="true"
+                ></span>
+                <span class="min-w-0">
+                  <span
+                    data-stat-users
+                    class="block text-lg font-black leading-none tracking-tight sm:text-xl"
+                  >
+                    -
+                  </span>
+                  <span
+                    class="mt-1 block truncate text-[10px] font-bold uppercase tracking-wider text-slate-300"
+                  >
+                    {extra.publicStatsUsersLabel}
+                  </span>
+                </span>
+              </div>
+              <div
+                class="min-w-0 flex-1 rounded-xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white px-3 py-2 text-brand-950 sm:min-w-[158px]"
+              >
+                <span
+                  data-stat-generations
+                  class="block text-lg font-black leading-none tracking-tight sm:text-xl"
+                >
+                  -
+                </span>
+                <span
+                  class="mt-1 block truncate text-[10px] font-bold uppercase tracking-wider text-brand-700"
+                >
+                  {extra.publicStatsGenerationsLabel}
+                </span>
+              </div>
+            </div>
+
             <div class="absolute top-4 right-4 z-20">
               <button
                 data-open-fullscreen
@@ -1499,6 +1545,69 @@ const subtitleParts =
       closeScreenshotPreview();
     }
   });
+
+  const publicStatsRoot = document.querySelector(
+    "[data-public-stats]",
+  ) as HTMLElement | null;
+
+  function formatPublicStat(value: unknown) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number <= 0) {
+      return "";
+    }
+
+    return new Intl.NumberFormat(document.documentElement.lang || undefined, {
+      maximumFractionDigits: 0,
+    }).format(Math.floor(number));
+  }
+
+  async function loadPublicStats() {
+    if (!publicStatsRoot) return;
+
+    const endpoint = publicStatsRoot.dataset.statsEndpoint || "/api/public-stats";
+
+    try {
+      const response = await fetch(endpoint, {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Stats request failed: ${response.status}`);
+      }
+
+      const stats = await response.json();
+      const users = formatPublicStat(stats.totalUsers);
+      const generations = formatPublicStat(stats.totalGenerations);
+
+      if (!users || !generations) {
+        return;
+      }
+
+      const usersEl = publicStatsRoot.querySelector("[data-stat-users]");
+      const generationsEl = publicStatsRoot.querySelector(
+        "[data-stat-generations]",
+      );
+
+      if (usersEl) usersEl.textContent = users;
+      if (generationsEl) generationsEl.textContent = generations;
+
+      publicStatsRoot.classList.remove("hidden");
+      publicStatsRoot.classList.add("flex");
+      publicStatsRoot.dataset.loaded = "true";
+    } catch (error) {
+      publicStatsRoot.classList.add("hidden");
+      publicStatsRoot.classList.remove("flex");
+      delete publicStatsRoot.dataset.loaded;
+    }
+  }
+
+  if (publicStatsRoot) {
+    loadPublicStats();
+    window.setInterval(
+      loadPublicStats,
+      Number(publicStatsRoot.dataset.refreshMs || 600000),
+    );
+  }
 </script>
 
 <style is:global>
@@ -1518,5 +1627,43 @@ const subtitleParts =
     background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+
+  .public-stats-card[data-loaded="true"] {
+    animation: publicStatsEnter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .public-stats-dot {
+    animation: publicStatsPulse 2.8s ease-in-out infinite;
+  }
+
+  @keyframes publicStatsEnter {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes publicStatsPulse {
+    0%,
+    100% {
+      opacity: 0.75;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.18);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .public-stats-card[data-loaded="true"],
+    .public-stats-dot {
+      animation: none;
+    }
   }
 </style>

@@ -1355,8 +1355,7 @@ async function handleLogDetail(req: VercelRequest, res: VercelResponse) {
       .single();
     if (error) throw error;
 
-    const [log] = await attachCorrelatedUsersToLogs(data ? [data] : []);
-    return res.status(200).json({ log });
+    return res.status(200).json({ log: data });
   } catch (error: any) {
     console.error("Error fetching log detail:", error);
     return res.status(500).json({ error: error.message });

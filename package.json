@@ -10,6 +10,7 @@
     "check:blog-plan": "node scripts/check-blog-plan.mjs",
     "growth": "node scripts/growth-scorecard.mjs",
     "ops:delete-user": "node scripts/delete-user-by-email.mjs",
+    "ops:inspect-generation": "node scripts/inspect-user-generation.mjs",
     "ops:privacy-reply": "node scripts/send-privacy-reply.mjs",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",

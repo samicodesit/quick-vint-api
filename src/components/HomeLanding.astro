@@ -410,6 +410,31 @@ const subtitleParts =
         </div>
 
         <div
+          data-public-stats
+          data-stats-endpoint="/api/public-stats"
+          data-refresh-ms="900000"
+          class="public-stats-card relative z-10 mb-4 ml-auto hidden w-full items-center gap-3 rounded-3xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.8)] backdrop-blur-xl ring-1 ring-slate-950/5 sm:w-auto sm:min-w-[360px] sm:px-5"
+          aria-label={extra.publicStatsAriaLabel}
+          aria-live="polite"
+        >
+          <span
+            class="public-stats-dot h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.14)]"
+            aria-hidden="true"
+          ></span>
+          <span
+            data-stat-generations
+            class="public-stat-number shrink-0 text-2xl font-black leading-none tracking-tight text-brand-600 sm:text-3xl"
+          >
+            0
+          </span>
+          <span
+            class="min-w-0 text-sm font-black leading-tight text-slate-800 sm:text-base"
+          >
+            {extra.publicStatsGenerationsLabel}
+          </span>
+        </div>
+
+        <div
           class="relative w-full rounded-2xl overflow-hidden video-wrapper bg-white group cursor-pointer"
           data-open-fullscreen
         >
@@ -426,52 +451,6 @@ const subtitleParts =
               controls
             >
             </video>
-
-            <div
-              data-public-stats
-              data-stats-endpoint="/api/public-stats"
-              data-refresh-ms="600000"
-              class="public-stats-card absolute left-3 right-14 top-3 z-20 hidden max-w-[430px] items-center gap-2 rounded-2xl border border-white/70 bg-white/90 p-2 shadow-[0_18px_45px_-24px_rgba(15,23,42,0.75)] backdrop-blur-xl ring-1 ring-slate-950/5 sm:left-4 sm:right-auto sm:top-4 sm:p-2.5"
-              aria-label={extra.publicStatsAriaLabel}
-              aria-live="polite"
-            >
-              <div
-                class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl bg-slate-950 px-3 py-2 text-white sm:min-w-[132px]"
-              >
-                <span
-                  class="public-stats-dot h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.14)]"
-                  aria-hidden="true"
-                ></span>
-                <span class="min-w-0">
-                  <span
-                    data-stat-users
-                    class="block text-lg font-black leading-none tracking-tight sm:text-xl"
-                  >
-                    -
-                  </span>
-                  <span
-                    class="mt-1 block truncate text-[10px] font-bold uppercase tracking-wider text-slate-300"
-                  >
-                    {extra.publicStatsUsersLabel}
-                  </span>
-                </span>
-              </div>
-              <div
-                class="min-w-0 flex-1 rounded-xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white px-3 py-2 text-brand-950 sm:min-w-[158px]"
-              >
-                <span
-                  data-stat-generations
-                  class="block text-lg font-black leading-none tracking-tight sm:text-xl"
-                >
-                  -
-                </span>
-                <span
-                  class="mt-1 block truncate text-[10px] font-bold uppercase tracking-wider text-brand-700"
-                >
-                  {extra.publicStatsGenerationsLabel}
-                </span>
-              </div>
-            </div>
 
             <div class="absolute top-4 right-4 z-20">
               <button
@@ -1556,9 +1535,53 @@ const subtitleParts =
       return "";
     }
 
-    return new Intl.NumberFormat(document.documentElement.lang || undefined, {
-      maximumFractionDigits: 0,
-    }).format(Math.floor(number));
+    const formatted = new Intl.NumberFormat(
+      document.documentElement.lang || undefined,
+      {
+        maximumFractionDigits: 0,
+      },
+    ).format(Math.floor(number));
+
+    return `${formatted}+`;
+  }
+
+  function animatePublicStat(
+    element: Element | null,
+    targetValue: number,
+  ) {
+    if (!element) return;
+
+    const statElement = element as HTMLElement;
+    const previousValue = Number(statElement.dataset.rawValue || 0);
+    statElement.dataset.rawValue = String(targetValue);
+
+    if (
+      previousValue === targetValue ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      statElement.textContent = formatPublicStat(targetValue);
+      return;
+    }
+
+    const startValue =
+      previousValue > 0 ? previousValue : Math.max(0, targetValue - 180);
+    const durationMs = 950;
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - startedAt) / durationMs, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(
+        startValue + (targetValue - startValue) * eased,
+      );
+      statElement.textContent = formatPublicStat(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      }
+    };
+
+    requestAnimationFrame(tick);
   }
 
   async function loadPublicStats() {
@@ -1576,20 +1599,17 @@ const subtitleParts =
       }
 
       const stats = await response.json();
-      const users = formatPublicStat(stats.totalUsers);
-      const generations = formatPublicStat(stats.totalGenerations);
+      const generations = Number(stats.totalGenerations);
 
-      if (!users || !generations) {
+      if (!Number.isFinite(generations) || generations <= 0) {
         return;
       }
 
-      const usersEl = publicStatsRoot.querySelector("[data-stat-users]");
       const generationsEl = publicStatsRoot.querySelector(
         "[data-stat-generations]",
       );
 
-      if (usersEl) usersEl.textContent = users;
-      if (generationsEl) generationsEl.textContent = generations;
+      animatePublicStat(generationsEl, Math.floor(generations));
 
       publicStatsRoot.classList.remove("hidden");
       publicStatsRoot.classList.add("flex");
@@ -1631,6 +1651,11 @@ const subtitleParts =
 
   .public-stats-card[data-loaded="true"] {
     animation: publicStatsEnter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .public-stat-number {
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 10px 28px rgba(79, 70, 229, 0.18);
   }
 
   .public-stats-dot {

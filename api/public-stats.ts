@@ -10,25 +10,17 @@ function coerceCount(value: number | string | null | undefined): number {
 }
 
 async function readPublicStats() {
-  const [profilesResult, generationsResult] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase
-      .from("api_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("endpoint", "/api/generate")
-      .eq("response_status", 200),
-  ]);
-
-  if (profilesResult.error) {
-    throw profilesResult.error;
-  }
+  const generationsResult = await supabase
+    .from("api_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("endpoint", "/api/generate")
+    .eq("response_status", 200);
 
   if (generationsResult.error) {
     throw generationsResult.error;
   }
 
   return {
-    totalUsers: coerceCount(profilesResult.count),
     totalGenerations: coerceCount(generationsResult.count),
   };
 }
@@ -45,7 +37,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const stats = await readPublicStats();
 
     return res.status(200).json({
-      totalUsers: stats.totalUsers,
       totalGenerations: stats.totalGenerations,
     });
   } catch (error: any) {

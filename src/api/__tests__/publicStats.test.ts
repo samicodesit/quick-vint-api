@@ -30,12 +30,6 @@ function createResponse() {
   return res;
 }
 
-function headCountQuery(result: unknown) {
-  return {
-    select: vi.fn(async () => result),
-  };
-}
-
 function logCountQuery(result: unknown) {
   let eqCalls = 0;
   const query = {
@@ -55,9 +49,6 @@ describe("public stats endpoint", () => {
 
   it("returns cached public marketing totals", async () => {
     fromMock.mockImplementation((table: string) => {
-      if (table === "profiles") {
-        return headCountQuery({ count: 128, error: null });
-      }
       if (table === "api_logs") {
         return logCountQuery({ count: 4200, error: null });
       }
@@ -76,18 +67,14 @@ describe("public stats endpoint", () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers.get("Cache-Control")).toContain("s-maxage=900");
     expect(res.body).toEqual({
-      totalUsers: 128,
       totalGenerations: 4200,
     });
   });
 
   it("returns 503 when stats cannot be loaded", async () => {
     fromMock.mockImplementation((table: string) => {
-      if (table === "profiles") {
-        return headCountQuery({ count: null, error: { message: "db down" } });
-      }
       if (table === "api_logs") {
-        return logCountQuery({ count: 872, error: null });
+        return logCountQuery({ count: null, error: { message: "db down" } });
       }
       throw new Error(`Unexpected table ${table}`);
     });

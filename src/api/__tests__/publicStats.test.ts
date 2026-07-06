@@ -65,10 +65,16 @@ describe("public stats endpoint", () => {
     await handler({ method: "GET" } as any, res as any);
 
     expect(res.statusCode).toBe(200);
-    expect(res.headers.get("Cache-Control")).toContain("s-maxage=900");
-    expect(res.body).toEqual({
+    expect(res.headers.get("Cache-Control")).toContain("s-maxage=60");
+    expect(res.body).toMatchObject({
       totalGenerations: 4200,
+      displayStartGenerations: 4194,
+      displayStepMs: 3200,
     });
+    const body = res.body as { displayWindowStartedAt: string };
+    expect(new Date(body.displayWindowStartedAt).toString()).not.toBe(
+      "Invalid Date",
+    );
   });
 
   it("returns 503 when stats cannot be loaded", async () => {

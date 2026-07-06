@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../utils/supabaseClient";
 
-const CACHE_CONTROL = "public, s-maxage=900, stale-while-revalidate=3600";
+const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300";
+const DISPLAY_STEP_MS = 3200;
+const DISPLAY_WINDOW_MS = 60_000;
 
 function coerceCount(value: number | string | null | undefined): number {
   const parsed =
@@ -20,8 +22,20 @@ async function readPublicStats() {
     throw generationsResult.error;
   }
 
+  const totalGenerations = coerceCount(generationsResult.count);
+  const displayOffset = Math.min(
+    Math.max(totalGenerations - 1, 0),
+    6 + (totalGenerations % 5),
+  );
+  const displayWindowStartedAt = new Date(
+    Math.floor(Date.now() / DISPLAY_WINDOW_MS) * DISPLAY_WINDOW_MS,
+  ).toISOString();
+
   return {
-    totalGenerations: coerceCount(generationsResult.count),
+    totalGenerations,
+    displayStartGenerations: totalGenerations - displayOffset,
+    displayWindowStartedAt,
+    displayStepMs: DISPLAY_STEP_MS,
   };
 }
 
@@ -38,6 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       totalGenerations: stats.totalGenerations,
+      displayStartGenerations: stats.displayStartGenerations,
+      displayWindowStartedAt: stats.displayWindowStartedAt,
+      displayStepMs: stats.displayStepMs,
     });
   } catch (error: any) {
     console.error("Failed to load public stats", error);

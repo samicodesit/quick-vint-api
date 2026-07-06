@@ -34,6 +34,7 @@ const canonical = `${baseUrl}${canonicalPath}`;
   localeBasePath="/"
 >
   <Fragment slot="head">
+    <link rel="preload" as="image" href="/video-poster.webp" type="image/webp" />
     <link rel="alternate" hreflang="en" href={`${baseUrl}/`} />
     <link rel="alternate" hreflang="fr" href={`${baseUrl}/fr/`} />
     <link rel="alternate" hreflang="de" href={`${baseUrl}/de/`} />

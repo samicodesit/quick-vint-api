@@ -383,6 +383,10 @@ const subtitleParts =
             class="w-10 h-10 rounded-full border-2 border-white shadow-md shrink-0"
             src="/user-1.jpg"
             alt="User"
+            width="40"
+            height="40"
+            loading="lazy"
+            decoding="async"
           />
           <div class="text-sm">
             <p class="text-slate-700 italic leading-relaxed">
@@ -441,9 +445,12 @@ const subtitleParts =
           <div class="aspect-video relative">
             <video
               data-hero-video
-              class="w-full h-full object-cover"
+              class="hero-demo-video w-full h-full object-cover"
               poster="/video-poster.webp"
               src="/vid-promo.mp4"
+              width="1920"
+              height="1080"
+              preload="metadata"
               autoplay
               muted
               loop
@@ -1236,6 +1243,8 @@ const subtitleParts =
           <img
             src="/feature-1.avif"
             alt="Conversion Optimized"
+            loading="lazy"
+            decoding="async"
             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
           <div
@@ -1260,6 +1269,8 @@ const subtitleParts =
           <img
             src="/feature-2.avif"
             alt="Seamless Workflow"
+            loading="lazy"
+            decoding="async"
             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
           <div
@@ -1284,6 +1295,8 @@ const subtitleParts =
           <img
             src="/feature-3.avif"
             alt="Smart AI Technology"
+            loading="lazy"
+            decoding="async"
             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
           <div
@@ -1407,6 +1420,8 @@ const subtitleParts =
         <img
           src="/boutique.avif"
           alt="Successful Vinted Boutique"
+          loading="lazy"
+          decoding="async"
           class="h-full w-full object-cover object-center md:object-right opacity-50 md:opacity-100"
         />
       </div>
@@ -1766,6 +1781,14 @@ const subtitleParts =
     box-shadow:
       0 25px 50px -12px rgba(0, 0, 0, 0.15),
       0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  .hero-demo-video:fullscreen,
+  .hero-demo-video:-webkit-full-screen {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    background: #000;
   }
 
   .gradient-text {

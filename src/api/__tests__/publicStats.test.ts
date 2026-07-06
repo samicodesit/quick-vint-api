@@ -65,14 +65,14 @@ describe("public stats endpoint", () => {
     await handler({ method: "GET" } as any, res as any);
 
     expect(res.statusCode).toBe(200);
-    expect(res.headers.get("Cache-Control")).toContain("s-maxage=60");
+    expect(res.headers.get("Cache-Control")).toContain("s-maxage=15");
     expect(res.body).toMatchObject({
       totalGenerations: 4200,
-      displayStartGenerations: 4194,
-      displayStepMs: 3200,
+      displayStartGenerations: 4157,
+      displayStepMs: 1000,
     });
-    const body = res.body as { displayWindowStartedAt: string };
-    expect(new Date(body.displayWindowStartedAt).toString()).not.toBe(
+    const body = res.body as { displayStartedAt: string };
+    expect(new Date(body.displayStartedAt).toString()).not.toBe(
       "Invalid Date",
     );
   });

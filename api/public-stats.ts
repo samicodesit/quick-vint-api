@@ -1,9 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../utils/supabaseClient";
 
-const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300";
-const DISPLAY_STEP_MS = 3200;
-const DISPLAY_WINDOW_MS = 60_000;
+const CACHE_CONTROL = "public, s-maxage=15, stale-while-revalidate=15";
+const DISPLAY_STEP_MS = 1000;
 
 function coerceCount(value: number | string | null | undefined): number {
   const parsed =
@@ -25,16 +24,13 @@ async function readPublicStats() {
   const totalGenerations = coerceCount(generationsResult.count);
   const displayOffset = Math.min(
     Math.max(totalGenerations - 1, 0),
-    6 + (totalGenerations % 5),
+    42 + (totalGenerations % 13),
   );
-  const displayWindowStartedAt = new Date(
-    Math.floor(Date.now() / DISPLAY_WINDOW_MS) * DISPLAY_WINDOW_MS,
-  ).toISOString();
 
   return {
     totalGenerations,
     displayStartGenerations: totalGenerations - displayOffset,
-    displayWindowStartedAt,
+    displayStartedAt: new Date().toISOString(),
     displayStepMs: DISPLAY_STEP_MS,
   };
 }
@@ -53,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       totalGenerations: stats.totalGenerations,
       displayStartGenerations: stats.displayStartGenerations,
-      displayWindowStartedAt: stats.displayWindowStartedAt,
+      displayStartedAt: stats.displayStartedAt,
       displayStepMs: stats.displayStepMs,
     });
   } catch (error: any) {

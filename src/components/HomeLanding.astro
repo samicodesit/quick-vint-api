@@ -412,8 +412,8 @@ const subtitleParts =
         <div
           data-public-stats
           data-stats-endpoint="/api/public-stats"
-          data-refresh-ms="60000"
-          class="public-stats-card relative z-10 mb-4 ml-auto hidden w-full items-center gap-3 rounded-3xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.8)] backdrop-blur-xl ring-1 ring-slate-950/5 sm:w-auto sm:min-w-[360px] sm:px-5"
+          data-refresh-ms="15000"
+          class="public-stats-card relative z-10 mb-4 ml-auto hidden w-fit max-w-full items-center gap-2.5 rounded-2xl border border-white/70 bg-white/90 px-3.5 py-2.5 shadow-[0_16px_38px_-26px_rgba(15,23,42,0.75)] backdrop-blur-xl ring-1 ring-slate-950/5 sm:px-4"
           aria-label={extra.publicStatsAriaLabel}
           aria-live="polite"
         >
@@ -423,12 +423,12 @@ const subtitleParts =
           ></span>
           <span
             data-stat-generations
-            class="public-stat-number shrink-0 text-2xl font-black leading-none tracking-tight text-brand-600 sm:text-3xl"
+            class="public-stat-number shrink-0 text-xl font-black leading-none tracking-tight text-brand-600 sm:text-2xl"
           >
             0
           </span>
           <span
-            class="min-w-0 text-sm font-black leading-tight text-slate-800 sm:text-base"
+            class="min-w-0 text-xs font-black leading-tight text-slate-800 sm:text-sm"
           >
             {extra.publicStatsGenerationsLabel}
           </span>
@@ -1549,17 +1549,17 @@ const subtitleParts =
   function getSharedDisplayValue({
     targetValue,
     startValue,
-    windowStartedAt,
+    displayStartedAt,
     stepMs,
   }: {
     targetValue: number;
     startValue: number;
-    windowStartedAt: string;
+    displayStartedAt: string;
     stepMs: number;
   }) {
-    const startedAtMs = new Date(windowStartedAt).getTime();
+    const startedAtMs = new Date(displayStartedAt).getTime();
     const safeStartValue = Math.max(1, Math.min(startValue, targetValue));
-    const safeStepMs = Math.max(1200, stepMs || 3200);
+    const safeStepMs = Math.max(800, stepMs || 1000);
 
     if (!Number.isFinite(startedAtMs)) {
       return safeStartValue;
@@ -1576,19 +1576,18 @@ const subtitleParts =
     element,
     targetValue,
     startValue,
-    windowStartedAt,
+    displayStartedAt,
     stepMs,
   }: {
     element: Element | null;
     targetValue: number;
     startValue: number;
-    windowStartedAt: string;
+    displayStartedAt: string;
     stepMs: number;
   }) {
     if (!element) return;
 
     const statElement = element as HTMLElement;
-    const previousTargetValue = Number(statElement.dataset.rawValue || 0);
     statElement.dataset.rawValue = String(targetValue);
 
     if (publicStatsRevealTimer) {
@@ -1596,14 +1595,11 @@ const subtitleParts =
       publicStatsRevealTimer = undefined;
     }
 
-    if (
-      previousTargetValue === targetValue ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const displayValue = getSharedDisplayValue({
         targetValue,
         startValue,
-        windowStartedAt,
+        displayStartedAt,
         stepMs,
       });
       statElement.textContent = formatPublicStat(displayValue);
@@ -1614,7 +1610,7 @@ const subtitleParts =
     let displayValue = getSharedDisplayValue({
       targetValue,
       startValue,
-      windowStartedAt,
+      displayStartedAt,
       stepMs,
     });
 
@@ -1631,7 +1627,7 @@ const subtitleParts =
       displayValue = getSharedDisplayValue({
         targetValue,
         startValue,
-        windowStartedAt,
+        displayStartedAt,
         stepMs,
       });
       statElement.textContent = formatPublicStat(displayValue);
@@ -1641,7 +1637,7 @@ const subtitleParts =
         window.clearInterval(publicStatsRevealTimer);
         publicStatsRevealTimer = undefined;
       }
-    }, Math.max(1000, stepMs || 3200));
+    }, Math.max(800, stepMs || 1000));
   }
 
   async function loadPublicStats() {
@@ -1661,10 +1657,8 @@ const subtitleParts =
       const stats = await response.json();
       const generations = Number(stats.totalGenerations);
       const displayStartGenerations = Number(stats.displayStartGenerations);
-      const displayWindowStartedAt = String(
-        stats.displayWindowStartedAt || "",
-      );
-      const displayStepMs = Number(stats.displayStepMs || 3200);
+      const displayStartedAt = String(stats.displayStartedAt || "");
+      const displayStepMs = Number(stats.displayStepMs || 1000);
 
       if (
         !Number.isFinite(generations) ||
@@ -1682,7 +1676,7 @@ const subtitleParts =
         element: generationsEl,
         targetValue: Math.floor(generations),
         startValue: Math.floor(displayStartGenerations),
-        windowStartedAt: displayWindowStartedAt,
+        displayStartedAt,
         stepMs: displayStepMs,
       });
 

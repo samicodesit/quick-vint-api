@@ -412,7 +412,7 @@ const subtitleParts =
         <div
           data-public-stats
           data-stats-endpoint="/api/public-stats"
-          data-refresh-ms="15000"
+          data-refresh-ms="20000"
           class="public-stats-card relative z-10 mb-4 ml-auto hidden w-fit max-w-full items-center gap-2.5 rounded-2xl border border-white/70 bg-white/90 px-3.5 py-2.5 shadow-[0_16px_38px_-26px_rgba(15,23,42,0.75)] backdrop-blur-xl ring-1 ring-slate-950/5 sm:px-4"
           aria-label={extra.publicStatsAriaLabel}
           aria-live="polite"
@@ -1559,7 +1559,7 @@ const subtitleParts =
   }) {
     const startedAtMs = new Date(displayStartedAt).getTime();
     const safeStartValue = Math.max(1, Math.min(startValue, targetValue));
-    const safeStepMs = Math.max(800, stepMs || 1000);
+    const safeStepMs = Math.max(4000, stepMs || 7000);
 
     if (!Number.isFinite(startedAtMs)) {
       return safeStartValue;
@@ -1637,7 +1637,7 @@ const subtitleParts =
         window.clearInterval(publicStatsRevealTimer);
         publicStatsRevealTimer = undefined;
       }
-    }, Math.max(800, stepMs || 1000));
+    }, Math.max(4000, stepMs || 7000));
   }
 
   async function loadPublicStats() {
@@ -1658,7 +1658,7 @@ const subtitleParts =
       const generations = Number(stats.totalGenerations);
       const displayStartGenerations = Number(stats.displayStartGenerations);
       const displayStartedAt = String(stats.displayStartedAt || "");
-      const displayStepMs = Number(stats.displayStepMs || 1000);
+      const displayStepMs = Number(stats.displayStepMs || 7000);
 
       if (
         !Number.isFinite(generations) ||

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../utils/supabaseClient";
 
-const CACHE_CONTROL = "public, s-maxage=15, stale-while-revalidate=15";
-const DISPLAY_STEP_MS = 1000;
+const CACHE_CONTROL = "public, s-maxage=20, stale-while-revalidate=20";
+const DISPLAY_STEP_MS = 7000;
 
 function coerceCount(value: number | string | null | undefined): number {
   const parsed =
@@ -24,7 +24,7 @@ async function readPublicStats() {
   const totalGenerations = coerceCount(generationsResult.count);
   const displayOffset = Math.min(
     Math.max(totalGenerations - 1, 0),
-    42 + (totalGenerations % 13),
+    4 + (totalGenerations % 4),
   );
 
   return {

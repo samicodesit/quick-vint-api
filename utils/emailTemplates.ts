@@ -301,19 +301,19 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     preheader:
       "If it saved you time, a quick review helps other sellers find it too.",
     body: [
-      el.p("Hey,"),
+      el.p("Hi there,"),
       el.p(
-        "Hope AutoLister AI has been useful for your Vinted listings.",
+        "I hope AutoLister AI has made your Vinted listing a little easier.",
       ),
       el.p(
-        "If it saved you time, could you leave a quick honest review on the Chrome Web Store? It helps other sellers find the extension and decide if it is worth trying.",
+        "If it has saved you some time, could you leave a quick honest review on the Chrome Web Store? It helps other sellers find the extension and know if it is worth trying.",
       ),
       el.button(
         "Leave an honest review",
         "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl/reviews",
       ),
       el.p(
-        "If something felt off or missing, you can just reply here. I read those replies myself.",
+        "If something felt off or missing, you can just reply here instead. I read those replies myself.",
       ),
       el.p("This is a one-time request, so I will not keep asking."),
       el.p("Thanks,<br />Sami"),

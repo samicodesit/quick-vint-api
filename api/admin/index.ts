@@ -1547,7 +1547,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     }
 
     let countQuery = applyLogTypeFilter(
-      supabase.from("api_logs").select("*", { count: "exact", head: true }),
+      supabase.from("api_logs").select("id", { count: "exact", head: true }),
     );
 
     if (suspiciousOnly) countQuery = countQuery.eq("suspicious_activity", true);

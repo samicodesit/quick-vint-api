@@ -3973,13 +3973,18 @@
             const costModels = Array.isArray(costSummary.modelBreakdown) ? costSummary.modelBreakdown : [];
             const costTopUsers = Array.isArray(costSummary.topUsers) ? costSummary.topUsers : [];
             const totalOpenAICost = Number(costSummary.totalCostUsd || 0);
-            const projectedMonthlyCost = Number(costSummary.projectedMonthlyCostUsd || 0);
             const avgOpenAICost = Number(costSummary.avgCostPerGenerationUsd || 0);
             const unknownCostGenerations = Number(costSummary.unknownCostGenerations || 0);
             const todayCost = costDaily.length ? Number(costDaily[costDaily.length - 1]?.cost_usd || 0) : Number(data.today?.estimatedCost || 0);
             const pricedGenerations = Number(costSummary.costedGenerations || 0);
             const generationCount = Number(costSummary.generationCount || 0);
             const totalTokens = Number(costSummary.totalTokens || 0);
+            const windowDays = Number(costSummary.windowDays || 30);
+            const coveragePercent = generationCount ? Math.round((pricedGenerations / generationCount) * 100) : 0;
+            const todayGenerations = Number(data.today?.generationRequests || 0);
+            const unknownCostCopy = unknownCostGenerations
+                ? `${unknownCostGenerations.toLocaleString()} generation${unknownCostGenerations === 1 ? '' : 's'} missing pricing`
+                : 'All priced';
 
             container.innerHTML = `
                 <div class="command-shell" style="margin-bottom: 1.5rem;">
@@ -3987,52 +3992,29 @@
                         <section class="command-hero">
                             <div class="command-kicker">Costs</div>
                             <div class="command-title">AI cost control</div>
-                            <div class="command-copy">
-                                Token-based OpenAI cost estimates from generation logs. This view updates when you open or refresh admin.
-                            </div>
-                            <div class="operator-answer-row">
-                                <div class="operator-status-card">
-                                    <div class="operator-status-title">Today</div>
-                                    <div class="operator-status-copy">${formatMoney(todayCost)} · ${Number(data.today?.generationRequests || 0).toLocaleString()} generations</div>
-                                </div>
-                                <div class="operator-status-card">
-                                    <div class="operator-status-title">30 day total</div>
-                                    <div class="operator-status-copy">${formatMoney(totalOpenAICost)} · ${generationCount.toLocaleString()} generations</div>
-                                </div>
-                                <div class="operator-status-card">
-                                    <div class="operator-status-title">Projected month</div>
-                                    <div class="operator-status-copy">${formatMoney(projectedMonthlyCost)} at recent pace</div>
-                                </div>
-                            </div>
+                            <div class="command-copy">OpenAI cost estimates from stored generation logs. The main total below is the cost for the last ${windowDays} days.</div>
                         </section>
 
                         <section class="command-panel">
                             <div class="command-panel-header">
                                 <div>
-                                    <div class="command-panel-title">Pricing coverage</div>
-                                    <div class="command-panel-note">Unknown means the model has token usage but no known pricing entry.</div>
+                                    <div class="command-panel-title">Data coverage</div>
+                                    <div class="command-panel-note">${generationCount.toLocaleString()} generation logs in this ${windowDays}-day window.</div>
                                 </div>
-                                <span class="badge ${unknownCostGenerations ? 'badge-warning' : 'badge-success'}">${unknownCostGenerations ? `${unknownCostGenerations} unknown` : 'All priced'}</span>
+                                <span class="badge ${unknownCostGenerations ? 'badge-warning' : 'badge-success'}">${unknownCostCopy}</span>
                             </div>
                             <div class="reason-list">
                                 <div class="reason-row">
                                     <div>
-                                        <div class="reason-label">Priced generations</div>
-                                        <div class="reason-copy">${pricedGenerations.toLocaleString()} requests with known model pricing</div>
+                                        <div class="reason-label">Priced</div>
+                                        <div class="reason-copy">Generations with known model pricing</div>
                                     </div>
-                                    <strong>${generationCount ? Math.round((pricedGenerations / generationCount) * 100) : 0}%</strong>
-                                </div>
-                                <div class="reason-row">
-                                    <div>
-                                        <div class="reason-label">Average cost</div>
-                                        <div class="reason-copy">Per priced generation</div>
-                                    </div>
-                                    <strong>${formatMoney(avgOpenAICost)}</strong>
+                                    <strong>${coveragePercent}%</strong>
                                 </div>
                                 <div class="reason-row">
                                     <div>
                                         <div class="reason-label">Tokens</div>
-                                        <div class="reason-copy">Prompt, cached input, and output usage recorded by OpenAI</div>
+                                        <div class="reason-copy">Prompt, cached input, and output tokens</div>
                                     </div>
                                     <strong>${totalTokens.toLocaleString()}</strong>
                                 </div>
@@ -4043,32 +4025,27 @@
 
                 <div class="grid-stats">
                     <div class="stat-card">
-                        <div class="stat-label">Today AI Cost</div>
+                        <div class="stat-label">Today</div>
                         <div class="stat-value">${formatMoney(todayCost)}</div>
-                        <div class="stat-trend"><span>${Number(data.today?.generationRequests || 0).toLocaleString()} generations today</span></div>
+                        <div class="stat-trend"><span>${todayGenerations.toLocaleString()} generation${todayGenerations === 1 ? '' : 's'}</span></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">30 Day AI Cost</div>
+                        <div class="stat-label">Last ${windowDays} days</div>
                         <div class="stat-value">${formatMoney(totalOpenAICost)}</div>
-                        <div class="stat-trend"><span>${generationCount.toLocaleString()} generation logs</span></div>
+                        <div class="stat-trend"><span>${generationCount.toLocaleString()} generation${generationCount === 1 ? '' : 's'} included</span></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Projected Monthly</div>
-                        <div class="stat-value">${formatMoney(projectedMonthlyCost)}</div>
-                        <div class="stat-trend"><span>Based on last ${Number(costSummary.windowDays || 30)} days</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Avg Cost</div>
+                        <div class="stat-label">Average / generation</div>
                         <div class="stat-value">${formatMoney(avgOpenAICost)}</div>
-                        <div class="stat-trend"><span>Per priced generation</span></div>
+                        <div class="stat-trend"><span>${pricedGenerations.toLocaleString()} priced generation${pricedGenerations === 1 ? '' : 's'}</span></div>
                     </div>
                 </div>
 
                 <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
                     <div class="card-header" style="padding: 0 0 1rem 0;">
                         <div>
-                            <h3 class="card-title">Daily AI Cost</h3>
-                            <div class="text-sm text-muted">Last ${Number(costSummary.windowDays || 30)} days, from stored token usage.</div>
+                            <h3 class="card-title">Daily cost</h3>
+                            <div class="text-sm text-muted">Cost and generation count for each day in the same ${windowDays}-day window.</div>
                         </div>
                         <button class="btn-secondary" onclick="state.logsType='generation'; switchView('logs')">Open logs</button>
                     </div>

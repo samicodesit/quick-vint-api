@@ -6323,6 +6323,7 @@
                 <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
                     <button class="btn-secondary" onclick="showUserJourney('${userId}', '${encodedEmail}')">Journey</button>
                     <button class="btn-secondary" onclick="openLogsForUser('${userId}', '${encodedEmail}', 'all')">Logs</button>
+                    <button class="btn-secondary" onclick="openCustomerUsagePage('${encodedEmail}')">Usage page</button>
                     <button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
@@ -7102,6 +7103,38 @@
                 }
             } catch (e) {
                 showToast('Connection failed', 'error');
+            }
+        }
+
+        async function openCustomerUsagePage(encodedEmail) {
+            const email = decodeURIComponent(encodedEmail || '');
+            if (!email) return showToast('No email address found', 'error');
+
+            try {
+                const res = await fetch('/api/admin/customer-usage-link', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.secret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, expires_in_days: 120 })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.url) {
+                    showToast(data.error || 'Could not create usage link', 'error');
+                    return;
+                }
+
+                window.open(data.url, '_blank', 'noopener');
+                try {
+                    await navigator.clipboard.writeText(data.url);
+                    showToast('Usage page opened and link copied');
+                } catch {
+                    showToast('Usage page opened');
+                }
+            } catch (e) {
+                showToast('Could not create usage link', 'error');
             }
         }
 

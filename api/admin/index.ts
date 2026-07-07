@@ -12,6 +12,7 @@ import {
   TEMPLATES,
   wrapEmailLayout,
   getTemplateIndex,
+  wrapTemplateLayout,
 } from "../../utils/emailTemplates";
 import { ApiLogger } from "../../utils/apiLogger";
 import { estimateOpenAICostUsd } from "../../utils/openaiModelExperiment";
@@ -110,6 +111,9 @@ type ProfileRow = {
   is_legacy_plan?: boolean | null;
   free_lifetime_generations_used?: number | null;
   pack_credits?: number | null;
+  custom_daily_limit?: number | null;
+  custom_monthly_limit?: number | null;
+  custom_limit_expires_at?: string | null;
   account_status?: string | null;
   abuse_reason?: string | null;
   abuse_notes?: string | null;
@@ -127,7 +131,7 @@ type RateLimitRow = {
 };
 
 const PROFILE_SELECT =
-  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token";
+  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token";
 
 const LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
@@ -142,6 +146,28 @@ function getQueryString(
   value: string | string[] | undefined,
 ): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function getAdminEffectiveLimit(
+  user: ProfileRow,
+  key: "daily" | "monthly",
+  fallback: number | null,
+) {
+  const customValue =
+    key === "daily" ? user.custom_daily_limit : user.custom_monthly_limit;
+  const hasActiveCustomLimits =
+    user.custom_limit_expires_at &&
+    new Date(user.custom_limit_expires_at) > new Date();
+
+  if (
+    hasActiveCustomLimits &&
+    typeof customValue === "number" &&
+    customValue > 0
+  ) {
+    return customValue;
+  }
+
+  return fallback;
 }
 
 function parsePositiveInt(
@@ -350,7 +376,10 @@ async function fetchAdminRows(
 ) {
   const rows: any[] = [];
   for (let from = 0; from < maxRows; from += 1000) {
-    let query = supabase.from(table).select(columns).range(from, from + 999);
+    let query = supabase
+      .from(table)
+      .select(columns)
+      .range(from, from + 999);
     if (buildQuery) query = buildQuery(query);
     const { data, error } = await query;
     if (error) throw error;
@@ -390,9 +419,10 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
       fetchAdminRows(
         "api_logs",
         "user_id, endpoint, response_status, created_at, full_request_body",
-        (query) => query.gte("created_at", startIso).order("created_at", {
-          ascending: false,
-        }),
+        (query) =>
+          query.gte("created_at", startIso).order("created_at", {
+            ascending: false,
+          }),
       ),
     ]);
 
@@ -402,7 +432,9 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
         profile.subscription_tier &&
         profile.subscription_tier !== "free",
     );
-    const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
+    const profileById = new Map(
+      profiles.map((profile) => [profile.id, profile]),
+    );
 
     recentProfiles.forEach((profile) => {
       const bucket = dayMap.get(dayKey(profile.created_at));
@@ -502,7 +534,9 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
               log.user_id,
               (successfulGenerationsByUser.get(log.user_id) || 0) + 1,
             );
-            const existingLast = lastSuccessfulGenerationByUser.get(log.user_id);
+            const existingLast = lastSuccessfulGenerationByUser.get(
+              log.user_id,
+            );
             if (!existingLast || log.created_at > existingLast) {
               lastSuccessfulGenerationByUser.set(log.user_id, log.created_at);
             }
@@ -552,7 +586,8 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
     const last30 = sumGrowthDays(daily.slice(-30));
     const today = daily[daily.length - 1] || getGrowthEmptyDay(dayKey(now));
     const yesterday =
-      daily[daily.length - 2] || getGrowthEmptyDay(dayKey(new Date(now.getTime() - 864e5)));
+      daily[daily.length - 2] ||
+      getGrowthEmptyDay(dayKey(new Date(now.getTime() - 864e5)));
     const repeatActiveUsers = Array.from(activeDaysByUser.values()).filter(
       (activeDays) => activeDays.size >= 2,
     ).length;
@@ -569,10 +604,12 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
       (userId) =>
         (successfulGenerationsByUser.get(userId) || 0) >= 3 ||
         (limitHitsByUser.get(userId) || 0) > 0 ||
-        Number(profileById.get(userId)?.free_lifetime_generations_used || 0) >= 3,
+        Number(profileById.get(userId)?.free_lifetime_generations_used || 0) >=
+          3,
     ).length;
     const avgSuccessfulGenerationsPerActive = activeUsers30.size
-      ? Math.round((last30.successfulGenerations / activeUsers30.size) * 10) / 10
+      ? Math.round((last30.successfulGenerations / activeUsers30.size) * 10) /
+        10
       : 0;
     const oneGenerationTargets = Array.from(activeDaysByUser.entries())
       .filter(([, activeDays]) => activeDays.size === 1)
@@ -615,14 +652,29 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
       last7,
       last30,
       rates: {
-        activationPerSignup30d: pctValue(last30.activeGenerators, last30.signups),
+        activationPerSignup30d: pctValue(
+          last30.activeGenerators,
+          last30.signups,
+        ),
         repeatActive30d: pctValue(repeatActiveUsers, activeUsers30.size),
-        twoPlusGeneration30d: pctValue(twoPlusGenerationUsers, activeUsers30.size),
+        twoPlusGeneration30d: pctValue(
+          twoPlusGenerationUsers,
+          activeUsers30.size,
+        ),
         quotaPressure30d: pctValue(quotaPressureUsers, activeUsers30.size),
-        limitHitsPerActiveGenerator30d: pctValue(last30.limitHits, activeUsers30.size),
+        limitHitsPerActiveGenerator30d: pctValue(
+          last30.limitHits,
+          activeUsers30.size,
+        ),
         limitToPaywall30d: pctValue(last30.paywallShown, last30.limitHits),
-        paywallToCheckout30d: pctValue(last30.checkoutStart, last30.paywallShown),
-        checkoutOpenRate30d: pctValue(last30.checkoutOpened, last30.checkoutStart),
+        paywallToCheckout30d: pctValue(
+          last30.checkoutStart,
+          last30.paywallShown,
+        ),
+        checkoutOpenRate30d: pctValue(
+          last30.checkoutOpened,
+          last30.checkoutStart,
+        ),
         signupToPaid30d: pctValue(last30.paidSignups, last30.signups),
       },
       daily,
@@ -697,8 +749,16 @@ async function enrichAdminUsers(
     const limits = rateLimitMap.get(user.id) || [];
     const dayCount = getLimitCount(limits, "day");
     const monthCount = user.api_calls_this_month || 0;
-    const maxDay = tierConfig.limits.daily;
-    const maxMonth = tierConfig.limits.monthly;
+    const maxDay = getAdminEffectiveLimit(
+      user,
+      "daily",
+      tierConfig.limits.daily,
+    );
+    const maxMonth = getAdminEffectiveLimit(
+      user,
+      "monthly",
+      tierConfig.limits.monthly,
+    );
     const dayPercent = maxDay ? Math.round((dayCount / maxDay) * 100) : 0;
     const monthPercent = maxMonth
       ? Math.round((monthCount / maxMonth) * 100)
@@ -715,7 +775,9 @@ async function enrichAdminUsers(
       ...safeUser,
       subscription_tier: tierKey,
       subscription_status: user.subscription_status || "unknown",
-      email_can_contact: Boolean(user.email && user.email_subscribed && unsubscribeToken),
+      email_can_contact: Boolean(
+        user.email && user.email_subscribed && unsubscribeToken,
+      ),
       api_calls_this_month: monthCount,
       last_active: lastActiveMap.get(user.id) || null,
       limits,
@@ -745,7 +807,7 @@ async function enrichAdminUsers(
                   (user.free_lifetime_generations_used || 0),
                 0,
               )
-            : Math.max(maxMonth - monthCount, 0),
+            : Math.max((maxMonth || 0) - monthCount, 0),
         pack_credits: user.pack_credits || 0,
       },
       days_since_signup: Math.max(
@@ -1008,7 +1070,8 @@ function compactJourneyLog(log: any) {
     has_generated_description: Boolean(log.generated_description),
     image_count: (() => {
       try {
-        if (typeof log.image_urls === "string") return JSON.parse(log.image_urls).length;
+        if (typeof log.image_urls === "string")
+          return JSON.parse(log.image_urls).length;
         if (Array.isArray(log.image_urls)) return log.image_urls.length;
       } catch {
         return 0;
@@ -1027,7 +1090,12 @@ const JOURNEY_STEPS = [
   {
     key: "signin_clicked",
     label: "Clicked sign in",
-    events: ["signin_cta_click", "magic_link_request", "magic_link_sent", "auth_success"],
+    events: [
+      "signin_cta_click",
+      "magic_link_request",
+      "magic_link_sent",
+      "auth_success",
+    ],
   },
   {
     key: "auth_completed",
@@ -1047,7 +1115,13 @@ const JOURNEY_STEPS = [
   {
     key: "generate_attempted",
     label: "Tried generate",
-    events: ["generate_click", "generate_missing_photo", "generate_request", "/api/generate", "generate_success"],
+    events: [
+      "generate_click",
+      "generate_missing_photo",
+      "generate_request",
+      "/api/generate",
+      "generate_success",
+    ],
   },
   {
     key: "generated",
@@ -1066,11 +1140,13 @@ function getJourneySummary(events: any[]) {
         event.event === "extension_uninstalled" ||
         event.event === "uninstall_feedback_submitted",
     );
-  const uninstallReason = latestUninstall?.context?.reasonLabel || latestUninstall?.context?.reason;
+  const uninstallReason =
+    latestUninstall?.context?.reasonLabel || latestUninstall?.context?.reason;
   const latestPaused = [...events].reverse().find((event) => {
     return (
       event.event === "account_paused_shown" ||
-      (event.event === "generate_limit_hit" && event.context?.code === "account_paused")
+      (event.event === "generate_limit_hit" &&
+        event.context?.code === "account_paused")
     );
   });
 
@@ -1084,7 +1160,9 @@ function getJourneySummary(events: any[]) {
   let tone = "neutral";
 
   if (latestUninstall) {
-    status = uninstallReason ? `Uninstalled: ${uninstallReason}` : "Uninstalled";
+    status = uninstallReason
+      ? `Uninstalled: ${uninstallReason}`
+      : "Uninstalled";
     tone = "danger";
   } else if (latestPaused) {
     status = "Account paused shown";
@@ -1137,7 +1215,9 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
     let email = getQueryString(req.query.email);
     const requestedClientId = getQueryString(req.query.analytics_client_id);
     const days = parsePositiveInt(req.query.days, 14, 90);
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const since = new Date(
+      Date.now() - days * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     if (!userId && !email && !requestedClientId) {
       return res
@@ -1147,7 +1227,10 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
 
     let profile: ProfileRow | null = null;
     if (userId || email) {
-      let profileQuery = supabase.from("profiles").select(PROFILE_SELECT).limit(1);
+      let profileQuery = supabase
+        .from("profiles")
+        .select(PROFILE_SELECT)
+        .limit(1);
       profileQuery = userId
         ? profileQuery.eq("id", userId)
         : profileQuery.eq("email", email);
@@ -1186,7 +1269,10 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
       const { data, error } = await supabase
         .from("api_logs")
         .select(LOG_SELECT)
-        .in("full_request_body->context->>analyticsClientId", Array.from(clientIds))
+        .in(
+          "full_request_body->context->>analyticsClientId",
+          Array.from(clientIds),
+        )
         .gte("created_at", since)
         .order("created_at", { ascending: true })
         .limit(1000);
@@ -1302,7 +1388,9 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
 }
 
 async function getRelatedLogFilters(req: VercelRequest) {
-  const relatedUserId = (getQueryString(req.query.related_user_id) || "").trim();
+  const relatedUserId = (
+    getQueryString(req.query.related_user_id) || ""
+  ).trim();
   let relatedEmail = (getQueryString(req.query.related_email) || "").trim();
 
   if (!relatedUserId && !relatedEmail) return null;
@@ -1336,7 +1424,9 @@ async function getRelatedLogFilters(req: VercelRequest) {
       new Set((linkedLogs || []).map(getLogAnalyticsClientId).filter(Boolean)),
     );
     clientIds.forEach((clientId) => {
-      allFilters.push(`full_request_body->context->>analyticsClientId.eq.${clientId}`);
+      allFilters.push(
+        `full_request_body->context->>analyticsClientId.eq.${clientId}`,
+      );
     });
   }
 
@@ -1435,7 +1525,8 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
 
     if (suspiciousOnly) query = query.eq("suspicious_activity", true);
     if (statusFilter === "error") query = query.gte("response_status", 400);
-    if (statusFilter === "flagged") query = query.eq("suspicious_activity", true);
+    if (statusFilter === "flagged")
+      query = query.eq("suspicious_activity", true);
     if (userId) query = query.eq("user_id", userId);
     if (startDate) query = query.gte("created_at", startDate);
     if (endDate) query = query.lte("created_at", endDate);
@@ -1457,8 +1548,10 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     );
 
     if (suspiciousOnly) countQuery = countQuery.eq("suspicious_activity", true);
-    if (statusFilter === "error") countQuery = countQuery.gte("response_status", 400);
-    if (statusFilter === "flagged") countQuery = countQuery.eq("suspicious_activity", true);
+    if (statusFilter === "error")
+      countQuery = countQuery.gte("response_status", 400);
+    if (statusFilter === "flagged")
+      countQuery = countQuery.eq("suspicious_activity", true);
     if (userId) countQuery = countQuery.eq("user_id", userId);
     if (startDate) countQuery = countQuery.gte("created_at", startDate);
     if (endDate) countQuery = countQuery.lte("created_at", endDate);
@@ -1531,7 +1624,8 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       );
       const eventLogs = logs.filter(
         (log: any) =>
-          typeof log.endpoint === "string" && log.endpoint.startsWith("/event/"),
+          typeof log.endpoint === "string" &&
+          log.endpoint.startsWith("/event/"),
       );
       const totalTokens = logs.reduce(
         (sum: number, log: any) => sum + (log.openai_tokens_used || 0),
@@ -1671,13 +1765,23 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     const enrichedUsers = combinedUsers.map((user: any) => {
       const limits = rateLimitMap.get(user.id) || [];
       const tierConfig = getTierConfigForProfile(user);
+      const maxDay = getAdminEffectiveLimit(
+        user,
+        "daily",
+        tierConfig.limits.daily,
+      );
+      const maxMonth = getAdminEffectiveLimit(
+        user,
+        "monthly",
+        tierConfig.limits.monthly,
+      );
       return {
         ...user,
         last_active: lastActiveMap.get(user.id) || user.created_at,
         limits,
         max_limits: {
-          day: tierConfig.limits.daily,
-          month: tierConfig.limits.monthly,
+          day: maxDay,
+          month: maxMonth,
         },
       };
     });
@@ -1813,10 +1917,7 @@ async function handleResetUsage(req: VercelRequest, res: VercelResponse) {
 }
 
 // --- LOGIC: Pause / Unpause Account ---
-async function handleSetAccountStatus(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
+async function handleSetAccountStatus(req: VercelRequest, res: VercelResponse) {
   const { userId, status, reason, notes } = req.body || {};
   if (!userId || typeof userId !== "string") {
     return res.status(400).json({ error: "Missing userId" });
@@ -1875,12 +1976,12 @@ async function handlePreviewTemplate(req: VercelRequest, res: VercelResponse) {
   const template = TEMPLATES[key];
   const demoUnsubUrl =
     "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
-  const html = wrapEmailLayout(
+  const html = wrapTemplateLayout(
+    template,
     renderEmailTemplateVariables(template.body, {
       email: "charlotte.lefevre.1807@hotmail.com",
       allowUnsignedFallback: isLocalRequest(req),
     }),
-    template.preheader,
     demoUnsubUrl,
   );
 
@@ -1907,6 +2008,12 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
 
     if (template_key && TEMPLATES[template_key]) {
       const tpl = TEMPLATES[template_key];
+      if (tpl.layout === "direct" && !test_email) {
+        return res.status(400).json({
+          error:
+            "Direct-reply templates are preview/test only and cannot be sent as campaigns.",
+        });
+      }
       subject = custom_subject || tpl.subject;
       preheader = custom_preheader || tpl.preheader;
       bodyHtml = tpl.body;
@@ -2058,7 +2165,10 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
 
 const LIMIT_FOLLOWUP_SEND_DELAY_MS = 1000;
 
-async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) {
+async function handleSendLimitFollowup(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
   try {
     const {
       dry_run = true,
@@ -2068,14 +2178,19 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
       test_email,
     } = req.body || {};
 
-    const sinceHours = Math.max(1, Math.min(Number(since_hours) || 168, 24 * 30));
+    const sinceHours = Math.max(
+      1,
+      Math.min(Number(since_hours) || 168, 24 * 30),
+    );
     const minDelayMinutes = Math.max(
       0,
       Math.min(Number(min_delay_minutes) || 30, 24 * 60),
     );
     const template = TEMPLATES.limit_hit_followup_v1;
     if (!template) {
-      return res.status(500).json({ error: "Missing limit follow-up template." });
+      return res
+        .status(500)
+        .json({ error: "Missing limit follow-up template." });
     }
 
     if (test_email) {
@@ -2133,7 +2248,8 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
       });
     }
 
-    const results: Array<{ email: string; status: string; error?: string }> = [];
+    const results: Array<{ email: string; status: string; error?: string }> =
+      [];
 
     for (const recipient of recipients) {
       const unsubUrl = `https://autolister.app/api/unsubscribe?token=${recipient.unsubscribe_token}`;
@@ -2176,7 +2292,10 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
           },
         });
       } catch (err: any) {
-        console.error(`Failed to send limit follow-up to ${recipient.email}:`, err.message);
+        console.error(
+          `Failed to send limit follow-up to ${recipient.email}:`,
+          err.message,
+        );
         results.push({
           email: recipient.email,
           status: "failed",
@@ -2188,7 +2307,9 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
     }
 
     const sent = results.filter((result) => result.status === "sent").length;
-    const failed = results.filter((result) => result.status === "failed").length;
+    const failed = results.filter(
+      (result) => result.status === "failed",
+    ).length;
 
     return res.status(200).json({
       mode: "send",
@@ -2206,7 +2327,10 @@ async function handleSendLimitFollowup(req: VercelRequest, res: VercelResponse) 
   }
 }
 
-async function handleExcludeLimitFollowup(req: VercelRequest, res: VercelResponse) {
+async function handleExcludeLimitFollowup(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
   try {
     const email = normalizeEmailForCampaign(req.body?.email);
     if (!email || !email.includes("@")) {
@@ -2277,7 +2401,9 @@ function renderEmailTemplateVariables(
           email: options.email,
           targetTier: "pro",
           couponCode: LIMIT_FOLLOWUP_COUPON_CODE,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
         undefined,
         { utmCampaign: "limit_followup_offer" },

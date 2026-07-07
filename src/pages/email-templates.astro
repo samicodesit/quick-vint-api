@@ -5,7 +5,7 @@ import "../styles/global.css";
 import {
   TEMPLATES,
   getTemplateIndex,
-  wrapEmailLayout,
+  wrapTemplateLayout,
 } from "../../utils/emailTemplates";
 
 const demoUnsubUrl =
@@ -14,11 +14,11 @@ const localTemplatePreviews = import.meta.env.DEV
   ? Object.fromEntries(
       Object.entries(TEMPLATES).map(([key, template]) => [
         key,
-        wrapEmailLayout(
+        wrapTemplateLayout(
+          template,
           template.body
             .split("{{PRICING_OFFER_URL}}")
             .join("https://autolister.app/pricing?offer=SIGNED_OFFER_TOKEN"),
-          template.preheader,
           demoUnsubUrl,
         ),
       ]),

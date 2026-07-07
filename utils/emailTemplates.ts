@@ -15,6 +15,8 @@ export interface EmailTemplate {
   subject: string;
   /** Hidden preheader text (shows in inbox previews) */
   preheader: string;
+  /** Rendering style. Direct replies omit campaign footer/unsubscribe chrome. */
+  layout?: "campaign" | "direct";
   /** Inner HTML content — inserted inside the layout wrapper */
   body: string;
 }
@@ -128,6 +130,55 @@ export function wrapEmailLayout(
 </html>`;
 }
 
+export function wrapDirectReplyLayout(
+  content: string,
+  preheader: string,
+): string {
+  return `<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>${BRAND.name}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f6f7fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <div style="display: none; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
+    ${preheader}
+  </div>
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f6f7fb;">
+    <tr>
+      <td align="center" style="padding: 28px 16px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 620px; background-color: #ffffff; border: 1px solid #e9e7f5; border-radius: 12px; overflow: hidden;">
+          <tr>
+            <td style="padding: 26px 30px 18px 30px; border-bottom: 1px solid #f0eef9;">
+              <p style="margin: 0; font-size: 17px; font-weight: 700; color: ${BRAND.color};">${BRAND.name}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 28px 30px 30px 30px;">
+              ${content}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export function wrapTemplateLayout(
+  template: EmailTemplate,
+  content: string,
+  unsubUrl: string,
+): string {
+  if (template.layout === "direct") {
+    return wrapDirectReplyLayout(content, template.preheader);
+  }
+
+  return wrapEmailLayout(content, template.preheader, unsubUrl);
+}
+
 // ── Reusable building blocks ─────────────────────────────────────────
 // Helpers for common email elements so templates stay readable.
 
@@ -196,6 +247,36 @@ export const el = {
 // Add new templates here. Reference by key from Postman: { "template_key": "product_update_v1" }
 
 export const TEMPLATES: Record<string, EmailTemplate> = {
+  custom_limit_reply_marcel_v1: {
+    subject: "Re: Request for more Limit a Day",
+    preheader:
+      "Yes, we can set up a custom plan for around 1,000 listings per month.",
+    layout: "direct",
+    body: [
+      el.p("Hi Marcel,"),
+      el.p("Yes, that setup is possible."),
+      el.p(
+        "For around 100 listings on busy days and around 1,000 per month, I can set up a custom plan:",
+      ),
+      `<ul style="margin: -6px 0 22px 0; padding-left: 20px; font-size: 15px; color: #444444; line-height: 1.75;">
+        <li>up to 1,000 listings per month</li>
+        <li>up to 100 listings per day</li>
+        <li>all Business features included</li>
+        <li>€34.99/month</li>
+      </ul>`,
+      el.p(
+        "So some days can be higher and some lower, as long as the monthly usage stays within the plan.",
+      ),
+      el.p(
+        "What custom request did you have in mind? If it is a small setup or workflow adjustment, I can include it in the price. If it is a bigger feature, I can tell you what is possible beforehand.",
+      ),
+      el.p(
+        "If this works for you, send me the email address of your AutoLister account and I can set it up.",
+      ),
+      el.p("Best,<br />Sami<br />Founder, AutoLister AI"),
+    ].join("\n"),
+  },
+
   product_update_v1: {
     subject: "Product Update: Enhanced formatting & bulk upload teaser",
     preheader:

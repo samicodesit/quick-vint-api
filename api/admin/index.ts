@@ -2108,7 +2108,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     // Get total user count
     const { count: totalUserCount } = await supabase
       .from("profiles")
-      .select("*", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true });
 
     // Sort by last_active descending for recent activity view
     const recentActivityUsers = [...enrichedUsers].sort((a: any, b: any) =>

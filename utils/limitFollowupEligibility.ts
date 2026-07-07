@@ -9,12 +9,18 @@ export type LimitFollowupRecipient = {
 };
 
 export const LIMIT_FOLLOWUP_COUPON_CODE = "LISTFASTER20";
-export const LIMIT_FOLLOWUP_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
+export const LIMIT_FOLLOWUP_EXCLUDED_EMAILS = new Set([
+  "samicodesit@gmail.com",
+]);
 export const LIMIT_FOLLOWUP_EXCLUSION_EVENT =
   "/event/limit_followup_email_excluded";
+export const LIMIT_FOLLOWUP_EMAIL_SENT_EVENT =
+  "/event/limit_followup_email_sent";
 
 export function normalizeEmailForCampaign(email?: string | null) {
-  return String(email || "").trim().toLowerCase();
+  return String(email || "")
+    .trim()
+    .toLowerCase();
 }
 
 export function getLimitFollowupExcludedEmails(input: unknown) {
@@ -38,7 +44,10 @@ export async function getPermanentLimitFollowupExclusions() {
   const { data, error } = await supabase
     .from("api_logs")
     .select("user_id, user_email, full_request_body, created_at")
-    .eq("endpoint", LIMIT_FOLLOWUP_EXCLUSION_EVENT)
+    .in("endpoint", [
+      LIMIT_FOLLOWUP_EXCLUSION_EVENT,
+      LIMIT_FOLLOWUP_EMAIL_SENT_EVENT,
+    ])
     .order("created_at", { ascending: false })
     .limit(5000);
 
@@ -104,7 +113,9 @@ export async function findLimitFollowupRecipients({
   userId?: string;
   requireExplicitLimitHit?: boolean;
 }) {
-  const sinceIso = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
+  const sinceIso = new Date(
+    Date.now() - sinceHours * 60 * 60 * 1000,
+  ).toISOString();
   const eligibleBeforeMs = Date.now() - minDelayMinutes * 60 * 1000;
 
   let limitQuery = supabase
@@ -163,22 +174,25 @@ export async function findLimitFollowupRecipients({
 
     if (cappedProfilesError) throw cappedProfilesError;
 
-    const cappedUserIds = ((cappedProfiles || []) as Array<{
-      id: string;
-      email: string | null;
-    }>)
+    const cappedUserIds = (
+      (cappedProfiles || []) as Array<{
+        id: string;
+        email: string | null;
+      }>
+    )
       .map((profile) => profile.id)
       .filter((id) => id && !latestLimitByUser.has(id));
 
     if (cappedUserIds.length) {
-      const { data: cappedActivity, error: cappedActivityError } = await supabase
-        .from("api_logs")
-        .select("user_id, user_email, endpoint, response_status, created_at")
-        .in("user_id", cappedUserIds)
-        .in("endpoint", ["/event/generate_success", "/api/generate"])
-        .gte("created_at", sinceIso)
-        .order("created_at", { ascending: false })
-        .limit(userId ? 50 : 3000);
+      const { data: cappedActivity, error: cappedActivityError } =
+        await supabase
+          .from("api_logs")
+          .select("user_id, user_email, endpoint, response_status, created_at")
+          .in("user_id", cappedUserIds)
+          .in("endpoint", ["/event/generate_success", "/api/generate"])
+          .gte("created_at", sinceIso)
+          .order("created_at", { ascending: false })
+          .limit(userId ? 50 : 3000);
 
       if (cappedActivityError) throw cappedActivityError;
 
@@ -186,7 +200,10 @@ export async function findLimitFollowupRecipients({
         const rowUserId = row.user_id as string | null;
         if (!rowUserId || latestLimitByUser.has(rowUserId)) continue;
         if (Date.parse(row.created_at as string) > eligibleBeforeMs) continue;
-        if (row.endpoint === "/api/generate" && Number(row.response_status) !== 200) {
+        if (
+          row.endpoint === "/api/generate" &&
+          Number(row.response_status) !== 200
+        ) {
           continue;
         }
 
@@ -209,7 +226,7 @@ export async function findLimitFollowupRecipients({
     .in("endpoint", [
       "/event/extension_uninstalled",
       "/event/uninstall_feedback_submitted",
-      "/event/limit_followup_email_sent",
+      LIMIT_FOLLOWUP_EMAIL_SENT_EVENT,
     ])
     .gte("created_at", sinceIso)
     .order("created_at", { ascending: false })
@@ -223,14 +240,21 @@ export async function findLimitFollowupRecipients({
     if (!rowUserId) continue;
     const limitHit = latestLimitByUser.get(rowUserId);
     if (!limitHit) continue;
-    if (Date.parse(row.created_at as string) < Date.parse(limitHit.limitHitAt)) {
+    const event = getLimitFollowupLogEventName(row);
+    // Campaign emails suppress future eligibility even if the user hits the limit again later.
+    if (event === "limit_followup_email_sent") {
+      blockedUserIds.add(rowUserId);
       continue;
     }
-    const event = getLimitFollowupLogEventName(row);
+
+    if (
+      Date.parse(row.created_at as string) < Date.parse(limitHit.limitHitAt)
+    ) {
+      continue;
+    }
     if (
       event === "extension_uninstalled" ||
-      event === "uninstall_feedback_submitted" ||
-      event === "limit_followup_email_sent"
+      event === "uninstall_feedback_submitted"
     ) {
       blockedUserIds.add(rowUserId);
     }
@@ -249,15 +273,17 @@ export async function findLimitFollowupRecipients({
 
   if (profileError) throw profileError;
 
-  return ((profiles || []) as Array<{
-    id: string;
-    email: string | null;
-    subscription_status: string | null;
-    subscription_tier: string | null;
-    email_subscribed: boolean | null;
-    unsubscribe_token: string | null;
-    pack_credits?: number | null;
-  }>)
+  return (
+    (profiles || []) as Array<{
+      id: string;
+      email: string | null;
+      subscription_status: string | null;
+      subscription_tier: string | null;
+      email_subscribed: boolean | null;
+      unsubscribe_token: string | null;
+      pack_credits?: number | null;
+    }>
+  )
     .filter((profile) => {
       if (!profile.email || !profile.unsubscribe_token) return false;
       if (Number(profile.pack_credits || 0) > 0) return false;

@@ -520,16 +520,17 @@ describe("admin HTML", () => {
     context.state.currentView = "costs";
     await context.loadView("costs");
 
-    expect(content.innerHTML).toContain("Rolling 30-day OpenAI spend");
+    expect(content.innerHTML).toContain("Rolling 30-day AI spend");
     expect(content.innerHTML).toContain("Estimated API cost only");
     expect(content.innerHTML).toContain("$12.67");
-    expect(content.innerHTML).toContain("30 days · 1,891 OpenAI calls priced · 2,000 generation requests total");
-    expect(content.innerHTML).toContain("109 stopped before OpenAI ($0)");
-    expect(content.innerHTML).toContain("Average: $0.0067 per priced OpenAI call");
-    expect(content.innerHTML).toContain("Priced OpenAI calls");
-    expect(content.innerHTML).toContain("1,891 / 1,891 OpenAI calls");
-    expect(content.innerHTML).toContain("Stopped before OpenAI: Rate limit exceeded (100)");
-    expect(content.innerHTML).toContain("Latest: Rate limit exceeded for limited@example.com");
+    expect(content.innerHTML).toContain("1,891 priced generations");
+    expect(content.innerHTML).toContain("1,080,000 tokens");
+    expect(content.innerHTML).toContain("$0.0067 avg per priced generation");
+    expect(content.innerHTML).toContain("Daily spend and priced generations");
+    expect(content.innerHTML).toContain("Model Split");
+    expect(content.innerHTML).toContain("Highest Cost Users");
+    expect(content.innerHTML).not.toContain("Stopped before OpenAI");
+    expect(content.innerHTML).not.toContain("OpenAI calls");
     expect(content.innerHTML).not.toContain("Projected Monthly");
   });
 });

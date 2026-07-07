@@ -3982,70 +3982,96 @@
             const windowDays = Number(costSummary.windowDays || 30);
             const coveragePercent = generationCount ? Math.round((pricedGenerations / generationCount) * 100) : 0;
             const todayGenerations = Number(data.today?.generationRequests || 0);
+            const logLimit = Number(costSummary.logLimit || 0);
+            const isTruncated = Boolean(costSummary.isTruncated);
+            const exactGenerationLogCount = typeof costSummary.exactGenerationLogCount === 'number'
+                ? Number(costSummary.exactGenerationLogCount)
+                : isTruncated
+                    ? null
+                    : generationCount;
+            const hasExactWindowCount = exactGenerationLogCount !== null && !isTruncated;
+            const unknownModels = Array.isArray(costSummary.unknownModelBreakdown) ? costSummary.unknownModelBreakdown : [];
+            const latestUnknown = costSummary.latestUnknownCostLog || null;
             const unknownCostCopy = unknownCostGenerations
                 ? `${unknownCostGenerations.toLocaleString()} generation${unknownCostGenerations === 1 ? '' : 's'} missing pricing`
                 : 'All priced';
+            const avgCostCopy = pricedGenerations
+                ? `${formatMoney(avgOpenAICost)} per priced generation`
+                : 'No priced generation cost yet';
+            const formatCostDateTime = (value) => {
+                if (!value) return '';
+                return new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            };
+            const rollingWindowCopy = hasExactWindowCount
+                ? `${exactGenerationLogCount.toLocaleString()} generation log${exactGenerationLogCount === 1 ? '' : 's'} recorded in the rolling ${windowDays}-day window`
+                : `${generationCount.toLocaleString()} newest generation logs sampled from the rolling ${windowDays}-day window`;
+            const costBasisCopy = unknownCostGenerations
+                ? `${pricedGenerations.toLocaleString()} priced logs out of ${rollingWindowCopy}`
+                : rollingWindowCopy;
+            const dataScopeCopy = isTruncated && logLimit
+                ? `The cost query hit its ${logLimit.toLocaleString()} log cap, so this is a recent sample rather than complete historical spend.`
+                : logLimit
+                    ? `Exact for the rolling ${windowDays}-day window because it stayed under the ${logLimit.toLocaleString()} log cap.`
+                    : `Exact for the rolling ${windowDays}-day window.`;
+            const latestUnknownCopy = latestUnknown
+                ? `Latest unknown: ${escapeHtml(latestUnknown.model || 'unknown')} at ${formatCostDateTime(latestUnknown.created_at)}`
+                : '';
+            const unknownModelCopy = unknownModels.length
+                ? unknownModels.slice(0, 3).map((item) => `${escapeHtml(item.model || 'unknown')} (${Number(item.generation_count || 0).toLocaleString()})`).join(' · ')
+                : '';
 
             container.innerHTML = `
-                <div class="command-shell" style="margin-bottom: 1.5rem;">
-                    <div class="command-grid">
-                        <section class="command-hero">
+                <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.25rem;">
+                        <div>
                             <div class="command-kicker">Costs</div>
-                            <div class="command-title">AI cost control</div>
-                            <div class="command-copy">OpenAI cost estimates from stored generation logs. The main total below is the cost for the last ${windowDays} days.</div>
-                        </section>
+                            <h3 class="card-title" style="font-size:1.25rem; margin:0.15rem 0 0.35rem;">${unknownCostGenerations ? `Known rolling ${windowDays}-day OpenAI spend` : `Rolling ${windowDays}-day OpenAI spend`}</h3>
+                            <div class="text-sm text-muted">Estimated API cost only. This is not Stripe revenue, profit, or subscription value.</div>
+                        </div>
+                        <span class="badge ${unknownCostGenerations ? 'badge-warning' : 'badge-success'}">${unknownCostCopy}</span>
+                    </div>
 
-                        <section class="command-panel">
-                            <div class="command-panel-header">
-                                <div>
-                                    <div class="command-panel-title">Data coverage</div>
-                                    <div class="command-panel-note">${generationCount.toLocaleString()} generation logs in this ${windowDays}-day window.</div>
-                                </div>
-                                <span class="badge ${unknownCostGenerations ? 'badge-warning' : 'badge-success'}">${unknownCostCopy}</span>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; align-items:stretch;">
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1.25rem; background:linear-gradient(135deg, rgba(118,75,162,0.08), rgba(255,255,255,0));">
+                            <div class="text-sm text-muted" style="font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Rolling ${windowDays}-day window</div>
+                            <div style="font-size:2.8rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.65rem 0;">${formatMoney(totalOpenAICost)}</div>
+                            <div style="font-size:1rem; line-height:1.55; color:var(--text-secondary); max-width:760px;">
+                                This is the estimated OpenAI API cost for ${costBasisCopy}.
                             </div>
-                            <div class="reason-list">
-                                <div class="reason-row">
-                                    <div>
-                                        <div class="reason-label">Priced</div>
-                                        <div class="reason-copy">Generations with known model pricing</div>
-                                    </div>
-                                    <strong>${coveragePercent}%</strong>
-                                </div>
-                                <div class="reason-row">
-                                    <div>
-                                        <div class="reason-label">Tokens</div>
-                                        <div class="reason-copy">Prompt, cached input, and output tokens</div>
-                                    </div>
-                                    <strong>${totalTokens.toLocaleString()}</strong>
-                                </div>
+                            <div style="margin-top:1rem; padding:0.85rem 1rem; border-radius:10px; background:#ffffff; border:1px solid var(--border-color); color:var(--text-primary); font-weight:700;">
+                                Average: ${avgCostCopy}
                             </div>
-                        </section>
-                    </div>
-                </div>
+                        </div>
 
-                <div class="grid-stats">
-                    <div class="stat-card">
-                        <div class="stat-label">Today</div>
-                        <div class="stat-value">${formatMoney(todayCost)}</div>
-                        <div class="stat-trend"><span>${todayGenerations.toLocaleString()} generation${todayGenerations === 1 ? '' : 's'}</span></div>
+                        <div style="display:grid; gap:0.75rem;">
+                            <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
+                                <div class="text-sm text-muted">Today</div>
+                                <div style="font-size:1.65rem; font-weight:850; margin:0.25rem 0;">${formatMoney(todayCost)}</div>
+                                <div class="text-sm text-muted">${todayGenerations.toLocaleString()} generation${todayGenerations === 1 ? '' : 's'} today</div>
+                            </div>
+                            <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
+                                <div class="text-sm text-muted">Pricing coverage</div>
+                                <div style="font-size:1.35rem; font-weight:850; margin:0.25rem 0;">${coveragePercent}% priced</div>
+                                <div class="text-sm text-muted">${unknownCostCopy} · ${totalTokens.toLocaleString()} tokens</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Last ${windowDays} days</div>
-                        <div class="stat-value">${formatMoney(totalOpenAICost)}</div>
-                        <div class="stat-trend"><span>${generationCount.toLocaleString()} generation${generationCount === 1 ? '' : 's'} included</span></div>
+
+                    <div style="margin-top:1rem; color:var(--text-muted); font-size:0.875rem; line-height:1.5;">
+                        ${dataScopeCopy}
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Average / generation</div>
-                        <div class="stat-value">${formatMoney(avgOpenAICost)}</div>
-                        <div class="stat-trend"><span>${pricedGenerations.toLocaleString()} priced generation${pricedGenerations === 1 ? '' : 's'}</span></div>
-                    </div>
+                    ${unknownCostGenerations ? `
+                        <div style="margin-top:1rem; padding:0.85rem 1rem; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:0.875rem; line-height:1.5;">
+                            Missing pricing is excluded from the dollar total until its model is mapped. ${latestUnknownCopy}${unknownModelCopy ? `<br>Unknown models: ${unknownModelCopy}` : ''}
+                        </div>
+                    ` : ''}
                 </div>
 
                 <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
                     <div class="card-header" style="padding: 0 0 1rem 0;">
                         <div>
                             <h3 class="card-title">Daily cost</h3>
-                            <div class="text-sm text-muted">Cost and generation count for each day in the same ${windowDays}-day window.</div>
+                            <div class="text-sm text-muted">Daily movement from the same stored cost data.</div>
                         </div>
                         <button class="btn-secondary" onclick="state.logsType='generation'; switchView('logs')">Open logs</button>
                     </div>

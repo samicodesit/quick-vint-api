@@ -74,6 +74,56 @@ function buildAdminHarness() {
     totalUsers: 100,
     topUsers: [],
     lastWeek: [{ date: "2026-06-22", total_api_calls: 12, estimated_cost: 0.02 }],
+    openaiCostSummary: {
+      windowDays: 30,
+      windowStartDate: "2026-05-24",
+      windowEndDate: "2026-06-22",
+      logLimit: 5000,
+      isTruncated: false,
+      exactGenerationLogCount: 1000,
+      analyzedGenerationLogCount: 1000,
+      generationCount: 1000,
+      costedGenerations: 900,
+      unknownCostGenerations: 100,
+      totalCostUsd: 6.03,
+      totalTokens: 540000,
+      avgCostPerGenerationUsd: 0.0067,
+      daily: [
+        { date: "2026-06-22", generation_count: 76, cost_usd: 0.78, tokens: 41000 },
+      ],
+      modelBreakdown: [
+        {
+          model: "gpt-5.4",
+          generation_count: 900,
+          cost_usd: 6.03,
+          tokens: 540000,
+          unknown_cost_count: 100,
+        },
+      ],
+      topUsers: [
+        {
+          user_email: "test@example.com",
+          generation_count: 100,
+          cost_usd: 0.67,
+          tokens: 60000,
+        },
+      ],
+      unknownModelBreakdown: [
+        {
+          model: "gpt-unpriced",
+          generation_count: 100,
+          tokens: 32000,
+          latest_created_at: "2026-06-22T12:00:00.000Z",
+        },
+      ],
+      latestUnknownCostLog: {
+        created_at: "2026-06-22T12:00:00.000Z",
+        model: "gpt-unpriced",
+        user_email: "test@example.com",
+        response_status: 200,
+        tokens: 400,
+      },
+    },
   };
 
   const growth = {
@@ -463,5 +513,24 @@ describe("admin HTML", () => {
     await context.loadView("logs");
 
     expect(context.fetchCalls.some((url) => url.includes("status_filter=flagged"))).toBe(true);
+  });
+
+  it("explains AI cost totals with the right generation denominator", async () => {
+    const { context, content } = buildAdminHarness();
+
+    context.state.currentView = "costs";
+    await context.loadView("costs");
+
+    expect(content.innerHTML).toContain("Known rolling 30-day OpenAI spend");
+    expect(content.innerHTML).toContain("Estimated API cost only");
+    expect(content.innerHTML).toContain("$6.03");
+    expect(content.innerHTML).toContain(
+      "estimated OpenAI API cost for 900 priced logs out of 1,000 generation logs recorded in the rolling 30-day window",
+    );
+    expect(content.innerHTML).toContain("Average: $0.0067 per priced generation");
+    expect(content.innerHTML).toContain("Exact for the rolling 30-day window");
+    expect(content.innerHTML).toContain("Latest unknown: gpt-unpriced");
+    expect(content.innerHTML).toContain("Unknown models: gpt-unpriced (100)");
+    expect(content.innerHTML).not.toContain("Projected Monthly");
   });
 });

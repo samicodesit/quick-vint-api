@@ -1624,7 +1624,11 @@ function attachOpenAICostsToLogs<T extends OpenAICostLog>(logs: T[]) {
   });
 }
 
-function buildOpenAICostSummary(logs: OpenAICostLog[], days: number) {
+function buildOpenAICostSummary(
+  logs: OpenAICostLog[],
+  days: number,
+  options: { logLimit?: number; exactLogCount?: number | null } = {},
+) {
   const dailyMap = new Map();
   for (let i = 0; i < days; i++) {
     const date = new Date();
@@ -1640,10 +1644,12 @@ function buildOpenAICostSummary(logs: OpenAICostLog[], days: number) {
 
   const modelMap = new Map();
   const userMap = new Map();
+  const unknownModelMap = new Map();
   let totalCostUsd = 0;
   let totalTokens = 0;
   let costedGenerations = 0;
   let unknownCostGenerations = 0;
+  let latestUnknownCostLog: any = null;
 
   logs.forEach((log) => {
     const dateStr = String(log.created_at || "").split("T")[0];
@@ -1700,6 +1706,45 @@ function buildOpenAICostSummary(logs: OpenAICostLog[], days: number) {
       unknownCostGenerations += 1;
       modelEntry.unknown_cost_count += 1;
       userEntry.unknown_cost_count += 1;
+
+      if (!unknownModelMap.has(model)) {
+        unknownModelMap.set(model, {
+          model,
+          generation_count: 0,
+          tokens: 0,
+          latest_created_at: null,
+          latest_user_email: null,
+          latest_user_id: null,
+          latest_response_status: null,
+        });
+      }
+
+      const unknownEntry = unknownModelMap.get(model);
+      unknownEntry.generation_count += 1;
+      unknownEntry.tokens += tokens;
+      if (
+        !unknownEntry.latest_created_at ||
+        String(log.created_at || "") > unknownEntry.latest_created_at
+      ) {
+        unknownEntry.latest_created_at = log.created_at || null;
+        unknownEntry.latest_user_email = log.user_email || null;
+        unknownEntry.latest_user_id = log.user_id || null;
+        unknownEntry.latest_response_status = log.response_status || null;
+      }
+
+      if (
+        !latestUnknownCostLog?.created_at ||
+        String(log.created_at || "") > String(latestUnknownCostLog.created_at)
+      ) {
+        latestUnknownCostLog = {
+          created_at: log.created_at || null,
+          model,
+          user_email: log.user_email || null,
+          user_id: log.user_id || null,
+          response_status: log.response_status || null,
+          tokens,
+        };
+      }
     }
   });
 
@@ -1723,9 +1768,26 @@ function buildOpenAICostSummary(logs: OpenAICostLog[], days: number) {
     }))
     .sort((a: any, b: any) => b.cost_usd - a.cost_usd)
     .slice(0, 6);
+  const unknownModelBreakdown = Array.from(unknownModelMap.values()).sort(
+    (a: any, b: any) => b.generation_count - a.generation_count,
+  );
+  const exactLogCount =
+    typeof options.exactLogCount === "number" ? options.exactLogCount : null;
+  const isTruncated =
+    typeof exactLogCount === "number"
+      ? exactLogCount > logs.length
+      : options.logLimit
+        ? logs.length >= options.logLimit
+        : false;
 
   return {
     windowDays: days,
+    windowStartDate: daily[0]?.date || null,
+    windowEndDate: daily[daily.length - 1]?.date || null,
+    logLimit: options.logLimit || null,
+    exactGenerationLogCount: exactLogCount,
+    analyzedGenerationLogCount: logs.length,
+    isTruncated,
     generatedAt: new Date().toISOString(),
     generationCount: logs.length,
     costedGenerations,
@@ -1739,6 +1801,8 @@ function buildOpenAICostSummary(logs: OpenAICostLog[], days: number) {
     daily,
     modelBreakdown,
     topUsers,
+    unknownModelBreakdown,
+    latestUnknownCostLog,
   };
 }
 
@@ -1845,10 +1909,11 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     );
 
     const costWindowDays = 30;
+    const costLogLimit = 5000;
     const costWindowStart = new Date(now);
     costWindowStart.setUTCDate(costWindowStart.getUTCDate() - (costWindowDays - 1));
     costWindowStart.setUTCHours(0, 0, 0, 0);
-    const { data: costLogs, error: costLogsError } = await supabase
+    const { data: rawCostLogs, error: costLogsError } = await supabase
       .from("api_logs")
       .select(
         "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
@@ -1856,13 +1921,22 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       .eq("endpoint", "/api/generate")
       .gte("created_at", costWindowStart.toISOString())
       .order("created_at", { ascending: false })
-      .limit(5000);
+      .limit(costLogLimit + 1);
 
     if (costLogsError) throw costLogsError;
+    const costLogs = ((rawCostLogs || []) as OpenAICostLog[]).slice(
+      0,
+      costLogLimit,
+    );
+    const costLogsTruncated = (rawCostLogs || []).length > costLogLimit;
 
     const openaiCostSummary = buildOpenAICostSummary(
-      (costLogs || []) as OpenAICostLog[],
+      costLogs,
       costWindowDays,
+      {
+        logLimit: costLogLimit,
+        exactLogCount: costLogsTruncated ? null : costLogs.length,
+      },
     );
 
     // 1. Get recent activity timestamps to sort users

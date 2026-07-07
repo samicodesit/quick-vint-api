@@ -15,7 +15,10 @@ import {
   wrapTemplateLayout,
 } from "../../utils/emailTemplates";
 import { ApiLogger } from "../../utils/apiLogger";
-import { estimateOpenAICostUsd } from "../../utils/openaiModelExperiment";
+import {
+  estimateOpenAICostUsd,
+  getBillableOpenAIModel,
+} from "../../utils/openaiModelExperiment";
 import { createPricingOfferUrl } from "../../utils/pricingOfferToken";
 import {
   LIMIT_FOLLOWUP_COUPON_CODE,
@@ -1567,7 +1570,9 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Failed to count logs" });
     }
 
-    const enrichedLogs = await attachCorrelatedUsersToLogs(logs || []);
+    const enrichedLogs = attachOpenAICostsToLogs(
+      await attachCorrelatedUsersToLogs(logs || []),
+    );
 
     return res.status(200).json({
       logs: enrichedLogs,
@@ -1584,6 +1589,159 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
 }
 
 // --- LOGIC: Usage Stats ---
+type OpenAICostLog = {
+  created_at: string;
+  endpoint?: string | null;
+  user_id?: string | null;
+  user_email?: string | null;
+  response_status?: number | null;
+  openai_model?: string | null;
+  openai_tokens_used?: number | null;
+  openai_prompt_tokens?: number | null;
+  openai_completion_tokens?: number | null;
+  openai_cached_tokens?: number | null;
+};
+
+function getLogEstimatedOpenAICost(log: OpenAICostLog) {
+  return estimateOpenAICostUsd({
+    model: log.openai_model,
+    promptTokens: log.openai_prompt_tokens,
+    completionTokens: log.openai_completion_tokens,
+    cachedTokens: log.openai_cached_tokens,
+    totalTokens: log.openai_tokens_used,
+  });
+}
+
+function attachOpenAICostsToLogs<T extends OpenAICostLog>(logs: T[]) {
+  return logs.map((log) => {
+    const estimatedCost = getLogEstimatedOpenAICost(log);
+    return {
+      ...log,
+      openai_billable_model: getBillableOpenAIModel(log.openai_model) || null,
+      openai_estimated_cost_usd: estimatedCost,
+      openai_cost_known: typeof estimatedCost === "number",
+    };
+  });
+}
+
+function buildOpenAICostSummary(logs: OpenAICostLog[], days: number) {
+  const dailyMap = new Map();
+  for (let i = 0; i < days; i++) {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() - i);
+    const dateStr = date.toISOString().split("T")[0];
+    dailyMap.set(dateStr, {
+      date: dateStr,
+      generation_count: 0,
+      cost_usd: 0,
+      tokens: 0,
+    });
+  }
+
+  const modelMap = new Map();
+  const userMap = new Map();
+  let totalCostUsd = 0;
+  let totalTokens = 0;
+  let costedGenerations = 0;
+  let unknownCostGenerations = 0;
+
+  logs.forEach((log) => {
+    const dateStr = String(log.created_at || "").split("T")[0];
+    const tokens = Number(log.openai_tokens_used || 0);
+    const hasOpenAIUsage =
+      tokens > 0 ||
+      Number(log.openai_prompt_tokens || 0) > 0 ||
+      Number(log.openai_completion_tokens || 0) > 0;
+    const cost = getLogEstimatedOpenAICost(log);
+    const model = getBillableOpenAIModel(log.openai_model) || "unknown";
+
+    totalTokens += tokens;
+    if (dailyMap.has(dateStr)) {
+      const daily = dailyMap.get(dateStr);
+      daily.generation_count += 1;
+      daily.tokens += tokens;
+      if (typeof cost === "number") daily.cost_usd += cost;
+    }
+
+    if (!modelMap.has(model)) {
+      modelMap.set(model, {
+        model,
+        generation_count: 0,
+        cost_usd: 0,
+        tokens: 0,
+        unknown_cost_count: 0,
+      });
+    }
+    const modelEntry = modelMap.get(model);
+    modelEntry.generation_count += 1;
+    modelEntry.tokens += tokens;
+
+    const userKey = log.user_email || log.user_id || "unknown";
+    if (!userMap.has(userKey)) {
+      userMap.set(userKey, {
+        user_email: log.user_email || null,
+        user_id: log.user_id || null,
+        generation_count: 0,
+        cost_usd: 0,
+        tokens: 0,
+        unknown_cost_count: 0,
+      });
+    }
+    const userEntry = userMap.get(userKey);
+    userEntry.generation_count += 1;
+    userEntry.tokens += tokens;
+
+    if (typeof cost === "number") {
+      totalCostUsd += cost;
+      if (hasOpenAIUsage) costedGenerations += 1;
+      modelEntry.cost_usd += cost;
+      userEntry.cost_usd += cost;
+    } else if (hasOpenAIUsage) {
+      unknownCostGenerations += 1;
+      modelEntry.unknown_cost_count += 1;
+      userEntry.unknown_cost_count += 1;
+    }
+  });
+
+  const daily = Array.from(dailyMap.values()).sort((a: any, b: any) =>
+    a.date.localeCompare(b.date),
+  );
+  const modelBreakdown = Array.from(modelMap.values())
+    .map((entry: any) => ({
+      ...entry,
+      avg_cost_usd: entry.generation_count
+        ? entry.cost_usd / entry.generation_count
+        : 0,
+    }))
+    .sort((a: any, b: any) => b.cost_usd - a.cost_usd);
+  const topUsers = Array.from(userMap.values())
+    .map((entry: any) => ({
+      ...entry,
+      avg_cost_usd: entry.generation_count
+        ? entry.cost_usd / entry.generation_count
+        : 0,
+    }))
+    .sort((a: any, b: any) => b.cost_usd - a.cost_usd)
+    .slice(0, 6);
+
+  return {
+    windowDays: days,
+    generatedAt: new Date().toISOString(),
+    generationCount: logs.length,
+    costedGenerations,
+    unknownCostGenerations,
+    totalCostUsd,
+    totalTokens,
+    avgCostPerGenerationUsd: costedGenerations
+      ? totalCostUsd / costedGenerations
+      : 0,
+    projectedMonthlyCostUsd: days ? (totalCostUsd / days) * 30 : 0,
+    daily,
+    modelBreakdown,
+    topUsers,
+  };
+}
+
 async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
   try {
     const now = new Date();
@@ -1643,15 +1801,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
           ? Math.round(totalTokens / generationLogs.length)
           : 0,
         estimatedCost: generationLogs.reduce(
-          (sum: number, log: any) =>
-            sum +
-            estimateOpenAICostUsd({
-              model: log.openai_model,
-              promptTokens: log.openai_prompt_tokens,
-              completionTokens: log.openai_completion_tokens,
-              cachedTokens: log.openai_cached_tokens,
-              totalTokens: log.openai_tokens_used,
-            }),
+          (sum: number, log: any) => sum + (getLogEstimatedOpenAICost(log) || 0),
           0,
         ),
       };
@@ -1685,19 +1835,34 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         if (dailyMap.has(dateStr)) {
           const entry = dailyMap.get(dateStr);
           entry.total_api_calls++;
-          entry.estimated_cost += estimateOpenAICostUsd({
-            model: log.openai_model,
-            promptTokens: log.openai_prompt_tokens,
-            completionTokens: log.openai_completion_tokens,
-            cachedTokens: log.openai_cached_tokens,
-            totalTokens: log.openai_tokens_used,
-          });
+          entry.estimated_cost += getLogEstimatedOpenAICost(log) || 0;
         }
       });
     }
 
     const weekStats = Array.from(dailyMap.values()).sort((a: any, b: any) =>
       b.date.localeCompare(a.date),
+    );
+
+    const costWindowDays = 30;
+    const costWindowStart = new Date(now);
+    costWindowStart.setUTCDate(costWindowStart.getUTCDate() - (costWindowDays - 1));
+    costWindowStart.setUTCHours(0, 0, 0, 0);
+    const { data: costLogs, error: costLogsError } = await supabase
+      .from("api_logs")
+      .select(
+        "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
+      )
+      .eq("endpoint", "/api/generate")
+      .gte("created_at", costWindowStart.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(5000);
+
+    if (costLogsError) throw costLogsError;
+
+    const openaiCostSummary = buildOpenAICostSummary(
+      (costLogs || []) as OpenAICostLog[],
+      costWindowDays,
     );
 
     // 1. Get recent activity timestamps to sort users
@@ -1810,6 +1975,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       today: todayUsage,
       lastWeek: weekStats,
+      openaiCostSummary,
       totalUsers: totalUserCount || 0,
       recentActivity: recentActivityUsers,
       recentSignups: recentSignups,

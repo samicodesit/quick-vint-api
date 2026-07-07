@@ -13,6 +13,7 @@ import {
 
 // Global cost protection
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
+// Budget guardrail only. Admin cost reporting uses token-level api_logs pricing.
 const OPENAI_COST_PER_REQUEST_USD = 0.0201; // Based on actual dashboard: $6.12/304 requests
 
 interface RateLimitResult {

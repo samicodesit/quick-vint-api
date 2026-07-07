@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_OPENAI_MODEL_EXPERIMENT,
   estimateOpenAICostUsd,
+  getBillableOpenAIModel,
   getOpenAIChatTokenLimitParam,
   isOpenAIModelCompatibilityError,
   parseOpenAIModelExperiment,
@@ -99,5 +100,27 @@ describe("openaiModelExperiment", () => {
         cachedTokens: 100,
       }),
     ).toBeCloseTo(0.0015825);
+
+    expect(
+      estimateOpenAICostUsd({
+        model: "gpt-5.4",
+        promptTokens: 1000,
+        completionTokens: 200,
+        cachedTokens: 100,
+      }),
+    ).toBeCloseTo(0.005875);
+  });
+
+  it("does not invent a cost for unknown model pricing", () => {
+    expect(
+      estimateOpenAICostUsd({
+        model: "future-model",
+        totalTokens: 1000,
+      }),
+    ).toBeNull();
+  });
+
+  it("uses the final fallback model for cost lookup", () => {
+    expect(getBillableOpenAIModel("gpt-5.4->gpt-4o")).toBe("gpt-4o");
   });
 });

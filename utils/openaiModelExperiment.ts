@@ -155,7 +155,7 @@ export function estimateOpenAICostUsd({
   const pricing = OPENAI_MODEL_PRICING_USD_PER_MILLION[normalizedModel];
 
   if (!pricing) {
-    return ((totalTokens || 0) * 0.5) / 1_000_000;
+    return null;
   }
 
   const safePromptTokens = Math.max(0, Number(promptTokens || 0));
@@ -175,5 +175,14 @@ export function estimateOpenAICostUsd({
       safeCachedTokens * pricing.cachedInputPerMillion +
       safeCompletionTokens * pricing.outputPerMillion) /
     1_000_000
+  );
+}
+
+export function getBillableOpenAIModel(model?: string | null) {
+  return (
+    String(model || "")
+      .split("->")
+      .pop()
+      ?.trim() || ""
   );
 }

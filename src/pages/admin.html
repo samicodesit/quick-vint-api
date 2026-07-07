@@ -2972,6 +2972,17 @@
                         <span class="nav-meta">Store KPIs and playbook</span>
                     </span>
                 </div>
+                <div class="nav-item" data-view="costs" onclick="switchView('costs')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <span class="nav-copy">
+                        <span class="nav-label">Costs</span>
+                        <span class="nav-meta">AI spend and model usage</span>
+                    </span>
+                </div>
                 <div class="nav-item" data-view="events" onclick="switchView('events')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -3100,6 +3111,7 @@
             <button class="mobile-bottom-btn" data-view="overview"
                 onclick="switchView('overview')">Command</button>
             <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
+            <button class="mobile-bottom-btn" data-view="costs" onclick="switchView('costs')">Costs</button>
             <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Signals</button>
             <button class="mobile-bottom-btn" data-view="reports" onclick="switchView('reports')">Reports</button>
             <button class="mobile-bottom-btn active" data-view="logs" onclick="switchView('logs')">Logs</button>
@@ -3164,7 +3176,7 @@
 
         function getInitialAdminView() {
             const view = window.location.hash.replace('#', '');
-            return ['overview', 'growth', 'events', 'reports', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'logs';
+            return ['overview', 'growth', 'costs', 'events', 'reports', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'logs';
         }
 
         // --- Auth Logic ---
@@ -3288,6 +3300,11 @@
                     subtitle: 'Chrome Store KPIs, funnel quality, and the current operating playbook.',
                     loading: 'Loading growth funnel, Chrome Store context, and KPI guidance...'
                 },
+                costs: {
+                    title: 'Costs',
+                    subtitle: 'OpenAI spend, model mix, and high-cost usage patterns.',
+                    loading: 'Loading token-based AI cost reporting...'
+                },
                 events: {
                     title: 'Signals',
                     subtitle: 'Product behavior signals, uninstall reasons, checkout intent, and instrumentation health.',
@@ -3359,6 +3376,7 @@
             try {
                 if (view === 'overview') await renderOverview(content);
                 else if (view === 'growth') await renderGrowth(content);
+                else if (view === 'costs') await renderCosts(content);
                 else if (view === 'events') await renderEvents(content);
                 else if (view === 'reports') await renderReports(content);
                 else if (view === 'logs') await renderLogs(content);
@@ -3659,6 +3677,13 @@
             }
         }
 
+        function formatMoney(value) {
+            const amount = Number(value) || 0;
+            if (amount === 0) return '$0.00';
+            if (amount > 0 && amount < 0.01) return `$${amount.toFixed(4)}`;
+            return `$${amount.toFixed(2)}`;
+        }
+
         async function renderOverview(container) {
             const todayRange = getLocalTodayRange();
             const [data, todaysUsers, growthData, eventLogData] = await Promise.all([
@@ -3677,20 +3702,9 @@
             const todayTotalLogs = Number(data.today.totalRequests || 0);
             const todayGenerationRequests = Number(data.today.generationRequests || 0);
             const todayEventLogs = Number(data.today.eventLogs || 0);
-            const costSummary = data.openaiCostSummary || {};
-            const todayEstimatedCost = Number(data.today.estimatedCost || 0);
-            const todayAvgGenerationCost = todayGenerationRequests
-                ? todayEstimatedCost / todayGenerationRequests
-                : 0;
             const generationLimitRate = todayGenerationRequests
                 ? (Number(data.today.rateLimitErrors || 0) / todayGenerationRequests) * 100
                 : 0;
-            const formatMoney = (value) => {
-                const amount = Number(value) || 0;
-                if (amount === 0) return '$0.00';
-                if (amount > 0 && amount < 0.01) return `$${amount.toFixed(4)}`;
-                return `$${amount.toFixed(2)}`;
-            };
             const rawEventFeed = eventRows.map(log => ({
                 event: typeof log.endpoint === 'string' ? log.endpoint.replace('/event/', '') : 'unknown_event',
                 category: 'Event Log',
@@ -3706,13 +3720,6 @@
             const limitHits = getEventCount(topEvents, 'generate_limit_hit');
             const recentEventCount = eventRows.length || importantEvents.length;
             const topReason = uninstallReasons[0]?.label || uninstallReasons[0]?.reason || 'No feedback yet';
-            const costDaily = Array.isArray(costSummary.daily) ? costSummary.daily : [];
-            const costModels = Array.isArray(costSummary.modelBreakdown) ? costSummary.modelBreakdown : [];
-            const costTopUsers = Array.isArray(costSummary.topUsers) ? costSummary.topUsers : [];
-            const totalOpenAICost = Number(costSummary.totalCostUsd || 0);
-            const projectedMonthlyCost = Number(costSummary.projectedMonthlyCostUsd || 0);
-            const avgOpenAICost = Number(costSummary.avgCostPerGenerationUsd || 0);
-            const unknownCostGenerations = Number(costSummary.unknownCostGenerations || 0);
 
             const commandAction = (label, value, copy, view, className = '') => `
                 <button type="button" class="command-action ${className}" onclick="switchView('${view}')">
@@ -3774,7 +3781,7 @@
                         <div class="stat-label">AI Generations Today</div>
                         <div class="stat-value">${todayGenerationRequests.toLocaleString()}</div>
                         <div class="stat-trend trend-up">
-                            <span>Est. AI Cost: ${formatMoney(todayEstimatedCost)}</span>
+                            <span>${todayEventLogs.toLocaleString()} event logs today</span>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -3797,7 +3804,7 @@
                         <div class="stat-label">Avg Tokens/Generation</div>
                         <div class="stat-value">${data.today.avgTokensPerRequest}</div>
                         <div class="stat-trend">
-                            <span>~${formatMoney(todayAvgGenerationCost)} / generation</span>
+                            <span>Token usage is costed in the Costs view</span>
                         </div>
                     </div>
                 </div>
@@ -3806,67 +3813,6 @@
                     <h3 class="card-title" style="margin-bottom: 1rem;">Usage History (Last 7 Days)</h3>
                     <div style="height: 300px;">
                         <canvas id="usageChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
-                    <div class="card-header" style="padding: 0 0 1rem 0;">
-                        <div>
-                            <h3 class="card-title">AI Cost Control</h3>
-                            <div class="text-sm text-muted">Token-based OpenAI estimate from the last ${Number(costSummary.windowDays || 30)} days of generation logs.</div>
-                        </div>
-                        <span class="badge ${unknownCostGenerations ? 'badge-warning' : 'badge-success'}">${unknownCostGenerations ? `${unknownCostGenerations} unknown` : 'priced'}</span>
-                    </div>
-                    <div class="grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1.25rem;">
-                        <div class="stat-card">
-                            <div class="stat-label">30 Day AI Cost</div>
-                            <div class="stat-value">${formatMoney(totalOpenAICost)}</div>
-                            <div class="stat-trend"><span>${Number(costSummary.generationCount || 0).toLocaleString()} generations</span></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Projected Monthly</div>
-                            <div class="stat-value">${formatMoney(projectedMonthlyCost)}</div>
-                            <div class="stat-trend"><span>Based on recent pace</span></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Avg Cost</div>
-                            <div class="stat-value">${formatMoney(avgOpenAICost)}</div>
-                            <div class="stat-trend"><span>Per priced generation</span></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Tokens</div>
-                            <div class="stat-value">${Number(costSummary.totalTokens || 0).toLocaleString()}</div>
-                            <div class="stat-trend"><span>Prompt + output tokens</span></div>
-                        </div>
-                    </div>
-                    <div style="height: 260px; margin-bottom: 1.5rem;">
-                        <canvas id="aiCostChart"></canvas>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
-                        <div style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1rem;">
-                            <div class="text-sm font-medium" style="margin-bottom: 0.75rem;">Model split</div>
-                            ${costModels.length ? costModels.slice(0, 4).map(model => `
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.55rem 0; border-top:1px solid var(--border-color);">
-                                    <div>
-                                        <div style="font-weight:600;">${escapeHtml(model.model || 'unknown')}</div>
-                                        <div class="text-sm text-muted">${Number(model.generation_count || 0).toLocaleString()} generations · ${Number(model.tokens || 0).toLocaleString()} tokens</div>
-                                    </div>
-                                    <div style="font-weight:700;">${formatMoney(model.cost_usd)}</div>
-                                </div>
-                            `).join('') : '<div class="text-sm text-muted">No generation costs yet.</div>'}
-                        </div>
-                        <div style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1rem;">
-                            <div class="text-sm font-medium" style="margin-bottom: 0.75rem;">Highest cost users</div>
-                            ${costTopUsers.length ? costTopUsers.slice(0, 4).map(user => `
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.55rem 0; border-top:1px solid var(--border-color);">
-                                    <div style="min-width:0;">
-                                        <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(user.user_email || user.user_id || 'unknown')}</div>
-                                        <div class="text-sm text-muted">${Number(user.generation_count || 0).toLocaleString()} generations</div>
-                                    </div>
-                                    <div style="font-weight:700;">${formatMoney(user.cost_usd)}</div>
-                                </div>
-                            `).join('') : '<div class="text-sm text-muted">No user cost data yet.</div>'}
-                        </div>
                     </div>
                 </div>
 
@@ -3933,7 +3879,6 @@
             const chartData = [...(data.lastWeek || [])].reverse();
             const labels = chartData.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
             const requests = chartData.map(d => d.total_api_calls || 0);
-            const costs = chartData.map(d => d.estimated_cost || 0);
 
             // Create gradient
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -3959,18 +3904,6 @@
                             pointRadius: 0,
                             pointHoverRadius: 4,
                             yAxisID: 'y'
-                        },
-                        {
-                            label: 'Cost ($)',
-                            data: costs,
-                            borderColor: '#10b981',
-                            backgroundColor: 'transparent',
-                            borderDash: [4, 4],
-                            borderWidth: 1.5,
-                            tension: 0.3,
-                            pointRadius: 0,
-                            pointHoverRadius: 4,
-                            yAxisID: 'y1'
                         }
                     ]
                 },
@@ -4020,18 +3953,6 @@
                                 color: '#9ca3af'
                             }
                         },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            beginAtZero: true,
-                            grid: { display: false },
-                            ticks: {
-                                callback: function (value) { return '$' + value.toFixed(2); },
-                                font: { family: "var(--font-sans)", size: 10 },
-                                color: '#9ca3af'
-                            }
-                        },
                         x: {
                             grid: { display: false },
                             ticks: {
@@ -4042,115 +3963,257 @@
                     }
                 }
             });
+        }
+
+        async function renderCosts(container) {
+            const todayRange = getLocalTodayRange();
+            const data = await fetchAPI(`/api/admin?action=usage-stats&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`);
+            const costSummary = data.openaiCostSummary || {};
+            const costDaily = Array.isArray(costSummary.daily) ? costSummary.daily : [];
+            const costModels = Array.isArray(costSummary.modelBreakdown) ? costSummary.modelBreakdown : [];
+            const costTopUsers = Array.isArray(costSummary.topUsers) ? costSummary.topUsers : [];
+            const totalOpenAICost = Number(costSummary.totalCostUsd || 0);
+            const projectedMonthlyCost = Number(costSummary.projectedMonthlyCostUsd || 0);
+            const avgOpenAICost = Number(costSummary.avgCostPerGenerationUsd || 0);
+            const unknownCostGenerations = Number(costSummary.unknownCostGenerations || 0);
+            const todayCost = costDaily.length ? Number(costDaily[costDaily.length - 1]?.cost_usd || 0) : Number(data.today?.estimatedCost || 0);
+            const pricedGenerations = Number(costSummary.costedGenerations || 0);
+            const generationCount = Number(costSummary.generationCount || 0);
+            const totalTokens = Number(costSummary.totalTokens || 0);
+
+            container.innerHTML = `
+                <div class="command-shell" style="margin-bottom: 1.5rem;">
+                    <div class="command-grid">
+                        <section class="command-hero">
+                            <div class="command-kicker">Costs</div>
+                            <div class="command-title">AI cost control</div>
+                            <div class="command-copy">
+                                Token-based OpenAI cost estimates from generation logs. This view updates when you open or refresh admin.
+                            </div>
+                            <div class="operator-answer-row">
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Today</div>
+                                    <div class="operator-status-copy">${formatMoney(todayCost)} · ${Number(data.today?.generationRequests || 0).toLocaleString()} generations</div>
+                                </div>
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">30 day total</div>
+                                    <div class="operator-status-copy">${formatMoney(totalOpenAICost)} · ${generationCount.toLocaleString()} generations</div>
+                                </div>
+                                <div class="operator-status-card">
+                                    <div class="operator-status-title">Projected month</div>
+                                    <div class="operator-status-copy">${formatMoney(projectedMonthlyCost)} at recent pace</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="command-panel">
+                            <div class="command-panel-header">
+                                <div>
+                                    <div class="command-panel-title">Pricing coverage</div>
+                                    <div class="command-panel-note">Unknown means the model has token usage but no known pricing entry.</div>
+                                </div>
+                                <span class="badge ${unknownCostGenerations ? 'badge-warning' : 'badge-success'}">${unknownCostGenerations ? `${unknownCostGenerations} unknown` : 'All priced'}</span>
+                            </div>
+                            <div class="reason-list">
+                                <div class="reason-row">
+                                    <div>
+                                        <div class="reason-label">Priced generations</div>
+                                        <div class="reason-copy">${pricedGenerations.toLocaleString()} requests with known model pricing</div>
+                                    </div>
+                                    <strong>${generationCount ? Math.round((pricedGenerations / generationCount) * 100) : 0}%</strong>
+                                </div>
+                                <div class="reason-row">
+                                    <div>
+                                        <div class="reason-label">Average cost</div>
+                                        <div class="reason-copy">Per priced generation</div>
+                                    </div>
+                                    <strong>${formatMoney(avgOpenAICost)}</strong>
+                                </div>
+                                <div class="reason-row">
+                                    <div>
+                                        <div class="reason-label">Tokens</div>
+                                        <div class="reason-copy">Prompt, cached input, and output usage recorded by OpenAI</div>
+                                    </div>
+                                    <strong>${totalTokens.toLocaleString()}</strong>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="grid-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Today AI Cost</div>
+                        <div class="stat-value">${formatMoney(todayCost)}</div>
+                        <div class="stat-trend"><span>${Number(data.today?.generationRequests || 0).toLocaleString()} generations today</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">30 Day AI Cost</div>
+                        <div class="stat-value">${formatMoney(totalOpenAICost)}</div>
+                        <div class="stat-trend"><span>${generationCount.toLocaleString()} generation logs</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Projected Monthly</div>
+                        <div class="stat-value">${formatMoney(projectedMonthlyCost)}</div>
+                        <div class="stat-trend"><span>Based on last ${Number(costSummary.windowDays || 30)} days</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Cost</div>
+                        <div class="stat-value">${formatMoney(avgOpenAICost)}</div>
+                        <div class="stat-trend"><span>Per priced generation</span></div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
+                    <div class="card-header" style="padding: 0 0 1rem 0;">
+                        <div>
+                            <h3 class="card-title">Daily AI Cost</h3>
+                            <div class="text-sm text-muted">Last ${Number(costSummary.windowDays || 30)} days, from stored token usage.</div>
+                        </div>
+                        <button class="btn-secondary" onclick="state.logsType='generation'; switchView('logs')">Open logs</button>
+                    </div>
+                    <div style="height: 320px;">
+                        <canvas id="aiCostChart"></canvas>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+                    <div class="card" style="padding: 1.25rem;">
+                        <h3 class="card-title" style="margin-bottom: 1rem;">Model Split</h3>
+                        ${costModels.length ? costModels.map(model => `
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 0; border-top:1px solid var(--border-color);">
+                                <div>
+                                    <div style="font-weight:700;">${escapeHtml(model.model || 'unknown')}</div>
+                                    <div class="text-sm text-muted">${Number(model.generation_count || 0).toLocaleString()} generations · ${Number(model.tokens || 0).toLocaleString()} tokens${Number(model.unknown_cost_count || 0) ? ` · ${Number(model.unknown_cost_count || 0).toLocaleString()} unknown` : ''}</div>
+                                </div>
+                                <div style="font-weight:800;">${formatMoney(model.cost_usd)}</div>
+                            </div>
+                        `).join('') : '<div class="empty-state">No model cost data yet.</div>'}
+                    </div>
+
+                    <div class="card" style="padding: 1.25rem;">
+                        <h3 class="card-title" style="margin-bottom: 1rem;">Highest Cost Users</h3>
+                        ${costTopUsers.length ? costTopUsers.map(user => `
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 0; border-top:1px solid var(--border-color);">
+                                <div style="min-width:0;">
+                                    <div style="font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(user.user_email || user.user_id || 'unknown')}</div>
+                                    <div class="text-sm text-muted">${Number(user.generation_count || 0).toLocaleString()} generations · ${Number(user.tokens || 0).toLocaleString()} tokens</div>
+                                </div>
+                                <div style="font-weight:800;">${formatMoney(user.cost_usd)}</div>
+                            </div>
+                        `).join('') : '<div class="empty-state">No user cost data yet.</div>'}
+                    </div>
+                </div>
+            `;
 
             const aiCostCanvas = document.getElementById('aiCostChart');
-            if (aiCostCanvas) {
-                const costCtx = aiCostCanvas.getContext('2d');
-                const costLabels = costDaily.map(d => new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-                const dailyCosts = costDaily.map(d => Number(d.cost_usd || 0));
-                const dailyGenerations = costDaily.map(d => Number(d.generation_count || 0));
-                const costGradient = costCtx.createLinearGradient(0, 0, 0, 260);
-                costGradient.addColorStop(0, 'rgba(118, 75, 162, 0.18)');
-                costGradient.addColorStop(1, 'rgba(118, 75, 162, 0)');
+            if (!aiCostCanvas) return;
 
-                new Chart(costCtx, {
-                    type: 'line',
-                    data: {
-                        labels: costLabels,
-                        datasets: [
-                            {
-                                label: 'AI Cost ($)',
-                                data: dailyCosts,
-                                borderColor: '#764BA2',
-                                backgroundColor: costGradient,
-                                borderWidth: 2,
-                                tension: 0.35,
-                                fill: true,
-                                pointRadius: 0,
-                                pointHoverRadius: 4,
-                                yAxisID: 'cost'
-                            },
-                            {
-                                label: 'Generations',
-                                data: dailyGenerations,
-                                borderColor: '#111827',
-                                backgroundColor: 'transparent',
-                                borderDash: [4, 4],
-                                borderWidth: 1.5,
-                                tension: 0.35,
-                                pointRadius: 0,
-                                pointHoverRadius: 4,
-                                yAxisID: 'generations'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                align: 'end',
-                                labels: {
-                                    usePointStyle: true,
-                                    boxWidth: 6,
-                                    font: { family: "var(--font-sans)", size: 11 },
-                                    color: '#6b7280'
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: '#111827',
-                                titleColor: '#f9fafb',
-                                bodyColor: '#f9fafb',
-                                callbacks: {
-                                    label: function (context) {
-                                        if (context.dataset.yAxisID === 'cost') {
-                                            return `AI Cost: ${formatMoney(context.parsed.y)}`;
-                                        }
-                                        return `Generations: ${Number(context.parsed.y || 0).toLocaleString()}`;
-                                    }
-                                }
+            const costCtx = aiCostCanvas.getContext('2d');
+            const costLabels = costDaily.map(d => new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+            const dailyCosts = costDaily.map(d => Number(d.cost_usd || 0));
+            const dailyGenerations = costDaily.map(d => Number(d.generation_count || 0));
+            const costGradient = costCtx.createLinearGradient(0, 0, 0, 320);
+            costGradient.addColorStop(0, 'rgba(118, 75, 162, 0.18)');
+            costGradient.addColorStop(1, 'rgba(118, 75, 162, 0)');
+
+            new Chart(costCtx, {
+                type: 'line',
+                data: {
+                    labels: costLabels,
+                    datasets: [
+                        {
+                            label: 'AI Cost ($)',
+                            data: dailyCosts,
+                            borderColor: '#764BA2',
+                            backgroundColor: costGradient,
+                            borderWidth: 2,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            yAxisID: 'cost'
+                        },
+                        {
+                            label: 'Generations',
+                            data: dailyGenerations,
+                            borderColor: '#111827',
+                            backgroundColor: 'transparent',
+                            borderDash: [4, 4],
+                            borderWidth: 1.5,
+                            tension: 0.35,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            yAxisID: 'generations'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 6,
+                                font: { family: "var(--font-sans)", size: 11 },
+                                color: '#6b7280'
                             }
                         },
-                        scales: {
-                            cost: {
-                                type: 'linear',
-                                display: true,
-                                position: 'left',
-                                beginAtZero: true,
-                                grid: { color: '#f3f4f6', drawBorder: false },
-                                ticks: {
-                                    callback: function (value) { return formatMoney(value); },
-                                    font: { family: "var(--font-sans)", size: 10 },
-                                    color: '#9ca3af'
-                                }
-                            },
-                            generations: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
-                                beginAtZero: true,
-                                grid: { display: false },
-                                ticks: {
-                                    precision: 0,
-                                    font: { family: "var(--font-sans)", size: 10 },
-                                    color: '#9ca3af'
-                                }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: {
-                                    maxTicksLimit: 10,
-                                    font: { family: "var(--font-sans)", size: 10 },
-                                    color: '#9ca3af'
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            titleColor: '#f9fafb',
+                            bodyColor: '#f9fafb',
+                            callbacks: {
+                                label: function (context) {
+                                    if (context.dataset.yAxisID === 'cost') {
+                                        return `AI Cost: ${formatMoney(context.parsed.y)}`;
+                                    }
+                                    return `Generations: ${Number(context.parsed.y || 0).toLocaleString()}`;
                                 }
                             }
                         }
+                    },
+                    scales: {
+                        cost: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: { color: '#f3f4f6', drawBorder: false },
+                            ticks: {
+                                callback: function (value) { return formatMoney(value); },
+                                font: { family: "var(--font-sans)", size: 10 },
+                                color: '#9ca3af'
+                            }
+                        },
+                        generations: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { display: false },
+                            ticks: {
+                                precision: 0,
+                                font: { family: "var(--font-sans)", size: 10 },
+                                color: '#9ca3af'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                font: { family: "var(--font-sans)", size: 10 },
+                                color: '#9ca3af'
+                            }
+                        }
                     }
-                });
-            }
+                }
+            });
         }
 
         function getEventCount(topEvents, name) {

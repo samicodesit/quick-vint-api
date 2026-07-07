@@ -3978,30 +3978,42 @@
             const todayCost = costDaily.length ? Number(costDaily[costDaily.length - 1]?.cost_usd || 0) : Number(data.today?.estimatedCost || 0);
             const pricedGenerations = Number(costSummary.costedGenerations || 0);
             const generationCount = Number(costSummary.generationCount || 0);
+            const openaiCallCount = Number(costSummary.openaiCallCount || pricedGenerations || 0);
+            const noOpenAICallCount = Number(costSummary.noOpenAICallCount || 0);
             const totalTokens = Number(costSummary.totalTokens || 0);
             const windowDays = Number(costSummary.windowDays || 30);
-            const coveragePercent = generationCount ? Math.round((pricedGenerations / generationCount) * 100) : 0;
-            const todayGenerations = Number(data.today?.generationRequests || 0);
+            const coveragePercent = openaiCallCount ? Math.round((pricedGenerations / openaiCallCount) * 100) : 0;
+            const todayGenerations = costDaily.length ? Number(costDaily[costDaily.length - 1]?.openai_call_count || 0) : Number(data.today?.generationRequests || 0);
             const exactGenerationLogCount = typeof costSummary.exactGenerationLogCount === 'number'
                 ? Number(costSummary.exactGenerationLogCount)
                 : generationCount;
             const unknownModels = Array.isArray(costSummary.unknownModelBreakdown) ? costSummary.unknownModelBreakdown : [];
+            const noOpenAIReasons = Array.isArray(costSummary.noOpenAIReasonBreakdown) ? costSummary.noOpenAIReasonBreakdown : [];
+            const latestNoOpenAI = costSummary.latestNoOpenAICallLog || null;
             const latestUnknown = costSummary.latestUnknownCostLog || null;
             const unknownCostCopy = unknownCostGenerations
-                ? `${unknownCostGenerations.toLocaleString()} generation${unknownCostGenerations === 1 ? '' : 's'} missing pricing`
-                : 'All priced';
+                ? `${unknownCostGenerations.toLocaleString()} OpenAI call${unknownCostGenerations === 1 ? '' : 's'} missing pricing`
+                : 'OpenAI pricing complete';
             const avgCostCopy = pricedGenerations
-                ? `${formatMoney(avgOpenAICost)} per priced generation`
+                ? `${formatMoney(avgOpenAICost)} per priced OpenAI call`
                 : 'No priced generation cost yet';
             const formatCostDateTime = (value) => {
                 if (!value) return '';
                 return new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
             };
-            const rollingWindowCopy = `${exactGenerationLogCount.toLocaleString()} generation log${exactGenerationLogCount === 1 ? '' : 's'} recorded in the rolling ${windowDays}-day window`;
+            const rollingWindowCopy = `${exactGenerationLogCount.toLocaleString()} generation request${exactGenerationLogCount === 1 ? '' : 's'}`;
             const costBasisCopy = unknownCostGenerations
-                ? `${pricedGenerations.toLocaleString()} priced logs out of ${rollingWindowCopy}`
-                : `all ${rollingWindowCopy}`;
-            const dataScopeCopy = `Complete rolling ${windowDays}-day window.`;
+                ? `${pricedGenerations.toLocaleString()} / ${openaiCallCount.toLocaleString()} OpenAI calls priced`
+                : `${openaiCallCount.toLocaleString()} OpenAI call${openaiCallCount === 1 ? '' : 's'} priced`;
+            const noOpenAICopy = noOpenAICallCount
+                ? `${noOpenAICallCount.toLocaleString()} stopped before OpenAI ($0).`
+                : '';
+            const noOpenAIReasonCopy = noOpenAIReasons.length
+                ? noOpenAIReasons.slice(0, 3).map((item) => `${escapeHtml(item.reason || 'No OpenAI call')} (${Number(item.count || 0).toLocaleString()})`).join(' · ')
+                : '';
+            const latestNoOpenAICopy = latestNoOpenAI
+                ? `Latest: ${escapeHtml(latestNoOpenAI.reason || 'No OpenAI call')} for ${escapeHtml(latestNoOpenAI.user_email || latestNoOpenAI.user_id || 'unknown user')} at ${formatCostDateTime(latestNoOpenAI.created_at)}`
+                : '';
             const latestUnknownCopy = latestUnknown
                 ? `Latest unknown: ${escapeHtml(latestUnknown.model || 'unknown')} at ${formatCostDateTime(latestUnknown.created_at)}`
                 : '';
@@ -4025,8 +4037,9 @@
                             <div class="text-sm text-muted" style="font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Rolling ${windowDays}-day window</div>
                             <div style="font-size:2.8rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.65rem 0;">${formatMoney(totalOpenAICost)}</div>
                             <div style="font-size:1rem; line-height:1.55; color:var(--text-secondary); max-width:760px;">
-                                This is the estimated OpenAI API cost for ${costBasisCopy}.
+                                ${windowDays} days · ${costBasisCopy} · ${rollingWindowCopy} total.
                             </div>
+                            ${noOpenAICopy ? `<div class="text-sm text-muted" style="margin-top:0.65rem;">${noOpenAICopy}</div>` : ''}
                             <div style="margin-top:1rem; padding:0.85rem 1rem; border-radius:10px; background:#ffffff; border:1px solid var(--border-color); color:var(--text-primary); font-weight:700;">
                                 Average: ${avgCostCopy}
                             </div>
@@ -4036,22 +4049,23 @@
                             <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
                                 <div class="text-sm text-muted">Today</div>
                                 <div style="font-size:1.65rem; font-weight:850; margin:0.25rem 0;">${formatMoney(todayCost)}</div>
-                                <div class="text-sm text-muted">${todayGenerations.toLocaleString()} generation${todayGenerations === 1 ? '' : 's'} today</div>
+                                <div class="text-sm text-muted">${todayGenerations.toLocaleString()} OpenAI call${todayGenerations === 1 ? '' : 's'} today</div>
                             </div>
                             <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                                <div class="text-sm text-muted">Pricing coverage</div>
+                                <div class="text-sm text-muted">Priced OpenAI calls</div>
                                 <div style="font-size:1.35rem; font-weight:850; margin:0.25rem 0;">${coveragePercent}% priced</div>
-                                <div class="text-sm text-muted">${unknownCostCopy} · ${totalTokens.toLocaleString()} tokens</div>
+                                <div class="text-sm text-muted">${pricedGenerations.toLocaleString()} / ${openaiCallCount.toLocaleString()} OpenAI calls · ${totalTokens.toLocaleString()} tokens</div>
                             </div>
                         </div>
-                    </div>
-
-                    <div style="margin-top:1rem; color:var(--text-muted); font-size:0.875rem; line-height:1.5;">
-                        ${dataScopeCopy}
                     </div>
                     ${unknownCostGenerations ? `
                         <div style="margin-top:1rem; padding:0.85rem 1rem; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:0.875rem; line-height:1.5;">
                             Missing pricing is excluded from the dollar total until its model is mapped. ${latestUnknownCopy}${unknownModelCopy ? `<br>Unknown models: ${unknownModelCopy}` : ''}
+                        </div>
+                    ` : ''}
+                    ${noOpenAICallCount ? `
+                        <div style="margin-top:1rem; padding:0.85rem 1rem; border-radius:10px; background:#f8fafc; border:1px solid var(--border-color); color:var(--text-secondary); font-size:0.875rem; line-height:1.5;">
+                            Stopped before OpenAI: ${noOpenAIReasonCopy || noOpenAICopy}${latestNoOpenAICopy ? `<br>${latestNoOpenAICopy}` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -4060,7 +4074,7 @@
                     <div class="card-header" style="padding: 0 0 1rem 0;">
                         <div>
                             <h3 class="card-title">Daily cost</h3>
-                            <div class="text-sm text-muted">Daily movement from the same stored cost data.</div>
+                            <div class="text-sm text-muted">Daily OpenAI spend and OpenAI calls.</div>
                         </div>
                         <button class="btn-secondary" onclick="state.logsType='generation'; switchView('logs')">Open logs</button>
                     </div>
@@ -4071,7 +4085,7 @@
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
                     <div class="card" style="padding: 1.25rem;">
-                        <h3 class="card-title" style="margin-bottom: 1rem;">Model Split</h3>
+                        <h3 class="card-title" style="margin-bottom: 1rem;">OpenAI Model Split</h3>
                         ${costModels.length ? costModels.map(model => `
                             <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 0; border-top:1px solid var(--border-color);">
                                 <div>
@@ -4104,7 +4118,7 @@
             const costCtx = aiCostCanvas.getContext('2d');
             const costLabels = costDaily.map(d => new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
             const dailyCosts = costDaily.map(d => Number(d.cost_usd || 0));
-            const dailyGenerations = costDaily.map(d => Number(d.generation_count || 0));
+            const dailyGenerations = costDaily.map(d => Number(d.openai_call_count || d.generation_count || 0));
             const costGradient = costCtx.createLinearGradient(0, 0, 0, 320);
             costGradient.addColorStop(0, 'rgba(118, 75, 162, 0.18)');
             costGradient.addColorStop(1, 'rgba(118, 75, 162, 0)');
@@ -4127,7 +4141,7 @@
                             yAxisID: 'cost'
                         },
                         {
-                            label: 'Generations',
+                            label: 'OpenAI calls',
                             data: dailyGenerations,
                             borderColor: '#111827',
                             backgroundColor: 'transparent',

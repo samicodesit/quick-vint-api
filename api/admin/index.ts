@@ -1676,6 +1676,8 @@ function buildOpenAICostSummary(
     dailyMap.set(dateStr, {
       date: dateStr,
       generation_count: 0,
+      openai_call_count: 0,
+      no_openai_call_count: 0,
       cost_usd: 0,
       tokens: 0,
     });
@@ -1684,11 +1686,16 @@ function buildOpenAICostSummary(
   const modelMap = new Map();
   const userMap = new Map();
   const unknownModelMap = new Map();
+  const noOpenAIStatusMap = new Map();
+  const noOpenAIReasonMap = new Map();
   let totalCostUsd = 0;
   let totalTokens = 0;
+  let openaiCallCount = 0;
+  let noOpenAICallCount = 0;
   let costedGenerations = 0;
   let unknownCostGenerations = 0;
   let latestUnknownCostLog: any = null;
+  let latestNoOpenAICallLog: any = null;
 
   logs.forEach((log) => {
     const dateStr = String(log.created_at || "").split("T")[0];
@@ -1705,8 +1712,48 @@ function buildOpenAICostSummary(
       const daily = dailyMap.get(dateStr);
       daily.generation_count += 1;
       daily.tokens += tokens;
+      if (hasOpenAIUsage) {
+        daily.openai_call_count += 1;
+      } else {
+        daily.no_openai_call_count += 1;
+      }
       if (typeof cost === "number") daily.cost_usd += cost;
     }
+
+    if (!hasOpenAIUsage) {
+      noOpenAICallCount += 1;
+      const status = String(log.response_status || "unknown");
+      noOpenAIStatusMap.set(status, (noOpenAIStatusMap.get(status) || 0) + 1);
+
+      const reason =
+        Number(log.response_status) === 429
+          ? "Rate limit exceeded"
+          : Number(log.response_status) === 403
+            ? "Forbidden or paused"
+            : Number(log.response_status) === 401
+              ? "Unauthorized"
+              : Number(log.response_status) === 405
+                ? "Method not allowed"
+                : "No OpenAI call";
+      noOpenAIReasonMap.set(reason, (noOpenAIReasonMap.get(reason) || 0) + 1);
+
+      if (
+        !latestNoOpenAICallLog?.created_at ||
+        String(log.created_at || "") > String(latestNoOpenAICallLog.created_at)
+      ) {
+        latestNoOpenAICallLog = {
+          created_at: log.created_at || null,
+          user_email: log.user_email || null,
+          user_id: log.user_id || null,
+          response_status: log.response_status || null,
+          reason,
+        };
+      }
+
+      return;
+    }
+
+    openaiCallCount += 1;
 
     if (!modelMap.has(model)) {
       modelMap.set(model, {
@@ -1738,10 +1785,10 @@ function buildOpenAICostSummary(
 
     if (typeof cost === "number") {
       totalCostUsd += cost;
-      if (hasOpenAIUsage) costedGenerations += 1;
+      costedGenerations += 1;
       modelEntry.cost_usd += cost;
       userEntry.cost_usd += cost;
-    } else if (hasOpenAIUsage) {
+    } else {
       unknownCostGenerations += 1;
       modelEntry.unknown_cost_count += 1;
       userEntry.unknown_cost_count += 1;
@@ -1810,6 +1857,12 @@ function buildOpenAICostSummary(
   const unknownModelBreakdown = Array.from(unknownModelMap.values()).sort(
     (a: any, b: any) => b.generation_count - a.generation_count,
   );
+  const noOpenAIStatusBreakdown = Array.from(noOpenAIStatusMap.entries())
+    .map(([status, count]) => ({ status, count }))
+    .sort((a: any, b: any) => b.count - a.count);
+  const noOpenAIReasonBreakdown = Array.from(noOpenAIReasonMap.entries())
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a: any, b: any) => b.count - a.count);
   return {
     windowDays: days,
     windowStartDate: daily[0]?.date || null,
@@ -1821,6 +1874,11 @@ function buildOpenAICostSummary(
     isTruncated: false,
     generatedAt: new Date().toISOString(),
     generationCount: logs.length,
+    openaiCallCount,
+    noOpenAICallCount,
+    noOpenAIStatusBreakdown,
+    noOpenAIReasonBreakdown,
+    latestNoOpenAICallLog,
     costedGenerations,
     unknownCostGenerations,
     totalCostUsd,

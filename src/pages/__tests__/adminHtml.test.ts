@@ -83,13 +83,25 @@ function buildAdminHarness() {
       exactGenerationLogCount: 2000,
       analyzedGenerationLogCount: 2000,
       generationCount: 2000,
+      openaiCallCount: 1891,
+      noOpenAICallCount: 109,
       costedGenerations: 1891,
-      unknownCostGenerations: 109,
+      unknownCostGenerations: 0,
+      noOpenAIReasonBreakdown: [
+        { reason: "Rate limit exceeded", count: 100 },
+        { reason: "Forbidden or paused", count: 9 },
+      ],
+      latestNoOpenAICallLog: {
+        created_at: "2026-06-22T12:00:00.000Z",
+        reason: "Rate limit exceeded",
+        user_email: "limited@example.com",
+        response_status: 429,
+      },
       totalCostUsd: 12.67,
       totalTokens: 1080000,
       avgCostPerGenerationUsd: 0.0067,
       daily: [
-        { date: "2026-06-22", generation_count: 76, cost_usd: 0.78, tokens: 41000 },
+        { date: "2026-06-22", generation_count: 80, openai_call_count: 76, no_openai_call_count: 4, cost_usd: 0.78, tokens: 41000 },
       ],
       modelBreakdown: [
         {
@@ -97,7 +109,7 @@ function buildAdminHarness() {
           generation_count: 1891,
           cost_usd: 12.67,
           tokens: 1080000,
-          unknown_cost_count: 109,
+          unknown_cost_count: 0,
         },
       ],
       topUsers: [
@@ -108,21 +120,8 @@ function buildAdminHarness() {
           tokens: 60000,
         },
       ],
-      unknownModelBreakdown: [
-        {
-          model: "gpt-unpriced",
-          generation_count: 109,
-          tokens: 32000,
-          latest_created_at: "2026-06-22T12:00:00.000Z",
-        },
-      ],
-      latestUnknownCostLog: {
-        created_at: "2026-06-22T12:00:00.000Z",
-        model: "gpt-unpriced",
-        user_email: "test@example.com",
-        response_status: 200,
-        tokens: 400,
-      },
+      unknownModelBreakdown: [],
+      latestUnknownCostLog: null,
     },
   };
 
@@ -521,16 +520,16 @@ describe("admin HTML", () => {
     context.state.currentView = "costs";
     await context.loadView("costs");
 
-    expect(content.innerHTML).toContain("Known rolling 30-day OpenAI spend");
+    expect(content.innerHTML).toContain("Rolling 30-day OpenAI spend");
     expect(content.innerHTML).toContain("Estimated API cost only");
     expect(content.innerHTML).toContain("$12.67");
-    expect(content.innerHTML).toContain(
-      "estimated OpenAI API cost for 1,891 priced logs out of 2,000 generation logs recorded in the rolling 30-day window",
-    );
-    expect(content.innerHTML).toContain("Average: $0.0067 per priced generation");
-    expect(content.innerHTML).toContain("Complete rolling 30-day window");
-    expect(content.innerHTML).toContain("Latest unknown: gpt-unpriced");
-    expect(content.innerHTML).toContain("Unknown models: gpt-unpriced (109)");
+    expect(content.innerHTML).toContain("30 days · 1,891 OpenAI calls priced · 2,000 generation requests total");
+    expect(content.innerHTML).toContain("109 stopped before OpenAI ($0)");
+    expect(content.innerHTML).toContain("Average: $0.0067 per priced OpenAI call");
+    expect(content.innerHTML).toContain("Priced OpenAI calls");
+    expect(content.innerHTML).toContain("1,891 / 1,891 OpenAI calls");
+    expect(content.innerHTML).toContain("Stopped before OpenAI: Rate limit exceeded (100)");
+    expect(content.innerHTML).toContain("Latest: Rate limit exceeded for limited@example.com");
     expect(content.innerHTML).not.toContain("Projected Monthly");
   });
 });

@@ -1624,10 +1624,49 @@ function attachOpenAICostsToLogs<T extends OpenAICostLog>(logs: T[]) {
   });
 }
 
+async function fetchOpenAICostLogsForWindow(windowStartIso: string) {
+  const pageSize = 1000;
+  const logs: OpenAICostLog[] = [];
+  let page = 0;
+  let pagesFetched = 0;
+
+  while (true) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error } = await supabase
+      .from("api_logs")
+      .select(
+        "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
+      )
+      .eq("endpoint", "/api/generate")
+      .gte("created_at", windowStartIso)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const pageLogs = (data || []) as OpenAICostLog[];
+    logs.push(...pageLogs);
+    if (pageLogs.length > 0) {
+      pagesFetched += 1;
+    }
+
+    if (pageLogs.length < pageSize) {
+      return {
+        logs,
+        pageSize,
+        pagesFetched,
+      };
+    }
+
+    page += 1;
+  }
+}
+
 function buildOpenAICostSummary(
   logs: OpenAICostLog[],
   days: number,
-  options: { logLimit?: number; exactLogCount?: number | null } = {},
+  options: { pageSize?: number; pagesFetched?: number } = {},
 ) {
   const dailyMap = new Map();
   for (let i = 0; i < days; i++) {
@@ -1771,23 +1810,15 @@ function buildOpenAICostSummary(
   const unknownModelBreakdown = Array.from(unknownModelMap.values()).sort(
     (a: any, b: any) => b.generation_count - a.generation_count,
   );
-  const exactLogCount =
-    typeof options.exactLogCount === "number" ? options.exactLogCount : null;
-  const isTruncated =
-    typeof exactLogCount === "number"
-      ? exactLogCount > logs.length
-      : options.logLimit
-        ? logs.length >= options.logLimit
-        : false;
-
   return {
     windowDays: days,
     windowStartDate: daily[0]?.date || null,
     windowEndDate: daily[daily.length - 1]?.date || null,
-    logLimit: options.logLimit || null,
-    exactGenerationLogCount: exactLogCount,
+    pageSize: options.pageSize || null,
+    pagesFetched: options.pagesFetched || null,
+    exactGenerationLogCount: logs.length,
     analyzedGenerationLogCount: logs.length,
-    isTruncated,
+    isTruncated: false,
     generatedAt: new Date().toISOString(),
     generationCount: logs.length,
     costedGenerations,
@@ -1909,33 +1940,19 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     );
 
     const costWindowDays = 30;
-    const costLogLimit = 5000;
     const costWindowStart = new Date(now);
     costWindowStart.setUTCDate(costWindowStart.getUTCDate() - (costWindowDays - 1));
     costWindowStart.setUTCHours(0, 0, 0, 0);
-    const { data: rawCostLogs, error: costLogsError } = await supabase
-      .from("api_logs")
-      .select(
-        "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
-      )
-      .eq("endpoint", "/api/generate")
-      .gte("created_at", costWindowStart.toISOString())
-      .order("created_at", { ascending: false })
-      .limit(costLogLimit + 1);
-
-    if (costLogsError) throw costLogsError;
-    const costLogs = ((rawCostLogs || []) as OpenAICostLog[]).slice(
-      0,
-      costLogLimit,
+    const costLogWindow = await fetchOpenAICostLogsForWindow(
+      costWindowStart.toISOString(),
     );
-    const costLogsTruncated = (rawCostLogs || []).length > costLogLimit;
 
     const openaiCostSummary = buildOpenAICostSummary(
-      costLogs,
+      costLogWindow.logs,
       costWindowDays,
       {
-        logLimit: costLogLimit,
-        exactLogCount: costLogsTruncated ? null : costLogs.length,
+        pageSize: costLogWindow.pageSize,
+        pagesFetched: costLogWindow.pagesFetched,
       },
     );
 

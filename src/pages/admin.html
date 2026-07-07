@@ -3982,14 +3982,9 @@
             const windowDays = Number(costSummary.windowDays || 30);
             const coveragePercent = generationCount ? Math.round((pricedGenerations / generationCount) * 100) : 0;
             const todayGenerations = Number(data.today?.generationRequests || 0);
-            const logLimit = Number(costSummary.logLimit || 0);
-            const isTruncated = Boolean(costSummary.isTruncated);
             const exactGenerationLogCount = typeof costSummary.exactGenerationLogCount === 'number'
                 ? Number(costSummary.exactGenerationLogCount)
-                : isTruncated
-                    ? null
-                    : generationCount;
-            const hasExactWindowCount = exactGenerationLogCount !== null && !isTruncated;
+                : generationCount;
             const unknownModels = Array.isArray(costSummary.unknownModelBreakdown) ? costSummary.unknownModelBreakdown : [];
             const latestUnknown = costSummary.latestUnknownCostLog || null;
             const unknownCostCopy = unknownCostGenerations
@@ -4002,17 +3997,11 @@
                 if (!value) return '';
                 return new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
             };
-            const rollingWindowCopy = hasExactWindowCount
-                ? `${exactGenerationLogCount.toLocaleString()} generation log${exactGenerationLogCount === 1 ? '' : 's'} recorded in the rolling ${windowDays}-day window`
-                : `${generationCount.toLocaleString()} newest generation logs sampled from the rolling ${windowDays}-day window`;
+            const rollingWindowCopy = `${exactGenerationLogCount.toLocaleString()} generation log${exactGenerationLogCount === 1 ? '' : 's'} recorded in the rolling ${windowDays}-day window`;
             const costBasisCopy = unknownCostGenerations
                 ? `${pricedGenerations.toLocaleString()} priced logs out of ${rollingWindowCopy}`
-                : rollingWindowCopy;
-            const dataScopeCopy = isTruncated && logLimit
-                ? `The cost query hit its ${logLimit.toLocaleString()} log cap, so this is a recent sample rather than complete historical spend.`
-                : logLimit
-                    ? `Exact for the rolling ${windowDays}-day window because it stayed under the ${logLimit.toLocaleString()} log cap.`
-                    : `Exact for the rolling ${windowDays}-day window.`;
+                : `all ${rollingWindowCopy}`;
+            const dataScopeCopy = `Complete rolling ${windowDays}-day window.`;
             const latestUnknownCopy = latestUnknown
                 ? `Latest unknown: ${escapeHtml(latestUnknown.model || 'unknown')} at ${formatCostDateTime(latestUnknown.created_at)}`
                 : '';

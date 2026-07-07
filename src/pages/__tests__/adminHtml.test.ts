@@ -78,15 +78,15 @@ function buildAdminHarness() {
       windowDays: 30,
       windowStartDate: "2026-05-24",
       windowEndDate: "2026-06-22",
-      logLimit: 5000,
-      isTruncated: false,
-      exactGenerationLogCount: 1000,
-      analyzedGenerationLogCount: 1000,
-      generationCount: 1000,
-      costedGenerations: 900,
-      unknownCostGenerations: 100,
-      totalCostUsd: 6.03,
-      totalTokens: 540000,
+      pageSize: 1000,
+      pagesFetched: 2,
+      exactGenerationLogCount: 2000,
+      analyzedGenerationLogCount: 2000,
+      generationCount: 2000,
+      costedGenerations: 1891,
+      unknownCostGenerations: 109,
+      totalCostUsd: 12.67,
+      totalTokens: 1080000,
       avgCostPerGenerationUsd: 0.0067,
       daily: [
         { date: "2026-06-22", generation_count: 76, cost_usd: 0.78, tokens: 41000 },
@@ -94,10 +94,10 @@ function buildAdminHarness() {
       modelBreakdown: [
         {
           model: "gpt-5.4",
-          generation_count: 900,
-          cost_usd: 6.03,
-          tokens: 540000,
-          unknown_cost_count: 100,
+          generation_count: 1891,
+          cost_usd: 12.67,
+          tokens: 1080000,
+          unknown_cost_count: 109,
         },
       ],
       topUsers: [
@@ -111,7 +111,7 @@ function buildAdminHarness() {
       unknownModelBreakdown: [
         {
           model: "gpt-unpriced",
-          generation_count: 100,
+          generation_count: 109,
           tokens: 32000,
           latest_created_at: "2026-06-22T12:00:00.000Z",
         },
@@ -523,14 +523,14 @@ describe("admin HTML", () => {
 
     expect(content.innerHTML).toContain("Known rolling 30-day OpenAI spend");
     expect(content.innerHTML).toContain("Estimated API cost only");
-    expect(content.innerHTML).toContain("$6.03");
+    expect(content.innerHTML).toContain("$12.67");
     expect(content.innerHTML).toContain(
-      "estimated OpenAI API cost for 900 priced logs out of 1,000 generation logs recorded in the rolling 30-day window",
+      "estimated OpenAI API cost for 1,891 priced logs out of 2,000 generation logs recorded in the rolling 30-day window",
     );
     expect(content.innerHTML).toContain("Average: $0.0067 per priced generation");
-    expect(content.innerHTML).toContain("Exact for the rolling 30-day window");
+    expect(content.innerHTML).toContain("Complete rolling 30-day window");
     expect(content.innerHTML).toContain("Latest unknown: gpt-unpriced");
-    expect(content.innerHTML).toContain("Unknown models: gpt-unpriced (100)");
+    expect(content.innerHTML).toContain("Unknown models: gpt-unpriced (109)");
     expect(content.innerHTML).not.toContain("Projected Monthly");
   });
 });

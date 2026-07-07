@@ -5,6 +5,8 @@ import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert
 import {
   CREDIT_PACK_CONFIG,
   TIER_CONFIGS,
+  getCustomBusinessEntitlementForStripePriceId,
+  getTierByStripePriceId,
   normalizeTier,
 } from "../../utils/tierConfig";
 
@@ -19,9 +21,7 @@ function getStripeId(
 
 function getTierFromPriceId(priceId?: string | null) {
   if (!priceId) return null;
-  const match = Object.values(TIER_CONFIGS).find(
-    (config) => config.stripe.priceId === priceId,
-  );
+  const match = getTierByStripePriceId(priceId);
   return match?.id || null;
 }
 
@@ -34,15 +34,18 @@ function getSubscriptionPlanDetails(session: Stripe.Checkout.Session) {
     session.metadata?.tier || getTierFromPriceId(priceId),
   );
   const config = TIER_CONFIGS[tier];
+  const customEntitlement =
+    getCustomBusinessEntitlementForStripePriceId(priceId);
 
   if (!config || tier === "free") return null;
 
   return {
     tier,
     name: config.displayName,
-    monthly_price_eur: config.monthlyPrice,
-    daily_limit: config.limits.daily,
-    monthly_limit: config.limits.monthly,
+    monthly_price_eur:
+      customEntitlement?.monthlyPriceEur ?? config.monthlyPrice,
+    daily_limit: customEntitlement?.dailyLimit ?? config.limits.daily,
+    monthly_limit: customEntitlement?.monthlyLimit ?? config.limits.monthly,
   };
 }
 

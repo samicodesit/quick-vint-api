@@ -39,6 +39,14 @@ export type EntitlementProfile = {
   is_legacy_plan?: boolean | null;
 };
 
+export type CustomBusinessEntitlement = {
+  tier: "business";
+  monthlyPriceEur: number;
+  dailyLimit: number;
+  monthlyLimit: number;
+  reason: string;
+};
+
 export function normalizeTier(tier?: string | null): TierKey {
   const map: Record<string, TierKey> = {
     unlimited_monthly: "starter",
@@ -288,6 +296,47 @@ export const ENTERPRISE_TIER = {
   // Custom pricing, dedicated infrastructure, SLA, etc.
 };
 
+function getPositiveIntegerEnv(name: string, fallback: number): number {
+  const value = Number.parseInt(process.env[name] || "", 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function getPositiveNumberEnv(name: string, fallback: number): number {
+  const value = Number.parseFloat(process.env[name] || "");
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function getCustomBusinessPriceIds(): string[] {
+  return (process.env.STRIPE_CUSTOM_BUSINESS_PRICE_IDS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+export function isCustomBusinessStripePriceId(
+  priceId?: string | null,
+): boolean {
+  if (!priceId) return false;
+  return getCustomBusinessPriceIds().includes(priceId);
+}
+
+export function getCustomBusinessEntitlementForStripePriceId(
+  priceId?: string | null,
+): CustomBusinessEntitlement | null {
+  if (!isCustomBusinessStripePriceId(priceId)) return null;
+
+  return {
+    tier: "business",
+    monthlyPriceEur: getPositiveNumberEnv(
+      "CUSTOM_BUSINESS_MONTHLY_PRICE_EUR",
+      34.99,
+    ),
+    dailyLimit: getPositiveIntegerEnv("CUSTOM_BUSINESS_DAILY_LIMIT", 100),
+    monthlyLimit: getPositiveIntegerEnv("CUSTOM_BUSINESS_MONTHLY_LIMIT", 1000),
+    reason: "Custom Business setup",
+  };
+}
+
 // Helper functions for working with tiers
 export function getTierByStripeProductId(productId: string): TierConfig | null {
   for (const tierConfig of Object.values(TIER_CONFIGS)) {
@@ -299,6 +348,10 @@ export function getTierByStripeProductId(productId: string): TierConfig | null {
 }
 
 export function getTierByStripePriceId(priceId: string): TierConfig | null {
+  if (isCustomBusinessStripePriceId(priceId)) {
+    return TIER_CONFIGS.business;
+  }
+
   for (const tierConfig of Object.values(TIER_CONFIGS)) {
     if (tierConfig.stripe.priceId === priceId) {
       return tierConfig;

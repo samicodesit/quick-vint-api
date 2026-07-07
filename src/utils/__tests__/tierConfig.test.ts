@@ -7,6 +7,8 @@ import {
   getPricingLimitsModeForExtension,
   getPricingLimitsMode,
   getEffectiveTier,
+  getCustomBusinessEntitlementForStripePriceId,
+  getTierByStripePriceId,
   getNextTier,
   getTierConfigForProfile,
   hasUnlimitedDailyLimit,
@@ -15,6 +17,10 @@ import {
 describe("tier entitlements", () => {
   afterEach(() => {
     delete process.env.PRICING_LIMITS_MODE;
+    delete process.env.STRIPE_CUSTOM_BUSINESS_PRICE_IDS;
+    delete process.env.CUSTOM_BUSINESS_DAILY_LIMIT;
+    delete process.env.CUSTOM_BUSINESS_MONTHLY_LIMIT;
+    delete process.env.CUSTOM_BUSINESS_MONTHLY_PRICE_EUR;
   });
 
   it("defaults to current mode when the env var is missing", () => {
@@ -159,6 +165,28 @@ describe("tier entitlements", () => {
       id: "credits_20",
       credits: 20,
       priceEur: 5.99,
+    });
+  });
+
+  it("maps configured custom Business Stripe prices to Business entitlements", () => {
+    process.env.STRIPE_CUSTOM_BUSINESS_PRICE_IDS =
+      "price_custom_business_34_99";
+    process.env.CUSTOM_BUSINESS_DAILY_LIMIT = "100";
+    process.env.CUSTOM_BUSINESS_MONTHLY_LIMIT = "1000";
+    process.env.CUSTOM_BUSINESS_MONTHLY_PRICE_EUR = "34.99";
+
+    expect(getTierByStripePriceId("price_custom_business_34_99")?.id).toBe(
+      "business",
+    );
+    expect(
+      getCustomBusinessEntitlementForStripePriceId(
+        "price_custom_business_34_99",
+      ),
+    ).toMatchObject({
+      tier: "business",
+      monthlyPriceEur: 34.99,
+      dailyLimit: 100,
+      monthlyLimit: 1000,
     });
   });
 });

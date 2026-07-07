@@ -80,6 +80,7 @@ function queueCommonPreflight() {
   queueSingle("profiles", {
     data: {
       custom_daily_limit: null,
+      custom_monthly_limit: null,
       custom_limit_expires_at: null,
       custom_limit_reason: null,
     },
@@ -169,6 +170,111 @@ describe("RateLimiter entitlement decisions", () => {
       currentTier: "starter",
       nextTier: "pro",
       currentLimit: 75,
+    });
+  });
+
+  it("uses active custom monthly and daily limits for paid users", async () => {
+    queueSingle("system_settings", { data: null, error: null });
+    queueSingle("daily_stats", {
+      data: { total_api_calls: 0, estimated_cost: 0 },
+      error: null,
+    });
+    queueSingle("profiles", {
+      data: {
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+        custom_limit_reason: "Custom Business setup",
+      },
+      error: null,
+    });
+    queueRateCount(0);
+    queueRateCount(99);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.checkRateLimit("user-custom-business", {
+      subscription_status: "active",
+      subscription_tier: "business",
+      api_calls_this_month: 999,
+      is_legacy_plan: false,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      remainingRequests: {
+        day: 0,
+        month: 0,
+      },
+    });
+  });
+
+  it("enforces active custom daily limits even in legacy Business mode", async () => {
+    process.env.PRICING_LIMITS_MODE = "legacy";
+    queueSingle("system_settings", { data: null, error: null });
+    queueSingle("daily_stats", {
+      data: { total_api_calls: 0, estimated_cost: 0 },
+      error: null,
+    });
+    queueSingle("profiles", {
+      data: {
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+        custom_limit_reason: "Custom Business setup",
+      },
+      error: null,
+    });
+    queueRateCount(0);
+    queueRateCount(100);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.checkRateLimit("user-custom-business", {
+      subscription_status: "active",
+      subscription_tier: "business",
+      api_calls_this_month: 500,
+      is_legacy_plan: false,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      code: "daily_limit",
+      currentTier: "business",
+      currentLimit: 100,
+    });
+  });
+
+  it("blocks paid users at an active custom monthly limit", async () => {
+    queueSingle("system_settings", { data: null, error: null });
+    queueSingle("daily_stats", {
+      data: { total_api_calls: 0, estimated_cost: 0 },
+      error: null,
+    });
+    queueSingle("profiles", {
+      data: {
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+        custom_limit_reason: "Custom Business setup",
+      },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.checkRateLimit("user-custom-business", {
+      subscription_status: "active",
+      subscription_tier: "business",
+      api_calls_this_month: 1000,
+      is_legacy_plan: false,
+      pack_credits: 0,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      code: "monthly_limit",
+      currentTier: "business",
+      currentLimit: 1000,
     });
   });
 
@@ -304,13 +410,16 @@ describe("RateLimiter entitlement decisions", () => {
     queueCommonPreflight();
 
     const { RateLimiter } = await import("../../../utils/rateLimiter.js");
-    const result = await RateLimiter.getGenerationCapacity("user-free-three-left", {
-      subscription_status: "free",
-      subscription_tier: "free",
-      api_calls_this_month: 0,
-      free_lifetime_generations_used: 2,
-      pack_credits: 0,
-    });
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-free-three-left",
+      {
+        subscription_status: "free",
+        subscription_tier: "free",
+        api_calls_this_month: 0,
+        free_lifetime_generations_used: 2,
+        pack_credits: 0,
+      },
+    );
 
     expect(result).toMatchObject({
       allowed: true,
@@ -329,13 +438,16 @@ describe("RateLimiter entitlement decisions", () => {
     queueCommonPreflight();
 
     const { RateLimiter } = await import("../../../utils/rateLimiter.js");
-    const result = await RateLimiter.getGenerationCapacity("user-free-pack-capacity", {
-      subscription_status: "free",
-      subscription_tier: "free",
-      api_calls_this_month: 999,
-      free_lifetime_generations_used: 5,
-      pack_credits: 4,
-    });
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-free-pack-capacity",
+      {
+        subscription_status: "free",
+        subscription_tier: "free",
+        api_calls_this_month: 999,
+        free_lifetime_generations_used: 5,
+        pack_credits: 4,
+      },
+    );
 
     expect(result).toMatchObject({
       allowed: true,
@@ -353,13 +465,16 @@ describe("RateLimiter entitlement decisions", () => {
     queueRateCount(7);
 
     const { RateLimiter } = await import("../../../utils/rateLimiter.js");
-    const result = await RateLimiter.getGenerationCapacity("user-starter-capacity", {
-      subscription_status: "active",
-      subscription_tier: "starter",
-      api_calls_this_month: 70,
-      is_legacy_plan: false,
-      pack_credits: 0,
-    });
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-starter-capacity",
+      {
+        subscription_status: "active",
+        subscription_tier: "starter",
+        api_calls_this_month: 70,
+        is_legacy_plan: false,
+        pack_credits: 0,
+      },
+    );
 
     expect(result).toMatchObject({
       allowed: true,
@@ -379,13 +494,16 @@ describe("RateLimiter entitlement decisions", () => {
     queueRateCount(10);
 
     const { RateLimiter } = await import("../../../utils/rateLimiter.js");
-    const result = await RateLimiter.getGenerationCapacity("user-pro-pack-capacity", {
-      subscription_status: "active",
-      subscription_tier: "pro",
-      api_calls_this_month: 249,
-      is_legacy_plan: false,
-      pack_credits: 6,
-    });
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-pro-pack-capacity",
+      {
+        subscription_status: "active",
+        subscription_tier: "pro",
+        api_calls_this_month: 249,
+        is_legacy_plan: false,
+        pack_credits: 6,
+      },
+    );
 
     expect(result).toMatchObject({
       allowed: true,
@@ -398,19 +516,68 @@ describe("RateLimiter entitlement decisions", () => {
     });
   });
 
+  it("reports custom paid batch capacity and limits", async () => {
+    queueSingle("system_settings", { data: null, error: null });
+    queueSingle("daily_stats", {
+      data: { total_api_calls: 0, estimated_cost: 0 },
+      error: null,
+    });
+    queueSingle("profiles", {
+      data: {
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+        custom_limit_reason: "Custom Business setup",
+      },
+      error: null,
+    });
+    queueRateCount(0);
+    queueRateCount(20);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-custom-business",
+      {
+        subscription_status: "active",
+        subscription_tier: "business",
+        api_calls_this_month: 900,
+        is_legacy_plan: false,
+        pack_credits: 0,
+      },
+    );
+
+    expect(result).toMatchObject({
+      allowed: true,
+      available: 80,
+      tier: "business",
+      limits: {
+        daily: 100,
+        monthly: 1000,
+      },
+      remaining: {
+        day: 80,
+        month: 100,
+        packCredits: 0,
+      },
+    });
+  });
+
   it("reports zero paid batch capacity when hard limits and pack credits are exhausted", async () => {
     queueCommonPreflight();
     queueRateCount(0);
     queueRateCount(10);
 
     const { RateLimiter } = await import("../../../utils/rateLimiter.js");
-    const result = await RateLimiter.getGenerationCapacity("user-starter-zero-capacity", {
-      subscription_status: "active",
-      subscription_tier: "starter",
-      api_calls_this_month: 75,
-      is_legacy_plan: false,
-      pack_credits: 0,
-    });
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-starter-zero-capacity",
+      {
+        subscription_status: "active",
+        subscription_tier: "starter",
+        api_calls_this_month: 75,
+        is_legacy_plan: false,
+        pack_credits: 0,
+      },
+    );
 
     expect(result).toMatchObject({
       allowed: false,
@@ -466,6 +633,99 @@ describe("RateLimiter entitlement decisions", () => {
         p_monthly_limit: 75,
         p_daily_limit: 10,
         p_burst_limit: 10,
+      },
+    });
+  });
+
+  it("passes active custom limits into the atomic reservation RPC", async () => {
+    queueRpc({
+      data: {
+        allowed: true,
+        reservationId: "reservation-custom",
+        remainingRequests: {
+          minute: 29,
+          day: 99,
+          month: 999,
+          packCredits: 0,
+        },
+      },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveGenerationRequest(
+      "user-custom-business",
+      {
+        subscription_status: "active",
+        subscription_tier: "business",
+        api_calls_this_month: 0,
+        is_legacy_plan: false,
+        pack_credits: 0,
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+      },
+    );
+
+    expect(result).toMatchObject({
+      allowed: true,
+      reservationId: "reservation-custom",
+    });
+    expect(rpcCalls[0]).toMatchObject({
+      name: "reserve_generation_request",
+      params: {
+        p_user_id: "user-custom-business",
+        p_effective_tier: "business",
+        p_monthly_limit: 1000,
+        p_daily_limit: 100,
+        p_burst_limit: 30,
+      },
+    });
+  });
+
+  it("passes a custom daily cap into the reservation RPC even in legacy mode", async () => {
+    queueRpc({
+      data: {
+        allowed: true,
+        reservationId: "reservation-custom-legacy",
+        remainingRequests: {
+          minute: 29,
+          day: 99,
+          month: 999,
+          packCredits: 0,
+        },
+      },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveGenerationRequest(
+      "user-custom-business",
+      {
+        subscription_status: "active",
+        subscription_tier: "business",
+        api_calls_this_month: 0,
+        is_legacy_plan: false,
+        pack_credits: 0,
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+      },
+      "legacy",
+    );
+
+    expect(result).toMatchObject({
+      allowed: true,
+      reservationId: "reservation-custom-legacy",
+    });
+    expect(rpcCalls[0]).toMatchObject({
+      name: "reserve_generation_request",
+      params: {
+        p_user_id: "user-custom-business",
+        p_effective_tier: "business",
+        p_monthly_limit: 1000,
+        p_daily_limit: 100,
+        p_has_unlimited_daily: false,
       },
     });
   });

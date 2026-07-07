@@ -119,6 +119,10 @@ describe("Stripe webhook subscription usage reset", () => {
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = "sk_test";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    delete process.env.STRIPE_CUSTOM_BUSINESS_PRICE_IDS;
+    delete process.env.CUSTOM_BUSINESS_MONTHLY_PRICE_EUR;
+    delete process.env.CUSTOM_BUSINESS_DAILY_LIMIT;
+    delete process.env.CUSTOM_BUSINESS_MONTHLY_LIMIT;
     updateCalls.length = 0;
     selectQueues.clear();
     vi.clearAllMocks();
@@ -232,6 +236,58 @@ describe("Stripe webhook subscription usage reset", () => {
       abuse_notes: null,
       paused_at: null,
       paused_by: null,
+    });
+  });
+
+  it("activates custom Business limits from a subscription-level period end", async () => {
+    process.env.STRIPE_CUSTOM_BUSINESS_PRICE_IDS = "price_custom_business";
+    constructEventMock.mockReturnValue({
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_custom",
+          customer: "cus_123",
+          status: "active",
+          current_period_end: 1784592000,
+          items: {
+            data: [
+              {
+                price: { id: "price_custom_business" },
+              },
+            ],
+          },
+        },
+      },
+    });
+    queueSelect("profiles", { data: { id: "profile_123" } });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+        is_legacy_plan: false,
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].values).toMatchObject({
+      stripe_subscription_id: "sub_custom",
+      subscription_tier: "business",
+      subscription_status: "active",
+      current_period_end: "2026-07-21T00:00:00.000Z",
+      is_legacy_plan: false,
+      custom_daily_limit: 100,
+      custom_monthly_limit: 1000,
+      custom_limit_expires_at: "2026-07-21T00:00:00.000Z",
+      custom_limit_reason: "Custom Business setup",
+      api_calls_this_month: 0,
     });
   });
 

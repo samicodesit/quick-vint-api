@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, is_legacy_plan, free_lifetime_generations_used, pack_credits, account_status, abuse_reason",
+      "api_calls_this_month, subscription_status, subscription_tier, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason",
     )
     .eq("id", user.id)
     .single();
@@ -87,6 +87,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       profile?.free_lifetime_generations_used || 0,
     ),
     pack_credits: Number(profile?.pack_credits || 0),
+    custom_daily_limit:
+      typeof profile?.custom_daily_limit === "number"
+        ? profile.custom_daily_limit
+        : null,
+    custom_monthly_limit:
+      typeof profile?.custom_monthly_limit === "number"
+        ? profile.custom_monthly_limit
+        : null,
+    custom_limit_expires_at: profile?.custom_limit_expires_at || null,
   };
   const extensionVersionHeader = req.headers["x-autolister-extension-version"];
   const extensionVersion = Array.isArray(extensionVersionHeader)

@@ -6,6 +6,7 @@ import { supabase } from "../../utils/supabaseClient";
 import { ApiLogger } from "../../utils/apiLogger";
 import {
   CREDIT_PACK_CONFIG,
+  getCustomBusinessEntitlementForStripePriceId,
   getTierByStripePriceId,
 } from "../../utils/tierConfig";
 import { buildSubscriptionProfileUpdate } from "../../src/utils/subscriptionUsageReset";
@@ -17,6 +18,33 @@ export const config = { api: { bodyParser: false } };
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
+
+function buildCustomBusinessLimitUpdate(
+  priceId: string | undefined,
+  currentPeriodEnd: string | null,
+) {
+  const customEntitlement =
+    getCustomBusinessEntitlementForStripePriceId(priceId);
+
+  if (!customEntitlement) return {};
+
+  return {
+    custom_daily_limit: customEntitlement.dailyLimit,
+    custom_monthly_limit: customEntitlement.monthlyLimit,
+    custom_limit_expires_at: currentPeriodEnd,
+    custom_limit_reason: customEntitlement.reason,
+  };
+}
+
+function getSubscriptionCurrentPeriodEnd(subscription: any): string | null {
+  const rawEnd =
+    subscription?.items?.data?.[0]?.current_period_end ??
+    subscription?.current_period_end;
+
+  return typeof rawEnd === "number"
+    ? new Date(rawEnd * 1000).toISOString()
+    : null;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -125,12 +153,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const tier = tierConfig?.name || "free";
           const status = subscription.status as string;
 
-          // Pull current_period_end from items.data[0]
-          const rawEnd = subscription.items.data[0]?.current_period_end;
-          let currentPeriodEnd: string | null = null;
-          if (typeof rawEnd === "number") {
-            currentPeriodEnd = new Date(rawEnd * 1000).toISOString();
-          }
+          const currentPeriodEnd =
+            getSubscriptionCurrentPeriodEnd(subscription);
 
           // 2a) Upsert stripe_customer_id
           await supabase
@@ -156,6 +180,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               currentPeriodEnd,
               isLegacyPlan: false,
             });
+            Object.assign(
+              updateData,
+              buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
+            );
 
             await supabase
               .from("profiles")
@@ -203,14 +231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const tier = tierConfig?.name || "free";
         const status = subscription.status as string;
 
-        // Pull current_period_end from items.data[0]
-        const rawEnd = subAny.items.data[0]?.current_period_end as
-          | number
-          | undefined;
-        let currentPeriodEnd: string | null = null;
-        if (typeof rawEnd === "number") {
-          currentPeriodEnd = new Date(rawEnd * 1000).toISOString();
-        }
+        const currentPeriodEnd = getSubscriptionCurrentPeriodEnd(subAny);
 
         // 1) Try find profile by stripe_customer_id
         let { data: profileRow } = await supabase
@@ -256,6 +277,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             currentPeriodEnd,
             isLegacyPlan: keepLegacy,
           });
+          Object.assign(
+            updateData,
+            buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
+          );
 
           await supabase
             .from("profiles")
@@ -285,6 +310,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               subscription_tier: "free",
               current_period_end: null,
               is_legacy_plan: false,
+              custom_daily_limit: null,
+              custom_monthly_limit: null,
+              custom_limit_expires_at: null,
+              custom_limit_reason: null,
             })
             .eq("id", profileRow.id);
         }

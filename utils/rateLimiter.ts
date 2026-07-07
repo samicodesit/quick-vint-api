@@ -59,6 +59,7 @@ export interface UserProfile {
   free_lifetime_generations_used?: number | null;
   pack_credits?: number | null;
   custom_daily_limit?: number | null;
+  custom_monthly_limit?: number | null;
   custom_limit_expires_at?: string | null;
 }
 
@@ -82,6 +83,40 @@ export interface GenerationCapacity {
     freeLifetime?: number | null;
     packCredits: number;
   };
+}
+
+function hasActiveCustomLimits(profile: UserProfile): boolean {
+  return Boolean(
+    profile.custom_limit_expires_at &&
+    new Date(profile.custom_limit_expires_at) > new Date(),
+  );
+}
+
+function getActiveCustomDailyLimit(profile: UserProfile): number | null {
+  if (
+    hasActiveCustomLimits(profile) &&
+    typeof profile.custom_daily_limit === "number" &&
+    profile.custom_daily_limit > 0
+  ) {
+    return profile.custom_daily_limit;
+  }
+
+  return null;
+}
+
+function getEffectiveMonthlyLimit(
+  profile: UserProfile,
+  defaultLimit: number,
+): number {
+  if (
+    hasActiveCustomLimits(profile) &&
+    typeof profile.custom_monthly_limit === "number" &&
+    profile.custom_monthly_limit > 0
+  ) {
+    return profile.custom_monthly_limit;
+  }
+
+  return defaultLimit;
 }
 
 export class RateLimiter {
@@ -313,13 +348,23 @@ export class RateLimiter {
       const { data: customLimits } = await supabase
         .from("profiles")
         .select(
-          "custom_daily_limit, custom_limit_expires_at, custom_limit_reason",
+          "custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, custom_limit_reason",
         )
         .eq("id", userId)
         .single();
 
       const tierKey = getEffectiveTier(profile);
       const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
+      const profileWithCustomLimits = {
+        ...profile,
+        custom_daily_limit: customLimits?.custom_daily_limit ?? null,
+        custom_monthly_limit: customLimits?.custom_monthly_limit ?? null,
+        custom_limit_expires_at: customLimits?.custom_limit_expires_at ?? null,
+      };
+      const effectiveMonthlyLimit = getEffectiveMonthlyLimit(
+        profileWithCustomLimits,
+        tierConfig.limits.monthly,
+      );
       const nextTier = getNextTier(tierKey);
 
       // Free users use a lifetime trial plus optional pack credits, not
@@ -377,7 +422,7 @@ export class RateLimiter {
       const packCredits = Math.max(0, profile.pack_credits || 0);
 
       // 3. Check monthly limit. Pack credits can top up any tier.
-      if (profile.api_calls_this_month >= tierConfig.limits.monthly) {
+      if (profile.api_calls_this_month >= effectiveMonthlyLimit) {
         if (packCredits > 0) {
           return {
             allowed: true,
@@ -396,7 +441,7 @@ export class RateLimiter {
           currentTier: tierKey,
           nextTier,
           limitScope: "month",
-          currentLimit: tierConfig.limits.monthly,
+          currentLimit: effectiveMonthlyLimit,
           error:
             "Monthly usage limit reached. Please upgrade your plan or try again next month.",
         };
@@ -419,18 +464,14 @@ export class RateLimiter {
       }
       // 5. Check daily limits. In compatibility mode, Business keeps the old
       // no-daily-cap behavior until the extension rollout is complete.
-      let effectiveDailyLimit: number | null = null;
-      if (hasUnlimitedDailyLimit(profile, pricingLimitsMode)) {
-        effectiveDailyLimit = null;
-      } else if (
-        customLimits?.custom_daily_limit &&
-        customLimits.custom_limit_expires_at &&
-        new Date(customLimits.custom_limit_expires_at) > new Date()
-      ) {
-        effectiveDailyLimit = customLimits.custom_daily_limit;
-      } else {
-        effectiveDailyLimit = tierConfig.limits.daily;
-      }
+      const activeCustomDailyLimit = getActiveCustomDailyLimit(
+        profileWithCustomLimits,
+      );
+      const effectiveDailyLimit =
+        activeCustomDailyLimit ??
+        (hasUnlimitedDailyLimit(profile, pricingLimitsMode)
+          ? null
+          : tierConfig.limits.daily);
 
       if (effectiveDailyLimit !== null && dayCount >= effectiveDailyLimit) {
         if (packCredits > 0) {
@@ -444,7 +485,7 @@ export class RateLimiter {
               day: 0,
               month: Math.max(
                 0,
-                tierConfig.limits.monthly - profile.api_calls_this_month - 1,
+                effectiveMonthlyLimit - profile.api_calls_this_month - 1,
               ),
               packCredits,
             },
@@ -478,7 +519,7 @@ export class RateLimiter {
               : null,
           month: Math.max(
             0,
-            tierConfig.limits.monthly - profile.api_calls_this_month - 1,
+            effectiveMonthlyLimit - profile.api_calls_this_month - 1,
           ),
         },
       };
@@ -496,18 +537,25 @@ export class RateLimiter {
   ): Promise<RateLimitResult> {
     const tierKey = getEffectiveTier(profile);
     const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
-    const hasUnlimitedDaily = hasUnlimitedDailyLimit(
+    const monthlyLimit = getEffectiveMonthlyLimit(
       profile,
-      pricingLimitsMode,
+      tierConfig.limits.monthly,
     );
+    const activeCustomDailyLimit = getActiveCustomDailyLimit(profile);
+    const hasUnlimitedDaily =
+      activeCustomDailyLimit === null &&
+      hasUnlimitedDailyLimit(profile, pricingLimitsMode);
+    const dailyLimit =
+      activeCustomDailyLimit ??
+      (hasUnlimitedDaily ? null : tierConfig.limits.daily);
 
     try {
       const { data, error } = await supabase.rpc("reserve_generation_request", {
         p_user_id: userId,
         p_pricing_limits_mode: pricingLimitsMode,
         p_effective_tier: tierKey,
-        p_monthly_limit: tierConfig.limits.monthly,
-        p_daily_limit: hasUnlimitedDaily ? null : tierConfig.limits.daily,
+        p_monthly_limit: monthlyLimit,
+        p_daily_limit: dailyLimit,
         p_burst_limit: tierConfig.limits.burst.perMinute,
         p_free_lifetime_limit: FREE_LIFETIME_LIMIT,
         p_has_unlimited_daily: hasUnlimitedDaily,
@@ -778,10 +826,16 @@ export class RateLimiter {
       const { data: customLimits } = await supabase
         .from("profiles")
         .select(
-          "custom_daily_limit, custom_limit_expires_at, custom_limit_reason",
+          "custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, custom_limit_reason",
         )
         .eq("id", userId)
         .single();
+      const profileWithCustomLimits = {
+        ...profile,
+        custom_daily_limit: customLimits?.custom_daily_limit ?? null,
+        custom_monthly_limit: customLimits?.custom_monthly_limit ?? null,
+        custom_limit_expires_at: customLimits?.custom_limit_expires_at ?? null,
+      };
 
       if (pricingLimitsMode === "current" && tierKey === "free") {
         const freeUsed = Math.max(
@@ -817,23 +871,20 @@ export class RateLimiter {
       const minuteCount = await this.getCurrentCount(userId, "minute");
       const dayCount = await this.getCurrentCount(userId, "day");
       const monthlyUsed = Math.max(0, profile.api_calls_this_month || 0);
-      const monthRemaining = Math.max(
-        0,
-        tierConfig.limits.monthly - monthlyUsed,
+      const effectiveMonthlyLimit = getEffectiveMonthlyLimit(
+        profileWithCustomLimits,
+        tierConfig.limits.monthly,
       );
+      const monthRemaining = Math.max(0, effectiveMonthlyLimit - monthlyUsed);
 
-      let effectiveDailyLimit: number | null = null;
-      if (hasUnlimitedDailyLimit(profile, pricingLimitsMode)) {
-        effectiveDailyLimit = null;
-      } else if (
-        customLimits?.custom_daily_limit &&
-        customLimits.custom_limit_expires_at &&
-        new Date(customLimits.custom_limit_expires_at) > new Date()
-      ) {
-        effectiveDailyLimit = customLimits.custom_daily_limit;
-      } else {
-        effectiveDailyLimit = tierConfig.limits.daily;
-      }
+      const activeCustomDailyLimit = getActiveCustomDailyLimit(
+        profileWithCustomLimits,
+      );
+      const effectiveDailyLimit =
+        activeCustomDailyLimit ??
+        (hasUnlimitedDailyLimit(profile, pricingLimitsMode)
+          ? null
+          : tierConfig.limits.daily);
 
       const dayRemaining =
         effectiveDailyLimit === null
@@ -867,7 +918,7 @@ export class RateLimiter {
         message,
         limits: {
           daily: effectiveDailyLimit,
-          monthly: tierConfig.limits.monthly,
+          monthly: effectiveMonthlyLimit,
           burstPerMinute: tierConfig.limits.burst.perMinute,
         },
         remaining: {
@@ -900,7 +951,7 @@ export class RateLimiter {
       const { data: profile } = await supabase
         .from("profiles")
         .select(
-          "subscription_status, subscription_tier, api_calls_this_month, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_limit_expires_at",
+          "subscription_status, subscription_tier, api_calls_this_month, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at",
         )
         .eq("id", userId)
         .single();
@@ -949,21 +1000,19 @@ export class RateLimiter {
           pricingLimitsMode,
         );
         const dayCount = await this.getCurrentCount(userId, "day");
-        const customDailyLimit =
-          typeof (paidProfile as any).custom_daily_limit === "number" &&
-          (paidProfile as any).custom_limit_expires_at &&
-          new Date((paidProfile as any).custom_limit_expires_at) > new Date()
-            ? (paidProfile as any).custom_daily_limit
-            : null;
-        const dailyLimit = hasUnlimitedDailyLimit(
+        const customDailyLimit = getActiveCustomDailyLimit(paidProfile);
+        const dailyLimit =
+          customDailyLimit ??
+          (hasUnlimitedDailyLimit(paidProfile, pricingLimitsMode)
+            ? null
+            : tierConfig.limits.daily);
+        const monthlyLimit = getEffectiveMonthlyLimit(
           paidProfile,
-          pricingLimitsMode,
-        )
-          ? null
-          : (customDailyLimit ?? tierConfig.limits.daily);
+          tierConfig.limits.monthly,
+        );
         const isOverPlan =
           (dailyLimit !== null && dayCount >= dailyLimit) ||
-          (paidProfile.api_calls_this_month || 0) >= tierConfig.limits.monthly;
+          (paidProfile.api_calls_this_month || 0) >= monthlyLimit;
 
         if (isOverPlan && Math.max(0, paidProfile.pack_credits || 0) > 0) {
           const { error: consumeError } = await supabase.rpc(
@@ -985,7 +1034,7 @@ export class RateLimiter {
           }
         }
 
-        if (!hasUnlimitedDailyLimit(paidProfile, pricingLimitsMode)) {
+        if (dailyLimit !== null) {
           ops.push(this.incrementCount(userId, "day"));
         }
       }

@@ -70,7 +70,14 @@ function buildAdminHarness() {
 
   const now = new Date("2026-06-22T12:00:00.000Z").toISOString();
   const usage = {
-    today: { totalRequests: 12, estimatedCost: 0.02, rateLimitErrors: 0, avgTokensPerRequest: 900 },
+    today: {
+      totalRequests: 0,
+      generationRequests: 0,
+      pricedGenerations: 0,
+      estimatedCost: 0,
+      rateLimitErrors: 0,
+      avgTokensPerRequest: 0,
+    },
     totalUsers: 100,
     topUsers: [],
     lastWeek: [{ date: "2026-06-22", total_api_calls: 12, estimated_cost: 0.02 }],
@@ -523,6 +530,8 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("Rolling 30-day AI spend");
     expect(content.innerHTML).toContain("Estimated API cost only");
     expect(content.innerHTML).toContain("$12.67");
+    expect(content.innerHTML).toContain("$0.00");
+    expect(content.innerHTML).toContain("0 priced generations");
     expect(content.innerHTML).toContain("1,891 priced generations");
     expect(content.innerHTML).toContain("1,080,000 tokens");
     expect(content.innerHTML).toContain("$0.0067 avg per priced generation");

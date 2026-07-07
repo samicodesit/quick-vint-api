@@ -3975,11 +3975,11 @@
             const totalOpenAICost = Number(costSummary.totalCostUsd || 0);
             const avgOpenAICost = Number(costSummary.avgCostPerGenerationUsd || 0);
             const unknownCostGenerations = Number(costSummary.unknownCostGenerations || 0);
-            const todayCost = costDaily.length ? Number(costDaily[costDaily.length - 1]?.cost_usd || 0) : Number(data.today?.estimatedCost || 0);
+            const todayCost = Number(data.today?.estimatedCost || 0);
             const pricedGenerations = Number(costSummary.costedGenerations || 0);
             const totalTokens = Number(costSummary.totalTokens || 0);
             const windowDays = Number(costSummary.windowDays || 30);
-            const todayGenerations = costDaily.length ? Number(costDaily[costDaily.length - 1]?.openai_call_count || 0) : Number(data.today?.generationRequests || 0);
+            const todayGenerations = Number(data.today?.pricedGenerations || 0);
             const unknownModels = Array.isArray(costSummary.unknownModelBreakdown) ? costSummary.unknownModelBreakdown : [];
             const latestUnknown = costSummary.latestUnknownCostLog || null;
             const unknownCostCopy = unknownCostGenerations

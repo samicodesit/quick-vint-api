@@ -1911,6 +1911,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     let todayUsage = {
       totalRequests: todayStats?.total_api_calls || 0,
       generationRequests: todayStats?.total_api_calls || 0,
+      pricedGenerations: 0,
       eventLogs: 0,
       totalTokens: 0,
       rateLimitErrors: 0,
@@ -1942,10 +1943,14 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         (sum: number, log: any) => sum + (log.openai_tokens_used || 0),
         0,
       );
+      const pricedGenerationLogs = generationLogs.filter(
+        (log: any) => typeof getLogEstimatedOpenAICost(log) === "number",
+      );
 
       todayUsage = {
         totalRequests: logs.length,
         generationRequests: generationLogs.length,
+        pricedGenerations: pricedGenerationLogs.length,
         eventLogs: eventLogs.length,
         totalTokens,
         rateLimitErrors: logs.filter((log: any) => log.response_status === 429)

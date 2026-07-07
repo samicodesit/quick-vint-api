@@ -10,8 +10,8 @@ function normalizeEmail(value: unknown) {
 
 function parseExpiryDays(value: unknown) {
   const parsed = Number.parseInt(String(value || ""), 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return 120;
-  return Math.min(parsed, 365);
+  if (!Number.isFinite(parsed) || parsed < 1) return 3650;
+  return Math.min(parsed, 3650);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

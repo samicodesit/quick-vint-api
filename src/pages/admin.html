@@ -7117,7 +7117,7 @@
                         'Authorization': `Bearer ${state.secret}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email, expires_in_days: 120 })
+                    body: JSON.stringify({ email, expires_in_days: 3650 })
                 });
 
                 const data = await res.json();

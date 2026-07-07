@@ -325,6 +325,10 @@ export function getCustomBusinessEntitlementForStripePriceId(
 ): CustomBusinessEntitlement | null {
   if (!isCustomBusinessStripePriceId(priceId)) return null;
 
+  return getCustomBusinessEntitlementDefaults();
+}
+
+export function getCustomBusinessEntitlementDefaults(): CustomBusinessEntitlement {
   return {
     tier: "business",
     monthlyPriceEur: getPositiveNumberEnv(

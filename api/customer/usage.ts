@@ -2,7 +2,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { verifyCustomerUsageToken } from "../../utils/customerUsageToken";
 import { RateLimiter, type UserProfile } from "../../utils/rateLimiter";
 import { supabase } from "../../utils/supabaseClient";
-import { getEffectiveTier } from "../../utils/tierConfig";
+import {
+  getCustomBusinessEntitlementDefaults,
+  getEffectiveTier,
+} from "../../utils/tierConfig";
 
 function positiveNumber(value: unknown) {
   const parsed = Number(value || 0);
@@ -91,16 +94,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const monthlyLimit = capacity.limits.monthly;
     const customActive = hasActiveCustomLimits(profile);
     const tier = getEffectiveTier(profile);
+    const offer = getCustomBusinessEntitlementDefaults();
 
     return res.status(200).json({
       customer: {
         email: profile.email,
       },
       setup: {
-        label: customActive ? "Custom Business setup" : "Business setup",
-        status: profile.subscription_status === "active" ? "active" : "pending",
+        label: customActive ? "Custom Business setup" : "Pending activation",
+        status: customActive ? "active" : "pending",
         tier,
         customActive,
+        offer: {
+          label: offer.reason,
+          monthlyPriceEur: offer.monthlyPriceEur,
+          dailyLimit: offer.dailyLimit,
+          monthlyLimit: offer.monthlyLimit,
+        },
         currentPeriodEnd: profile.current_period_end || null,
         customLimitExpiresAt: profile.custom_limit_expires_at || null,
         customLimitReason: profile.custom_limit_reason || null,

@@ -16,8 +16,8 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 
       <header class="topbar">
         <a class="brand" href="/" aria-label="AutoLister AI home">
-          <span class="brand-mark">A</span>
-          <span>AutoLister AI</span>
+          <img src="/logo.svg" alt="" class="brand-logo" />
+          <span>AutoLister <strong>AI</strong></span>
         </a>
         <span class="secure-pill">Private usage link</span>
       </header>
@@ -45,17 +45,46 @@ import SiteLayout from "../layouts/SiteLayout.astro";
         <a href="mailto:support@autolister.app">Contact support</a>
       </section>
 
-      <section id="usagePanel" class="usage-grid hidden">
-        <article class="metric-card metric-card-primary">
-          <div class="metric-top">
-            <span>Available now</span>
-            <strong id="availableNow">0</strong>
+      <section id="pendingPanel" class="pending-panel">
+        <article class="pending-card">
+          <span class="step-number">1</span>
+          <div>
+            <h2>Payment link sent</h2>
+            <p>The custom monthly setup is ready for this account.</p>
           </div>
-          <p id="availableNote">
-            Listings available based on your daily and monthly balance.
-          </p>
         </article>
+        <article class="pending-card">
+          <span class="step-number">2</span>
+          <div>
+            <h2>Waiting for payment</h2>
+            <p>After payment, the custom limits are activated automatically.</p>
+          </div>
+        </article>
+        <article class="pending-card">
+          <span class="step-number">3</span>
+          <div>
+            <h2>Usage appears here</h2>
+            <p>Daily and monthly usage will show once the setup is active.</p>
+          </div>
+        </article>
+      </section>
 
+      <section id="offerPanel" class="offer-panel">
+        <article>
+          <span>Included after activation</span>
+          <strong id="offerMonthly">1,000 / month</strong>
+        </article>
+        <article>
+          <span>Busy-day allowance</span>
+          <strong id="offerDaily">100 / day</strong>
+        </article>
+        <article>
+          <span>Plan type</span>
+          <strong>Custom Business</strong>
+        </article>
+      </section>
+
+      <section id="usagePanel" class="usage-grid hidden">
         <article class="metric-card">
           <div class="metric-top">
             <span>Daily usage</span>
@@ -77,16 +106,23 @@ import SiteLayout from "../layouts/SiteLayout.astro";
           </div>
           <p id="monthlyRemaining">1000 remaining this cycle</p>
         </article>
+
+        <article class="support-card">
+          <span>Support</span>
+          <strong>Need help?</strong>
+          <p>Contact support if anything looks wrong with your limits.</p>
+          <a href="mailto:support@autolister.app">support@autolister.app</a>
+        </article>
       </section>
 
       <section id="detailsPanel" class="details-panel hidden">
         <div>
-          <span class="detail-label">Plan</span>
-          <strong id="planName">Custom Business setup</strong>
+          <span class="detail-label">Status</span>
+          <strong id="planName">Waiting for payment</strong>
         </div>
         <div>
           <span class="detail-label">Billing cycle</span>
-          <strong id="cycleDate">Active</strong>
+          <strong id="cycleDate">Starts after payment</strong>
         </div>
         <div>
           <span class="detail-label">Account</span>
@@ -95,37 +131,43 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       </section>
 
       <p id="extensionNote" class="fine-note hidden">
-        Your custom limits are active here. The extension may briefly show the
-        standard Business limits until the next update reaches your browser.
+        Your custom limits are active. The extension may show standard Business
+        limits for a short time until the next update reaches your browser.
       </p>
     </section>
   </main>
 
   <style>
     :root {
-      --ink: #16201a;
-      --muted: #66736c;
-      --line: rgba(22, 32, 26, 0.12);
-      --panel: rgba(255, 255, 255, 0.82);
-      --green: #0e7a4f;
-      --green-dark: #09573a;
-      --mint: #c7f2dc;
-      --gold: #c88a1f;
+      --ink: #111827;
+      --muted: #475569;
+      --line: rgba(15, 23, 42, 0.1);
+      --panel: rgba(255, 255, 255, 0.95);
+      --brand: #4f46e5;
+      --brand-dark: #312e81;
+      --brand-soft: #eef2ff;
+      --accent: #f59e0b;
+      --cyan: #06b6d4;
+      --font-premium:
+        Aptos, "Segoe UI Variable", "Inter", ui-sans-serif, system-ui,
+        -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     body {
       background:
-        radial-gradient(circle at 18% 12%, rgba(199, 242, 220, 0.72), transparent 34rem),
-        linear-gradient(135deg, #fbfcf8 0%, #eef8f1 48%, #fff8ea 100%);
+        linear-gradient(135deg, rgba(79, 70, 229, 0.08), transparent 34%),
+        linear-gradient(315deg, rgba(245, 158, 11, 0.07), transparent 38%),
+        #f8fafc;
     }
 
     .usage-page {
       min-height: 100vh;
       padding: 22px;
       color: var(--ink);
-      font-family:
-        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", sans-serif;
+      font-family: var(--font-premium);
+      font-optical-sizing: auto;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
     }
 
     .usage-shell {
@@ -136,29 +178,54 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.72);
       border-radius: 28px;
-      background: rgba(255, 255, 255, 0.58);
-      box-shadow: 0 26px 80px rgba(29, 55, 39, 0.16);
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: 0 26px 80px rgba(15, 23, 42, 0.13);
       backdrop-filter: blur(24px);
+    }
+
+    .usage-shell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.18);
+      z-index: 0;
     }
 
     .ambient {
       position: absolute;
-      inset: 0;
+      inset: -24%;
       pointer-events: none;
+      opacity: 0.9;
+      background:
+        linear-gradient(112deg, transparent 8%, rgba(79, 70, 229, 0.28) 30%, rgba(255, 255, 255, 0.58) 46%, transparent 62%),
+        linear-gradient(244deg, transparent 18%, rgba(6, 182, 212, 0.2) 42%, transparent 64%),
+        linear-gradient(24deg, transparent 28%, rgba(245, 158, 11, 0.18) 50%, transparent 72%);
+      background-size: 190% 190%;
+      animation: ambientShift 8s ease-in-out infinite alternate;
+    }
+
+    .ambient::after {
+      content: "";
+      position: absolute;
+      inset: 0;
       background: linear-gradient(
-        115deg,
-        rgba(14, 122, 79, 0.2),
-        rgba(255, 255, 255, 0),
-        rgba(200, 138, 31, 0.2),
-        rgba(199, 242, 220, 0.32)
+        100deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 28%,
+        rgba(255, 255, 255, 0.48) 46%,
+        rgba(255, 255, 255, 0.08) 62%,
+        transparent 100%
       );
-      background-size: 220% 220%;
-      animation: ambientShift 12s ease-in-out infinite alternate;
+      transform: translateX(-18%);
+      animation: ambientSheen 6s ease-in-out infinite alternate;
     }
 
     .topbar,
     .hero-panel,
     .usage-grid,
+    .pending-panel,
+    .offer-panel,
     .details-panel,
     .message-panel,
     .fine-note {
@@ -179,26 +246,27 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       align-items: center;
       gap: 10px;
       color: var(--ink);
+      font-size: 16px;
       font-weight: 800;
       text-decoration: none;
     }
 
-    .brand-mark {
-      display: grid;
+    .brand strong {
+      color: var(--brand);
+    }
+
+    .brand-logo {
       width: 34px;
       height: 34px;
-      place-items: center;
       border-radius: 10px;
-      color: white;
-      background: linear-gradient(135deg, var(--green), var(--gold));
-      box-shadow: 0 12px 24px rgba(14, 122, 79, 0.22);
+      box-shadow: 0 12px 24px rgba(79, 70, 229, 0.18);
     }
 
     .secure-pill {
-      border: 1px solid rgba(14, 122, 79, 0.22);
+      border: 1px solid rgba(79, 70, 229, 0.18);
       border-radius: 999px;
       padding: 8px 12px;
-      color: var(--green-dark);
+      color: var(--brand-dark);
       background: rgba(255, 255, 255, 0.62);
       font-size: 13px;
       font-weight: 700;
@@ -214,27 +282,28 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 
     .eyebrow {
       margin: 0 0 12px;
-      color: var(--green-dark);
-      font-size: 13px;
-      font-weight: 900;
+      color: var(--brand);
+      font-size: 14px;
+      font-weight: 800;
       letter-spacing: 0;
-      text-transform: uppercase;
+      text-transform: none;
     }
 
     h1 {
-      max-width: 720px;
+      max-width: 700px;
       margin: 0;
-      font-size: clamp(40px, 6vw, 76px);
-      line-height: 0.96;
+      font-size: clamp(38px, 5.1vw, 62px);
+      font-weight: 800;
+      line-height: 1.04;
       letter-spacing: 0;
     }
 
     .subline {
       max-width: 620px;
-      margin: 18px 0 0;
-      color: var(--muted);
-      font-size: 17px;
-      line-height: 1.6;
+      margin: 20px 0 0;
+      color: #334155;
+      font-size: 16px;
+      line-height: 1.65;
     }
 
     .status-card {
@@ -245,23 +314,23 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.78);
+      background: rgba(255, 255, 255, 0.94);
       color: var(--ink);
       font-weight: 800;
-      box-shadow: 0 16px 34px rgba(22, 32, 26, 0.08);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
     }
 
     .status-dot {
       width: 10px;
       height: 10px;
       border-radius: 999px;
-      background: var(--gold);
-      box-shadow: 0 0 0 5px rgba(200, 138, 31, 0.14);
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.16);
     }
 
     .status-dot.active {
-      background: var(--green);
-      box-shadow: 0 0 0 5px rgba(14, 122, 79, 0.14);
+      background: #10b981;
+      box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.16);
     }
 
     .usage-grid {
@@ -271,18 +340,130 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       padding: 0 48px 16px;
     }
 
-    .metric-card,
-    .message-panel {
+    .pending-panel,
+    .offer-panel {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      padding: 0 48px 16px;
+    }
+
+    .pending-card,
+    .offer-panel article {
       border: 1px solid var(--line);
-      border-radius: 22px;
+      border-radius: 20px;
+      background: var(--panel);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
+    }
+
+    .pending-card {
+      display: flex;
+      gap: 14px;
+      min-height: 126px;
+      padding: 20px;
+    }
+
+    .step-number {
+      display: grid;
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border-radius: 10px;
+      color: #ffffff;
+      background: var(--brand);
+      font-weight: 900;
+    }
+
+    .pending-card h2 {
+      margin: 1px 0 8px;
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .pending-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .offer-panel {
+      padding-bottom: 22px;
+    }
+
+    .offer-panel article {
+      padding: 20px;
+    }
+
+    .offer-panel span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: none;
+    }
+
+    .offer-panel strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--ink);
+      font-size: 23px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .metric-card,
+    .message-panel,
+    .support-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
       padding: 22px;
       background: var(--panel);
-      box-shadow: 0 16px 40px rgba(22, 32, 26, 0.08);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
     }
 
     .metric-card-primary {
-      color: white;
-      background: linear-gradient(135deg, var(--green-dark), var(--green));
+      background: rgba(238, 242, 255, 0.92);
+      border-color: rgba(79, 70, 229, 0.2);
+      box-shadow: 0 16px 40px rgba(79, 70, 229, 0.1);
+    }
+
+    .support-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 156px;
+    }
+
+    .support-card span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .support-card strong {
+      margin-top: 8px;
+      color: var(--ink);
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .support-card p {
+      margin: 16px 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .support-card a {
+      margin-top: auto;
+      color: var(--brand-dark);
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
     }
 
     .metric-top {
@@ -296,18 +477,19 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     .detail-label {
       color: var(--muted);
       font-size: 13px;
-      font-weight: 800;
-      text-transform: uppercase;
+      font-weight: 700;
+      text-transform: none;
     }
 
     .metric-card-primary .metric-top span,
     .metric-card-primary p {
-      color: rgba(255, 255, 255, 0.76);
+      color: var(--brand-dark);
     }
 
     .metric-top strong {
       white-space: nowrap;
-      font-size: 28px;
+      font-size: 27px;
+      font-weight: 800;
       line-height: 1;
     }
 
@@ -315,7 +497,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       margin: 18px 0 0;
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.55;
     }
 
     .meter {
@@ -324,7 +506,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       margin-top: 24px;
       overflow: hidden;
       border-radius: 999px;
-      background: rgba(22, 32, 26, 0.1);
+      background: rgba(15, 23, 42, 0.1);
     }
 
     .meter span {
@@ -332,7 +514,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       width: 0%;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--green), var(--gold));
+      background: linear-gradient(90deg, var(--brand), var(--cyan));
       transition: width 500ms ease;
     }
 
@@ -351,16 +533,18 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     .details-panel strong {
       display: block;
       margin-top: 6px;
-      font-size: 16px;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 750;
     }
 
     .fine-note {
       margin: 0 48px 40px;
-      border: 1px solid rgba(200, 138, 31, 0.24);
+      border: 1px solid rgba(79, 70, 229, 0.18);
       border-radius: 16px;
       padding: 14px 16px;
-      color: #735216;
-      background: rgba(255, 248, 234, 0.76);
+      color: var(--brand-dark);
+      background: rgba(238, 242, 255, 0.76);
       font-size: 14px;
       line-height: 1.5;
     }
@@ -381,7 +565,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     }
 
     .message-panel a {
-      color: var(--green-dark);
+      color: var(--brand);
       font-weight: 800;
     }
 
@@ -391,11 +575,23 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 
     @keyframes ambientShift {
       0% {
-        background-position: 0% 50%;
+        transform: translate3d(-4%, -2%, 0) rotate(0deg);
+        background-position: 0% 42%;
       }
 
       100% {
-        background-position: 100% 50%;
+        transform: translate3d(4%, 2%, 0) rotate(2deg);
+        background-position: 100% 58%;
+      }
+    }
+
+    @keyframes ambientSheen {
+      0% {
+        transform: translateX(-22%);
+      }
+
+      100% {
+        transform: translateX(22%);
       }
     }
 
@@ -418,6 +614,8 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       }
 
       .hero-panel,
+      .pending-panel,
+      .offer-panel,
       .usage-grid,
       .details-panel {
         grid-template-columns: 1fr;
@@ -448,18 +646,21 @@ import SiteLayout from "../layouts/SiteLayout.astro";
   <script>
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token") || "";
+    const previewMode = params.get("preview") || "";
 
     const els = {
       headline: document.getElementById("headline"),
       subline: document.getElementById("subline"),
       statusDot: document.getElementById("statusDot"),
       statusText: document.getElementById("statusText"),
+      pendingPanel: document.getElementById("pendingPanel"),
+      offerPanel: document.getElementById("offerPanel"),
       errorPanel: document.getElementById("errorPanel"),
       errorMessage: document.getElementById("errorMessage"),
       usagePanel: document.getElementById("usagePanel"),
       detailsPanel: document.getElementById("detailsPanel"),
-      availableNow: document.getElementById("availableNow"),
-      availableNote: document.getElementById("availableNote"),
+      offerMonthly: document.getElementById("offerMonthly"),
+      offerDaily: document.getElementById("offerDaily"),
       dailyValue: document.getElementById("dailyValue"),
       dailyBar: document.getElementById("dailyBar"),
       dailyRemaining: document.getElementById("dailyRemaining"),
@@ -498,6 +699,18 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       el.style.width = `${Math.max(0, Math.min(100, Number(percent || 0)))}%`;
     }
 
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString();
+    }
+
+    function setOffer(setup) {
+      const offer = setup?.offer || {};
+      const monthly = offer.monthlyLimit || 1000;
+      const daily = offer.dailyLimit || 100;
+      els.offerMonthly.textContent = `${formatNumber(monthly)} / month`;
+      els.offerDaily.textContent = `${formatNumber(daily)} / day`;
+    }
+
     function showError(message) {
       els.statusText.textContent = "Unavailable";
       els.headline.textContent = "Usage link unavailable";
@@ -505,48 +718,41 @@ import SiteLayout from "../layouts/SiteLayout.astro";
         "Please contact support and we will check your setup.";
       els.errorMessage.textContent = message;
       els.errorPanel.classList.remove("hidden");
+      els.pendingPanel.classList.add("hidden");
+      els.offerPanel.classList.add("hidden");
       els.usagePanel.classList.add("hidden");
       els.detailsPanel.classList.add("hidden");
       els.extensionNote.classList.add("hidden");
     }
 
-    async function loadUsage() {
-      if (!token) {
-        showError("This usage link is missing its access token.");
-        return;
-      }
+    function renderPending(payload) {
+      setOffer(payload.setup);
+      els.headline.textContent = "Waiting for payment";
+      els.subline.textContent =
+        "Your custom plan is prepared. Once payment is complete, this page will show the active daily and monthly usage for this account.";
+      els.statusText.textContent = "Pending";
+      els.statusDot.classList.remove("active");
+      els.planName.textContent = "Waiting for payment";
+      els.cycleDate.textContent = "Starts after payment";
+      els.accountEmail.textContent = payload.customer.email || "-";
+      els.pendingPanel.classList.remove("hidden");
+      els.offerPanel.classList.remove("hidden");
+      els.detailsPanel.classList.remove("hidden");
+      els.usagePanel.classList.add("hidden");
+      els.errorPanel.classList.add("hidden");
+      els.extensionNote.classList.add("hidden");
+    }
 
-      const response = await fetch(
-        `/api/customer/usage?token=${encodeURIComponent(token)}`,
-        {
-          headers: { Accept: "application/json" },
-        },
-      );
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        showError(payload.error || "This usage link could not be verified.");
-        return;
-      }
-
+    function renderActive(payload) {
       const daily = payload.usage.daily;
       const monthly = payload.usage.monthly;
       const setup = payload.setup;
-      const active = setup.status === "active";
 
-      els.headline.textContent = active
-        ? "Your custom limits are active"
-        : "Your setup is being prepared";
-      els.subline.textContent = active
-        ? "This page shows the correct allowance for your AutoLister AI account."
-        : "Once payment is complete, this page will show your active limits.";
-      els.statusText.textContent = active ? "Active" : "Pending";
-      els.statusDot.classList.toggle("active", active);
-
-      els.availableNow.textContent = String(payload.usage.availableNow || 0);
-      els.availableNote.textContent =
-        payload.usage.message ||
-        "Listings available based on your daily and monthly balance.";
+      els.headline.textContent = "Your custom limits are active";
+      els.subline.textContent =
+        "This page shows the correct allowance for your AutoLister AI account.";
+      els.statusText.textContent = "Active";
+      els.statusDot.classList.add("active");
 
       els.dailyValue.textContent = formatLimit(daily.used, daily.limit);
       els.dailyRemaining.textContent = remainingText(daily.remaining, "today");
@@ -565,6 +771,8 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       );
       els.accountEmail.textContent = payload.customer.email || "-";
 
+      els.pendingPanel.classList.add("hidden");
+      els.offerPanel.classList.add("hidden");
       els.usagePanel.classList.remove("hidden");
       els.detailsPanel.classList.remove("hidden");
       els.errorPanel.classList.add("hidden");
@@ -572,6 +780,82 @@ import SiteLayout from "../layouts/SiteLayout.astro";
         "hidden",
         !payload.note.extensionDisplayMayLag,
       );
+    }
+
+    function getPreviewPayload(active) {
+      return {
+        customer: {
+          email: "fuerallezugang@gmail.com",
+        },
+        setup: {
+          label: "Custom Business setup",
+          status: active ? "active" : "pending",
+          customActive: active,
+          offer: {
+            dailyLimit: 100,
+            monthlyLimit: 1000,
+            monthlyPriceEur: 34.99,
+          },
+          currentPeriodEnd: active ? new Date(Date.now() + 30 * 864e5).toISOString() : null,
+          customLimitExpiresAt: active ? new Date(Date.now() + 30 * 864e5).toISOString() : null,
+        },
+        usage: {
+          daily: {
+            used: active ? 18 : 0,
+            limit: 100,
+            remaining: active ? 82 : 100,
+            percent: active ? 18 : 0,
+          },
+          monthly: {
+            used: active ? 246 : 0,
+            limit: 1000,
+            remaining: active ? 754 : 1000,
+            percent: active ? 25 : 0,
+          },
+          availableNow: active ? 82 : 0,
+          message: "Listings available based on your daily and monthly balance.",
+        },
+        note: {
+          extensionDisplayMayLag: active,
+        },
+      };
+    }
+
+    async function loadUsage() {
+      if (previewMode === "pending" || previewMode === "active") {
+        const payload = getPreviewPayload(previewMode === "active");
+        if (payload.setup.status === "active") {
+          renderActive(payload);
+          return;
+        }
+        renderPending(payload);
+        return;
+      }
+
+      if (!token) {
+        showError("This usage link is missing its access token.");
+        return;
+      }
+
+      const response = await fetch(
+        `/api/customer/usage?token=${encodeURIComponent(token)}`,
+        {
+          headers: { Accept: "application/json" },
+        },
+      );
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        showError(payload.error || "This usage link could not be verified.");
+        return;
+      }
+
+      if (payload.setup?.status === "active") {
+        renderActive(payload);
+        return;
+      }
+
+      renderPending(payload);
     }
 
     loadUsage().catch(() => {

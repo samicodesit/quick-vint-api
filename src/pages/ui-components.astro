@@ -1,6 +1,5 @@
 ---
 const isDev = import.meta.env.DEV;
-const localDevOrigin = "http://localhost:4326";
 
 const devViews = [
   {
@@ -20,13 +19,13 @@ const devViews = [
   {
     title: "Admin Dashboard",
     description: "Users, logs, billing signals, and operational views.",
-    href: "/admin",
+    href: "/admin/logs",
     status: "Admin",
   },
   {
     title: "Welcome Page Preview",
     description: "Locale and viewport preview for rendered welcome pages.",
-    href: "/admin#ui-pages",
+    href: "/admin/ui-pages",
     status: "Admin",
   },
   {
@@ -72,8 +71,6 @@ const devViews = [
   },
 ];
 
-const viewHref = (view: (typeof devViews)[number]) =>
-  !isDev && view.localOnly ? `${localDevOrigin}${view.href}` : view.href;
 ---
 
 <!doctype html>
@@ -199,6 +196,17 @@ const viewHref = (view: (typeof devViews)[number]) =>
         transform: translateY(-1px);
       }
 
+      .card.disabled {
+        cursor: default;
+        opacity: 0.62;
+      }
+
+      .card.disabled:hover {
+        border-color: var(--line);
+        background: var(--panel);
+        transform: none;
+      }
+
       .card-title {
         margin: 0 0 8px;
         font-size: 17px;
@@ -260,25 +268,40 @@ const viewHref = (view: (typeof devViews)[number]) =>
 
       {!isDev && (
         <p class="notice">
-          You are viewing the deployed admin bridge. Local-only previews open
-          <strong>localhost:4326</strong>, so keep the dev server running when
-          inspecting extension components.
+          You are viewing the deployed preview hub. Local-only previews are
+          listed here, but only open from the Astro dev server using whatever
+          local port it prints.
         </p>
       )}
 
       <section class="grid" aria-label="Dev views">
-        {devViews.map((view) => (
-          <a class="card" href={viewHref(view)}>
-            <div>
-              <h2 class="card-title">{view.title}</h2>
-              <p class="card-copy">{view.description}</p>
-            </div>
-            <div class="card-foot">
-              <span>{!isDev && view.localOnly ? "Open local" : view.status}</span>
-              <span class="arrow" aria-hidden="true">→</span>
-            </div>
-          </a>
-        ))}
+        {
+          devViews.map((view) => {
+            const isUnavailable = !isDev && view.localOnly;
+            const content = (
+              <>
+                <div>
+                  <h2 class="card-title">{view.title}</h2>
+                  <p class="card-copy">{view.description}</p>
+                </div>
+                <div class="card-foot">
+                  <span>{isUnavailable ? "Local dev only" : view.status}</span>
+                  <span class="arrow" aria-hidden="true">→</span>
+                </div>
+              </>
+            );
+
+            return isUnavailable ? (
+              <div class="card disabled" aria-disabled="true">
+                {content}
+              </div>
+            ) : (
+              <a class="card" href={view.href}>
+                {content}
+              </a>
+            );
+          })
+        }
       </section>
     </main>
   </body>

@@ -1,7 +1,6 @@
 ---
 const sourceVersion = "20260703-vinted-sell-layout";
 const isDev = import.meta.env.DEV;
-const localPreviewUrl = "http://localhost:4326/ui-components/content-components";
 ---
 
 <!doctype html>
@@ -276,8 +275,9 @@ const localPreviewUrl = "http://localhost:4326/ui-components/content-components"
         </>
       ) : (
         <p class="ds-warning" style="display:block;">
-          This preview uses local extension files. Open the local dev preview at
-          <a href={localPreviewUrl}>{localPreviewUrl}</a>.
+          This preview uses local extension files. Start the Astro dev server
+          and open <code>/ui-components/content-components</code> on the local
+          origin printed in your terminal.
         </p>
       )}
     </main>

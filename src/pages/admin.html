@@ -2894,6 +2894,7 @@
             font-weight: 600;
             font-size: 0.9rem;
             transition: all 0.15s ease;
+            text-decoration: none;
         }
 
         .mobile-bottom-btn.active {
@@ -2948,31 +2949,7 @@
             </div>
 
             <nav class="sidebar-nav">
-                <div class="nav-item" data-view="overview" onclick="switchView('overview')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                    <span class="nav-copy">
-                        <span class="nav-label">Command</span>
-                        <span class="nav-meta">What to inspect next</span>
-                    </span>
-                </div>
-                <div class="nav-item" data-view="growth" onclick="switchView('growth')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-                        <polyline points="16 7 22 7 22 13"></polyline>
-                    </svg>
-                    <span class="nav-copy">
-                        <span class="nav-label">Growth</span>
-                        <span class="nav-meta">Store KPIs and playbook</span>
-                    </span>
-                </div>
-                <div class="nav-item" data-view="costs" onclick="switchView('costs')">
+                <a class="nav-item" data-view="costs" href="/admin/costs" onclick="return handleAdminNav(event, 'costs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="1" x2="12" y2="23"></line>
@@ -2982,21 +2959,8 @@
                         <span class="nav-label">Costs</span>
                         <span class="nav-meta">AI spend and model usage</span>
                     </span>
-                </div>
-                <div class="nav-item" data-view="events" onclick="switchView('events')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 4h16v16H4z"></path>
-                        <path d="M8 9h8"></path>
-                        <path d="M8 13h5"></path>
-                        <path d="M8 17h8"></path>
-                    </svg>
-                    <span class="nav-copy">
-                        <span class="nav-label">Signals</span>
-                        <span class="nav-meta">Product behavior and exits</span>
-                    </span>
-                </div>
-                <div class="nav-item" data-view="reports" onclick="switchView('reports')">
+                </a>
+                <a class="nav-item" data-view="reports" href="/admin/reports" onclick="return handleAdminNav(event, 'reports')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="m3 11 18-5v12L3 13v-2Z"></path>
@@ -3006,8 +2970,8 @@
                         <span class="nav-label">Reports</span>
                         <span class="nav-meta">User feedback from listing tools</span>
                     </span>
-                </div>
-                <div class="nav-item active" data-view="logs" onclick="switchView('logs')">
+                </a>
+                <a class="nav-item active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path
@@ -3018,8 +2982,8 @@
                         <span class="nav-label">Logs</span>
                         <span class="nav-meta">Raw forensic stream</span>
                     </span>
-                </div>
-                <div class="nav-item" data-view="users" onclick="switchView('users')">
+                </a>
+                <a class="nav-item" data-view="users" href="/admin/users" onclick="return handleAdminNav(event, 'users')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -3031,8 +2995,8 @@
                         <span class="nav-label">Users</span>
                         <span class="nav-meta">Accounts, usage, review email</span>
                     </span>
-                </div>
-                <div class="nav-item" data-view="emails" onclick="switchView('emails')">
+                </a>
+                <a class="nav-item" data-view="emails" href="/admin/emails" onclick="return handleAdminNav(event, 'emails')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="5" width="18" height="14" rx="2"></rect>
@@ -3042,8 +3006,8 @@
                         <span class="nav-label">Emails</span>
                         <span class="nav-meta">Triggered follow-ups</span>
                     </span>
-                </div>
-                <a class="nav-item" href="http://localhost:4326/ui-components" target="_blank" rel="noopener" style="text-decoration: none;">
+                </a>
+                <a class="nav-item" href="/ui-components" style="text-decoration: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -3052,8 +3016,8 @@
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
                     <span class="nav-copy">
-                        <span class="nav-label">UI Components</span>
-                        <span class="nav-meta">Local preview hub</span>
+                        <span class="nav-label">Preview Hub</span>
+                        <span class="nav-meta">Pages, emails, UI previews</span>
                     </span>
                 </a>
             </nav>
@@ -3108,16 +3072,12 @@
         </main>
 
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-            <button class="mobile-bottom-btn" data-view="overview"
-                onclick="switchView('overview')">Command</button>
-            <button class="mobile-bottom-btn" data-view="growth" onclick="switchView('growth')">Growth</button>
-            <button class="mobile-bottom-btn" data-view="costs" onclick="switchView('costs')">Costs</button>
-            <button class="mobile-bottom-btn" data-view="events" onclick="switchView('events')">Signals</button>
-            <button class="mobile-bottom-btn" data-view="reports" onclick="switchView('reports')">Reports</button>
-            <button class="mobile-bottom-btn active" data-view="logs" onclick="switchView('logs')">Logs</button>
-            <button class="mobile-bottom-btn" data-view="users" onclick="switchView('users')">Users</button>
-            <button class="mobile-bottom-btn" data-view="emails" onclick="switchView('emails')">Emails</button>
-            <button class="mobile-bottom-btn" onclick="window.open('http://localhost:4326/ui-components', '_blank', 'noopener')">UI</button>
+            <a class="mobile-bottom-btn" data-view="costs" href="/admin/costs" onclick="return handleAdminNav(event, 'costs')">Costs</a>
+            <a class="mobile-bottom-btn" data-view="reports" href="/admin/reports" onclick="return handleAdminNav(event, 'reports')">Reports</a>
+            <a class="mobile-bottom-btn active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">Logs</a>
+            <a class="mobile-bottom-btn" data-view="users" href="/admin/users" onclick="return handleAdminNav(event, 'users')">Users</a>
+            <a class="mobile-bottom-btn" data-view="emails" href="/admin/emails" onclick="return handleAdminNav(event, 'emails')">Emails</a>
+            <a class="mobile-bottom-btn" href="/ui-components">Previews</a>
         </nav>
     </div>
 
@@ -3150,6 +3110,7 @@
     </div>
 
     <script>
+        const ADMIN_VIEWS = ['overview', 'growth', 'costs', 'events', 'reports', 'logs', 'users', 'emails', 'ui-pages'];
         // State Management
         const state = {
             secret: '',
@@ -3174,9 +3135,19 @@
             isTransitioning: false
         };
 
+        function getAdminViewPath(viewName) {
+            return viewName === 'logs' ? '/admin/logs' : `/admin/${viewName}`;
+        }
+
         function getInitialAdminView() {
-            const view = window.location.hash.replace('#', '');
-            return ['overview', 'growth', 'costs', 'events', 'reports', 'logs', 'users', 'emails', 'ui-pages'].includes(view) ? view : 'logs';
+            const pathMatch = window.location.pathname.match(/^\/admin\/([^/?#]+)/);
+            const pathView = pathMatch ? pathMatch[1] : '';
+            if (ADMIN_VIEWS.includes(pathView)) return pathView;
+
+            const hashView = window.location.hash.replace('#', '');
+            if (ADMIN_VIEWS.includes(hashView)) return hashView;
+
+            return 'logs';
         }
 
         // --- Auth Logic ---
@@ -3224,6 +3195,10 @@
                     authScreen.style.display = 'none';
                     dashboard.classList.remove('hidden');
                     dashboard.style.display = 'flex';
+                    const canonicalPath = getAdminViewPath(state.currentView);
+                    if (window.location.pathname !== canonicalPath) {
+                        history.replaceState(null, '', canonicalPath);
+                    }
                     updateNavigationState(state.currentView);
                     loadView(state.currentView);
                     return true;
@@ -3255,13 +3230,35 @@
         }
 
         // --- Navigation & Views ---
-        function switchView(viewName) {
+        function handleAdminNav(event, viewName) {
+            if (
+                event &&
+                (event.defaultPrevented ||
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey)
+            ) {
+                return true;
+            }
+
+            event?.preventDefault();
+            switchView(viewName);
+            return false;
+        }
+
+        function switchView(viewName, options = {}) {
+            if (!ADMIN_VIEWS.includes(viewName)) viewName = 'logs';
             if (state.isTransitioning || state.currentView === viewName) return;
 
             state.currentView = viewName;
             state.isTransitioning = true;
-            if (window.location.hash !== `#${viewName}`) {
-                history.pushState(null, '', `#${viewName}`);
+            const nextPath = getAdminViewPath(viewName);
+            if (!options.replace && window.location.pathname !== nextPath) {
+                history.pushState(null, '', nextPath);
+            } else if (options.replace && window.location.pathname !== nextPath) {
+                history.replaceState(null, '', nextPath);
             }
 
             // Close mobile menu if open
@@ -3339,12 +3336,19 @@
             return routes[viewName] || routes.overview;
         }
 
-        window.addEventListener('hashchange', () => {
+        window.addEventListener('popstate', () => {
             const nextView = getInitialAdminView();
             if (nextView !== state.currentView) {
                 state.currentView = nextView;
                 updateNavigationState(nextView);
                 loadView(nextView);
+            }
+        });
+
+        window.addEventListener('hashchange', () => {
+            const nextView = getInitialAdminView();
+            if (nextView !== state.currentView) {
+                switchView(nextView, { replace: true });
             }
         });
 

@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/admin/:view",
+      "destination": "/admin"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/reset-counts",

@@ -337,10 +337,17 @@ function buildAdminHarness() {
     btoa(value: string) {
       return Buffer.from(value, "binary").toString("base64");
     },
-    history: { pushState() {} },
+    history: {
+      pushState(_state: unknown, _title: string, url?: string) {
+        if (url) context.window.location.pathname = String(url);
+      },
+      replaceState(_state: unknown, _title: string, url?: string) {
+        if (url) context.window.location.pathname = String(url);
+      },
+    },
     location: { reload() {} },
     window: {
-      location: { hash: "" },
+      location: { hash: "", pathname: "/admin/logs" },
       innerWidth: 1200,
       addEventListener() {},
       open() {},
@@ -393,6 +400,7 @@ function buildAdminHarness() {
       openLogsForSearch: (search: string, type?: string) => void;
       openLogsForUser: (userId: string, encodedEmail?: string, type?: string) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
+      switchView: (view: string, options?: Record<string, unknown>) => void;
       fetchCalls: string[];
       state: {
         currentView: string;
@@ -520,6 +528,22 @@ describe("admin HTML", () => {
     await context.loadView("logs");
 
     expect(context.fetchCalls.some((url) => url.includes("status_filter=flagged"))).toBe(true);
+  });
+
+  it("uses real admin routes for primary navigation", async () => {
+    const { context } = buildAdminHarness();
+    const html = readFileSync(join(process.cwd(), "src/pages/admin.html"), "utf8");
+
+    context.state.currentView = "logs";
+    await context.loadView("logs");
+
+    expect(html).toContain('href="/admin/logs"');
+    expect(html).toContain('href="/admin/users"');
+    expect(html).toContain('href="/ui-components"');
+    expect(html).not.toContain("localhost:");
+
+    context.switchView("users");
+    expect(context.window.location.pathname).toBe("/admin/users");
   });
 
   it("hides review request action after the one-time email was sent", () => {

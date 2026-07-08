@@ -10,20 +10,19 @@ This is the durable source of truth for current growth work. Chat is temporary; 
 - Secondary market: Netherlands/Belgium.
 - Constraint: 5-8 operator hours per week.
 - Paid-test budget: EUR 300-500 per month.
-- Status: waiting for the next Monday `/admin -> Growth` refresh before changing targets.
+- Status: waiting for the next Monday admin metrics refresh before changing targets.
 
 ## Weekly Review Ritual
 
 Run this every Monday.
 
-1. Open `/admin -> Growth`.
-2. Refresh the Chrome Web Store `Last 30 days` snapshot if the reporting period changed.
-3. Copy the Growth Codex brief from the dashboard.
-4. Ask Codex: `Run growth review. Read docs/growth-playbook.md, docs/growth-current-sprint.md, docs/blog-content-plan.md, and this dashboard brief. Update the sprint plan if the decision changes.`
-5. Record this week's decision in the Decision Log below.
-6. Keep only three active weekly actions.
+1. Refresh the Chrome Web Store `Last 30 days` snapshot if the reporting period changed.
+2. Check `/admin/logs`, `/admin/users`, and `/admin/costs` for the specific product metrics needed for the review.
+3. Ask Codex: `Run growth review. Read docs/growth-playbook.md, docs/growth-current-sprint.md, docs/blog-content-plan.md, and these current admin/Chrome Store metrics. Update the sprint plan if the decision changes.`
+4. Record this week's decision in the Decision Log below.
+5. Keep only three active weekly actions.
 
-Daily rule: do the current Growth dashboard command, record one result, then stop.
+Daily rule: inspect only the metric needed for the current action, record one result, then stop.
 
 ## Current Weekly Actions
 
@@ -31,7 +30,7 @@ Refresh these after the Monday review. Until then, do not start new growth side 
 
 | Priority | Action                                                            | Channel      | Market   | Success metric                         | Status  |
 | -------- | ----------------------------------------------------------------- | ------------ | -------- | -------------------------------------- | ------- |
-| 1        | Refresh Growth dashboard and Chrome Store snapshot                | Measurement  | All      | Current 30-day snapshot saved          | Pending |
+| 1        | Refresh admin metrics and Chrome Store snapshot                   | Measurement  | All      | Current 30-day snapshot saved          | Pending |
 | 2        | Pick one store or trust improvement from the refreshed bottleneck | Chrome Store | FR/NL    | Better install quality or more ratings | Pending |
 | 3        | Pick one acquisition/content action from the refreshed bottleneck | SEO/outreach | FR first | Active generators, not clicks          | Pending |
 
@@ -45,7 +44,7 @@ Use this table for any growth action that takes more than one day or spends mone
 
 ## Metrics To Refresh
 
-Source: `/admin -> Growth` plus Chrome Web Store Developer Dashboard.
+Source: `/admin/logs`, `/admin/users`, `/admin/costs`, Stripe, and Chrome Web Store Developer Dashboard.
 
 | Metric                   | Latest value | Date | Notes               |
 | ------------------------ | -----------: | ---- | ------------------- |
@@ -54,15 +53,15 @@ Source: `/admin -> Growth` plus Chrome Web Store Developer Dashboard.
 | Chrome Store uninstalls  |          TBD | TBD  | Last 30 days only   |
 | Chrome weekly users      |          TBD | TBD  | CWS snapshot        |
 | Chrome rating count      |          TBD | TBD  | Lifetime count      |
-| 30-day signups           |          TBD | TBD  | Admin Growth        |
-| 30-day active generators |          TBD | TBD  | Admin Growth        |
-| 2+ generation users      |          TBD | TBD  | Admin Growth        |
-| quota pressure users     |          TBD | TBD  | Admin Growth        |
-| limit hits               |          TBD | TBD  | Admin Growth        |
-| paywalls shown           |          TBD | TBD  | Admin Growth        |
-| checkout starts          |          TBD | TBD  | Admin Growth        |
-| paid profiles            |          TBD | TBD  | Admin Growth        |
-| MRR                      |          TBD | TBD  | Admin Growth/Stripe |
+| 30-day signups           |          TBD | TBD  | `/admin/users`      |
+| 30-day active generators |          TBD | TBD  | `/admin/logs`       |
+| 2+ generation users      |          TBD | TBD  | `/admin/logs`       |
+| quota pressure users     |          TBD | TBD  | `/admin/users`      |
+| limit hits               |          TBD | TBD  | `/admin/logs`       |
+| paywalls shown           |          TBD | TBD  | `/admin/logs`       |
+| checkout starts          |          TBD | TBD  | `/admin/logs`       |
+| paid profiles            |          TBD | TBD  | `/admin/users`      |
+| MRR                      |          TBD | TBD  | Stripe              |
 
 ## Decision Log
 
@@ -75,7 +74,7 @@ Append one row whenever the weekly focus changes or an experiment ends.
 
 ## Operating Rules
 
-- The sprint doc is the durable memory. The admin Growth dashboard is the live metric view.
+- The sprint doc is the durable memory. Use focused admin routes for live metrics.
 - Do not judge growth work by impressions, clicks, or email opens alone.
 - Count installs, signups, successful generations, 2+ generation users, paywalls, checkouts, paid users, ratings, and replies.
 - Do not scale paid traffic unless activation and value depth are healthy.

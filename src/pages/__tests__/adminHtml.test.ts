@@ -278,15 +278,23 @@ function buildAdminHarness() {
     },
     history: {
       pushState(_state: unknown, _title: string, url?: string) {
-        if (url) context.window.location.pathname = String(url);
+        if (url) {
+          const parsed = new URL(String(url), "https://admin.test");
+          context.window.location.pathname = parsed.pathname;
+          context.window.location.search = parsed.search;
+        }
       },
       replaceState(_state: unknown, _title: string, url?: string) {
-        if (url) context.window.location.pathname = String(url);
+        if (url) {
+          const parsed = new URL(String(url), "https://admin.test");
+          context.window.location.pathname = parsed.pathname;
+          context.window.location.search = parsed.search;
+        }
       },
     },
     location: { reload() {} },
     window: {
-      location: { hash: "", pathname: "/admin/logs" },
+      location: { hash: "", pathname: "/admin/logs", search: "" },
       innerWidth: 1200,
       addEventListener() {},
       open() {},
@@ -446,6 +454,11 @@ describe("admin HTML", () => {
     expect(context.state.logsSearch).toBe("test@example.com");
     expect(context.state.logsRelatedUserId).toBe("user-1");
     expect(context.state.logsRelatedEmail).toBe("test@example.com");
+    expect(context.window.location.pathname).toBe("/admin/logs");
+    expect(context.window.location.search).toContain("related_user_id=user-1");
+    expect(context.window.location.search).toContain(
+      "related_email=test%40example.com",
+    );
     expect(context.fetchCalls.some((url) => url.includes("related_user_id=user-1"))).toBe(true);
   });
 

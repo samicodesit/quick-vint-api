@@ -1391,7 +1391,14 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function getRelatedLogFilters(req: VercelRequest) {
+type RelatedLogFilters = {
+  direct: string | null;
+  expanded: string | null;
+};
+
+async function getRelatedLogFilters(
+  req: VercelRequest,
+): Promise<RelatedLogFilters | null> {
   const relatedUserId = (
     getQueryString(req.query.related_user_id) || ""
   ).trim();
@@ -1434,7 +1441,12 @@ async function getRelatedLogFilters(req: VercelRequest) {
     });
   }
 
-  return allFilters.length ? allFilters.join(",") : null;
+  if (!directFilters.length && !allFilters.length) return null;
+
+  return {
+    direct: directFilters.length ? directFilters.join(",") : null,
+    expanded: allFilters.length ? allFilters.join(",") : null,
+  };
 }
 
 async function handleLogDetail(req: VercelRequest, res: VercelResponse) {
@@ -1534,13 +1546,46 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (userId) query = query.eq("user_id", userId);
     if (startDate) query = query.gte("created_at", startDate);
     if (endDate) query = query.lte("created_at", endDate);
-    if (relatedLogFilters) {
-      query = query.or(relatedLogFilters);
+    if (relatedLogFilters?.expanded) {
+      query = query.or(relatedLogFilters.expanded);
     } else if (search) {
       query = query.or(buildLogSearchFilter(search));
     }
 
-    const { data: logs, error: logsError } = await query;
+    let { data: logs, error: logsError } = await query;
+
+    if (
+      logsError &&
+      relatedLogFilters?.direct &&
+      relatedLogFilters.expanded !== relatedLogFilters.direct
+    ) {
+      console.warn(
+        "Expanded related log filter failed; retrying direct account logs",
+        logsError,
+      );
+      let directQuery = applyLogTypeFilter(
+        supabase
+          .from("api_logs")
+          .select(logListSelect)
+          .order("created_at", { ascending: false })
+          .range(offset, offset + limit - 1),
+      );
+
+      if (suspiciousOnly)
+        directQuery = directQuery.eq("suspicious_activity", true);
+      if (statusFilter === "error")
+        directQuery = directQuery.gte("response_status", 400);
+      if (statusFilter === "flagged")
+        directQuery = directQuery.eq("suspicious_activity", true);
+      if (userId) directQuery = directQuery.eq("user_id", userId);
+      if (startDate) directQuery = directQuery.gte("created_at", startDate);
+      if (endDate) directQuery = directQuery.lte("created_at", endDate);
+      directQuery = directQuery.or(relatedLogFilters.direct);
+
+      const directResult = await directQuery;
+      logs = directResult.data;
+      logsError = directResult.error;
+    }
 
     if (logsError) {
       console.error("Error fetching logs:", logsError);
@@ -1559,13 +1604,42 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (userId) countQuery = countQuery.eq("user_id", userId);
     if (startDate) countQuery = countQuery.gte("created_at", startDate);
     if (endDate) countQuery = countQuery.lte("created_at", endDate);
-    if (relatedLogFilters) {
-      countQuery = countQuery.or(relatedLogFilters);
+    if (relatedLogFilters?.expanded) {
+      countQuery = countQuery.or(relatedLogFilters.expanded);
     } else if (search) {
       countQuery = countQuery.or(buildLogSearchFilter(search));
     }
 
-    const { count, error: countError } = await countQuery;
+    let { count, error: countError } = await countQuery;
+    if (
+      countError &&
+      relatedLogFilters?.direct &&
+      relatedLogFilters.expanded !== relatedLogFilters.direct
+    ) {
+      console.warn(
+        "Expanded related log count failed; retrying direct account count",
+        countError,
+      );
+      let directCountQuery = applyLogTypeFilter(
+        supabase.from("api_logs").select("id", { count: "exact", head: true }),
+      );
+
+      if (suspiciousOnly)
+        directCountQuery = directCountQuery.eq("suspicious_activity", true);
+      if (statusFilter === "error")
+        directCountQuery = directCountQuery.gte("response_status", 400);
+      if (statusFilter === "flagged")
+        directCountQuery = directCountQuery.eq("suspicious_activity", true);
+      if (userId) directCountQuery = directCountQuery.eq("user_id", userId);
+      if (startDate)
+        directCountQuery = directCountQuery.gte("created_at", startDate);
+      if (endDate) directCountQuery = directCountQuery.lte("created_at", endDate);
+      directCountQuery = directCountQuery.or(relatedLogFilters.direct);
+
+      const directCountResult = await directCountQuery;
+      count = directCountResult.count;
+      countError = directCountResult.error;
+    }
     if (countError) {
       console.error("Error counting logs:", countError);
       return res.status(500).json({ error: "Failed to count logs" });

@@ -380,13 +380,270 @@
             line-height: 1.25;
         }
 
+        .top-bar > div {
+            min-width: 0;
+        }
+
         @media (max-width: 768px) {
+            .top-bar > div:first-child {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+
+            .top-bar > div:last-child {
+                flex: 0 0 auto;
+            }
+
             .page-title {
                 font-size: 1rem;
             }
 
             .page-subtitle {
                 display: none;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .card-title {
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .card-header {
+            align-items: flex-start;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: space-between;
+        }
+
+        .table-container {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            min-width: 880px;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.8rem 1rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        td {
+            color: var(--text-main);
+            font-size: 0.86rem;
+            overflow-wrap: anywhere;
+        }
+
+        .btn-secondary,
+        .quick-filter-btn,
+        .segment-btn {
+            align-items: center;
+            appearance: none;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            cursor: pointer;
+            display: inline-flex;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 700;
+            justify-content: center;
+            line-height: 1.2;
+            min-height: 2.25rem;
+            padding: 0.5rem 0.75rem;
+            text-decoration: none;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-secondary:hover,
+        .quick-filter-btn:hover,
+        .segment-btn:hover {
+            background: var(--bg-subtle);
+            border-color: var(--border-hover);
+        }
+
+        .btn-secondary:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .segmented-control,
+        .quick-filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            min-width: 0;
+        }
+
+        .segment-btn.active,
+        .quick-filter-btn.active {
+            background: #111827;
+            border-color: #111827;
+            color: #ffffff;
+        }
+
+        .logs-toolbar,
+        .users-toolbar {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(160px, auto));
+            margin-bottom: 1rem;
+            min-width: 0;
+        }
+
+        .users-toolbar {
+            grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(150px, auto));
+        }
+
+        .filter-input {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            font: inherit;
+            min-height: 2.45rem;
+            min-width: 0;
+            padding: 0.55rem 0.7rem;
+            width: 100%;
+        }
+
+        .filter-input:focus {
+            border-color: var(--text-muted);
+            box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.06);
+            outline: none;
+        }
+
+        .users-meta {
+            align-items: center;
+            color: var(--text-muted);
+            display: flex;
+            font-size: 0.82rem;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .activity-feed {
+            display: grid;
+            gap: 0.35rem;
+            padding: 0.75rem;
+        }
+
+        .activity-row {
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: 74px 42px minmax(0, 1.5fr) minmax(0, 1fr) auto;
+            min-width: 0;
+            padding: 0.65rem 0.75rem;
+        }
+
+        .activity-row:hover {
+            background: var(--bg-subtle);
+            border-color: var(--border-color);
+        }
+
+        .activity-row > * {
+            min-width: 0;
+        }
+
+        .mobile-cards {
+            display: none;
+        }
+
+        .mobile-card-header {
+            align-items: flex-start;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                border-radius: var(--radius-md);
+            }
+
+            .card-header {
+                display: grid;
+            }
+
+            table {
+                min-width: 0;
+            }
+
+            .logs-toolbar,
+            .users-toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .view-brief {
+                padding: 0.95rem;
+            }
+
+            .view-brief-actions,
+            .segmented-control,
+            .quick-filter-row {
+                flex-wrap: nowrap;
+                margin-left: -0.15rem;
+                margin-right: -0.15rem;
+                overflow-x: auto;
+                padding: 0.15rem;
+                scroll-padding-inline: 0.15rem;
+            }
+
+            .view-brief-actions .btn-secondary,
+            .segmented-control .segment-btn,
+            .quick-filter-row .quick-filter-btn {
+                flex: 0 0 auto;
+            }
+
+            .btn-secondary,
+            .quick-filter-btn,
+            .segment-btn {
+                white-space: normal;
+            }
+
+            .mobile-cards {
+                display: grid;
+                gap: 0.75rem;
+            }
+
+            .activity-feed {
+                padding: 0;
             }
         }
 
@@ -1290,6 +1547,8 @@
         .mobile-card-value {
             text-align: right;
             flex: 1;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         /* Mobile specific utilities */
@@ -1308,6 +1567,21 @@
             a {
                 min-height: 44px;
                 min-width: 44px;
+            }
+
+            .mobile-card {
+                padding: 0.9rem;
+            }
+
+            .mobile-card-row {
+                display: grid;
+                gap: 0.25rem;
+            }
+
+            .mobile-card-label,
+            .mobile-card-value {
+                margin-right: 0;
+                text-align: left;
             }
         }
 
@@ -1338,8 +1612,11 @@
                 left: 0;
                 right: 0;
                 display: grid;
-                grid-template-columns: repeat(5, 1fr);
+                grid-auto-columns: minmax(76px, 1fr);
+                grid-auto-flow: column;
+                grid-template-columns: none;
                 gap: 0.5rem;
+                overflow-x: auto;
                 padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
                 background: rgba(255, 255, 255, 0.95);
                 backdrop-filter: blur(12px);
@@ -1617,6 +1894,59 @@
             return 'logs';
         }
 
+        function getCurrentUrlSearchParams() {
+            return new URLSearchParams(window.location.search || '');
+        }
+
+        function clearLogRouteState() {
+            state.logsPage = 1;
+            state.logsType = 'generation';
+            state.logsSearch = '';
+            state.logsStatus = 'all';
+            state.logsRelatedUserId = '';
+            state.logsRelatedEmail = '';
+        }
+
+        function applyLogsStateFromUrl() {
+            if (getInitialAdminView() !== 'logs') return;
+            const params = getCurrentUrlSearchParams();
+            state.logsPage = Math.max(1, Number(params.get('page') || 1) || 1);
+            state.logsType = params.get('log_type') || 'generation';
+            state.logsSearch = params.get('search') || '';
+            state.logsStatus = params.get('status_filter') || 'all';
+            state.logsRelatedUserId = params.get('related_user_id') || '';
+            state.logsRelatedEmail = params.get('related_email') || '';
+        }
+
+        function getLogsRoutePath() {
+            const params = new URLSearchParams();
+            if (state.logsPage > 1) params.set('page', String(state.logsPage));
+            if (state.logsType && state.logsType !== 'generation') params.set('log_type', state.logsType);
+            if (state.logsSearch) params.set('search', state.logsSearch);
+            if (state.logsStatus && state.logsStatus !== 'all') params.set('status_filter', state.logsStatus);
+            if (state.logsRelatedUserId) params.set('related_user_id', state.logsRelatedUserId);
+            if (state.logsRelatedEmail) params.set('related_email', state.logsRelatedEmail);
+            const query = params.toString();
+            return query ? `/admin/logs?${query}` : '/admin/logs';
+        }
+
+        function showLogsRoute({ replace = false } = {}) {
+            const nextPath = getLogsRoutePath();
+            const currentPath = `${window.location.pathname}${window.location.search || ''}`;
+            if (currentPath !== nextPath) {
+                history[replace ? 'replaceState' : 'pushState'](null, '', nextPath);
+            }
+            state.currentView = 'logs';
+            state.isTransitioning = true;
+            if (window.innerWidth <= 768) {
+                toggleMobileMenu(false);
+            }
+            updateNavigationState('logs');
+            loadView('logs');
+        }
+
+        applyLogsStateFromUrl();
+
         // --- Auth Logic ---
         function init() {
             const storedKey = localStorage.getItem('admin_key');
@@ -1711,6 +2041,13 @@
             }
 
             event?.preventDefault();
+            if (viewName === 'logs') {
+                clearLogRouteState();
+                if (state.currentView === 'logs') {
+                    showLogsRoute({ replace: true });
+                    return false;
+                }
+            }
             switchView(viewName);
             return false;
         }
@@ -1790,8 +2127,12 @@
 
         window.addEventListener('popstate', () => {
             const nextView = getInitialAdminView();
+            if (nextView === 'logs') applyLogsStateFromUrl();
             if (nextView !== state.currentView) {
                 state.currentView = nextView;
+                updateNavigationState(nextView);
+                loadView(nextView);
+            } else if (nextView === 'logs') {
                 updateNavigationState(nextView);
                 loadView(nextView);
             }
@@ -3255,12 +3596,7 @@
             state.logsRelatedUserId = '';
             state.logsRelatedEmail = '';
             state.logsPage = 1;
-            if (state.currentView === 'logs') {
-                updateNavigationState('logs');
-                renderLogs(document.getElementById('contentArea'));
-            } else {
-                switchView('logs');
-            }
+            showLogsRoute();
         }
 
         function openLogsForUser(userId, encodedEmail = '', type = 'all') {
@@ -3271,12 +3607,7 @@
             state.logsRelatedUserId = userId || '';
             state.logsRelatedEmail = email || '';
             state.logsPage = 1;
-            if (state.currentView === 'logs') {
-                updateNavigationState('logs');
-                renderLogs(document.getElementById('contentArea'));
-            } else {
-                switchView('logs');
-            }
+            showLogsRoute();
         }
 
         async function renderUsers(container) {

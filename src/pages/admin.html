@@ -555,29 +555,178 @@
 
         .activity-feed {
             display: grid;
-            gap: 0.35rem;
+            gap: 0.6rem;
             padding: 0.75rem;
         }
 
         .activity-row {
             align-items: center;
-            border: 1px solid transparent;
-            border-radius: var(--radius-md);
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-left: 4px solid #cbd5e1;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.035);
             cursor: pointer;
             display: grid;
-            gap: 0.75rem;
-            grid-template-columns: 74px 42px minmax(0, 1.5fr) minmax(0, 1fr) auto;
+            gap: 0.85rem;
+            grid-template-columns: 78px 58px 52px minmax(0, 1fr) auto;
             min-width: 0;
-            padding: 0.65rem 0.75rem;
+            padding: 0.8rem 0.9rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
         }
 
         .activity-row:hover {
-            background: var(--bg-subtle);
-            border-color: var(--border-color);
+            border-color: #c7d2fe;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+            transform: translateY(-1px);
         }
 
         .activity-row > * {
             min-width: 0;
+        }
+
+        .activity-row.success { border-left-color: #10b981; }
+        .activity-row.warning { border-left-color: #f59e0b; }
+        .activity-row.danger { border-left-color: #ef4444; }
+        .activity-row.generate { border-left-color: #4f46e5; }
+        .activity-row.event { border-left-color: #06b6d4; }
+        .activity-row.edit { border-left-color: #8b5cf6; }
+        .activity-row.system { border-left-color: #64748b; }
+
+        .activity-icon {
+            align-items: center;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            color: #475569;
+            display: inline-flex;
+            font-size: 0.68rem;
+            font-weight: 900;
+            justify-content: center;
+            letter-spacing: 0.04em;
+            min-height: 2rem;
+            padding: 0 0.55rem;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .activity-icon.success {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+        }
+
+        .activity-icon.warning {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+
+        .activity-icon.danger {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+
+        .activity-icon.generate {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4338ca;
+        }
+
+        .activity-icon.event {
+            background: #ecfeff;
+            border-color: #a5f3fc;
+            color: #0e7490;
+        }
+
+        .activity-icon.edit {
+            background: #f5f3ff;
+            border-color: #ddd6fe;
+            color: #6d28d9;
+        }
+
+        .activity-icon.system {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+
+        .activity-thumb {
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            color: #64748b;
+            display: flex;
+            font-size: 0.68rem;
+            font-weight: 800;
+            height: 46px;
+            justify-content: center;
+            overflow: hidden;
+            text-align: center;
+            width: 46px;
+        }
+
+        .activity-thumb img {
+            display: block;
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .activity-main {
+            display: grid;
+            gap: 0.22rem;
+        }
+
+        .activity-title {
+            color: var(--text-main);
+            font-size: 0.92rem;
+            font-weight: 800;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .activity-meta {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .activity-side {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            justify-content: flex-end;
+        }
+
+        .activity-status {
+            border-radius: 999px;
+            display: inline-flex;
+            font-size: 0.72rem;
+            font-weight: 900;
+            line-height: 1;
+            padding: 0.42rem 0.52rem;
+        }
+
+        .activity-status.success {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .activity-status.danger {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .activity-status.neutral {
+            background: #f1f5f9;
+            color: #475569;
         }
 
         .mobile-cards {
@@ -1099,12 +1248,42 @@
 
         @media (max-width: 760px) {
             .activity-row {
-                grid-template-columns: 54px 32px minmax(0, 1fr);
+                align-items: flex-start;
+                gap: 0.7rem;
+                grid-template-columns: minmax(0, 1fr) auto;
+                padding: 0.85rem;
             }
 
-            .activity-thumb,
             .activity-side {
+                grid-column: 1 / -1;
+                justify-content: stretch;
+                width: 100%;
+            }
+
+            .activity-side .btn-secondary {
+                flex: 1 1 0;
+                min-width: 0;
+            }
+
+            .activity-thumb {
                 display: none;
+            }
+
+            .activity-icon {
+                min-height: 1.85rem;
+                padding: 0 0.45rem;
+            }
+
+            .activity-main {
+                grid-column: 1 / -1;
+            }
+
+            .activity-title {
+                white-space: normal;
+            }
+
+            .activity-meta {
+                font-size: 0.76rem;
             }
 
             .journey-summary-top {
@@ -3196,12 +3375,14 @@
             if (eventName === 'generate_success') return { symbol: 'OK', className: 'success' };
             if (eventName === 'generate_limit_hit' || eventName === 'account_paused_shown') return { symbol: 'LIM', className: 'warning' };
             if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_')) return { symbol: 'PAY', className: 'warning' };
-            if (eventName.startsWith('magic_link_') || eventName.startsWith('auth_') || eventName === 'signin_cta_click' || eventName === 'signed_out_tools_ready') return { symbol: 'AUTH', className: '' };
+            if (eventName.startsWith('magic_link_') || eventName.startsWith('auth_') || eventName === 'signin_cta_click' || eventName === 'signed_out_tools_ready') return { symbol: 'AUTH', className: 'system' };
             if (eventName === 'listing_tools_ready') return { symbol: 'READY', className: 'success' };
-            if (eventName === 'generate_click' || eventName === 'generate_request') return { symbol: 'GEN', className: '' };
-            if (log.endpoint === '/api/generate') return { symbol: 'API', className: 'success' };
-            if (kind === 'Event') return { symbol: 'EVT', className: '' };
-            return { symbol: 'SYS', className: '' };
+            if (eventName === 'generate_click' || eventName === 'generate_request') return { symbol: 'GEN', className: 'generate' };
+            if (eventName.includes('edited') || eventName.includes('changed')) return { symbol: 'EDIT', className: 'edit' };
+            if (eventName.includes('opened') || eventName.includes('click')) return { symbol: 'ACT', className: 'event' };
+            if (log.endpoint === '/api/generate') return { symbol: 'API', className: 'generate' };
+            if (kind === 'Event') return { symbol: 'EVT', className: 'event' };
+            return { symbol: 'SYS', className: 'system' };
         }
 
         function getActivitySummary(log) {
@@ -3234,11 +3415,14 @@
                 const icon = getActivityIcon(log, eventName);
                 const images = parseLogImages(log);
                 const thumb = images.length
-                    ? `<img src="${escapeHtml(images[0])}" alt="Item preview" loading="lazy">`
-                    : (getLogKind(log) === 'Generation' ? 'no img' : '-');
+                    ? `<img src="${escapeAttribute(images[0])}" alt="Item preview" loading="lazy">`
+                    : (getLogKind(log) === 'Generation' ? 'No image' : '');
+                const statusClass = log.response_status >= 400
+                    ? 'danger'
+                    : (log.response_status ? 'success' : 'neutral');
 
                 return `
-                    <div class="activity-row" onclick="showLogDetails('${log.id}')">
+                    <div class="activity-row ${icon.className || 'system'}" onclick="showLogDetails('${escapeAttribute(log.id)}')">
                         <div class="log-time">${formatDateTime(log.created_at)}</div>
                         <div class="activity-icon ${icon.className}">${escapeHtml(icon.symbol)}</div>
                         <div class="activity-thumb">${thumb}</div>
@@ -3247,9 +3431,9 @@
                             <div class="activity-meta">${getLogActor(log)} · ${escapeHtml(getActivityDetail(log))}${log.ip_address ? ` · ${renderLogIp(log)}` : ''}</div>
                         </div>
                         <div class="activity-side">
-                            <span class="badge ${log.response_status >= 400 ? 'badge-danger' : 'badge-success'}">${log.response_status}</span>
+                            <span class="activity-status ${statusClass}">${escapeHtml(log.response_status || 'n/a')}</span>
                             ${renderLogJourneyAction(log)}
-                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${log.id}')">View</button>
+                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${escapeAttribute(log.id)}')">View</button>
                         </div>
                     </div>
                 `;

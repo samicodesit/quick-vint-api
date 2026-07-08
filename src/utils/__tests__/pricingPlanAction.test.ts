@@ -37,4 +37,16 @@ describe("pricing plan action", () => {
       ),
     ).toBe("current_portal");
   });
+
+  it("routes canceling paid users to portal management instead of new checkout", () => {
+    expect(
+      getPricingPlanAction(
+        {
+          subscription_tier: "starter",
+          subscription_status: "canceling",
+        },
+        "pro",
+      ),
+    ).toBe("subscription_portal");
+  });
 });

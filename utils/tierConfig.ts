@@ -1,3 +1,5 @@
+import { hasPaidEntitlementStatus } from "../src/utils/subscriptionStatus";
+
 // New tier configuration system - database driven for easy updates
 export interface TierConfig {
   id: string;
@@ -61,7 +63,7 @@ export function normalizeTier(tier?: string | null): TierKey {
 }
 
 export function getEffectiveTier(profile: EntitlementProfile): TierKey {
-  return profile.subscription_status === "active"
+  return hasPaidEntitlementStatus(profile.subscription_status)
     ? normalizeTier(profile.subscription_tier)
     : "free";
 }
@@ -270,7 +272,8 @@ export function getTierConfigForProfile(
   }
 
   const source =
-    profile.subscription_status === "active" && profile.is_legacy_plan
+    hasPaidEntitlementStatus(profile.subscription_status) &&
+    profile.is_legacy_plan
       ? LEGACY_TIER_CONFIGS
       : TIER_CONFIGS;
 
@@ -286,7 +289,7 @@ export function hasUnlimitedDailyLimit(
 
   return (
     pricingLimitsMode === "legacy" ||
-    (profile.subscription_status === "active" &&
+    (hasPaidEntitlementStatus(profile.subscription_status) &&
       Boolean(profile.is_legacy_plan))
   );
 }

@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { FREE_LIFETIME_LIMIT } from "./tierConfig";
+import { hasPaidEntitlementStatus } from "../src/utils/subscriptionStatus";
 
 export type LimitFollowupRecipient = {
   id: string;
@@ -293,7 +294,7 @@ export async function findLimitFollowupRecipients({
       }
       if (blockedUserIds.has(profile.id)) return false;
       return !(
-        profile.subscription_status === "active" &&
+        hasPaidEntitlementStatus(profile.subscription_status) &&
         profile.subscription_tier &&
         profile.subscription_tier !== "free"
       );

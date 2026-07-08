@@ -1,3 +1,5 @@
+import { hasPaidEntitlementStatus } from "./subscriptionStatus";
+
 export type PricingPlanAction =
   | "current_portal"
   | "subscription_portal"
@@ -37,10 +39,10 @@ export function getPricingPlanAction(
   >,
 ): PricingPlanAction {
   const currentTier =
-    profile?.subscription_status === "active"
+    hasPaidEntitlementStatus(profile?.subscription_status)
       ? normalizePricingPlanTier(profile?.subscription_tier)
       : "free";
-  const isActive = profile?.subscription_status === "active";
+  const isActive = hasPaidEntitlementStatus(profile?.subscription_status);
 
   if (
     isActive &&

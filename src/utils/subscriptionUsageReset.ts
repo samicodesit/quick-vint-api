@@ -1,3 +1,5 @@
+import { hasPaidEntitlementStatus } from "./subscriptionStatus";
+
 export type SubscriptionUsageProfile = {
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
@@ -15,7 +17,7 @@ export type SubscriptionProfileUpdateInput = {
 };
 
 function isActivePaid(status?: string | null, tier?: string | null) {
-  return status === "active" && tier !== "free";
+  return hasPaidEntitlementStatus(status) && tier !== "free";
 }
 
 function clearPauseFields(updateData: Record<string, unknown>) {

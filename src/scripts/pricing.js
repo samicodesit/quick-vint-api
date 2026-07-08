@@ -281,6 +281,10 @@ function decodeUserData(token) {
   }
 }
 
+function hasPaidEntitlementStatus(status) {
+  return status === "active" || status === "trialing" || status === "canceling";
+}
+
 // Update button states based on user context
 function updateButtonStates() {
   const buttons = {
@@ -291,7 +295,7 @@ function updateButtonStates() {
   };
 
   const storedTier = normalizeTier(currentProfile?.subscription_tier || "free");
-  const isActive = currentProfile?.subscription_status === "active";
+  const isActive = hasPaidEntitlementStatus(currentProfile?.subscription_status);
   const currentTier = isActive ? storedTier : "free";
 
   Object.entries(buttons).forEach(([plan, button]) => {
@@ -457,7 +461,7 @@ async function handlePlanClick(planName) {
 
     if (planName === "free") {
       // Already on free or trying to downgrade
-      const currentTier = currentProfile?.subscription_status === "active"
+      const currentTier = hasPaidEntitlementStatus(currentProfile?.subscription_status)
         ? normalizeTier(currentProfile?.subscription_tier)
         : "free";
       if (currentTier === "free") {

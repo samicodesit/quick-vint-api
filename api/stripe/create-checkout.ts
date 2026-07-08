@@ -11,6 +11,7 @@ import {
   repairProfileStripeCustomerId,
 } from "../../utils/stripeBillingPortal";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
@@ -74,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (profileRow.stripe_customer_id) {
           customerId = profileRow.stripe_customer_id;
           if (
-            profileRow.subscription_status === "active" &&
+            hasPaidEntitlementStatus(profileRow.subscription_status) &&
             profileRow.subscription_tier &&
             profileRow.subscription_tier !== "free" &&
             profileRow.stripe_subscription_id

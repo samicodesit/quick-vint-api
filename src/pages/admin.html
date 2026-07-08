@@ -3853,6 +3853,7 @@
                     <select class="filter-input" onchange="setUsersFilter('usersStatus', this.value)">
                         ${renderOption('all', 'All statuses', state.usersStatus)}
                         ${renderOption('active', 'Active', state.usersStatus)}
+                        ${renderOption('canceling', 'Canceling', state.usersStatus)}
                         ${renderOption('trialing', 'Trialing', state.usersStatus)}
                         ${renderOption('canceled', 'Canceled', state.usersStatus)}
                         ${renderOption('unknown', 'Unknown', state.usersStatus)}
@@ -3981,7 +3982,7 @@
 
         function statusBadgeClass(status) {
             if (status === 'active' || status === 'trialing') return 'badge-success';
-            if (status === 'canceled' || status === 'past_due') return 'badge-warning';
+            if (status === 'canceling' || status === 'canceled' || status === 'past_due') return 'badge-warning';
             return 'badge-neutral';
         }
 

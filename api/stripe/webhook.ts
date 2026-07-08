@@ -10,6 +10,7 @@ import {
   getTierByStripePriceId,
 } from "../../utils/tierConfig";
 import { buildSubscriptionProfileUpdate } from "../../src/utils/subscriptionUsageReset";
+import { mapStripeSubscriptionStatusForProfile } from "../../src/utils/subscriptionStatus";
 import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 
@@ -151,7 +152,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const priceId = subscription.items.data[0]?.price.id;
           const tierConfig = getTierByStripePriceId(priceId);
           const tier = tierConfig?.name || "free";
-          const status = subscription.status as string;
+          const status = mapStripeSubscriptionStatusForProfile(
+            subscription,
+            tier,
+          );
 
           const currentPeriodEnd =
             getSubscriptionCurrentPeriodEnd(subscription);
@@ -229,7 +233,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const priceId = subscription.items.data[0]?.price.id;
         const tierConfig = getTierByStripePriceId(priceId);
         const tier = tierConfig?.name || "free";
-        const status = subscription.status as string;
+        const status = mapStripeSubscriptionStatusForProfile(subAny, tier);
 
         const currentPeriodEnd = getSubscriptionCurrentPeriodEnd(subAny);
 

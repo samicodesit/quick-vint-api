@@ -84,6 +84,25 @@ describe("tier entitlements", () => {
     });
   });
 
+  it("keeps canceling paid profiles on paid entitlements until Stripe deletes them", () => {
+    process.env.PRICING_LIMITS_MODE = "current";
+
+    expect(
+      getEffectiveTier({
+        subscription_status: "canceling",
+        subscription_tier: "pro",
+      }),
+    ).toBe("pro");
+
+    expect(
+      getTierConfigForProfile({
+        subscription_status: "canceling",
+        subscription_tier: "pro",
+        is_legacy_plan: false,
+      }).limits,
+    ).toMatchObject({ daily: 25, monthly: 250 });
+  });
+
   it("uses current lower limits for new active subscriptions", () => {
     process.env.PRICING_LIMITS_MODE = "current";
 

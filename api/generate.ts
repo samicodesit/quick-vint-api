@@ -11,7 +11,10 @@ import { ApiLogger } from "../utils/apiLogger";
 import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
 import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
-import { getPricingLimitsModeForExtension } from "../utils/tierConfig";
+import {
+  getEffectiveTier,
+  getPricingLimitsModeForExtension,
+} from "../utils/tierConfig";
 import {
   buildAccountPausedResponse,
   isAccountPaused,
@@ -307,10 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // --- CONSTRUCT PROMPT INSTRUCTIONS ---
   // Only pro/business tiers can customize tone
-  const effectiveTier =
-    userProfile.subscription_status === "active"
-      ? userProfile.subscription_tier
-      : "free";
+  const effectiveTier = getEffectiveTier(userProfile);
   const tierAllowsExtras =
     effectiveTier === "pro" || effectiveTier === "business";
   const tierAllowsDescriptionFooter = canUseDescriptionFooter(effectiveTier);

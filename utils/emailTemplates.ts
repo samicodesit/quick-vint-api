@@ -394,7 +394,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl/reviews",
       ),
       el.p(
-        "If something felt off or missing, you can just reply here instead. <strong>I read those replies myself.</strong>",
+        "Just reply if you want. <strong>I can customize the AI to match your listing preferences at no extra cost.</strong>",
       ),
       el.p("This is a one-time request, so I will not keep asking."),
       el.p("Thanks, and happy selling,<br />Sami<br />Founder, AutoLister AI"),
@@ -470,30 +470,6 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
           el.p("Merci,<br />Sami<br />Founder, AutoLister AI"),
         ].join("\n");
       })(),
-    ].join("\n"),
-  },
-
-  honest_review_request_v1: {
-    subject: "Did AutoLister help with your Vinted listings?",
-    preheader:
-      "If it saved you time, a quick review helps other sellers find it too.",
-    body: [
-      el.p("Hi there,"),
-      el.p(
-        "I hope AutoLister AI has made your Vinted listing a little easier.",
-      ),
-      el.callout(
-        "If it has saved you some time, <strong>a quick honest review</strong> helps other sellers decide if AutoLister is worth trying.",
-      ),
-      el.button(
-        "Leave an honest review",
-        "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl/reviews",
-      ),
-      el.p(
-        "Just reply if you want. <strong>I can customize the AI to match your listing preferences at no extra cost.</strong>",
-      ),
-      el.p("This is a one-time request, so I will not keep asking."),
-      el.p("Thanks, and happy selling,<br />Sami<br />Founder, AutoLister AI"),
     ].join("\n"),
   },
 

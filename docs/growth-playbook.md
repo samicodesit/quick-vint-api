@@ -1,12 +1,20 @@
 # AutoLister AI Growth Playbook
 
+## Source Of Truth
+
+- `docs/growth-playbook.md`: rules, KPI model, thresholds, and allowed actions.
+- `docs/growth-current-sprint.md`: current goal, weekly actions, active experiments, metric snapshot, and decision log.
+- `docs/blog-content-plan.md`: SEO/content tracker only.
+- `/admin/logs`, `/admin/users`, and `/admin/costs`: product events, account behavior, and cost checks.
+
+Chat is not the source of truth. After any growth decision from Codex, update `docs/growth-current-sprint.md` before considering the decision saved.
+
 ## Daily Plan
 
 Do this once per day. Stop after the checklist is done.
 
-1. Open `/admin` -> `Growth`.
-2. In Chrome Web Store Developer Dashboard, choose `Last 30 days`. Chrome Store reporting does not expose a shorter period, so do not enter 7-day numbers here.
-3. Paste the same-period numbers into `Chrome Store Snapshot`:
+1. Open Chrome Web Store Developer Dashboard and choose `Last 30 days`. Chrome Store reporting does not expose a shorter period, so do not enter 7-day numbers here.
+2. Record the same-period Chrome Store numbers in `docs/growth-current-sprint.md`:
    - period start/end
    - page views
    - impressions
@@ -15,9 +23,8 @@ Do this once per day. Stop after the checklist is done.
    - weekly users
    - public listing users, if Chrome shows it
    - lifetime rating count
-4. Read `What this means`.
-5. Do the checkboxes in `Today's Workbench`.
-6. Use prepared scripts only when the dashboard asks for them.
+3. Check `/admin/logs`, `/admin/users`, and `/admin/costs` only for the specific metric or user issue you are investigating.
+4. Use prepared scripts only when the sprint plan calls for them.
 
 Do not judge emails by opens. Count replies, installs, generations, checkout starts, paid users, or new ratings.
 
@@ -35,10 +42,11 @@ If the dashboard says:
 
 Run this every Monday.
 
-1. Open `/admin` -> `Growth`.
-2. Follow the `This Month` panel.
-3. Ship one change tied to the current focus.
-4. Record these numbers in a note:
+1. Refresh the Chrome Store `Last 30 days` snapshot if the reporting period changed.
+2. Ask Codex to read `docs/growth-playbook.md`, `docs/growth-current-sprint.md`, `docs/blog-content-plan.md`, and the specific admin metrics you inspected.
+3. Update `docs/growth-current-sprint.md` with the current weekly actions, metric snapshot, and decision log.
+4. Ship one change tied to the current focus.
+5. Record these numbers in the sprint doc:
    - Chrome users
    - 30-day signups
    - active generators
@@ -49,6 +57,8 @@ Run this every Monday.
    - checkout starts
    - paid profiles
    - MRR
+
+Keep only three active weekly actions. If a new idea appears, either replace one of the three or leave it for the next Monday review.
 
 ## KPI Model
 

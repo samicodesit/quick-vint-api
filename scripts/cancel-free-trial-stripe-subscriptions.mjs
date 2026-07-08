@@ -29,7 +29,7 @@ console.log(`Target price IDs: ${freePriceIds.join(", ")}`);
 for await (const subscription of stripe.subscriptions.list({
   status: "active",
   limit: 100,
-  expand: ["data.customer", "data.items.data.price.product"],
+  expand: ["data.customer"],
 })) {
   scanned += 1;
   const matchingItem = subscription.items.data.find((item) =>
@@ -44,18 +44,17 @@ for await (const subscription of stripe.subscriptions.list({
     customer && typeof customer === "object" && "email" in customer
       ? customer.email || ""
       : "";
-  const product = matchingItem.price.product;
-  const productName =
-    product && typeof product === "object" && "name" in product
-      ? product.name || ""
-      : "";
+  const productId =
+    typeof matchingItem.price.product === "string"
+      ? matchingItem.price.product
+      : matchingItem.price.product?.id || "";
 
   console.log(
     [
       subscription.id,
       email || "(no email)",
       matchingItem.price.id,
-      productName || "(no product name)",
+      productId || "(no product id)",
       subscription.cancel_at_period_end ? "already canceling" : "active",
     ].join(" | "),
   );

@@ -1914,7 +1914,7 @@
             state.logsType = params.get('log_type') || 'generation';
             state.logsSearch = params.get('search') || '';
             state.logsStatus = params.get('status_filter') || 'all';
-            state.logsRelatedUserId = params.get('related_user_id') || '';
+            state.logsRelatedUserId = params.get('user_id') || params.get('related_user_id') || '';
             state.logsRelatedEmail = params.get('related_email') || '';
         }
 
@@ -1924,7 +1924,7 @@
             if (state.logsType && state.logsType !== 'generation') params.set('log_type', state.logsType);
             if (state.logsSearch) params.set('search', state.logsSearch);
             if (state.logsStatus && state.logsStatus !== 'all') params.set('status_filter', state.logsStatus);
-            if (state.logsRelatedUserId) params.set('related_user_id', state.logsRelatedUserId);
+            if (state.logsRelatedUserId) params.set('user_id', state.logsRelatedUserId);
             if (state.logsRelatedEmail) params.set('related_email', state.logsRelatedEmail);
             const query = params.toString();
             return query ? `/admin/logs?${query}` : '/admin/logs';
@@ -3419,7 +3419,7 @@
                 search: state.logsSearch || '',
                 status_filter: state.logsStatus || 'all'
             });
-            if (state.logsRelatedUserId) params.set('related_user_id', state.logsRelatedUserId);
+            if (state.logsRelatedUserId) params.set('user_id', state.logsRelatedUserId);
             if (state.logsRelatedEmail) params.set('related_email', state.logsRelatedEmail);
 
             const data = await fetchAPI(`/api/admin?${params}`);
@@ -3602,7 +3602,7 @@
         function openLogsForUser(userId, encodedEmail = '', type = 'all') {
             const email = decodeURIComponent(encodedEmail || '');
             state.logsType = type;
-            state.logsSearch = email || userId || '';
+            state.logsSearch = '';
             state.logsStatus = 'all';
             state.logsRelatedUserId = userId || '';
             state.logsRelatedEmail = email || '';

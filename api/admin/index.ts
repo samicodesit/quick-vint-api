@@ -1391,61 +1391,17 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-type RelatedLogFilters = {
-  direct: string | null;
-  expanded: string | null;
-};
-
-async function getRelatedLogFilters(
-  req: VercelRequest,
-): Promise<RelatedLogFilters | null> {
+async function getRelatedLogTarget(req: VercelRequest) {
   const relatedUserId = (
     getQueryString(req.query.related_user_id) || ""
   ).trim();
-  let relatedEmail = (getQueryString(req.query.related_email) || "").trim();
+  const relatedEmail = (getQueryString(req.query.related_email) || "").trim();
 
   if (!relatedUserId && !relatedEmail) return null;
 
-  if (relatedUserId && !relatedEmail) {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", relatedUserId)
-      .maybeSingle();
-    if (error) throw error;
-    relatedEmail = profile?.email || "";
-  }
-
-  const directFilters = [
-    relatedUserId ? `user_id.eq.${relatedUserId}` : "",
-    relatedEmail ? `user_email.eq.${relatedEmail}` : "",
-  ].filter(Boolean);
-  const allFilters = [...directFilters];
-
-  if (directFilters.length) {
-    const { data: linkedLogs, error } = await supabase
-      .from("api_logs")
-      .select("full_request_body")
-      .or(directFilters.join(","))
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (error) throw error;
-
-    const clientIds = Array.from(
-      new Set((linkedLogs || []).map(getLogAnalyticsClientId).filter(Boolean)),
-    );
-    clientIds.forEach((clientId) => {
-      allFilters.push(
-        `full_request_body->context->>analyticsClientId.eq.${clientId}`,
-      );
-    });
-  }
-
-  if (!directFilters.length && !allFilters.length) return null;
-
   return {
-    direct: directFilters.length ? directFilters.join(",") : null,
-    expanded: allFilters.length ? allFilters.join(",") : null,
+    userId: relatedUserId || null,
+    email: relatedEmail || null,
   };
 }
 
@@ -1482,10 +1438,9 @@ function isLikelyIpSearch(value: string) {
 
 function buildLogSearchFilter(search: string) {
   const safeSearch = search.replace(/[%_,]/g, "\\$&");
-  const filters = [
-    `user_email.ilike.%${safeSearch}%`,
-    `endpoint.ilike.%${safeSearch}%`,
-  ];
+  const filters = search.includes("@")
+    ? [`user_email.eq.${safeSearch}`]
+    : [`user_email.ilike.%${safeSearch}%`, `endpoint.ilike.%${safeSearch}%`];
 
   if (UUID_PATTERN.test(search)) {
     filters.push(
@@ -1515,7 +1470,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const logType = (req.query.log_type as string) || "generation";
     const search = (getQueryString(req.query.search) || "").trim();
     const statusFilter = getQueryString(req.query.status_filter) || "all";
-    const relatedLogFilters = await getRelatedLogFilters(req);
+    const relatedLogTarget = await getRelatedLogTarget(req);
 
     const applyLogTypeFilter = (query: any) => {
       if (logType === "all") return query;
@@ -1526,6 +1481,15 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
           .not("endpoint", "like", "/event/%");
       }
       return query.eq("endpoint", "/api/generate");
+    };
+
+    const applyAccountFilter = (query: any) => {
+      if (userId) return query.eq("user_id", userId);
+      if (relatedLogTarget?.userId)
+        return query.eq("user_id", relatedLogTarget.userId);
+      if (relatedLogTarget?.email)
+        return query.eq("user_email", relatedLogTarget.email);
+      return query;
     };
 
     const logListSelect: string =
@@ -1543,49 +1507,14 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     if (statusFilter === "error") query = query.gte("response_status", 400);
     if (statusFilter === "flagged")
       query = query.eq("suspicious_activity", true);
-    if (userId) query = query.eq("user_id", userId);
+    query = applyAccountFilter(query);
     if (startDate) query = query.gte("created_at", startDate);
     if (endDate) query = query.lte("created_at", endDate);
-    if (relatedLogFilters?.expanded) {
-      query = query.or(relatedLogFilters.expanded);
-    } else if (search) {
+    if (!relatedLogTarget && search) {
       query = query.or(buildLogSearchFilter(search));
     }
 
-    let { data: logs, error: logsError } = await query;
-
-    if (
-      logsError &&
-      relatedLogFilters?.direct &&
-      relatedLogFilters.expanded !== relatedLogFilters.direct
-    ) {
-      console.warn(
-        "Expanded related log filter failed; retrying direct account logs",
-        logsError,
-      );
-      let directQuery = applyLogTypeFilter(
-        supabase
-          .from("api_logs")
-          .select(logListSelect)
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limit - 1),
-      );
-
-      if (suspiciousOnly)
-        directQuery = directQuery.eq("suspicious_activity", true);
-      if (statusFilter === "error")
-        directQuery = directQuery.gte("response_status", 400);
-      if (statusFilter === "flagged")
-        directQuery = directQuery.eq("suspicious_activity", true);
-      if (userId) directQuery = directQuery.eq("user_id", userId);
-      if (startDate) directQuery = directQuery.gte("created_at", startDate);
-      if (endDate) directQuery = directQuery.lte("created_at", endDate);
-      directQuery = directQuery.or(relatedLogFilters.direct);
-
-      const directResult = await directQuery;
-      logs = directResult.data;
-      logsError = directResult.error;
-    }
+    const { data: logs, error: logsError } = await query;
 
     if (logsError) {
       console.error("Error fetching logs:", logsError);
@@ -1593,7 +1522,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     }
 
     let countQuery = applyLogTypeFilter(
-      supabase.from("api_logs").select("id", { count: "exact", head: true }),
+      supabase.from("api_logs").select("id", { count: "planned", head: true }),
     );
 
     if (suspiciousOnly) countQuery = countQuery.eq("suspicious_activity", true);
@@ -1601,53 +1530,20 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       countQuery = countQuery.gte("response_status", 400);
     if (statusFilter === "flagged")
       countQuery = countQuery.eq("suspicious_activity", true);
-    if (userId) countQuery = countQuery.eq("user_id", userId);
+    countQuery = applyAccountFilter(countQuery);
     if (startDate) countQuery = countQuery.gte("created_at", startDate);
     if (endDate) countQuery = countQuery.lte("created_at", endDate);
-    if (relatedLogFilters?.expanded) {
-      countQuery = countQuery.or(relatedLogFilters.expanded);
-    } else if (search) {
+    if (!relatedLogTarget && search) {
       countQuery = countQuery.or(buildLogSearchFilter(search));
     }
 
-    let { count, error: countError } = await countQuery;
-    if (
-      countError &&
-      relatedLogFilters?.direct &&
-      relatedLogFilters.expanded !== relatedLogFilters.direct
-    ) {
-      console.warn(
-        "Expanded related log count failed; retrying direct account count",
-        countError,
-      );
-      let directCountQuery = applyLogTypeFilter(
-        supabase.from("api_logs").select("id", { count: "exact", head: true }),
-      );
-
-      if (suspiciousOnly)
-        directCountQuery = directCountQuery.eq("suspicious_activity", true);
-      if (statusFilter === "error")
-        directCountQuery = directCountQuery.gte("response_status", 400);
-      if (statusFilter === "flagged")
-        directCountQuery = directCountQuery.eq("suspicious_activity", true);
-      if (userId) directCountQuery = directCountQuery.eq("user_id", userId);
-      if (startDate)
-        directCountQuery = directCountQuery.gte("created_at", startDate);
-      if (endDate) directCountQuery = directCountQuery.lte("created_at", endDate);
-      directCountQuery = directCountQuery.or(relatedLogFilters.direct);
-
-      const directCountResult = await directCountQuery;
-      count = directCountResult.count;
-      countError = directCountResult.error;
-    }
+    const { count, error: countError } = await countQuery;
     if (countError) {
       console.error("Error counting logs:", countError);
       return res.status(500).json({ error: "Failed to count logs" });
     }
 
-    const enrichedLogs = attachOpenAICostsToLogs(
-      await attachCorrelatedUsersToLogs(logs || []),
-    );
+    const enrichedLogs = attachOpenAICostsToLogs(logs || []);
 
     return res.status(200).json({
       logs: enrichedLogs,

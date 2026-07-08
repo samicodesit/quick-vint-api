@@ -419,7 +419,7 @@ describe("admin HTML", () => {
     await context.loadView("logs");
     expect(content.innerHTML).toContain("Logs are the forensic stream");
     expect(content.innerHTML).toContain("Cancelled");
-    expect(content.innerHTML).toContain("Likely user: test@example.com");
+    expect(content.innerHTML).toContain("Journey");
     expect(content.innerHTML).toContain("198.51.100.12");
     expect(content.innerHTML).not.toContain("Anonymous client cid-anon...");
     await context.showLogDetails("log-3");
@@ -451,15 +451,15 @@ describe("admin HTML", () => {
 
     context.openLogsForUser("user-1", encodeURIComponent("test@example.com"));
     expect(context.state.logsType).toBe("all");
-    expect(context.state.logsSearch).toBe("test@example.com");
+    expect(context.state.logsSearch).toBe("");
     expect(context.state.logsRelatedUserId).toBe("user-1");
     expect(context.state.logsRelatedEmail).toBe("test@example.com");
     expect(context.window.location.pathname).toBe("/admin/logs");
-    expect(context.window.location.search).toContain("related_user_id=user-1");
+    expect(context.window.location.search).toContain("user_id=user-1");
     expect(context.window.location.search).toContain(
       "related_email=test%40example.com",
     );
-    expect(context.fetchCalls.some((url) => url.includes("related_user_id=user-1"))).toBe(true);
+    expect(context.fetchCalls.some((url) => url.includes("user_id=user-1"))).toBe(true);
   });
 
   it("sends log status filters to the backend", async () => {

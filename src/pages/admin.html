@@ -461,6 +461,109 @@
             overflow-wrap: anywhere;
         }
 
+        .badge {
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            display: inline-flex;
+            font-size: 0.72rem;
+            font-weight: 800;
+            gap: 0.28rem;
+            line-height: 1;
+            max-width: 100%;
+            min-height: 1.45rem;
+            padding: 0.25rem 0.5rem;
+            white-space: nowrap;
+        }
+
+        .badge-info {
+            background: var(--info-bg);
+            border-color: rgba(37, 99, 235, 0.16);
+            color: var(--info-text);
+        }
+
+        .badge-success {
+            background: var(--success-bg);
+            border-color: rgba(5, 150, 105, 0.16);
+            color: var(--success-text);
+        }
+
+        .badge-warning {
+            background: var(--warning-bg);
+            border-color: rgba(217, 119, 6, 0.2);
+            color: var(--warning-text);
+        }
+
+        .badge-danger {
+            background: var(--danger-bg);
+            border-color: rgba(220, 38, 38, 0.18);
+            color: var(--danger-text);
+        }
+
+        .badge-neutral {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .account-chip-stack {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .plan-chip {
+            text-transform: capitalize;
+        }
+
+        .plan-chip.free {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #334155;
+        }
+
+        .plan-chip.starter {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        .plan-chip.pro {
+            background: #f5f3ff;
+            border-color: #ddd6fe;
+            color: #6d28d9;
+        }
+
+        .plan-chip.business {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+        }
+
+        .plan-chip.neutral {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .status-chip {
+            text-transform: capitalize;
+        }
+
+        .signal-chip {
+            font-weight: 850;
+        }
+
+        .signal-chip::before {
+            background: currentColor;
+            border-radius: 999px;
+            content: "";
+            height: 0.38rem;
+            opacity: 0.72;
+            width: 0.38rem;
+        }
+
         .btn-secondary,
         .quick-filter-btn,
         .segment-btn {
@@ -3986,6 +4089,52 @@
             return 'badge-neutral';
         }
 
+        function normalizeAdminPlanValue(value) {
+            return String(value || 'free').trim().toLowerCase() || 'free';
+        }
+
+        function normalizeAdminStatusValue(value) {
+            return String(value || 'unknown').trim().toLowerCase() || 'unknown';
+        }
+
+        function titleCaseAdminLabel(value) {
+            return String(value || '')
+                .replace(/[_-]+/g, ' ')
+                .replace(/\b\w/g, char => char.toUpperCase());
+        }
+
+        function planBadgeClass(tier) {
+            const normalized = normalizeAdminPlanValue(tier);
+            if (['free', 'starter', 'pro', 'business'].includes(normalized)) {
+                return normalized;
+            }
+            return 'neutral';
+        }
+
+        function renderAccountChips(u) {
+            const tier = normalizeAdminPlanValue(u.subscription_tier);
+            const status = normalizeAdminStatusValue(u.subscription_status);
+            const tierLabel = titleCaseAdminLabel(tier);
+            const statusLabel = titleCaseAdminLabel(status);
+            const shouldShowStatus = status !== tier && status !== 'unknown';
+            const chips = [
+                `<span class="badge plan-chip ${planBadgeClass(tier)}">${escapeHtml(tierLabel)}</span>`,
+            ];
+
+            if (shouldShowStatus) {
+                chips.push(`<span class="badge status-chip ${statusBadgeClass(status)}">${escapeHtml(statusLabel)}</span>`);
+            }
+
+            if (u.is_at_risk) {
+                chips.push('<span class="badge badge-warning signal-chip">High usage</span>');
+            }
+
+            const pauseBadge = renderAccountPauseBadge(u);
+            if (pauseBadge) chips.push(pauseBadge);
+
+            return `<div class="account-chip-stack">${chips.join('')}</div>`;
+        }
+
         function renderAccountPauseBadge(u) {
             if (u.account_status !== 'paused') return '';
             const reason = escapeHtml(u.abuse_reason || 'manual_review');
@@ -4057,8 +4206,6 @@
         function renderUserRow(u) {
             const email = escapeHtml(u.email || 'Unknown');
             const id = escapeHtml(u.id || '');
-            const tier = escapeHtml(u.subscription_tier || 'free');
-            const status = escapeHtml(u.subscription_status || 'unknown');
             const remaining = u.usage?.month_remaining ?? 0;
 
             return `
@@ -4069,12 +4216,7 @@
                         ${u.is_new_today ? '<span class="badge badge-success" style="margin-top: 0.35rem;">New today</span>' : ''}
                     </td>
                     <td>
-                        <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
-                            <span class="badge badge-info" style="text-transform: capitalize;">${tier}</span>
-                            <span class="badge ${statusBadgeClass(u.subscription_status)}">${status}</span>
-                            ${u.is_at_risk ? '<span class="badge badge-warning">High usage</span>' : ''}
-                            ${renderAccountPauseBadge(u)}
-                        </div>
+                        ${renderAccountChips(u)}
                     </td>
                     <td>
                         ${renderUsage(u)}
@@ -4094,8 +4236,6 @@
 
         function renderUserMobileCard(u) {
             const email = escapeHtml(u.email || 'Unknown');
-            const tier = escapeHtml(u.subscription_tier || 'free');
-            const status = escapeHtml(u.subscription_status || 'unknown');
 
             return `
                 <div class="mobile-card">
@@ -4110,9 +4250,7 @@
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Plan</span>
                         <span class="mobile-card-value">
-                            <span class="badge badge-info">${tier}</span>
-                            <span class="badge ${statusBadgeClass(u.subscription_status)}">${status}</span>
-                            ${renderAccountPauseBadge(u)}
+                            ${renderAccountChips(u)}
                         </span>
                     </div>
                     <div style="margin: 0.85rem 0;">${renderUsage(u)}</div>

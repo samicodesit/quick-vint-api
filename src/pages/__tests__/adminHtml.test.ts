@@ -132,67 +132,6 @@ function buildAdminHarness() {
     },
   };
 
-  const growth = {
-    days: 30,
-    generatedAt: now,
-    rates: {
-      activationPerSignup30d: 55,
-      twoPlusGeneration30d: 40,
-      signupToPaid30d: 5,
-      limitToPaywall30d: 75,
-      paywallToCheckout30d: 12,
-      quotaPressure30d: 28,
-    },
-    totals: { activeGenerators: 30, quotaPressureUsers: 8, twoPlusGenerationUsers: 12 },
-    last30: {
-      signups: 70,
-      activeGenerators: 30,
-      successfulGenerations: 140,
-      limitHits: 15,
-      paywallShown: 10,
-      checkoutStart: 3,
-      checkoutOpened: 2,
-      paidSignups: 2,
-      magicLinkRequests: 6,
-    },
-    daily: [
-      {
-        date: "2026-06-22",
-        signups: 4,
-        activeGenerators: 2,
-        successfulGenerations: 8,
-        limitHits: 1,
-        paywallShown: 1,
-        checkoutStart: 0,
-        checkoutOpened: 0,
-      },
-    ],
-    topEvents: [
-      { event: "uninstall_feedback_submitted", count: 2 },
-      { event: "generate_error", count: 1 },
-      { event: "checkout_start", count: 3 },
-    ],
-    eventSummary: {
-      categories: [
-        { category: "Acquisition Quality", count: 2 },
-        { category: "Product Usage", count: 9 },
-        { category: "Revenue Intent", count: 3 },
-        { category: "Auth", count: 1 },
-      ],
-      uninstallReasons: [{ reason: "results_not_good_enough", label: "Results were not good enough", count: 2 }],
-      recentImportantEvents: [
-        {
-          event: "uninstall_feedback_submitted",
-          category: "Acquisition Quality",
-          createdAt: now,
-          extensionVersion: "1.3.19",
-          userId: null,
-          context: { reasonLabel: "Results were not good enough" },
-        },
-      ],
-    },
-  };
-
   const users = {
     users: [
       {
@@ -351,7 +290,6 @@ function buildAdminHarness() {
       innerWidth: 1200,
       addEventListener() {},
       open() {},
-      growthChart: null,
     },
     document: {
       body: { classList: { add() {}, remove() {} } },
@@ -370,7 +308,6 @@ function buildAdminHarness() {
       fetchCalls.push(url);
       let body: unknown = usage;
       if (url.includes("auth-check")) body = { ok: true };
-      if (url.includes("growth-stats")) body = growth;
       if (url.includes("list-users")) body = users;
       if (url.includes("view-logs")) body = logs;
       if (url.includes("log-detail")) {
@@ -421,8 +358,8 @@ describe("admin HTML", () => {
   it("renders every admin view without runtime view errors", async () => {
     const { context, content, modalBody, modalTitle } = buildAdminHarness();
 
-    for (const view of ["overview", "growth", "events", "logs", "users", "ui-pages"]) {
-      if (view === "logs") context.state.logsType = "events";
+    for (const view of ["costs", "reports", "logs", "users", "emails", "ui-pages"]) {
+      if (view === "logs" || view === "reports") context.state.logsType = "events";
       context.state.currentView = view;
       await context.loadView(view);
       expect(content.innerHTML, view).not.toContain("Error loading view");
@@ -468,13 +405,6 @@ describe("admin HTML", () => {
 
   it("links anonymous analytics clients to journeys and related logs", async () => {
     const { context, content, modalBody, modalTitle } = buildAdminHarness();
-
-    context.state.currentView = "events";
-    await context.loadView("events");
-    expect(content.innerHTML).toContain("Signals are product behavior");
-    expect(content.innerHTML).toContain("Signal Map");
-    expect(content.innerHTML).toContain("All event logs");
-    expect(content.innerHTML).not.toContain("Latest Raw Events");
 
     context.state.currentView = "logs";
     context.state.logsType = "events";

@@ -392,6 +392,7 @@ function buildAdminHarness() {
       showClientJourney: (analyticsClientId: string) => Promise<void>;
       openLogsForSearch: (search: string, type?: string) => void;
       openLogsForUser: (userId: string, encodedEmail?: string, type?: string) => void;
+      renderUserActions: (user: Record<string, unknown>) => string;
       fetchCalls: string[];
       state: {
         currentView: string;
@@ -519,6 +520,25 @@ describe("admin HTML", () => {
     await context.loadView("logs");
 
     expect(context.fetchCalls.some((url) => url.includes("status_filter=flagged"))).toBe(true);
+  });
+
+  it("hides review request action after the one-time email was sent", () => {
+    const { context } = buildAdminHarness();
+    const baseUser = {
+      id: "user-1",
+      email: "test@example.com",
+      email_can_contact: true,
+      account_status: "active",
+      is_at_risk: false,
+    };
+
+    expect(context.renderUserActions(baseUser)).toContain("Review email");
+    expect(
+      context.renderUserActions({
+        ...baseUser,
+        review_request_sent_at: "2026-07-08T00:00:00.000Z",
+      }),
+    ).not.toContain("Review email");
   });
 
   it("explains AI cost totals with the right generation denominator", async () => {

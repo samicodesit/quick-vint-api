@@ -12,6 +12,7 @@
     "ops:delete-user": "node scripts/delete-user-by-email.mjs",
     "ops:inspect-generation": "node scripts/inspect-user-generation.mjs",
     "ops:customer-usage-link": "node scripts/create-customer-usage-link.mjs",
+    "ops:backfill-review-requests": "node scripts/backfill-review-request-sent.mjs",
     "ops:privacy-reply": "node scripts/send-privacy-reply.mjs",
     "ops:support-reply": "node scripts/send-support-reply.mjs",
     "type-check": "tsc --noEmit",

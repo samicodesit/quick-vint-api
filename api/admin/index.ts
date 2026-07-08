@@ -124,6 +124,7 @@ type ProfileRow = {
   paused_by?: string | null;
   email_subscribed?: boolean | null;
   unsubscribe_token?: string | null;
+  review_request_sent_at?: string | null;
 };
 
 type RateLimitRow = {
@@ -134,7 +135,7 @@ type RateLimitRow = {
 };
 
 const PROFILE_SELECT =
-  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token";
+  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token, review_request_sent_at";
 
 const LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
@@ -2386,7 +2387,9 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
     ) {
       const { data, error: fetchError } = await supabase
         .from("profiles")
-        .select("email, unsubscribe_token, email_subscribed")
+        .select(
+          "email, unsubscribe_token, email_subscribed, review_request_sent_at",
+        )
         .in("email", recipient_emails)
         .eq("email_subscribed", true)
         .not("unsubscribe_token", "is", null);
@@ -2405,7 +2408,9 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
       // MODE 3: Bulk (all subscribed users)
       const { data, error: fetchError } = await supabase
         .from("profiles")
-        .select("email, unsubscribe_token, email_subscribed")
+        .select(
+          "email, unsubscribe_token, email_subscribed, review_request_sent_at",
+        )
         .eq("email_subscribed", true)
         .not("email", "is", null);
 
@@ -2427,6 +2432,21 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
       error?: string;
       subscribed?: boolean;
     }> = [];
+    const shouldMarkReviewRequestSent =
+      template_key === "honest_review_request_v1";
+    if (shouldMarkReviewRequestSent) {
+      users = users.filter((user) => !user.review_request_sent_at);
+      if (users.length === 0) {
+        return res.status(200).json({
+          mode: recipient_emails ? "specific" : "bulk",
+          message: "Review request was already sent to the selected user(s).",
+          total: 0,
+          sent: 0,
+          failed: 0,
+          results: [],
+        });
+      }
+    }
 
     for (const user of users) {
       const unsubUrl = `https://autolister.app/api/unsubscribe?token=${user.unsubscribe_token}`;
@@ -2447,6 +2467,19 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           },
         });
+        if (shouldMarkReviewRequestSent) {
+          const { error: markerError } = await supabase
+            .from("profiles")
+            .update({ review_request_sent_at: new Date().toISOString() })
+            .eq("email", user.email);
+
+          if (markerError) {
+            console.error(
+              `Failed to mark review request sent for ${user.email}:`,
+              markerError.message,
+            );
+          }
+        }
         results.push({
           email: user.email,
           status: "sent",

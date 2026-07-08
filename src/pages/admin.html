@@ -6512,6 +6512,7 @@
             const userId = escapeAttribute(u.id);
             const encodedEmail = encodeURIComponent(u.email || '');
             const isPaused = u.account_status === 'paused';
+            const reviewAlreadySent = Boolean(u.review_request_sent_at);
             const canSendReview = Boolean(u.email_can_contact && !isPaused);
             const reviewTitle = !u.email
                 ? 'No email address'
@@ -6528,7 +6529,7 @@
                     <button class="btn-secondary" onclick="showUserJourney('${userId}', '${encodedEmail}')">Journey</button>
                     <button class="btn-secondary" onclick="openLogsForUser('${userId}', '${encodedEmail}', 'all')">Logs</button>
                     <button class="btn-secondary" onclick="openCustomerUsagePage('${encodedEmail}')">Usage page</button>
-                    <button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>
+                    ${reviewAlreadySent ? '' : `<button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>`}
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
                         ? `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'active')">Unpause</button>`

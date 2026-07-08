@@ -4010,16 +4010,22 @@
         function openUsersSegment(segment) {
             state.usersSegment = segment;
             state.usersPage = 1;
+            applyUsersSegmentDefaults(segment);
             switchView('users');
         }
 
         function setUsersSegment(segment) {
             state.usersSegment = segment;
             state.usersPage = 1;
+            applyUsersSegmentDefaults(segment);
+            renderUsers(document.getElementById('contentArea'));
+        }
+
+        function applyUsersSegmentDefaults(segment) {
             if (segment === 'active') state.usersSort = 'active_desc';
             if (segment === 'at-risk') state.usersSort = 'usage_desc';
+            if (segment === 'paid' && state.usersStatus === 'active') state.usersStatus = 'all';
             if (segment !== 'active' && state.usersSort === 'active_desc') state.usersSort = 'created_desc';
-            renderUsers(document.getElementById('contentArea'));
         }
 
         function setUsersFilter(key, value) {

@@ -213,6 +213,10 @@ function normalizeSort(value: string | string[] | undefined): AdminUserSort {
   return "created_desc";
 }
 
+function hasProfileSearch(req: VercelRequest) {
+  return Boolean((getQueryString(req.query.search) || "").trim());
+}
+
 function applyProfileFilters(query: any, req: VercelRequest) {
   const search = (getQueryString(req.query.search) || "").trim();
   const tier = (getQueryString(req.query.tier) || "all").trim();
@@ -833,8 +837,9 @@ async function handleListUsers(req: VercelRequest, res: VercelResponse) {
     const sort = normalizeSort(req.query.sort);
     const todayStart = getQueryString(req.query.today_start);
     const todayEnd = getQueryString(req.query.today_end);
+    const isProfileSearch = hasProfileSearch(req);
 
-    if (segment === "active") {
+    if (segment === "active" && !isProfileSearch) {
       const { data: recentLogs, error: logsError } = await supabase
         .from("api_logs")
         .select("user_id, created_at")
@@ -930,7 +935,12 @@ async function handleListUsers(req: VercelRequest, res: VercelResponse) {
     if (segment === "paid") {
       query = query
         .neq("subscription_tier", "free")
-        .eq("subscription_status", "active");
+        .in("subscription_status", [
+          "active",
+          "canceling",
+          "trialing",
+          "past_due",
+        ]);
     }
 
     query = applyProfileFilters(query, req);

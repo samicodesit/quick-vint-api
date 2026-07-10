@@ -44,6 +44,9 @@ import messagesPl from "../messages/pl.json";
 
 const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
 const OPEN_AI_MAX_OUTPUT_TOKENS = 1000;
+const DEBUG_IMAGE_BUCKET = "temp-uploads";
+const DEBUG_IMAGE_MAX_COUNT = 8;
+const DEBUG_IMAGE_MAX_BYTES = 1_500_000;
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
@@ -76,6 +79,85 @@ function runCors(req: VercelRequest, res: VercelResponse) {
 }
 
 const openai = new OpenAI({ apiKey: process.env.VERCEL_APP_OPENAI_API_KEY });
+
+function getDebugImageExtension(mimeType: string) {
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/webp") return "webp";
+  return "jpg";
+}
+
+function parseDebugImageDataUrl(value: string) {
+  const match = value.match(/^data:([^;,]+);base64,(.+)$/i);
+  if (!match) return null;
+
+  const mimeType = match[1].toLowerCase();
+  if (!mimeType.startsWith("image/")) return null;
+
+  const buffer = Buffer.from(match[2], "base64");
+  if (!buffer.length || buffer.length > DEBUG_IMAGE_MAX_BYTES) return null;
+
+  return {
+    buffer,
+    mimeType,
+    extension: getDebugImageExtension(mimeType),
+  };
+}
+
+function mergeLogRequestBody(logData: any, patch: Record<string, unknown>) {
+  const existing =
+    logData.fullRequestBody && typeof logData.fullRequestBody === "object"
+      ? logData.fullRequestBody
+      : {};
+  logData.fullRequestBody = {
+    ...existing,
+    ...patch,
+  };
+}
+
+async function storeDebugGenerationImages(imageUrls: string[]) {
+  const folder = `debug-gen-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+  const images = [];
+
+  for (const [index, imageUrl] of imageUrls
+    .slice(0, DEBUG_IMAGE_MAX_COUNT)
+    .entries()) {
+    const parsed = parseDebugImageDataUrl(imageUrl);
+    if (!parsed) continue;
+
+    const path = `${folder}/${String(index + 1).padStart(2, "0")}.${
+      parsed.extension
+    }`;
+    const { error } = await supabase.storage
+      .from(DEBUG_IMAGE_BUCKET)
+      .upload(path, parsed.buffer, {
+        contentType: parsed.mimeType,
+        upsert: false,
+      });
+
+    if (error) {
+      console.warn("Could not store generation debug image:", error.message);
+      continue;
+    }
+
+    images.push({
+      index: index + 1,
+      bucket: DEBUG_IMAGE_BUCKET,
+      path,
+      mimeType: parsed.mimeType,
+      sizeBytes: parsed.buffer.length,
+    });
+  }
+
+  return images.length
+    ? {
+        bucket: DEBUG_IMAGE_BUCKET,
+        retentionHours: 6,
+        images,
+      }
+    : null;
+}
 
 function extractOpenAIRateLimitHeaders(
   headers?: { get(name: string): string | null } | null,
@@ -425,6 +507,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   generationReservationId = rateLimitResult.reservationId ?? null;
+  try {
+    const debugImages = await storeDebugGenerationImages(imageUrls);
+    if (debugImages) {
+      mergeLogRequestBody(logData, { debugImages });
+    }
+  } catch (error: any) {
+    console.warn(
+      "Could not prepare generation debug images:",
+      error?.message || error,
+    );
+  }
 
   // Create the prompt for OpenAI
   const systemPrompt =

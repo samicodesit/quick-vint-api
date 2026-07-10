@@ -195,6 +195,18 @@ function buildAdminHarness() {
         user_email: "test@example.com",
         ip_address: "203.0.113.24",
         full_request_body: {
+          debugImages: {
+            bucket: "temp-uploads",
+            retentionHours: 6,
+            images: [
+              {
+                index: 1,
+                path: "debug-gen-test/01.jpg",
+                signedUrl:
+                  "https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed",
+              },
+            ],
+          },
           imageMetadata: [
             {
               sourceUrl: "https://example.com/item.jpg?token=private",
@@ -400,7 +412,7 @@ describe("admin HTML", () => {
     await context.loadView("logs");
     expect(content.innerHTML).toContain("activity-feed");
     expect(content.innerHTML).toContain("Blue denim jacket");
-    expect(content.innerHTML).toContain("https://example.com/item.jpg");
+    expect(content.innerHTML).toContain("https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed");
     expect(content.innerHTML).toContain("203.0.113.24");
     expect(content.innerHTML).toContain(">CXL<");
     expect(content.innerHTML).toContain(">API<");
@@ -408,13 +420,16 @@ describe("admin HTML", () => {
     await context.showLogDetails("log-2");
     expect(modalTitle.textContent).toBe("Log Details");
     expect(modalBody.innerHTML).toContain("showLogImagePreview");
+    expect(modalBody.innerHTML).toContain("https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed");
     expect(modalBody.innerHTML).toContain("https://example.com/item.jpg");
     expect(modalBody.innerHTML).toContain("https://example.com/item-large.jpg");
     expect(modalBody.innerHTML).not.toContain("data:image");
     expect(modalBody.innerHTML).not.toContain("window.open");
     context.showLogImagePreview("log-2", 0);
-    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 2");
-    expect(context.document.getElementById("imagePreviewImg").src).toBe("https://example.com/item.jpg");
+    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 3");
+    expect(context.document.getElementById("imagePreviewImg").src).toBe(
+      "https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed",
+    );
 
     await context.showUserJourney("user-1", encodeURIComponent("test@example.com"));
     expect(modalTitle.textContent).toBe("User Journey");

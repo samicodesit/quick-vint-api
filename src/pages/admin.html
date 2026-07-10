@@ -3465,8 +3465,9 @@
             return {};
         }
 
-        function normalizeRenderableLogImageUrl(value) {
+        function normalizeRenderableLogImageUrl(value, options = {}) {
             if (!value) return null;
+            const preserveQuery = options.preserveQuery === true;
             const rawUrl = typeof value === 'string'
                 ? value
                 : value && typeof value === 'object' && value.kind === 'remote_url'
@@ -3474,12 +3475,20 @@
                     : '';
             if (!/^https?:\/\//i.test(rawUrl || '')) return null;
             try {
-                if (typeof URL === 'undefined') return rawUrl.trim().replace(/[?#].*$/, '');
+                if (typeof URL === 'undefined') return preserveQuery ? rawUrl.trim() : rawUrl.trim().replace(/[?#].*$/, '');
                 const parsed = new URL(rawUrl);
-                return `${parsed.origin}${parsed.pathname}`;
+                return `${parsed.origin}${parsed.pathname}${preserveQuery ? parsed.search || '' : ''}`;
             } catch (e) {
-                return rawUrl.trim().replace(/[?#].*$/, '');
+                return preserveQuery ? rawUrl.trim() : rawUrl.trim().replace(/[?#].*$/, '');
             }
+        }
+
+        function getLogDebugImageUrls(log) {
+            const metadata = parseLogMetadata(log);
+            const images = Array.isArray(metadata.debugImages?.images) ? metadata.debugImages.images : [];
+            return images
+                .map((entry) => normalizeRenderableLogImageUrl(entry?.signedUrl, { preserveQuery: true }))
+                .filter(Boolean);
         }
 
         function getLogMetadataImageUrls(log) {
@@ -3504,6 +3513,7 @@
 
         function getSafeLogImageUrls(log) {
             const urls = [
+                ...getLogDebugImageUrls(log),
                 ...parseLogImages(log).map(normalizeRenderableLogImageUrl),
                 ...getLogMetadataImageUrls(log)
             ].filter(Boolean);
@@ -4932,7 +4942,6 @@
             const title = document.getElementById('imagePreviewTitle');
             const meta = document.getElementById('imagePreviewMeta');
             title.textContent = `AI prompt image ${Number(index) + 1} of ${images.length}`;
-            meta.textContent = 'Source image URL recorded for this AI request';
             image.removeAttribute('src');
             image.onload = () => {
                 const dimensions = image.naturalWidth && image.naturalHeight
@@ -4943,6 +4952,7 @@
             image.onerror = () => {
                 meta.textContent = 'Could not render this AI prompt image';
             };
+            meta.textContent = 'Short-lived debug image or source URL recorded for this AI request';
             image.src = url;
             backdrop.classList.add('open');
         }

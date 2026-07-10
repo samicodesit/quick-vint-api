@@ -1001,6 +1001,61 @@ function getLogAnalyticsClientId(log: any) {
   return body?.context?.analyticsClientId || null;
 }
 
+async function attachSignedDebugImages(log: any) {
+  const body = getLogBody(log);
+  const debugImages = body?.debugImages;
+  const images = Array.isArray(debugImages?.images)
+    ? debugImages.images.filter((image: any) => image?.path)
+    : [];
+
+  if (!images.length) return log;
+
+  const signedImages = [...debugImages.images];
+  const byBucket = new Map<string, any[]>();
+
+  images.forEach((image: any) => {
+    const bucket = image.bucket || debugImages.bucket || "temp-uploads";
+    if (!byBucket.has(bucket)) byBucket.set(bucket, []);
+    byBucket.get(bucket)!.push(image);
+  });
+
+  for (const [bucket, bucketImages] of byBucket) {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrls(
+        bucketImages.map((image: any) => image.path),
+        60 * 60,
+      );
+
+    if (error) {
+      console.warn("Could not sign generation debug images:", error.message);
+      continue;
+    }
+
+    (data || []).forEach((signed: any, index: number) => {
+      const original = bucketImages[index];
+      const position = signedImages.indexOf(original);
+      if (position >= 0) {
+        signedImages[position] = {
+          ...original,
+          signedUrl: signed?.signedUrl || null,
+        };
+      }
+    });
+  }
+
+  return {
+    ...log,
+    full_request_body: {
+      ...body,
+      debugImages: {
+        ...debugImages,
+        images: signedImages,
+      },
+    },
+  };
+}
+
 async function attachCorrelatedUsersToLogs(logs: any[]) {
   const clientIds = Array.from(
     new Set((logs || []).map(getLogAnalyticsClientId).filter(Boolean)),
@@ -1446,7 +1501,7 @@ async function handleLogDetail(req: VercelRequest, res: VercelResponse) {
       .single();
     if (error) throw error;
 
-    return res.status(200).json({ log: data });
+    return res.status(200).json({ log: await attachSignedDebugImages(data) });
   } catch (error: any) {
     console.error("Error fetching log detail:", error);
     return res.status(500).json({ error: error.message });

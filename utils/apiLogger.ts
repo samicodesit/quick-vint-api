@@ -4,6 +4,7 @@ import { supabase } from "./supabaseClient";
 const INTERNAL_LOG_EXCLUDED_EMAILS = new Set([
   "samicodesit@gmail.com",
 ]);
+const API_LOG_COMPACTION_UPDATE_CHUNK_SIZE = 200;
 
 export interface ApiLogData {
   userId?: string;
@@ -249,23 +250,36 @@ export class ApiLogger {
       };
     }
 
-    const { error: updateError } = await supabase
-      .from("api_logs")
-      .update({
-        image_urls: null,
-        raw_prompt: null,
-        full_request_body: null,
-        generated_title: null,
-        generated_description: null,
-        user_agent: null,
-        origin: null,
-        ip_address: null,
-        user_email: null,
-      })
-      .in("id", Array.from(ids));
+    const idList = Array.from(ids);
+    const heavyFieldClearPatch = {
+      image_urls: null,
+      raw_prompt: null,
+      full_request_body: null,
+      generated_title: null,
+      generated_description: null,
+      user_agent: null,
+      origin: null,
+      ip_address: null,
+      user_email: null,
+    };
 
-    if (updateError) {
-      throw updateError;
+    for (
+      let start = 0;
+      start < idList.length;
+      start += API_LOG_COMPACTION_UPDATE_CHUNK_SIZE
+    ) {
+      const chunk = idList.slice(
+        start,
+        start + API_LOG_COMPACTION_UPDATE_CHUNK_SIZE,
+      );
+      const { error: updateError } = await supabase
+        .from("api_logs")
+        .update(heavyFieldClearPatch)
+        .in("id", chunk);
+
+      if (updateError) {
+        throw updateError;
+      }
     }
 
     return {

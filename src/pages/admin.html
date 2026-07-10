@@ -3457,10 +3457,57 @@
             return [];
         }
 
+        function parseLogMetadata(log) {
+            try {
+                if (typeof log.full_request_body === 'string') return JSON.parse(log.full_request_body);
+                if (log.full_request_body && typeof log.full_request_body === 'object') return log.full_request_body;
+            } catch (e) { }
+            return {};
+        }
+
+        function normalizeRenderableLogImageUrl(value) {
+            if (!value) return null;
+            const rawUrl = typeof value === 'string'
+                ? value
+                : value && typeof value === 'object' && value.kind === 'remote_url'
+                    ? value.url
+                    : '';
+            if (!/^https?:\/\//i.test(rawUrl || '')) return null;
+            try {
+                if (typeof URL === 'undefined') return rawUrl.trim().replace(/[?#].*$/, '');
+                const parsed = new URL(rawUrl);
+                return `${parsed.origin}${parsed.pathname}`;
+            } catch (e) {
+                return rawUrl.trim().replace(/[?#].*$/, '');
+            }
+        }
+
+        function getLogMetadataImageUrls(log) {
+            const metadata = parseLogMetadata(log);
+            const imageMetadata = Array.isArray(metadata.imageMetadata)
+                ? metadata.imageMetadata
+                : Array.isArray(metadata.imageSources)
+                    ? metadata.imageSources
+                    : [];
+            const urlKeys = [
+                'sourceUrl',
+                'currentSrcUrl',
+                'bestSrcsetUrl',
+                'vintedSourceUrl',
+                'vintedCurrentSrcUrl',
+                'vintedBestSrcsetUrl'
+            ];
+            return imageMetadata.flatMap((entry) =>
+                urlKeys.map((key) => normalizeRenderableLogImageUrl(entry?.[key])).filter(Boolean)
+            );
+        }
+
         function getSafeLogImageUrls(log) {
-            return parseLogImages(log)
-                .filter(url => typeof url === 'string' && url.trim())
-                .map(url => url.trim());
+            const urls = [
+                ...parseLogImages(log).map(normalizeRenderableLogImageUrl),
+                ...getLogMetadataImageUrls(log)
+            ].filter(Boolean);
+            return Array.from(new Set(urls));
         }
 
         function renderLogImageButton(log, url, index) {
@@ -3504,7 +3551,7 @@
             const kind = getLogKind(log);
             if (kind === 'Event') return getLogContext(log);
             if (kind === 'Generation') {
-                const imageCount = parseLogImages(log).length;
+                const imageCount = getSafeLogImageUrls(log).length || parseLogImages(log).length;
                 return `${imageCount || 0} image${imageCount === 1 ? '' : 's'} · ${log.openai_model || 'unknown model'} · ${formatOpenAICost(log)}`;
             }
             return getLogPreview(log);
@@ -3516,7 +3563,7 @@
                     ? log.endpoint.replace('/event/', '')
                     : '';
                 const icon = getActivityIcon(log, eventName);
-                const images = parseLogImages(log);
+                const images = getSafeLogImageUrls(log);
                 const thumb = images.length
                     ? `<img src="${escapeAttribute(images[0])}" alt="Item preview" loading="lazy">`
                     : (getLogKind(log) === 'Generation' ? 'No image' : '');
@@ -4885,14 +4932,13 @@
             const title = document.getElementById('imagePreviewTitle');
             const meta = document.getElementById('imagePreviewMeta');
             title.textContent = `AI prompt image ${Number(index) + 1} of ${images.length}`;
-            meta.textContent = 'Exact image payload sent to the AI request';
+            meta.textContent = 'Source image URL recorded for this AI request';
             image.removeAttribute('src');
             image.onload = () => {
                 const dimensions = image.naturalWidth && image.naturalHeight
                     ? `${image.naturalWidth} x ${image.naturalHeight}px`
                     : 'Dimensions unavailable';
-                const sourceType = url.startsWith('data:') ? 'compressed data URL' : 'URL fallback';
-                meta.textContent = `${dimensions} · ${sourceType}`;
+                meta.textContent = `${dimensions} · URL metadata`;
             };
             image.onerror = () => {
                 meta.textContent = 'Could not render this AI prompt image';

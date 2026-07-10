@@ -194,8 +194,18 @@ function buildAdminHarness() {
         user_id: "user-1",
         user_email: "test@example.com",
         ip_address: "203.0.113.24",
-        full_request_body: {},
-        image_urls: JSON.stringify(["https://example.com/item.jpg"]),
+        full_request_body: {
+          imageMetadata: [
+            {
+              sourceUrl: "https://example.com/item.jpg?token=private",
+              bestSrcsetUrl: "https://example.com/item-large.jpg",
+            },
+          ],
+        },
+        image_urls: JSON.stringify([
+          { kind: "data_url", mime: "image/jpeg", approxBytes: 1200 },
+          { kind: "remote_url", url: "https://example.com/item.jpg" },
+        ]),
         openai_model: "gpt-4o",
         openai_tokens_used: 1100,
         generated_title: "Blue denim jacket",
@@ -398,9 +408,12 @@ describe("admin HTML", () => {
     await context.showLogDetails("log-2");
     expect(modalTitle.textContent).toBe("Log Details");
     expect(modalBody.innerHTML).toContain("showLogImagePreview");
+    expect(modalBody.innerHTML).toContain("https://example.com/item.jpg");
+    expect(modalBody.innerHTML).toContain("https://example.com/item-large.jpg");
+    expect(modalBody.innerHTML).not.toContain("data:image");
     expect(modalBody.innerHTML).not.toContain("window.open");
     context.showLogImagePreview("log-2", 0);
-    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 1");
+    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 2");
     expect(context.document.getElementById("imagePreviewImg").src).toBe("https://example.com/item.jpg");
 
     await context.showUserJourney("user-1", encodeURIComponent("test@example.com"));

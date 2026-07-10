@@ -43,13 +43,58 @@ export interface ApiLogData {
 }
 
 export interface ApiLogCompactionResult {
-  cutoffDays: number;
+  cutoffHours: number;
   cutoffIso: string;
   batchSize: number;
   compacted: number;
 }
 
 export class ApiLogger {
+  private static getApproxDataUrlBytes(dataUrl: string) {
+    const commaIndex = dataUrl.indexOf(",");
+    if (commaIndex === -1) return null;
+    return Math.floor(((dataUrl.length - commaIndex - 1) * 3) / 4);
+  }
+
+  private static sanitizeImageUrlForLog(rawUrl: string) {
+    const value = String(rawUrl || "");
+    if (/^data:/i.test(value)) {
+      const mimeEnd = value.indexOf(";");
+      const mime =
+        value.slice(5, mimeEnd > 5 ? mimeEnd : undefined).slice(0, 80) ||
+        "unknown";
+      const approxBytes = this.getApproxDataUrlBytes(value);
+      return {
+        kind: "data_url",
+        mime,
+        approxBytes,
+      };
+    }
+
+    if (/^blob:/i.test(value)) {
+      return { kind: "blob_url" };
+    }
+
+    if (/^https?:\/\//i.test(value)) {
+      try {
+        const parsed = new URL(value);
+        return {
+          kind: "remote_url",
+          url: `${parsed.origin}${parsed.pathname}`.slice(0, 1000),
+        };
+      } catch {
+        return { kind: "remote_url", url: value.slice(0, 1000) };
+      }
+    }
+
+    return { kind: "unknown", length: value.length };
+  }
+
+  private static sanitizeImageUrlsForLog(imageUrls?: string[]) {
+    if (!Array.isArray(imageUrls)) return null;
+    return imageUrls.map((url) => this.sanitizeImageUrlForLog(url));
+  }
+
   private static isInternalLogExcludedEmail(email?: string) {
     return INTERNAL_LOG_EXCLUDED_EMAILS.has(
       String(email || "").trim().toLowerCase(),
@@ -88,7 +133,9 @@ export class ApiLogger {
       origin: data.origin,
       ip_address: data.ipAddress,
 
-      image_urls: data.imageUrls ? JSON.stringify(data.imageUrls) : null,
+      image_urls: data.imageUrls
+        ? JSON.stringify(this.sanitizeImageUrlsForLog(data.imageUrls))
+        : null,
       raw_prompt: data.rawPrompt,
       full_request_body: data.fullRequestBody,
 
@@ -142,16 +189,20 @@ export class ApiLogger {
   }
 
   static async compactOldLogs({
+    cutoffHours,
     cutoffDays = 90,
     batchSize = 1000,
   }: {
+    cutoffHours?: number;
     cutoffDays?: number;
     batchSize?: number;
   } = {}): Promise<ApiLogCompactionResult> {
-    const safeCutoffDays = Math.max(1, Math.floor(cutoffDays));
+    const rawCutoffHours =
+      typeof cutoffHours === "number" ? cutoffHours : cutoffDays * 24;
+    const safeCutoffHours = Math.max(1, Math.floor(rawCutoffHours));
     const safeBatchSize = Math.max(1, Math.min(Math.floor(batchSize), 5000));
     const cutoffIso = new Date(
-      Date.now() - safeCutoffDays * 24 * 60 * 60 * 1000,
+      Date.now() - safeCutoffHours * 60 * 60 * 1000,
     ).toISOString();
 
     const heavyFieldFilter = [
@@ -183,7 +234,7 @@ export class ApiLogger {
       .filter(Boolean);
     if (!ids.length) {
       return {
-        cutoffDays: safeCutoffDays,
+        cutoffHours: safeCutoffHours,
         cutoffIso,
         batchSize: safeBatchSize,
         compacted: 0,
@@ -210,7 +261,7 @@ export class ApiLogger {
     }
 
     return {
-      cutoffDays: safeCutoffDays,
+      cutoffHours: safeCutoffHours,
       cutoffIso,
       batchSize: safeBatchSize,
       compacted: ids.length,

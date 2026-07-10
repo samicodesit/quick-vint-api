@@ -3,6 +3,14 @@ import { supabase } from "../../utils/supabaseClient";
 import { RateLimiter } from "../../utils/rateLimiter";
 import { ApiLogger } from "../../utils/apiLogger";
 
+const TEMP_UPLOAD_BUCKET = "temp-uploads";
+const TEMP_UPLOAD_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const TEMP_UPLOAD_ROOT_PAGE_SIZE = 100;
+const TEMP_UPLOAD_MAX_ROOT_ENTRIES = 500;
+const TEMP_UPLOAD_FILE_PAGE_SIZE = 100;
+const API_LOG_COMPACTION_CUTOFF_HOURS = 6;
+const API_LOG_COMPACTION_BATCH_SIZE = 5000;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Secure the endpoint
   const cronSecret = process.env.CRON_SECRET;
@@ -17,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     apiLogs: {
       success: false,
       compacted: 0,
-      cutoffDays: 90,
+      cutoffHours: API_LOG_COMPACTION_CUTOFF_HOURS,
       error: null as string | null,
     },
   };
@@ -33,23 +41,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 2. Cleanup Temp Uploads
   try {
-    const { data: folders, error: listError } = await supabase.storage
-      .from("temp-uploads")
-      .list("", { limit: 50, sortBy: { column: "name", order: "asc" } });
+    const folders = [];
+    for (
+      let offset = 0;
+      offset < TEMP_UPLOAD_MAX_ROOT_ENTRIES;
+      offset += TEMP_UPLOAD_ROOT_PAGE_SIZE
+    ) {
+      const { data, error: listError } = await supabase.storage
+        .from(TEMP_UPLOAD_BUCKET)
+        .list("", {
+          limit: TEMP_UPLOAD_ROOT_PAGE_SIZE,
+          offset,
+          sortBy: { column: "name", order: "asc" },
+        });
 
-    if (listError) throw listError;
+      if (listError) throw listError;
+      folders.push(...(data || []));
+      if (!data || data.length < TEMP_UPLOAD_ROOT_PAGE_SIZE) break;
+    }
 
-    if (folders && folders.length > 0) {
+    if (folders.length > 0) {
       const now = Date.now();
-      const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
       let deletedCount = 0;
 
       for (const folder of folders) {
         // If it's a file at root
         if (folder.id) {
           const age = now - new Date(folder.created_at).getTime();
-          if (age > MAX_AGE) {
-            await supabase.storage.from("temp-uploads").remove([folder.name]);
+          if (age > TEMP_UPLOAD_MAX_AGE_MS) {
+            await supabase.storage.from(TEMP_UPLOAD_BUCKET).remove([folder.name]);
             deletedCount++;
           }
           continue;
@@ -57,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // It's a folder (prefix). Check contents.
         const { data: files } = await supabase.storage
-          .from("temp-uploads")
+          .from(TEMP_UPLOAD_BUCKET)
           .list(folder.name, {
             limit: 1,
             sortBy: { column: "created_at", order: "asc" },
@@ -70,16 +90,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const firstFile = files[0];
         const fileAge = now - new Date(firstFile.created_at).getTime();
 
-        if (fileAge > MAX_AGE) {
+        if (fileAge > TEMP_UPLOAD_MAX_AGE_MS) {
           // Delete the whole session
-          const { data: allFiles } = await supabase.storage
-            .from("temp-uploads")
-            .list(folder.name, { limit: 100 });
+          const allFiles = [];
+          for (let offset = 0; ; offset += TEMP_UPLOAD_FILE_PAGE_SIZE) {
+            const { data: pageFiles } = await supabase.storage
+              .from(TEMP_UPLOAD_BUCKET)
+              .list(folder.name, {
+                limit: TEMP_UPLOAD_FILE_PAGE_SIZE,
+                offset,
+              });
+
+            allFiles.push(...(pageFiles || []));
+            if (!pageFiles || pageFiles.length < TEMP_UPLOAD_FILE_PAGE_SIZE) {
+              break;
+            }
+          }
 
           if (allFiles && allFiles.length > 0) {
             const paths = allFiles.map((f) => `${folder.name}/${f.name}`);
             const { error: delError } = await supabase.storage
-              .from("temp-uploads")
+              .from(TEMP_UPLOAD_BUCKET)
               .remove(paths);
 
             if (!delError) deletedCount++;
@@ -99,12 +130,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 3. Compact old API logs while preserving lightweight long-term metrics
   try {
     const apiLogResult = await ApiLogger.compactOldLogs({
-      cutoffDays: 90,
-      batchSize: 1000,
+      cutoffHours: API_LOG_COMPACTION_CUTOFF_HOURS,
+      batchSize: API_LOG_COMPACTION_BATCH_SIZE,
     });
     results.apiLogs.success = true;
     results.apiLogs.compacted = apiLogResult.compacted;
-    results.apiLogs.cutoffDays = apiLogResult.cutoffDays;
+    results.apiLogs.cutoffHours = apiLogResult.cutoffHours;
   } catch (error: any) {
     console.error("API log compaction failed:", error);
     results.apiLogs.error = error.message;

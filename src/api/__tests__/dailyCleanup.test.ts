@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const cleanupExpiredRecords = vi.fn(async () => {});
 const compactOldLogs = vi.fn(async () => ({
-  cutoffDays: 90,
-  cutoffIso: "2026-03-29T12:00:00.000Z",
-  batchSize: 1000,
+  cutoffHours: 6,
+  cutoffIso: "2026-06-27T06:00:00.000Z",
+  batchSize: 5000,
   compacted: 12,
 }));
 const storageList = vi.fn(async () => ({ data: [], error: null }));
@@ -53,9 +53,9 @@ describe("daily cleanup cron", () => {
     vi.clearAllMocks();
     storageList.mockResolvedValue({ data: [], error: null });
     compactOldLogs.mockResolvedValue({
-      cutoffDays: 90,
-      cutoffIso: "2026-03-29T12:00:00.000Z",
-      batchSize: 1000,
+      cutoffHours: 6,
+      cutoffIso: "2026-06-27T06:00:00.000Z",
+      batchSize: 5000,
       compacted: 12,
     });
   });
@@ -69,18 +69,19 @@ describe("daily cleanup cron", () => {
 
     expect(cleanupExpiredRecords).toHaveBeenCalledTimes(1);
     expect(storageList).toHaveBeenCalledWith("", {
-      limit: 50,
+      limit: 100,
+      offset: 0,
       sortBy: { column: "name", order: "asc" },
     });
     expect(compactOldLogs).toHaveBeenCalledWith({
-      cutoffDays: 90,
-      batchSize: 1000,
+      cutoffHours: 6,
+      batchSize: 5000,
     });
     expect(res.statusCode).toBe(200);
     expect(res.body.results.apiLogs).toEqual({
       success: true,
       compacted: 12,
-      cutoffDays: 90,
+      cutoffHours: 6,
       error: null,
     });
   });

@@ -160,6 +160,36 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     });
   });
 
+  it("stores compact image descriptors instead of raw image payloads", async () => {
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+
+    await ApiLogger.logRequest({
+      requestMethod: "POST",
+      responseStatus: 200,
+      imageUrls: [
+        "data:image/jpeg;base64,AAAABBBBCCCC",
+        "blob:https://www.vinted.nl/local",
+        "https://images.vinted.net/items/example.jpg?token=private",
+      ],
+    });
+
+    const stored = JSON.parse(insertCalls[0][0].image_urls);
+    expect(stored).toEqual([
+      {
+        kind: "data_url",
+        mime: "image/jpeg",
+        approxBytes: 9,
+      },
+      { kind: "blob_url" },
+      {
+        kind: "remote_url",
+        url: "https://images.vinted.net/items/example.jpg",
+      },
+    ]);
+    expect(insertCalls[0][0].image_urls).not.toContain("AAAABBBBCCCC");
+    expect(insertCalls[0][0].image_urls).not.toContain("token=private");
+  });
+
   it("skips api log writes for internal test emails", async () => {
     const { ApiLogger } = await import("../../../utils/apiLogger.js");
 
@@ -184,18 +214,18 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
 
     const { ApiLogger } = await import("../../../utils/apiLogger.js");
     const result = await ApiLogger.compactOldLogs({
-      cutoffDays: 90,
+      cutoffHours: 6,
       batchSize: 500,
     });
 
     expect(result).toMatchObject({
-      cutoffDays: 90,
+      cutoffHours: 6,
       batchSize: 500,
       compacted: 2,
     });
     expect(fromCalls).toEqual(["api_logs", "api_logs"]);
     expect(selectCalls).toEqual(["id"]);
-    expect(ltCalls[0]).toEqual(["created_at", "2026-03-29T12:00:00.000Z"]);
+    expect(ltCalls[0]).toEqual(["created_at", "2026-06-27T06:00:00.000Z"]);
     expect(orCalls[0]).toContain("generated_description.not.is.null");
     expect(orCalls[0]).toContain("full_request_body.not.is.null");
     expect(orderCalls[0]).toEqual(["created_at", { ascending: true }]);

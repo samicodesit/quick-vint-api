@@ -146,6 +146,12 @@ const LOG_LIST_SELECT =
 const LOG_GENERATION_LIST_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
+const JOURNEY_EVENT_LOG_SELECT =
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, full_request_body, response_status, created_at";
+
+const JOURNEY_COMPACT_LOG_SELECT =
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, generated_description, response_status, created_at";
+
 function getQueryString(
   value: string | string[] | undefined,
 ): string | undefined {
@@ -1260,15 +1266,27 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
 
     let linkedLogs: any[] = [];
     if (linkedFilters.length) {
-      const { data, error } = await supabase
+      const { data: eventLogs, error: eventLogsError } = await supabase
         .from("api_logs")
-        .select(LOG_SELECT)
+        .select(JOURNEY_EVENT_LOG_SELECT)
         .or(linkedFilters.join(","))
+        .like("endpoint", "/event/%")
         .gte("created_at", since)
         .order("created_at", { ascending: true })
         .limit(500);
-      if (error) throw error;
-      linkedLogs = data || [];
+      if (eventLogsError) throw eventLogsError;
+
+      const { data: apiLogs, error: apiLogsError } = await supabase
+        .from("api_logs")
+        .select(JOURNEY_COMPACT_LOG_SELECT)
+        .or(linkedFilters.join(","))
+        .not("endpoint", "like", "/event/%")
+        .gte("created_at", since)
+        .order("created_at", { ascending: true })
+        .limit(500);
+      if (apiLogsError) throw apiLogsError;
+
+      linkedLogs = [...(eventLogs || []), ...(apiLogs || [])];
     }
 
     const clientIds = new Set<string>();
@@ -1282,11 +1300,12 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
     if (clientIds.size) {
       const { data, error } = await supabase
         .from("api_logs")
-        .select(LOG_SELECT)
+        .select(JOURNEY_EVENT_LOG_SELECT)
         .in(
           "full_request_body->context->>analyticsClientId",
           Array.from(clientIds),
         )
+        .like("endpoint", "/event/%")
         .gte("created_at", since)
         .order("created_at", { ascending: true })
         .limit(1000);

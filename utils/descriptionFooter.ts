@@ -107,6 +107,19 @@ export function redactDescriptionFooterFromBody(body: any) {
   if (!body || typeof body !== "object") return body;
 
   const redacted = { ...body };
+
+  if (Array.isArray(redacted.imageUrls)) {
+    redacted.imageCount = redacted.imageUrls.length;
+    redacted.imageUrlKinds = redacted.imageUrls.map((url: unknown) => {
+      const value = String(url || "");
+      if (/^data:/i.test(value)) return "data_url";
+      if (/^blob:/i.test(value)) return "blob_url";
+      if (/^https?:\/\//i.test(value)) return "remote_url";
+      return "unknown";
+    });
+    delete redacted.imageUrls;
+  }
+
   if (Object.prototype.hasOwnProperty.call(redacted, "descriptionFooterText")) {
     const rawValue = redacted.descriptionFooterText;
     const stringValue = typeof rawValue === "string" ? rawValue : "";

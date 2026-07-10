@@ -12,7 +12,7 @@
     },
     {
       "path": "/api/cron/daily-cleanup",
-      "schedule": "0 4 * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/dom-canary-heartbeat",

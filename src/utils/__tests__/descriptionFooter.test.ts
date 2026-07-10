@@ -75,4 +75,21 @@ describe("description footer helpers", () => {
       descriptionFooterLength: 33,
     });
   });
+
+  it("redacts generated image payloads from logged request bodies", () => {
+    expect(
+      redactDescriptionFooterFromBody({
+        imageUrls: [
+          "data:image/jpeg;base64,AAAABBBBCCCC",
+          "blob:https://www.vinted.nl/local",
+          "https://images.vinted.net/items/example.jpg?token=private",
+        ],
+        imageMetadata: [{ promptSource: "captured_upload_file" }],
+      }),
+    ).toEqual({
+      imageCount: 3,
+      imageUrlKinds: ["data_url", "blob_url", "remote_url"],
+      imageMetadata: [{ promptSource: "captured_upload_file" }],
+    });
+  });
 });

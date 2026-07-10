@@ -4,6 +4,7 @@ const fromCalls: string[] = [];
 const selectCalls: string[] = [];
 const ltCalls: Array<[string, string]> = [];
 const orCalls: string[] = [];
+const notCalls: Array<[string, string, any]> = [];
 const orderCalls: Array<[string, any]> = [];
 const limitCalls: number[] = [];
 const updateCalls: any[] = [];
@@ -29,6 +30,10 @@ function createBuilder() {
     }),
     or: vi.fn((filter: string) => {
       orCalls.push(filter);
+      return builder;
+    }),
+    not: vi.fn((column: string, operator: string, value: any) => {
+      notCalls.push([column, operator, value]);
       return builder;
     }),
     order: vi.fn((column: string, options: any) => {
@@ -72,6 +77,7 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     selectCalls.length = 0;
     ltCalls.length = 0;
     orCalls.length = 0;
+    notCalls.length = 0;
     orderCalls.length = 0;
     limitCalls.length = 0;
     updateCalls.length = 0;
@@ -215,21 +221,21 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     const { ApiLogger } = await import("../../../utils/apiLogger.js");
     const result = await ApiLogger.compactOldLogs({
       cutoffHours: 6,
-      batchSize: 500,
+      batchSize: 2,
     });
 
     expect(result).toMatchObject({
       cutoffHours: 6,
-      batchSize: 500,
+      batchSize: 2,
       compacted: 2,
     });
     expect(fromCalls).toEqual(["api_logs", "api_logs"]);
     expect(selectCalls).toEqual(["id"]);
     expect(ltCalls[0]).toEqual(["created_at", "2026-06-27T06:00:00.000Z"]);
-    expect(orCalls[0]).toContain("generated_description.not.is.null");
-    expect(orCalls[0]).toContain("full_request_body.not.is.null");
+    expect(orCalls).toEqual([]);
+    expect(notCalls[0]).toEqual(["image_urls", "is", null]);
     expect(orderCalls[0]).toEqual(["created_at", { ascending: true }]);
-    expect(limitCalls).toEqual([500]);
+    expect(limitCalls).toEqual([2]);
     expect(updateCalls[0]).toEqual({
       image_urls: null,
       raw_prompt: null,
@@ -253,7 +259,7 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     const result = await ApiLogger.compactOldLogs();
 
     expect(result.compacted).toBe(0);
-    expect(fromCalls).toEqual(["api_logs"]);
+    expect(fromCalls).toEqual(Array(9).fill("api_logs"));
     expect(updateCalls).toHaveLength(0);
     expect(inCalls).toHaveLength(0);
   });

@@ -205,34 +205,42 @@ export class ApiLogger {
       Date.now() - safeCutoffHours * 60 * 60 * 1000,
     ).toISOString();
 
-    const heavyFieldFilter = [
-      "image_urls.not.is.null",
-      "raw_prompt.not.is.null",
-      "full_request_body.not.is.null",
-      "generated_title.not.is.null",
-      "generated_description.not.is.null",
-      "user_agent.not.is.null",
-      "origin.not.is.null",
-      "ip_address.not.is.null",
-      "user_email.not.is.null",
-    ].join(",");
+    const heavyFields = [
+      "image_urls",
+      "raw_prompt",
+      "full_request_body",
+      "generated_title",
+      "generated_description",
+      "user_agent",
+      "origin",
+      "ip_address",
+      "user_email",
+    ];
 
-    const { data: rows, error: selectError } = await supabase
-      .from("api_logs")
-      .select("id")
-      .lt("created_at", cutoffIso)
-      .or(heavyFieldFilter)
-      .order("created_at", { ascending: true })
-      .limit(safeBatchSize);
+    const ids = new Set<string>();
+    for (const field of heavyFields) {
+      const remaining = safeBatchSize - ids.size;
+      if (remaining <= 0) break;
 
-    if (selectError) {
-      throw selectError;
+      const { data: rows, error: selectError } = await supabase
+        .from("api_logs")
+        .select("id")
+        .lt("created_at", cutoffIso)
+        .not(field, "is", null)
+        .order("created_at", { ascending: true })
+        .limit(remaining);
+
+      if (selectError) {
+        throw selectError;
+      }
+
+      (rows || [])
+        .map((row: { id: string }) => row.id)
+        .filter(Boolean)
+        .forEach((id) => ids.add(id));
     }
 
-    const ids = (rows || [])
-      .map((row: { id: string }) => row.id)
-      .filter(Boolean);
-    if (!ids.length) {
+    if (!ids.size) {
       return {
         cutoffHours: safeCutoffHours,
         cutoffIso,
@@ -254,7 +262,7 @@ export class ApiLogger {
         ip_address: null,
         user_email: null,
       })
-      .in("id", ids);
+      .in("id", Array.from(ids));
 
     if (updateError) {
       throw updateError;
@@ -264,7 +272,7 @@ export class ApiLogger {
       cutoffHours: safeCutoffHours,
       cutoffIso,
       batchSize: safeBatchSize,
-      compacted: ids.length,
+      compacted: ids.size,
     };
   }
 

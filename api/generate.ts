@@ -533,7 +533,7 @@ Use these rules:
 - Use visual evidence for item type, color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
 - Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, or wear history.
 - Do not mention country of origin, product codes, care instructions, or secondary program/campaign text unless it is clearly useful to the buyer as a product name or model.
-- Do not say how you know a fact or where it appears. Write "EU 34", not "label shows EU 34". Avoid phrases like "as shown on the label", "visible on the box", or "as seen in the photos".
+- Do not say how you know a fact or where it appears. Avoid phrases like "label shows", "as shown on the label", "visible on the box", or "as seen in the photos".
 - Do not mention defects or negative condition details for now; the seller will handle those separately.
 
 Title:

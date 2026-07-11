@@ -10,6 +10,7 @@ import { RateLimiter } from "../utils/rateLimiter";
 import { ApiLogger } from "../utils/apiLogger";
 import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
+import { detectAndPauseDuplicateIpAccount } from "../utils/duplicateIpAutoPause";
 import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
 import {
   getEffectiveTier,
@@ -352,6 +353,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.subscriptionStatus = userProfile.subscription_status;
   logData.apiCallsCount = userProfile.api_calls_this_month;
   let generationReservationId: string | null = null;
+
+  const duplicateIpPause = await detectAndPauseDuplicateIpAccount({
+    userId: user.id,
+    email: user.email,
+    ipAddress: requestMetadata.ipAddress,
+    source: "generate",
+    currentProfile: {
+      id: user.id,
+      email: user.email,
+      subscription_status: userProfile.subscription_status,
+      subscription_tier: userProfile.subscription_tier,
+      account_status: userProfile.account_status,
+      free_lifetime_generations_used:
+        userProfile.free_lifetime_generations_used,
+    },
+  });
+  if (duplicateIpPause.paused) {
+    logData.responseStatus = 403;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Account paused";
+    await ApiLogger.logRequest(logData);
+    return res.status(403).json(
+      buildAccountPausedResponse({
+        account_status: "paused",
+        abuse_reason: "duplicate_ip_signup",
+      }),
+    );
+  }
 
   if (isAccountPaused(userProfile)) {
     logData.responseStatus = 403;

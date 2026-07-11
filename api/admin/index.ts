@@ -730,7 +730,7 @@ async function enrichAdminUsers(
   const [{ data: recentLogs }, { data: activeRateLimits }] = await Promise.all([
     supabase
       .from("api_logs")
-      .select("user_id, created_at")
+      .select("user_id, user_email, ip_address, created_at")
       .in("user_id", ids)
       .order("created_at", { ascending: false })
       .limit(Math.min(ids.length * 25, 1000)),
@@ -742,6 +742,7 @@ async function enrichAdminUsers(
   ]);
 
   const lastActiveMap = new Map<string, string>();
+  const lastIpMap = new Map<string, string>();
   const rateLimitMap = new Map<string, RateLimitRow[]>();
 
   (recentLogs || []).forEach((log: any) => {
@@ -749,7 +750,34 @@ async function enrichAdminUsers(
     if (!lastActiveMap.has(log.user_id)) {
       lastActiveMap.set(log.user_id, log.created_at);
     }
+    if (log.ip_address && !lastIpMap.has(log.user_id)) {
+      lastIpMap.set(log.user_id, log.ip_address);
+    }
   });
+
+  const missingIpEmailToUserId = new Map(
+    users
+      .filter((user) => user.email && !lastIpMap.has(user.id))
+      .map((user) => [String(user.email).toLowerCase(), user.id]),
+  );
+  if (missingIpEmailToUserId.size) {
+    const { data: authLogs } = await supabase
+      .from("api_logs")
+      .select("user_email, ip_address, created_at")
+      .eq("endpoint", "/api/auth/magic-link")
+      .in("user_email", Array.from(missingIpEmailToUserId.keys()))
+      .order("created_at", { ascending: false })
+      .limit(Math.min(missingIpEmailToUserId.size * 5, 500));
+
+    (authLogs || []).forEach((log: any) => {
+      const userId = missingIpEmailToUserId.get(
+        String(log.user_email || "").toLowerCase(),
+      );
+      if (userId && log.ip_address && !lastIpMap.has(userId)) {
+        lastIpMap.set(userId, log.ip_address);
+      }
+    });
+  }
 
   (activeRateLimits || []).forEach((limit: RateLimitRow) => {
     if (!rateLimitMap.has(limit.user_id)) rateLimitMap.set(limit.user_id, []);
@@ -794,6 +822,7 @@ async function enrichAdminUsers(
       ),
       api_calls_this_month: monthCount,
       last_active: lastActiveMap.get(user.id) || null,
+      last_ip_address: lastIpMap.get(user.id) || null,
       limits,
       max_limits: {
         day: tierKey === "free" ? null : maxDay,

@@ -141,6 +141,7 @@ function buildAdminHarness() {
         subscription_status: "active",
         subscription_tier: "starter",
         account_status: "active",
+        last_ip_address: "203.0.113.24",
         created_at: now,
         last_active_at: now,
         usage: { day: 4, month: 20, day_percent: 27, month_percent: 7 },
@@ -222,6 +223,30 @@ function buildAdminHarness() {
         openai_tokens_used: 1100,
         generated_title: "Blue denim jacket",
         generated_description: "A clean generated listing.",
+      },
+      {
+        id: "log-4",
+        created_at: now,
+        endpoint: "/api/generate",
+        response_status: 200,
+        user_id: "user-1",
+        user_email: "test@example.com",
+        ip_address: "203.0.113.24",
+        full_request_body: {
+          imageMetadata: [
+            {
+              sourceUrl: "https://example.com/item-source.jpg?token=private",
+              bestSrcsetUrl: "https://example.com/item-best.jpg",
+            },
+          ],
+        },
+        image_urls: JSON.stringify([
+          { kind: "data_url", mime: "image/jpeg", approxBytes: 1200 },
+        ]),
+        openai_model: "gpt-4o",
+        openai_tokens_used: 900,
+        generated_title: "Black shoes",
+        generated_description: "A generated shoe listing.",
       },
     ],
     pagination: { page: 1, limit: 50, total: 3, totalPages: 1 },
@@ -431,6 +456,10 @@ describe("admin HTML", () => {
       "https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed",
     );
 
+    await context.showLogDetails("log-4");
+    expect(modalBody.innerHTML).toContain("Inspect AI prompt image 1");
+    expect(modalBody.innerHTML).not.toContain("Inspect AI prompt image 2");
+
     await context.showUserJourney("user-1", encodeURIComponent("test@example.com"));
     expect(modalTitle.textContent).toBe("User Journey");
     expect(modalBody.innerHTML).toContain("Edited title + description");
@@ -476,6 +505,7 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("Users are the account workbench");
     expect(content.innerHTML).toContain("Journey");
     expect(content.innerHTML).toContain("Logs");
+    expect(content.innerHTML).toContain("203.0.113.24");
 
     context.openLogsForUser("user-1", encodeURIComponent("test@example.com"));
     expect(context.state.logsType).toBe("all");

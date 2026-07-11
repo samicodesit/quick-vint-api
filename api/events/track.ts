@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
 import { ApiLogger } from "../../utils/apiLogger";
+import { detectAndPauseDuplicateIpAccount } from "../../utils/duplicateIpAutoPause";
 import { supabase } from "../../utils/supabaseClient";
 
 const vintedOriginPattern =
@@ -243,6 +244,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const metadata = ApiLogger.extractRequestMetadata(req);
+  if (
+    userId &&
+    userEmail &&
+    metadata.ipAddress &&
+    loggableEventItems.some((item) =>
+      ["auth_success", "listing_tools_ready"].includes(item.event),
+    )
+  ) {
+    try {
+      await detectAndPauseDuplicateIpAccount({
+        userId,
+        email: userEmail,
+        ipAddress: metadata.ipAddress,
+        source: "events_track",
+      });
+    } catch (error) {
+      console.error("Duplicate IP auto-pause check failed:", error);
+    }
+  }
+
   await ApiLogger.logRequests(
     loggableEventItems.map((item) => ({
       ...metadata,

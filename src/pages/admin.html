@@ -3506,9 +3506,15 @@
                 'vintedCurrentSrcUrl',
                 'vintedBestSrcsetUrl'
             ];
-            return imageMetadata.flatMap((entry) =>
-                urlKeys.map((key) => normalizeRenderableLogImageUrl(entry?.[key])).filter(Boolean)
-            );
+            return imageMetadata
+                .map((entry) => {
+                    for (const key of urlKeys) {
+                        const url = normalizeRenderableLogImageUrl(entry?.[key]);
+                        if (url) return url;
+                    }
+                    return null;
+                })
+                .filter(Boolean);
         }
 
         function getSafeLogImageUrls(log) {
@@ -3521,7 +3527,7 @@
         function renderLogImageButton(log, url, index) {
             return `
                 <button type="button" class="image-gallery-button" onclick="showLogImagePreview('${escapeAttribute(log.id)}', ${index})" title="Inspect AI prompt image ${index + 1}">
-                    <img src="${escapeAttribute(url)}" class="gallery-img" loading="lazy" alt="AI prompt image ${index + 1}">
+                    <img src="${escapeAttribute(url)}" class="gallery-img" loading="lazy" alt="AI prompt image ${index + 1}" onerror="this.closest('.image-gallery-button')?.remove()">
                 </button>
             `;
         }
@@ -4268,12 +4274,14 @@
             const email = escapeHtml(u.email || 'Unknown');
             const id = escapeHtml(u.id || '');
             const remaining = u.usage?.month_remaining ?? 0;
+            const ip = renderLogIp({ ip_address: u.last_ip_address }, { label: false, title: 'Latest known IP' });
 
             return `
                 <tr>
                     <td>
                         <div class="font-medium" style="color: var(--text-main); font-weight: 600;">${email}</div>
                         <div class="text-sm text-muted" style="font-size: 0.75rem; font-family: monospace;">${id}</div>
+                        ${ip ? `<div class="text-sm text-muted" style="font-size: 0.75rem;">${ip}</div>` : ''}
                         ${u.is_new_today ? '<span class="badge badge-success" style="margin-top: 0.35rem;">New today</span>' : ''}
                     </td>
                     <td>
@@ -4297,6 +4305,7 @@
 
         function renderUserMobileCard(u) {
             const email = escapeHtml(u.email || 'Unknown');
+            const ip = renderLogIp({ ip_address: u.last_ip_address }, { label: false, title: 'Latest known IP' });
 
             return `
                 <div class="mobile-card">
@@ -4308,6 +4317,10 @@
                         <span class="mobile-card-label">User id</span>
                         <span class="mobile-card-value" style="font-family:monospace; word-break:break-all;">${escapeHtml(u.id || '-')}</span>
                     </div>
+                    ${ip ? `<div class="mobile-card-row">
+                        <span class="mobile-card-label">IP</span>
+                        <span class="mobile-card-value">${ip}</span>
+                    </div>` : ''}
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Plan</span>
                         <span class="mobile-card-value">

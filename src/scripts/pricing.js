@@ -67,6 +67,7 @@ let hasExtension = false;
 let isPricingStateLoading = true;
 let pricingActionsBound = false;
 let currentPricingOffer = null;
+let currentPricingOfferToken = null;
 let signInRefreshTimer = null;
 
 // Plan configuration
@@ -386,6 +387,7 @@ async function applyPricingOfferToken(token) {
     currentUser = data.user || null;
     currentProfile = data.profile || null;
     currentPricingOffer = data.offer || null;
+    currentPricingOfferToken = token;
     return Boolean(currentUser?.email && currentProfile);
   } catch (error) {
     console.error("Failed to apply pricing offer token:", error);
@@ -499,11 +501,18 @@ async function handlePlanClick(planName) {
 }
 
 // Handle paid plan selection (upgrade/switch)
-async function handlePaidPlanSelection(planName) {
-  const pendingWindow = openExternalWindow();
+async function handlePaidPlanSelection(planName, options = {}) {
+  const pendingWindow = options.sameWindow ? null : openExternalWindow();
+  const offerToken =
+    currentPricingOfferToken && currentPricingOffer?.targetTier === planName
+      ? currentPricingOfferToken
+      : null;
 
   try {
-    trackEvent("checkout_start", { plan: planName, context: "pricing_page" });
+    trackEvent("checkout_start", {
+      plan: planName,
+      context: offerToken ? "pricing_offer" : "pricing_page",
+    });
     const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
       method: "POST",
       headers: {
@@ -512,16 +521,25 @@ async function handlePaidPlanSelection(planName) {
       body: JSON.stringify({
         email: currentUser.email,
         tier: planName,
-        source: "pricing_page",
+        source: offerToken ? "pricing_offer" : "pricing_page",
         utm: getUtmParams(),
+        ...(offerToken ? { offerToken } : {}),
       }),
     });
 
     const data = await response.json();
 
     if (response.ok && data.url) {
-      showStatusMessage("Opening secure Stripe Checkout.", "success");
-      trackEvent("checkout_opened", { plan: planName, context: "pricing_page" });
+      showStatusMessage(
+        offerToken
+          ? "20% off applied at checkout."
+          : "Opening secure Stripe Checkout.",
+        "success",
+      );
+      trackEvent("checkout_opened", {
+        plan: planName,
+        context: offerToken ? "pricing_offer" : "pricing_page",
+      });
       sendExternalWindowToUrl(pendingWindow, data.url);
     } else {
       closeExternalWindow(pendingWindow);
@@ -755,6 +773,15 @@ async function initializePage() {
   // Update button states
   isPricingStateLoading = false;
   updateButtonStates();
+
+  const offerPlan = currentPricingOffer?.targetTier;
+  if (
+    offerPlan &&
+    currentUser?.email &&
+    getPricingPlanAction(currentProfile, offerPlan) === "checkout"
+  ) {
+    await handlePaidPlanSelection(offerPlan, { sameWindow: true });
+  }
 }
 
 // Initialize on page load

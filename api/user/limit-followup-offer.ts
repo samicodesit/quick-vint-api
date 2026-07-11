@@ -160,7 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     title: "Keep listing without waiting",
     body: "You reached the free limit. Upgrade when you're ready and keep your next listings moving today.",
     trust: "No Vinted account connection needed.",
-    cta: "View upgrade options",
+    cta: "Get 20% off",
     pricingUrl,
     limitHitAt: recipient.limitHitAt,
   });

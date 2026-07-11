@@ -11,6 +11,7 @@ import {
   repairProfileStripeCustomerId,
 } from "../../utils/stripeBillingPortal";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import { verifyPricingOfferToken } from "../../utils/pricingOfferToken";
 import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
@@ -18,6 +19,46 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
 const PAID_TIERS = new Set(["starter", "pro", "business"]);
+
+function pricingOfferError(message: string) {
+  const error = new Error(message);
+  error.name = "PricingOfferError";
+  return error;
+}
+
+async function getOfferPromotionCodeId(
+  email: string,
+  tier: string,
+  offerToken?: string,
+) {
+  if (!offerToken) return null;
+
+  let offer;
+  try {
+    offer = verifyPricingOfferToken(offerToken);
+  } catch (error: any) {
+    throw pricingOfferError(error?.message || "Offer is no longer available.");
+  }
+  if (offer.email.toLowerCase() !== email.trim().toLowerCase()) {
+    throw pricingOfferError("Offer does not match this account.");
+  }
+  if (offer.targetTier !== tier) {
+    throw pricingOfferError("Offer does not match this plan.");
+  }
+  if (!offer.couponCode) return null;
+
+  const promotionCodes = await stripe.promotionCodes.list({
+    code: offer.couponCode,
+    active: true,
+    limit: 1,
+  });
+  const promotionCode = promotionCodes.data[0];
+  if (!promotionCode) {
+    throw pricingOfferError("Offer is no longer available.");
+  }
+
+  return promotionCode.id;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!(await handleCheckoutCors(req, res))) return;
@@ -34,11 +75,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = {};
 
   try {
-    const { email, tier, source, utm } = req.body as {
+    const { email, tier, source, utm, offerToken } = req.body as {
       email: string;
       tier: "starter" | "pro" | "business"; // No 'free' since it's not a paid tier
       source?: string;
       utm?: Record<string, string>;
+      offerToken?: string;
     };
     alertContext = { tier, source };
 
@@ -54,6 +96,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tierConfig = TIER_CONFIGS[tier];
     const priceId = tierConfig.stripe.priceId;
+    let promotionCodeId: string | null = null;
+    try {
+      promotionCodeId = await getOfferPromotionCodeId(email, tier, offerToken);
+    } catch (offerErr: any) {
+      if (offerErr?.name === "PricingOfferError") {
+        return res.status(400).json({
+          error: offerErr.message || "Offer is no longer available.",
+        });
+      }
+      throw offerErr;
+    }
 
     // 3) Look up existing stripe_customer_id in Supabase
     let customerId: string | null = null;
@@ -171,7 +224,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customer: customerId,
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
-      allow_promotion_codes: true,
+      ...(promotionCodeId
+        ? { discounts: [{ promotion_code: promotionCodeId }] }
+        : { allow_promotion_codes: true }),
       metadata: {
         source: source || "unknown",
         tier,

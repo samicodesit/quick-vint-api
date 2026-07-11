@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createPricingOfferToken } from "../../../utils/pricingOfferToken";
 
 type CheckoutHandler = (req: any, res: any) => Promise<unknown>;
 
@@ -7,6 +8,7 @@ const customerCreateMock = vi.fn();
 const customerListMock = vi.fn();
 const subscriptionRetrieveMock = vi.fn();
 const subscriptionListMock = vi.fn();
+const promotionCodeListMock = vi.fn();
 const portalCreateMock = vi.fn();
 const checkoutCreateMock = vi.fn();
 const reportCriticalEndpointFailureMock = vi.fn();
@@ -41,6 +43,9 @@ vi.mock("stripe", () => {
       sessions: {
         create: portalCreateMock,
       },
+    };
+    this.promotionCodes = {
+      list: promotionCodeListMock,
     };
     this.checkout = {
       sessions: {
@@ -88,12 +93,67 @@ describe("create checkout", () => {
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = "sk_test";
     process.env.STRIPE_PORTAL_RETURN_URL = "https://autolister.app/pricing";
+    process.env.PRICING_OFFER_TOKEN_SECRET = "test-offer-secret";
     selectResponse.data = null;
     selectResponse.error = null;
     vi.clearAllMocks();
     customerListMock.mockResolvedValue({ data: [] });
     customerCreateMock.mockResolvedValue({ id: "cus_new" });
     subscriptionListMock.mockResolvedValue({ data: [] });
+    promotionCodeListMock.mockResolvedValue({
+      data: [{ id: "promo_listfaster20" }],
+    });
+    checkoutCreateMock.mockResolvedValue({
+      url: "https://checkout.stripe.com/session/test",
+    });
+  });
+
+  it("applies a valid pricing offer coupon to checkout", async () => {
+    const offerToken = createPricingOfferToken({
+      email: "customer@example.com",
+      targetTier: "pro",
+      couponCode: "LISTFASTER20",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    selectResponse.data = {
+      id: "profile_123",
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValue({ id: "cus_existing" });
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        email: "customer@example.com",
+        tier: "pro",
+        source: "pricing_offer",
+        offerToken,
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(promotionCodeListMock).toHaveBeenCalledWith({
+      code: "LISTFASTER20",
+      active: true,
+      limit: 1,
+    });
+    expect(checkoutCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        discounts: [{ promotion_code: "promo_listfaster20" }],
+      }),
+    );
+    expect(checkoutCreateMock.mock.calls[0][0]).not.toHaveProperty(
+      "allow_promotion_codes",
+    );
   });
 
   it("routes active paid subscribers to the customer portal instead of creating a second subscription", async () => {

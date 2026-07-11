@@ -529,6 +529,7 @@ Use these rules:
 - Build the listing only from visible or readable photo evidence. Never fill gaps with likely, common, or nice-sounding details.
 - Read labels/tags for exact brand, size, model/product name, and material composition.
 - Keep size wording natural; do not write forms like "T34" unless the label says "T34".
+- If a label shows multiple regional sizes and you output only one, prefer the readable EU/EUR size over US, UK, CN/Chinese, JP, or internal/manufacturer sizes. Do not convert or invent sizes.
 - Use visual evidence for item type, color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
 - Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, or wear history.
 - Do not mention country of origin, product codes, care instructions, or secondary program/campaign text unless it is clearly useful to the buyer as a product name or model.

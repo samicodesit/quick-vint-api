@@ -3512,11 +3512,9 @@
         }
 
         function getSafeLogImageUrls(log) {
-            const urls = [
-                ...getLogDebugImageUrls(log),
-                ...parseLogImages(log).map(normalizeRenderableLogImageUrl),
-                ...getLogMetadataImageUrls(log)
-            ].filter(Boolean);
+            const debugUrls = getLogDebugImageUrls(log);
+            const storedUrls = parseLogImages(log).map(normalizeRenderableLogImageUrl).filter(Boolean);
+            const urls = debugUrls.length ? debugUrls : storedUrls.length ? storedUrls : getLogMetadataImageUrls(log);
             return Array.from(new Set(urls));
         }
 

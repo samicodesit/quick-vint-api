@@ -421,12 +421,12 @@ describe("admin HTML", () => {
     expect(modalTitle.textContent).toBe("Log Details");
     expect(modalBody.innerHTML).toContain("showLogImagePreview");
     expect(modalBody.innerHTML).toContain("https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed");
-    expect(modalBody.innerHTML).toContain("https://example.com/item.jpg");
-    expect(modalBody.innerHTML).toContain("https://example.com/item-large.jpg");
+    expect(modalBody.innerHTML).not.toContain("Inspect AI prompt image 2");
+    expect(modalBody.innerHTML).not.toContain("Inspect AI prompt image 3");
     expect(modalBody.innerHTML).not.toContain("data:image");
     expect(modalBody.innerHTML).not.toContain("window.open");
     context.showLogImagePreview("log-2", 0);
-    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 3");
+    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 1");
     expect(context.document.getElementById("imagePreviewImg").src).toBe(
       "https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed",
     );

@@ -1803,7 +1803,6 @@ function buildOpenAICostSummary(
     const model = getBillableOpenAIModel(log.openai_model) || "unknown";
     const routedModel = getOpenAIRoutedModel(log.openai_model) || model;
     const experimentArm = findOpenAIExperimentArmForModel(routedModel);
-    const experimentKey = experimentArm?.key || routedModel || "unknown";
     const durationMs = Number(log.processing_duration_ms || 0);
     const hasFallback = String(log.openai_model || "").includes("->");
     const hasError = Number(log.response_status || 0) >= 400;
@@ -1869,30 +1868,33 @@ function buildOpenAICostSummary(
     modelEntry.generation_count += 1;
     modelEntry.tokens += tokens;
 
-    if (!experimentMap.has(experimentKey)) {
-      experimentMap.set(experimentKey, {
-        key: experimentKey,
-        model: experimentArm?.model || routedModel || model,
-        imageDetail: experimentArm?.imageDetail || "unknown",
-        generation_count: 0,
-        cost_usd: 0,
-        tokens: 0,
-        duration_ms_sum: 0,
-        duration_count: 0,
-        fallback_count: 0,
-        error_count: 0,
-        unknown_cost_count: 0,
-      });
+    let experimentEntry: any = null;
+    if (experimentArm) {
+      if (!experimentMap.has(experimentArm.key)) {
+        experimentMap.set(experimentArm.key, {
+          key: experimentArm.key,
+          model: experimentArm.model,
+          imageDetail: experimentArm.imageDetail,
+          generation_count: 0,
+          cost_usd: 0,
+          tokens: 0,
+          duration_ms_sum: 0,
+          duration_count: 0,
+          fallback_count: 0,
+          error_count: 0,
+          unknown_cost_count: 0,
+        });
+      }
+      experimentEntry = experimentMap.get(experimentArm.key);
+      experimentEntry.generation_count += 1;
+      experimentEntry.tokens += tokens;
+      if (durationMs > 0) {
+        experimentEntry.duration_ms_sum += durationMs;
+        experimentEntry.duration_count += 1;
+      }
+      if (hasFallback) experimentEntry.fallback_count += 1;
+      if (hasError) experimentEntry.error_count += 1;
     }
-    const experimentEntry = experimentMap.get(experimentKey);
-    experimentEntry.generation_count += 1;
-    experimentEntry.tokens += tokens;
-    if (durationMs > 0) {
-      experimentEntry.duration_ms_sum += durationMs;
-      experimentEntry.duration_count += 1;
-    }
-    if (hasFallback) experimentEntry.fallback_count += 1;
-    if (hasError) experimentEntry.error_count += 1;
 
     const userKey = log.user_email || log.user_id || "unknown";
     if (!userMap.has(userKey)) {
@@ -1913,12 +1915,12 @@ function buildOpenAICostSummary(
       totalCostUsd += cost;
       costedGenerations += 1;
       modelEntry.cost_usd += cost;
-      experimentEntry.cost_usd += cost;
+      if (experimentEntry) experimentEntry.cost_usd += cost;
       userEntry.cost_usd += cost;
     } else {
       unknownCostGenerations += 1;
       modelEntry.unknown_cost_count += 1;
-      experimentEntry.unknown_cost_count += 1;
+      if (experimentEntry) experimentEntry.unknown_cost_count += 1;
       userEntry.unknown_cost_count += 1;
 
       if (!unknownModelMap.has(model)) {

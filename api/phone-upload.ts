@@ -322,8 +322,10 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
 
     const photoFiles = (files || []).filter((file) => !isBatchMarkerFile(file));
     if (expectedCount !== null && photoFiles.length < expectedCount) {
-      return res.status(409).json({
-        error: "Batch uploads are still settling",
+      return res.status(202).json({
+        success: false,
+        complete: false,
+        settling: true,
         count: photoFiles.length,
         expectedCount,
       });

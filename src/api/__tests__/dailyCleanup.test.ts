@@ -4,7 +4,7 @@ const cleanupExpiredRecords = vi.fn(async () => {});
 const compactOldLogs = vi.fn(async () => ({
   cutoffHours: 6,
   cutoffIso: "2026-06-27T06:00:00.000Z",
-  batchSize: 5000,
+  batchSize: 500,
   compacted: 12,
 }));
 const storageList = vi.fn(async () => ({ data: [], error: null }));
@@ -55,7 +55,7 @@ describe("daily cleanup cron", () => {
     compactOldLogs.mockResolvedValue({
       cutoffHours: 6,
       cutoffIso: "2026-06-27T06:00:00.000Z",
-      batchSize: 5000,
+      batchSize: 500,
       compacted: 12,
     });
   });
@@ -75,7 +75,7 @@ describe("daily cleanup cron", () => {
     });
     expect(compactOldLogs).toHaveBeenCalledWith({
       cutoffHours: 6,
-      batchSize: 5000,
+      batchSize: 500,
     });
     expect(res.statusCode).toBe(200);
     expect(res.body.results.apiLogs).toEqual({

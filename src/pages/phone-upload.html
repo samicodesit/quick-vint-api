@@ -739,28 +739,45 @@
 
             async function completeUpload() {
                 let response = null;
+                let result = null;
                 for (let attempt = 0; attempt < 8; attempt += 1) {
-                    response = await fetch(`${API_COMPLETE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            expectedCount: state.files.length,
-                            orders: state.files.map((item) => item.order)
-                        })
-                    });
+                    response = await fetch(
+                        `${API_COMPLETE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                expectedCount: state.files.length,
+                                orders: state.files.map((item) => item.order),
+                            }),
+                        },
+                    );
 
-                    if (response.ok) break;
-                    if (response.status !== 409 || attempt === 7) break;
+                    result = await response.json().catch(() => null);
+                    if (response.ok && result?.complete !== false) break;
+                    if (
+                        !(
+                            response.status === 202 ||
+                            response.status === 409 ||
+                            result?.settling
+                        ) ||
+                        attempt === 7
+                    ) break;
                     await new Promise((resolve) => setTimeout(resolve, 900));
                 }
 
-                if (!response?.ok) {
+                if (!response?.ok || result?.complete === false) {
                     state.completeFailed = true;
                     renderBatchProgress();
-                    trackUploadEvent(isBatchMode() ? 'phone_upload_batch_complete_error' : 'phone_upload_complete_error', {
-                        fileCount: state.files.length,
-                        status: response?.status || null
-                    });
+                    trackUploadEvent(
+                        isBatchMode()
+                            ? 'phone_upload_batch_complete_error'
+                            : 'phone_upload_complete_error',
+                        {
+                            fileCount: state.files.length,
+                            status: response?.status || null,
+                        },
+                    );
                     throw new Error('Could not mark upload complete');
                 }
 
@@ -768,7 +785,8 @@
                 state.completeFailed = false;
                 if (isBatchMode()) {
                     pageTitle.textContent = 'Photos Sent';
-                    pageCopy.innerHTML = 'Return to your desktop to group photos into listings.';
+                    pageCopy.innerHTML =
+                        'Return to your desktop to group photos into listings.';
                 }
                 renderBatchProgress();
                 showToast('Sent to desktop');

@@ -9,7 +9,7 @@ const TEMP_UPLOAD_ROOT_PAGE_SIZE = 100;
 const TEMP_UPLOAD_MAX_ROOT_ENTRIES = 500;
 const TEMP_UPLOAD_FILE_PAGE_SIZE = 100;
 const API_LOG_COMPACTION_CUTOFF_HOURS = 6;
-const API_LOG_COMPACTION_BATCH_SIZE = 5000;
+const API_LOG_COMPACTION_BATCH_SIZE = 500;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Secure the endpoint
@@ -69,7 +69,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (folder.id) {
           const age = now - new Date(folder.created_at).getTime();
           if (age > TEMP_UPLOAD_MAX_AGE_MS) {
-            await supabase.storage.from(TEMP_UPLOAD_BUCKET).remove([folder.name]);
+            await supabase.storage
+              .from(TEMP_UPLOAD_BUCKET)
+              .remove([folder.name]);
             deletedCount++;
           }
           continue;

@@ -55,7 +55,10 @@ class StubElement {
 }
 
 function buildAdminHarness() {
-  const html = readFileSync(join(process.cwd(), "src/pages/admin.html"), "utf8");
+  const html = readFileSync(
+    join(process.cwd(), "src/pages/admin.html"),
+    "utf8",
+  );
   const script = html
     .match(/<script>([\s\S]*)<\/script>\s*<\/body>/)?.[1]
     ?.replace("const state = {", "var state = {");
@@ -80,7 +83,9 @@ function buildAdminHarness() {
     },
     totalUsers: 100,
     topUsers: [],
-    lastWeek: [{ date: "2026-06-22", total_api_calls: 12, estimated_cost: 0.02 }],
+    lastWeek: [
+      { date: "2026-06-22", total_api_calls: 12, estimated_cost: 0.02 },
+    ],
     openaiCostSummary: {
       windowDays: 30,
       windowStartDate: "2026-05-24",
@@ -108,7 +113,14 @@ function buildAdminHarness() {
       totalTokens: 1080000,
       avgCostPerGenerationUsd: 0.0067,
       daily: [
-        { date: "2026-06-22", generation_count: 80, openai_call_count: 76, no_openai_call_count: 4, cost_usd: 0.78, tokens: 41000 },
+        {
+          date: "2026-06-22",
+          generation_count: 80,
+          openai_call_count: 76,
+          no_openai_call_count: 4,
+          cost_usd: 0.78,
+          tokens: 41000,
+        },
       ],
       modelBreakdown: [
         {
@@ -117,6 +129,34 @@ function buildAdminHarness() {
           cost_usd: 12.67,
           tokens: 1080000,
           unknown_cost_count: 0,
+        },
+      ],
+      modelExperimentBreakdown: [
+        {
+          key: "control",
+          model: "gpt-5.4",
+          imageDetail: "low",
+          generation_count: 950,
+          cost_usd: 6.8,
+          tokens: 520000,
+          avg_cost_usd: 0.0072,
+          avg_tokens: 547,
+          avg_duration_ms: 2200,
+          fallback_count: 0,
+          error_count: 0,
+        },
+        {
+          key: "luna_high",
+          model: "gpt-5.6-luna",
+          imageDetail: "high",
+          generation_count: 941,
+          cost_usd: 5.87,
+          tokens: 560000,
+          avg_cost_usd: 0.0062,
+          avg_tokens: 595,
+          avg_duration_ms: 2400,
+          fallback_count: 1,
+          error_count: 0,
         },
       ],
       topUsers: [
@@ -292,7 +332,8 @@ function buildAdminHarness() {
           editDelayMs: 4200,
           appliedTitle: "Grey Polka Dot Sweater -",
           currentTitle: "Grey polka dot sweater",
-          appliedDescription: "This cozy grey polka dot sweater is perfect for cooler days.",
+          appliedDescription:
+            "This cozy grey polka dot sweater is perfect for cooler days.",
           currentDescription: "Grey polka dot sweater with a soft knit feel.",
         },
       },
@@ -390,7 +431,11 @@ function buildAdminHarness() {
       showUserJourney: (userId: string, encodedEmail: string) => Promise<void>;
       showClientJourney: (analyticsClientId: string) => Promise<void>;
       openLogsForSearch: (search: string, type?: string) => void;
-      openLogsForUser: (userId: string, encodedEmail?: string, type?: string) => void;
+      openLogsForUser: (
+        userId: string,
+        encodedEmail?: string,
+        type?: string,
+      ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
       switchView: (view: string, options?: Record<string, unknown>) => void;
       fetchCalls: string[];
@@ -413,8 +458,16 @@ describe("admin HTML", () => {
   it("renders every admin view without runtime view errors", async () => {
     const { context, content, modalBody, modalTitle } = buildAdminHarness();
 
-    for (const view of ["costs", "reports", "logs", "users", "emails", "ui-pages"]) {
-      if (view === "logs" || view === "reports") context.state.logsType = "events";
+    for (const view of [
+      "costs",
+      "reports",
+      "logs",
+      "users",
+      "emails",
+      "ui-pages",
+    ]) {
+      if (view === "logs" || view === "reports")
+        context.state.logsType = "events";
       context.state.currentView = view;
       await context.loadView(view);
       expect(content.innerHTML, view).not.toContain("Error loading view");
@@ -437,7 +490,9 @@ describe("admin HTML", () => {
     await context.loadView("logs");
     expect(content.innerHTML).toContain("activity-feed");
     expect(content.innerHTML).toContain("Blue denim jacket");
-    expect(content.innerHTML).toContain("https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed");
+    expect(content.innerHTML).toContain(
+      "https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed",
+    );
     expect(content.innerHTML).toContain("203.0.113.24");
     expect(content.innerHTML).toContain(">CXL<");
     expect(content.innerHTML).toContain(">API<");
@@ -445,13 +500,17 @@ describe("admin HTML", () => {
     await context.showLogDetails("log-2");
     expect(modalTitle.textContent).toBe("Log Details");
     expect(modalBody.innerHTML).toContain("showLogImagePreview");
-    expect(modalBody.innerHTML).toContain("https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed");
+    expect(modalBody.innerHTML).toContain(
+      "https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed",
+    );
     expect(modalBody.innerHTML).not.toContain("Inspect AI prompt image 2");
     expect(modalBody.innerHTML).not.toContain("Inspect AI prompt image 3");
     expect(modalBody.innerHTML).not.toContain("data:image");
     expect(modalBody.innerHTML).not.toContain("window.open");
     context.showLogImagePreview("log-2", 0);
-    expect(context.document.getElementById("imagePreviewTitle").textContent).toBe("AI prompt image 1 of 1");
+    expect(
+      context.document.getElementById("imagePreviewTitle").textContent,
+    ).toBe("AI prompt image 1 of 1");
     expect(context.document.getElementById("imagePreviewImg").src).toBe(
       "https://supabase.test/storage/v1/object/sign/temp-uploads/debug-gen-test/01.jpg?token=signed",
     );
@@ -460,7 +519,10 @@ describe("admin HTML", () => {
     expect(modalBody.innerHTML).toContain("Inspect AI prompt image 1");
     expect(modalBody.innerHTML).not.toContain("Inspect AI prompt image 2");
 
-    await context.showUserJourney("user-1", encodeURIComponent("test@example.com"));
+    await context.showUserJourney(
+      "user-1",
+      encodeURIComponent("test@example.com"),
+    );
     expect(modalTitle.textContent).toBe("User Journey");
     expect(modalBody.innerHTML).toContain("Edited title + description");
     expect(modalBody.innerHTML).toContain("Grey Polka Dot Sweater -");
@@ -488,7 +550,11 @@ describe("admin HTML", () => {
     expect(modalBody.innerHTML).toContain("Open related logs");
 
     await context.showClientJourney("cid-anon-123");
-    expect(context.fetchCalls.some((url) => url.includes("analytics_client_id=cid-anon-123"))).toBe(true);
+    expect(
+      context.fetchCalls.some((url) =>
+        url.includes("analytics_client_id=cid-anon-123"),
+      ),
+    ).toBe(true);
     expect(modalTitle.textContent).toBe("Correlated Journey");
     expect(modalBody.innerHTML).toContain("Likely user: test@example.com");
     expect(modalBody.innerHTML).toContain("Linked users from correlated logs");
@@ -517,7 +583,9 @@ describe("admin HTML", () => {
     expect(context.window.location.search).toContain(
       "related_email=test%40example.com",
     );
-    expect(context.fetchCalls.some((url) => url.includes("user_id=user-1"))).toBe(true);
+    expect(
+      context.fetchCalls.some((url) => url.includes("user_id=user-1")),
+    ).toBe(true);
   });
 
   it("sends log status filters to the backend", async () => {
@@ -528,12 +596,17 @@ describe("admin HTML", () => {
     context.state.logsStatus = "flagged";
     await context.loadView("logs");
 
-    expect(context.fetchCalls.some((url) => url.includes("status_filter=flagged"))).toBe(true);
+    expect(
+      context.fetchCalls.some((url) => url.includes("status_filter=flagged")),
+    ).toBe(true);
   });
 
   it("uses real admin routes for primary navigation", async () => {
     const { context } = buildAdminHarness();
-    const html = readFileSync(join(process.cwd(), "src/pages/admin.html"), "utf8");
+    const html = readFileSync(
+      join(process.cwd(), "src/pages/admin.html"),
+      "utf8",
+    );
 
     context.state.currentView = "logs";
     await context.loadView("logs");
@@ -581,6 +654,12 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("1,080,000 tokens");
     expect(content.innerHTML).toContain("$0.0067 avg per priced generation");
     expect(content.innerHTML).toContain("Daily spend and priced generations");
+    expect(content.innerHTML).toContain("Model Experiment");
+    expect(content.innerHTML).toContain("luna_high");
+    expect(content.innerHTML).toContain("gpt-5.6-luna");
+    expect(content.innerHTML).toContain("Detail: high");
+    expect(content.innerHTML).toContain("2.4s");
+    expect(content.innerHTML).toContain("fallbacks");
     expect(content.innerHTML).toContain("Model Split");
     expect(content.innerHTML).toContain("Highest Cost Users");
     expect(content.innerHTML).not.toContain("Stopped before OpenAI");

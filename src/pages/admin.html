@@ -2766,6 +2766,7 @@
             const costSummary = data.openaiCostSummary || {};
             const costDaily = Array.isArray(costSummary.daily) ? costSummary.daily : [];
             const costModels = Array.isArray(costSummary.modelBreakdown) ? costSummary.modelBreakdown : [];
+            const costExperimentModels = Array.isArray(costSummary.modelExperimentBreakdown) ? costSummary.modelExperimentBreakdown : [];
             const costTopUsers = Array.isArray(costSummary.topUsers) ? costSummary.topUsers : [];
             const totalOpenAICost = Number(costSummary.totalCostUsd || 0);
             const avgOpenAICost = Number(costSummary.avgCostPerGenerationUsd || 0);
@@ -2793,6 +2794,13 @@
             const unknownModelCopy = unknownModels.length
                 ? unknownModels.slice(0, 3).map((item) => `${escapeHtml(item.model || 'unknown')} (${Number(item.generation_count || 0).toLocaleString()})`).join(' · ')
                 : '';
+            const formatExperimentDuration = (value) => {
+                const ms = Number(value || 0);
+                if (!Number.isFinite(ms) || ms <= 0) return '-';
+                if (ms < 10000) return `${(ms / 1000).toFixed(1).replace(/\.0$/, '')}s`;
+                if (ms < 60000) return `${Math.round(ms / 1000)}s`;
+                return `${Math.round(ms / 60000)}m`;
+            };
 
             container.innerHTML = `
                 <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
@@ -2848,6 +2856,43 @@
                     <div style="height: 320px;">
                         <canvas id="aiCostChart"></canvas>
                     </div>
+                </div>
+
+                <div class="card" style="padding: 1.25rem; margin-bottom: 1rem;">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:0.5rem;">
+                        <div>
+                            <h3 class="card-title" style="margin-bottom: 0.25rem;">Model Experiment</h3>
+                            <div class="text-sm text-muted">Cost, speed, and tokens by route.</div>
+                        </div>
+                    </div>
+                    ${costExperimentModels.length ? costExperimentModels.map(model => `
+                        <div style="display:grid; grid-template-columns:minmax(150px, 1.2fr) repeat(5, minmax(78px, 0.75fr)); gap:0.75rem; align-items:center; padding:0.85rem 0; border-top:1px solid var(--border-color);">
+                            <div style="min-width:0;">
+                                <div style="font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(model.key || model.model || 'unknown')}</div>
+                                <div class="text-sm text-muted" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(model.model || 'unknown')} · Detail: ${escapeHtml(model.imageDetail || 'unknown')}</div>
+                            </div>
+                            <div>
+                                <div style="font-weight:800;">${Number(model.generation_count || 0).toLocaleString()}</div>
+                                <div class="text-sm text-muted">gens</div>
+                            </div>
+                            <div>
+                                <div style="font-weight:800;">${formatMoney(model.cost_usd)}</div>
+                                <div class="text-sm text-muted">${formatMoney(model.avg_cost_usd)} avg</div>
+                            </div>
+                            <div>
+                                <div style="font-weight:800;">${formatExperimentDuration(model.avg_duration_ms)}</div>
+                                <div class="text-sm text-muted">avg</div>
+                            </div>
+                            <div>
+                                <div style="font-weight:800;">${Math.round(Number(model.avg_tokens || 0)).toLocaleString()}</div>
+                                <div class="text-sm text-muted">tokens</div>
+                            </div>
+                            <div>
+                                <div style="font-weight:800;">${Number(model.fallback_count || 0).toLocaleString()}</div>
+                                <div class="text-sm text-muted">fallbacks</div>
+                            </div>
+                        </div>
+                    `).join('') : '<div class="empty-state">No experiment data yet.</div>'}
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">

@@ -2,14 +2,18 @@ export type OpenAIModelExperimentArm = {
   key: string;
   model: string;
   weight: number;
+  imageDetail: OpenAIImageDetail;
 };
 
 export type OpenAIModelSelection = {
   key: string;
   model: string;
+  imageDetail: OpenAIImageDetail;
   bucket: number;
   arms: OpenAIModelExperimentArm[];
 };
+
+export type OpenAIImageDetail = "low" | "high" | "auto";
 
 export type OpenAIModelPricing = {
   inputPerMillion: number;
@@ -19,7 +23,10 @@ export type OpenAIModelPricing = {
 
 export const OPENAI_CONTROL_MODEL = "gpt-4o";
 
-export const DEFAULT_OPENAI_MODEL_EXPERIMENT = "quality:gpt-5.4:100";
+export const DEFAULT_OPENAI_IMAGE_DETAIL: OpenAIImageDetail = "low";
+
+export const DEFAULT_OPENAI_MODEL_EXPERIMENT =
+  "control:gpt-5.4:50:low,luna_high:gpt-5.6-luna:50:high";
 
 export const OPENAI_MODEL_PRICING_USD_PER_MILLION: Record<
   string,
@@ -40,13 +47,42 @@ export const OPENAI_MODEL_PRICING_USD_PER_MILLION: Record<
     cachedInputPerMillion: 0.25,
     outputPerMillion: 15,
   },
+  "gpt-5.6-luna": {
+    inputPerMillion: 1,
+    cachedInputPerMillion: 0.1,
+    outputPerMillion: 6,
+  },
+  "gpt-5.6-terra": {
+    inputPerMillion: 2.5,
+    cachedInputPerMillion: 0.25,
+    outputPerMillion: 15,
+  },
+  "gpt-5.6-sol": {
+    inputPerMillion: 5,
+    cachedInputPerMillion: 0.5,
+    outputPerMillion: 30,
+  },
 };
+
+function parseOpenAIImageDetail(value?: string): OpenAIImageDetail {
+  if (value === "high" || value === "auto" || value === "low") return value;
+  return DEFAULT_OPENAI_IMAGE_DETAIL;
+}
+
+function getControlArm(): OpenAIModelExperimentArm {
+  return {
+    key: "control",
+    model: OPENAI_CONTROL_MODEL,
+    weight: 100,
+    imageDetail: DEFAULT_OPENAI_IMAGE_DETAIL,
+  };
+}
 
 export function parseOpenAIModelExperiment(
   spec = process.env.OPENAI_MODEL_EXPERIMENT || DEFAULT_OPENAI_MODEL_EXPERIMENT,
 ): OpenAIModelExperimentArm[] {
   if (!spec || spec.trim().toLowerCase() === "off") {
-    return [{ key: "control", model: OPENAI_CONTROL_MODEL, weight: 100 }];
+    return [getControlArm()];
   }
 
   const arms = spec
@@ -54,20 +90,35 @@ export function parseOpenAIModelExperiment(
     .map((part) => part.trim())
     .filter(Boolean)
     .map((part) => {
-      const [key, model, weightValue] = part
+      const [key, model, weightValue, imageDetailValue] = part
         .split(":")
         .map((item) => item.trim());
       const weight = Number(weightValue);
       if (!key || !model || !Number.isFinite(weight) || weight <= 0) {
         return null;
       }
-      return { key, model, weight };
+      return {
+        key,
+        model,
+        weight,
+        imageDetail: parseOpenAIImageDetail(imageDetailValue),
+      };
     })
     .filter((arm): arm is OpenAIModelExperimentArm => Boolean(arm));
 
-  return arms.length
-    ? arms
-    : [{ key: "control", model: OPENAI_CONTROL_MODEL, weight: 100 }];
+  return arms.length ? arms : [getControlArm()];
+}
+
+export function findOpenAIExperimentArmForModel(
+  model?: string | null,
+  spec = process.env.OPENAI_MODEL_EXPERIMENT || DEFAULT_OPENAI_MODEL_EXPERIMENT,
+) {
+  const normalizedModel = getBillableOpenAIModel(model);
+  if (!normalizedModel) return null;
+  const matches = parseOpenAIModelExperiment(spec).filter(
+    (arm) => arm.model === normalizedModel,
+  );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export function stableUnitBucket(seed: string, salt = "openai-model-v1") {
@@ -108,6 +159,7 @@ export function selectOpenAIModel({
     key: "control",
     model: OPENAI_CONTROL_MODEL,
     weight: 100,
+    imageDetail: DEFAULT_OPENAI_IMAGE_DETAIL,
   };
   return { ...fallbackArm, bucket, arms };
 }

@@ -17,6 +17,7 @@ import {
 import { ApiLogger } from "../../utils/apiLogger";
 import {
   estimateOpenAICostUsd,
+  findOpenAIExperimentArmForModel,
   getBillableOpenAIModel,
 } from "../../utils/openaiModelExperiment";
 import { createPricingOfferUrl } from "../../utils/pricingOfferToken";
@@ -1684,6 +1685,7 @@ type OpenAICostLog = {
   openai_prompt_tokens?: number | null;
   openai_completion_tokens?: number | null;
   openai_cached_tokens?: number | null;
+  processing_duration_ms?: number | null;
 };
 
 function getLogEstimatedOpenAICost(log: OpenAICostLog) {
@@ -1708,6 +1710,14 @@ function attachOpenAICostsToLogs<T extends OpenAICostLog>(logs: T[]) {
   });
 }
 
+function getOpenAIRoutedModel(model?: string | null) {
+  return (
+    String(model || "")
+      .split("->")[0]
+      ?.trim() || ""
+  );
+}
+
 async function fetchOpenAICostLogsForWindow(windowStartIso: string) {
   const pageSize = 1000;
   const logs: OpenAICostLog[] = [];
@@ -1720,7 +1730,7 @@ async function fetchOpenAICostLogsForWindow(windowStartIso: string) {
     const { data, error } = await supabase
       .from("api_logs")
       .select(
-        "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
+        "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, processing_duration_ms",
       )
       .eq("endpoint", "/api/generate")
       .gte("created_at", windowStartIso)
@@ -1768,6 +1778,7 @@ function buildOpenAICostSummary(
   }
 
   const modelMap = new Map();
+  const experimentMap = new Map();
   const userMap = new Map();
   const unknownModelMap = new Map();
   const noOpenAIStatusMap = new Map();
@@ -1790,6 +1801,12 @@ function buildOpenAICostSummary(
       Number(log.openai_completion_tokens || 0) > 0;
     const cost = getLogEstimatedOpenAICost(log);
     const model = getBillableOpenAIModel(log.openai_model) || "unknown";
+    const routedModel = getOpenAIRoutedModel(log.openai_model) || model;
+    const experimentArm = findOpenAIExperimentArmForModel(routedModel);
+    const experimentKey = experimentArm?.key || routedModel || "unknown";
+    const durationMs = Number(log.processing_duration_ms || 0);
+    const hasFallback = String(log.openai_model || "").includes("->");
+    const hasError = Number(log.response_status || 0) >= 400;
 
     totalTokens += tokens;
     if (dailyMap.has(dateStr)) {
@@ -1852,6 +1869,31 @@ function buildOpenAICostSummary(
     modelEntry.generation_count += 1;
     modelEntry.tokens += tokens;
 
+    if (!experimentMap.has(experimentKey)) {
+      experimentMap.set(experimentKey, {
+        key: experimentKey,
+        model: experimentArm?.model || routedModel || model,
+        imageDetail: experimentArm?.imageDetail || "unknown",
+        generation_count: 0,
+        cost_usd: 0,
+        tokens: 0,
+        duration_ms_sum: 0,
+        duration_count: 0,
+        fallback_count: 0,
+        error_count: 0,
+        unknown_cost_count: 0,
+      });
+    }
+    const experimentEntry = experimentMap.get(experimentKey);
+    experimentEntry.generation_count += 1;
+    experimentEntry.tokens += tokens;
+    if (durationMs > 0) {
+      experimentEntry.duration_ms_sum += durationMs;
+      experimentEntry.duration_count += 1;
+    }
+    if (hasFallback) experimentEntry.fallback_count += 1;
+    if (hasError) experimentEntry.error_count += 1;
+
     const userKey = log.user_email || log.user_id || "unknown";
     if (!userMap.has(userKey)) {
       userMap.set(userKey, {
@@ -1871,10 +1913,12 @@ function buildOpenAICostSummary(
       totalCostUsd += cost;
       costedGenerations += 1;
       modelEntry.cost_usd += cost;
+      experimentEntry.cost_usd += cost;
       userEntry.cost_usd += cost;
     } else {
       unknownCostGenerations += 1;
       modelEntry.unknown_cost_count += 1;
+      experimentEntry.unknown_cost_count += 1;
       userEntry.unknown_cost_count += 1;
 
       if (!unknownModelMap.has(model)) {
@@ -1929,6 +1973,28 @@ function buildOpenAICostSummary(
         : 0,
     }))
     .sort((a: any, b: any) => b.cost_usd - a.cost_usd);
+  const modelExperimentBreakdown = Array.from(experimentMap.values())
+    .map((entry: any) => ({
+      key: entry.key,
+      model: entry.model,
+      imageDetail: entry.imageDetail,
+      generation_count: entry.generation_count,
+      cost_usd: entry.cost_usd,
+      tokens: entry.tokens,
+      avg_cost_usd: entry.generation_count
+        ? entry.cost_usd / entry.generation_count
+        : 0,
+      avg_tokens: entry.generation_count
+        ? entry.tokens / entry.generation_count
+        : 0,
+      avg_duration_ms: entry.duration_count
+        ? entry.duration_ms_sum / entry.duration_count
+        : 0,
+      fallback_count: entry.fallback_count,
+      error_count: entry.error_count,
+      unknown_cost_count: entry.unknown_cost_count,
+    }))
+    .sort((a: any, b: any) => b.generation_count - a.generation_count);
   const topUsers = Array.from(userMap.values())
     .map((entry: any) => ({
       ...entry,
@@ -1973,6 +2039,7 @@ function buildOpenAICostSummary(
     projectedMonthlyCostUsd: days ? (totalCostUsd / days) * 30 : 0,
     daily,
     modelBreakdown,
+    modelExperimentBreakdown,
     topUsers,
     unknownModelBreakdown,
     latestUnknownCostLog,
@@ -2043,7 +2110,8 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
           ? Math.round(totalTokens / generationLogs.length)
           : 0,
         estimatedCost: generationLogs.reduce(
-          (sum: number, log: any) => sum + (getLogEstimatedOpenAICost(log) || 0),
+          (sum: number, log: any) =>
+            sum + (getLogEstimatedOpenAICost(log) || 0),
           0,
         ),
       };
@@ -2088,7 +2156,9 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
 
     const costWindowDays = 30;
     const costWindowStart = new Date(now);
-    costWindowStart.setUTCDate(costWindowStart.getUTCDate() - (costWindowDays - 1));
+    costWindowStart.setUTCDate(
+      costWindowStart.getUTCDate() - (costWindowDays - 1),
+    );
     costWindowStart.setUTCHours(0, 0, 0, 0);
     const costLogWindow = await fetchOpenAICostLogsForWindow(
       costWindowStart.toISOString(),

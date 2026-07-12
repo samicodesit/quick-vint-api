@@ -25,6 +25,7 @@ import {
   normalizeGenerationMode,
 } from "../utils/generationOffers";
 import {
+  DEFAULT_OPENAI_IMAGE_DETAIL,
   OPENAI_CONTROL_MODEL,
   getOpenAIChatTokenLimitParam,
   isOpenAIModelCompatibilityError,
@@ -43,7 +44,6 @@ import messagesDe from "../messages/de.json";
 import messagesNl from "../messages/nl.json";
 import messagesPl from "../messages/pl.json";
 
-const OPEN_AI_IMAGE_DETAIL: "low" | "high" | "auto" = "low";
 const OPEN_AI_MAX_OUTPUT_TOKENS = 1000;
 const DEBUG_IMAGE_BUCKET = "temp-uploads";
 const DEBUG_IMAGE_MAX_COUNT = 8;
@@ -256,6 +256,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.userId = user.id;
   logData.userEmail = user.email;
   const modelSelection = selectOpenAIModel({ seed: user.id });
+  const selectedImageDetail =
+    modelSelection.imageDetail || DEFAULT_OPENAI_IMAGE_DETAIL;
 
   if (isDisposableEmail(user.email || "")) {
     logData.responseStatus = 403;
@@ -589,8 +591,15 @@ Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
   // Log the full prompt being sent to OpenAI
-  logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)\nModel route: ${modelSelection.key}`;
+  logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)\nModel route: ${modelSelection.key}\nImage detail: ${selectedImageDetail}`;
   logData.openaiModel = modelSelection.model;
+  mergeLogRequestBody(logData, {
+    openaiExperiment: {
+      key: modelSelection.key,
+      model: modelSelection.model,
+      imageDetail: selectedImageDetail,
+    },
+  });
 
   // Check for suspicious activity
   const suspiciousCheck = ApiLogger.detectSuspiciousActivity({
@@ -612,7 +621,7 @@ Reply only in JSON: {"title":"...","description":"..."}
   try {
     const parts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
       type: "image_url",
-      image_url: { url, detail: OPEN_AI_IMAGE_DETAIL },
+      image_url: { url, detail: selectedImageDetail },
     }));
 
     const createCompletion = (model: string) => {
@@ -671,6 +680,14 @@ Reply only in JSON: {"title":"...","description":"..."}
         );
         const fallback = await createCompletion(OPENAI_CONTROL_MODEL);
         logData.openaiModel = `${selectedModel}->${OPENAI_CONTROL_MODEL}`;
+        mergeLogRequestBody(logData, {
+          openaiExperiment: {
+            key: modelSelection.key,
+            model: modelSelection.model,
+            imageDetail: selectedImageDetail,
+            fallbackModel: OPENAI_CONTROL_MODEL,
+          },
+        });
         selectedModel = OPENAI_CONTROL_MODEL;
         return fallback;
       }

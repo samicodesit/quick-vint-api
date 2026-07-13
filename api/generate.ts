@@ -27,6 +27,7 @@ import {
 import {
   DEFAULT_OPENAI_IMAGE_DETAIL,
   OPENAI_CONTROL_MODEL,
+  getOpenAIChatTemperatureParam,
   getOpenAIChatTokenLimitParam,
   isOpenAIModelCompatibilityError,
   selectOpenAIModel,
@@ -659,7 +660,7 @@ Reply only in JSON: {"title":"...","description":"..."}
             },
           },
         },
-        temperature: 0.3,
+        ...getOpenAIChatTemperatureParam(model, 0.3),
         ...getOpenAIChatTokenLimitParam(model, OPEN_AI_MAX_OUTPUT_TOKENS),
       };
 

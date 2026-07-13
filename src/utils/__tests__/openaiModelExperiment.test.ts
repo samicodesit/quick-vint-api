@@ -3,6 +3,7 @@ import {
   DEFAULT_OPENAI_MODEL_EXPERIMENT,
   estimateOpenAICostUsd,
   findOpenAIExperimentArmForModel,
+  getOpenAIChatTemperatureParam,
   getBillableOpenAIModel,
   getOpenAIChatTokenLimitParam,
   isOpenAIModelCompatibilityError,
@@ -97,6 +98,13 @@ describe("openaiModelExperiment", () => {
     });
     expect(getOpenAIChatTokenLimitParam("gpt-4o", 900)).toEqual({
       max_tokens: 900,
+    });
+  });
+
+  it("omits temperature for chat models that only accept the default", () => {
+    expect(getOpenAIChatTemperatureParam("gpt-5.6-luna", 0.3)).toEqual({});
+    expect(getOpenAIChatTemperatureParam("gpt-5.4", 0.3)).toEqual({
+      temperature: 0.3,
     });
   });
 

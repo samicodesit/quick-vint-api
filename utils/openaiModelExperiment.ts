@@ -186,6 +186,11 @@ export function getOpenAIChatTokenLimitParam(
   return { max_tokens: safeMaxOutputTokens };
 }
 
+export function getOpenAIChatTemperatureParam(model: string, temperature: number) {
+  if (/^gpt-5\.6(?:[.-]|$)/.test(model)) return {};
+  return { temperature };
+}
+
 export function estimateOpenAICostUsd({
   model,
   promptTokens = 0,

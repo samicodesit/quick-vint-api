@@ -2080,6 +2080,16 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span id="lastUpdated" class="text-sm text-muted" style="display: none;">Updated just now</span>
+                    <button onclick="openPreviewHub()" class="btn-secondary" style="width: auto; padding: 0.5rem 1rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="margin-right: 0.5rem;">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span class="hide-mobile">Previews</span>
+                    </button>
                     <button onclick="refreshData()" class="btn-primary" style="width: auto; padding: 0.5rem 1rem;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" style="margin-right: 0.5rem;">
@@ -2178,6 +2188,23 @@
 
         function getCurrentUrlSearchParams() {
             return new URLSearchParams(window.location.search || '');
+        }
+
+        async function openPreviewHub() {
+            window.open('/ui-components', '_blank', 'noopener');
+            const isLocal =
+                window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1' ||
+                window.location.hostname === '::1';
+            if (isLocal) return;
+
+            const command = 'cd /home/mests/projects/quick-vint-api && pnpm dev';
+            try {
+                await navigator.clipboard?.writeText(command);
+                showToast('Local command copied: pnpm dev');
+            } catch (error) {
+                showToast(command, 'info');
+            }
         }
 
         function clearLogRouteState() {

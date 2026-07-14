@@ -2190,21 +2190,8 @@
             return new URLSearchParams(window.location.search || '');
         }
 
-        async function openPreviewHub() {
+        function openPreviewHub() {
             window.open('/ui-components', '_blank', 'noopener');
-            const isLocal =
-                window.location.hostname === 'localhost' ||
-                window.location.hostname === '127.0.0.1' ||
-                window.location.hostname === '::1';
-            if (isLocal) return;
-
-            const command = 'cd /home/mests/projects/quick-vint-api && pnpm dev';
-            try {
-                await navigator.clipboard?.writeText(command);
-                showToast('Local command copied: pnpm dev');
-            } catch (error) {
-                showToast(command, 'info');
-            }
         }
 
         function clearLogRouteState() {

@@ -7,8 +7,7 @@ const devViews = [
     description:
       "Real content.js states rendered against mocked Vinted listing pages.",
     href: "/ui-components/content-components",
-    status: "Local dev",
-    localOnly: true,
+    status: "Extension preview",
   },
   {
     title: "Email Templates",
@@ -36,38 +35,33 @@ const devViews = [
   },
   {
     title: "Payment Complete - Starter",
-    description: "Local preview of the post-checkout Starter success state.",
+    description: "Preview of the post-checkout Starter success state.",
     href: "/success.html?preview=subscription&tier=starter",
-    status: "Local preview",
-    localOnly: true,
+    status: "Payment preview",
   },
   {
     title: "Payment Complete - Pro",
-    description: "Local preview of the post-checkout Pro success state.",
+    description: "Preview of the post-checkout Pro success state.",
     href: "/success.html?preview=subscription&tier=pro",
-    status: "Local preview",
-    localOnly: true,
+    status: "Payment preview",
   },
   {
     title: "Payment Complete - Business",
-    description: "Local preview of the post-checkout Business success state.",
+    description: "Preview of the post-checkout Business success state.",
     href: "/success.html?preview=subscription&tier=business",
-    status: "Local preview",
-    localOnly: true,
+    status: "Payment preview",
   },
   {
     title: "Payment Complete - Credits",
-    description: "Local preview of the one-time credit pack success state.",
+    description: "Preview of the one-time credit pack success state.",
     href: "/success.html?preview=credit_pack",
-    status: "Local preview",
-    localOnly: true,
+    status: "Payment preview",
   },
   {
     title: "Payment Complete - Error",
-    description: "Local preview of the payment verification failure state.",
+    description: "Preview of the payment verification failure state.",
     href: "/success.html?preview=error",
-    status: "Local preview",
-    localOnly: true,
+    status: "Payment preview",
   },
 ];
 
@@ -263,14 +257,13 @@ const devViews = [
             page checks, and extension component states.
           </p>
         </div>
-        <div class="badge">{isDev ? "Local dev hub" : "Deployed bridge"}</div>
+        <div class="badge">{isDev ? "Local dev hub" : "Preview hub"}</div>
       </header>
 
       {!isDev && (
         <p class="notice">
-          You are viewing the deployed preview hub. Local-only previews are
-          listed here, but only open from the Astro dev server using whatever
-          local port it prints.
+          Extension previews use the latest pushed extension code. Run the
+          local dev server only when you need to inspect unpushed local changes.
         </p>
       )}
 

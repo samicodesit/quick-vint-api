@@ -1,6 +1,5 @@
 ---
 const sourceVersion = "20260703-vinted-sell-layout";
-const isDev = import.meta.env.DEV;
 ---
 
 <!doctype html>
@@ -253,8 +252,8 @@ const isDev = import.meta.env.DEV;
           <h1>Content Components</h1>
           <p class="ds-subtitle">
             Real extension content-script states rendered inside isolated mock
-            Vinted pages. This uses the current files from the extension repo,
-            served by the Astro dev server.
+            Vinted pages. Deployed previews use the latest pushed extension
+            code; local dev previews use your local extension files.
           </p>
         </div>
         <div class="ds-actions">
@@ -263,27 +262,13 @@ const isDev = import.meta.env.DEV;
         </div>
       </header>
 
-      {isDev ? (
-        <>
-          <p class="ds-warning" id="loadWarning">
-            Could not load the extension preview sources. Run the website dev
-            server from the repo workspace and open this page through
-            <code>/ui-components/content-components</code>.
-          </p>
+      <p class="ds-warning" id="loadWarning">
+        Could not load the extension preview sources. Try refreshing this page.
+      </p>
 
-          <section class="ds-grid" id="previewGrid"></section>
-        </>
-      ) : (
-        <p class="ds-warning" style="display:block;">
-          This preview uses local extension files. Start the Astro dev server
-          and open <code>/ui-components/content-components</code> on the local
-          origin printed in your terminal.
-        </p>
-      )}
+      <section class="ds-grid" id="previewGrid"></section>
     </main>
 
-    {isDev && (
-      <script src={`/ui-components/content-runtime-review.js?v=${sourceVersion}`}></script>
-    )}
+    <script src={`/ui-components/content-runtime-review.js?v=${sourceVersion}`}></script>
   </body>
 </html>

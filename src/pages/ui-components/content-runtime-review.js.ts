@@ -1,18 +1,8 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
-function extensionPath(file: string) {
-  return path.resolve(process.cwd(), "../quick-vint", file);
-}
+import { readExtensionPreviewSource } from "../../utils/extensionPreviewSource";
 
 export async function GET() {
-  if (process.env.NODE_ENV !== "development") {
-    return new Response("Not available outside local dev.", { status: 404 });
-  }
-
-  const source = await readFile(
-    extensionPath("design-system/content-runtime-review.js"),
-    "utf8",
+  const source = await readExtensionPreviewSource(
+    "design-system/content-runtime-review.js",
   );
   const body = source
     .replace(

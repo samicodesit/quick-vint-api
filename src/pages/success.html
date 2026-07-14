@@ -768,15 +768,12 @@
       const devBypass = urlParams.get('dev');
       const bypassKey = urlParams.get('key');
       const previewState = urlParams.get('preview');
-      const isLocalPreview =
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1';
 
       const loadingEl = document.getElementById('loading');
       const errorEl = document.getElementById('error');
       const successEl = document.getElementById('success');
 
-      if (isLocalPreview && previewState) {
+      if (previewState) {
         if (previewState === 'error') {
           loadingEl.classList.add('hidden');
           successEl.classList.add('hidden');

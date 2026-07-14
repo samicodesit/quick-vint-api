@@ -45,6 +45,8 @@ interface StoredFile {
 
 const UPLOAD_BUCKET = "temp-uploads";
 const BATCH_COMPLETE_MARKER = "_batch-complete.json";
+const EXPECTED_COUNT_MARKER_PREFIX = "_expected-count-";
+const EXPECTED_COUNT_MARKER_PATTERN = /^_expected-count-(\d+)\.json$/;
 
 function getMetadataValue(
   metadata: Record<string, unknown> | null | undefined,
@@ -75,6 +77,21 @@ function getStoredFileOrder(name: string) {
 
 function isBatchMarkerFile(file: { name?: string }) {
   return file.name === BATCH_COMPLETE_MARKER;
+}
+
+function isExpectedCountMarkerFile(file: { name?: string }) {
+  return Boolean(file.name?.match(EXPECTED_COUNT_MARKER_PATTERN));
+}
+
+function isSessionMarkerFile(file: { name?: string }) {
+  return isBatchMarkerFile(file) || isExpectedCountMarkerFile(file);
+}
+
+function getExpectedCountFromFiles(files: { name?: string }[] | null | undefined) {
+  const counts = (files || [])
+    .map((file) => parseExpectedCount(file.name?.match(EXPECTED_COUNT_MARKER_PATTERN)?.[1]))
+    .filter((count): count is number => count !== null);
+  return counts.length ? Math.max(...counts) : null;
 }
 
 function parseExpectedCount(value: unknown) {
@@ -124,6 +141,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const action = typeof req.query.action === "string" ? req.query.action : "";
     if (contentType.includes("multipart/form-data")) {
       return handleUpload(req, res);
+    } else if (action === "prepare") {
+      return handlePrepare(req, res);
     } else if (action === "complete") {
       return handleComplete(req, res);
     } else if (!action || action === "cleanup") {
@@ -155,10 +174,16 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
     if (listError) throw listError;
 
     const complete = Boolean(files?.some(isBatchMarkerFile));
-    const photoFiles = files?.filter((file) => !isBatchMarkerFile(file)) || [];
+    const expectedCount = getExpectedCountFromFiles(files);
+    const photoFiles = files?.filter((file) => !isSessionMarkerFile(file)) || [];
 
     if (photoFiles.length === 0) {
-      return res.status(200).json({ files: [], count: 0, complete });
+      return res.status(200).json({
+        files: [],
+        count: 0,
+        expectedCount,
+        complete,
+      });
     }
 
     const signedFiles = await Promise.all(
@@ -171,6 +196,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({
       files: signedFiles,
       count: signedFiles.length,
+      expectedCount,
       complete,
     });
   } catch (error: any) {
@@ -300,6 +326,57 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   req.pipe(busboy);
 }
 
+// --- Handler: Prepare Session (POST JSON) ---
+async function handlePrepare(req: VercelRequest, res: VercelResponse) {
+  const sessionId = req.query.sessionId as string;
+  const expectedCount = parseExpectedCount(req.query.expectedCount);
+
+  if (!sessionId) {
+    return res.status(400).json({ error: "Missing sessionId" });
+  }
+
+  if (!expectedCount || expectedCount <= 0) {
+    return res.status(400).json({ error: "Missing expectedCount" });
+  }
+
+  try {
+    const markerPath = `${sessionId}/${EXPECTED_COUNT_MARKER_PREFIX}${expectedCount}.json`;
+    const { error } = await supabase.storage
+      .from(UPLOAD_BUCKET)
+      .upload(
+        markerPath,
+        Buffer.from(
+          JSON.stringify({
+            expectedCount,
+            updatedAt: new Date().toISOString(),
+          }),
+        ),
+        {
+          contentType: "application/json",
+          upsert: true,
+        },
+      );
+
+    if (error) throw error;
+
+    res.status(200).json({ success: true, expectedCount });
+  } catch (error: any) {
+    console.error("Prepare error:", error);
+    reportCriticalEndpointFailure({
+      endpoint: "/api/phone-upload",
+      status: 500,
+      details: {
+        action: "prepare",
+        sessionId,
+        expectedCount,
+        error: error?.message || String(error),
+        errorName: error?.name,
+      },
+    });
+    res.status(500).json({ error: error.message });
+  }
+}
+
 // --- Handler: Complete Batch Session (POST JSON) ---
 async function handleComplete(req: VercelRequest, res: VercelResponse) {
   const sessionId = req.query.sessionId as string;
@@ -320,7 +397,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
 
     if (listError) throw listError;
 
-    const photoFiles = (files || []).filter((file) => !isBatchMarkerFile(file));
+    const photoFiles = (files || []).filter((file) => !isSessionMarkerFile(file));
     if (expectedCount !== null && photoFiles.length < expectedCount) {
       return res.status(202).json({
         success: false,
@@ -340,6 +417,27 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
 
     const markerPath = `${sessionId}/${BATCH_COMPLETE_MARKER}`;
+    if (expectedCount !== null) {
+      const expectedMarkerPath = `${sessionId}/${EXPECTED_COUNT_MARKER_PREFIX}${expectedCount}.json`;
+      const { error: expectedMarkerError } = await supabase.storage
+        .from(UPLOAD_BUCKET)
+        .upload(
+          expectedMarkerPath,
+          Buffer.from(
+            JSON.stringify({
+              expectedCount,
+              updatedAt: new Date().toISOString(),
+            }),
+          ),
+          {
+            contentType: "application/json",
+            upsert: true,
+          },
+        );
+
+      if (expectedMarkerError) throw expectedMarkerError;
+    }
+
     const { error: markerError } = await supabase.storage
       .from(UPLOAD_BUCKET)
       .upload(
@@ -349,6 +447,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
             complete: true,
             completedAt: new Date().toISOString(),
             count: manifestFiles.length,
+            expectedCount,
             files: manifestFiles,
           }),
         ),
@@ -364,6 +463,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       success: true,
       complete: true,
       count: manifestFiles.length,
+      expectedCount,
       files: manifestFiles,
     });
   } catch (error: any) {

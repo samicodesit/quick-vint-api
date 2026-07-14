@@ -340,6 +340,7 @@
     <script>
         (() => {
             const API_UPLOAD = '/api/phone-upload';
+            const API_PREPARE = '/api/phone-upload?action=prepare';
             const API_COMPLETE = '/api/phone-upload?action=complete';
             const BATCH_UPLOAD_CONCURRENCY = 2;
 
@@ -737,6 +738,18 @@
                 state.wakeLock = null;
             }
 
+            async function prepareExpectedCount() {
+                if (isBatchMode() || state.files.length === 0) return;
+                try {
+                    await fetch(
+                        `${API_PREPARE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`,
+                        { method: 'POST' },
+                    );
+                } catch (error) {
+                    // Progress count is helpful, but upload must continue without it.
+                }
+            }
+
             async function completeUpload() {
                 let response = null;
                 let result = null;
@@ -919,7 +932,10 @@
                 if (isBatchMode() && files.length > 0) {
                     setTimeout(sendBatchFiles, 0);
                 } else if (singleItems.length > 0) {
-                    setTimeout(() => sendSingleFiles(singleItems), 0);
+                    setTimeout(async () => {
+                        await prepareExpectedCount();
+                        await sendSingleFiles(singleItems);
+                    }, 0);
                 }
             }
 

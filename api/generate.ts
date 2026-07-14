@@ -39,6 +39,7 @@ import {
   validateDescriptionFooterText,
 } from "../utils/descriptionFooter";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
+import { shouldStoreDebugGenerationImages } from "../utils/debugGenerationImages";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -539,16 +540,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   generationReservationId = rateLimitResult.reservationId ?? null;
-  try {
-    const debugImages = await storeDebugGenerationImages(imageUrls);
-    if (debugImages) {
-      mergeLogRequestBody(logData, { debugImages });
+  if (shouldStoreDebugGenerationImages()) {
+    try {
+      const debugImages = await storeDebugGenerationImages(imageUrls);
+      if (debugImages) {
+        mergeLogRequestBody(logData, { debugImages });
+      }
+    } catch (error: any) {
+      console.warn(
+        "Could not prepare generation debug images:",
+        error?.message || error,
+      );
     }
-  } catch (error: any) {
-    console.warn(
-      "Could not prepare generation debug images:",
-      error?.message || error,
-    );
   }
 
   // Create the prompt for OpenAI

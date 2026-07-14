@@ -604,8 +604,8 @@
                         let width = img.width;
                         let height = img.height;
 
-                        // Max dimension 1920px (Full HD is enough for Vinted)
-                        const MAX_SIZE = 1920;
+                        // Match prompt size; bigger just increases transfer.
+                        const MAX_SIZE = 1280;
                         if (width > height) {
                             if (width > MAX_SIZE) {
                                 height *= MAX_SIZE / width;
@@ -623,7 +623,7 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Compress to JPEG 0.8 quality
+                        // Compress to JPEG before Supabase storage.
                         canvas.toBlob((blob) => {
                             if (!blob) return resolve(file); // Fallback
                             // Create new file with same name but .jpg extension if needed
@@ -637,7 +637,7 @@
                                 lastModified: Date.now()
                             });
                             resolve(newFile);
-                        }, 'image/jpeg', 0.8);
+                        }, 'image/jpeg', 0.78);
                     };
 
                     img.onerror = () => resolve(file);

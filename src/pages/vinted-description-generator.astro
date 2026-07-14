@@ -33,6 +33,14 @@ const faqJsonLd = JSON.stringify({
     },
     {
       "@type": "Question",
+      name: "Can AutoLister AI batch generate Vinted listings?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. AutoLister AI can help create single listing drafts or batch drafts from item photos. You should still review each draft before publishing it on Vinted.",
+      },
+    },
+    {
+      "@type": "Question",
       name: "Is AutoLister AI affiliated with Vinted?",
       acceptedAnswer: {
         "@type": "Answer",
@@ -46,7 +54,7 @@ const faqJsonLd = JSON.stringify({
 <SiteLayout
   canonical={pageUrl}
   title="Vinted Description Generator from Photos | AutoLister AI"
-  description="Use AutoLister AI as a Vinted description generator. Turn item photos into searchable Vinted titles, descriptions, and hashtags with a free Chrome extension."
+  description="Use AutoLister AI as a Vinted description generator. Turn item photos into searchable Vinted titles, descriptions, hashtags, and batch drafts."
   ogUrl={pageUrl}
   ogImage="https://autolister.app/banner.png"
 >
@@ -64,8 +72,8 @@ const faqJsonLd = JSON.stringify({
           </h1>
           <p class="mt-6 max-w-2xl text-lg font-medium leading-8 text-slate-600">
             AutoLister AI is a Chrome extension that turns your Vinted item photos into a
-            searchable title, buyer-friendly description, and useful hashtags. Upload photos,
-            click generate, review the text, then paste it into your listing.
+            searchable title, buyer-friendly description, and useful hashtags. Use it for one
+            listing or batch drafts, then review before publishing.
           </p>
           <div class="mt-8 flex flex-col gap-3 sm:flex-row">
             <a
@@ -206,6 +214,29 @@ const faqJsonLd = JSON.stringify({
           <li><strong>5. Flaws:</strong> marks, pulls, fading, missing buttons, repairs, or wear.</li>
           <li><strong>6. Search context:</strong> natural style keywords buyers might type into Vinted.</li>
         </ol>
+      </div>
+    </section>
+
+    <section class="border-y border-slate-200 bg-white py-16">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6">
+        <h2 class="text-3xl font-extrabold tracking-tight text-slate-950">
+          Batch generate Vinted listing drafts
+        </h2>
+        <p class="mt-4 text-lg leading-8 text-slate-700">
+          If you photograph several items at once, AutoLister AI can help turn each photo set
+          into a Vinted-ready draft. It is useful for resellers and wardrobe clear-outs where
+          writing every title and description by hand slows you down.
+        </p>
+        <p class="mt-4 text-lg leading-8 text-slate-700">
+          Batch generation is not auto-posting. You still check the item, price, category,
+          size, condition, and flaws before publishing.
+        </p>
+        <a
+          href="/blog/batch-generate-vinted-listings"
+          class="mt-6 inline-flex text-base font-bold text-brand-700 no-underline hover:text-brand-800"
+        >
+          Read the batch generation guide →
+        </a>
       </div>
     </section>
 

@@ -16,25 +16,33 @@ describe("parseOpenAIListingOutput", () => {
     });
   });
 
-  it("rejects empty listing fields instead of returning fallback copy", () => {
-    expect(() =>
+  it("returns a clear no-item result for empty listing fields", () => {
+    expect(
       parseOpenAIListingOutput(
         JSON.stringify({
           title: " ",
           description: "No description available.",
         }),
       ),
-    ).toThrow("OpenAI returned empty listing fields");
+    ).toEqual({
+      title: "Item not visible",
+      description:
+        "I can't identify a clear item from this photo. Please try another photo where the item is visible.",
+    });
   });
 
-  it("rejects placeholder listing fields", () => {
-    expect(() =>
+  it("replaces placeholder listing fields", () => {
+    expect(
       parseOpenAIListingOutput(
         JSON.stringify({
           title: "Untitled",
           description: "No description available.",
         }),
       ),
-    ).toThrow("OpenAI returned placeholder listing fields");
+    ).toEqual({
+      title: "Item not visible",
+      description:
+        "I can't identify a clear item from this photo. Please try another photo where the item is visible.",
+    });
   });
 });

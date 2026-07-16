@@ -59,11 +59,6 @@ function getMetadataValue(
   return undefined;
 }
 
-function sanitizeFilename(filename: string) {
-  const baseName = filename.split(/[\\/]/).pop()?.trim() || "upload";
-  return baseName.replace(/[^\w .()-]/g, "_");
-}
-
 function parseUploadOrder(value: unknown) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
@@ -73,6 +68,10 @@ function getStoredFileOrder(name: string) {
   return (
     parseUploadOrder(name.match(/^(\d+)-/)?.[1]) ?? Number.MAX_SAFE_INTEGER
   );
+}
+
+function getUploadStoredName(order: number) {
+  return `${String(order).padStart(6, "0")}-upload.jpg`;
 }
 
 function isBatchMarkerFile(file: { name?: string }) {
@@ -265,16 +264,19 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       }
 
       const uploadPromises = fileUploads.map(async (file, index) => {
-        const uniqueSuffix = Math.random().toString(36).substring(2, 9);
-        const order = file.order ?? index;
-        const orderPrefix = String(order).padStart(6, "0");
-        const storedName = `${orderPrefix}-${Date.now()}-${uniqueSuffix}-${sanitizeFilename(file.filename)}`;
+        const order =
+          file.order === null
+            ? index
+            : fileUploads.length > 1
+              ? file.order + index
+              : file.order;
+        const storedName = getUploadStoredName(order);
         const path = `${finalSessionId}/${storedName}`;
         const { error } = await supabase.storage
           .from(UPLOAD_BUCKET)
           .upload(path, file.buffer, {
             contentType: file.mimeType,
-            upsert: false,
+            upsert: true,
           });
 
         if (error) throw error;

@@ -315,6 +315,7 @@ function getEventCategory(event: string | null) {
   if (
     event.startsWith("generate_") ||
     event.startsWith("generation_") ||
+    event.startsWith("manual_upload_") ||
     event.startsWith("phone_upload_") ||
     event.startsWith("batch_") ||
     event.startsWith("listing_report_") ||

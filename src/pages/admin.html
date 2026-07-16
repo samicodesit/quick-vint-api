@@ -3083,7 +3083,9 @@
                 phone_upload_send_start: 'Phone upload started',
                 phone_upload_send_finished: 'Phone upload finished',
                 phone_upload_file_success: 'Phone photo uploaded',
+                phone_upload_file_retry: 'Phone photo upload retry',
                 phone_upload_file_error: 'Phone photo failed',
+                phone_upload_compression_fallback: 'Phone compression fallback',
                 phone_upload_batch_complete_success: 'Batch handoff complete',
                 phone_upload_batch_complete_error: 'Batch handoff failed',
                 phone_upload_start: 'Phone upload start',
@@ -3092,6 +3094,9 @@
                 phone_upload_inject_error: 'Phone inject failed',
                 phone_upload_download_error: 'Phone download failed',
                 phone_upload_close: 'Phone upload closed',
+                manual_upload_storage_retry: 'Manual photo upload retry',
+                manual_upload_storage_error: 'Manual photo upload failed',
+                manual_upload_compression_fallback: 'Manual compression fallback',
                 batch_start: 'Batch start',
                 batch_start_blocked: 'Batch blocked',
                 batch_group_created: 'Batch group created',
@@ -3593,7 +3598,8 @@
 
         function getActivityIcon(log, eventName) {
             const kind = getLogKind(log);
-            if (log.response_status >= 400 || eventName === 'generate_error') return { symbol: 'ERR', className: 'danger' };
+            if (log.response_status >= 400 || eventName === 'generate_error' || eventName.endsWith('_error')) return { symbol: 'ERR', className: 'danger' };
+            if (eventName.endsWith('_retry') || eventName.endsWith('_fallback')) return { symbol: 'WARN', className: 'warning' };
             if (eventName === 'generate_cancelled') return { symbol: 'CXL', className: 'warning' };
             if (eventName === 'generate_success') return { symbol: 'OK', className: 'success' };
             if (eventName === 'generate_limit_hit' || eventName === 'account_paused_shown') return { symbol: 'LIM', className: 'warning' };
@@ -4618,7 +4624,8 @@
 
         function getJourneyEventTone(event) {
             if (event.event === 'generate_success') return 'success';
-            if (event.event === 'generate_error' || event.response_status >= 400) return 'danger';
+            if (event.event === 'generate_error' || event.event?.endsWith('_error') || event.response_status >= 400) return 'danger';
+            if (event.event?.endsWith('_retry') || event.event?.endsWith('_fallback')) return 'warning';
             if (event.event === 'generate_limit_hit' || event.event === 'account_paused_shown' || event.event === 'auth_callback_exit' || event.event === 'generate_missing_photo' || event.event === 'generation_output_edited') return 'warning';
             if (event.event === 'auth_success' || event.event === 'listing_tools_ready') return 'success';
             return 'neutral';

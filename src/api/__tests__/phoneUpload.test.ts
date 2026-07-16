@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const listMock = vi.fn();
@@ -21,10 +22,15 @@ vi.mock("../../../utils/criticalEndpointAlert", () => ({
 }));
 
 function createResponse() {
+  let resolveFinished: (() => void) | null = null;
+  const finished = new Promise<void>((resolve) => {
+    resolveFinished = resolve;
+  });
   const response = {
     statusCode: 200,
     body: null as any,
     headers: {} as Record<string, unknown>,
+    finished,
     setHeader: vi.fn((name: string, value: unknown) => {
       response.headers[name] = value;
       return response;
@@ -37,10 +43,98 @@ function createResponse() {
     }),
     json: vi.fn((body: any) => {
       response.body = body;
+      resolveFinished?.();
       return response;
     }),
   };
   return response;
+}
+
+function createMultipartUploadRequest({
+  sessionId,
+  uploadOrder,
+  filename,
+  contentType = "image/jpeg",
+  body = "photo-bytes",
+}: {
+  sessionId: string;
+  uploadOrder: number;
+  filename: string;
+  contentType?: string;
+  body?: string;
+}) {
+  const boundary = "----autolister-test-boundary";
+  const payload = Buffer.from(
+    [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="sessionId"',
+      "",
+      sessionId,
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="uploadOrder"',
+      "",
+      String(uploadOrder),
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file"; filename="${filename}"`,
+      `Content-Type: ${contentType}`,
+      "",
+      body,
+      `--${boundary}--`,
+      "",
+    ].join("\r\n"),
+  );
+  const req = Readable.from(payload) as any;
+  req.method = "POST";
+  req.headers = {
+    "content-type": `multipart/form-data; boundary=${boundary}`,
+    "content-length": String(payload.length),
+  };
+  req.query = { sessionId };
+  return req;
+}
+
+function createMultipartMultiUploadRequest({
+  sessionId,
+  uploadOrder,
+  filenames,
+  contentType = "image/jpeg",
+}: {
+  sessionId: string;
+  uploadOrder: number;
+  filenames: string[];
+  contentType?: string;
+}) {
+  const boundary = "----autolister-test-boundary";
+  const parts = [
+    `--${boundary}`,
+    'Content-Disposition: form-data; name="sessionId"',
+    "",
+    sessionId,
+    `--${boundary}`,
+    'Content-Disposition: form-data; name="uploadOrder"',
+    "",
+    String(uploadOrder),
+  ];
+  filenames.forEach((filename, index) => {
+    parts.push(
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file"; filename="${filename}"`,
+      `Content-Type: ${contentType}`,
+      "",
+      `photo-bytes-${index + 1}`,
+    );
+  });
+  parts.push(`--${boundary}--`, "");
+
+  const payload = Buffer.from(parts.join("\r\n"));
+  const req = Readable.from(payload) as any;
+  req.method = "POST";
+  req.headers = {
+    "content-type": `multipart/form-data; boundary=${boundary}`,
+    "content-length": String(payload.length),
+  };
+  req.query = { sessionId };
+  return req;
 }
 
 describe("phone upload endpoint", () => {
@@ -154,5 +248,67 @@ describe("phone upload endpoint", () => {
       expectedCount: 3,
     });
     expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  it("stores repeated uploads for the same session order at one idempotent path", async () => {
+    uploadMock.mockResolvedValue({ error: null });
+
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+
+    for (const filename of ["first.jpg", "second.jpg"]) {
+      const res = createResponse();
+      await handler(
+        createMultipartUploadRequest({
+          sessionId: "sess-test",
+          uploadOrder: 2,
+          filename,
+        }),
+        res as any,
+      );
+      await res.finished;
+      expect(res.statusCode).toBe(200);
+    }
+
+    expect(uploadMock).toHaveBeenCalledTimes(2);
+    expect(uploadMock.mock.calls.map((call) => call[0])).toEqual([
+      "sess-test/000002-upload.jpg",
+      "sess-test/000002-upload.jpg",
+    ]);
+    expect(uploadMock.mock.calls.map((call) => call[2])).toEqual([
+      expect.objectContaining({
+        contentType: "image/jpeg",
+        upsert: true,
+      }),
+      expect.objectContaining({
+        contentType: "image/jpeg",
+        upsert: true,
+      }),
+    ]);
+  });
+
+  it("keeps multiple files in one multipart request distinct from the base order", async () => {
+    uploadMock.mockResolvedValue({ error: null });
+
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      createMultipartMultiUploadRequest({
+        sessionId: "sess-test",
+        uploadOrder: 5,
+        filenames: ["first.jpg", "second.jpg"],
+      }),
+      res as any,
+    );
+    await res.finished;
+
+    expect(res.statusCode).toBe(200);
+    expect(uploadMock.mock.calls.map((call) => call[0])).toEqual([
+      "sess-test/000005-upload.jpg",
+      "sess-test/000006-upload.jpg",
+    ]);
+    expect(res.body.files.map((file: any) => file.order)).toEqual([5, 6]);
   });
 });

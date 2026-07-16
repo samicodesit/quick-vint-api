@@ -35,3 +35,11 @@ For admin UI changes, also run:
 ```bash
 pnpm test src/pages/__tests__/adminHtml.test.ts
 ```
+
+## Production Log Investigations
+
+Before querying production/admin/Vercel logs, read and follow:
+
+- `docs/production-log-runbook.md`
+
+Do not start from memory or list rows only. Use `log-detail` for request bodies, Vercel logs for endpoint-hit proof when admin logs omit successful rows, and network escalation for read-only log queries if the CLI sandbox blocks DNS.

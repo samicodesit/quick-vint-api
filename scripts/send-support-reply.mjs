@@ -3,7 +3,6 @@ import path from "node:path";
 
 const ENV_FILES = [".env.local", ".env"];
 const DEFAULT_FROM = "AutoLister AI <support@autolister.app>";
-const DEFAULT_BCC = process.env.SUPPORT_REPLY_BCC || "samicodesit@gmail.com";
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -43,10 +42,6 @@ function getArg(flag, fallback = undefined) {
   return process.argv[index + 1] ?? fallback;
 }
 
-function hasFlag(flag) {
-  return process.argv.includes(flag);
-}
-
 function requireArg(flag) {
   const value = getArg(flag);
   if (!value) {
@@ -71,8 +66,7 @@ function usage() {
       "  --message-id <id>      Optional thread Message-ID for In-Reply-To.",
       "  --references <ids>     Optional References header. Defaults to --message-id.",
       "  --from <sender>        Defaults to support@autolister.app.",
-      "  --bcc <recipient>      Defaults to SUPPORT_REPLY_BCC or Sami's Gmail.",
-      "  --no-bcc               Do not BCC a copy.",
+      "  --bcc <recipient>      Optional BCC recipient.",
     ].join("\n"),
   );
 }
@@ -163,7 +157,7 @@ const subject = requireArg("--subject");
 const text = requireArg("--text");
 const messageId = getArg("--message-id");
 const references = getArg("--references") || messageId;
-const bcc = hasFlag("--no-bcc") ? undefined : getArg("--bcc", DEFAULT_BCC);
+const bcc = getArg("--bcc");
 
 const payload = {
   from: getArg("--from", DEFAULT_FROM),

@@ -8,8 +8,8 @@ function usage() {
   console.error(
     [
       "Usage:",
-      "  ADMIN_SECRET=... pnpm run ops:inspect-generation -- user@example.com",
-      "  ADMIN_SECRET=... pnpm run ops:inspect-generation -- user@example.com --index 0",
+      "  ADMIN_TOKEN=... pnpm run ops:inspect-generation -- user@example.com",
+      "  ADMIN_TOKEN=... pnpm run ops:inspect-generation -- user@example.com --index 0",
       "",
       "Options:",
       "  --base-url <url>      Admin API base URL. Default: https://autolister.app",
@@ -18,7 +18,7 @@ function usage() {
       "  --limit <n>           Number of recent logs to search. Default: 100",
       "",
       "Notes:",
-      "  The script never prints ADMIN_SECRET.",
+      "  The script never prints ADMIN_TOKEN or ADMIN_SECRET.",
       "  Prompt images are saved exactly from api_logs.image_urls when present.",
     ].join("\n"),
   );
@@ -153,7 +153,7 @@ function summarizeLog(log) {
 }
 
 const email = getPositionalEmail();
-const adminSecret = process.env.ADMIN_SECRET;
+const adminSecret = process.env.ADMIN_TOKEN || process.env.ADMIN_SECRET;
 const baseUrl = (getArg("--base-url", DEFAULT_BASE_URL) || DEFAULT_BASE_URL).replace(/\/$/, "");
 const outputRoot = getArg("--output-dir", DEFAULT_OUTPUT_DIR);
 const index = Number.parseInt(getArg("--index", "0"), 10);

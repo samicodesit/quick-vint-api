@@ -38,6 +38,8 @@ import {
   redactDescriptionFooterFromBody,
   validateDescriptionFooterText,
 } from "../utils/descriptionFooter";
+import { extractOpenAIRateLimitHeaders } from "../utils/openaiRateLimitHeaders";
+import { parseOpenAIListingOutput } from "../utils/openaiListingOutput";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 import { shouldStoreDebugGenerationImages } from "../utils/debugGenerationImages";
 import messagesEn from "../messages/en.json";
@@ -160,21 +162,6 @@ async function storeDebugGenerationImages(imageUrls: string[]) {
         images,
       }
     : null;
-}
-
-function extractOpenAIRateLimitHeaders(
-  headers?: { get(name: string): string | null } | null,
-) {
-  if (!headers) return null;
-
-  return {
-    limitRequests: headers.get("x-ratelimit-limit-requests"),
-    limitTokens: headers.get("x-ratelimit-limit-tokens"),
-    remainingRequests: headers.get("x-ratelimit-remaining-requests"),
-    remainingTokens: headers.get("x-ratelimit-remaining-tokens"),
-    resetRequests: headers.get("x-ratelimit-reset-requests"),
-    resetTokens: headers.get("x-ratelimit-reset-tokens"),
-  };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -656,8 +643,8 @@ Reply only in JSON: {"title":"...","description":"..."}
               type: "object",
               additionalProperties: false,
               properties: {
-                title: { type: "string" },
-                description: { type: "string" },
+                title: { type: "string", minLength: 1 },
+                description: { type: "string", minLength: 1 },
               },
               required: ["title", "description"],
             },
@@ -709,10 +696,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     console.log("🔄 OpenAI Rate Limit Status:", rateLimitInfo);
 
     const content = chat.choices?.[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(content);
-    const title = (parsed.title ?? "").trim() || "Untitled";
-    const description =
-      (parsed.description ?? "").trim() || "No description available.";
+    const { title, description } = parseOpenAIListingOutput(content);
     const finalDescription = appendDescriptionFooter(
       description,
       effectiveDescriptionFooterText,

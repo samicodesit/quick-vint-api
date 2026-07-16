@@ -87,6 +87,12 @@ describe("openaiModelExperiment", () => {
         message: "Rate limit reached",
       }),
     ).toBe(false);
+    expect(
+      isOpenAIModelCompatibilityError({
+        status: 401,
+        message: "You have insufficient permissions for this operation.",
+      }),
+    ).toBe(true);
   });
 
   it("uses the token limit parameter supported by each chat model family", () => {

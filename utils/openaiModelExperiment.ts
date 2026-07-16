@@ -166,6 +166,15 @@ export function selectOpenAIModel({
 
 export function isOpenAIModelCompatibilityError(error: any) {
   const message = String(error?.message || "");
+  if (
+    (error?.status === 401 || error?.status === 403) &&
+    /insufficient permissions|not authorized|not allowed|permission/i.test(
+      message,
+    )
+  ) {
+    return true;
+  }
+
   return (
     error?.status === 400 &&
     /model|unsupported|not supported|does not exist|unrecognized|max_tokens|max_completion_tokens|temperature|response_format/i.test(

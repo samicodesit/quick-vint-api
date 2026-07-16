@@ -338,42 +338,165 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].join("\n"),
   },
 
-  business_welcome_v1: {
-    subject: "Welcome to AutoLister AI Business",
+  starter_welcome_v1: {
+    subject: "Welcome to Starter - your plan is active",
     preheader:
-      "Thanks for choosing Business. Reply anytime with feedback, requests, or workflow ideas.",
+      "Your Starter plan is active. Reply anytime if you need higher limits or want to ask about available discounts.",
     body: [
       el.p("Hi,"),
-      el.p(
-        "I saw you upgraded to Business. Thank you — I really appreciate it.",
-      ),
-      el.p(
-        "Business is meant for sellers who list often enough that the small things start to matter: fewer limits, faster drafts, and less time rewriting the same Vinted details over and over.",
-      ),
       `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 22px 0;">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 26px 0;">
         <tr>
-          <td style="background-color: #fbfaff; border: 1px solid #eee8ff; border-radius: 8px; padding: 16px 18px;">
-            <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #333333;"><strong>Your Business plan is active.</strong><br />You now have AutoLister AI's highest limits and Business-level support.</p>
+          <td style="background-color: #111827; border-radius: 8px; padding: 26px 24px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 26px; line-height: 1.2; color: #ffffff; font-weight: 750; letter-spacing: 0;">Your Starter plan is active.</h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.65; color: #d1d5db;">Welcome to AutoLister AI Starter.</p>
           </td>
         </tr>
       </table>
       `,
       el.p(
-        "If something feels slow, unclear, or missing, just reply to this email. No form, no ticket system. I read the replies myself.",
+        "You do not need to change anything right now. If AutoLister AI already works the way you like, you are all set.",
       ),
-      el.p("The most useful feedback is usually simple:"),
       `
-      <ul style="margin: -8px 0 22px 0; padding-left: 20px; font-size: 15px; color: #444444; line-height: 1.75;">
-        <li>what still takes too long</li>
-        <li>what AutoLister misses on your items</li>
-        <li>what would make bulk listing easier</li>
-      </ul>
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 26px 0;">
+        <tr>
+          <td style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.4; color: #111827; font-weight: 700;">Your Starter plan includes</p>
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;"><strong style="color: #111827;">10 listings per day</strong> and <strong style="color: #111827;">75 listings per month</strong>.</td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">AI-generated titles and descriptions, plus priority support.</td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding: 0; font-size: 15px; line-height: 1.55; color: #4b5563;">A simple paid plan for casual selling, with everything still editable before publishing.</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      `,
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 4px 0 26px 0;">
+        <tr>
+          <td style="background-color: #ffffff; border: 1px solid #e9d5ff; border-left: 4px solid #764BA2; border-radius: 8px; padding: 18px 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.5; color: #111827; font-weight: 700;">I'm here to help.</p>
+            <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.65; color: #4b5563;">I can also help adjust the AI if you want it to fit your shop better. If you start needing more listings, reply and I can share a discount for upgrading.</p>
+            <a href="mailto:${BRAND.supportEmail}?subject=AutoLister%20AI%20higher%20limits" style="color: #764BA2; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: underline;">Ask about higher limits</a>
+          </td>
+        </tr>
+      </table>
+      `,
+      el.p("Thanks,<br />Sami<br />Founder AutoLister AI"),
+    ].join("\n"),
+  },
+
+  pro_welcome_v1: {
+    subject: "Welcome to Pro - your plan is active",
+    preheader:
+      "Your Pro plan is active. Reply anytime if you want the AI adjusted to your style.",
+    body: [
+      el.p("Hi,"),
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 26px 0;">
+        <tr>
+          <td style="background-color: #111827; border-radius: 8px; padding: 26px 24px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 26px; line-height: 1.2; color: #ffffff; font-weight: 750; letter-spacing: 0;">Your Pro plan is active.</h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.65; color: #d1d5db;">Welcome to AutoLister AI Pro.</p>
+          </td>
+        </tr>
+      </table>
       `,
       el.p(
-        "Feature requests are welcome too, even if they are rough ideas. If it would save you time as a serious seller, I want to hear it.",
+        "You do not need to change anything right now. If AutoLister AI already works the way you like, you are all set.",
       ),
-      el.p("Thanks again,<br />Sami"),
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 26px 0;">
+        <tr>
+          <td style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.4; color: #111827; font-weight: 700;">Your Pro plan includes</p>
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;"><strong style="color: #111827;">25 listings per day</strong> and <strong style="color: #111827;">250 listings per month</strong>.</td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">phone upload, batch upload, and reusable seller notes.</td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding: 0; font-size: 15px; line-height: 1.55; color: #4b5563;">More room for regular selling, with everything still editable before publishing.</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      `,
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 4px 0 26px 0;">
+        <tr>
+          <td style="background-color: #ffffff; border: 1px solid #e9d5ff; border-left: 4px solid #764BA2; border-radius: 8px; padding: 18px 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.5; color: #111827; font-weight: 700;">I'm here to help.</p>
+            <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.65; color: #4b5563;">If you want the AI to behave in a custom way, reply and tell me what you prefer. For example: specific details you always want mentioned, things the AI should pay attention to, or a style that fits your shop.</p>
+            <a href="mailto:${BRAND.supportEmail}?subject=AutoLister%20AI%20Pro%20style%20help" style="color: #764BA2; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: underline;">Reply with your preferred style</a>
+          </td>
+        </tr>
+      </table>
+      `,
+      el.p("Thanks,<br />Sami<br />Founder AutoLister AI"),
+    ].join("\n"),
+  },
+
+  business_welcome_v1: {
+    subject: "Welcome to Business - your plan is active",
+    preheader:
+      "Your Business plan is active. Reply anytime if you want the AI adjusted to your style.",
+    body: [
+      el.p("Hi,"),
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 26px 0;">
+        <tr>
+          <td style="background-color: #111827; border-radius: 8px; padding: 26px 24px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 26px; line-height: 1.2; color: #ffffff; font-weight: 750; letter-spacing: 0;">Your Business plan is active.</h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.65; color: #d1d5db;">Welcome to AutoLister AI Business.</p>
+          </td>
+        </tr>
+      </table>
+      `,
+      el.p(
+        "You do not need to change anything right now. If AutoLister AI already works the way you like, you are all set.",
+      ),
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 26px 0;">
+        <tr>
+          <td style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.4; color: #111827; font-weight: 700;">Your Business plan includes</p>
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;"><strong style="color: #111827;">60 listings per day</strong> and <strong style="color: #111827;">600 listings per month</strong>.</td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">phone upload, batch upload, reusable seller notes, and dedicated support.</td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding: 0; font-size: 15px; line-height: 1.55; color: #4b5563;">More room for high-volume selling, with everything still editable before publishing.</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      `,
+      `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 4px 0 26px 0;">
+        <tr>
+          <td style="background-color: #ffffff; border: 1px solid #e9d5ff; border-left: 4px solid #764BA2; border-radius: 8px; padding: 18px 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.5; color: #111827; font-weight: 700;">I'm here to help.</p>
+            <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.65; color: #4b5563;">If you want the AI to behave in a custom way, reply and tell me what you prefer. For example: specific details you always want mentioned, things the AI should pay attention to, or a style that fits your shop.</p>
+            <a href="mailto:${BRAND.supportEmail}?subject=AutoLister%20AI%20Business%20style%20help" style="color: #764BA2; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: underline;">Reply with your preferred style</a>
+          </td>
+        </tr>
+      </table>
+      `,
+      el.p("Thanks,<br />Sami<br />Founder AutoLister AI"),
     ].join("\n"),
   },
 

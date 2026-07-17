@@ -152,6 +152,105 @@ describe("/api/generate remote image handling", () => {
     });
   });
 
+  it("rejects missing auth before reserving generation or calling OpenAI", async () => {
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: {
+          "x-autolister-extension-version": "1.3.54",
+        },
+        body: {
+          imageUrls: ["data:image/jpeg;base64,abc"],
+          languageCode: "en",
+          titleLanguageCode: "en",
+          descriptionLanguageCode: "en",
+          tone: "standard",
+          useEmojis: false,
+          useHashtags: true,
+          useBulletPoints: true,
+          descriptionLength: "short",
+          generationMode: "manual",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body).toEqual({ error: "Missing or invalid Authorization" });
+    expect(getUser).not.toHaveBeenCalled();
+    expect(reserveGenerationRequest).not.toHaveBeenCalled();
+    expect(createCompletion).not.toHaveBeenCalled();
+    expect(logRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        responseStatus: 401,
+        flaggedReason: "Auth header missing or malformed",
+      }),
+    );
+  });
+
+  it("returns rate-limit denial without calling OpenAI", async () => {
+    reserveGenerationRequest.mockResolvedValue({
+      allowed: false,
+      error: "Daily limit reached.",
+      code: "daily_limit_reached",
+      currentTier: "free",
+      nextTier: "starter",
+      limitScope: "daily",
+      currentLimit: 5,
+      remainingRequests: 0,
+    });
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "x-autolister-extension-version": "1.3.54",
+        },
+        body: {
+          imageUrls: ["data:image/jpeg;base64,abc"],
+          languageCode: "en",
+          titleLanguageCode: "en",
+          descriptionLanguageCode: "en",
+          tone: "standard",
+          useEmojis: false,
+          useHashtags: true,
+          useBulletPoints: true,
+          descriptionLength: "short",
+          generationMode: "manual",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(429);
+    expect(res.body).toMatchObject({
+      error: "Daily limit reached.",
+      code: "daily_limit_reached",
+      currentTier: "free",
+      nextTier: "starter",
+      limitScope: "daily",
+      currentLimit: 5,
+      remainingRequests: 0,
+    });
+    expect(createCompletion).not.toHaveBeenCalled();
+    expect(commitGenerationReservation).not.toHaveBeenCalled();
+    expect(refundGenerationReservation).not.toHaveBeenCalled();
+    expect(logRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        responseStatus: 429,
+        flaggedReason: "Rate limit exceeded",
+      }),
+    );
+  });
+
   it("converts remote signed image URLs before sending images to OpenAI", async () => {
     const remoteImageUrl =
       "https://project.supabase.co/storage/v1/object/sign/temp-uploads/sess_1/000000-upload.jpg?token=abc";

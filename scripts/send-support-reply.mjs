@@ -83,6 +83,28 @@ function renderInlineText(lines) {
   return escapeHtml(lines.join("\n")).replace(/\n/g, "<br />");
 }
 
+function renderSupportBlock(content) {
+  return `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(content.slice(0, 120))}</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f6f8;padding:24px 0;">
+  <tr>
+    <td align="center" style="padding:0 16px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+        <tr>
+          <td style="padding:26px 30px 20px;border-bottom:1px solid #eef0f3;">
+            <div style="font-size:20px;font-weight:700;color:#6d42c7;">AutoLister AI</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 30px 30px;font-size:15px;line-height:1.65;color:#374151;">
+            ${content}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+}
+
 function textToSupportHtml(text) {
   const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
   const blocks = [];
@@ -136,10 +158,8 @@ function textToSupportHtml(text) {
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
-<body style="margin: 0; padding: 0; background-color: #ffffff;">
-  <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.55; color: #222222;">
-    ${blocks.join("\n")}
-  </div>
+<body style="margin:0;padding:0;background:#f5f6f8;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+  ${renderSupportBlock(blocks.join("\n"))}
 </body>
 </html>`;
 }

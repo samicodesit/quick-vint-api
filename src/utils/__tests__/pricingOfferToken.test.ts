@@ -71,9 +71,7 @@ describe("pricing offer tokens", () => {
     expect(parsed.origin).toBe("https://autolister.app");
     expect(parsed.pathname).toBe("/pricing");
     expect(parsed.searchParams.get("offer")).toBeTruthy();
-    expect(parsed.searchParams.get("utm_campaign")).toBe(
-      "pricing_offer_email",
-    );
+    expect(parsed.searchParams.get("utm_campaign")).toBe("pricing_offer_email");
   });
 
   it("builds a pricing URL with an explicit offer campaign", () => {

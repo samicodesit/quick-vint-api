@@ -72,9 +72,7 @@ describe("public stats endpoint", () => {
       displayStepMs: 7000,
     });
     const body = res.body as { displayStartedAt: string };
-    expect(new Date(body.displayStartedAt).toString()).not.toBe(
-      "Invalid Date",
-    );
+    expect(new Date(body.displayStartedAt).toString()).not.toBe("Invalid Date");
   });
 
   it("returns 503 when stats cannot be loaded", async () => {

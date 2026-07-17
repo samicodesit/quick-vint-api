@@ -16,7 +16,8 @@ const allowedOrigins = rawOrigins
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
-    if (incomingOrigin === "https://autolister.app") return callback(null, true);
+    if (incomingOrigin === "https://autolister.app")
+      return callback(null, true);
     if (allowedOrigins.includes(incomingOrigin)) return callback(null, true);
     if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
     return callback(new Error("CORS origin denied for event tracking"), false);
@@ -50,7 +51,8 @@ function parseBody(body: unknown) {
     }
   }
 
-  if (typeof body !== "string") return body && typeof body === "object" ? body : {};
+  if (typeof body !== "string")
+    return body && typeof body === "object" ? body : {};
 
   try {
     return JSON.parse(body || "{}");
@@ -103,12 +105,16 @@ function getUninstallOpenFingerprint(
   resolvedUserId?: string,
 ) {
   if (item.event !== "extension_uninstalled") return null;
-  if (item.source !== "uninstall_page" || item.page !== "/uninstall") return null;
+  if (item.source !== "uninstall_page" || item.page !== "/uninstall")
+    return null;
 
-  const context = item.context && typeof item.context === "object" ? item.context : {};
-  const userKey = resolvedUserId || item.userId || context.userId || "anonymous";
+  const context =
+    item.context && typeof item.context === "object" ? item.context : {};
+  const userKey =
+    resolvedUserId || item.userId || context.userId || "anonymous";
   const analyticsClientId = context.analyticsClientId || "no-cid";
-  const extensionVersion = item.extensionVersion || context.extensionVersion || "no-version";
+  const extensionVersion =
+    item.extensionVersion || context.extensionVersion || "no-version";
 
   return [item.event, userKey, analyticsClientId, extensionVersion].join(":");
 }
@@ -136,7 +142,9 @@ function getLoggedUninstallOpenFingerprint(row: {
 async function getRecentUninstallOpenFingerprints(userId?: string) {
   if (!userId) return new Set<string>();
 
-  const cutoffIso = new Date(Date.now() - UNINSTALL_DEDUPE_WINDOW_MS).toISOString();
+  const cutoffIso = new Date(
+    Date.now() - UNINSTALL_DEDUPE_WINDOW_MS,
+  ).toISOString();
   const { data, error } = await supabase
     .from("api_logs")
     .select("user_id, full_request_body")
@@ -158,7 +166,9 @@ async function getRecentUninstallOpenFingerprints(userId?: string) {
   );
 }
 
-async function resolvePublicUninstallUser(eventItems: ReturnType<typeof normalizeEventItems>) {
+async function resolvePublicUninstallUser(
+  eventItems: ReturnType<typeof normalizeEventItems>,
+) {
   const attributedItem = eventItems.find(canAttributePublicUninstallEvent);
   if (!attributedItem) return {};
 

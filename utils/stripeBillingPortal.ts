@@ -20,7 +20,9 @@ const MANAGEABLE_SUBSCRIPTION_STATUSES = new Set([
 ]);
 
 function normalizeEmail(email?: string | null) {
-  return String(email || "").trim().toLowerCase();
+  return String(email || "")
+    .trim()
+    .toLowerCase();
 }
 
 function getCustomerId(customer: string | { id?: string } | null | undefined) {
@@ -128,8 +130,9 @@ export async function createBillingPortalSessionForProfile({
   }
 
   if (subscriptionCustomerId !== customerId) {
-    const subscriptionCustomer =
-      await stripe.customers.retrieve(subscriptionCustomerId);
+    const subscriptionCustomer = await stripe.customers.retrieve(
+      subscriptionCustomerId,
+    );
     const subscriptionCustomerEmail = getCustomerEmail(subscriptionCustomer);
 
     if (normalizeEmail(subscriptionCustomerEmail) !== normalizeEmail(email)) {

@@ -1087,40 +1087,6 @@ async function attachSignedDebugImages(log: any) {
   };
 }
 
-async function attachCorrelatedUsersToLogs(logs: any[]) {
-  const clientIds = Array.from(
-    new Set((logs || []).map(getLogAnalyticsClientId).filter(Boolean)),
-  );
-  if (!clientIds.length) return logs || [];
-
-  const { data, error } = await supabase
-    .from("api_logs")
-    .select("user_id, user_email, full_request_body, created_at")
-    .in("full_request_body->context->>analyticsClientId", clientIds)
-    .order("created_at", { ascending: false })
-    .limit(1000);
-
-  if (error) throw error;
-
-  const userByClientId = new Map<string, any>();
-  (data || []).forEach((log: any) => {
-    const clientId = getLogAnalyticsClientId(log);
-    if (!clientId || userByClientId.has(clientId)) return;
-    if (!log.user_id && !log.user_email) return;
-    userByClientId.set(clientId, {
-      id: log.user_id || null,
-      email: log.user_email || null,
-      lastSeenAt: log.created_at || null,
-    });
-  });
-
-  return (logs || []).map((log: any) => {
-    const clientId = getLogAnalyticsClientId(log);
-    const correlatedUser = clientId ? userByClientId.get(clientId) : null;
-    return correlatedUser ? { ...log, correlated_user: correlatedUser } : log;
-  });
-}
-
 function getJourneyStage(log: any) {
   const event = getLogEventName(log);
   if (event === "signed_out_tools_ready") return "Reached Vinted signed out";

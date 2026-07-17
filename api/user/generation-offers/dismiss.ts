@@ -17,7 +17,10 @@ const cors = Cors({
     if (!incomingOrigin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(incomingOrigin)) return callback(null, true);
     if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
-    return callback(new Error("CORS origin denied for generation offer dismiss"), false);
+    return callback(
+      new Error("CORS origin denied for generation offer dismiss"),
+      false,
+    );
   },
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],

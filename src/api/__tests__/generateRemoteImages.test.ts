@@ -63,9 +63,9 @@ vi.mock("../../../utils/duplicateIpAutoPause", () => ({
 }));
 
 vi.mock("../../../utils/generationOffers", async () => {
-  const actual = await vi.importActual<typeof import("../../../utils/generationOffers")>(
-    "../../../utils/generationOffers",
-  );
+  const actual = await vi.importActual<
+    typeof import("../../../utils/generationOffers")
+  >("../../../utils/generationOffers");
   return {
     ...actual,
     maybeCreateGenerationOffer: vi.fn(async () => []),
@@ -200,6 +200,81 @@ describe("/api/generate remote image handling", () => {
         expect.objectContaining({
           imageUrls: [remoteImageUrl],
           responseStatus: 200,
+          fullRequestBody: expect.objectContaining({
+            openaiImageUrlKinds: ["data_url"],
+          }),
+        }),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("refunds the generation reservation and returns a simple message when OpenAI rejects images", async () => {
+    const remoteImageUrl =
+      "https://project.supabase.co/storage/v1/object/sign/temp-uploads/sess_1/000000-upload.jpg?token=abc";
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(Buffer.from("jpeg-bytes"), {
+        headers: { "content-type": "image/jpeg" },
+      });
+    }) as typeof fetch;
+    createCompletion.mockReturnValue({
+      withResponse: vi.fn(async () => {
+        const error = new Error(
+          "Invalid image URL. Expected a base64-encoded data URL.",
+        ) as Error & { status?: number };
+        error.status = 400;
+        throw error;
+      }),
+    });
+
+    try {
+      const module = await import("../../../api/generate.js");
+      const handler = (module as any).default;
+      const res = createResponse();
+
+      await handler(
+        {
+          method: "POST",
+          headers: {
+            authorization: "Bearer token",
+            "x-autolister-extension-version": "1.3.54",
+          },
+          body: {
+            imageUrls: [remoteImageUrl],
+            languageCode: "en",
+            titleLanguageCode: "en",
+            descriptionLanguageCode: "en",
+            tone: "standard",
+            useEmojis: false,
+            useHashtags: true,
+            useBulletPoints: true,
+            descriptionLength: "short",
+            generationMode: "manual",
+          },
+        } as any,
+        res as any,
+      );
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({
+        error:
+          "There was an issue processing your images. Please try different images.",
+      });
+      expect(res.body.error).not.toContain("OpenAI");
+      expect(res.body.error).not.toContain("base64");
+      expect(refundGenerationReservation).toHaveBeenCalledWith(
+        "reservation-1",
+        "invalid_generation_input",
+      );
+      expect(commitGenerationReservation).not.toHaveBeenCalled();
+      expect(logRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imageUrls: [remoteImageUrl],
+          responseStatus: 400,
+          flaggedReason:
+            "OpenAI generation error: Invalid image URL. Expected a base64-encoded data URL.",
           fullRequestBody: expect.objectContaining({
             openaiImageUrlKinds: ["data_url"],
           }),

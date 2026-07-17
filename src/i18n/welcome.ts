@@ -101,7 +101,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     ],
     labelTipBadge: "Conseil photo",
     labelTipTitle: "Ajoutez une photo de l'étiquette si possible",
-    labelTipBody: "Cela aide AutoLister à lire la marque, la taille et la matière.",
+    labelTipBody:
+      "Cela aide AutoLister à lire la marque, la taille et la matière.",
     primaryCta: "Aller sur Vinted et publier",
     secondaryCta: "Voir les offres",
     fallbackCta: "Ouvrir la page Vinted par défaut",

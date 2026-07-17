@@ -1,9 +1,7 @@
 import type { VercelRequest } from "@vercel/node";
 import { supabase } from "./supabaseClient";
 
-const INTERNAL_LOG_EXCLUDED_EMAILS = new Set([
-  "samicodesit@gmail.com",
-]);
+const INTERNAL_LOG_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
 const API_LOG_COMPACTION_UPDATE_CHUNK_SIZE = 200;
 
 export interface ApiLogData {
@@ -98,7 +96,9 @@ export class ApiLogger {
 
   private static isInternalLogExcludedEmail(email?: string) {
     return INTERNAL_LOG_EXCLUDED_EMAILS.has(
-      String(email || "").trim().toLowerCase(),
+      String(email || "")
+        .trim()
+        .toLowerCase(),
     );
   }
 
@@ -119,7 +119,8 @@ export class ApiLogger {
       hostname.includes("cloudinary");
     if (trustedImageHost) return false;
 
-    const inspectedUrl = `${hostname}${parsedUrl.pathname}${parsedUrl.search}`.toLowerCase();
+    const inspectedUrl =
+      `${hostname}${parsedUrl.pathname}${parsedUrl.search}`.toLowerCase();
     return ["adult", "porn", "xxx"].some((keyword) =>
       inspectedUrl.includes(keyword),
     );
@@ -356,9 +357,7 @@ export class ApiLogger {
     const reasons: string[] = [];
 
     // Check for non-Vinted related content in URLs
-    if (
-      data.imageUrls?.some((url) => this.isSuspiciousExternalImageUrl(url))
-    ) {
+    if (data.imageUrls?.some((url) => this.isSuspiciousExternalImageUrl(url))) {
       reasons.push("Potentially inappropriate image URLs detected");
     }
 

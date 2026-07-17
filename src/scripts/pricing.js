@@ -1,5 +1,8 @@
 import { trackEvent } from "./analytics.js";
-import { getPricingPlanAction, normalizePricingPlanTier } from "../utils/pricingPlanAction.ts";
+import {
+  getPricingPlanAction,
+  normalizePricingPlanTier,
+} from "../utils/pricingPlanAction.ts";
 
 // Original Pricing Page Logic starts here
 // API Base URL - Use current origin to avoid CORS issues
@@ -19,13 +22,15 @@ const PRICING_MESSAGES = {
   fr: {
     openingSignIn: "Ouverture d'AutoLister AI...",
     popupOpened: "Connectez-vous, puis revenez ici.",
-    manualSignIn: "Ouvrez AutoLister AI dans Chrome, connectez-vous, puis revenez.",
+    manualSignIn:
+      "Ouvrez AutoLister AI dans Chrome, connectez-vous, puis revenez.",
     signedIn: "Connecté. Choisissez une offre.",
   },
   de: {
     openingSignIn: "AutoLister AI wird geöffnet...",
     popupOpened: "Einloggen, dann hierher zurückkehren.",
-    manualSignIn: "AutoLister AI in Chrome öffnen, einloggen, dann zurückkehren.",
+    manualSignIn:
+      "AutoLister AI in Chrome öffnen, einloggen, dann zurückkehren.",
     signedIn: "Eingeloggt. Wähle einen Plan.",
   },
   nl: {
@@ -108,7 +113,10 @@ function pricingMessage(key) {
   return (PRICING_MESSAGES[locale] || PRICING_MESSAGES.en)[key];
 }
 
-function sendExtensionMessage(message, timeoutMs = EXTENSION_MESSAGE_TIMEOUT_MS) {
+function sendExtensionMessage(
+  message,
+  timeoutMs = EXTENSION_MESSAGE_TIMEOUT_MS,
+) {
   return new Promise((resolve) => {
     if (!window.chrome?.runtime?.sendMessage) {
       resolve(null);
@@ -244,10 +252,7 @@ function startSignInRefreshPolling() {
 
     if (await refreshUserFromExtension()) {
       stopSignInRefreshPolling();
-      showStatusMessage(
-        pricingMessage("signedIn"),
-        "success",
-      );
+      showStatusMessage(pricingMessage("signedIn"), "success");
       return;
     }
 
@@ -296,7 +301,9 @@ function updateButtonStates() {
   };
 
   const storedTier = normalizeTier(currentProfile?.subscription_tier || "free");
-  const isActive = hasPaidEntitlementStatus(currentProfile?.subscription_status);
+  const isActive = hasPaidEntitlementStatus(
+    currentProfile?.subscription_status,
+  );
   const currentTier = isActive ? storedTier : "free";
 
   Object.entries(buttons).forEach(([plan, button]) => {
@@ -463,7 +470,9 @@ async function handlePlanClick(planName) {
 
     if (planName === "free") {
       // Already on free or trying to downgrade
-      const currentTier = hasPaidEntitlementStatus(currentProfile?.subscription_status)
+      const currentTier = hasPaidEntitlementStatus(
+        currentProfile?.subscription_status,
+      )
         ? normalizeTier(currentProfile?.subscription_tier)
         : "free";
       if (currentTier === "free") {
@@ -492,7 +501,10 @@ async function handlePlanClick(planName) {
     }
   } catch (error) {
     console.error("Plan selection error:", error);
-    showStatusMessage("Something went wrong while selecting that plan. Please try again.", "error");
+    showStatusMessage(
+      "Something went wrong while selecting that plan. Please try again.",
+      "error",
+    );
   } finally {
     // Reset button state
     button.disabled = false;
@@ -544,12 +556,18 @@ async function handlePaidPlanSelection(planName, options = {}) {
     } else {
       closeExternalWindow(pendingWindow);
       console.error("Checkout error:", data);
-      showStatusMessage(data.error || "Unable to open Stripe Checkout. Please try again.", "error");
+      showStatusMessage(
+        data.error || "Unable to open Stripe Checkout. Please try again.",
+        "error",
+      );
     }
   } catch (error) {
     closeExternalWindow(pendingWindow);
     console.error("Checkout error:", error);
-    showStatusMessage("Connection issue while opening checkout. Please try again.", "error");
+    showStatusMessage(
+      "Connection issue while opening checkout. Please try again.",
+      "error",
+    );
   }
 }
 
@@ -598,17 +616,20 @@ async function handleCreditPackClick() {
 
     pendingWindow = openExternalWindow();
 
-    const response = await fetch(`${API_BASE}/api/stripe/create-credit-checkout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${API_BASE}/api/stripe/create-credit-checkout`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: currentUser.email,
+          source: "pricing_page",
+          utm: getUtmParams(),
+        }),
       },
-      body: JSON.stringify({
-        email: currentUser.email,
-        source: "pricing_page",
-        utm: getUtmParams(),
-      }),
-    });
+    );
 
     const data = await response.json();
 
@@ -630,7 +651,10 @@ async function handleCreditPackClick() {
   } catch (error) {
     closeExternalWindow(pendingWindow);
     console.error("Credit checkout error:", error);
-    showStatusMessage("Connection issue while opening checkout. Please try again.", "error");
+    showStatusMessage(
+      "Connection issue while opening checkout. Please try again.",
+      "error",
+    );
   } finally {
     if (button) button.disabled = false;
     if (textSpan) textSpan.textContent = originalText;
@@ -659,12 +683,19 @@ async function openCustomerPortal() {
     } else {
       closeExternalWindow(pendingWindow);
       console.error("Portal error:", data);
-      showStatusMessage(data.error || "Unable to open your subscription portal. Please try again.", "error");
+      showStatusMessage(
+        data.error ||
+          "Unable to open your subscription portal. Please try again.",
+        "error",
+      );
     }
   } catch (error) {
     closeExternalWindow(pendingWindow);
     console.error("Portal error:", error);
-    showStatusMessage("Connection issue while opening your subscription portal. Please try again.", "error");
+    showStatusMessage(
+      "Connection issue while opening your subscription portal. Please try again.",
+      "error",
+    );
   }
 }
 

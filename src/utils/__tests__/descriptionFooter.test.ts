@@ -14,12 +14,17 @@ describe("description footer helpers", () => {
 
     expect(
       appendDescriptionFooter("Great condition.\n\n#vinted #dress", footerText),
-    ).toBe("Great condition.\n\n  Smoke-free home.\n\nShips fast.  \n\n#vinted #dress");
+    ).toBe(
+      "Great condition.\n\n  Smoke-free home.\n\nShips fast.  \n\n#vinted #dress",
+    );
   });
 
   it("appends the saved note when there is no trailing hashtag block", () => {
     expect(
-      appendDescriptionFooter("Great condition.", "Bundle discounts available."),
+      appendDescriptionFooter(
+        "Great condition.",
+        "Bundle discounts available.",
+      ),
     ).toBe("Great condition.\n\nBundle discounts available.");
   });
 
@@ -44,14 +49,18 @@ describe("description footer helpers", () => {
     expect(validateDescriptionFooterText("See www.example.com")).toMatchObject({
       ok: false,
     });
-    expect(validateDescriptionFooterText("Email me test@example.com")).toMatchObject({
+    expect(
+      validateDescriptionFooterText("Email me test@example.com"),
+    ).toMatchObject({
       ok: false,
     });
     expect(validateDescriptionFooterText("Text +31612345678")).toMatchObject({
       ok: false,
     });
     expect(
-      validateDescriptionFooterText("a".repeat(DESCRIPTION_FOOTER_MAX_LENGTH + 1)),
+      validateDescriptionFooterText(
+        "a".repeat(DESCRIPTION_FOOTER_MAX_LENGTH + 1),
+      ),
     ).toMatchObject({ ok: false });
   });
 

@@ -23,12 +23,17 @@ Push output includes: main -> main
 
 ## Checks
 
-Before pushing production changes, run the checks that match the touched surface:
+Before pushing production backend/site/admin changes, run the full CI-equivalent gate:
 
 ```bash
+pnpm run lint
 pnpm run type-check
-pnpm build
+pnpm run build
+pnpm run format-check
+pnpm test
 ```
+
+Do not call a backend/API fix complete from helper-level tests only. Endpoint incidents need endpoint-level tests under `src/api/__tests__/` or a documented reason why the behavior cannot be tested there.
 
 For admin UI changes, also run:
 

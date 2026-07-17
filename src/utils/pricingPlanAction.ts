@@ -38,10 +38,9 @@ export function getPricingPlanAction(
     "unlimited_monthly" | "unlimited_annual"
   >,
 ): PricingPlanAction {
-  const currentTier =
-    hasPaidEntitlementStatus(profile?.subscription_status)
-      ? normalizePricingPlanTier(profile?.subscription_tier)
-      : "free";
+  const currentTier = hasPaidEntitlementStatus(profile?.subscription_status)
+    ? normalizePricingPlanTier(profile?.subscription_tier)
+    : "free";
   const isActive = hasPaidEntitlementStatus(profile?.subscription_status);
 
   if (

@@ -7,8 +7,9 @@ const getAllLimitFollowupExclusionsMock = vi.fn();
 const createPricingOfferUrlMock = vi.fn();
 
 vi.mock("cors", () => ({
-  default: vi.fn(() => (_req: unknown, _res: unknown, callback: (err?: unknown) => void) =>
-    callback(),
+  default: vi.fn(
+    () => (_req: unknown, _res: unknown, callback: (err?: unknown) => void) =>
+      callback(),
   ),
 }));
 
@@ -30,7 +31,9 @@ vi.mock("../../../utils/limitFollowupEligibility", () => ({
   findLimitFollowupRecipients: findLimitFollowupRecipientsMock,
   getAllLimitFollowupExclusions: getAllLimitFollowupExclusionsMock,
   normalizeEmailForCampaign: (email?: string | null) =>
-    String(email || "").trim().toLowerCase(),
+    String(email || "")
+      .trim()
+      .toLowerCase(),
 }));
 
 function createResponse() {
@@ -78,9 +81,8 @@ describe("limit follow-up on-page offer endpoint", () => {
   });
 
   it("requires a real free-limit hit before showing the on-page discount offer", async () => {
-    const handlerModule = await import(
-      "../../../api/user/limit-followup-offer.js"
-    );
+    const handlerModule =
+      await import("../../../api/user/limit-followup-offer.js");
     const handler = handlerModule.default as unknown as (
       req: unknown,
       res: unknown,
@@ -113,9 +115,8 @@ describe("limit follow-up on-page offer endpoint", () => {
   });
 
   it("allows the extension origin used by content-script authenticated requests", async () => {
-    const handlerModule = await import(
-      "../../../api/user/limit-followup-offer.js"
-    );
+    const handlerModule =
+      await import("../../../api/user/limit-followup-offer.js");
 
     expect(
       handlerModule.isAllowedLimitFollowupOrigin(
@@ -158,9 +159,8 @@ describe("limit follow-up on-page offer endpoint", () => {
       }),
     });
 
-    const handlerModule = await import(
-      "../../../api/user/limit-followup-offer.js"
-    );
+    const handlerModule =
+      await import("../../../api/user/limit-followup-offer.js");
     const handler = handlerModule.default as unknown as (
       req: unknown,
       res: unknown,
@@ -213,9 +213,8 @@ describe("limit follow-up on-page offer endpoint", () => {
       }),
     });
 
-    const handlerModule = await import(
-      "../../../api/user/limit-followup-offer.js"
-    );
+    const handlerModule =
+      await import("../../../api/user/limit-followup-offer.js");
     const handler = handlerModule.default as unknown as (
       req: unknown,
       res: unknown,

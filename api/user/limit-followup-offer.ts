@@ -34,10 +34,17 @@ const cors = Cors({
     if (isAllowedLimitFollowupOrigin(incomingOrigin)) {
       return callback(null, true);
     }
-    return callback(new Error("CORS origin denied for limit follow-up offer"), false);
+    return callback(
+      new Error("CORS origin denied for limit follow-up offer"),
+      false,
+    );
   },
   methods: ["GET", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type", "X-Autolister-Extension-Version"],
+  allowedHeaders: [
+    "Authorization",
+    "Content-Type",
+    "X-Autolister-Extension-Version",
+  ],
 });
 
 function runCors(req: VercelRequest, res: VercelResponse) {
@@ -117,7 +124,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         !profile.subscription_tier ||
         profile.subscription_tier === "free");
     const hasReachedFreeLimit =
-      Number(profile?.free_lifetime_generations_used || 0) >= FREE_LIFETIME_LIMIT;
+      Number(profile?.free_lifetime_generations_used || 0) >=
+      FREE_LIFETIME_LIMIT;
     const hasAvailableCredits = Number(profile?.pack_credits || 0) > 0;
 
     if (

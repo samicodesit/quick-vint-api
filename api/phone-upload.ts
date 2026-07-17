@@ -86,9 +86,13 @@ function isSessionMarkerFile(file: { name?: string }) {
   return isBatchMarkerFile(file) || isExpectedCountMarkerFile(file);
 }
 
-function getExpectedCountFromFiles(files: { name?: string }[] | null | undefined) {
+function getExpectedCountFromFiles(
+  files: { name?: string }[] | null | undefined,
+) {
   const counts = (files || [])
-    .map((file) => parseExpectedCount(file.name?.match(EXPECTED_COUNT_MARKER_PATTERN)?.[1]))
+    .map((file) =>
+      parseExpectedCount(file.name?.match(EXPECTED_COUNT_MARKER_PATTERN)?.[1]),
+    )
     .filter((count): count is number => count !== null);
   return counts.length ? Math.max(...counts) : null;
 }
@@ -174,7 +178,8 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 
     const complete = Boolean(files?.some(isBatchMarkerFile));
     const expectedCount = getExpectedCountFromFiles(files);
-    const photoFiles = files?.filter((file) => !isSessionMarkerFile(file)) || [];
+    const photoFiles =
+      files?.filter((file) => !isSessionMarkerFile(file)) || [];
 
     if (photoFiles.length === 0) {
       return res.status(200).json({
@@ -343,21 +348,19 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
 
   try {
     const markerPath = `${sessionId}/${EXPECTED_COUNT_MARKER_PREFIX}${expectedCount}.json`;
-    const { error } = await supabase.storage
-      .from(UPLOAD_BUCKET)
-      .upload(
-        markerPath,
-        Buffer.from(
-          JSON.stringify({
-            expectedCount,
-            updatedAt: new Date().toISOString(),
-          }),
-        ),
-        {
-          contentType: "application/json",
-          upsert: true,
-        },
-      );
+    const { error } = await supabase.storage.from(UPLOAD_BUCKET).upload(
+      markerPath,
+      Buffer.from(
+        JSON.stringify({
+          expectedCount,
+          updatedAt: new Date().toISOString(),
+        }),
+      ),
+      {
+        contentType: "application/json",
+        upsert: true,
+      },
+    );
 
     if (error) throw error;
 
@@ -399,7 +402,9 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
 
     if (listError) throw listError;
 
-    const photoFiles = (files || []).filter((file) => !isSessionMarkerFile(file));
+    const photoFiles = (files || []).filter(
+      (file) => !isSessionMarkerFile(file),
+    );
     if (expectedCount !== null && photoFiles.length < expectedCount) {
       return res.status(202).json({
         success: false,

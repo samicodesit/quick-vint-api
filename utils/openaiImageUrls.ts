@@ -41,7 +41,9 @@ async function remoteImageUrlToDataUrl(
     headers: { Accept: "image/*" },
   });
   if (!response.ok) {
-    throw new Error(`Invalid image URL: image fetch failed (${response.status}).`);
+    throw new Error(
+      `Invalid image URL: image fetch failed (${response.status}).`,
+    );
   }
 
   const contentType = response.headers.get("content-type")?.split(";")[0];
@@ -50,7 +52,10 @@ async function remoteImageUrlToDataUrl(
   }
 
   const arrayBuffer = await response.arrayBuffer();
-  if (!arrayBuffer.byteLength || arrayBuffer.byteLength > REMOTE_IMAGE_MAX_BYTES) {
+  if (
+    !arrayBuffer.byteLength ||
+    arrayBuffer.byteLength > REMOTE_IMAGE_MAX_BYTES
+  ) {
     throw new Error("Invalid image URL: image is empty or too large.");
   }
 

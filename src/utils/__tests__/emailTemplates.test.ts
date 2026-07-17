@@ -9,9 +9,7 @@ describe("email templates", () => {
     expect(TEMPLATES.starter_welcome_v1.subject).toBe(
       "Welcome to Starter - your plan is active",
     );
-    expect(TEMPLATES.starter_welcome_v1.preheader).toContain(
-      "higher limits",
-    );
+    expect(TEMPLATES.starter_welcome_v1.preheader).toContain("higher limits");
     expect(TEMPLATES.starter_welcome_v1.body).toContain(
       "Your Starter plan is active.",
     );

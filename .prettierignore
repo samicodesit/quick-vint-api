@@ -4,3 +4,5 @@ dist/
 # you can also skip other build artifacts
 node_modules/
 .vercel/
+.astro/
+venv/

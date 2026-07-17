@@ -46,31 +46,31 @@ Use this table for any growth action that takes more than one day or spends mone
 
 Source: `/admin/logs`, `/admin/users`, `/admin/costs`, Stripe, and Chrome Web Store Developer Dashboard.
 
-| Metric                   | Latest value | Date | Notes               |
-| ------------------------ | -----------: | ---- | ------------------- |
-| Chrome Store page views  |          TBD | TBD  | Last 30 days only   |
-| Chrome Store installs    |          TBD | TBD  | Last 30 days only   |
-| Chrome Store uninstalls  |          TBD | TBD  | Last 30 days only   |
-| Chrome weekly users      |          TBD | TBD  | CWS snapshot        |
-| Chrome rating count      |          TBD | TBD  | Lifetime count      |
-| 30-day signups           |          TBD | TBD  | `/admin/users`      |
-| 30-day active generators |          TBD | TBD  | `/admin/logs`       |
-| 2+ generation users      |          TBD | TBD  | `/admin/logs`       |
-| quota pressure users     |          TBD | TBD  | `/admin/users`      |
-| limit hits               |          TBD | TBD  | `/admin/logs`       |
-| paywalls shown           |          TBD | TBD  | `/admin/logs`       |
-| checkout starts          |          TBD | TBD  | `/admin/logs`       |
-| paid profiles            |          TBD | TBD  | `/admin/users`      |
-| MRR                      |          TBD | TBD  | Stripe              |
+| Metric                   | Latest value | Date | Notes             |
+| ------------------------ | -----------: | ---- | ----------------- |
+| Chrome Store page views  |          TBD | TBD  | Last 30 days only |
+| Chrome Store installs    |          TBD | TBD  | Last 30 days only |
+| Chrome Store uninstalls  |          TBD | TBD  | Last 30 days only |
+| Chrome weekly users      |          TBD | TBD  | CWS snapshot      |
+| Chrome rating count      |          TBD | TBD  | Lifetime count    |
+| 30-day signups           |          TBD | TBD  | `/admin/users`    |
+| 30-day active generators |          TBD | TBD  | `/admin/logs`     |
+| 2+ generation users      |          TBD | TBD  | `/admin/logs`     |
+| quota pressure users     |          TBD | TBD  | `/admin/users`    |
+| limit hits               |          TBD | TBD  | `/admin/logs`     |
+| paywalls shown           |          TBD | TBD  | `/admin/logs`     |
+| checkout starts          |          TBD | TBD  | `/admin/logs`     |
+| paid profiles            |          TBD | TBD  | `/admin/users`    |
+| MRR                      |          TBD | TBD  | Stripe            |
 
 ## Decision Log
 
 Append one row whenever the weekly focus changes or an experiment ends.
 
-| Date       | Decision                              | Reason                                                              | Result/Follow-up                                                         |
-| ---------- | ------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 2026-07-04 | Reposition homepage hero copy toward "Vinted AI listing assistant" | GSC query demand is clustered around "vinted ai", "vinted ai listing", and "vinted description generator"; old H1 was "The Only AI Vinted Lister You Need." | Review homepage GSC and hero CTA movement on 2026-07-18 and 2026-08-01 |
-| 2026-07-04 | Created durable growth sprint tracker | Growth plans in chat are not durable enough for recurring execution | Next Monday review must fill current metrics and replace pending actions |
+| Date       | Decision                                                           | Reason                                                                                                                                                      | Result/Follow-up                                                         |
+| ---------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 2026-07-04 | Reposition homepage hero copy toward "Vinted AI listing assistant" | GSC query demand is clustered around "vinted ai", "vinted ai listing", and "vinted description generator"; old H1 was "The Only AI Vinted Lister You Need." | Review homepage GSC and hero CTA movement on 2026-07-18 and 2026-08-01   |
+| 2026-07-04 | Created durable growth sprint tracker                              | Growth plans in chat are not durable enough for recurring execution                                                                                         | Next Monday review must fill current metrics and replace pending actions |
 
 ## Operating Rules
 

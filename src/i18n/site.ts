@@ -852,8 +852,7 @@ export const SITE_EXTRA_COPY: Record<
   },
   de: {
     home: {
-      heroBadgePrimary:
-        "Vinted-Beschreibungsgenerator + Anzeigen-Assistent",
+      heroBadgePrimary: "Vinted-Beschreibungsgenerator + Anzeigen-Assistent",
       watchDemo: "Demo ansehen",
       videoCaption: "So funktioniert es in 15 Sekunden",
       publicStatsAriaLabel: "Öffentliche Nutzungsstatistiken von AutoLister",
@@ -864,7 +863,8 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewPrimary: "Neuer Haupt-Screenshot",
       screenshotPreviewSecondary: "Neuer Funktions-Screenshot",
       screenshotModalEyebrow: "Neue AutoLister-Screenshots",
-      screenshotModalHint: "Schließe die Vorschau, um auf der Seite weiterzumachen.",
+      screenshotModalHint:
+        "Schließe die Vorschau, um auf der Seite weiterzumachen.",
       screenshotModalClose: "Vorschau schließen",
       screenshotModalCta: "Kostenlos zu Chrome hinzufügen",
       heroBullet1:
@@ -1006,8 +1006,7 @@ export const SITE_EXTRA_COPY: Record<
   },
   nl: {
     home: {
-      heroBadgePrimary:
-        "Vinted beschrijving generator + advertentie-assistent",
+      heroBadgePrimary: "Vinted beschrijving generator + advertentie-assistent",
       watchDemo: "Bekijk demo",
       videoCaption: "Zie hoe het werkt in 15 seconden",
       publicStatsAriaLabel: "Openbare gebruiksstatistieken van AutoLister",
@@ -1467,8 +1466,7 @@ export const SITE_EXTRA_COPY: Record<
   },
   it: {
     home: {
-      heroBadgePrimary:
-        "Generatore di descrizioni Vinted + assistente annunci",
+      heroBadgePrimary: "Generatore di descrizioni Vinted + assistente annunci",
       watchDemo: "Guarda demo",
       videoCaption: "Scopri come funziona in 15 secondi",
       publicStatsAriaLabel: "Statistiche pubbliche di utilizzo di AutoLister",
@@ -1479,7 +1477,8 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewPrimary: "Nuovo screenshot principale",
       screenshotPreviewSecondary: "Nuovo screenshot funzione",
       screenshotModalEyebrow: "Nuovi screenshot AutoLister",
-      screenshotModalHint: "Chiudi questa anteprima per continuare nella pagina.",
+      screenshotModalHint:
+        "Chiudi questa anteprima per continuare nella pagina.",
       screenshotModalClose: "Chiudi anteprima",
       screenshotModalCta: "Aggiungi a Chrome gratis",
       heroBullet1:
@@ -1620,8 +1619,7 @@ export const SITE_EXTRA_COPY: Record<
   },
   pt: {
     home: {
-      heroBadgePrimary:
-        "Gerador de descrições Vinted + assistente de anúncios",
+      heroBadgePrimary: "Gerador de descrições Vinted + assistente de anúncios",
       watchDemo: "Ver demo",
       videoCaption: "Veja como funciona em 15 segundos",
       publicStatsAriaLabel: "Estatísticas públicas de utilização do AutoLister",
@@ -1632,7 +1630,8 @@ export const SITE_EXTRA_COPY: Record<
       screenshotPreviewPrimary: "Nova captura principal",
       screenshotPreviewSecondary: "Nova captura de funcionalidade",
       screenshotModalEyebrow: "Novas capturas AutoLister",
-      screenshotModalHint: "Feche esta pré-visualização para continuar na página.",
+      screenshotModalHint:
+        "Feche esta pré-visualização para continuar na página.",
       screenshotModalClose: "Fechar pré-visualização",
       screenshotModalCta: "Adicionar ao Chrome grátis",
       heroBullet1:

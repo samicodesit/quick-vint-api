@@ -40,6 +40,7 @@ import {
 } from "../utils/descriptionFooter";
 import { extractOpenAIRateLimitHeaders } from "../utils/openaiRateLimitHeaders";
 import { parseOpenAIListingOutput } from "../utils/openaiListingOutput";
+import { prepareOpenAIImageUrls } from "../utils/openaiImageUrls";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 import { shouldStoreDebugGenerationImages } from "../utils/debugGenerationImages";
 import messagesEn from "../messages/en.json";
@@ -610,7 +611,14 @@ Reply only in JSON: {"title":"...","description":"..."}
   // --- GENERATE VIA OPENAI ---
   logData.openaiModel = modelSelection.model;
   try {
-    const parts: ChatCompletionContentPart[] = imageUrls.map((url) => ({
+    const openAIImageUrls = await prepareOpenAIImageUrls(imageUrls);
+    mergeLogRequestBody(logData, {
+      openaiImageUrlKinds: openAIImageUrls.map((url) =>
+        url.startsWith("data:") ? "data_url" : "remote_url",
+      ),
+    });
+
+    const parts: ChatCompletionContentPart[] = openAIImageUrls.map((url) => ({
       type: "image_url",
       image_url: { url, detail: selectedImageDetail },
     }));

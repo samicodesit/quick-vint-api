@@ -45,4 +45,4 @@ Before querying production/admin/Vercel logs, read and follow:
 
 - `docs/production-log-runbook.md`
 
-Do not start from memory or list rows only. Use `log-detail` for request bodies, Vercel logs for endpoint-hit proof when admin logs omit successful rows, and network escalation for read-only log queries if the CLI sandbox blocks DNS.
+Hard wall: production admin/API/Vercel log queries must be run with network escalation on the first attempt in Codex. Do not try sandboxed `curl`, `vercel logs`, or production helper scripts first. Use `log-detail` for request bodies and Vercel logs for endpoint-hit proof when admin logs omit successful rows.

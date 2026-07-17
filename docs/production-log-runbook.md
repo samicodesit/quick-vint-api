@@ -6,7 +6,7 @@ Use this before investigating user reports from production logs.
 
 - Do not guess from `view-logs` list rows alone. Fetch `log-detail` for any event or API call where request body/context matters.
 - Keep secrets out of transcripts and commits. Put admin tokens in a local shell variable.
-- If DNS/network fails in Codex, rerun the same read-only command with network escalation. Do not change the query just to work around the sandbox.
+- Hard wall: production admin/API/Vercel log queries must be run with network escalation on the first attempt in Codex. Do not try `curl`, `vercel logs`, or production helper scripts sandboxed first.
 - Use UTC timestamps from logs. Convert only for the user-facing summary if needed.
 - In `/home/mests/projects/autolister`, the parent is not a git repo. `quick-vint` and `quick-vint-api` are symlinked repos; use `git -C <repo> ...`.
 - For edits in symlinked repos, prefer `apply_patch`. Sandboxed shell writes, copies, and redirections into symlink targets can fail with read-only filesystem errors.
@@ -77,7 +77,7 @@ Existing helper:
 node scripts/inspect-user-extension-version.mjs --email user@example.com
 ```
 
-If it fails with DNS/network errors in Codex, rerun with network escalation.
+In Codex, run this helper with network escalation on the first attempt.
 
 ## Image Source / Upload Checks
 
@@ -147,13 +147,13 @@ node -e 'const fs=require("fs"); const lines=fs.readFileSync("/tmp/phone-upload-
 
 Vercel request logs usually do not prove which user made the request unless the app emitted identifying runtime logs. Use admin event/generate detail for user-attributed payload proof.
 
-## Sandbox / Network Gotchas
+## Codex Network Rule
 
-Codex may fail with errors like:
+Codex sandboxed commands may fail with errors like:
 
 - `curl: (6) Could not resolve host: autolister.app`
 - `getaddrinfo EAI_AGAIN sentry.io`
 
-For read-only production log queries, rerun the exact command with network escalation. Keep the same time window and filters so the result is comparable.
+Do not use those failures as a discovery step. For read-only production log/admin/Vercel queries, request network escalation before the first command.
 
 Do not rely on a capped Vercel result set for absence. If checking a specific endpoint, use `--query '/api/endpoint'` and a tight `--since/--until` window.

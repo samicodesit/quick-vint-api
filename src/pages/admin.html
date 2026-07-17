@@ -2166,7 +2166,7 @@
             usersStatus: 'all',
             usersSort: 'created_desc',
             userSearchTimer: null,
-            limitFollowupExcludedEmails: [],
+            limitFollowupExcludedCount: null,
             inflightRequests: {},
             isTransitioning: false
         };
@@ -2598,17 +2598,14 @@
         function renderLimitFollowupExclusions() {
             const target = document.getElementById('limitFollowupExcludedList');
             if (!target) return;
-            const emails = state.limitFollowupExcludedEmails || [];
-            if (!emails.length) {
-                target.innerHTML = 'No permanent exclusions loaded yet. Run a dry run to refresh them.';
+            const count = state.limitFollowupExcludedCount;
+            if (count === null || count === undefined) {
+                target.innerHTML = 'Permanent exclusions are applied server-side. Run a dry run to refresh the count.';
                 return;
             }
 
             target.innerHTML = `
-                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.45rem;">
-                    <span>Permanently excluded:</span>
-                    ${emails.map(email => `<span class="badge badge-neutral">${escapeHtml(email)}</span>`).join('')}
-                </div>
+                <span>Permanently excluded: <strong>${Number(count).toLocaleString()}</strong> applied server-side.</span>
             `;
         }
 
@@ -2683,8 +2680,8 @@
                         <td><button class="btn-secondary" style="padding:0.28rem 0.55rem;" onclick="excludeLimitFollowupEmail('${escapeAttribute(encodeURIComponent(recipient.email || ''))}')">Exclude permanently</button></td>
                     </tr>
                 `).join('');
-            const excludedCount = Array.isArray(data.excluded_emails) ? data.excluded_emails.length : 0;
-            state.limitFollowupExcludedEmails = Array.isArray(data.excluded_emails) ? data.excluded_emails : [];
+            const excludedCount = Number(data.excluded_count || 0);
+            state.limitFollowupExcludedCount = excludedCount;
             renderLimitFollowupExclusions();
 
             target.innerHTML = `

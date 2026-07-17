@@ -437,6 +437,7 @@ function buildAdminHarness() {
         type?: string,
       ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
+      renderLimitFollowupResult: (data: Record<string, unknown>) => void;
       switchView: (view: string, options?: Record<string, unknown>) => void;
       fetchCalls: string[];
       state: {
@@ -446,6 +447,7 @@ function buildAdminHarness() {
         logsSearch: string;
         logsRelatedUserId: string;
         logsRelatedEmail: string;
+        limitFollowupExcludedCount: number | null;
       };
     },
     content: el("contentArea"),
@@ -637,6 +639,27 @@ describe("admin HTML", () => {
         review_request_sent_at: "2026-07-08T00:00:00.000Z",
       }),
     ).not.toContain("Review email");
+  });
+
+  it("shows only the limit follow-up exclusion count", async () => {
+    const { context } = buildAdminHarness();
+
+    context.state.currentView = "emails";
+    await context.loadView("emails");
+    context.renderLimitFollowupResult({
+      mode: "dry_run",
+      coupon_code: "LISTFASTER20",
+      total: 0,
+      excluded_count: 52,
+      recipients: [],
+    });
+
+    const exclusions = context.document.getElementById(
+      "limitFollowupExcludedList",
+    ).innerHTML;
+
+    expect(exclusions).toContain("52");
+    expect(exclusions).not.toContain("@");
   });
 
   it("explains AI cost totals with the right generation denominator", async () => {

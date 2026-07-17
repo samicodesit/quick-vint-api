@@ -44,7 +44,7 @@ export async function getPermanentLimitFollowupExclusions() {
 
   const { data, error } = await supabase
     .from("api_logs")
-    .select("user_id, user_email, full_request_body, created_at")
+    .select("user_id, user_email, full_request_body")
     .in("endpoint", [
       LIMIT_FOLLOWUP_EXCLUSION_EVENT,
       LIMIT_FOLLOWUP_EMAIL_SENT_EVENT,

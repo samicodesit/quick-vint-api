@@ -2739,7 +2739,7 @@ async function handleSendLimitFollowup(
       excludedEmails: exclusions.excludedEmails,
       excludedUserIds: exclusions.excludedUserIds,
     });
-    const excludedEmails = Array.from(exclusions.excludedEmails);
+    const excludedCount = exclusions.excludedEmails.size;
 
     if (dry_run !== false) {
       return res.status(200).json({
@@ -2748,7 +2748,7 @@ async function handleSendLimitFollowup(
         coupon_code: LIMIT_FOLLOWUP_COUPON_CODE,
         since_hours: sinceHours,
         min_delay_minutes: minDelayMinutes,
-        excluded_emails: excludedEmails,
+        excluded_count: excludedCount,
         total: recipients.length,
         recipients: recipients.map((recipient) => ({
           email: recipient.email,
@@ -2824,7 +2824,7 @@ async function handleSendLimitFollowup(
       mode: "send",
       template_key: "limit_hit_followup_v1",
       coupon_code: LIMIT_FOLLOWUP_COUPON_CODE,
-      excluded_emails: excludedEmails,
+      excluded_count: excludedCount,
       total: recipients.length,
       sent,
       failed,

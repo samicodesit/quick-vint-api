@@ -6,9 +6,9 @@ This repo is mostly operated by AI agents. Treat `main` as the production backen
 
 Vercel deploys from `main` automatically.
 
-- After committing changes that should go live, push `main`.
+- After committing changes that should go live, run `npm run push:production`.
 - Do not call backend/admin/API work "pushed" unless `origin/main` moved.
-- Use `npm run push:production` for backend/admin/API pushes. It refuses to push from any branch except `main`.
+- Use `npm run push:production` for backend/admin/API pushes. It refuses non-`main`, runs the production gate, then pushes only if the gate passes.
 - Valid completion proof for a live backend push must include:
 
 ```txt
@@ -23,22 +23,20 @@ Push output includes: main -> main
 
 ## Checks
 
-Before pushing production backend/site/admin changes, run the full CI-equivalent gate:
+The production push command runs the full local gate:
 
 ```bash
-pnpm run lint
-pnpm run type-check
-pnpm run build
-pnpm run format-check
-pnpm test
+npm run push:production
 ```
+
+For checking without pushing, run `npm run verify:production`.
 
 Do not call a backend/API fix complete from helper-level tests only. Endpoint incidents need endpoint-level tests under `src/api/__tests__/` or a documented reason why the behavior cannot be tested there.
 
 For admin UI changes, also run:
 
 ```bash
-pnpm test src/pages/__tests__/adminHtml.test.ts
+npm test -- src/pages/__tests__/adminHtml.test.ts
 ```
 
 ## Production Log Investigations

@@ -4,15 +4,13 @@ This repo is the AutoLister backend/site/admin app. Treat `main` as the producti
 
 ## Checks
 
-Before pushing production backend/site/admin changes, run the full CI-equivalent gate:
+For production backend/site/admin pushes, use:
 
 ```bash
-pnpm run lint
-pnpm run type-check
-pnpm run build
-pnpm run format-check
-pnpm test
+npm run push:production
 ```
+
+That command refuses non-`main`, runs `npm run verify:production`, then pushes only if the gate passes. For checking without pushing, run `npm run verify:production`.
 
 Endpoint incidents need endpoint-level tests under `src/api/__tests__/` or a documented reason why the behavior cannot be tested there. Helper-only tests are not enough for `/api/generate`, auth, Stripe, phone upload, admin, or logging changes.
 

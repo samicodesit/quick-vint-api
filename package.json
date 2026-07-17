@@ -15,6 +15,7 @@
     "ops:backfill-review-requests": "node scripts/backfill-review-request-sent.mjs",
     "ops:privacy-reply": "node scripts/send-privacy-reply.mjs",
     "ops:support-reply": "node scripts/send-support-reply.mjs",
+    "verify:production": "npm run lint && npm run type-check && npm run build && npm run format-check && npm test",
     "push:production": "bash scripts/push-production.sh",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",

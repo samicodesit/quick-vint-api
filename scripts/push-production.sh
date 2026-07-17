@@ -8,6 +8,9 @@ if [ "$branch" != "main" ]; then
   exit 1
 fi
 
+echo "Running backend production gate..."
+npm run verify:production
+
 echo "Repo: quick-vint-api"
 echo "Branch pushed: main"
 echo "Commits moving origin/main:"

@@ -121,7 +121,7 @@ export async function checkMagicLinkRateLimit({
     sinceIso: last15m,
     email: normalizedEmail,
   });
-  if (emailAttempts >= 2) {
+  if (emailAttempts >= 4) {
     return { limited: true, reason: "email_magic_link_rate_limit" };
   }
 

@@ -178,6 +178,62 @@ describe("detectAndPauseDuplicateIpAccount", () => {
     );
   });
 
+  it("does not pause when the same IP only matches an internal owner account", async () => {
+    queueSupabaseResults([
+      { data: currentFreeProfile, error: null },
+      {
+        data: [
+          {
+            user_id: "owner-user",
+            user_email: "samicodesit@gmail.com",
+            endpoint: "/api/generate",
+            response_status: 403,
+            flagged_reason: "Account paused",
+            created_at: "2026-07-11T09:55:00.000Z",
+          },
+        ],
+        error: null,
+      },
+      {
+        data: [
+          {
+            id: "owner-user",
+            email: "samicodesit@gmail.com",
+            subscription_status: "free",
+            subscription_tier: "free",
+            account_status: "paused",
+            free_lifetime_generations_used: 5,
+          },
+        ],
+        error: null,
+      },
+    ]);
+
+    const result = await detectAndPauseDuplicateIpAccount({
+      userId: "new-user",
+      email: "new@example.com",
+      ipAddress: "203.0.113.9",
+      source: "test",
+    });
+
+    expect(result).toEqual({ paused: false });
+    expect(logRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("does not pause the internal owner account", async () => {
+    queueSupabaseResults([{ data: currentFreeProfile, error: null }]);
+
+    const result = await detectAndPauseDuplicateIpAccount({
+      userId: "owner-user",
+      email: "samicodesit@gmail.com",
+      ipAddress: "203.0.113.9",
+      source: "test",
+    });
+
+    expect(result).toEqual({ paused: false });
+    expect(fromMock).toHaveBeenCalledTimes(1);
+  });
+
   it("does not pause when the same IP generated but has not used the free limit", async () => {
     queueSupabaseResults([
       { data: currentFreeProfile, error: null },

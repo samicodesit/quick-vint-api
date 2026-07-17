@@ -32,6 +32,15 @@ type LogRow = {
 
 const LOOKBACK_DAYS = 30;
 const LOG_LIMIT = 100;
+const INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
+
+function isInternalDuplicateIpExcludedEmail(email?: string | null) {
+  return INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS.has(
+    String(email || "")
+      .trim()
+      .toLowerCase(),
+  );
+}
 
 function isPublicIp(ipAddress: string) {
   const ip = ipAddress.trim().toLowerCase();
@@ -120,6 +129,8 @@ export async function detectAndPauseDuplicateIpAccount({
 
   if (
     !currentProfile ||
+    isInternalDuplicateIpExcludedEmail(normalizedEmail) ||
+    isInternalDuplicateIpExcludedEmail(currentProfile.email) ||
     currentProfile?.account_status === "paused" ||
     !isFreeProfile(currentProfile as ProfileRow | null)
   ) {
@@ -175,6 +186,12 @@ export async function detectAndPauseDuplicateIpAccount({
   const matchingLog = ((logs || []) as LogRow[]).find((log) => {
     if (!log.user_id || log.user_id === normalizedUserId) return false;
     const profile = profileById.get(log.user_id);
+    if (
+      isInternalDuplicateIpExcludedEmail(profile?.email) ||
+      isInternalDuplicateIpExcludedEmail(log.user_email)
+    ) {
+      return false;
+    }
     if (!isFreeProfile(profile)) return false;
     return (
       profile?.account_status === "paused" ||

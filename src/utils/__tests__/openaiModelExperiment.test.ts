@@ -1,98 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_OPENAI_MODEL_EXPERIMENT,
+  DEFAULT_OPENAI_MODEL,
   estimateOpenAICostUsd,
-  findOpenAIExperimentArmForModel,
   getOpenAIChatTemperatureParam,
   getBillableOpenAIModel,
   getOpenAIChatTokenLimitParam,
-  isOpenAIModelCompatibilityError,
-  parseOpenAIModelExperiment,
-  selectOpenAIModel,
-  stableUnitBucket,
 } from "../../../utils/openaiModelExperiment";
 
 describe("openaiModelExperiment", () => {
-  it("defaults to a stable control vs Luna high-detail experiment", () => {
-    expect(parseOpenAIModelExperiment(DEFAULT_OPENAI_MODEL_EXPERIMENT)).toEqual(
-      [
-        { key: "control", model: "gpt-5.4", weight: 50, imageDetail: "low" },
-        {
-          key: "luna_high",
-          model: "gpt-5.6-luna",
-          weight: 50,
-          imageDetail: "high",
-        },
-      ],
-    );
-  });
-
-  it("parses weighted model arms with image detail", () => {
-    expect(
-      parseOpenAIModelExperiment(
-        "control:gpt-4o:40:low,quality:gpt-5.4:45:high,mini:gpt-5.4-mini:15:auto",
-      ),
-    ).toEqual([
-      { key: "control", model: "gpt-4o", weight: 40, imageDetail: "low" },
-      { key: "quality", model: "gpt-5.4", weight: 45, imageDetail: "high" },
-      { key: "mini", model: "gpt-5.4-mini", weight: 15, imageDetail: "auto" },
-    ]);
-  });
-
-  it("defaults image detail to low when an arm omits or misspells it", () => {
-    expect(parseOpenAIModelExperiment("a:gpt-4o:50,b:gpt-5.4:50:huge")).toEqual(
-      [
-        { key: "a", model: "gpt-4o", weight: 50, imageDetail: "low" },
-        { key: "b", model: "gpt-5.4", weight: 50, imageDetail: "low" },
-      ],
-    );
-  });
-
-  it("falls back to the control model when disabled or invalid", () => {
-    expect(parseOpenAIModelExperiment("off")).toEqual([
-      { key: "control", model: "gpt-4o", weight: 100, imageDetail: "low" },
-    ]);
-    expect(parseOpenAIModelExperiment("bad")).toEqual([
-      { key: "control", model: "gpt-4o", weight: 100, imageDetail: "low" },
-    ]);
-  });
-
-  it("selects a stable model for the same user and salt", () => {
-    const first = selectOpenAIModel({
-      seed: "user-123",
-      salt: "test",
-      spec: "a:gpt-4o:50,b:gpt-5.4-mini:50",
-    });
-    const second = selectOpenAIModel({
-      seed: "user-123",
-      salt: "test",
-      spec: "a:gpt-4o:50,b:gpt-5.4-mini:50",
-    });
-
-    expect(first).toMatchObject(second);
-    expect(stableUnitBucket("user-123", "test")).toBeGreaterThanOrEqual(0);
-    expect(stableUnitBucket("user-123", "test")).toBeLessThan(1);
-  });
-
-  it("detects model compatibility errors", () => {
-    expect(
-      isOpenAIModelCompatibilityError({
-        status: 400,
-        message: "The model `gpt-x` does not exist",
-      }),
-    ).toBe(true);
-    expect(
-      isOpenAIModelCompatibilityError({
-        status: 429,
-        message: "Rate limit reached",
-      }),
-    ).toBe(false);
-    expect(
-      isOpenAIModelCompatibilityError({
-        status: 401,
-        message: "You have insufficient permissions for this operation.",
-      }),
-    ).toBe(true);
+  it("defaults generation to gpt-5.4", () => {
+    expect(DEFAULT_OPENAI_MODEL).toBe("gpt-5.4");
   });
 
   it("uses the token limit parameter supported by each chat model family", () => {
@@ -112,18 +29,6 @@ describe("openaiModelExperiment", () => {
     expect(getOpenAIChatTemperatureParam("gpt-5.4", 0.3)).toEqual({
       temperature: 0.3,
     });
-  });
-
-  it("finds the configured experiment arm for a logged model", () => {
-    const spec = "control:gpt-5.4:50:low,luna_high:gpt-5.6-luna:50:high";
-
-    expect(findOpenAIExperimentArmForModel("gpt-5.6-luna", spec)).toEqual({
-      key: "luna_high",
-      model: "gpt-5.6-luna",
-      weight: 50,
-      imageDetail: "high",
-    });
-    expect(findOpenAIExperimentArmForModel("gpt-5.4->gpt-4o", spec)).toBeNull();
   });
 
   it("estimates cost from token breakdown and model pricing", () => {

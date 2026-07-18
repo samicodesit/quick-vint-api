@@ -291,6 +291,22 @@ describe("/api/generate remote image handling", () => {
 
       expect(res.statusCode).toBe(200);
       const completionParams = createCompletion.mock.calls[0][0];
+      const promptPart = completionParams.messages[1].content[0];
+      expect(promptPart.text).toContain(
+        "Never write instructions, questions, placeholders, or notes to the seller inside the title or description.",
+      );
+      expect(promptPart.text).not.toContain(
+        "prefer the readable EU/EUR size over US, UK",
+      );
+      expect(promptPart.text).toContain(
+        'Include the visible EU/EUR size when present, for example "EU 42 / UK 14"',
+      );
+      expect(promptPart.text).toContain(
+        "For item type, choose the most specific accurate name clearly supported by the photos or readable text",
+      );
+      expect(promptPart.text).toContain(
+        "If the exact subtype is ambiguous, use a broader safe item type instead of guessing",
+      );
       const imagePart = completionParams.messages[1].content[1];
       expect(imagePart.image_url.url).toBe(
         `data:image/jpeg;base64,${Buffer.from("jpeg-bytes").toString("base64")}`,

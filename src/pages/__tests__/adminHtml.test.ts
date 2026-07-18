@@ -131,34 +131,6 @@ function buildAdminHarness() {
           unknown_cost_count: 0,
         },
       ],
-      modelExperimentBreakdown: [
-        {
-          key: "control",
-          model: "gpt-5.4",
-          imageDetail: "low",
-          generation_count: 950,
-          cost_usd: 6.8,
-          tokens: 520000,
-          avg_cost_usd: 0.0072,
-          avg_tokens: 547,
-          avg_duration_ms: 2200,
-          fallback_count: 0,
-          error_count: 0,
-        },
-        {
-          key: "luna_high",
-          model: "gpt-5.6-luna",
-          imageDetail: "high",
-          generation_count: 941,
-          cost_usd: 5.87,
-          tokens: 560000,
-          avg_cost_usd: 0.0062,
-          avg_tokens: 595,
-          avg_duration_ms: 2400,
-          fallback_count: 1,
-          error_count: 0,
-        },
-      ],
       topUsers: [
         {
           user_email: "test@example.com",
@@ -677,14 +649,9 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("1,080,000 tokens");
     expect(content.innerHTML).toContain("$0.0067 avg per priced generation");
     expect(content.innerHTML).toContain("Daily spend and priced generations");
-    expect(content.innerHTML).toContain("Model Experiment");
-    expect(content.innerHTML).toContain("luna_high");
-    expect(content.innerHTML).toContain("gpt-5.6-luna");
-    expect(content.innerHTML).toContain("Detail: high");
-    expect(content.innerHTML).toContain("2.4s");
-    expect(content.innerHTML).toContain("fallbacks");
     expect(content.innerHTML).toContain("Model Split");
     expect(content.innerHTML).toContain("Highest Cost Users");
+    expect(content.innerHTML).not.toContain("Model Experiment");
     expect(content.innerHTML).not.toContain("Stopped before OpenAI");
     expect(content.innerHTML).not.toContain("OpenAI calls");
     expect(content.innerHTML).not.toContain("Projected Monthly");

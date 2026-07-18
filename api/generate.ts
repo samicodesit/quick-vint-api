@@ -26,11 +26,9 @@ import {
 } from "../utils/generationOffers";
 import {
   DEFAULT_OPENAI_IMAGE_DETAIL,
-  OPENAI_CONTROL_MODEL,
+  DEFAULT_OPENAI_MODEL,
   getOpenAIChatTemperatureParam,
   getOpenAIChatTokenLimitParam,
-  isOpenAIModelCompatibilityError,
-  selectOpenAIModel,
 } from "../utils/openaiModelExperiment";
 import {
   appendDescriptionFooter,
@@ -245,9 +243,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add user info to log data
   logData.userId = user.id;
   logData.userEmail = user.email;
-  const modelSelection = selectOpenAIModel({ seed: user.id });
-  const selectedImageDetail =
-    modelSelection.imageDetail || DEFAULT_OPENAI_IMAGE_DETAIL;
+  const selectedModel = DEFAULT_OPENAI_MODEL;
+  const selectedImageDetail = DEFAULT_OPENAI_IMAGE_DETAIL;
 
   if (isDisposableEmail(user.email || "")) {
     logData.responseStatus = 403;
@@ -552,22 +549,23 @@ Use these rules:
 - Build the listing only from visible or readable photo evidence. Never fill gaps with likely, common, or nice-sounding details.
 - Read labels/tags for exact brand, size, model/product name, and material composition.
 - Keep size wording natural; do not write forms like "T34" unless the label says "T34".
-- If a label shows multiple regional sizes and you output only one, prefer the readable EU/EUR size over US, UK, CN/Chinese, JP, or internal/manufacturer sizes. Do not convert or invent sizes.
-- Use visual evidence for item type, color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
+- If a label shows multiple regional sizes, preserve the readable useful sizes together when possible. Include the visible EU/EUR size when present, for example "EU 42 / UK 14". Never convert or invent sizes.
+- For item type, choose the most specific accurate name clearly supported by the photos or readable text. If the exact subtype is ambiguous, use a broader safe item type instead of guessing. Use visual evidence for color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
 - Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, or wear history.
 - Do not mention country of origin, product codes, care instructions, or secondary program/campaign text unless it is clearly useful to the buyer as a product name or model.
 - Do not say how you know a fact or where it appears. Avoid phrases like "label shows", "as shown on the label", "visible on the box", or "as seen in the photos".
 - Do not mention defects or negative condition details for now; the seller will handle those separately.
+- Never write instructions, questions, placeholders, or notes to the seller inside the title or description.
 
 Title:
 - Write only the title in ${titleLanguage}.
 - Use a natural searchable format: brand if known, model/product name if known, color/pattern, item type, size if known.
-- Prefer a fuller searchable title when real evidence exists: include one extra concrete visible detail such as model, cut, closure, neckline, pattern, set count, or product subtype. Aim for about 35-70 characters, but keep simple items shorter and never pad.
+- Prefer a fuller searchable title when real evidence exists: include one extra concrete visible detail such as model, cut, closure, neckline, pattern, set count, or clearly supported product subtype. Aim for about 35-70 characters, but keep simple items shorter and never pad.
 - Do not use emojis, hashtags, hype, or condition claims in the title.
 
 Description:
 - Write only the description in ${descriptionLanguage}.
-- Start with a plain factual sentence naming the item, color, brand, and size when known.
+- Start with a plain factual sentence naming the item, color, brand, and exact visible size or sizes when known.
 - Add useful visible or readable details, then stop when the evidence runs out.
 - ${hashtagInstruction}
 
@@ -583,15 +581,8 @@ Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 
   // Log the full prompt being sent to OpenAI
-  logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)\nModel route: ${modelSelection.key}\nImage detail: ${selectedImageDetail}`;
-  logData.openaiModel = modelSelection.model;
-  mergeLogRequestBody(logData, {
-    openaiExperiment: {
-      key: modelSelection.key,
-      model: modelSelection.model,
-      imageDetail: selectedImageDetail,
-    },
-  });
+  logData.rawPrompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}\n\nImages: ${imageUrls.length} image(s)\nModel: ${selectedModel}\nImage detail: ${selectedImageDetail}`;
+  logData.openaiModel = selectedModel;
 
   // Check for suspicious activity
   const suspiciousCheck = ApiLogger.detectSuspiciousActivity({
@@ -609,7 +600,7 @@ Reply only in JSON: {"title":"...","description":"..."}
   }
 
   // --- GENERATE VIA OPENAI ---
-  logData.openaiModel = modelSelection.model;
+  logData.openaiModel = selectedModel;
   try {
     const openAIImageUrls = await prepareOpenAIImageUrls(imageUrls);
     mergeLogRequestBody(logData, {
@@ -665,33 +656,8 @@ Reply only in JSON: {"title":"...","description":"..."}
       return openai.chat.completions.create(completionParams).withResponse();
     };
 
-    let selectedModel = modelSelection.model;
-    let { data: chat, response: openaiResponse } = await createCompletion(
-      selectedModel,
-    ).catch(async (initialError) => {
-      if (
-        selectedModel !== OPENAI_CONTROL_MODEL &&
-        isOpenAIModelCompatibilityError(initialError)
-      ) {
-        console.warn(
-          `OpenAI model ${selectedModel} rejected by current generation path; retrying ${OPENAI_CONTROL_MODEL}.`,
-          initialError?.message,
-        );
-        const fallback = await createCompletion(OPENAI_CONTROL_MODEL);
-        logData.openaiModel = `${selectedModel}->${OPENAI_CONTROL_MODEL}`;
-        mergeLogRequestBody(logData, {
-          openaiExperiment: {
-            key: modelSelection.key,
-            model: modelSelection.model,
-            imageDetail: selectedImageDetail,
-            fallbackModel: OPENAI_CONTROL_MODEL,
-          },
-        });
-        selectedModel = OPENAI_CONTROL_MODEL;
-        return fallback;
-      }
-      throw initialError;
-    });
+    const { data: chat, response: openaiResponse } =
+      await createCompletion(selectedModel);
 
     // Log token usage and rate limit info
     logData.openaiTokensUsed = chat.usage?.total_tokens;

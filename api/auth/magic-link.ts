@@ -102,6 +102,13 @@ function normalizeErrorMessage(error: unknown) {
   return "Unable to send the sign-in email. Please try again.";
 }
 
+function isAuthEmailCooldownError(error: unknown) {
+  const message = normalizeErrorMessage(error);
+  return /for security purposes, you can only request this after/i.test(
+    message,
+  );
+}
+
 function serializeError(error: unknown) {
   if (!error) return null;
   if (error instanceof Error) {
@@ -294,6 +301,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (otpResult.error) {
+    if (isAuthEmailCooldownError(otpResult.error)) {
+      await logMagicLinkAttempt({
+        req,
+        email,
+        status: 429,
+        startedAt,
+        error: otpResult.error,
+        flaggedReason: "supabase_auth_cooldown",
+      });
+      return res.status(429).json({
+        error:
+          "Too many sign-in email requests. Please wait a few minutes before trying again.",
+      });
+    }
+
     console.error(
       "Supabase signInWithOtp error:",
       serializeError(otpResult.error),

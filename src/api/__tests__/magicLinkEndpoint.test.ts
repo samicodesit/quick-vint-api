@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const signInWithOtpMock = vi.fn();
 const logRequestMock = vi.fn();
+const reportCriticalEndpointFailureMock = vi.fn();
 
 vi.mock("cors", () => ({
   default: vi.fn(
@@ -30,7 +31,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
 }));
 
 vi.mock("../../../utils/criticalEndpointAlert", () => ({
-  reportCriticalEndpointFailure: vi.fn(),
+  reportCriticalEndpointFailure: reportCriticalEndpointFailureMock,
 }));
 
 vi.mock("../../../utils/authAbuseGuard", () => ({
@@ -95,5 +96,45 @@ describe("magic link endpoint", () => {
         responseStatus: 200,
       }),
     );
+  });
+
+  it("returns 429 without Sentry for Supabase auth email cooldowns", async () => {
+    signInWithOtpMock.mockResolvedValue({
+      data: null,
+      error: {
+        name: "AuthApiError",
+        message:
+          "For security purposes, you can only request this after 35 seconds.",
+      },
+    });
+    const handlerModule = await import("../../../api/auth/magic-link.js");
+    const handler = handlerModule.default as unknown as (
+      req: unknown,
+      res: unknown,
+    ) => Promise<unknown>;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: { origin: "chrome-extension://test-extension" },
+        body: { email: "seller@example.com" },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(429);
+    expect(res.body).toEqual({
+      error:
+        "Too many sign-in email requests. Please wait a few minutes before trying again.",
+    });
+    expect(logRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "/api/auth/magic-link",
+        responseStatus: 429,
+        flaggedReason: "supabase_auth_cooldown",
+      }),
+    );
+    expect(reportCriticalEndpointFailureMock).not.toHaveBeenCalled();
   });
 });

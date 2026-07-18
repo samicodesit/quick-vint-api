@@ -1,11 +1,15 @@
 (() => {
   const API_BASE = "https://autolister.app";
   const EXTENSION_ID = "mommklhpammnlojjobejddmidmdcalcl";
+  const SUCCESS_CLOSE_DELAY_MS = 3400;
 
+  const cardEl = document.getElementById("authCallbackCard");
   const statusEl = document.getElementById("authCallbackStatus");
   const copyEl = document.getElementById("authCallbackCopy");
+  const countdownEl = document.getElementById("authCountdown");
 
-  function setStatus(message, copy) {
+  function setStatus(message, copy, state = "") {
+    if (cardEl && state) cardEl.dataset.state = state;
     if (statusEl) statusEl.textContent = message;
     if (copyEl && copy) copyEl.textContent = copy;
   }
@@ -85,7 +89,7 @@
 
       chrome.runtime.sendMessage(
         EXTENSION_ID,
-        { type: "AUTH_HANDOFF", session },
+        { type: "AUTH_HANDOFF", closeDelayMs: SUCCESS_CLOSE_DELAY_MS, session },
         (response) => {
           const lastError = chrome.runtime.lastError;
           if (lastError) {
@@ -102,6 +106,23 @@
     });
   }
 
+  function startSuccessCountdown() {
+    let remaining = 3;
+    const tick = () => {
+      if (countdownEl) countdownEl.textContent = String(Math.max(remaining, 1));
+      remaining -= 1;
+      if (remaining > 0) {
+        setTimeout(tick, 1000);
+        return;
+      }
+      setTimeout(() => {
+        if (countdownEl) countdownEl.textContent = "Closing";
+        window.close();
+      }, 1000);
+    };
+    tick();
+  }
+
   async function run() {
     track("auth_link_landed");
 
@@ -111,6 +132,7 @@
       setStatus(
         "Sign-in link failed.",
         "Please request a new sign-in email from the extension.",
+        "error",
       );
       return;
     }
@@ -121,6 +143,7 @@
       setStatus(
         "Sign-in link missing session.",
         "Please request a new sign-in email from the extension.",
+        "error",
       );
       return;
     }
@@ -130,7 +153,8 @@
       track("auth_extension_handoff_started");
       await sendAuthHandoff(session);
       track("auth_extension_handoff_success");
-      setStatus("Signed in.", "You can return to Vinted and keep listing.");
+      setStatus("Signed in.", "This tab will close automatically.", "success");
+      startSuccessCountdown();
     } catch (error) {
       track("auth_extension_handoff_error", {
         message: String(error?.message || error || "unknown").slice(0, 180),
@@ -138,6 +162,7 @@
       setStatus(
         "Could not open the extension.",
         "Open this link in the same Chrome profile where AutoLister AI is installed, then try again.",
+        "error",
       );
     }
   }

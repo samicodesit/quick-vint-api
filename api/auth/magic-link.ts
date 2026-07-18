@@ -41,6 +41,7 @@ const cors = Cors({
 });
 
 const MAGIC_LINK_TIMEOUT_MS = 15000;
+const DEFAULT_AUTH_CALLBACK_URL = "https://autolister.app/auth/callback";
 
 function runCors(req: VercelRequest, res: VercelResponse) {
   return new Promise<void>((resolve, reject) => {
@@ -118,6 +119,13 @@ function serializeError(error: unknown) {
     }
   }
   return String(error);
+}
+
+function getAuthCallbackUrl() {
+  const configured = (process.env.AUTH_CALLBACK_URL || "").trim();
+  return configured.startsWith("https://")
+    ? configured
+    : DEFAULT_AUTH_CALLBACK_URL;
 }
 
 async function withTimeout<T>(
@@ -247,32 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const appSiteUrl = process.env.VERCEL_APP_SITE_URL;
-  if (!appSiteUrl || !appSiteUrl.startsWith("chrome-extension://")) {
-    console.error(
-      "VERCEL_APP_SITE_URL is not correctly set for a Chrome Extension in environment variables.",
-    );
-    await logMagicLinkAttempt({
-      req,
-      email,
-      status: 500,
-      startedAt,
-      error: "invalid_redirect_configuration",
-    });
-    reportCriticalEndpointFailure({
-      endpoint: "/api/auth/magic-link",
-      status: 500,
-      details: {
-        stage: "redirect_configuration",
-        error: "invalid_redirect_configuration",
-      },
-    });
-    return res
-      .status(500)
-      .json({ error: "Server configuration error related to redirect URL." });
-  }
-
-  const emailRedirectTo = `${appSiteUrl}/callback.html`; // Assumes callback.html is at the root of your extension
+  const emailRedirectTo = getAuthCallbackUrl();
 
   let otpResult;
   try {

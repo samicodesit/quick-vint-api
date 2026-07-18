@@ -1,8 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../utils/supabaseClient";
 
-const CACHE_CONTROL = "public, s-maxage=20, stale-while-revalidate=20";
-const DISPLAY_STEP_MS = 7000;
+const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=1800";
 
 function coerceCount(value: number | string | null | undefined): number {
   const parsed =
@@ -13,7 +12,7 @@ function coerceCount(value: number | string | null | undefined): number {
 async function readPublicStats() {
   const generationsResult = await supabase
     .from("api_logs")
-    .select("id", { count: "exact", head: true })
+    .select("id", { count: "planned", head: true })
     .eq("endpoint", "/api/generate")
     .eq("response_status", 200);
 
@@ -22,16 +21,10 @@ async function readPublicStats() {
   }
 
   const totalGenerations = coerceCount(generationsResult.count);
-  const displayOffset = Math.min(
-    Math.max(totalGenerations - 1, 0),
-    4 + (totalGenerations % 4),
-  );
 
   return {
     totalGenerations,
-    displayStartGenerations: totalGenerations - displayOffset,
-    displayStartedAt: new Date().toISOString(),
-    displayStepMs: DISPLAY_STEP_MS,
+    generatedAt: new Date().toISOString(),
   };
 }
 
@@ -48,9 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       totalGenerations: stats.totalGenerations,
-      displayStartGenerations: stats.displayStartGenerations,
-      displayStartedAt: stats.displayStartedAt,
-      displayStepMs: stats.displayStepMs,
+      generatedAt: stats.generatedAt,
     });
   } catch (error: any) {
     console.error("Failed to load public stats", error);

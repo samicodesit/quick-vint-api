@@ -416,25 +416,26 @@ const subtitleParts =
         <div
           data-public-stats
           data-stats-endpoint="/api/public-stats"
-          data-refresh-ms="20000"
-          class="public-stats-card relative z-10 mb-4 ml-auto hidden w-fit max-w-full items-center gap-2.5 rounded-2xl border border-white/70 bg-white/90 px-3.5 py-2.5 shadow-[0_16px_38px_-26px_rgba(15,23,42,0.75)] backdrop-blur-xl ring-1 ring-slate-950/5 sm:px-4"
+          class="public-stats-card relative z-10 mb-4 ml-auto hidden w-fit max-w-full items-center gap-3 rounded-lg border border-slate-200/80 bg-white/95 px-3.5 py-2 shadow-sm ring-1 ring-slate-950/[0.03] sm:px-4"
           aria-label={extra.publicStatsAriaLabel}
           aria-live="polite"
         >
           <span
-            class="public-stats-dot h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.14)]"
+            class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-slate-950 text-[11px] font-black uppercase tracking-wide text-white"
             aria-hidden="true"
-          ></span>
-          <span
-            data-stat-generations
-            class="public-stat-number shrink-0 text-xl font-black leading-none tracking-tight text-brand-600 sm:text-2xl"
           >
-            0
+            AI
           </span>
-          <span
-            class="min-w-0 text-xs font-black leading-tight text-slate-800 sm:text-sm"
-          >
-            {extra.publicStatsGenerationsLabel}
+          <span class="min-w-0 leading-tight">
+            <span
+              data-stat-generations
+              class="public-stat-number block text-base font-black leading-none text-slate-950 sm:text-lg"
+            >
+              0
+            </span>
+            <span class="block text-xs font-semibold text-slate-600 sm:text-[13px]">
+              {extra.publicStatsGenerationsLabel}
+            </span>
           </span>
         </div>
 
@@ -1542,7 +1543,6 @@ const subtitleParts =
   const publicStatsRoot = document.querySelector(
     "[data-public-stats]",
   ) as HTMLElement | null;
-  let publicStatsRevealTimer: number | undefined;
 
   function formatPublicStat(value: unknown) {
     const number = Number(value);
@@ -1560,160 +1560,12 @@ const subtitleParts =
     return `${formatted}+`;
   }
 
-  function getSharedDisplayValue({
-    targetValue,
-    startValue,
-    displayStartedAt,
-    stepMs,
-  }: {
-    targetValue: number;
-    startValue: number;
-    displayStartedAt: string;
-    stepMs: number;
-  }) {
-    const startedAtMs = new Date(displayStartedAt).getTime();
-    const safeStartValue = Math.max(1, Math.min(startValue, targetValue));
-    const safeStepMs = Math.max(4000, stepMs || 7000);
-
-    if (!Number.isFinite(startedAtMs)) {
-      return safeStartValue;
-    }
-
-    const elapsedSteps = Math.max(
-      0,
-      Math.floor((Date.now() - startedAtMs) / safeStepMs),
-    );
-    return Math.min(targetValue, safeStartValue + elapsedSteps);
-  }
-
-  function setPublicStatNumber({
-    element,
-    value,
-    speed = "slow",
-    animate = true,
-  }: {
-    element: HTMLElement;
-    value: number;
-    speed?: "fast" | "slow";
-    animate?: boolean;
-  }) {
+  function setPublicStatNumber(element: Element | null, value: number) {
+    if (!element) return false;
     const text = formatPublicStat(value);
-    if (!text || element.textContent === text) return;
-
-    element.classList.remove(
-      "public-stat-number--flip-fast",
-      "public-stat-number--flip-slow",
-    );
+    if (!text) return false;
     element.textContent = text;
-    element.dataset.displayValue = String(value);
-
-    if (
-      !animate ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-
-    // Restart the transform animation even when the same class was used before.
-    void element.offsetWidth;
-    element.classList.add(
-      speed === "fast"
-        ? "public-stat-number--flip-fast"
-        : "public-stat-number--flip-slow",
-    );
-  }
-
-  function animatePublicStat({
-    element,
-    targetValue,
-    startValue,
-    displayStartedAt,
-    stepMs,
-  }: {
-    element: Element | null;
-    targetValue: number;
-    startValue: number;
-    displayStartedAt: string;
-    stepMs: number;
-  }) {
-    if (!element) return;
-
-    const statElement = element as HTMLElement;
-    statElement.dataset.rawValue = String(targetValue);
-
-    if (publicStatsRevealTimer) {
-      window.clearInterval(publicStatsRevealTimer);
-      publicStatsRevealTimer = undefined;
-    }
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const displayValue = getSharedDisplayValue({
-        targetValue,
-        startValue,
-        displayStartedAt,
-        stepMs,
-      });
-      setPublicStatNumber({
-        element: statElement,
-        value: displayValue,
-        animate: false,
-      });
-      return;
-    }
-
-    const previousDisplayValue = Number(statElement.dataset.displayValue || 0);
-    let displayValue = Math.min(
-      targetValue,
-      Math.max(
-        previousDisplayValue,
-        getSharedDisplayValue({
-          targetValue,
-          startValue,
-          displayStartedAt,
-          stepMs,
-        }),
-      ),
-    );
-
-    if (displayValue >= targetValue) {
-      setPublicStatNumber({
-        element: statElement,
-        value: targetValue,
-        speed: "fast",
-      });
-      return;
-    }
-
-    setPublicStatNumber({
-      element: statElement,
-      value: displayValue,
-      speed: "fast",
-    });
-
-    publicStatsRevealTimer = window.setInterval(() => {
-      displayValue = Math.min(
-        targetValue,
-        Math.max(
-          displayValue,
-          getSharedDisplayValue({
-            targetValue,
-            startValue,
-            displayStartedAt,
-            stepMs,
-          }),
-        ),
-      );
-      setPublicStatNumber({
-        element: statElement,
-        value: displayValue,
-        speed: "slow",
-      });
-
-      if (displayValue >= targetValue && publicStatsRevealTimer) {
-        window.clearInterval(publicStatsRevealTimer);
-        publicStatsRevealTimer = undefined;
-      }
-    }, Math.max(4000, stepMs || 7000));
+    return true;
   }
 
   async function loadPublicStats() {
@@ -1732,15 +1584,8 @@ const subtitleParts =
 
       const stats = await response.json();
       const generations = Number(stats.totalGenerations);
-      const displayStartGenerations = Number(stats.displayStartGenerations);
-      const displayStartedAt = String(stats.displayStartedAt || "");
-      const displayStepMs = Number(stats.displayStepMs || 7000);
 
-      if (
-        !Number.isFinite(generations) ||
-        generations <= 0 ||
-        !Number.isFinite(displayStartGenerations)
-      ) {
+      if (!Number.isFinite(generations) || generations <= 0) {
         return;
       }
 
@@ -1748,17 +1593,11 @@ const subtitleParts =
         "[data-stat-generations]",
       );
 
-      publicStatsRoot.classList.remove("hidden");
-      publicStatsRoot.classList.add("flex");
-      publicStatsRoot.dataset.loaded = "true";
-
-      animatePublicStat({
-        element: generationsEl,
-        targetValue: Math.floor(generations),
-        startValue: Math.floor(displayStartGenerations),
-        displayStartedAt,
-        stepMs: displayStepMs,
-      });
+      if (setPublicStatNumber(generationsEl, Math.floor(generations))) {
+        publicStatsRoot.classList.remove("hidden");
+        publicStatsRoot.classList.add("flex");
+        publicStatsRoot.dataset.loaded = "true";
+      }
     } catch (error) {
       publicStatsRoot.classList.add("hidden");
       publicStatsRoot.classList.remove("flex");
@@ -1768,10 +1607,6 @@ const subtitleParts =
 
   if (publicStatsRoot) {
     loadPublicStats();
-    window.setInterval(
-      loadPublicStats,
-      Number(publicStatsRoot.dataset.refreshMs || 600000),
-    );
   }
 </script>
 
@@ -1807,26 +1642,8 @@ const subtitleParts =
   }
 
   .public-stat-number {
-    display: inline-block;
     font-variant-numeric: tabular-nums;
-    min-width: 4.5ch;
-    perspective: 400px;
-    text-shadow: 0 10px 28px rgba(79, 70, 229, 0.18);
-    transform-origin: 50% 45%;
-    transform-style: preserve-3d;
-    will-change: transform, opacity;
-  }
-
-  .public-stat-number--flip-fast {
-    animation: publicStatFlip 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  .public-stat-number--flip-slow {
-    animation: publicStatFlip 720ms cubic-bezier(0.19, 1, 0.22, 1) both;
-  }
-
-  .public-stats-dot {
-    animation: publicStatsPulse 2.8s ease-in-out infinite;
+    min-width: 5ch;
   }
 
   @keyframes publicStatsEnter {
@@ -1840,38 +1657,8 @@ const subtitleParts =
     }
   }
 
-  @keyframes publicStatsPulse {
-    0%,
-    100% {
-      opacity: 0.75;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.18);
-    }
-  }
-
-  @keyframes publicStatFlip {
-    0% {
-      opacity: 0.62;
-      transform: rotateX(-72deg) translateY(-3px);
-    }
-    48% {
-      opacity: 1;
-      transform: rotateX(12deg) translateY(1px);
-    }
-    100% {
-      opacity: 1;
-      transform: rotateX(0deg) translateY(0);
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .public-stats-card[data-loaded="true"],
-    .public-stats-dot,
-    .public-stat-number--flip-fast,
-    .public-stat-number--flip-slow {
+    .public-stats-card[data-loaded="true"] {
       animation: none;
     }
   }

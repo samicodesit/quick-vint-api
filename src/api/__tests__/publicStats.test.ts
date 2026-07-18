@@ -48,9 +48,10 @@ describe("public stats endpoint", () => {
   });
 
   it("returns cached public marketing totals", async () => {
+    const countQuery = logCountQuery({ count: 4200, error: null });
     fromMock.mockImplementation((table: string) => {
       if (table === "api_logs") {
-        return logCountQuery({ count: 4200, error: null });
+        return countQuery;
       }
       throw new Error(`Unexpected table ${table}`);
     });
@@ -65,14 +66,17 @@ describe("public stats endpoint", () => {
     await handler({ method: "GET" } as any, res as any);
 
     expect(res.statusCode).toBe(200);
-    expect(res.headers.get("Cache-Control")).toContain("s-maxage=20");
+    expect(res.headers.get("Cache-Control")).toContain("s-maxage=600");
+    expect(fromMock).toHaveBeenCalledWith("api_logs");
+    expect(countQuery.select).toHaveBeenCalledWith("id", {
+      count: "planned",
+      head: true,
+    });
     expect(res.body).toMatchObject({
       totalGenerations: 4200,
-      displayStartGenerations: 4196,
-      displayStepMs: 7000,
     });
-    const body = res.body as { displayStartedAt: string };
-    expect(new Date(body.displayStartedAt).toString()).not.toBe("Invalid Date");
+    const body = res.body as { generatedAt: string };
+    expect(new Date(body.generatedAt).toString()).not.toBe("Invalid Date");
   });
 
   it("returns 503 when stats cannot be loaded", async () => {

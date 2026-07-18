@@ -414,26 +414,6 @@ const subtitleParts =
         </div>
 
         <div
-          data-public-stats
-          data-stats-endpoint="/api/public-stats"
-          class="public-stats-card relative z-10 mb-4 ml-auto hidden w-fit max-w-full items-center gap-3 rounded-lg border border-slate-200/80 bg-white/95 px-3.5 py-2 shadow-sm ring-1 ring-slate-950/[0.03] sm:px-4"
-          aria-label={extra.publicStatsAriaLabel}
-          aria-live="polite"
-        >
-          <span class="min-w-0 leading-tight">
-            <span
-              data-stat-generations
-              class="public-stat-number block text-base font-black leading-none text-slate-950 sm:text-lg"
-            >
-              0
-            </span>
-            <span class="block text-xs font-semibold text-slate-600 sm:text-[13px]">
-              {extra.publicStatsGenerationsLabel}
-            </span>
-          </span>
-        </div>
-
-        <div
           class="relative w-full rounded-2xl overflow-hidden video-wrapper bg-white group cursor-pointer"
           data-open-fullscreen
         >
@@ -480,6 +460,21 @@ const subtitleParts =
         <div class="mt-4 text-center">
           <p class="text-sm text-slate-500 font-medium">
             {extra.videoCaption}
+          </p>
+          <p
+            data-public-stats
+            data-stats-endpoint="/api/public-stats"
+            class="public-stats-line mt-2 hidden justify-center text-sm font-semibold text-slate-500"
+            aria-label={extra.publicStatsAriaLabel}
+            aria-live="polite"
+          >
+            <span
+              data-stat-generations
+              class="public-stat-number font-black text-slate-800"
+            >
+              0
+            </span>
+            <span class="ml-1">{extra.publicStatsGenerationsLabel}</span>
           </p>
         </div>
 
@@ -1631,29 +1626,7 @@ const subtitleParts =
     -webkit-text-fill-color: transparent;
   }
 
-  .public-stats-card[data-loaded="true"] {
-    animation: publicStatsEnter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
   .public-stat-number {
     font-variant-numeric: tabular-nums;
-    min-width: 5ch;
-  }
-
-  @keyframes publicStatsEnter {
-    from {
-      opacity: 0;
-      transform: translateY(-8px) scale(0.98);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .public-stats-card[data-loaded="true"] {
-      animation: none;
-    }
   }
 </style>

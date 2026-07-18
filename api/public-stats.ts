@@ -11,16 +11,18 @@ function coerceCount(value: number | string | null | undefined): number {
 
 async function readPublicStats() {
   const generationsResult = await supabase
-    .from("api_logs")
-    .select("id", { count: "planned", head: true })
-    .eq("endpoint", "/api/generate")
-    .eq("response_status", 200);
+    .from("daily_stats")
+    .select("total_api_calls");
 
   if (generationsResult.error) {
     throw generationsResult.error;
   }
 
-  const totalGenerations = coerceCount(generationsResult.count);
+  const totalGenerations = (generationsResult.data || []).reduce(
+    (sum: number, row: { total_api_calls?: number | string | null }) =>
+      sum + coerceCount(row.total_api_calls),
+    0,
+  );
 
   return {
     totalGenerations,

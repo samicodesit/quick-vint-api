@@ -30,14 +30,9 @@ function createResponse() {
   return res;
 }
 
-function logCountQuery(result: unknown) {
-  let eqCalls = 0;
+function dailyStatsQuery(result: unknown) {
   const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => {
-      eqCalls += 1;
-      return eqCalls >= 2 ? Promise.resolve(result) : query;
-    }),
+    select: vi.fn(() => Promise.resolve(result)),
   };
   return query;
 }
@@ -48,10 +43,16 @@ describe("public stats endpoint", () => {
   });
 
   it("returns cached public marketing totals", async () => {
-    const countQuery = logCountQuery({ count: 4200, error: null });
+    const statsQuery = dailyStatsQuery({
+      data: [
+        { total_api_calls: 1200 },
+        { total_api_calls: "3000" },
+      ],
+      error: null,
+    });
     fromMock.mockImplementation((table: string) => {
-      if (table === "api_logs") {
-        return countQuery;
+      if (table === "daily_stats") {
+        return statsQuery;
       }
       throw new Error(`Unexpected table ${table}`);
     });
@@ -67,11 +68,8 @@ describe("public stats endpoint", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers.get("Cache-Control")).toContain("s-maxage=600");
-    expect(fromMock).toHaveBeenCalledWith("api_logs");
-    expect(countQuery.select).toHaveBeenCalledWith("id", {
-      count: "planned",
-      head: true,
-    });
+    expect(fromMock).toHaveBeenCalledWith("daily_stats");
+    expect(statsQuery.select).toHaveBeenCalledWith("total_api_calls");
     expect(res.body).toMatchObject({
       totalGenerations: 4200,
     });
@@ -81,8 +79,8 @@ describe("public stats endpoint", () => {
 
   it("returns 503 when stats cannot be loaded", async () => {
     fromMock.mockImplementation((table: string) => {
-      if (table === "api_logs") {
-        return logCountQuery({ count: null, error: { message: "db down" } });
+      if (table === "daily_stats") {
+        return dailyStatsQuery({ data: null, error: { message: "db down" } });
       }
       throw new Error(`Unexpected table ${table}`);
     });

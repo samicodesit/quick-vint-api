@@ -433,6 +433,22 @@ const subtitleParts =
             >
             </video>
 
+            <div
+              data-public-stats
+              data-stats-endpoint="/api/public-stats"
+              class="public-stats-video-badge absolute left-4 top-4 z-20 hidden max-w-[calc(100%-5rem)] items-center rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-200 shadow-xl shadow-slate-950/20 backdrop-blur-md"
+              aria-label={extra.publicStatsAriaLabel}
+              aria-live="polite"
+            >
+              <span
+                data-stat-generations
+                class="public-stat-number font-black text-white"
+              >
+                0
+              </span>
+              <span class="ml-1">{extra.publicStatsGenerationsLabel}</span>
+            </div>
+
             <div class="absolute top-4 right-4 z-20">
               <button
                 data-open-fullscreen
@@ -460,21 +476,6 @@ const subtitleParts =
         <div class="mt-4 text-center">
           <p class="text-sm text-slate-500 font-medium">
             {extra.videoCaption}
-          </p>
-          <p
-            data-public-stats
-            data-stats-endpoint="/api/public-stats"
-            class="public-stats-line mt-2 hidden justify-center text-sm font-semibold text-slate-500"
-            aria-label={extra.publicStatsAriaLabel}
-            aria-live="polite"
-          >
-            <span
-              data-stat-generations
-              class="public-stat-number font-black text-slate-800"
-            >
-              0
-            </span>
-            <span class="ml-1">{extra.publicStatsGenerationsLabel}</span>
           </p>
         </div>
 
@@ -1557,6 +1558,36 @@ const subtitleParts =
     return true;
   }
 
+  function animatePublicStatNumber(element: Element | null, value: number) {
+    if (!element) return false;
+    const targetValue = Math.floor(value);
+    if (!Number.isFinite(targetValue) || targetValue <= 0) return false;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return setPublicStatNumber(element, targetValue);
+    }
+
+    const startValue = Math.max(1, Math.floor(targetValue * 0.82));
+    const durationMs = 950;
+    const startedAt = performance.now();
+
+    function tick(now: number) {
+      const progress = Math.min(1, (now - startedAt) / durationMs);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.round(
+        startValue + (targetValue - startValue) * eased,
+      );
+      setPublicStatNumber(element, currentValue);
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      }
+    }
+
+    setPublicStatNumber(element, startValue);
+    requestAnimationFrame(tick);
+    return true;
+  }
+
   async function loadPublicStats() {
     if (!publicStatsRoot) return;
 
@@ -1582,7 +1613,7 @@ const subtitleParts =
         "[data-stat-generations]",
       );
 
-      if (setPublicStatNumber(generationsEl, Math.floor(generations))) {
+      if (animatePublicStatNumber(generationsEl, Math.floor(generations))) {
         publicStatsRoot.classList.remove("hidden");
         publicStatsRoot.classList.add("flex");
         publicStatsRoot.dataset.loaded = "true";
@@ -1628,5 +1659,26 @@ const subtitleParts =
 
   .public-stat-number {
     font-variant-numeric: tabular-nums;
+  }
+
+  .public-stats-video-badge[data-loaded="true"] {
+    animation: publicStatsBadgeIn 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes publicStatsBadgeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .public-stats-video-badge[data-loaded="true"] {
+      animation: none;
+    }
   }
 </style>

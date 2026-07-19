@@ -546,6 +546,25 @@ export class RateLimiter {
     const hasUnlimitedDaily =
       activeCustomDailyLimit === null &&
       hasUnlimitedDailyLimit(profile, pricingLimitsMode);
+    const freeRemaining =
+      pricingLimitsMode === "current" && tierKey === "free"
+        ? Math.max(
+            FREE_LIFETIME_LIMIT -
+              Math.max(0, profile.free_lifetime_generations_used || 0),
+            0,
+          )
+        : 0;
+    const paidCreditBurstLimit =
+      pricingLimitsMode === "current" && tierKey === "free"
+        ? Math.max(
+            0,
+            freeRemaining + Math.max(0, profile.pack_credits || 0),
+          )
+        : 0;
+    const burstLimit = Math.max(
+      tierConfig.limits.burst.perMinute,
+      paidCreditBurstLimit,
+    );
     const dailyLimit =
       activeCustomDailyLimit ??
       (hasUnlimitedDaily ? null : tierConfig.limits.daily);
@@ -557,7 +576,7 @@ export class RateLimiter {
         p_effective_tier: tierKey,
         p_monthly_limit: monthlyLimit,
         p_daily_limit: dailyLimit,
-        p_burst_limit: tierConfig.limits.burst.perMinute,
+        p_burst_limit: burstLimit,
         p_free_lifetime_limit: FREE_LIFETIME_LIMIT,
         p_has_unlimited_daily: hasUnlimitedDaily,
       });

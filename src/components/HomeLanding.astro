@@ -416,15 +416,16 @@ const subtitleParts =
         <div
           data-public-stats
           data-stats-endpoint="/api/public-stats"
-          class="public-stats-video-badge mx-auto mb-3 hidden w-fit max-w-full items-center rounded-full border border-indigo-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-lg shadow-indigo-200/60"
+          class="public-stats-video-badge mx-auto mb-3 flex w-fit max-w-full items-center rounded-full border border-indigo-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-lg shadow-indigo-200/60"
           aria-label={extra.publicStatsAriaLabel}
+          aria-busy="true"
           aria-live="polite"
         >
           <span
             data-stat-generations
             class="public-stat-number text-base font-black text-indigo-600"
           >
-            0
+            ...
           </span>
           <span class="ml-1">{extra.publicStatsGenerationsLabel}</span>
         </div>
@@ -436,14 +437,15 @@ const subtitleParts =
           <div class="aspect-video relative">
             <video
               data-hero-video
+              data-video-src="/vid-promo.mp4"
               class="hero-demo-video w-full h-full object-cover"
               poster="/video-poster.webp"
-              src="/vid-promo.mp4"
               width="1920"
               height="1080"
-              preload="metadata"
+              preload="none"
               autoplay
               loop
+              muted
               playsinline
               controls
             >
@@ -1456,8 +1458,44 @@ const subtitleParts =
     "[data-hero-video]",
   ) as HTMLVideoElement | null;
 
+  function runAfterLoadWhenIdle(callback: () => void) {
+    const runAfterLoad = () => {
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(callback, { timeout: 3000 });
+        return;
+      }
+
+      window.setTimeout(callback, 0);
+    };
+
+    if (document.readyState === "complete") {
+      runAfterLoad();
+      return;
+    }
+
+    window.addEventListener("load", runAfterLoad, { once: true });
+  }
+
+  function loadHeroVideo() {
+    if (!heroVideo || heroVideo.dataset.loaded === "true") return;
+    const src = heroVideo.dataset.videoSrc;
+    if (!src) return;
+
+    heroVideo.src = src;
+    heroVideo.dataset.loaded = "true";
+    heroVideo.load();
+  }
+
+  function scheduleHeroVideoLoad() {
+    runAfterLoadWhenIdle(() => {
+      loadHeroVideo();
+      heroVideo?.play().catch(() => {});
+    });
+  }
+
   async function openHeroFullscreen() {
     if (!heroVideo) return;
+    loadHeroVideo();
     try {
       if (heroVideo.requestFullscreen) {
         await heroVideo.requestFullscreen();
@@ -1617,16 +1655,26 @@ const subtitleParts =
         publicStatsRoot.classList.remove("hidden");
         publicStatsRoot.classList.add("flex");
         publicStatsRoot.dataset.loaded = "true";
+        publicStatsRoot.setAttribute("aria-busy", "false");
       }
     } catch (error) {
       publicStatsRoot.classList.add("hidden");
       publicStatsRoot.classList.remove("flex");
+      publicStatsRoot.setAttribute("aria-busy", "false");
       delete publicStatsRoot.dataset.loaded;
     }
   }
 
+  function schedulePublicStatsLoad() {
+    runAfterLoadWhenIdle(loadPublicStats);
+  }
+
+  if (heroVideo) {
+    scheduleHeroVideoLoad();
+  }
+
   if (publicStatsRoot) {
-    loadPublicStats();
+    schedulePublicStatsLoad();
   }
 </script>
 

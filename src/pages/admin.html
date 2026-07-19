@@ -4269,6 +4269,7 @@
             const monthMax = max.month || 0;
             const dayPercent = Math.min(100, usage.day_percent || 0);
             const monthPercent = Math.min(100, usage.month_percent || 0);
+            const packCredits = Math.max(0, Number(usage.pack_credits || 0));
 
             return `
                 <div class="usage-stack">
@@ -4282,6 +4283,11 @@
                         <span class="usage-bar"><span class="usage-fill ${usageFillClass(monthPercent)}" style="--usage-width: ${monthPercent}%"></span></span>
                         <strong>${month}/${monthMax || '-'}</strong>
                     </div>
+                    ${packCredits ? `<div class="usage-row">
+                        <span>Extra credits</span>
+                        <span class="usage-bar"><span class="usage-fill" style="--usage-width: 100%"></span></span>
+                        <strong>${packCredits}</strong>
+                    </div>` : ''}
                 </div>
             `;
         }

@@ -637,6 +637,47 @@ describe("RateLimiter entitlement decisions", () => {
     });
   });
 
+  it("does not throttle paid credit-pack users at the free burst limit", async () => {
+    queueRpc({
+      data: {
+        allowed: true,
+        reservationId: "reservation-credit-pack",
+        remainingRequests: {
+          minute: 19,
+          day: null,
+          month: 0,
+          packCredits: 19,
+        },
+      },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveGenerationRequest(
+      "user-credit-pack",
+      {
+        subscription_status: "free",
+        subscription_tier: "free",
+        api_calls_this_month: 15,
+        free_lifetime_generations_used: 5,
+        pack_credits: 20,
+      },
+    );
+
+    expect(result).toMatchObject({
+      allowed: true,
+      reservationId: "reservation-credit-pack",
+    });
+    expect(rpcCalls[0]).toMatchObject({
+      name: "reserve_generation_request",
+      params: {
+        p_user_id: "user-credit-pack",
+        p_effective_tier: "free",
+        p_burst_limit: 20,
+      },
+    });
+  });
+
   it("passes active custom limits into the atomic reservation RPC", async () => {
     queueRpc({
       data: {

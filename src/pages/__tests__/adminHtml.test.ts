@@ -634,6 +634,24 @@ describe("admin HTML", () => {
     expect(exclusions).not.toContain("@");
   });
 
+  it("shows credit pack balance in user usage", () => {
+    const { context } = buildAdminHarness();
+
+    const html = context.renderUsage({
+      usage: {
+        day: null,
+        month: 5,
+        day_percent: 0,
+        month_percent: 100,
+        pack_credits: 10,
+      },
+      max_limits: { day: null, month: 5 },
+    });
+
+    expect(html).toContain("Extra credits");
+    expect(html).toContain("10");
+  });
+
   it("explains AI cost totals with the right generation denominator", async () => {
     const { context, content } = buildAdminHarness();
 

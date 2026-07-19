@@ -3,7 +3,11 @@ import { join } from "node:path";
 import vm from "node:vm";
 import { describe, expect, it } from "vitest";
 
-async function runBridge(href: string, extensionResponse: unknown) {
+async function runBridge(
+  href: string,
+  extensionResponse: unknown,
+  options: { lastError?: { message: string } | null } = {},
+) {
   const events: unknown[] = [];
   const messages: unknown[] = [];
   const replacedUrls: string[] = [];
@@ -68,9 +72,11 @@ async function runBridge(href: string, extensionResponse: unknown) {
           callback: (response: unknown) => void,
         ) {
           messages.push({ extensionId, message });
+          context.chrome.runtime.lastError = options.lastError || null;
           callback(extensionResponse);
+          context.chrome.runtime.lastError = null;
         },
-        lastError: null,
+        lastError: null as { message: string } | null,
       },
     },
     fetch: async (_url: string, options: { body?: string }) => {
@@ -89,7 +95,14 @@ async function runBridge(href: string, extensionResponse: unknown) {
   );
   await new Promise((resolve) => setImmediate(resolve));
 
-  return { events, messages, replacedUrls, elements, timers };
+  return {
+    events,
+    messages,
+    replacedUrls,
+    elements,
+    timers,
+    locationHref: String(context.window.location.href),
+  };
 }
 
 describe("auth callback bridge", () => {
@@ -139,5 +152,32 @@ describe("auth callback bridge", () => {
         context: expect.objectContaining({ message: "invalid_session" }),
       }),
     ]);
+  });
+
+  it("falls back to the extension callback page when old extension handoff closes the port", async () => {
+    const { events, locationHref } = await runBridge(
+      "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1&expires_in=3600&token_type=bearer",
+      undefined,
+      {
+        lastError: {
+          message: "The message port closed before a response was received.",
+        },
+      },
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({ event: "auth_link_landed" }),
+      expect.objectContaining({ event: "auth_extension_handoff_started" }),
+      expect.objectContaining({
+        event: "auth_extension_handoff_error",
+        context: expect.objectContaining({
+          message: "The message port closed before a response was received.",
+        }),
+      }),
+      expect.objectContaining({ event: "auth_extension_callback_fallback" }),
+    ]);
+    expect(locationHref).toBe(
+      "chrome-extension://mommklhpammnlojjobejddmidmdcalcl/callback.html#access_token=access-1&refresh_token=refresh-1&expires_in=3600&token_type=bearer",
+    );
   });
 });

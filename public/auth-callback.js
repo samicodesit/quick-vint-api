@@ -106,6 +106,25 @@
     });
   }
 
+  function shouldFallbackToExtensionCallback(error) {
+    return /extension_messaging_unavailable|extension_handoff_failed|message port closed|receiving end does not exist/i.test(
+      String(error?.message || error || ""),
+    );
+  }
+
+  function buildExtensionCallbackUrl(session) {
+    const hashParams = new URLSearchParams();
+    hashParams.set("access_token", session.access_token);
+    hashParams.set("refresh_token", session.refresh_token);
+    if (session.expires_in) {
+      hashParams.set("expires_in", String(session.expires_in));
+    }
+    if (session.token_type) {
+      hashParams.set("token_type", session.token_type);
+    }
+    return `chrome-extension://${EXTENSION_ID}/callback.html#${hashParams.toString()}`;
+  }
+
   function startSuccessCountdown() {
     let remaining = 3;
     const tick = () => {
@@ -159,6 +178,16 @@
       track("auth_extension_handoff_error", {
         message: String(error?.message || error || "unknown").slice(0, 180),
       });
+      if (shouldFallbackToExtensionCallback(error)) {
+        track("auth_extension_callback_fallback");
+        setStatus(
+          "Opening the extension.",
+          "Finish sign-in in AutoLister AI.",
+          "success",
+        );
+        window.location.href = buildExtensionCallbackUrl(session);
+        return;
+      }
       setStatus(
         "Could not open the extension.",
         "Open this link in the same Chrome profile where AutoLister AI is installed, then try again.",

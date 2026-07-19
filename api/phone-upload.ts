@@ -102,6 +102,24 @@ function parseExpectedCount(value: unknown) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+async function listSessionFiles(sessionId: string) {
+  const limit = 100;
+  const files = [];
+  for (let offset = 0; ; offset += limit) {
+    const { data, error } = await supabase.storage
+      .from(UPLOAD_BUCKET)
+      .list(sessionId, {
+        limit,
+        offset,
+        sortBy: { column: "created_at", order: "asc" },
+      });
+
+    if (error) throw error;
+    files.push(...(data || []));
+    if (!data || data.length < limit) return files;
+  }
+}
+
 async function createStoredFileResponse(
   sessionId: string,
   file: { name: string; metadata?: Record<string, unknown> | null },
@@ -166,15 +184,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { data: files, error: listError } = await supabase.storage
-      .from(UPLOAD_BUCKET)
-      .list(sessionId, {
-        limit: 100,
-        offset: 0,
-        sortBy: { column: "created_at", order: "asc" },
-      });
-
-    if (listError) throw listError;
+    const files = await listSessionFiles(sessionId);
 
     const complete = Boolean(files?.some(isBatchMarkerFile));
     const expectedCount = getExpectedCountFromFiles(files);
@@ -392,15 +402,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
 
   try {
     const expectedCount = parseExpectedCount(req.query.expectedCount);
-    const { data: files, error: listError } = await supabase.storage
-      .from(UPLOAD_BUCKET)
-      .list(sessionId, {
-        limit: 100,
-        offset: 0,
-        sortBy: { column: "created_at", order: "asc" },
-      });
-
-    if (listError) throw listError;
+    const files = await listSessionFiles(sessionId);
 
     const photoFiles = (files || []).filter(
       (file) => !isSessionMarkerFile(file),
@@ -498,11 +500,7 @@ async function handleCleanup(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { data: files, error: listError } = await supabase.storage
-      .from(UPLOAD_BUCKET)
-      .list(sessionId);
-
-    if (listError) throw listError;
+    const files = await listSessionFiles(sessionId);
 
     if (files && files.length > 0) {
       const filesToRemove = files.map((f) => `${sessionId}/${f.name}`);

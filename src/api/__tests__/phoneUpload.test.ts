@@ -250,6 +250,57 @@ describe("phone upload endpoint", () => {
     expect(uploadMock).not.toHaveBeenCalled();
   });
 
+  it("completes batches with more than one storage page of files", async () => {
+    const files = Array.from({ length: 224 }, (_, index) => ({
+      name: `${String(index).padStart(6, "0")}-upload.jpg`,
+    }));
+    listMock.mockImplementation(
+      (_sessionId: string, options: { offset?: number; limit?: number }) => {
+        const offset = options?.offset || 0;
+        const limit = options?.limit || 100;
+        return Promise.resolve({
+          data: files.slice(offset, offset + limit),
+          error: null,
+        });
+      },
+    );
+    uploadMock.mockResolvedValue({ error: null });
+
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        query: {
+          action: "complete",
+          sessionId: "sess-test",
+          expectedCount: "224",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      success: true,
+      complete: true,
+      count: 224,
+      expectedCount: 224,
+    });
+    expect(res.body.files).toHaveLength(224);
+    expect(uploadMock).toHaveBeenCalledWith(
+      "sess-test/_batch-complete.json",
+      expect.any(Buffer),
+      expect.objectContaining({
+        contentType: "application/json",
+        upsert: true,
+      }),
+    );
+  });
+
   it("stores repeated uploads for the same session order at one idempotent path", async () => {
     uploadMock.mockResolvedValue({ error: null });
 

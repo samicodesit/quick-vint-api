@@ -120,6 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const failed = status === "failed";
+  const failureReason = result.reason || result.error || "unknown_error";
 
   await ApiLogger.logRequest({
     ...requestMetadata,
@@ -131,7 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     fullRequestBody: body,
     suspiciousActivity: failed,
     flaggedReason: failed
-      ? `DOM canary failed: ${result.error || "unknown_error"}`
+      ? `DOM canary failed: ${failureReason}`
       : "DOM canary passed",
     processingDurationMs: Date.now() - startedAt,
   });

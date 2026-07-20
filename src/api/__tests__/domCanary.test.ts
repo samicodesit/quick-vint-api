@@ -78,6 +78,7 @@ describe("DOM canary endpoint", () => {
     vi.clearAllMocks();
     vi.resetModules();
     process.env.DOM_CANARY_SECRET = "machine-secret";
+    process.env.RESEND_API_KEY = "resend-key";
     extractRequestMetadataMock.mockReturnValue({ userAgent: "vitest" });
     logRequestMock.mockResolvedValue(undefined);
     getUserMock.mockResolvedValue({
@@ -105,6 +106,31 @@ describe("DOM canary endpoint", () => {
       }),
     );
     expect(logRequestMock.mock.calls[0][0].userId).toBeUndefined();
+  });
+
+  it("logs failed canaries with the short failure reason", async () => {
+    const handlerModule = await import("../../../api/dom-canary.js");
+    const handler = handlerModule.default as any;
+    const req = createRequest("machine-secret") as any;
+    req.body.status = "failed";
+    req.body.result = {
+      reason: "auth_required",
+      error: "Timeout waiting for Vinted selectors",
+    };
+    const res = createResponse();
+
+    await handler(req, res as any);
+
+    expect(res.statusCode).toBe(202);
+    expect(logRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "/api/dom-canary",
+        responseStatus: 202,
+        userEmail: "dom-canary@autolister.app",
+        suspiciousActivity: true,
+        flaggedReason: "DOM canary failed: auth_required",
+      }),
+    );
   });
 
   it("rejects an invalid token when it is not a Supabase user token", async () => {

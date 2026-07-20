@@ -26,7 +26,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select("created_at,user_email,full_request_body")
     .eq("endpoint", "/api/dom-canary")
     .eq("response_status", 202)
-    .eq("suspicious_activity", false)
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: false })
     .limit(1);
@@ -65,13 +64,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     subject: "Vinted DOM canary heartbeat missing",
     html: `
       <h2>Vinted DOM canary heartbeat missing</h2>
-      <p>No successful Vinted listing field injection heartbeat was logged in the last ${staleHours} hours.</p>
-      <p>This can mean the monitoring browser did not run, the extension is not signed in, Vinted blocked/redirected the listing page, or the canary is failing before it can report.</p>
+      <p>No Vinted DOM canary report was logged in the last ${staleHours} hours.</p>
+      <p>This means the monitoring browser did not run or could not report. Auth redirects and DOM failures should arrive as canary failure reports instead.</p>
     `,
     text: [
       "Vinted DOM canary heartbeat missing",
-      `No successful Vinted listing field injection heartbeat was logged in the last ${staleHours} hours.`,
-      "This can mean the monitoring browser did not run, the extension is not signed in, Vinted blocked/redirected the listing page, or the canary is failing before it can report.",
+      `No Vinted DOM canary report was logged in the last ${staleHours} hours.`,
+      "This means the monitoring browser did not run or could not report. Auth redirects and DOM failures should arrive as canary failure reports instead.",
     ].join("\n"),
   });
 

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const sendMock = vi.fn();
 const queryCalls: Array<[string, string, unknown]> = [];
 let queryData: any[] = [];
+let queryDataQueue: any[][] = [];
 let queryError: any = null;
 
 vi.mock("resend", () => ({
@@ -27,7 +28,10 @@ function createBuilder() {
       return builder;
     }),
     order: vi.fn(() => builder),
-    limit: vi.fn(async () => ({ data: queryData, error: queryError })),
+    limit: vi.fn(async () => ({
+      data: queryDataQueue.length ? queryDataQueue.shift() : queryData,
+      error: queryError,
+    })),
   };
   return builder;
 }
@@ -60,16 +64,17 @@ describe("DOM canary heartbeat cron", () => {
     vi.resetModules();
     queryCalls.length = 0;
     queryData = [];
+    queryDataQueue = [];
     queryError = null;
     process.env.CRON_SECRET = "cron-secret";
     process.env.RESEND_API_KEY = "resend-key";
   });
 
-  it("treats any recent canary report as a live heartbeat", async () => {
+  it("requires a recent passed canary report as the live heartbeat", async () => {
     queryData = [
       {
         created_at: "2026-07-20T10:00:00.000Z",
-        suspicious_activity: true,
+        suspicious_activity: false,
       },
     ];
     const module = await import("../../../api/cron/dom-canary-heartbeat.js");
@@ -84,6 +89,45 @@ describe("DOM canary heartbeat cron", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toMatchObject({ ok: true, stale: false });
     expect(sendMock).not.toHaveBeenCalled();
-    expect(queryCalls).not.toContainEqual(["eq", "suspicious_activity", false]);
+    expect(queryCalls).toContainEqual(["eq", "suspicious_activity", false]);
+  });
+
+  it("accepts recent real Vinted.nl listing injection telemetry as proof", async () => {
+    queryDataQueue = [
+      [],
+      [
+        {
+          created_at: "2026-07-20T10:00:00.000Z",
+          endpoint: "/event/listing_tools_ready",
+          origin: "https://www.vinted.nl",
+        },
+      ],
+    ];
+    const module = await import("../../../api/cron/dom-canary-heartbeat.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      { headers: { authorization: "Bearer cron-secret" } } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      ok: true,
+      stale: false,
+      source: "real_listing_tools_ready",
+    });
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(queryCalls).toContainEqual([
+      "eq",
+      "endpoint",
+      "/event/listing_tools_ready",
+    ]);
+    expect(queryCalls).toContainEqual([
+      "eq",
+      "origin",
+      "https://www.vinted.nl",
+    ]);
   });
 });

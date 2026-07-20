@@ -26,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select("created_at,user_email,full_request_body")
     .eq("endpoint", "/api/dom-canary")
     .eq("response_status", 202)
+    .eq("suspicious_activity", false)
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: false })
     .limit(1);
@@ -40,7 +41,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       ok: true,
       stale: false,
+      source: "dom_canary",
       latestHeartbeatAt: latestHeartbeat.created_at,
+    });
+  }
+
+  const { data: realInjectionData, error: realInjectionError } = await supabase
+    .from("api_logs")
+    .select("created_at,user_email,origin,full_request_body")
+    .eq("endpoint", "/event/listing_tools_ready")
+    .eq("response_status", 204)
+    .eq("origin", "https://www.vinted.nl")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (realInjectionError) {
+    console.error(
+      "Failed to check real Vinted.nl injection heartbeat:",
+      realInjectionError,
+    );
+    return res
+      .status(500)
+      .json({ ok: false, error: realInjectionError.message });
+  }
+
+  const latestRealInjection = realInjectionData?.[0];
+  if (latestRealInjection) {
+    return res.status(200).json({
+      ok: true,
+      stale: false,
+      source: "real_listing_tools_ready",
+      latestHeartbeatAt: latestRealInjection.created_at,
     });
   }
 
@@ -64,13 +96,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     subject: "Vinted DOM canary heartbeat missing",
     html: `
       <h2>Vinted DOM canary heartbeat missing</h2>
-      <p>No Vinted DOM canary report was logged in the last ${staleHours} hours.</p>
-      <p>This means the monitoring browser did not run or could not report. Auth redirects and DOM failures should arrive as canary failure reports instead.</p>
+      <p>No successful Vinted DOM injection proof was logged in the last ${staleHours} hours.</p>
+      <p>This means neither the daily canary nor real Vinted.nl user telemetry proved that AutoLister injected into the current listing page.</p>
     `,
     text: [
       "Vinted DOM canary heartbeat missing",
-      `No Vinted DOM canary report was logged in the last ${staleHours} hours.`,
-      "This means the monitoring browser did not run or could not report. Auth redirects and DOM failures should arrive as canary failure reports instead.",
+      `No successful Vinted DOM injection proof was logged in the last ${staleHours} hours.`,
+      "This means neither the daily canary nor real Vinted.nl user telemetry proved that AutoLister injected into the current listing page.",
     ].join("\n"),
   });
 

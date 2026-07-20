@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const signInWithOtpMock = vi.fn();
+const generateLinkMock = vi.fn();
+const resendSendMock = vi.fn();
 const logRequestMock = vi.fn();
 const reportCriticalEndpointFailureMock = vi.fn();
 
@@ -25,9 +26,21 @@ vi.mock("../../../utils/apiLogger", () => ({
 vi.mock("../../../utils/supabaseClient", () => ({
   supabase: {
     auth: {
-      signInWithOtp: signInWithOtpMock,
+      admin: {
+        generateLink: generateLinkMock,
+      },
     },
   },
+}));
+
+vi.mock("resend", () => ({
+  Resend: vi.fn(function () {
+    return {
+      emails: {
+        send: resendSendMock,
+      },
+    };
+  }),
 }));
 
 vi.mock("../../../utils/criticalEndpointAlert", () => ({
@@ -61,9 +74,19 @@ function createResponse() {
 describe("magic link endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.RESEND_API_KEY = "resend-key";
     process.env.AUTH_CALLBACK_URL = "";
     process.env.VERCEL_APP_SITE_URL = "chrome-extension://legacy-extension";
-    signInWithOtpMock.mockResolvedValue({ data: {}, error: null });
+    generateLinkMock.mockResolvedValue({
+      data: {
+        properties: {
+          action_link: "https://autolister.app/auth/callback#access_token=a",
+          email_otp: "123456",
+        },
+      },
+      error: null,
+    });
+    resendSendMock.mockResolvedValue({ data: { id: "email-1" }, error: null });
   });
 
   it("uses the HTTPS auth callback bridge instead of direct chrome-extension redirects", async () => {
@@ -84,12 +107,20 @@ describe("magic link endpoint", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect(signInWithOtpMock).toHaveBeenCalledWith({
+    expect(generateLinkMock).toHaveBeenCalledWith({
+      type: "magiclink",
       email: "seller@example.com",
       options: {
-        emailRedirectTo: "https://autolister.app/auth/callback",
+        redirectTo: "https://autolister.app/auth/callback",
       },
     });
+    expect(resendSendMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: ["seller@example.com"],
+        subject: "Sign in to AutoLister AI",
+        html: expect.stringContaining("123456"),
+      }),
+    );
     expect(logRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({
         endpoint: "/api/auth/magic-link",
@@ -99,7 +130,7 @@ describe("magic link endpoint", () => {
   });
 
   it("returns 429 without Sentry for Supabase auth email cooldowns", async () => {
-    signInWithOtpMock.mockResolvedValue({
+    generateLinkMock.mockResolvedValue({
       data: null,
       error: {
         name: "AuthApiError",

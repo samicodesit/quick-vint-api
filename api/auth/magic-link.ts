@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
+import { Resend } from "resend";
 import { ApiLogger } from "../../utils/apiLogger";
 import { supabase } from "../../utils/supabaseClient";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
@@ -42,6 +43,8 @@ const cors = Cors({
 
 const MAGIC_LINK_TIMEOUT_MS = 15000;
 const DEFAULT_AUTH_CALLBACK_URL = "https://autolister.app/auth/callback";
+const AUTH_EMAIL_FROM = "AutoLister AI <support@autolister.app>";
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function runCors(req: VercelRequest, res: VercelResponse) {
   return new Promise<void>((resolve, reject) => {
@@ -133,6 +136,88 @@ function getAuthCallbackUrl() {
   return configured.startsWith("https://")
     ? configured
     : DEFAULT_AUTH_CALLBACK_URL;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
+}
+
+function buildAuthEmailHtml({
+  actionLink,
+  otp,
+}: {
+  actionLink: string;
+  otp: string;
+}) {
+  const safeActionLink = escapeHtml(actionLink);
+  const safeOtp = escapeHtml(otp);
+  return `<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;background:#f9fafb;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:520px;margin:32px auto;padding:32px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;">
+    <h2 style="margin:0 0 16px;font-size:20px;color:#111827;">Sign in to AutoLister&nbsp;AI</h2>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#374151;">
+      Click the button below to securely sign in to your account.
+    </p>
+    <p style="text-align:center;margin:0 0 28px;">
+      <a href="${safeActionLink}" style="display:inline-block;padding:12px 24px;font-size:15px;color:#ffffff;background:#4f46e5;text-decoration:none;border-radius:6px;">
+        Sign in
+      </a>
+    </p>
+    <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#6b7280;">
+      If the button opens in the wrong browser, enter this code in the AutoLister AI extension:
+    </p>
+    <p style="margin:0 0 24px;text-align:center;font-size:28px;letter-spacing:6px;font-weight:700;color:#111827;">
+      ${safeOtp}
+    </p>
+    <p style="margin:0 0 24px;font-size:13px;line-height:1.5;color:#6b7280;">
+      Didn’t request this email? Just ignore it.
+    </p>
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;">
+    <p style="margin:0;text-align:center;font-size:12px;color:#9ca3af;">
+      © 2026 AutoLister AI · autolister.app
+    </p>
+  </div>
+</body>
+</html>`;
+}
+
+async function sendAuthEmail({
+  email,
+  actionLink,
+  otp,
+}: {
+  email: string;
+  actionLink: string;
+  otp: string;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+
+  const result = await resend.emails.send({
+    from: AUTH_EMAIL_FROM,
+    to: [email],
+    subject: "Sign in to AutoLister AI",
+    html: buildAuthEmailHtml({ actionLink, otp }),
+  });
+
+  if (result.error) {
+    throw new Error(result.error.message || "Resend email failed");
+  }
 }
 
 async function withTimeout<T>(
@@ -264,14 +349,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const emailRedirectTo = getAuthCallbackUrl();
 
-  let otpResult;
+  let linkResult;
   try {
-    otpResult = await withTimeout(
-      supabase.auth.signInWithOtp({
+    linkResult = await withTimeout(
+      supabase.auth.admin.generateLink({
+        type: "magiclink",
         email,
         options: {
-          emailRedirectTo,
-          // shouldCreateUser: true, // Default is true, ensures user is created if they don't exist.
+          redirectTo: emailRedirectTo,
         },
       }),
       MAGIC_LINK_TIMEOUT_MS,
@@ -300,14 +385,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  if (otpResult.error) {
-    if (isAuthEmailCooldownError(otpResult.error)) {
+  if (linkResult.error) {
+    if (isAuthEmailCooldownError(linkResult.error)) {
       await logMagicLinkAttempt({
         req,
         email,
         status: 429,
         startedAt,
-        error: otpResult.error,
+        error: linkResult.error,
         flaggedReason: "supabase_auth_cooldown",
       });
       return res.status(429).json({
@@ -317,15 +402,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.error(
-      "Supabase signInWithOtp error:",
-      serializeError(otpResult.error),
+      "Supabase generateLink error:",
+      serializeError(linkResult.error),
     );
     await logMagicLinkAttempt({
       req,
       email,
       status: 502,
       startedAt,
-      error: otpResult.error,
+      error: linkResult.error,
     });
     reportCriticalEndpointFailure({
       endpoint: "/api/auth/magic-link",
@@ -333,12 +418,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       details: {
         stage: "otp_provider_error",
         emailDomain: getEmailDomain(email) || null,
-        error: normalizeErrorMessage(otpResult.error),
+        error: normalizeErrorMessage(linkResult.error),
       },
     });
     return res
       .status(502)
-      .json({ error: normalizeErrorMessage(otpResult.error) });
+      .json({ error: normalizeErrorMessage(linkResult.error) });
+  }
+
+  const actionLink = linkResult.data?.properties?.action_link;
+  const emailOtp = linkResult.data?.properties?.email_otp;
+  if (!actionLink || !emailOtp) {
+    await logMagicLinkAttempt({
+      req,
+      email,
+      status: 502,
+      startedAt,
+      error: "missing_auth_link_or_otp",
+    });
+    reportCriticalEndpointFailure({
+      endpoint: "/api/auth/magic-link",
+      status: 502,
+      details: {
+        stage: "missing_auth_link_or_otp",
+        emailDomain: getEmailDomain(email) || null,
+      },
+    });
+    return res.status(502).json({
+      error: "Unable to create the sign-in email. Please try again.",
+    });
+  }
+
+  try {
+    await withTimeout(
+      sendAuthEmail({ email, actionLink, otp: emailOtp }),
+      MAGIC_LINK_TIMEOUT_MS,
+    );
+  } catch (error) {
+    console.error("Resend auth email error:", serializeError(error));
+    await logMagicLinkAttempt({
+      req,
+      email,
+      status: 502,
+      startedAt,
+      error,
+    });
+    reportCriticalEndpointFailure({
+      endpoint: "/api/auth/magic-link",
+      status: 502,
+      details: {
+        stage: "auth_email_delivery_error",
+        emailDomain: getEmailDomain(email) || null,
+        error: normalizeErrorMessage(error),
+      },
+    });
+    return res.status(502).json({
+      error: "Unable to send the sign-in email. Please try again.",
+    });
   }
 
   await logMagicLinkAttempt({

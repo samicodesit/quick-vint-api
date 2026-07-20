@@ -637,7 +637,7 @@ describe("admin HTML", () => {
   it("shows credit pack balance in user usage", () => {
     const { context } = buildAdminHarness();
 
-    const html = context.renderUsage({
+    const html = (context as any).renderUsage({
       usage: {
         day: null,
         month: 5,

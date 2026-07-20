@@ -44,10 +44,7 @@ describe("public stats endpoint", () => {
 
   it("returns cached public marketing totals", async () => {
     const statsQuery = dailyStatsQuery({
-      data: [
-        { total_api_calls: 1200 },
-        { total_api_calls: "3000" },
-      ],
+      data: [{ total_api_calls: 1200 }, { total_api_calls: "3000" }],
       error: null,
     });
     fromMock.mockImplementation((table: string) => {

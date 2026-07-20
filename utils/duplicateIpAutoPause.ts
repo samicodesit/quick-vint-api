@@ -32,7 +32,9 @@ type LogRow = {
 
 const LOOKBACK_DAYS = 30;
 const LOG_LIMIT = 100;
-const INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
+const INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS = new Set([
+  "samicodesit@gmail.com",
+]);
 
 function isInternalDuplicateIpExcludedEmail(email?: string | null) {
   return INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS.has(

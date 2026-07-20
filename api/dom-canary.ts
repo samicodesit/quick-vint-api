@@ -26,6 +26,11 @@ const cors = Cors({
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+type CanaryActor = {
+  id: string;
+  email?: string;
+};
+
 function runCors(req: VercelRequest, res: VercelResponse) {
   return new Promise<void>((resolve, reject) => {
     cors(req, res, (err) => (err ? reject(err) : resolve()));
@@ -67,13 +72,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const token = authHeader.split(" ")[1];
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(token);
+  let actor: CanaryActor | null = null;
 
-  if (userError || !user) {
-    return res.status(401).json({ error: "Invalid or expired token" });
+  if (
+    process.env.DOM_CANARY_SECRET &&
+    token === process.env.DOM_CANARY_SECRET
+  ) {
+    actor = {
+      id: "dom-canary",
+      email: "dom-canary@autolister.app",
+    };
+  } else {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    actor = {
+      id: user.id,
+      email: user.email,
+    };
   }
 
   const body = req.body || {};
@@ -105,8 +127,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     endpoint: "/api/dom-canary",
     requestMethod: req.method || "POST",
     responseStatus: 202,
-    userId: user.id,
-    userEmail: user.email,
+    userId: actor.id,
+    userEmail: actor.email,
     fullRequestBody: body,
     suspiciousActivity: failed,
     flaggedReason: failed
@@ -124,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!process.env.RESEND_API_KEY) {
     console.error("DOM canary failed, but RESEND_API_KEY is not configured", {
-      userId: user.id,
+      userId: actor.id,
       url,
       result,
     });
@@ -140,7 +162,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         <h2>Vinted field injection canary failed</h2>
         <p><strong>Check:</strong> ${escapeHtml(check)}</p>
         <p><strong>Occurred:</strong> ${escapeHtml(occurredAt)}</p>
-        <p><strong>User:</strong> ${escapeHtml(user.email || user.id)}</p>
+        <p><strong>User:</strong> ${escapeHtml(actor.email || actor.id)}</p>
         <p><strong>Extension version:</strong> ${escapeHtml(extensionVersion)}</p>
         <p><strong>URL:</strong> ${escapeHtml(url)}</p>
         <p><strong>Path:</strong> ${escapeHtml(path)}</p>
@@ -153,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "Vinted field injection canary failed",
         `Check: ${check}`,
         `Occurred: ${occurredAt}`,
-        `User: ${user.email || user.id}`,
+        `User: ${actor.email || actor.id}`,
         `Extension version: ${extensionVersion}`,
         `URL: ${url}`,
         `Path: ${path}`,

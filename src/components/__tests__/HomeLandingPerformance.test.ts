@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const source = readFileSync(join(__dirname, "../HomeLanding.astro"), "utf8");
+const source = readFileSync(
+  join(process.cwd(), "src/components/HomeLanding.astro"),
+  "utf8",
+);
 const publicStatsTag =
   source.match(/<div\s+data-public-stats[\s\S]*?>/)?.[0] || "";
 

@@ -556,10 +556,7 @@ export class RateLimiter {
         : 0;
     const paidCreditBurstLimit =
       pricingLimitsMode === "current" && tierKey === "free"
-        ? Math.max(
-            0,
-            freeRemaining + Math.max(0, profile.pack_credits || 0),
-          )
+        ? Math.max(0, freeRemaining + Math.max(0, profile.pack_credits || 0))
         : 0;
     const burstLimit = Math.max(
       tierConfig.limits.burst.perMinute,

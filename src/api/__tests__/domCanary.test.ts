@@ -99,12 +99,12 @@ describe("DOM canary endpoint", () => {
       expect.objectContaining({
         endpoint: "/api/dom-canary",
         responseStatus: 202,
-        userId: "dom-canary",
         userEmail: "dom-canary@autolister.app",
         suspiciousActivity: false,
         flaggedReason: "DOM canary passed",
       }),
     );
+    expect(logRequestMock.mock.calls[0][0].userId).toBeUndefined();
   });
 
   it("rejects an invalid token when it is not a Supabase user token", async () => {

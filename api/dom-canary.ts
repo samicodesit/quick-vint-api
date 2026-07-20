@@ -27,7 +27,7 @@ const cors = Cors({
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 type CanaryActor = {
-  id: string;
+  id?: string;
   email?: string;
 };
 
@@ -79,7 +79,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     token === process.env.DOM_CANARY_SECRET
   ) {
     actor = {
-      id: "dom-canary",
       email: "dom-canary@autolister.app",
     };
   } else {

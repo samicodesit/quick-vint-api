@@ -11,7 +11,7 @@ import {
 import { FREE_LIFETIME_LIMIT } from "../../utils/tierConfig";
 
 const vintedOriginPattern =
-  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
+  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
 const chromeExtensionOriginPattern = /^chrome-extension:\/\/[a-p]{32}$/;
 
 const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";

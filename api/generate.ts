@@ -53,7 +53,7 @@ const DEBUG_IMAGE_MAX_COUNT = 8;
 const DEBUG_IMAGE_MAX_BYTES = 1_500_000;
 // allow vinted page origins (so extension fetch from page context works)
 const vintedOriginPattern =
-  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
+  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
 
 const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
 const ALLOWED_ORIGINS = rawOrigins

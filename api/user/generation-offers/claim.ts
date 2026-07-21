@@ -5,7 +5,7 @@ import { claimGenerationOffer } from "../../../utils/generationOffers";
 import { reportCriticalEndpointFailure } from "../../../utils/criticalEndpointAlert";
 
 const vintedOriginPattern =
-  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
+  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
 
 const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
 const ALLOWED_ORIGINS = rawOrigins

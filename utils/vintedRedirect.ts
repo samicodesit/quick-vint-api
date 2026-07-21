@@ -21,6 +21,7 @@ export const VINTED_DOMAINS = {
   // North America
   US: "vinted.com",
   CA: "vinted.ca",
+  AU: "vinted.com.au",
 
   // Default fallback
   DEFAULT: "vinted.com",
@@ -82,6 +83,11 @@ export function detectUserCountryAndGetVintedUrl(): string {
         "America/Chicago": "US",
         "America/Toronto": "CA",
         "America/Vancouver": "CA",
+        "Australia/Sydney": "AU",
+        "Australia/Melbourne": "AU",
+        "Australia/Brisbane": "AU",
+        "Australia/Adelaide": "AU",
+        "Australia/Perth": "AU",
       };
       countryCode = timezoneToCountry[timezone];
     } catch {

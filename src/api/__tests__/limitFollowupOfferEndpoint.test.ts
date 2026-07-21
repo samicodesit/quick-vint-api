@@ -127,6 +127,9 @@ describe("limit follow-up on-page offer endpoint", () => {
       handlerModule.isAllowedLimitFollowupOrigin("https://www.vinted.nl"),
     ).toBe(true);
     expect(
+      handlerModule.isAllowedLimitFollowupOrigin("https://www.vinted.com.au"),
+    ).toBe(true);
+    expect(
       handlerModule.isAllowedLimitFollowupOrigin("https://evil.example"),
     ).toBe(false);
   });

@@ -2,7 +2,7 @@ import Cors from "cors";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const vintedOriginPattern =
-  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|co\.[a-z]{2})$/;
+  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
 
 const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
 const allowedOrigins = rawOrigins

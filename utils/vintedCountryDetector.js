@@ -20,6 +20,7 @@ export class VintedCountryDetector {
     PT: "vinted.pt",
     US: "vinted.com",
     CA: "vinted.ca",
+    AU: "vinted.com.au",
     DEFAULT: "vinted.com",
   };
 
@@ -52,6 +53,12 @@ export class VintedCountryDetector {
     "America/Montreal": "CA",
     "America/Halifax": "CA",
     "America/Winnipeg": "CA",
+
+    "Australia/Sydney": "AU",
+    "Australia/Melbourne": "AU",
+    "Australia/Brisbane": "AU",
+    "Australia/Adelaide": "AU",
+    "Australia/Perth": "AU",
   };
 
   /**

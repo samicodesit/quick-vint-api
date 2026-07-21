@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
+import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
 import {
   FREE_LIFETIME_LIMIT,
@@ -29,6 +30,9 @@ import {
 } from "../../utils/limitFollowupEligibility";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {})
+  : null;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- AUTH with ADMIN_SECRET ---
@@ -61,6 +65,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleListUsers(req, res);
     } else if (action === "user-journey") {
       return handleUserJourney(req, res);
+    } else if (action === "billing-inspect") {
+      return handleBillingInspect(req, res);
     } else if (action === "list-templates") {
       return handleListTemplates(req, res);
     } else if (action === "preview-template") {
@@ -77,6 +83,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleResetUsage(req, res);
     } else if (action === "set-account-status") {
       return handleSetAccountStatus(req, res);
+    } else if (action === "billing-cancel") {
+      return handleBillingCancel(req, res);
     } else if (action === "send-campaign") {
       return handleSendCampaign(req, res);
     } else if (action === "send-limit-followup") {
@@ -151,6 +159,64 @@ const JOURNEY_EVENT_LOG_SELECT =
 
 const JOURNEY_COMPACT_LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, generated_description, response_status, created_at";
+
+const BILLING_PROFILE_SELECT =
+  "id, email, subscription_tier, subscription_status, current_period_end, stripe_customer_id, stripe_subscription_id";
+
+type BillingProfileRow = {
+  id: string;
+  email: string | null;
+  subscription_tier: string | null;
+  subscription_status: string | null;
+  current_period_end: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+};
+
+const BILLING_ACTIVE_SUBSCRIPTION_STATUSES = new Set([
+  "active",
+  "trialing",
+  "past_due",
+  "unpaid",
+  "incomplete",
+]);
+
+function normalizeBillingEmail(value: unknown) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getStripeId(value: string | { id?: string } | null | undefined) {
+  return typeof value === "string" ? value : value?.id || "";
+}
+
+function serializeInvoice(invoice: Stripe.Invoice) {
+  return {
+    id: invoice.id,
+    status: invoice.status,
+    amount_due: invoice.amount_due,
+    amount_remaining: invoice.amount_remaining,
+    currency: invoice.currency,
+    attempt_count: invoice.attempt_count,
+    next_payment_attempt: invoice.next_payment_attempt || null,
+  };
+}
+
+function serializeSubscription(subscription: Stripe.Subscription) {
+  return {
+    id: subscription.id,
+    status: subscription.status,
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    cancel_at: subscription.cancel_at || null,
+    canceled_at: subscription.canceled_at || null,
+    current_period_end:
+      (subscription as any).current_period_end ||
+      (subscription as any).items?.data?.[0]?.current_period_end ||
+      null,
+    customer: getStripeId(subscription.customer),
+  };
+}
 
 function getQueryString(
   value: string | string[] | undefined,
@@ -2329,6 +2395,192 @@ async function handleSetAccountStatus(req: VercelRequest, res: VercelResponse) {
       message: status === "paused" ? "Account paused" : "Account unpaused",
     });
   } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function getBillingProfile(email: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(BILLING_PROFILE_SELECT)
+    .ilike("email", email)
+    .limit(1);
+
+  if (error) throw error;
+  return ((data || [])[0] || null) as BillingProfileRow | null;
+}
+
+async function findStripeBilling(
+  profile: BillingProfileRow | null,
+  email: string,
+) {
+  if (!stripe) throw new Error("Stripe is not configured.");
+
+  const normalizedEmail = normalizeBillingEmail(email);
+  const customerIds = new Set<string>();
+  const subscriptions = new Map<string, Stripe.Subscription>();
+
+  if (profile?.stripe_customer_id) customerIds.add(profile.stripe_customer_id);
+
+  const customers = await stripe.customers.list({
+    email: normalizedEmail,
+    limit: 100,
+  });
+
+  for (const customer of customers.data) {
+    if (normalizeBillingEmail(customer.email) === normalizedEmail) {
+      customerIds.add(customer.id);
+    }
+  }
+
+  if (profile?.stripe_subscription_id) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(
+        profile.stripe_subscription_id,
+      );
+      subscriptions.set(subscription.id, subscription);
+      const customerId = getStripeId(subscription.customer);
+      if (customerId) customerIds.add(customerId);
+    } catch (error: any) {
+      if (error?.code !== "resource_missing") throw error;
+    }
+  }
+
+  for (const customerId of customerIds) {
+    const listed = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 100,
+    });
+    for (const subscription of listed.data) {
+      subscriptions.set(subscription.id, subscription);
+    }
+  }
+
+  const invoices: Stripe.Invoice[] = [];
+  for (const customerId of customerIds) {
+    const listed = await stripe.invoices.list({
+      customer: customerId,
+      limit: 100,
+    });
+    invoices.push(...listed.data);
+  }
+
+  return {
+    customer_ids: Array.from(customerIds),
+    subscriptions: Array.from(subscriptions.values()),
+    invoices,
+  };
+}
+
+function summarizeBilling(
+  profile: BillingProfileRow | null,
+  billing: Awaited<ReturnType<typeof findStripeBilling>>,
+) {
+  const subscriptions = billing.subscriptions.map(serializeSubscription);
+  const invoices = billing.invoices.map(serializeInvoice);
+  const collectibleInvoices = invoices.filter(
+    (invoice) =>
+      invoice.status === "open" && Number(invoice.amount_remaining || 0) > 0,
+  );
+  const activeLikeSubscriptions = subscriptions.filter((subscription) =>
+    BILLING_ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status),
+  );
+
+  return {
+    profile,
+    stripe: {
+      customer_ids: billing.customer_ids,
+      subscriptions,
+      invoices,
+      active_like_subscription_count: activeLikeSubscriptions.length,
+      collectible_invoice_count: collectibleInvoices.length,
+      collectible_amount_remaining: collectibleInvoices.reduce(
+        (total, invoice) => total + Number(invoice.amount_remaining || 0),
+        0,
+      ),
+    },
+  };
+}
+
+async function handleBillingInspect(req: VercelRequest, res: VercelResponse) {
+  try {
+    const email = normalizeBillingEmail(getQueryString(req.query.email));
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ error: "Valid email is required" });
+    }
+    if (!stripe) return res.status(500).json({ error: "Stripe unavailable" });
+
+    const profile = await getBillingProfile(email);
+    const billing = await findStripeBilling(profile, email);
+
+    return res.status(200).json(summarizeBilling(profile, billing));
+  } catch (error: any) {
+    console.error("Error inspecting billing:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function handleBillingCancel(req: VercelRequest, res: VercelResponse) {
+  try {
+    const email = normalizeBillingEmail(req.body?.email);
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ error: "Valid email is required" });
+    }
+    if (!stripe) return res.status(500).json({ error: "Stripe unavailable" });
+
+    const profile = await getBillingProfile(email);
+    const before = await findStripeBilling(profile, email);
+    const canceledSubscriptions: string[] = [];
+    const voidedInvoices: string[] = [];
+
+    for (const subscription of before.subscriptions) {
+      if (!BILLING_ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
+        continue;
+      }
+      await stripe.subscriptions.cancel(subscription.id);
+      canceledSubscriptions.push(subscription.id);
+    }
+
+    for (const invoice of before.invoices) {
+      const invoiceId = invoice.id;
+      if (
+        !invoiceId ||
+        invoice.status !== "open" ||
+        Number(invoice.amount_remaining) <= 0
+      ) {
+        continue;
+      }
+      await stripe.invoices.voidInvoice(invoiceId);
+      voidedInvoices.push(invoiceId);
+    }
+
+    if (profile?.id) {
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          subscription_status: "canceled",
+          subscription_tier: "free",
+          current_period_end: null,
+          stripe_subscription_id: null,
+        })
+        .eq("id", profile.id);
+
+      if (updateError) throw updateError;
+    }
+
+    const refreshedProfile = await getBillingProfile(email);
+    const after = await findStripeBilling(refreshedProfile, email);
+
+    return res.status(200).json({
+      success: true,
+      canceledSubscriptions,
+      voidedInvoices,
+      before: summarizeBilling(profile, before),
+      after: summarizeBilling(refreshedProfile, after),
+    });
+  } catch (error: any) {
+    console.error("Error canceling billing:", error);
     return res.status(500).json({ error: error.message });
   }
 }

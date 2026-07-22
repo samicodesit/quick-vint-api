@@ -149,4 +149,49 @@ describe("limit follow-up eligibility", () => {
 
     expect(recipients).toEqual([]);
   });
+
+  it("excludes active subscribers even when their tier is stale", async () => {
+    queueSupabaseResults([
+      {
+        data: [
+          {
+            user_id: "user-1",
+            user_email: "subscriber@example.com",
+            endpoint: "/event/generate_limit_hit",
+            full_request_body: {
+              event: "generate_limit_hit",
+              context: { code: "free_lifetime_limit", limit: 5, used: 5 },
+            },
+            created_at: "2026-07-07T11:00:00.000Z",
+          },
+        ],
+        error: null,
+      },
+      { data: [], error: null },
+      { data: [], error: null },
+      {
+        data: [
+          {
+            id: "user-1",
+            email: "subscriber@example.com",
+            subscription_status: "active",
+            subscription_tier: "free",
+            email_subscribed: true,
+            unsubscribe_token: "unsub-1",
+            pack_credits: 0,
+          },
+        ],
+        error: null,
+      },
+    ]);
+
+    const recipients = await findLimitFollowupRecipients({
+      sinceHours: 168,
+      minDelayMinutes: 0,
+      excludedEmails: new Set(),
+      excludedUserIds: new Set(),
+    });
+
+    expect(recipients).toEqual([]);
+  });
 });

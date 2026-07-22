@@ -293,11 +293,7 @@ export async function findLimitFollowupRecipients({
         return false;
       }
       if (blockedUserIds.has(profile.id)) return false;
-      return !(
-        hasPaidEntitlementStatus(profile.subscription_status) &&
-        profile.subscription_tier &&
-        profile.subscription_tier !== "free"
-      );
+      return !hasPaidEntitlementStatus(profile.subscription_status);
     })
     .map((profile) => ({
       id: profile.id,

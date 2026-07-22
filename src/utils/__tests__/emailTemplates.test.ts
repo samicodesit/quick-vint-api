@@ -99,6 +99,9 @@ describe("email templates", () => {
     expect(TEMPLATES.business_welcome_v1.body).toContain(
       "600 listings per month",
     );
+    expect(TEMPLATES.business_welcome_v1.body).toContain(
+      "Custom limits are also available",
+    );
     expect(TEMPLATES.business_welcome_v1.body).toContain("phone upload");
     expect(TEMPLATES.business_welcome_v1.body).toContain("batch upload");
     expect(TEMPLATES.business_welcome_v1.body).toContain(

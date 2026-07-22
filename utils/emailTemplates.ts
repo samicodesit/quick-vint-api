@@ -478,6 +478,9 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
                 <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">phone upload, batch upload, reusable seller notes, and dedicated support.</td>
               </tr>
               <tr>
+                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">Custom limits are also available if your shop needs more volume.</td>
+              </tr>
+              <tr>
                 <td valign="top" style="padding: 0; font-size: 15px; line-height: 1.55; color: #4b5563;">More room for high-volume selling, with everything still editable before publishing.</td>
               </tr>
             </table>

@@ -28,6 +28,7 @@ import {
   getAllLimitFollowupExclusions,
   normalizeEmailForCampaign,
 } from "../../utils/limitFollowupEligibility";
+import { logAdminBillingAction } from "../../utils/billingEvents";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -67,6 +68,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleUserJourney(req, res);
     } else if (action === "billing-inspect") {
       return handleBillingInspect(req, res);
+    } else if (action === "billing-events") {
+      return handleBillingEvents(req, res);
     } else if (action === "list-templates") {
       return handleListTemplates(req, res);
     } else if (action === "preview-template") {
@@ -2513,10 +2516,63 @@ async function handleBillingInspect(req: VercelRequest, res: VercelResponse) {
 
     const profile = await getBillingProfile(email);
     const billing = await findStripeBilling(profile, email);
+    const summary = summarizeBilling(profile, billing);
 
-    return res.status(200).json(summarizeBilling(profile, billing));
+    await logAdminBillingAction({
+      action: "inspect",
+      profileId: profile?.id || null,
+      email,
+      stripeCustomerId: summary.stripe.customer_ids[0] || null,
+      before: null,
+      after: summary.stripe,
+    });
+
+    return res.status(200).json(summary);
   } catch (error: any) {
     console.error("Error inspecting billing:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function handleBillingEvents(req: VercelRequest, res: VercelResponse) {
+  try {
+    const email = normalizeBillingEmail(getQueryString(req.query.email));
+    const userId = (getQueryString(req.query.user_id) || "").trim();
+    const stripeCustomerId = (
+      getQueryString(req.query.stripe_customer_id) || ""
+    ).trim();
+    const stripeSubscriptionId = (
+      getQueryString(req.query.stripe_subscription_id) || ""
+    ).trim();
+    const limit = parsePositiveInt(req.query.limit, 100, 200);
+
+    if (!email && !userId && !stripeCustomerId && !stripeSubscriptionId) {
+      return res.status(400).json({
+        error:
+          "email, user_id, stripe_customer_id, or stripe_subscription_id is required",
+      });
+    }
+
+    let query = supabase
+      .from("billing_events")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (email) query = query.ilike("user_email", email);
+    if (userId) query = query.eq("user_id", userId);
+    if (stripeCustomerId)
+      query = query.eq("stripe_customer_id", stripeCustomerId);
+    if (stripeSubscriptionId) {
+      query = query.eq("stripe_subscription_id", stripeSubscriptionId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return res.status(200).json({ events: data || [] });
+  } catch (error: any) {
+    console.error("Error loading billing events:", error);
     return res.status(500).json({ error: error.message });
   }
 }
@@ -2571,13 +2627,27 @@ async function handleBillingCancel(req: VercelRequest, res: VercelResponse) {
 
     const refreshedProfile = await getBillingProfile(email);
     const after = await findStripeBilling(refreshedProfile, email);
+    const beforeSummary = summarizeBilling(profile, before);
+    const afterSummary = summarizeBilling(refreshedProfile, after);
+
+    await logAdminBillingAction({
+      action: "cancel",
+      profileId: refreshedProfile?.id || profile?.id || null,
+      email,
+      stripeCustomerId: afterSummary.stripe.customer_ids[0] || null,
+      stripeSubscriptionId: canceledSubscriptions[0] || null,
+      stripeInvoiceId: voidedInvoices[0] || null,
+      before: beforeSummary.stripe,
+      after: afterSummary.stripe,
+      metadata: { canceledSubscriptions, voidedInvoices },
+    });
 
     return res.status(200).json({
       success: true,
       canceledSubscriptions,
       voidedInvoices,
-      before: summarizeBilling(profile, before),
-      after: summarizeBilling(refreshedProfile, after),
+      before: beforeSummary,
+      after: afterSummary,
     });
   } catch (error: any) {
     console.error("Error canceling billing:", error);

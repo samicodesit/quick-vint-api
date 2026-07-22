@@ -13,12 +13,25 @@ import { buildSubscriptionProfileUpdate } from "../../src/utils/subscriptionUsag
 import { mapStripeSubscriptionStatusForProfile } from "../../src/utils/subscriptionStatus";
 import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import { logStripeBillingEvent } from "../../utils/billingEvents";
 
 export const config = { api: { bodyParser: false } };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
+const AUDITED_STRIPE_EVENT_TYPES = new Set([
+  "checkout.session.completed",
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "invoice.created",
+  "invoice.finalized",
+  "invoice.payment_failed",
+  "invoice.payment_succeeded",
+  "invoice.voided",
+  "invoice.marked_uncollectible",
+]);
 
 function buildCustomBusinessLimitUpdate(
   priceId: string | undefined,
@@ -47,6 +60,20 @@ function getSubscriptionCurrentPeriodEnd(subscription: any): string | null {
     : null;
 }
 
+async function logWebhookBillingEvent(event: Stripe.Event) {
+  if (!AUDITED_STRIPE_EVENT_TYPES.has(event.type)) return;
+
+  const object = event.data.object as any;
+  await logStripeBillingEvent({
+    event,
+    email:
+      object?.customer_details?.email ||
+      object?.customer_email ||
+      object?.email ||
+      null,
+  });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).end("Method Not Allowed");
@@ -67,6 +94,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 2) Handle event types
   try {
+    try {
+      await logWebhookBillingEvent(event);
+    } catch (auditError) {
+      console.error("Failed to audit Stripe billing event:", auditError);
+    }
+
     switch (event.type) {
       case "checkout.session.completed": {
         console.log("⏳ Handling checkout.session.completed");

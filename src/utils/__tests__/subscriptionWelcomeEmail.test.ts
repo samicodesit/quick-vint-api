@@ -1,10 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const rpcMock = vi.fn();
-const updateMock = vi.fn();
-const eqMock = vi.fn();
+const fromMock = vi.fn();
 const sendMock = vi.fn();
 const logRequestMock = vi.fn();
+const singleResponses: Array<{ data: unknown; error: unknown }> = [];
+const insertCalls: unknown[] = [];
+const updateCalls: unknown[] = [];
+
+function queueSingle(response: { data: unknown; error: unknown }) {
+  singleResponses.push(response);
+}
+
+function createSupabaseBuilder() {
+  const builder = {
+    insert: vi.fn((values: unknown) => {
+      insertCalls.push(values);
+      return builder;
+    }),
+    update: vi.fn((values: unknown) => {
+      updateCalls.push(values);
+      return builder;
+    }),
+    select: vi.fn(() => builder),
+    eq: vi.fn(() => builder),
+    neq: vi.fn(() => builder),
+    or: vi.fn(() => builder),
+    single: vi.fn(async () => {
+      const response = singleResponses.shift();
+      if (!response) throw new Error("Unexpected Supabase single call");
+      return response;
+    }),
+    then: vi.fn((resolve, reject) =>
+      Promise.resolve({ data: null, error: null }).then(resolve, reject),
+    ),
+  };
+
+  return builder;
+}
 
 vi.mock("resend", () => ({
   Resend: vi.fn(function () {
@@ -18,10 +50,7 @@ vi.mock("resend", () => ({
 
 vi.mock("../../../utils/supabaseClient", () => ({
   supabase: {
-    rpc: rpcMock,
-    from: vi.fn(() => ({
-      update: updateMock,
-    })),
+    from: fromMock,
   },
 }));
 
@@ -34,21 +63,20 @@ vi.mock("../../../utils/apiLogger", () => ({
 describe("subscription welcome email sender", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    singleResponses.length = 0;
+    insertCalls.length = 0;
+    updateCalls.length = 0;
     process.env.RESEND_API_KEY = "resend-key";
-    eqMock.mockResolvedValue({ data: null, error: null });
-    updateMock.mockReturnValue({ eq: eqMock });
+    fromMock.mockImplementation(() => createSupabaseBuilder());
     sendMock.mockResolvedValue({ data: { id: "email_123" }, error: null });
   });
 
   it("sends a plan welcome email when the database grants the once-only claim", async () => {
-    rpcMock.mockResolvedValue({
-      data: [
-        {
-          id: "welcome_123",
-          should_send: true,
-          idempotency_key: "subscription-welcome/sub_123/starter_welcome_v1",
-        },
-      ],
+    queueSingle({
+      data: {
+        id: "welcome_123",
+        idempotency_key: "subscription-welcome/sub_123/starter_welcome_v1",
+      },
       error: null,
     });
 
@@ -64,6 +92,19 @@ describe("subscription welcome email sender", () => {
     });
 
     expect(result).toEqual({ status: "sent", resendEmailId: "email_123" });
+    expect(insertCalls[0]).toEqual(
+      expect.objectContaining({
+        user_id: "profile_123",
+        email: "seller@example.com",
+        tier: "starter",
+        template_key: "starter_welcome_v1",
+        stripe_subscription_id: "sub_123",
+        stripe_checkout_session_id: "cs_123",
+        idempotency_key: "subscription-welcome/sub_123/starter_welcome_v1",
+        status: "sending",
+        attempts: 1,
+      }),
+    );
     expect(sendMock).toHaveBeenCalledWith(
       expect.objectContaining({
         from: "AutoLister AI <updates@autolister.app>",
@@ -75,7 +116,7 @@ describe("subscription welcome email sender", () => {
         idempotencyKey: "subscription-welcome/sub_123/starter_welcome_v1",
       },
     );
-    expect(updateMock).toHaveBeenCalledWith(
+    expect(updateCalls[0]).toEqual(
       expect.objectContaining({
         status: "sent",
         resend_email_id: "email_123",
@@ -92,14 +133,18 @@ describe("subscription welcome email sender", () => {
   });
 
   it("does not send when the subscription welcome email was already claimed", async () => {
-    rpcMock.mockResolvedValue({
-      data: [
-        {
-          id: "welcome_123",
-          should_send: false,
-          idempotency_key: "subscription-welcome/sub_123/starter_welcome_v1",
-        },
-      ],
+    queueSingle({
+      data: null,
+      error: { code: "23505" },
+    });
+    queueSingle({
+      data: {
+        id: "welcome_123",
+        idempotency_key: "subscription-welcome/sub_123/starter_welcome_v1",
+        status: "sent",
+        locked_until: null,
+        attempts: 1,
+      },
       error: null,
     });
 
@@ -119,14 +164,11 @@ describe("subscription welcome email sender", () => {
   });
 
   it("marks the claim failed when Resend rejects the send", async () => {
-    rpcMock.mockResolvedValue({
-      data: [
-        {
-          id: "welcome_123",
-          should_send: true,
-          idempotency_key: "subscription-welcome/sub_123/pro_welcome_v1",
-        },
-      ],
+    queueSingle({
+      data: {
+        id: "welcome_123",
+        idempotency_key: "subscription-welcome/sub_123/pro_welcome_v1",
+      },
       error: null,
     });
     sendMock.mockResolvedValue({
@@ -146,7 +188,7 @@ describe("subscription welcome email sender", () => {
     });
 
     expect(result).toEqual({ status: "failed", error: "Resend down" });
-    expect(updateMock).toHaveBeenCalledWith(
+    expect(updateCalls[0]).toEqual(
       expect.objectContaining({
         status: "failed",
         last_error: "Resend down",

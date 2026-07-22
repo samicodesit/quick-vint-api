@@ -7,8 +7,10 @@ type PaidTier = "starter" | "pro" | "business";
 
 type WelcomeClaim = {
   id: string;
-  should_send: boolean;
   idempotency_key: string;
+  status?: string;
+  locked_until?: string | null;
+  attempts?: number | null;
 };
 
 type SendInput = {
@@ -40,6 +42,10 @@ function nextAttemptIso() {
   return new Date(Date.now() + 15 * 60 * 1000).toISOString();
 }
 
+function lockUntilIso() {
+  return new Date(Date.now() + 10 * 60 * 1000).toISOString();
+}
+
 async function markWelcomeEmail(
   claimId: string,
   values: Record<string, unknown>,
@@ -54,6 +60,84 @@ async function markWelcomeEmail(
   }
 }
 
+async function reserveWelcomeEmailClaim(input: {
+  profileId: string;
+  email: string;
+  tier: PaidTier;
+  templateKey: string;
+  stripeSubscriptionId: string;
+  stripeCheckoutSessionId?: string | null;
+  idempotencyKey: string;
+}): Promise<WelcomeClaim | null> {
+  const nowIso = new Date().toISOString();
+  const lockedUntil = lockUntilIso();
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("subscription_welcome_emails")
+    .insert({
+      user_id: input.profileId,
+      email: input.email,
+      tier: input.tier,
+      template_key: input.templateKey,
+      stripe_subscription_id: input.stripeSubscriptionId,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId || null,
+      idempotency_key: input.idempotencyKey,
+      status: "sending",
+      attempts: 1,
+      locked_until: lockedUntil,
+      next_attempt_at: null,
+    })
+    .select("id,idempotency_key")
+    .single();
+
+  if (inserted) return inserted as WelcomeClaim;
+  if (!insertError) {
+    throw new Error("Failed to reserve subscription welcome email");
+  }
+  if (insertError.code !== "23505") throw insertError;
+
+  const { data: existing, error: selectError } = await supabase
+    .from("subscription_welcome_emails")
+    .select("id,idempotency_key,status,locked_until,attempts")
+    .eq("stripe_subscription_id", input.stripeSubscriptionId)
+    .eq("template_key", input.templateKey)
+    .single();
+
+  if (selectError) throw selectError;
+  const claim = existing as WelcomeClaim | null;
+  if (!claim || claim.status === "sent") return null;
+
+  if (
+    claim.status === "sending" &&
+    claim.locked_until &&
+    claim.locked_until > nowIso
+  ) {
+    return null;
+  }
+
+  const { data: reserved, error: reserveError } = await supabase
+    .from("subscription_welcome_emails")
+    .update({
+      status: "sending",
+      attempts: (claim.attempts || 0) + 1,
+      locked_until: lockedUntil,
+      next_attempt_at: null,
+      last_error: null,
+      updated_at: nowIso,
+    })
+    .eq("id", claim.id)
+    .neq("status", "sent")
+    .or(`locked_until.is.null,locked_until.lte.${nowIso}`)
+    .select("id,idempotency_key")
+    .single();
+
+  if (reserveError?.code && reserveError.code !== "PGRST116") {
+    throw reserveError;
+  }
+  if (!reserved) return null;
+  return reserved as WelcomeClaim;
+}
+
 export async function sendSubscriptionWelcomeEmailOnce(input: SendInput) {
   const tier = normalizeTier(input.tier);
   if (!tier) return { status: "skipped" as const };
@@ -65,25 +149,16 @@ export async function sendSubscriptionWelcomeEmailOnce(input: SendInput) {
   }
 
   const idempotencyKey = `subscription-welcome/${input.stripeSubscriptionId}/${templateKey}`;
-  const { data, error } = await supabase.rpc(
-    "reserve_subscription_welcome_email",
-    {
-      p_user_id: input.profileId,
-      p_email: input.email,
-      p_tier: tier,
-      p_template_key: templateKey,
-      p_stripe_subscription_id: input.stripeSubscriptionId,
-      p_stripe_checkout_session_id: input.stripeCheckoutSessionId || null,
-      p_idempotency_key: idempotencyKey,
-    },
-  );
-
-  if (error) throw error;
-
-  const claim = (Array.isArray(data) ? data[0] : data) as
-    | WelcomeClaim
-    | undefined;
-  if (!claim?.should_send) return { status: "skipped" as const };
+  const claim = await reserveWelcomeEmailClaim({
+    profileId: input.profileId,
+    email: input.email,
+    tier,
+    templateKey,
+    stripeSubscriptionId: input.stripeSubscriptionId,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    idempotencyKey,
+  });
+  if (!claim) return { status: "skipped" as const };
 
   try {
     const result = await resend.emails.send(

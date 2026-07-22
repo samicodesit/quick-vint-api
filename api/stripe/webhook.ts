@@ -14,6 +14,7 @@ import { mapStripeSubscriptionStatusForProfile } from "../../src/utils/subscript
 import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 import { logStripeBillingEvent } from "../../utils/billingEvents";
+import { sendSubscriptionWelcomeEmailOnce } from "../../utils/subscriptionWelcomeEmail";
 
 export const config = { api: { bodyParser: false } };
 
@@ -58,6 +59,37 @@ function getSubscriptionCurrentPeriodEnd(subscription: any): string | null {
   return typeof rawEnd === "number"
     ? new Date(rawEnd * 1000).toISOString()
     : null;
+}
+
+async function sendWelcomeForPaidSubscription(input: {
+  profileId: string;
+  email: string;
+  tier: string;
+  status: string;
+  stripeSubscriptionId: string;
+  stripeCheckoutSessionId?: string | null;
+}) {
+  if (
+    input.tier === "free" ||
+    !["active", "trialing", "canceling"].includes(input.status)
+  ) {
+    return;
+  }
+
+  try {
+    await sendSubscriptionWelcomeEmailOnce({
+      profileId: input.profileId,
+      email: input.email,
+      tier: input.tier,
+      stripeSubscriptionId: input.stripeSubscriptionId,
+      stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    });
+  } catch (welcomeError) {
+    console.error(
+      "Subscription welcome email scheduling failed:",
+      welcomeError,
+    );
+  }
 }
 
 async function logWebhookBillingEvent(event: Stripe.Event) {
@@ -227,6 +259,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .update(updateData)
               .eq("id", profileRow.id);
 
+            await sendWelcomeForPaidSubscription({
+              profileId: profileRow.id,
+              email,
+              tier,
+              status,
+              stripeSubscriptionId: subscription.id,
+              stripeCheckoutSessionId: session.id,
+            });
+
             await ApiLogger.logRequest({
               userId: profileRow.id,
               userEmail: email,
@@ -273,19 +314,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // 1) Try find profile by stripe_customer_id
         let { data: profileRow } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id,email")
           .eq("stripe_customer_id", customerId)
           .single();
 
         // 2) Fallback: match by email if no customer_id found
+        let customerEmail: string | undefined;
         if (!profileRow) {
           const customer = await stripe.customers.retrieve(customerId);
           const custAny = customer as any;
           const email = custAny.email as string | undefined;
           if (email) {
+            customerEmail = email;
             const { data } = await supabase
               .from("profiles")
-              .select("id")
+              .select("id,email")
               .ilike("email", email)
               .single();
             profileRow = data as any;
@@ -323,6 +366,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .from("profiles")
             .update(updateData)
             .eq("id", profileRow.id);
+
+          const email = (profileRow as any).email || customerEmail;
+          if (event.type === "customer.subscription.created" && email) {
+            await sendWelcomeForPaidSubscription({
+              profileId: profileRow.id,
+              email,
+              tier,
+              status,
+              stripeSubscriptionId: subAny.id,
+            });
+          }
         }
         break;
       }

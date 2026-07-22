@@ -7,6 +7,7 @@ const retrieveSubscriptionMock = vi.fn();
 const retrieveCustomerMock = vi.fn();
 const rpcMock = vi.fn();
 const reportCriticalEndpointFailureMock = vi.fn();
+const sendSubscriptionWelcomeEmailOnceMock = vi.fn();
 const updateCalls: Array<{ table: string; values: Record<string, unknown> }> =
   [];
 const selectQueues = new Map<
@@ -81,6 +82,10 @@ vi.mock("../../../utils/criticalEndpointAlert", () => ({
   reportCriticalEndpointFailure: reportCriticalEndpointFailureMock,
 }));
 
+vi.mock("../../../utils/subscriptionWelcomeEmail", () => ({
+  sendSubscriptionWelcomeEmailOnce: sendSubscriptionWelcomeEmailOnceMock,
+}));
+
 function createResponse() {
   const res = {
     statusCode: 200,
@@ -127,6 +132,10 @@ describe("Stripe webhook subscription usage reset", () => {
     selectQueues.clear();
     vi.clearAllMocks();
     rpcMock.mockResolvedValue({ data: null, error: null });
+    sendSubscriptionWelcomeEmailOnceMock.mockResolvedValue({
+      status: "sent",
+      resendEmailId: "email_123",
+    });
   });
 
   it("resets monthly usage when checkout completion activates a free user", async () => {
@@ -186,6 +195,13 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(updateCalls[1].values.last_api_call_reset).toEqual(
       expect.any(String),
     );
+    expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledWith({
+      profileId: "profile_123",
+      email: "seller@example.com",
+      tier: "starter",
+      stripeSubscriptionId: "sub_new",
+      stripeCheckoutSessionId: undefined,
+    });
   });
 
   it("does not reset monthly usage for routine same-subscription updates", async () => {
@@ -236,6 +252,54 @@ describe("Stripe webhook subscription usage reset", () => {
       abuse_notes: null,
       paused_at: null,
       paused_by: null,
+    });
+    expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
+  });
+
+  it("sends a welcome email when Stripe creates a paid subscription", async () => {
+    constructEventMock.mockReturnValue({
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_created",
+          customer: "cus_123",
+          status: "active",
+          items: {
+            data: [
+              {
+                price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+                current_period_end: 1784592000,
+              },
+            ],
+          },
+        },
+      },
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+        is_legacy_plan: false,
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledWith({
+      profileId: "profile_123",
+      email: "seller@example.com",
+      tier: "starter",
+      stripeSubscriptionId: "sub_created",
+      stripeCheckoutSessionId: undefined,
     });
   });
 

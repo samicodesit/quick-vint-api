@@ -67,6 +67,7 @@ function usage() {
       "  --references <ids>     Optional References header. Defaults to --message-id.",
       "  --from <sender>        Defaults to support@autolister.app.",
       "  --bcc <recipient>      Optional BCC recipient.",
+      "  --dry-run              Print the payload without sending.",
     ].join("\n"),
   );
 }
@@ -80,7 +81,9 @@ function escapeHtml(value) {
 }
 
 function renderInlineText(lines) {
-  return escapeHtml(lines.join("\n")).replace(/\n/g, "<br />");
+  return escapeHtml(lines.join("\n"))
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br />");
 }
 
 function renderSupportBlock(content) {
@@ -97,6 +100,13 @@ function renderSupportBlock(content) {
         <tr>
           <td style="padding:28px 30px 30px;font-size:15px;line-height:1.65;color:#374151;">
             ${content}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 30px 28px;border-top:1px solid #eef0f3;text-align:center;font-size:12px;line-height:1.6;color:#8a93a3;">
+            <strong style="color:#6d42c7;">AutoLister AI</strong><br />
+            <a href="https://autolister.app" style="color:#8a93a3;text-decoration:underline;">autolister.app</a>
+            &nbsp;·&nbsp; Reply to this email if you need a hand
           </td>
         </tr>
       </table>
@@ -178,6 +188,7 @@ const text = requireArg("--text");
 const messageId = getArg("--message-id");
 const references = getArg("--references") || messageId;
 const bcc = getArg("--bcc");
+const dryRun = process.argv.includes("--dry-run");
 
 const payload = {
   from: getArg("--from", DEFAULT_FROM),
@@ -196,6 +207,11 @@ if (messageId || references) {
   payload.headers = {};
   if (messageId) payload.headers["In-Reply-To"] = messageId;
   if (references) payload.headers.References = references;
+}
+
+if (dryRun) {
+  console.log(JSON.stringify({ dryRun: true, payload }, null, 2));
+  process.exit(0);
 }
 
 const response = await fetch("https://api.resend.com/emails", {

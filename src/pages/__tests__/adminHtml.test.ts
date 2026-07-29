@@ -149,6 +149,7 @@ function buildAdminHarness() {
       {
         id: "user-1",
         email: "test@example.com",
+        ai_instructions: "Use persuasive copy.",
         email_can_contact: true,
         subscription_status: "active",
         subscription_tier: "starter",
@@ -313,6 +314,10 @@ function buildAdminHarness() {
   };
 
   const fetchCalls: string[] = [];
+  const fetchRequests: Array<{
+    url: string;
+    options: Record<string, unknown>;
+  }> = [];
   const context = {
     console,
     setTimeout(fn: () => void) {
@@ -371,9 +376,11 @@ function buildAdminHarness() {
       constructor() {}
     },
     fetchCalls,
-    fetch: async (endpoint: string) => {
+    fetchRequests,
+    fetch: async (endpoint: string, options: Record<string, unknown> = {}) => {
       const url = String(endpoint);
       fetchCalls.push(url);
+      fetchRequests.push({ url, options });
       let body: unknown = usage;
       if (url.includes("auth-check")) body = { ok: true };
       if (url.includes("list-users")) body = users;
@@ -383,6 +390,16 @@ function buildAdminHarness() {
         body = { log: logs.logs.find((log) => log.id === id) || logs.logs[0] };
       }
       if (url.includes("user-journey")) body = journey;
+      if (url.includes("set-ai-instructions")) {
+        const requestBody = JSON.parse(String(options.body || "{}"));
+        body = {
+          success: true,
+          aiInstructions: requestBody.aiInstructions.trim() || null,
+          message: requestBody.aiInstructions.trim()
+            ? "AI instructions saved"
+            : "AI instructions cleared",
+        };
+      }
       return { ok: true, json: async () => body };
     },
   };
@@ -409,9 +426,15 @@ function buildAdminHarness() {
         type?: string,
       ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
+      openAiInstructions: (userId: string) => void;
+      saveAiInstructions: (userId: string, clear?: boolean) => Promise<void>;
       renderLimitFollowupResult: (data: Record<string, unknown>) => void;
       switchView: (view: string, options?: Record<string, unknown>) => void;
       fetchCalls: string[];
+      fetchRequests: Array<{
+        url: string;
+        options: Record<string, unknown>;
+      }>;
       state: {
         currentView: string;
         logsType: string;
@@ -420,6 +443,7 @@ function buildAdminHarness() {
         logsRelatedUserId: string;
         logsRelatedEmail: string;
         limitFollowupExcludedCount: number | null;
+        currentUsers: Array<Record<string, unknown>>;
       };
     },
     content: el("contentArea"),
@@ -611,6 +635,49 @@ describe("admin HTML", () => {
         review_request_sent_at: "2026-07-08T00:00:00.000Z",
       }),
     ).not.toContain("Review email");
+  });
+
+  it("edits and clears account AI instructions from the users workbench", async () => {
+    const { context, modalBody, modalTitle } = buildAdminHarness();
+    const user = {
+      id: "user-1",
+      email: "seller@example.com",
+      ai_instructions: "Use <strong>persuasive</strong> copy.",
+      email_can_contact: true,
+      account_status: "active",
+      is_at_risk: false,
+    };
+    context.state.currentUsers = [user];
+
+    expect(context.renderUserActions(user)).toContain("AI style active");
+
+    context.openAiInstructions("user-1");
+    expect(modalTitle.textContent).toBe("AI style · seller@example.com");
+    expect(modalBody.innerHTML).toContain(
+      "Use &lt;strong&gt;persuasive&lt;/strong&gt; copy.",
+    );
+
+    const textarea = context.document.getElementById("aiInstructionsText");
+    textarea.value = "  Use an energetic sales voice.  ";
+    await context.saveAiInstructions("user-1");
+
+    const saveRequest = context.fetchRequests.find((request) =>
+      request.url.includes("set-ai-instructions"),
+    );
+    expect(JSON.parse(String(saveRequest?.options.body))).toEqual({
+      userId: "user-1",
+      aiInstructions: "  Use an energetic sales voice.  ",
+    });
+
+    textarea.value = "ignored while clearing";
+    await context.saveAiInstructions("user-1", true);
+    const clearRequest = context.fetchRequests
+      .filter((request) => request.url.includes("set-ai-instructions"))
+      .at(-1);
+    expect(JSON.parse(String(clearRequest?.options.body))).toEqual({
+      userId: "user-1",
+      aiInstructions: "",
+    });
   });
 
   it("shows only the limit follow-up exclusion count", async () => {

@@ -251,6 +251,85 @@ describe("/api/generate remote image handling", () => {
     );
   });
 
+  it("lets account instructions relax style without dropping factual safeguards", async () => {
+    profileSingle.mockResolvedValueOnce({
+      data: {
+        api_calls_this_month: 0,
+        subscription_status: "active",
+        subscription_tier: "pro",
+        last_api_call_reset: "2026-07-17",
+        is_legacy_plan: false,
+        free_lifetime_generations_used: 0,
+        pack_credits: 0,
+        account_status: "active",
+        abuse_reason: null,
+        ai_instructions:
+          "Use persuasive sales copy, subjective praise, urgency, and an audience-focused voice.",
+      },
+      error: null,
+    });
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "x-autolister-extension-version": "1.3.54",
+        },
+        body: {
+          imageUrls: ["data:image/jpeg;base64,abc"],
+          languageCode: "en",
+          titleLanguageCode: "en",
+          descriptionLanguageCode: "en",
+          tone: "friendly",
+          useEmojis: true,
+          useHashtags: true,
+          useBulletPoints: true,
+          descriptionLength: "long",
+          generationMode: "manual",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    const completionParams = createCompletion.mock.calls[0][0];
+    const systemPrompt = completionParams.messages[0].content;
+    const userPrompt = completionParams.messages[1].content[0].text;
+
+    expect(systemPrompt).toContain(
+      "Account-specific instructions may override default style and presentation rules",
+    );
+    expect(systemPrompt).toContain(
+      "marketing language, subjective praise, calls to action, audience framing",
+    );
+    expect(systemPrompt).toContain(
+      "They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract.",
+    );
+    expect(userPrompt).toContain(
+      "Build the listing only from visible or readable photo evidence.",
+    );
+    expect(userPrompt).toContain(
+      "Do not mention defects or negative condition details for now",
+    );
+    expect(userPrompt).toContain("Reply only in JSON");
+    expect(userPrompt).toContain("Account-specific behavior:");
+    expect(userPrompt).toContain(
+      "Use persuasive sales copy, subjective praise, urgency, and an audience-focused voice.",
+    );
+    expect(logRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fullRequestBody: expect.objectContaining({
+          hasCustomAiInstructions: true,
+          customAiInstructionsLength: 85,
+        }),
+      }),
+    );
+  });
+
   it("converts remote signed image URLs before sending images to OpenAI", async () => {
     const remoteImageUrl =
       "https://project.supabase.co/storage/v1/object/sign/temp-uploads/sess_1/000000-upload.jpg?token=abc";

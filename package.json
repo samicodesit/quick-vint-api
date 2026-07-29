@@ -32,11 +32,11 @@
   },
   "dependencies": {
     "@sentry/node": "^10.63.0",
-    "@supabase/supabase-js": "^2.49.8",
+    "@supabase/supabase-js": "^2.111.0",
     "busboy": "^1.6.0",
     "cors": "2.8.5",
     "micro": "^10.0.1",
-    "openai": "4.100.0",
+    "openai": "4.104.0",
     "resend": "^6.9.2",
     "stripe": "^18.2.0"
   },

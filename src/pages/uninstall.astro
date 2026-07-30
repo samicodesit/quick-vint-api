@@ -1347,6 +1347,7 @@ const copy = {
       }
 
       .think-fidget {
+        isolation: isolate;
         position: relative;
         padding: 16px;
         overflow: visible;
@@ -1355,13 +1356,16 @@ const copy = {
       .think-fidget::before {
         content: "";
         position: absolute;
-        inset: 0 0 auto;
-        height: 4px;
-        border-radius: 22px 22px 0 0;
-        background: linear-gradient(90deg, #06b6d4, #4f46e5);
+        inset: 0;
+        z-index: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: linear-gradient(90deg, #06b6d4, #4f46e5) top / 100% 4px no-repeat;
       }
 
       .fidget-top {
+        position: relative;
+        z-index: 1;
         display: flex;
         align-items: center;
         justify-content: space-between;

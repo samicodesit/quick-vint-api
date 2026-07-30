@@ -86,6 +86,8 @@ describe("uninstall page winback character", () => {
     expect(html).toContain("applyTier");
     expect(html).toContain("getInitialTier");
     expect(html).toContain("uninstall_offer_tier_selected");
+    expect(html).toContain("uninstall_fidget_interaction_summary");
+    expect(html).toContain("autolister:fidget-summary");
     expect(html).toContain("Average 5 seconds");
     expect(html).toContain("from photos to draft");
     expect(html).not.toContain("Title + description");

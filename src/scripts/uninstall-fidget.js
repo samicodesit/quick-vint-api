@@ -3,6 +3,7 @@ import "atropos/css";
 
 const stage = document.querySelector("[data-fidget-stage]");
 const moneyStage = document.querySelector(".money-stage");
+const loadedAt = performance.now();
 const sparkColors = [
   "#06b6d4",
   "#22c55e",
@@ -13,6 +14,18 @@ const sparkColors = [
 ];
 let lastSparkColor = "";
 let particleTimeout = 0;
+let summaryTimeout = 0;
+let activeStartedAt = 0;
+let firstInteractionAt = 0;
+let lastInteractionAt = 0;
+let summarySentAt = 0;
+let totalActiveMs = 0;
+let maxActiveMs = 0;
+let clickCount = 0;
+let dragCount = 0;
+let keyboardCount = 0;
+let moveCount = 0;
+let sparkCount = 0;
 
 function getRandomSparkColor() {
   const nextColors = sparkColors.filter((color) => color !== lastSparkColor);
@@ -75,6 +88,55 @@ function sparkBorder(event) {
   void stage.offsetWidth;
   stage.classList.add("is-sparking");
   createParticles(originX, originY, `${color}e8`);
+  sparkCount += 1;
+}
+
+function markInteraction() {
+  const now = performance.now();
+  firstInteractionAt ||= now;
+  lastInteractionAt = now;
+  window.clearTimeout(summaryTimeout);
+  summaryTimeout = window.setTimeout(
+    () => flushInteractionSummary("idle"),
+    4200,
+  );
+}
+
+function startActiveSession() {
+  markInteraction();
+  activeStartedAt ||= performance.now();
+}
+
+function endActiveSession() {
+  if (!activeStartedAt) return;
+
+  const duration = Math.max(0, performance.now() - activeStartedAt);
+  totalActiveMs += duration;
+  maxActiveMs = Math.max(maxActiveMs, duration);
+  activeStartedAt = 0;
+}
+
+function flushInteractionSummary(reason) {
+  if (!firstInteractionAt || summarySentAt === lastInteractionAt) return;
+
+  endActiveSession();
+  summarySentAt = lastInteractionAt;
+  window.dispatchEvent(
+    new CustomEvent("autolister:fidget-summary", {
+      detail: {
+        reason,
+        firstInteractionDelayMs: Math.round(firstInteractionAt - loadedAt),
+        lastInteractionAgoMs: Math.round(performance.now() - lastInteractionAt),
+        totalActiveMs: Math.round(totalActiveMs),
+        maxActiveMs: Math.round(maxActiveMs),
+        clickCount,
+        dragCount,
+        keyboardCount,
+        moveCount,
+        sparkCount,
+      },
+    }),
+  );
 }
 
 function initFidget() {
@@ -96,33 +158,59 @@ function initFidget() {
   stage.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      keyboardCount += 1;
+      markInteraction();
       sparkBorder();
       instance.enter();
       window.setTimeout(() => instance.leave(), 760);
     }
   });
 
-  stage.addEventListener("pointerenter", () =>
-    moneyStage?.classList.add("is-active"),
-  );
+  stage.addEventListener("pointerenter", () => {
+    moneyStage?.classList.add("is-active");
+    startActiveSession();
+  });
   stage.addEventListener("pointerleave", () => {
     moneyStage?.classList.remove("is-active");
     moneyStage?.classList.remove("is-grabbing");
+    endActiveSession();
+    markInteraction();
     instance.leave();
   });
   stage.addEventListener("pointerdown", () => {
     moneyStage?.classList.add("is-grabbing");
+    dragCount += 1;
+    startActiveSession();
+  });
+  stage.addEventListener("pointermove", () => {
+    if (!activeStartedAt) return;
+    moveCount += 1;
+    markInteraction();
   });
   stage.addEventListener("click", (event) => {
+    clickCount += 1;
+    markInteraction();
     sparkBorder(event);
   });
   stage.addEventListener("pointerup", () => {
     moneyStage?.classList.remove("is-grabbing");
+    markInteraction();
     instance.leave();
   });
   stage.addEventListener("pointercancel", () => {
     moneyStage?.classList.remove("is-grabbing");
+    endActiveSession();
+    markInteraction();
     instance.leave();
+  });
+
+  window.addEventListener("pagehide", () =>
+    flushInteractionSummary("pagehide"),
+  );
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      flushInteractionSummary("visibility_hidden");
+    }
   });
 }
 

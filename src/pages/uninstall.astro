@@ -2330,6 +2330,21 @@ const copy = {
         );
       });
 
+      window.addEventListener("autolister:fidget-summary", (event) => {
+        const detail =
+          event instanceof CustomEvent && event.detail && typeof event.detail === "object"
+            ? event.detail
+            : {};
+        trackEvent(
+          "uninstall_fidget_interaction_summary",
+          {
+            ...detail,
+            offerCampaign: "uninstall_winback_offer_v1",
+          },
+          { beacon: true },
+        );
+      });
+
       buttons.forEach((button) => {
         button.addEventListener("click", () => sendFeedback(button));
       });

@@ -2,6 +2,45 @@
 
 This repo is mostly operated by AI agents. Treat `main` as the production backend/site/admin branch.
 
+## Support Email Replies
+
+Use the support/Resend flow whenever the user asks to reply "via support
+template", "via support", "via Resend", "from support", or any equivalent
+wording.
+
+Gmail may be used to find and read the original customer email only. Do not use
+Gmail outbound tools for these requests, including `_send_email`, `_send_draft`,
+`_create_draft`, or `_update_draft`.
+
+Match the outbound AutoLister sender to the original AutoLister address the
+customer emailed. For example, if the customer wrote to `hello@autolister.app`,
+send from `AutoLister AI <hello@autolister.app>`. If they wrote to
+`support@autolister.app`, send from `AutoLister AI <support@autolister.app>`.
+
+The supported outbound path is:
+
+```bash
+npm run ops:support-reply -- --to user@example.com --subject "Re: ..." --text "..." --message-id "<original-rfc-message-id>" --from "AutoLister AI <original-inbound@autolister.app>"
+```
+
+Required flow:
+
+1. Read `scripts/send-support-reply.mjs` before sending and confirm it still
+   uses the support HTML template and defaults `reply_to` to the email address
+   in `--from`.
+2. Read the original email raw MIME and extract its RFC `Message-ID`, not the
+   Gmail message id.
+3. Run the support command with `--dry-run` first and inspect the generated
+   payload.
+4. Send only after the dry-run payload is correct and `RESEND_API_KEY` is
+   available.
+5. If `RESEND_API_KEY` is missing, stop and report the blocker. Do not fall back
+   to Gmail.
+6. Verify a support-template send only from the support script output/Resend
+   response. A Gmail sent item is not proof of a support-template send.
+7. If a reply was already sent through the wrong channel, do not send a second
+   support-template reply unless the user explicitly approves the duplicate.
+
 ## Deployment
 
 Vercel deploys from `main` automatically.

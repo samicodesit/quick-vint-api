@@ -2166,6 +2166,7 @@
             usersStatus: 'all',
             usersSort: 'created_desc',
             userSearchTimer: null,
+            currentUsers: [],
             limitFollowupExcludedCount: null,
             inflightRequests: {},
             isTransitioning: false
@@ -4059,6 +4060,7 @@
 
             const data = await fetchAPI(`/api/admin?${params}`);
             const users = data.users || [];
+            state.currentUsers = users;
             const pagination = data.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 };
             const segments = [
                 ['today', 'Today'],
@@ -4296,6 +4298,7 @@
             const userId = escapeAttribute(u.id);
             const encodedEmail = encodeURIComponent(u.email || '');
             const isPaused = u.account_status === 'paused';
+            const hasAiInstructions = Boolean(String(u.ai_instructions || '').trim());
             const reviewAlreadySent = Boolean(u.review_request_sent_at);
             const canSendReview = Boolean(u.email_can_contact && !isPaused);
             const reviewTitle = !u.email
@@ -4314,6 +4317,7 @@
                     <button class="btn-secondary" onclick="openLogsForUser('${userId}', '${encodedEmail}', 'all')">Logs</button>
                     <button class="btn-secondary" onclick="openCustomerUsagePage('${encodedEmail}')">Usage page</button>
                     ${reviewAlreadySent ? '' : `<button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>`}
+                    <button class="btn-secondary" onclick="openAiInstructions('${userId}')">${hasAiInstructions ? 'AI style active' : 'AI style'}</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
                         ? `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'active')">Unpause</button>`
@@ -4470,6 +4474,66 @@
             Object.keys(state.inflightRequests).forEach(key => {
                 if (!match || key.includes(match)) delete state.inflightRequests[key];
             });
+        }
+
+        function openAiInstructions(userId) {
+            const user = state.currentUsers.find(item => item.id === userId);
+            if (!user) {
+                showToast('User not found in the current view', 'error');
+                return;
+            }
+
+            const instructions = String(user.ai_instructions || '');
+            openModal(`AI style · ${user.email || user.id}`, `
+                <div style="display:grid; gap:0.75rem;">
+                    <p class="text-sm text-muted" style="margin:0;">Paste a concise, reviewed behavior instruction. It can change sales style and presentation, but generated product facts still stay grounded in the photos.</p>
+                    <textarea id="aiInstructionsText" class="filter-input" maxlength="1000" rows="8" style="width:100%; resize:vertical;" oninput="updateAiInstructionsCount(this.value.length)">${escapeHtml(instructions)}</textarea>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+                        <span id="aiInstructionsCount" class="text-sm text-muted">${instructions.length}/1000</span>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button class="btn-secondary" onclick="saveAiInstructions('${escapeAttribute(user.id)}', true)">Clear</button>
+                            <button class="btn-primary" onclick="saveAiInstructions('${escapeAttribute(user.id)}')">Save</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function updateAiInstructionsCount(length) {
+            const count = document.getElementById('aiInstructionsCount');
+            if (count) count.textContent = `${Number(length) || 0}/1000`;
+        }
+
+        async function saveAiInstructions(userId, clear = false) {
+            const textarea = document.getElementById('aiInstructionsText');
+            const aiInstructions = clear ? '' : textarea?.value || '';
+
+            try {
+                const res = await fetch('/api/admin?action=set-ai-instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.secret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, aiInstructions })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showToast(data.error || 'Failed to update AI instructions', 'error');
+                    return;
+                }
+
+                const user = state.currentUsers.find(item => item.id === userId);
+                if (user) user.ai_instructions = data.aiInstructions;
+                showToast(data.message || 'AI instructions updated');
+                closeModal();
+                invalidateAdminCache('action=list-users');
+                if (state.currentView === 'users') {
+                    await renderUsers(document.getElementById('contentArea'));
+                }
+            } catch (e) {
+                showToast('Connection failed', 'error');
+            }
         }
 
         async function resetUsage(userId) {

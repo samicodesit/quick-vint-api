@@ -7,7 +7,18 @@ const compactOldLogs = vi.fn(async () => ({
   batchSize: 500,
   compacted: 12,
 }));
-const storageList = vi.fn(async () => ({ data: [], error: null }));
+type StorageEntry = {
+  id: string | null;
+  name: string;
+  created_at: string | null;
+};
+const storageList = vi.fn(
+  async (): Promise<{ data: StorageEntry[]; error: null }> => ({
+    data: [],
+    error: null,
+  }),
+);
+const storageRemove = vi.fn(async () => ({ error: null }));
 
 vi.mock("../../../utils/rateLimiter", () => ({
   RateLimiter: {
@@ -26,7 +37,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
     storage: {
       from: vi.fn(() => ({
         list: storageList,
-        remove: vi.fn(async () => ({ error: null })),
+        remove: storageRemove,
       })),
     },
   },
@@ -84,5 +95,28 @@ describe("daily cleanup cron", () => {
       cutoffHours: 6,
       error: null,
     });
+  });
+
+  it("keeps storage entries that have no creation timestamp", async () => {
+    storageList
+      .mockResolvedValueOnce({
+        data: [
+          { id: "root-file", name: "root.jpg", created_at: null },
+          { id: null, name: "session", created_at: null },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: "nested-file", name: "nested.jpg", created_at: null }],
+        error: null,
+      });
+    const module = await import("../../../api/cron/daily-cleanup.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler({ headers: {} } as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(storageRemove).not.toHaveBeenCalled();
   });
 });

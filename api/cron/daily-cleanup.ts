@@ -67,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const folder of folders) {
         // If it's a file at root
         if (folder.id) {
+          if (!folder.created_at) continue;
           const age = now - new Date(folder.created_at).getTime();
           if (age > TEMP_UPLOAD_MAX_AGE_MS) {
             await supabase.storage
@@ -90,6 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const firstFile = files[0];
+        if (!firstFile.created_at) continue;
         const fileAge = now - new Date(firstFile.created_at).getTime();
 
         if (fileAge > TEMP_UPLOAD_MAX_AGE_MS) {

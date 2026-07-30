@@ -30,6 +30,7 @@ import {
   normalizeEmailForCampaign,
 } from "../../utils/limitFollowupEligibility";
 import { logAdminBillingAction } from "../../utils/billingEvents";
+import { validateAiInstructions } from "../../utils/aiInstructions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -87,6 +88,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleResetUsage(req, res);
     } else if (action === "set-account-status") {
       return handleSetAccountStatus(req, res);
+    } else if (action === "set-ai-instructions") {
+      return handleSetAiInstructions(req, res);
     } else if (action === "billing-cancel") {
       return handleBillingCancel(req, res);
     } else if (action === "send-campaign") {
@@ -137,6 +140,7 @@ type ProfileRow = {
   email_subscribed?: boolean | null;
   unsubscribe_token?: string | null;
   review_request_sent_at?: string | null;
+  ai_instructions?: string | null;
 };
 
 type RateLimitRow = {
@@ -147,7 +151,7 @@ type RateLimitRow = {
 };
 
 const PROFILE_SELECT =
-  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token, review_request_sent_at";
+  "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token, review_request_sent_at, ai_instructions";
 
 const LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
@@ -2662,6 +2666,40 @@ async function handleSetAccountStatus(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       message: status === "paused" ? "Account paused" : "Account unpaused",
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function handleSetAiInstructions(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  const { userId, aiInstructions } = req.body || {};
+  if (!userId || typeof userId !== "string") {
+    return res.status(400).json({ error: "Missing userId" });
+  }
+
+  const validation = validateAiInstructions(aiInstructions);
+  if (!validation.ok) {
+    return res.status(400).json({ error: validation.error });
+  }
+
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ ai_instructions: validation.text })
+      .eq("id", userId);
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+      aiInstructions: validation.text,
+      message: validation.text
+        ? "AI instructions saved"
+        : "AI instructions cleared",
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });

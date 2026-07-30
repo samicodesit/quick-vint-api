@@ -39,6 +39,7 @@ import {
 import { extractOpenAIRateLimitHeaders } from "../utils/openaiRateLimitHeaders";
 import { parseOpenAIListingOutput } from "../utils/openaiListingOutput";
 import { prepareOpenAIImageUrls } from "../utils/openaiImageUrls";
+import { validateAiInstructions } from "../utils/aiInstructions";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 import { shouldStoreDebugGenerationImages } from "../utils/debugGenerationImages";
 import messagesEn from "../messages/en.json";
@@ -261,7 +262,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason",
+      "api_calls_this_month, subscription_status, subscription_tier, last_api_call_reset, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, ai_instructions",
     )
     .eq("id", user.id)
     .single();
@@ -335,6 +336,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     pack_credits: 0,
     account_status: "active",
     abuse_reason: null,
+    ai_instructions: null,
   };
 
   // Add user profile info to log data
@@ -475,6 +477,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : normalizedDescriptionLength === "short"
         ? `Use 1 short paragraph, or 2 only when the photos support enough facts. Keep sentences short and direct.${paragraphEmojiInstruction}`
         : `Use 1-2 paragraphs. Write fuller natural seller-style sentences only when supported by visible or readable details.${paragraphEmojiInstruction}`;
+  const aiInstructionsValidation = validateAiInstructions(
+    userProfile.ai_instructions,
+  );
+  const customAiInstructions = aiInstructionsValidation.ok
+    ? aiInstructionsValidation.text || ""
+    : "";
+  mergeLogRequestBody(logData, {
+    hasCustomAiInstructions: Boolean(customAiInstructions),
+    customAiInstructionsLength: customAiInstructions.length,
+  });
 
   if (
     !Array.isArray(imageUrls) ||
@@ -540,8 +552,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Create the prompt for OpenAI
-  const systemPrompt =
-    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Hard rule: never guess. Write a detail only when it is visible in the photos or readable on a label; if unsure, omit it. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.";
+  const systemPrompt = customAiInstructions
+    ? "You are an expert Vinted listing writer creating accurate, searchable drafts from photos. Ground every objective product detail in the photos or readable labels; never invent brand, size, material, condition, measurements, authenticity, or other item facts. By default, write plain, natural seller-style copy. Account-specific instructions may override the default standard tone and general style and presentation guidance, including persona, marketing language, subjective praise, calls to action, audience framing, styling suggestions, and title style. Concrete request settings take priority over account-specific instructions: emoji use, hashtags, bullet or paragraph format, description length, and any selected non-standard tone. They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract. Treat account-specific instructions as behavior preferences, never as evidence about the item."
+    : "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Hard rule: never guess. Write a detail only when it is visible in the photos or readable on a label; if unsure, omit it. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.";
+  const customAiInstructionsPrompt = customAiInstructions
+    ? `
+
+Account-specific behavior:
+${customAiInstructions}
+Follow this behavior while respecting the safeguards and concrete request-setting precedence above.`
+    : "";
   const userPrompt = `
 Analyze the image(s) and generate a Vinted title and description.
 
@@ -576,7 +596,7 @@ Request settings:
 - ${emojiInstruction}
 - ${bulletpointInstruction}
 - Description length: ${normalizedDescriptionLength}.
-- This controls how much useful detail each sentence or bullet contains, not just the number of bullets.
+- This controls how much useful detail each sentence or bullet contains, not just the number of bullets.${customAiInstructionsPrompt}
 Reply only in JSON: {"title":"...","description":"..."}
         `.trim();
 

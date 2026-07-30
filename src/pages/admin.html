@@ -2803,6 +2803,11 @@
             const revenueSummary = data.revenueSummary || {};
             const estimatedMrr = Number(revenueSummary.estimatedMrrEur || 0);
             const activePaidUsers = Number(revenueSummary.activePaidUsers || 0);
+            const profileEstimateMrr = Number(revenueSummary.profileEstimateMrrEur || 0);
+            const profileActivePaidUsers = Number(revenueSummary.profileActivePaidUsers || 0);
+            const revenueSource = String(revenueSummary.source || '');
+            const isStripeMrr = revenueSource === 'stripe_subscription_items';
+            const isRevenueFallback = revenueSource === 'profile_plan_list_price_fallback' || revenueSummary.stripeUnavailable;
             const revenueByTier = Array.isArray(revenueSummary.byTier) ? revenueSummary.byTier : [];
             const currentCostLoad = estimatedMrr ? (totalOpenAICost / estimatedMrr) * 100 : null;
             const projectedCostLoad = estimatedMrr ? (projectedMonthEndCost / estimatedMrr) * 100 : null;
@@ -2828,6 +2833,16 @@
             const tierRevenueCopy = revenueByTier.length
                 ? revenueByTier.map((tier) => `${escapeHtml(tier.tier || 'unknown')}: ${Number(tier.count || 0).toLocaleString()} / ${formatEuro(tier.monthlyRevenueEur)}`).join(' · ')
                 : 'No active paid profile tiers found.';
+            const mrrLabel = isStripeMrr ? 'Stripe MRR' : 'Estimated MRR';
+            const mrrSourceCopy = isStripeMrr
+                ? `Stripe subscriptions · ${activePaidUsers.toLocaleString()} current paid subscription${activePaidUsers === 1 ? '' : 's'}`
+                : `Profile estimate${isRevenueFallback ? ' fallback' : ''} · ${activePaidUsers.toLocaleString()} active paid user${activePaidUsers === 1 ? '' : 's'}`;
+            const profileDriftCopy = isStripeMrr && profileEstimateMrr
+                ? `Profile estimate: ${formatEuro(profileEstimateMrr)}${profileActivePaidUsers ? ` / ${profileActivePaidUsers.toLocaleString()} paid profile${profileActivePaidUsers === 1 ? '' : 's'}` : ''}`
+                : '';
+            const mrrCaveatCopy = isStripeMrr
+                ? 'MRR is summed from current Stripe subscription item prices. VAT, one-off credit packs, and currency movement are not included.'
+                : 'MRR is estimated from active paid profile tiers because Stripe MRR was unavailable. Discounts, VAT, churn timing, credit packs, and currency movement are not included.';
             container.innerHTML = `
                 <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
                     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.25rem;">
@@ -2851,9 +2866,9 @@
                             <div class="text-sm text-muted">Run-rate from ${windowDays.toLocaleString()} elapsed day${windowDays === 1 ? '' : 's'}</div>
                         </div>
                         <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                            <div class="text-sm text-muted">Estimated MRR</div>
+                            <div class="text-sm text-muted">${mrrLabel}</div>
                             <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatEuro(estimatedMrr)}</div>
-                            <div class="text-sm text-muted">Based on active paid profile tiers · ${activePaidUsers.toLocaleString()} active paid users</div>
+                            <div class="text-sm text-muted">${mrrSourceCopy}</div>
                         </div>
                         <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
                             <div class="text-sm text-muted">AI cost load</div>
@@ -2877,7 +2892,7 @@
                             <div style="margin-top:0.8rem; height:10px; border-radius:999px; background:#eef2f7; overflow:hidden;">
                                 <div style="height:100%; width:${Math.max(0, Math.min(100, Number(currentCostLoad || 0)))}%; background:#764BA2;"></div>
                             </div>
-                            <div class="text-sm text-muted" style="margin-top:0.75rem;">MRR is estimated from active paid profile tiers. Discounts, VAT, churn timing, credit packs, and currency movement are not included.</div>
+                            <div class="text-sm text-muted" style="margin-top:0.75rem;">${mrrCaveatCopy}${profileDriftCopy ? `<br>${profileDriftCopy}` : ''}</div>
                         </div>
                         <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
                             <div style="display:flex; justify-content:space-between; gap:1rem;">

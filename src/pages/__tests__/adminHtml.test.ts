@@ -148,10 +148,12 @@ function buildAdminHarness() {
       latestUnknownCostLog: null,
     },
     revenueSummary: {
-      estimatedMrrEur: 120,
+      estimatedMrrEur: 130,
       activePaidUsers: 18,
       currency: "EUR",
-      source: "profile_plan_list_price",
+      source: "stripe_subscription_items",
+      profileEstimateMrrEur: 120,
+      profileActivePaidUsers: 18,
       byTier: [
         { tier: "starter", count: 10, monthlyRevenueEur: 39.9 },
         { tier: "pro", count: 6, monthlyRevenueEur: 59.94 },
@@ -445,6 +447,17 @@ function buildAdminHarness() {
 }
 
 describe("admin HTML", () => {
+  it("labels MRR as Stripe-backed in the costs view", async () => {
+    const { context, content } = buildAdminHarness();
+
+    context.state.currentView = "costs";
+    await context.loadView("costs");
+
+    expect(content.innerHTML).toContain("Stripe MRR");
+    expect(content.innerHTML).toContain("Stripe subscriptions");
+    expect(content.innerHTML).toContain("Profile estimate");
+  });
+
   it("renders every admin view without runtime view errors", async () => {
     const { context, content, modalBody, modalTitle } = buildAdminHarness();
 
@@ -668,7 +681,7 @@ describe("admin HTML", () => {
     expect(html).toContain("10");
   });
 
-  it("compares month-to-date AI costs against estimated MRR", async () => {
+  it("compares month-to-date AI costs against Stripe MRR", async () => {
     const { context, content } = buildAdminHarness();
 
     context.state.currentView = "costs";
@@ -678,16 +691,17 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("June 2026");
     expect(content.innerHTML).toContain("Month-to-date AI spend");
     expect(content.innerHTML).toContain("Projected month-end AI cost");
-    expect(content.innerHTML).toContain("Estimated MRR");
+    expect(content.innerHTML).toContain("Stripe MRR");
     expect(content.innerHTML).toContain("AI cost load");
     expect(content.innerHTML).toContain("Gross margin after AI");
-    expect(content.innerHTML).toContain("Based on active paid profile tiers");
+    expect(content.innerHTML).toContain("Stripe subscriptions");
     expect(content.innerHTML).toContain("$12.67");
     expect(content.innerHTML).toContain("$17.28");
-    expect(content.innerHTML).toContain("€120.00");
-    expect(content.innerHTML).toContain("10.6%");
-    expect(content.innerHTML).toContain("89.4%");
-    expect(content.innerHTML).toContain("18 active paid users");
+    expect(content.innerHTML).toContain("€130.00");
+    expect(content.innerHTML).toContain("9.7%");
+    expect(content.innerHTML).toContain("90.3%");
+    expect(content.innerHTML).toContain("18 current paid subscriptions");
+    expect(content.innerHTML).toContain("Profile estimate: €120.00");
     expect(content.innerHTML).toContain("0 priced generations");
     expect(content.innerHTML).toContain("1,891 priced generations");
     expect(content.innerHTML).toContain("1,080,000 tokens");
@@ -696,7 +710,7 @@ describe("admin HTML", () => {
     expect(content.innerHTML).toContain("Model Split");
     expect(content.innerHTML).toContain("Highest Cost Users");
     expect(content.innerHTML).toContain(
-      "MRR is estimated from active paid profile tiers",
+      "MRR is summed from current Stripe subscription item prices",
     );
     expect(content.innerHTML).not.toContain("Rolling 30-day AI spend");
     expect(content.innerHTML).not.toContain("Model Experiment");

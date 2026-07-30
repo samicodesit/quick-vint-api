@@ -5,6 +5,7 @@ import { supabase } from "../../utils/supabaseClient";
 import {
   FREE_LIFETIME_LIMIT,
   getEffectiveTier,
+  getTierByStripePriceId,
   getTierConfigForProfile,
 } from "../../utils/tierConfig";
 import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
@@ -183,6 +184,9 @@ const BILLING_ACTIVE_SUBSCRIPTION_STATUSES = new Set([
   "unpaid",
   "incomplete",
 ]);
+
+const STRIPE_MRR_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"];
+const STRIPE_MRR_STATUS_SET = new Set(STRIPE_MRR_SUBSCRIPTION_STATUSES);
 
 function normalizeBillingEmail(value: unknown) {
   return String(value || "")
@@ -2098,6 +2102,172 @@ function buildRevenueSummary(profiles: any[]) {
   };
 }
 
+function getStripePriceMonthlyAmount(price: any, quantity: number) {
+  const recurring = price?.recurring || {};
+  const interval = recurring.interval || "month";
+  const intervalCount = Number(recurring.interval_count || 1);
+  const unitAmountCents =
+    typeof price?.unit_amount === "number"
+      ? price.unit_amount
+      : Number(price?.unit_amount_decimal || 0);
+  const amount = (unitAmountCents / 100) * Math.max(1, quantity || 1);
+
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  if (!Number.isFinite(intervalCount) || intervalCount <= 0) return amount;
+
+  if (interval === "year") return amount / (intervalCount * 12);
+  if (interval === "week") return (amount * 52) / (intervalCount * 12);
+  if (interval === "day") return (amount * 365) / (intervalCount * 12);
+  return amount / intervalCount;
+}
+
+function roundCurrencyAmount(value: number) {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+export function buildStripeRevenueSummaryFromSubscriptions(
+  subscriptions: any[],
+  profileEstimate: any,
+) {
+  const byTierMap = new Map();
+  const byCurrencyMap = new Map();
+  const statusMap = new Map();
+  let activePaidUsers = 0;
+
+  subscriptions.forEach((subscription) => {
+    const status = String(subscription?.status || "unknown");
+    if (!STRIPE_MRR_STATUS_SET.has(status)) return;
+
+    const items = Array.isArray(subscription?.items?.data)
+      ? subscription.items.data
+      : [];
+    let subscriptionMonthlyEur = 0;
+
+    items.forEach((item: any) => {
+      const price = item?.price || {};
+      const currency = String(price.currency || "eur").toUpperCase();
+      const monthlyRevenue = getStripePriceMonthlyAmount(
+        price,
+        Number(item?.quantity || 1),
+      );
+      if (monthlyRevenue <= 0) return;
+
+      if (!byCurrencyMap.has(currency)) {
+        byCurrencyMap.set(currency, {
+          currency,
+          monthlyRevenue: 0,
+        });
+      }
+      byCurrencyMap.get(currency).monthlyRevenue += monthlyRevenue;
+
+      const tier = getTierByStripePriceId(price.id || "")?.id || "unknown";
+      if (!byTierMap.has(tier)) {
+        byTierMap.set(tier, {
+          tier,
+          count: 0,
+          monthlyRevenueEur: 0,
+        });
+      }
+
+      const tierEntry = byTierMap.get(tier);
+      tierEntry.count += 1;
+      if (currency === "EUR") {
+        tierEntry.monthlyRevenueEur += monthlyRevenue;
+        subscriptionMonthlyEur += monthlyRevenue;
+      }
+    });
+
+    if (subscriptionMonthlyEur > 0) {
+      activePaidUsers += 1;
+      statusMap.set(status, (statusMap.get(status) || 0) + 1);
+    }
+  });
+
+  for (const entry of byTierMap.values()) {
+    entry.monthlyRevenueEur = roundCurrencyAmount(entry.monthlyRevenueEur);
+  }
+
+  for (const entry of byCurrencyMap.values()) {
+    entry.monthlyRevenue = roundCurrencyAmount(entry.monthlyRevenue);
+  }
+
+  const estimatedMrrEur = roundCurrencyAmount(
+    Number(byCurrencyMap.get("EUR")?.monthlyRevenue || 0),
+  );
+
+  return {
+    estimatedMrrEur,
+    activePaidUsers,
+    currency: "EUR",
+    source: "stripe_subscription_items",
+    profileEstimateMrrEur: Number(profileEstimate?.estimatedMrrEur || 0),
+    profileActivePaidUsers: Number(profileEstimate?.activePaidUsers || 0),
+    byTier: Array.from(byTierMap.values()).sort((a: any, b: any) =>
+      String(a.tier).localeCompare(String(b.tier)),
+    ),
+    byCurrency: Array.from(byCurrencyMap.values()).sort((a: any, b: any) =>
+      String(a.currency).localeCompare(String(b.currency)),
+    ),
+    statusBreakdown: Array.from(statusMap.entries())
+      .map(([status, count]) => ({ status, count }))
+      .sort((a: any, b: any) => String(a.status).localeCompare(b.status)),
+  };
+}
+
+async function fetchStripeSubscriptionsForMrr() {
+  if (!stripe) return null;
+
+  const subscriptions: Stripe.Subscription[] = [];
+
+  for (const status of STRIPE_MRR_SUBSCRIPTION_STATUSES) {
+    let startingAfter: string | undefined;
+
+    do {
+      const page = await stripe.subscriptions.list({
+        status: status as Stripe.SubscriptionListParams.Status,
+        limit: 100,
+        starting_after: startingAfter,
+        expand: ["data.items.data.price"],
+      });
+
+      subscriptions.push(...page.data);
+      startingAfter = page.has_more ? page.data[page.data.length - 1]?.id : "";
+    } while (startingAfter);
+  }
+
+  return subscriptions;
+}
+
+async function buildAdminRevenueSummary() {
+  const profileEstimate = buildRevenueSummary(await fetchRevenueProfiles());
+
+  try {
+    const subscriptions = await fetchStripeSubscriptionsForMrr();
+    if (!subscriptions) {
+      return {
+        ...profileEstimate,
+        profileEstimateMrrEur: profileEstimate.estimatedMrrEur,
+        profileActivePaidUsers: profileEstimate.activePaidUsers,
+        stripeUnavailable: true,
+      };
+    }
+
+    return buildStripeRevenueSummaryFromSubscriptions(
+      subscriptions,
+      profileEstimate,
+    );
+  } catch (error: any) {
+    console.error("Failed to build Stripe MRR summary:", error);
+    return {
+      ...profileEstimate,
+      source: "profile_plan_list_price_fallback",
+      profileEstimateMrrEur: profileEstimate.estimatedMrrEur,
+      profileActivePaidUsers: profileEstimate.activePaidUsers,
+      stripeError: error?.message || "Stripe MRR unavailable",
+    };
+  }
+}
+
 async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
   try {
     const now = new Date();
@@ -2236,7 +2406,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         periodTotalDays: monthTotalDays,
       },
     );
-    const revenueSummary = buildRevenueSummary(await fetchRevenueProfiles());
+    const revenueSummary = await buildAdminRevenueSummary();
 
     // 1. Get recent activity timestamps to sort users
     const { data: recentLogs } = await supabase

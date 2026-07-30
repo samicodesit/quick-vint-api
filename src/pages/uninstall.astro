@@ -862,7 +862,7 @@ const copy = {
       .actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
         margin-bottom: 22px;
       }
 
@@ -1098,7 +1098,7 @@ const copy = {
         }
 
         .body-copy {
-          margin-bottom: 13px;
+          margin-bottom: 15px;
           font-size: 16.5px;
           line-height: 1.48;
         }
@@ -1112,16 +1112,22 @@ const copy = {
         }
 
         .coupon-wrap {
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .actions {
-          margin-bottom: 14px;
+          margin-bottom: 13px;
         }
 
         .cta,
         .secondary-link {
-          min-height: 44px;
+          min-height: 42px;
+          padding-inline: 18px;
+          font-size: 14px;
+        }
+
+        .proof-footer {
+          margin-top: -44px;
         }
 
         .proof-strip {
@@ -1753,16 +1759,54 @@ const copy = {
 
       applyTier(getInitialTier());
 
-      tierChoose?.addEventListener("click", () => {
+      function getUninstallUtmParams(tier) {
+        return {
+          utm_source: "uninstall_page",
+          utm_medium: "winback",
+          utm_campaign: "uninstall_offer",
+          utm_content: `${tier}_checkout`,
+        };
+      }
+
+      async function openTierCheckout(event) {
+        const tier = tierChoose?.dataset.tier || getInitialTier();
         trackEvent(
           "uninstall_offer_choose_click",
           {
-            tier: tierChoose.dataset.tier || getInitialTier(),
+            tier,
             offerCampaign: "uninstall_winback_offer_v1",
           },
           { beacon: true },
         );
-      });
+
+        if (!userId || previewMode) return;
+
+        event.preventDefault();
+        tierChoose.setAttribute("aria-busy", "true");
+
+        try {
+          const response = await fetch("/api/stripe/create-checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId,
+              tier,
+              source: "uninstall_page",
+              couponCode,
+              utm: getUninstallUtmParams(tier),
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data?.url) {
+            throw new Error(data?.error || "Checkout failed");
+          }
+          window.location.assign(data.url);
+        } catch {
+          window.location.assign(tierChoose.href);
+        }
+      }
+
+      tierChoose?.addEventListener("click", openTierCheckout);
 
       buttons.forEach((button) => {
         const reason = button.dataset.reason;

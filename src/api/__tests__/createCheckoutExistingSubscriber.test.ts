@@ -21,6 +21,7 @@ function createQueryBuilder() {
   const builder = {
     select: vi.fn(() => builder),
     update: vi.fn(() => builder),
+    eq: vi.fn(() => builder),
     ilike: vi.fn(() => builder),
     single: vi.fn(async () => selectResponse),
   };
@@ -153,6 +154,47 @@ describe("create checkout", () => {
     );
     expect(checkoutCreateMock.mock.calls[0][0]).not.toHaveProperty(
       "allow_promotion_codes",
+    );
+  });
+
+  it("opens checkout from an uninstall user id and applies the winback coupon", async () => {
+    selectResponse.data = {
+      id: "123e4567-e89b-42d3-a456-426614174000",
+      email: "customer@example.com",
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValue({ id: "cus_existing" });
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        userId: "123e4567-e89b-42d3-a456-426614174000",
+        tier: "starter",
+        source: "uninstall_page",
+        couponCode: "LISTFASTER20",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(promotionCodeListMock).toHaveBeenCalledWith({
+      code: "LISTFASTER20",
+      active: true,
+      limit: 1,
+    });
+    expect(checkoutCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "cus_existing",
+        discounts: [{ promotion_code: "promo_listfaster20" }],
+      }),
     );
   });
 

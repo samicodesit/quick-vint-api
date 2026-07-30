@@ -110,4 +110,16 @@ describe("uninstall page winback character", () => {
     expect(script).toContain("document.getElementById(");
     expect(script).toContain("`btn-${requestedCheckoutPlan}`");
   });
+
+  it("opens Stripe checkout directly from the uninstall choose button when uid is available", () => {
+    const html = readUninstallPage();
+
+    expect(html).toContain("function openTierCheckout");
+    expect(html).toContain('fetch("/api/stripe/create-checkout"');
+    expect(html).toContain("userId");
+    expect(html).toContain('source: "uninstall_page"');
+    expect(html).toContain("couponCode");
+    expect(html).toContain("window.location.assign(data.url)");
+    expect(html).toContain("window.location.assign(tierChoose.href)");
+  });
 });

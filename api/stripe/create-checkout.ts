@@ -19,6 +19,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
 const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
 const PAID_TIERS = new Set(["starter", "pro", "business"]);
+const UNINSTALL_COUPON_CODE = "LISTFASTER20";
+
+function isUuid(value: unknown) {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  );
+}
 
 function pricingOfferError(message: string) {
   const error = new Error(message);
@@ -60,6 +70,44 @@ async function getOfferPromotionCodeId(
   return promotionCode.id;
 }
 
+async function getUninstallPromotionCodeId(
+  source?: string,
+  couponCode?: string,
+) {
+  if (source !== "uninstall_page" || couponCode !== UNINSTALL_COUPON_CODE) {
+    return null;
+  }
+
+  const promotionCodes = await stripe.promotionCodes.list({
+    code: UNINSTALL_COUPON_CODE,
+    active: true,
+    limit: 1,
+  });
+  return promotionCodes.data[0]?.id || null;
+}
+
+async function resolveCheckoutEmail(email?: string, userId?: string) {
+  if (email && typeof email === "string" && email.includes("@")) {
+    return email.trim().toLowerCase();
+  }
+
+  if (!isUuid(userId)) {
+    return "";
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .eq("id", userId)
+    .single();
+
+  if (error || !profile?.email) {
+    return "";
+  }
+
+  return String(profile.email).trim().toLowerCase();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!(await handleCheckoutCors(req, res))) return;
 
@@ -75,16 +123,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = {};
 
   try {
-    const { email, tier, source, utm, offerToken } = req.body as {
-      email: string;
+    const {
+      email: requestEmail,
+      tier,
+      source,
+      utm,
+      offerToken,
+      couponCode,
+      userId,
+    } = req.body as {
+      email?: string;
       tier: "starter" | "pro" | "business"; // No 'free' since it's not a paid tier
       source?: string;
       utm?: Record<string, string>;
       offerToken?: string;
+      couponCode?: string;
+      userId?: string;
     };
-    alertContext = { tier, source };
+    alertContext = {
+      tier,
+      source,
+      userId: isUuid(userId) ? userId : undefined,
+    };
 
     // 1) Validate email
+    const email = await resolveCheckoutEmail(requestEmail, userId);
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return res.status(400).json({ error: "A valid email is required." });
     }
@@ -98,7 +161,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const priceId = tierConfig.stripe.priceId;
     let promotionCodeId: string | null = null;
     try {
-      promotionCodeId = await getOfferPromotionCodeId(email, tier, offerToken);
+      promotionCodeId =
+        (await getOfferPromotionCodeId(email, tier, offerToken)) ||
+        (await getUninstallPromotionCodeId(source, couponCode));
     } catch (offerErr: any) {
       if (offerErr?.name === "PricingOfferError") {
         return res.status(400).json({

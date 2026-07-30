@@ -33,6 +33,7 @@
   "dependencies": {
     "@sentry/node": "^10.63.0",
     "@supabase/supabase-js": "2.105.0",
+    "atropos": "^2.0.2",
     "busboy": "^1.6.0",
     "cors": "2.8.5",
     "micro": "^10.0.1",

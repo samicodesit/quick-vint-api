@@ -385,14 +385,43 @@ const copy = {
         line-height: 1.58;
       }
 
+      .coupon-wrap {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        width: min(100%, 488px);
+        min-height: 128px;
+        max-width: 100%;
+        margin-bottom: 18px;
+      }
+
+      .offer-visual {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 1;
+        width: 150px;
+        pointer-events: none;
+      }
+
+      .offer-visual img {
+        display: block;
+        width: 100%;
+        height: auto;
+        animation: uninstallCharacterIn 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        filter: drop-shadow(0 18px 24px rgba(17, 24, 39, 0.16));
+        transform-origin: 52% 88%;
+      }
+
       .coupon-card {
+        position: relative;
+        z-index: 3;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: 10px;
         width: fit-content;
         max-width: 100%;
-        margin-bottom: 24px;
         padding: 9px;
         border: 1px solid #c7d2fe;
         border-radius: 14px;
@@ -571,6 +600,17 @@ const copy = {
         display: block;
       }
 
+      @keyframes uninstallCharacterIn {
+        from {
+          opacity: 0;
+          transform: translateY(14px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
       @media (max-width: 820px) {
         body {
           place-items: start center;
@@ -583,6 +623,11 @@ const copy = {
 
         .offer {
           padding: 26px;
+        }
+
+        .offer-visual {
+          right: 0;
+          width: 132px;
         }
       }
 
@@ -597,11 +642,29 @@ const copy = {
           margin-bottom: 22px;
         }
 
+        .coupon-wrap {
+          width: 100%;
+          min-height: 184px;
+        }
+
+        .offer-visual {
+          top: 0;
+          right: -2px;
+          width: 138px;
+        }
+
         .coupon-card,
         .actions,
         .cta,
         .secondary-link {
           width: 100%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .offer-visual img {
+          animation: none;
+          transform: none;
         }
       }
     </style>
@@ -621,12 +684,24 @@ const copy = {
           Reinstall AutoLister and use this code for 20% off your first month.
         </p>
 
-        <div class="coupon-card" aria-label="Discount code">
-          <span class="coupon-label" data-i18n="couponLabel">Use code</span>
-          <span class="coupon-code" data-coupon-code>{couponCode}</span>
-          <button class="copy-code" type="button" data-copy-code data-i18n="copyCode">
-            Copy code
-          </button>
+        <div class="coupon-wrap">
+          <div class="offer-visual" aria-hidden="true">
+            <img
+              src="/uninstall-winback-character.webp"
+              alt=""
+              width="595"
+              height="620"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+          <div class="coupon-card" aria-label="Discount code">
+            <span class="coupon-label" data-i18n="couponLabel">Use code</span>
+            <span class="coupon-code" data-coupon-code>{couponCode}</span>
+            <button class="copy-code" type="button" data-copy-code data-i18n="copyCode">
+              Copy code
+            </button>
+          </div>
         </div>
 
         <div class="actions">

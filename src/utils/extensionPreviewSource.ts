@@ -5,7 +5,7 @@ const RAW_BASE =
   "https://raw.githubusercontent.com/samicodesit/quick-vint-frontend/main";
 
 function extensionPath(file: string) {
-  return path.resolve(process.cwd(), "../quick-vint", file);
+  return path.resolve(process.cwd(), "../quick-vint-frontend", file);
 }
 
 export async function readExtensionPreviewSource(file: string) {

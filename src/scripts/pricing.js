@@ -103,6 +103,11 @@ function normalizeTier(tier) {
   return normalizePricingPlanTier(tier);
 }
 
+function normalizeCheckoutPlan(value) {
+  const plan = normalizeTier(value);
+  return ["starter", "pro", "business"].includes(plan) ? plan : null;
+}
+
 function getPricingLocale() {
   const lang = document.documentElement.lang || "en";
   return PRICING_MESSAGES[lang] ? lang : lang.split("-")[0] || "en";
@@ -806,12 +811,32 @@ async function initializePage() {
   updateButtonStates();
 
   const offerPlan = currentPricingOffer?.targetTier;
+  const requestedCheckoutPlan = normalizeCheckoutPlan(
+    urlParams.get("checkout_plan"),
+  );
   if (
     offerPlan &&
     currentUser?.email &&
     getPricingPlanAction(currentProfile, offerPlan) === "checkout"
   ) {
     await handlePaidPlanSelection(offerPlan, { sameWindow: true });
+    return;
+  }
+
+  if (requestedCheckoutPlan) {
+    const requestedButton = document.getElementById(
+      `btn-${requestedCheckoutPlan}`,
+    );
+    requestedButton?.scrollIntoView({ block: "center", behavior: "smooth" });
+
+    if (
+      currentUser?.email &&
+      getPricingPlanAction(currentProfile, requestedCheckoutPlan) === "checkout"
+    ) {
+      await handlePaidPlanSelection(requestedCheckoutPlan, {
+        sameWindow: true,
+      });
+    }
   }
 }
 

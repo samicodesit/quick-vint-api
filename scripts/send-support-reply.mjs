@@ -66,6 +66,7 @@ function usage() {
       "  --message-id <id>      Optional thread Message-ID for In-Reply-To.",
       "  --references <ids>     Optional References header. Defaults to --message-id.",
       "  --from <sender>        Defaults to support@autolister.app.",
+      "  --reply-to <email>     Defaults to the email address in --from.",
       "  --bcc <recipient>      Optional BCC recipient.",
       "  --dry-run              Print the payload without sending.",
     ].join("\n"),
@@ -174,6 +175,14 @@ function textToSupportHtml(text) {
 </html>`;
 }
 
+function extractEmailAddress(sender) {
+  const angleMatch = String(sender).match(/<([^<>@\s]+@[^<>@\s]+)>/);
+  if (angleMatch) return angleMatch[1];
+
+  const bareMatch = String(sender).match(/[^<>\s]+@[^<>\s]+/);
+  return bareMatch?.[0] || "support@autolister.app";
+}
+
 loadEnv();
 
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -189,14 +198,16 @@ const messageId = getArg("--message-id");
 const references = getArg("--references") || messageId;
 const bcc = getArg("--bcc");
 const dryRun = process.argv.includes("--dry-run");
+const from = getArg("--from", DEFAULT_FROM);
+const replyTo = getArg("--reply-to", extractEmailAddress(from));
 
 const payload = {
-  from: getArg("--from", DEFAULT_FROM),
+  from,
   to: [recipient],
   subject,
   text,
   html: textToSupportHtml(text),
-  reply_to: ["support@autolister.app"],
+  reply_to: [replyTo],
 };
 
 if (bcc) {

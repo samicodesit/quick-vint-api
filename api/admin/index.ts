@@ -1787,11 +1787,20 @@ async function fetchOpenAICostLogsForWindow(windowStartIso: string) {
 function buildOpenAICostSummary(
   logs: OpenAICostLog[],
   days: number,
-  options: { pageSize?: number; pagesFetched?: number } = {},
+  options: {
+    pageSize?: number;
+    pagesFetched?: number;
+    now?: Date;
+    projectedDays?: number;
+    periodType?: string;
+    periodLabel?: string;
+    periodTotalDays?: number;
+  } = {},
 ) {
   const dailyMap = new Map();
+  const referenceDate = options.now || new Date();
   for (let i = 0; i < days; i++) {
-    const date = new Date();
+    const date = new Date(referenceDate);
     date.setUTCDate(date.getUTCDate() - i);
     const dateStr = date.toISOString().split("T")[0];
     dailyMap.set(dateStr, {
@@ -1984,10 +1993,16 @@ function buildOpenAICostSummary(
   const noOpenAIReasonBreakdown = Array.from(noOpenAIReasonMap.entries())
     .map(([reason, count]) => ({ reason, count }))
     .sort((a: any, b: any) => b.count - a.count);
+  const projectionDays = options.projectedDays || days;
+  const projectedCostUsd = days ? (totalCostUsd / days) * projectionDays : 0;
   return {
     windowDays: days,
     windowStartDate: daily[0]?.date || null,
     windowEndDate: daily[daily.length - 1]?.date || null,
+    periodType: options.periodType || "rolling",
+    periodLabel: options.periodLabel || null,
+    periodElapsedDays: days,
+    periodTotalDays: options.periodTotalDays || days,
     pageSize: options.pageSize || null,
     pagesFetched: options.pagesFetched || null,
     exactGenerationLogCount: logs.length,
@@ -2007,12 +2022,79 @@ function buildOpenAICostSummary(
     avgCostPerGenerationUsd: costedGenerations
       ? totalCostUsd / costedGenerations
       : 0,
-    projectedMonthlyCostUsd: days ? (totalCostUsd / days) * 30 : 0,
+    projectedMonthlyCostUsd: projectedCostUsd,
+    projectedMonthEndCostUsd: projectedCostUsd,
     daily,
     modelBreakdown,
     topUsers,
     unknownModelBreakdown,
     latestUnknownCostLog,
+  };
+}
+
+async function fetchRevenueProfiles() {
+  const pageSize = 1000;
+  const profiles: any[] = [];
+  let page = 0;
+
+  while (page < 20) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, subscription_status, subscription_tier, is_legacy_plan")
+      .in("subscription_status", ["active", "trialing", "canceling"])
+      .order("id", { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const pageProfiles = data || [];
+    profiles.push(...pageProfiles);
+    if (pageProfiles.length < pageSize) break;
+    page += 1;
+  }
+
+  return profiles;
+}
+
+function buildRevenueSummary(profiles: any[]) {
+  const byTierMap = new Map();
+  let estimatedMrrEur = 0;
+  let activePaidUsers = 0;
+
+  profiles.forEach((profile) => {
+    const tier = getEffectiveTier(profile);
+    if (tier === "free") return;
+
+    const tierConfig = getTierConfigForProfile(profile);
+    const monthlyRevenueEur = Number(tierConfig.monthlyPrice || 0);
+    if (monthlyRevenueEur <= 0) return;
+
+    activePaidUsers += 1;
+    estimatedMrrEur += monthlyRevenueEur;
+
+    if (!byTierMap.has(tier)) {
+      byTierMap.set(tier, {
+        tier,
+        count: 0,
+        monthlyRevenueEur: 0,
+      });
+    }
+
+    const entry = byTierMap.get(tier);
+    entry.count += 1;
+    entry.monthlyRevenueEur += monthlyRevenueEur;
+  });
+
+  return {
+    estimatedMrrEur,
+    activePaidUsers,
+    currency: "EUR",
+    source: "profile_plan_list_price",
+    byTier: Array.from(byTierMap.values()).sort((a: any, b: any) =>
+      String(a.tier).localeCompare(String(b.tier)),
+    ),
   };
 }
 
@@ -2124,12 +2206,19 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       b.date.localeCompare(a.date),
     );
 
-    const costWindowDays = 30;
-    const costWindowStart = new Date(now);
-    costWindowStart.setUTCDate(
-      costWindowStart.getUTCDate() - (costWindowDays - 1),
+    const costWindowStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
     );
     costWindowStart.setUTCHours(0, 0, 0, 0);
+    const costWindowDays = now.getUTCDate();
+    const monthTotalDays = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
+    ).getUTCDate();
+    const monthLabel = now.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
     const costLogWindow = await fetchOpenAICostLogsForWindow(
       costWindowStart.toISOString(),
     );
@@ -2140,8 +2229,14 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       {
         pageSize: costLogWindow.pageSize,
         pagesFetched: costLogWindow.pagesFetched,
+        now,
+        projectedDays: monthTotalDays,
+        periodType: "calendar_month_to_date",
+        periodLabel: monthLabel,
+        periodTotalDays: monthTotalDays,
       },
     );
+    const revenueSummary = buildRevenueSummary(await fetchRevenueProfiles());
 
     // 1. Get recent activity timestamps to sort users
     const { data: recentLogs } = await supabase
@@ -2254,6 +2349,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       today: todayUsage,
       lastWeek: weekStats,
       openaiCostSummary,
+      revenueSummary,
       totalUsers: totalUserCount || 0,
       recentActivity: recentActivityUsers,
       recentSignups: recentSignups,

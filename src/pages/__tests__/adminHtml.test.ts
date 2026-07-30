@@ -87,9 +87,13 @@ function buildAdminHarness() {
       { date: "2026-06-22", total_api_calls: 12, estimated_cost: 0.02 },
     ],
     openaiCostSummary: {
-      windowDays: 30,
-      windowStartDate: "2026-05-24",
+      windowDays: 22,
+      windowStartDate: "2026-06-01",
       windowEndDate: "2026-06-22",
+      periodType: "calendar_month_to_date",
+      periodLabel: "June 2026",
+      periodElapsedDays: 22,
+      periodTotalDays: 30,
       pageSize: 1000,
       pagesFetched: 2,
       exactGenerationLogCount: 2000,
@@ -112,6 +116,7 @@ function buildAdminHarness() {
       totalCostUsd: 12.67,
       totalTokens: 1080000,
       avgCostPerGenerationUsd: 0.0067,
+      projectedMonthEndCostUsd: 17.28,
       daily: [
         {
           date: "2026-06-22",
@@ -141,6 +146,17 @@ function buildAdminHarness() {
       ],
       unknownModelBreakdown: [],
       latestUnknownCostLog: null,
+    },
+    revenueSummary: {
+      estimatedMrrEur: 120,
+      activePaidUsers: 18,
+      currency: "EUR",
+      source: "profile_plan_list_price",
+      byTier: [
+        { tier: "starter", count: 10, monthlyRevenueEur: 39.9 },
+        { tier: "pro", count: 6, monthlyRevenueEur: 59.94 },
+        { tier: "business", count: 2, monthlyRevenueEur: 39.98 },
+      ],
     },
   };
 
@@ -652,23 +668,37 @@ describe("admin HTML", () => {
     expect(html).toContain("10");
   });
 
-  it("explains AI cost totals with the right generation denominator", async () => {
+  it("compares month-to-date AI costs against estimated MRR", async () => {
     const { context, content } = buildAdminHarness();
 
     context.state.currentView = "costs";
     await context.loadView("costs");
 
-    expect(content.innerHTML).toContain("Rolling 30-day AI spend");
-    expect(content.innerHTML).toContain("Estimated API cost only");
+    expect(content.innerHTML).toContain("AI cost vs MRR");
+    expect(content.innerHTML).toContain("June 2026");
+    expect(content.innerHTML).toContain("Month-to-date AI spend");
+    expect(content.innerHTML).toContain("Projected month-end AI cost");
+    expect(content.innerHTML).toContain("Estimated MRR");
+    expect(content.innerHTML).toContain("AI cost load");
+    expect(content.innerHTML).toContain("Gross margin after AI");
+    expect(content.innerHTML).toContain("Based on active paid profile tiers");
     expect(content.innerHTML).toContain("$12.67");
-    expect(content.innerHTML).toContain("$0.00");
+    expect(content.innerHTML).toContain("$17.28");
+    expect(content.innerHTML).toContain("€120.00");
+    expect(content.innerHTML).toContain("10.6%");
+    expect(content.innerHTML).toContain("89.4%");
+    expect(content.innerHTML).toContain("18 active paid users");
     expect(content.innerHTML).toContain("0 priced generations");
     expect(content.innerHTML).toContain("1,891 priced generations");
     expect(content.innerHTML).toContain("1,080,000 tokens");
     expect(content.innerHTML).toContain("$0.0067 avg per priced generation");
-    expect(content.innerHTML).toContain("Daily spend and priced generations");
+    expect(content.innerHTML).toContain("Daily cost trend");
     expect(content.innerHTML).toContain("Model Split");
     expect(content.innerHTML).toContain("Highest Cost Users");
+    expect(content.innerHTML).toContain(
+      "MRR is estimated from active paid profile tiers",
+    );
+    expect(content.innerHTML).not.toContain("Rolling 30-day AI spend");
     expect(content.innerHTML).not.toContain("Model Experiment");
     expect(content.innerHTML).not.toContain("Stopped before OpenAI");
     expect(content.innerHTML).not.toContain("OpenAI calls");

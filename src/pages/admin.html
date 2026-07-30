@@ -2771,6 +2771,17 @@
             return `$${amount.toFixed(2)}`;
         }
 
+        function formatEuro(value) {
+            const amount = Number(value) || 0;
+            return `€${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function formatPercent(value) {
+            const amount = Number(value);
+            if (!Number.isFinite(amount)) return 'n/a';
+            return `${amount.toFixed(1)}%`;
+        }
+
         async function renderCosts(container) {
             const todayRange = getLocalTodayRange();
             const data = await fetchAPI(`/api/admin?action=usage-stats&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`);
@@ -2780,12 +2791,22 @@
             const costTopUsers = Array.isArray(costSummary.topUsers) ? costSummary.topUsers : [];
             const totalOpenAICost = Number(costSummary.totalCostUsd || 0);
             const avgOpenAICost = Number(costSummary.avgCostPerGenerationUsd || 0);
+            const projectedMonthEndCost = Number(costSummary.projectedMonthEndCostUsd || costSummary.projectedMonthlyCostUsd || 0);
             const unknownCostGenerations = Number(costSummary.unknownCostGenerations || 0);
             const todayCost = Number(data.today?.estimatedCost || 0);
             const pricedGenerations = Number(costSummary.costedGenerations || 0);
             const totalTokens = Number(costSummary.totalTokens || 0);
             const windowDays = Number(costSummary.windowDays || 30);
+            const periodLabel = costSummary.periodLabel || `${windowDays}-day period`;
+            const periodTotalDays = Number(costSummary.periodTotalDays || windowDays);
             const todayGenerations = Number(data.today?.pricedGenerations || 0);
+            const revenueSummary = data.revenueSummary || {};
+            const estimatedMrr = Number(revenueSummary.estimatedMrrEur || 0);
+            const activePaidUsers = Number(revenueSummary.activePaidUsers || 0);
+            const revenueByTier = Array.isArray(revenueSummary.byTier) ? revenueSummary.byTier : [];
+            const currentCostLoad = estimatedMrr ? (totalOpenAICost / estimatedMrr) * 100 : null;
+            const projectedCostLoad = estimatedMrr ? (projectedMonthEndCost / estimatedMrr) * 100 : null;
+            const grossMarginAfterAi = estimatedMrr ? ((estimatedMrr - totalOpenAICost) / estimatedMrr) * 100 : null;
             const unknownModels = Array.isArray(costSummary.unknownModelBreakdown) ? costSummary.unknownModelBreakdown : [];
             const latestUnknown = costSummary.latestUnknownCostLog || null;
             const unknownCostCopy = unknownCostGenerations
@@ -2804,39 +2825,71 @@
             const unknownModelCopy = unknownModels.length
                 ? unknownModels.slice(0, 3).map((item) => `${escapeHtml(item.model || 'unknown')} (${Number(item.generation_count || 0).toLocaleString()})`).join(' · ')
                 : '';
+            const tierRevenueCopy = revenueByTier.length
+                ? revenueByTier.map((tier) => `${escapeHtml(tier.tier || 'unknown')}: ${Number(tier.count || 0).toLocaleString()} / ${formatEuro(tier.monthlyRevenueEur)}`).join(' · ')
+                : 'No active paid profile tiers found.';
             container.innerHTML = `
                 <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
                     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.25rem;">
                         <div>
                             <div class="section-kicker">Costs</div>
-                            <h3 class="card-title" style="font-size:1.25rem; margin:0.15rem 0 0.35rem;">${unknownCostGenerations ? `Known rolling ${windowDays}-day AI spend` : `Rolling ${windowDays}-day AI spend`}</h3>
-                            <div class="text-sm text-muted">Estimated API cost only. This is not Stripe revenue, profit, or subscription value.</div>
+                            <h3 class="card-title" style="font-size:1.25rem; margin:0.15rem 0 0.35rem;">AI cost vs MRR</h3>
+                            <div class="text-sm text-muted">${escapeHtml(periodLabel)} · day ${windowDays} of ${periodTotalDays}. OpenAI costs are estimated from generation logs.</div>
                         </div>
                         ${unknownCostGenerations ? `<span class="badge badge-warning">${unknownCostCopy}</span>` : ''}
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; align-items:stretch;">
-                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1.25rem; background:linear-gradient(135deg, rgba(118,75,162,0.08), rgba(255,255,255,0));">
-                            <div class="text-sm text-muted" style="font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Rolling ${windowDays}-day window</div>
-                            <div style="font-size:2.8rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.65rem 0;">${formatMoney(totalOpenAICost)}</div>
-                            <div style="font-size:1rem; line-height:1.55; color:var(--text-secondary); max-width:760px;">
-                                ${pricedGenerations.toLocaleString()} priced generation${pricedGenerations === 1 ? '' : 's'} · ${totalTokens.toLocaleString()} tokens.
-                            </div>
-                            <div style="margin-top:1rem; padding:0.85rem 1rem; border-radius:10px; background:#ffffff; border:1px solid var(--border-color); color:var(--text-primary); font-weight:700;">
-                                ${avgCostCopy} per priced generation
-                            </div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:0.85rem; align-items:stretch;">
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:linear-gradient(135deg, rgba(118,75,162,0.10), rgba(255,255,255,0));">
+                            <div class="text-sm text-muted">Month-to-date AI spend</div>
+                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatMoney(totalOpenAICost)}</div>
+                            <div class="text-sm text-muted">${pricedGenerations.toLocaleString()} priced generations · ${totalTokens.toLocaleString()} tokens</div>
                         </div>
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
+                            <div class="text-sm text-muted">Projected month-end AI cost</div>
+                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatMoney(projectedMonthEndCost)}</div>
+                            <div class="text-sm text-muted">Run-rate from ${windowDays.toLocaleString()} elapsed day${windowDays === 1 ? '' : 's'}</div>
+                        </div>
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
+                            <div class="text-sm text-muted">Estimated MRR</div>
+                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatEuro(estimatedMrr)}</div>
+                            <div class="text-sm text-muted">Based on active paid profile tiers · ${activePaidUsers.toLocaleString()} active paid users</div>
+                        </div>
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
+                            <div class="text-sm text-muted">AI cost load</div>
+                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatPercent(currentCostLoad)}</div>
+                            <div class="text-sm text-muted">${formatPercent(projectedCostLoad)} projected at month-end</div>
+                        </div>
+                    </div>
 
-                        <div style="display:grid; gap:0.75rem;">
-                            <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                                <div class="text-sm text-muted">Today</div>
-                                <div style="font-size:1.65rem; font-weight:850; margin:0.25rem 0;">${formatMoney(todayCost)}</div>
-                                <div class="text-sm text-muted">${todayGenerations.toLocaleString()} priced generation${todayGenerations === 1 ? '' : 's'}</div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; margin-top:1rem; align-items:stretch;">
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                                <div>
+                                    <div class="text-sm text-muted">Gross margin after AI</div>
+                                    <div style="font-size:1.8rem; font-weight:850; margin:0.35rem 0;">${formatPercent(grossMarginAfterAi)}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div class="text-sm text-muted">Avg cost</div>
+                                    <div style="font-weight:800;">${avgCostCopy} per priced generation</div>
+                                </div>
                             </div>
-                            <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                                <div class="text-sm text-muted">Tokens</div>
-                                <div style="font-size:1.35rem; font-weight:850; margin:0.25rem 0;">${totalTokens.toLocaleString()}</div>
-                                <div class="text-sm text-muted">Rolling ${windowDays} days</div>
+                            <div style="margin-top:0.8rem; height:10px; border-radius:999px; background:#eef2f7; overflow:hidden;">
+                                <div style="height:100%; width:${Math.max(0, Math.min(100, Number(currentCostLoad || 0)))}%; background:#764BA2;"></div>
+                            </div>
+                            <div class="text-sm text-muted" style="margin-top:0.75rem;">MRR is estimated from active paid profile tiers. Discounts, VAT, churn timing, credit packs, and currency movement are not included.</div>
+                        </div>
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
+                            <div style="display:flex; justify-content:space-between; gap:1rem;">
+                                <div>
+                                    <div class="text-sm text-muted">Today</div>
+                                    <div style="font-size:1.35rem; font-weight:850; margin:0.25rem 0;">${formatMoney(todayCost)}</div>
+                                    <div class="text-sm text-muted">${todayGenerations.toLocaleString()} priced generation${todayGenerations === 1 ? '' : 's'}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div class="text-sm text-muted">Revenue mix</div>
+                                    <div style="font-size:0.82rem; line-height:1.45; color:var(--text-secondary); max-width:280px;">${tierRevenueCopy}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2850,8 +2903,8 @@
                 <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
                     <div class="card-header" style="padding: 0 0 1rem 0;">
                         <div>
-                            <h3 class="card-title">Daily cost</h3>
-                            <div class="text-sm text-muted">Daily spend and priced generations.</div>
+                            <h3 class="card-title">Daily cost trend</h3>
+                            <div class="text-sm text-muted">Month-to-date spend and priced generations.</div>
                         </div>
                         <button class="btn-secondary" onclick="state.logsType='generation'; switchView('logs')">Open logs</button>
                     </div>

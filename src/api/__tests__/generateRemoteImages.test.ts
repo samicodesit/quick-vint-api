@@ -251,6 +251,48 @@ describe("/api/generate remote image handling", () => {
     );
   });
 
+  it("preserves the original prompt when account instructions are empty", async () => {
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: {
+          authorization: "Bearer token",
+          "x-autolister-extension-version": "1.3.54",
+        },
+        body: {
+          imageUrls: ["data:image/jpeg;base64,abc"],
+          languageCode: "en",
+          titleLanguageCode: "en",
+          descriptionLanguageCode: "en",
+          tone: "standard",
+          useEmojis: false,
+          useHashtags: true,
+          useBulletPoints: true,
+          descriptionLength: "short",
+          generationMode: "manual",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    const completionParams = createCompletion.mock.calls[0][0];
+    const systemPrompt = completionParams.messages[0].content;
+    const userPrompt = completionParams.messages[1].content[0].text;
+
+    expect(systemPrompt).toBe(
+      "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Hard rule: never guess. Write a detail only when it is visible in the photos or readable on a label; if unsure, omit it. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.",
+    );
+    expect(userPrompt).not.toContain("Account-specific behavior:");
+    expect(userPrompt).toContain(
+      'This controls how much useful detail each sentence or bullet contains, not just the number of bullets.\nReply only in JSON: {"title":"...","description":"..."}',
+    );
+  });
+
   it("lets account instructions override defaults without overriding request settings", async () => {
     profileSingle.mockResolvedValueOnce({
       data: {

@@ -109,6 +109,78 @@ describe("create checkout", () => {
     });
   });
 
+  it("creates a normal pricing checkout with promotion codes allowed but no forced coupon", async () => {
+    selectResponse.data = {
+      id: "profile_123",
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValue({ id: "cus_existing" });
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        email: "customer@example.com",
+        tier: "starter",
+        source: "pricing_page",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(promotionCodeListMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "cus_existing",
+        allow_promotion_codes: true,
+      }),
+    );
+    expect(checkoutCreateMock.mock.calls[0][0]).not.toHaveProperty("discounts");
+  });
+
+  it("does not apply the uninstall coupon to a normal pricing checkout", async () => {
+    selectResponse.data = {
+      id: "profile_123",
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValue({ id: "cus_existing" });
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        email: "customer@example.com",
+        tier: "starter",
+        source: "pricing_page",
+        couponCode: "LISTFASTER20",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(promotionCodeListMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allow_promotion_codes: true,
+      }),
+    );
+    expect(checkoutCreateMock.mock.calls[0][0]).not.toHaveProperty("discounts");
+  });
+
   it("applies a valid pricing offer coupon to checkout", async () => {
     const offerToken = createPricingOfferToken({
       email: "customer@example.com",
@@ -196,6 +268,30 @@ describe("create checkout", () => {
         discounts: [{ promotion_code: "promo_listfaster20" }],
       }),
     );
+  });
+
+  it("rejects uninstall checkout without a resolvable user id before creating Stripe work", async () => {
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as unknown as CheckoutHandler;
+    const req = {
+      method: "POST",
+      body: {
+        userId: "not-a-user-id",
+        tier: "starter",
+        source: "uninstall_page",
+        couponCode: "LISTFASTER20",
+      },
+    };
+    const res = createResponse();
+
+    await handler(req as any, res as any);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: "A valid email is required." });
+    expect(promotionCodeListMock).not.toHaveBeenCalled();
+    expect(customerCreateMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
   });
 
   it("routes active paid subscribers to the customer portal instead of creating a second subscription", async () => {

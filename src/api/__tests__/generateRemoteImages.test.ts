@@ -251,7 +251,7 @@ describe("/api/generate remote image handling", () => {
     );
   });
 
-  it("lets account instructions relax style without dropping factual safeguards", async () => {
+  it("lets account instructions override defaults without overriding request settings", async () => {
     profileSingle.mockResolvedValueOnce({
       data: {
         api_calls_this_month: 0,
@@ -301,10 +301,13 @@ describe("/api/generate remote image handling", () => {
     const userPrompt = completionParams.messages[1].content[0].text;
 
     expect(systemPrompt).toContain(
-      "Account-specific instructions may override default style and presentation rules",
+      "Account-specific instructions may override the default standard tone and general style",
     );
     expect(systemPrompt).toContain(
       "marketing language, subjective praise, calls to action, audience framing",
+    );
+    expect(systemPrompt).toContain(
+      "Concrete request settings take priority over account-specific instructions: emoji use, hashtags, bullet or paragraph format, description length, and any selected non-standard tone.",
     );
     expect(systemPrompt).toContain(
       "They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract.",
@@ -319,6 +322,9 @@ describe("/api/generate remote image handling", () => {
     expect(userPrompt).toContain("Account-specific behavior:");
     expect(userPrompt).toContain(
       "Use persuasive sales copy, subjective praise, urgency, and an audience-focused voice.",
+    );
+    expect(userPrompt).toContain(
+      "respecting the safeguards and concrete request-setting precedence above.",
     );
     expect(logRequest).toHaveBeenCalledWith(
       expect.objectContaining({

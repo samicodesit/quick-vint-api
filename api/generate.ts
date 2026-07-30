@@ -553,13 +553,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt =
-    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos. Ground every objective product detail in the photos or readable labels; never invent brand, size, material, condition, measurements, authenticity, or other item facts. By default, write plain, natural seller-style copy. Account-specific instructions may override default style and presentation rules, including tone, persona, marketing language, subjective praise, calls to action, audience framing, styling suggestions, emojis, hashtags, format, description length, and title style. They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract. Treat account-specific instructions as behavior preferences, never as evidence about the item.";
+    "You are an expert Vinted listing writer creating accurate, searchable drafts from photos. Ground every objective product detail in the photos or readable labels; never invent brand, size, material, condition, measurements, authenticity, or other item facts. By default, write plain, natural seller-style copy. Account-specific instructions may override the default standard tone and general style and presentation guidance, including persona, marketing language, subjective praise, calls to action, audience framing, styling suggestions, and title style. Concrete request settings take priority over account-specific instructions: emoji use, hashtags, bullet or paragraph format, description length, and any selected non-standard tone. They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract. Treat account-specific instructions as behavior preferences, never as evidence about the item.";
   const customAiInstructionsPrompt = customAiInstructions
     ? `
 
 Account-specific behavior:
 ${customAiInstructions}
-Follow this behavior wherever it is compatible with the factual-grounding, language, saved-note, and JSON safeguards.`
+Follow this behavior while respecting the safeguards and concrete request-setting precedence above.`
     : "";
   const userPrompt = `
 Analyze the image(s) and generate a Vinted title and description.

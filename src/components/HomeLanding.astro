@@ -423,9 +423,9 @@ const subtitleParts =
         >
           <span
             data-stat-generations
-            class="public-stat-number text-base font-black text-indigo-600"
+            class="public-stat-number min-w-[8ch] text-right text-base font-black text-indigo-600"
           >
-            ...
+            —
           </span>
           <span class="ml-1">{extra.publicStatsGenerationsLabel}</span>
         </div>
@@ -1596,36 +1596,6 @@ const subtitleParts =
     return true;
   }
 
-  function animatePublicStatNumber(element: Element | null, value: number) {
-    if (!element) return false;
-    const targetValue = Math.floor(value);
-    if (!Number.isFinite(targetValue) || targetValue <= 0) return false;
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return setPublicStatNumber(element, targetValue);
-    }
-
-    const startValue = Math.max(1, Math.floor(targetValue * 0.25));
-    const durationMs = 1400;
-    const startedAt = performance.now();
-
-    function tick(now: number) {
-      const progress = Math.min(1, (now - startedAt) / durationMs);
-      const eased = 1 - Math.pow(1 - progress, 4);
-      const currentValue = Math.round(
-        startValue + (targetValue - startValue) * eased,
-      );
-      setPublicStatNumber(element, currentValue);
-      if (progress < 1) {
-        requestAnimationFrame(tick);
-      }
-    }
-
-    setPublicStatNumber(element, startValue);
-    requestAnimationFrame(tick);
-    return true;
-  }
-
   async function loadPublicStats() {
     if (!publicStatsRoot) return;
 
@@ -1651,17 +1621,11 @@ const subtitleParts =
         "[data-stat-generations]",
       );
 
-      if (animatePublicStatNumber(generationsEl, Math.floor(generations))) {
-        publicStatsRoot.classList.remove("hidden");
-        publicStatsRoot.classList.add("flex");
-        publicStatsRoot.dataset.loaded = "true";
-        publicStatsRoot.setAttribute("aria-busy", "false");
-      }
+      setPublicStatNumber(generationsEl, Math.floor(generations));
     } catch (error) {
-      publicStatsRoot.classList.add("hidden");
-      publicStatsRoot.classList.remove("flex");
+      // Keep the stable placeholder when live stats are unavailable.
+    } finally {
       publicStatsRoot.setAttribute("aria-busy", "false");
-      delete publicStatsRoot.dataset.loaded;
     }
   }
 
@@ -1708,48 +1672,5 @@ const subtitleParts =
   .public-stat-number {
     font-variant-numeric: tabular-nums;
     display: inline-block;
-  }
-
-  .public-stats-video-badge[data-loaded="true"] {
-    animation: publicStatsBadgeIn 700ms cubic-bezier(0.18, 1.35, 0.28, 1) both;
-  }
-
-  .public-stats-video-badge[data-loaded="true"] .public-stat-number {
-    animation: publicStatsNumberPop 700ms cubic-bezier(0.18, 1.35, 0.28, 1)
-      120ms both;
-  }
-
-  @keyframes publicStatsBadgeIn {
-    from {
-      opacity: 0;
-      transform: translateY(14px) scale(0.9);
-    }
-    65% {
-      opacity: 1;
-      transform: translateY(-2px) scale(1.04);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes publicStatsNumberPop {
-    from {
-      transform: scale(0.75);
-    }
-    70% {
-      transform: scale(1.18);
-    }
-    to {
-      transform: scale(1);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .public-stats-video-badge[data-loaded="true"],
-    .public-stats-video-badge[data-loaded="true"] .public-stat-number {
-      animation: none;
-    }
   }
 </style>

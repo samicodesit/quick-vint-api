@@ -19,11 +19,16 @@ describe("HomeLanding performance", () => {
     expect(source).toContain("requestIdleCallback");
   });
 
-  it("renders a public stats placeholder before the deferred counter loads", () => {
+  it("keeps a fixed public-stats slot while the deferred count loads", () => {
     expect(publicStatsTag).not.toMatch(/\bhidden\b/);
     expect(publicStatsTag).toMatch(/\bflex\b/);
     expect(source).toContain('aria-busy="true"');
-    expect(source).toContain("...");
+    expect(source).toContain("—");
+    expect(source).toContain("min-w-[8ch]");
+    expect(source).not.toContain("animatePublicStatNumber");
+    expect(source).not.toContain(
+      '.public-stats-video-badge[data-loaded="true"]',
+    );
   });
 
   it("does not eagerly request the heavy hero video before first paint", () => {

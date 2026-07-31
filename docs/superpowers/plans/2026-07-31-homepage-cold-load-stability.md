@@ -20,10 +20,12 @@
 ### Task 1: Freeze the Production Baseline
 
 **Files:**
+
 - Create outside repository: `/tmp/autolister-home-benchmark.mjs`
 - Create outside repository: `/tmp/autolister-home-before.json`
 
 **Interfaces:**
+
 - Consumes: a target homepage URL and label from command-line arguments
 - Produces: median FCP, LCP, DOM interactive, total blocking time, CLS, meter text changes, width range, top-position range, minimum opacity, transform states, and settling time
 
@@ -44,10 +46,12 @@ Expected: ten successful cold visits and `/tmp/autolister-home-before.json` cont
 ### Task 2: Create the Failing Browser Regression
 
 **Files:**
+
 - Create outside repository: `/tmp/autolister-home-meter-test.mjs`
 - Modify: `src/components/__tests__/HomeLandingPerformance.test.ts`
 
 **Interfaces:**
+
 - Consumes: a target homepage URL
 - Produces: a non-zero exit before the fix and zero after the fix
 
@@ -68,9 +72,11 @@ Expected: failure because the current page uses `...`, hides and transforms the 
 ### Task 3: Implement the Stable Atomic Meter Update
 
 **Files:**
+
 - Modify: `src/components/HomeLanding.astro`
 
 **Interfaces:**
+
 - Consumes: `{ totalGenerations: number }` from `/api/public-stats`
 - Produces: one localized formatted number update without changing badge geometry or visibility
 
@@ -103,9 +109,11 @@ Then run the real-browser test against the local built preview. Expected: both s
 ### Task 4: Measure, Verify, and Ship
 
 **Files:**
+
 - Create outside repository: `/tmp/autolister-home-after.json`
 
 **Interfaces:**
+
 - Consumes: the Vercel preview URL containing the implementation
 - Produces: an exact before/after comparison and a verified production-ready commit
 

@@ -134,7 +134,7 @@ Add one observer that marks the slot `data-docked="true"` when its top reaches t
 
 - [ ] **Step 4: Add responsive CSS**
 
-Desktop: reserve the full rail height, fix it centered with `left: 50%`, `bottom: 20px`, `transform: translateX(-50%)`, and dock it absolutely inside the slot. Use a maximum width aligned to the hero content. Mobile: position static, two columns, no fixed behavior. Add low-height desktop spacing adjustments only where visual evidence shows overlap.
+Desktop: reserve the full rail height, fix it centered with `left: 50%`, `bottom: 0`, `transform: translateX(-50%)`, and dock it absolutely against the slot's bottom edge. Remove desktop bottom padding beneath the slot and keep 16px between the fixed navbar and the first hero badges. Use a maximum width aligned to the hero content. Mobile: position static, two columns, no fixed behavior. Add low-height desktop spacing adjustments only where visual evidence shows overlap.
 
 - [ ] **Step 5: Run the focused test and verify GREEN**
 
@@ -144,7 +144,7 @@ Expected: all focused tests PASS.
 
 - [ ] **Step 6: Build and run real-browser checks**
 
-Run the production build and local preview. Use Chromium screenshots and geometry assertions at 1366×768, 1440×900, 1920×1080, 2560×1080, and 390×844. Verify desktop rail centering, bottom gap, no overlap with visible hero controls, seamless docking, preserved testimonial, mobile 2×2 flow, tier text/link updates, and zero layout jump at handoff.
+Run the production build and local preview. Use Chromium screenshots and geometry assertions at 1366×768, 1440×900, 1920×1080, 2560×1080, and 390×844. Verify desktop rail centering, a flush viewport bottom, at least 16px below the navbar, no overlap with visible hero controls, bottom-aligned docking with no whitespace below it, preserved testimonial, mobile 2×2 flow, tier text/link updates, and zero layout jump at handoff.
 
 - [ ] **Step 7: Refine from screenshots and rerun checks**
 

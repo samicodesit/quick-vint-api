@@ -21,9 +21,10 @@ The comparison label is localized as appropriate. Business must not claim a savi
 - Keep the testimonial, bullets, CTAs, video, screenshots, and listings counter.
 - Add a reserved proof-strip slot after the existing hero grid.
 - On desktop, show the strip as a centered four-column rail with the plan selector attached above it.
-- While the reserved slot is below the viewport, place the rail at the bottom center of the viewport with a comfortable edge gap.
+- While the reserved slot is below the viewport, place the rail flush with the bottom center of the viewport.
 - Reserve the rail's full height in the hero and add a matching safe area so it never covers existing hero content.
-- When the reserved slot reaches the rail, switch the rail into the slot without a visible jump. Scrolling back above it restores the viewport position.
+- When the reserved slot reaches the rail, switch the rail into the bottom of the slot without a visible jump or dead space below it. Scrolling back above it restores the viewport position.
+- Keep 16px of breathing room between the fixed desktop navbar and the first hero badges.
 - Use one `IntersectionObserver` and CSS state classes for the handoff. If JavaScript is unavailable, the strip remains usable in normal flow.
 - On mobile, do not float the strip. Render it in normal flow as a compact two-column grid beneath the hero content.
 - Respect reduced-motion preferences and avoid entrance/count-up animations.

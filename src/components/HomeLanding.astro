@@ -28,6 +28,8 @@ const blogHref = blogLocale === "en" ? "/blog" : `/${blogLocale}/blog`;
 
 const chromeHref =
   "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
+const pricingHref = locale === "en" ? "/pricing" : `/${locale}/pricing`;
+const tierProofValues = JSON.stringify(extra.tierProof.tiers);
 
 const subtitleParts =
   heroSubtitleEmphasis && copy.heroSubtitle.includes(heroSubtitleEmphasis)
@@ -36,7 +38,7 @@ const subtitleParts =
 ---
 
 <!-- Hero Section -->
-<div class="relative pt-32 pb-12 lg:pt-28 lg:pb-12 overflow-hidden bg-white">
+<div class="relative pt-32 pb-12 lg:pt-20 lg:pb-12 overflow-hidden bg-white">
   <div
     class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0"
   >
@@ -55,13 +57,13 @@ const subtitleParts =
   </div>
 
   <div
-    class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full lg:pt-12 lg:pb-8"
+    class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full lg:pb-8"
   >
     <div class="lg:grid lg:grid-cols-12 lg:gap-8 xl:gap-16 items-center">
       <div
         class="lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start opacity-0 animate-[fadeInUp_0.8s_ease-out_forwards]"
       >
-        <div class="hidden sm:flex flex-wrap items-center gap-2 mb-8">
+        <div class="hidden sm:flex flex-wrap items-center gap-2 mb-5">
           <div
             class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-600 text-xs font-bold uppercase tracking-wider shadow-sm transition-colors cursor-default"
           >
@@ -96,7 +98,7 @@ const subtitleParts =
         </div>
 
         <h1
-          class="text-[2.55rem] sm:text-5xl lg:text-5xl xl:text-7xl font-extrabold tracking-tight leading-[1.06] sm:leading-[1.1] mb-4 sm:mb-6 text-slate-900 mt-2 sm:mt-4 lg:mt-0 text-balance"
+          class="text-[2.55rem] sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.06] sm:leading-[1.1] mb-4 sm:mb-5 text-slate-900 mt-2 sm:mt-4 lg:mt-0 text-balance"
         >
           {
             heroTitleAccent ? (
@@ -112,7 +114,7 @@ const subtitleParts =
         </h1>
 
         <p
-          class="hidden sm:block text-lg sm:text-xl text-slate-600 mb-8 max-w-lg leading-relaxed font-medium"
+          class="home-hero-subtitle hidden sm:block text-lg sm:text-xl text-slate-600 mb-6 max-w-lg leading-relaxed font-medium"
         >
           {
             subtitleParts ? (
@@ -136,7 +138,7 @@ const subtitleParts =
         </p>
 
         <ul
-          class="hidden sm:block space-y-3 mb-10 text-left w-full max-w-md px-2 sm:px-0 list-none"
+          class="home-hero-benefits hidden sm:block space-y-2.5 mb-6 text-left w-full max-w-md px-2 sm:px-0 list-none"
         >
           <li class="flex items-start gap-3">
             <div
@@ -226,7 +228,7 @@ const subtitleParts =
         </ul>
 
         <div
-          class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:gap-4 w-full max-w-2xl px-1 sm:px-0"
+          class="home-hero-actions flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:gap-4 w-full max-w-2xl px-1 sm:px-0"
         >
           <a
             href={chromeHref}
@@ -377,7 +379,7 @@ const subtitleParts =
         </div>
 
         <div
-          class="mt-8 hidden sm:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
+          class="mt-6 hidden sm:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
         >
           <img
             class="w-10 h-10 rounded-full border-2 border-white shadow-md shrink-0"
@@ -556,6 +558,76 @@ const subtitleParts =
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="home-tier-proof-slot" data-home-proof-slot data-docked="false">
+      <section
+        class="home-tier-proof-rail"
+        data-home-proof-rail
+        data-tier-values={tierProofValues}
+        data-pricing-href={pricingHref}
+        aria-label={extra.tierProof.ariaLabel}
+      >
+        <div
+          class="home-tier-toggle"
+          role="tablist"
+          aria-label={extra.tierProof.tierLabel}
+        >
+          {
+            (Object.keys(extra.tierProof.tiers) as Array<
+              keyof typeof extra.tierProof.tiers
+            >).map((tier, index) => (
+              <button
+                type="button"
+                role="tab"
+                class:list={["home-tier-option", { "is-active": index === 0 }]}
+                aria-selected={index === 0 ? "true" : "false"}
+                data-home-tier-option={tier}
+              >
+                {extra.tierProof.tiers[tier].name}
+              </button>
+            ))
+          }
+        </div>
+
+        <div class="home-tier-proof-card">
+          <ul class="home-tier-proof-grid">
+            <li>
+              <strong data-home-tier-proof="priceValue">
+                {extra.tierProof.tiers.starter.priceValue}
+              </strong>
+              <span>{extra.tierProof.priceLabel}</span>
+            </li>
+            <li>
+              <strong data-home-tier-proof="comparisonValue">
+                {extra.tierProof.tiers.starter.comparisonValue}
+              </strong>
+              <span>{extra.tierProof.comparisonLabel}</span>
+            </li>
+            <li>
+              <strong data-home-tier-proof="listingsValue">
+                {extra.tierProof.tiers.starter.listingsValue}
+              </strong>
+              <span>{extra.tierProof.listingsLabel}</span>
+            </li>
+            <li>
+              <strong data-home-tier-proof="speedValue">
+                {extra.tierProof.tiers.starter.speedValue}
+              </strong>
+              <span>{extra.tierProof.speedLabel}</span>
+            </li>
+          </ul>
+          <a
+            class="home-tier-proof-link"
+            href={`${pricingHref}?plan=starter#pricing`}
+            data-home-tier-link
+            data-track-event="pricing_view"
+            data-track-context="home_tier_proof"
+          >
+            {extra.tierProof.chooseTier}
+          </a>
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -1571,6 +1643,97 @@ const subtitleParts =
   const publicStatsRoot = document.querySelector(
     "[data-public-stats]",
   ) as HTMLElement | null;
+  const homeProofSlot = document.querySelector(
+    "[data-home-proof-slot]",
+  ) as HTMLElement | null;
+  const homeProofRail = document.querySelector(
+    "[data-home-proof-rail]",
+  ) as HTMLElement | null;
+
+  if (homeProofRail) {
+    const tierOptions = Array.from(
+      homeProofRail.querySelectorAll<HTMLElement>("[data-home-tier-option]"),
+    );
+    const tierLink = homeProofRail.querySelector<HTMLAnchorElement>(
+      "[data-home-tier-link]",
+    );
+    const pricingHref = homeProofRail.dataset.pricingHref || "/pricing";
+    let tierValues: Record<string, Record<string, string>> = {};
+
+    try {
+      tierValues = JSON.parse(homeProofRail.dataset.tierValues || "{}");
+    } catch {
+      tierValues = {};
+    }
+
+    function selectHomeProofTier(tier: string) {
+      const values = tierValues[tier];
+      if (!values) return;
+
+      homeProofRail
+        ?.querySelectorAll<HTMLElement>("[data-home-tier-proof]")
+        .forEach((element) => {
+          const key = element.dataset.homeTierProof;
+          if (key && values[key]) element.textContent = values[key];
+        });
+
+      tierOptions.forEach((option) => {
+        const active = option.dataset.homeTierOption === tier;
+        option.classList.toggle("is-active", active);
+        option.setAttribute("aria-selected", String(active));
+      });
+
+      if (tierLink) tierLink.href = `${pricingHref}?plan=${tier}#pricing`;
+    }
+
+    tierOptions.forEach((option) => {
+      option.addEventListener("click", () => {
+        const tier = option.dataset.homeTierOption;
+        if (tier) selectHomeProofTier(tier);
+      });
+    });
+  }
+
+  if (homeProofSlot && homeProofRail) {
+    let proofObserver: IntersectionObserver | null = null;
+
+    function observeHomeProofSlot() {
+      proofObserver?.disconnect();
+
+      if (window.matchMedia("(max-width: 1023px)").matches) {
+        homeProofSlot.dataset.docked = "true";
+        return;
+      }
+
+      if (!("IntersectionObserver" in window)) {
+        homeProofSlot.dataset.docked = "true";
+        return;
+      }
+
+      const railHeight = homeProofRail.getBoundingClientRect().height;
+      const fixedBottomGap = 20;
+      const fixedTop = window.innerHeight - railHeight - fixedBottomGap;
+
+      proofObserver = new IntersectionObserver(
+        () => {
+          homeProofSlot.dataset.docked = String(
+            homeProofSlot.getBoundingClientRect().top <= fixedTop,
+          );
+        },
+        {
+          rootMargin: `0px 0px -${Math.max(0, railHeight + fixedBottomGap)}px 0px`,
+          threshold: 0,
+        },
+      );
+      proofObserver.observe(homeProofSlot);
+      homeProofSlot.dataset.docked = String(
+        homeProofSlot.getBoundingClientRect().top <= fixedTop,
+      );
+    }
+
+    observeHomeProofSlot();
+    window.addEventListener("resize", observeHomeProofSlot, { passive: true });
+  }
 
   function formatPublicStat(value: unknown) {
     const number = Number(value);
@@ -1672,5 +1835,254 @@ const subtitleParts =
   .public-stat-number {
     font-variant-numeric: tabular-nums;
     display: inline-block;
+  }
+
+  .home-tier-proof-slot {
+    position: relative;
+    min-height: 138px;
+    margin-top: 28px;
+  }
+
+  .home-tier-proof-rail {
+    position: relative;
+    z-index: 45;
+    isolation: isolate;
+    width: 100%;
+  }
+
+  .home-tier-proof-rail::before {
+    content: "";
+    position: absolute;
+    inset: -36px 50% -20px auto;
+    z-index: -1;
+    width: 100vw;
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0),
+      rgb(255 255 255 / 0.94) 28px,
+      #fff 44px
+    );
+    transform: translateX(50%);
+    pointer-events: none;
+  }
+
+  .home-tier-toggle {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(100%, 280px);
+    margin: 0 auto -1px;
+    padding: 3px;
+    border: 1px solid rgb(226 232 240 / 0.96);
+    border-radius: 13px 13px 0 0;
+    background: rgb(248 250 252 / 0.98);
+    box-shadow: 0 10px 24px rgb(15 23 42 / 0.08);
+  }
+
+  .home-tier-option {
+    min-height: 32px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .home-tier-option:hover,
+  .home-tier-option:focus-visible {
+    color: #0f172a;
+    outline: none;
+  }
+
+  .home-tier-option:focus-visible {
+    box-shadow: inset 0 0 0 2px #6366f1;
+  }
+
+  .home-tier-option.is-active {
+    background: #fff;
+    color: #0f172a;
+    box-shadow: 0 5px 14px rgb(15 23 42 / 0.1);
+  }
+
+  .home-tier-proof-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    overflow: hidden;
+    border: 1px solid rgb(226 232 240 / 0.96);
+    border-radius: 18px;
+    background: rgb(255 255 255 / 0.96);
+    box-shadow: 0 18px 48px rgb(15 23 42 / 0.12);
+    backdrop-filter: blur(16px);
+  }
+
+  .home-tier-proof-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .home-tier-proof-grid li {
+    display: grid;
+    min-width: 0;
+    min-height: 76px;
+    align-content: center;
+    gap: 5px;
+    padding: 12px 18px;
+    border-left: 1px solid rgb(226 232 240 / 0.9);
+    text-align: center;
+  }
+
+  .home-tier-proof-grid li:first-child {
+    border-left: 0;
+    background: linear-gradient(120deg, #ecfdf5, #fff 72%);
+  }
+
+  .home-tier-proof-grid strong {
+    color: #0f172a;
+    font-size: clamp(16px, 1.35vw, 21px);
+    font-weight: 900;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .home-tier-proof-grid li:first-child strong {
+    color: #059669;
+  }
+
+  .home-tier-proof-grid span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .home-tier-proof-link {
+    display: inline-flex;
+    min-width: 124px;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    background: #4f46e5;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .home-tier-proof-link:hover,
+  .home-tier-proof-link:focus-visible {
+    background: #4338ca;
+  }
+
+  @media (min-width: 1024px) {
+    .home-tier-proof-rail {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      width: min(calc(100vw - 48px), 1280px);
+      transform: translateX(-50%);
+    }
+
+    .home-tier-proof-slot[data-docked="true"] .home-tier-proof-rail {
+      position: absolute;
+      inset: 0 0 auto;
+      width: 100%;
+      transform: none;
+    }
+
+    .home-tier-proof-slot[data-docked="true"] .home-tier-proof-rail::before {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1024px) and (min-height: 801px) and (max-height: 950px) {
+    .home-hero-subtitle {
+      margin-bottom: 12px;
+      font-size: 17px;
+      line-height: 1.45;
+    }
+
+    .home-hero-benefits {
+      margin-bottom: 12px;
+    }
+
+    .home-hero-benefits li + li {
+      margin-top: 6px;
+    }
+
+    .home-hero-benefits li > span {
+      font-size: 15.5px;
+      line-height: 1.2;
+    }
+
+    .home-hero-actions > a,
+    .home-hero-actions > button {
+      min-height: 64px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .home-tier-proof-slot {
+      min-height: 0;
+      margin-top: 36px;
+    }
+
+    .home-tier-proof-rail::before {
+      display: none;
+    }
+
+    .home-tier-proof-card {
+      grid-template-columns: 1fr;
+    }
+
+    .home-tier-proof-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .home-tier-proof-grid li {
+      border-top: 1px solid rgb(226 232 240 / 0.9);
+    }
+
+    .home-tier-proof-grid li:nth-child(odd) {
+      border-left: 0;
+    }
+
+    .home-tier-proof-grid li:nth-child(-n + 2) {
+      border-top: 0;
+    }
+
+    .home-tier-proof-link {
+      min-height: 48px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .home-tier-proof-slot {
+      margin-top: 28px;
+    }
+
+    .home-tier-proof-grid li {
+      min-height: 72px;
+      padding: 11px 9px;
+    }
+
+    .home-tier-proof-grid strong {
+      font-size: 16px;
+    }
+
+    .home-tier-proof-grid span {
+      font-size: 10px;
+    }
   }
 </style>

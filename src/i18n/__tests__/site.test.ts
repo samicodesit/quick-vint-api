@@ -174,10 +174,13 @@ describe("SITE_EXTRA_COPY", () => {
   SUPPORTED_SITE_LOCALES.forEach((locale) => {
     describe(`locale "${locale}"`, () => {
       HOME_KEYS.forEach((key) => {
-        it(`home.${key} is a non-empty string`, () => {
+        it(`home.${key} is populated`, () => {
           const value = SITE_EXTRA_COPY[locale].home[key];
-          expect(typeof value).toBe("string");
-          expect(value.trim().length).toBeGreaterThan(0);
+          if (typeof value === "string") {
+            expect(value.trim().length).toBeGreaterThan(0);
+            return;
+          }
+          expect(Object.keys(value).length).toBeGreaterThan(0);
         });
       });
 

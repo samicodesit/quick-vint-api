@@ -424,6 +424,25 @@ export type SiteExtraHomeCopy = {
   addToChromeNote: string;
   testimonialQuote: string;
   testimonialAuthor: string;
+  tierProof: {
+    ariaLabel: string;
+    tierLabel: string;
+    chooseTier: string;
+    priceLabel: string;
+    comparisonLabel: string;
+    listingsLabel: string;
+    speedLabel: string;
+    tiers: Record<
+      "starter" | "pro" | "business",
+      {
+        name: string;
+        priceValue: string;
+        comparisonValue: string;
+        listingsValue: string;
+        speedValue: string;
+      }
+    >;
+  };
   // Safety section
   safetyHeading: string;
   safetyBody: string;
@@ -570,6 +589,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "So much faster when I upload several items. The first draft is ready in seconds.",
       testimonialAuthor: "— Otília N., Vinted seller",
+      tierProof: {
+        ariaLabel: "AutoLister plan value",
+        tierLabel: "Plan",
+        chooseTier: "See plan",
+        priceLabel: "per month",
+        comparisonLabel: "vs ChatGPT Plus",
+        listingsLabel: "included each month",
+        speedLabel: "from photos to draft",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "€3.99",
+            comparisonValue: "~80% cheaper",
+            listingsValue: "75 listings",
+            speedValue: "Average 5 seconds",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "€9.99",
+            comparisonValue: "~50% cheaper",
+            listingsValue: "250 listings",
+            speedValue: "Average 5 seconds",
+          },
+          business: {
+            name: "Business",
+            priceValue: "€19.99",
+            comparisonValue: "Comparable price",
+            listingsValue: "600 listings",
+            speedValue: "Average 5 seconds",
+          },
+        },
+      },
       safetyHeading: "Zero Risk. 100% Control.",
       safetyBody:
         "Unlike DotB and Vintex — which hook into Vinted's private API to mass auto-follow and auto-like — AutoLister operates strictly as a browser productivity tool. It writes text for you. Nothing more.",
@@ -723,6 +774,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "Tellement plus rapide quand j'ajoute plusieurs articles. Le premier brouillon est prêt en quelques secondes.",
       testimonialAuthor: "— Otília N., vendeuse Vinted",
+      tierProof: {
+        ariaLabel: "Valeur des offres AutoLister",
+        tierLabel: "Offre",
+        chooseTier: "Voir l'offre",
+        priceLabel: "par mois",
+        comparisonLabel: "vs ChatGPT Plus",
+        listingsLabel: "incluses chaque mois",
+        speedLabel: "des photos au brouillon",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "3,99 €",
+            comparisonValue: "~80 % moins cher",
+            listingsValue: "75 annonces",
+            speedValue: "5 secondes en moyenne",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "9,99 €",
+            comparisonValue: "~50 % moins cher",
+            listingsValue: "250 annonces",
+            speedValue: "5 secondes en moyenne",
+          },
+          business: {
+            name: "Business",
+            priceValue: "19,99 €",
+            comparisonValue: "Prix comparable",
+            listingsValue: "600 annonces",
+            speedValue: "5 secondes en moyenne",
+          },
+        },
+      },
       safetyHeading: "Zéro risque. 100% de contrôle.",
       safetyBody:
         "Contrairement à DotB et Vintex — qui se connectent à l'API privée de Vinted — AutoLister est un simple outil de rédaction. Il écrit du texte pour vous. Rien de plus.",
@@ -876,6 +959,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "So viel schneller, wenn ich mehrere Artikel hochlade. Der erste Entwurf ist in Sekunden fertig.",
       testimonialAuthor: "— Otília N., Vinted-Verkaeuferin",
+      tierProof: {
+        ariaLabel: "AutoLister Tarifvorteile",
+        tierLabel: "Tarif",
+        chooseTier: "Tarif ansehen",
+        priceLabel: "pro Monat",
+        comparisonLabel: "vs. ChatGPT Plus",
+        listingsLabel: "jeden Monat enthalten",
+        speedLabel: "von Fotos zum Entwurf",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "3,99 €",
+            comparisonValue: "~80 % günstiger",
+            listingsValue: "75 Anzeigen",
+            speedValue: "Im Schnitt 5 Sekunden",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "9,99 €",
+            comparisonValue: "~50 % günstiger",
+            listingsValue: "250 Anzeigen",
+            speedValue: "Im Schnitt 5 Sekunden",
+          },
+          business: {
+            name: "Business",
+            priceValue: "19,99 €",
+            comparisonValue: "Vergleichbarer Preis",
+            listingsValue: "600 Anzeigen",
+            speedValue: "Im Schnitt 5 Sekunden",
+          },
+        },
+      },
       safetyHeading: "Null Risiko. 100% Kontrolle.",
       safetyBody:
         "Anders als DotB und Vintex — die sich in Vinteds private API einklinken — arbeitet AutoLister rein als Browser-Produktivitatswerkzeug. Es schreibt Text fur dich. Nichts weiter.",
@@ -1029,6 +1144,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "Zoveel sneller als ik meerdere items upload. De eerste versie staat er binnen een paar seconden.",
       testimonialAuthor: "— Otília N., Vinted-verkoper",
+      tierProof: {
+        ariaLabel: "Waarde van AutoLister-abonnementen",
+        tierLabel: "Abonnement",
+        chooseTier: "Bekijk abonnement",
+        priceLabel: "per maand",
+        comparisonLabel: "vs. ChatGPT Plus",
+        listingsLabel: "elke maand inbegrepen",
+        speedLabel: "van foto's naar concept",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "€ 3,99",
+            comparisonValue: "~80% goedkoper",
+            listingsValue: "75 advertenties",
+            speedValue: "Gemiddeld 5 seconden",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "€ 9,99",
+            comparisonValue: "~50% goedkoper",
+            listingsValue: "250 advertenties",
+            speedValue: "Gemiddeld 5 seconden",
+          },
+          business: {
+            name: "Business",
+            priceValue: "€ 19,99",
+            comparisonValue: "Vergelijkbare prijs",
+            listingsValue: "600 advertenties",
+            speedValue: "Gemiddeld 5 seconden",
+          },
+        },
+      },
       safetyHeading: "Nul risico. 100% controle.",
       safetyBody:
         "In tegenstelling tot DotB en Vintex — die zich koppelen aan Vinteds prive-API — werkt AutoLister puur als een browser-productiviteitstool. Het schrijft tekst voor jou. Niets meer.",
@@ -1183,6 +1330,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "Duzo szybciej, gdy dodaje kilka rzeczy naraz. Pierwszy szkic jest gotowy w kilka sekund.",
       testimonialAuthor: "— Otília N., sprzedawczyni Vinted",
+      tierProof: {
+        ariaLabel: "Wartość planów AutoLister",
+        tierLabel: "Plan",
+        chooseTier: "Zobacz plan",
+        priceLabel: "miesięcznie",
+        comparisonLabel: "vs ChatGPT Plus",
+        listingsLabel: "co miesiąc w cenie",
+        speedLabel: "od zdjęć do wersji roboczej",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "3,99 €",
+            comparisonValue: "~80% taniej",
+            listingsValue: "75 ogłoszeń",
+            speedValue: "Średnio 5 sekund",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "9,99 €",
+            comparisonValue: "~50% taniej",
+            listingsValue: "250 ogłoszeń",
+            speedValue: "Średnio 5 sekund",
+          },
+          business: {
+            name: "Business",
+            priceValue: "19,99 €",
+            comparisonValue: "Porównywalna cena",
+            listingsValue: "600 ogłoszeń",
+            speedValue: "Średnio 5 sekund",
+          },
+        },
+      },
       safetyHeading: "Zero ryzyka. 100% kontroli.",
       safetyBody:
         "W przeciwienstwie do DotB i Vintex — ktore lacza sie z prywatnym API Vinted — AutoLister dziala wylacznie jako narzedzie produktywnosci. Pisze dla Ciebie tekst. Nic wiecej.",
@@ -1337,6 +1516,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "Mucho mas rapido cuando subo varios articulos. El primer borrador esta listo en segundos.",
       testimonialAuthor: "— Otília N., vendedora de Vinted",
+      tierProof: {
+        ariaLabel: "Valor de los planes de AutoLister",
+        tierLabel: "Plan",
+        chooseTier: "Ver plan",
+        priceLabel: "al mes",
+        comparisonLabel: "vs ChatGPT Plus",
+        listingsLabel: "incluidos cada mes",
+        speedLabel: "de fotos a borrador",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "3,99 €",
+            comparisonValue: "~80 % más barato",
+            listingsValue: "75 anuncios",
+            speedValue: "5 segundos de media",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "9,99 €",
+            comparisonValue: "~50 % más barato",
+            listingsValue: "250 anuncios",
+            speedValue: "5 segundos de media",
+          },
+          business: {
+            name: "Business",
+            priceValue: "19,99 €",
+            comparisonValue: "Precio comparable",
+            listingsValue: "600 anuncios",
+            speedValue: "5 segundos de media",
+          },
+        },
+      },
       safetyHeading: "Cero riesgo. 100% de control.",
       safetyBody:
         "A diferencia de DotB y Vintex — que se conectan a la API privada de Vinted para auto-seguir y auto-dar likes — AutoLister funciona estrictamente como una herramienta de productividad del navegador. Escribe texto por ti. Nada mas.",
@@ -1490,6 +1701,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "Molto piu veloce quando carico piu articoli insieme. La prima bozza e pronta in pochi secondi.",
       testimonialAuthor: "— Otília N., venditrice Vinted",
+      tierProof: {
+        ariaLabel: "Valore dei piani AutoLister",
+        tierLabel: "Piano",
+        chooseTier: "Vedi piano",
+        priceLabel: "al mese",
+        comparisonLabel: "vs ChatGPT Plus",
+        listingsLabel: "inclusi ogni mese",
+        speedLabel: "dalle foto alla bozza",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "3,99 €",
+            comparisonValue: "~80% più economico",
+            listingsValue: "75 annunci",
+            speedValue: "5 secondi in media",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "9,99 €",
+            comparisonValue: "~50% più economico",
+            listingsValue: "250 annunci",
+            speedValue: "5 secondi in media",
+          },
+          business: {
+            name: "Business",
+            priceValue: "19,99 €",
+            comparisonValue: "Prezzo comparabile",
+            listingsValue: "600 annunci",
+            speedValue: "5 secondi in media",
+          },
+        },
+      },
       safetyHeading: "Zero rischi. 100% controllo.",
       safetyBody:
         "A differenza di DotB e Vintex — che si collegano all'API privata di Vinted per auto-seguire e auto-mettere like — AutoLister opera strettamente come uno strumento di produttivita del browser. Scrive testo per te. Nient'altro.",
@@ -1643,6 +1886,38 @@ export const SITE_EXTRA_COPY: Record<
       testimonialQuote:
         "Muito mais rapido quando carrego varios artigos de uma vez. O primeiro rascunho fica pronto em segundos.",
       testimonialAuthor: "— Otília N., vendedora Vinted",
+      tierProof: {
+        ariaLabel: "Valor dos planos AutoLister",
+        tierLabel: "Plano",
+        chooseTier: "Ver plano",
+        priceLabel: "por mês",
+        comparisonLabel: "vs ChatGPT Plus",
+        listingsLabel: "incluídos todos os meses",
+        speedLabel: "das fotos ao rascunho",
+        tiers: {
+          starter: {
+            name: "Starter",
+            priceValue: "3,99 €",
+            comparisonValue: "~80% mais barato",
+            listingsValue: "75 anúncios",
+            speedValue: "5 segundos em média",
+          },
+          pro: {
+            name: "Pro",
+            priceValue: "9,99 €",
+            comparisonValue: "~50% mais barato",
+            listingsValue: "250 anúncios",
+            speedValue: "5 segundos em média",
+          },
+          business: {
+            name: "Business",
+            priceValue: "19,99 €",
+            comparisonValue: "Preço comparável",
+            listingsValue: "600 anúncios",
+            speedValue: "5 segundos em média",
+          },
+        },
+      },
       safetyHeading: "Zero risco. 100% controlo.",
       safetyBody:
         "Ao contrario do DotB e Vintex — que se ligam a API privada da Vinted para auto-seguir e auto-dar gostos — o AutoLister funciona estritamente como uma ferramenta de produtividade do navegador. Escreve texto por si. Nada mais.",

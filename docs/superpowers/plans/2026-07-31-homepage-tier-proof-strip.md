@@ -22,11 +22,13 @@
 ### Task 1: Localized proof content and tier switching
 
 **Files:**
+
 - Modify: `src/i18n/site.ts`
 - Modify: `src/components/HomeLanding.astro`
 - Test: `src/components/__tests__/HomeLandingPerformance.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `SiteExtraHomeCopy`, `extra`, and locale-aware homepage rendering.
 - Produces: `extra.tierProof` with localized labels and `starter`, `pro`, `business` values; DOM hooks `data-home-tier-option`, `data-home-tier-proof`, and `data-home-tier-link`.
 
@@ -60,14 +62,17 @@ tierProof: {
   comparisonLabel: string;
   listingsLabel: string;
   speedLabel: string;
-  tiers: Record<"starter" | "pro" | "business", {
-    name: string;
-    priceValue: string;
-    comparisonValue: string;
-    listingsValue: string;
-    speedValue: string;
-  }>;
-};
+  tiers: Record<
+    "starter" | "pro" | "business",
+    {
+      name: string;
+      priceValue: string;
+      comparisonValue: string;
+      listingsValue: string;
+      speedValue: string;
+    }
+  >;
+}
 ```
 
 Use standard prices and truthful comparison values: `~80% cheaper`, `~50% cheaper`, and `Comparable price` in English; listings `75`, `250`, `600`; speed `Average 5 seconds`.
@@ -96,11 +101,13 @@ git commit -m "Add homepage tier proof strip"
 ### Task 2: Fixed-to-flow positioning and responsive polish
 
 **Files:**
+
 - Modify: `src/components/HomeLanding.astro`
 - Test: `src/components/__tests__/HomeLandingPerformance.test.ts`
 - Create: `/tmp/autolister-home-proof-visual.mjs` (local verification only; do not commit)
 
 **Interfaces:**
+
 - Consumes: `[data-home-proof-slot]` and `[data-home-proof-rail]` from Task 1.
 - Produces: `data-docked` slot state and responsive `.home-tier-proof-*` styles.
 

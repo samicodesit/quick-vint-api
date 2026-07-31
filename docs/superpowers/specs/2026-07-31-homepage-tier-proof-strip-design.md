@@ -8,11 +8,11 @@ Bring the uninstall page's plan selector and four value propositions into the ho
 
 The strip keeps the uninstall page's Starter, Pro, and Business selector and the same four propositions. Homepage pricing uses standard monthly prices, not the uninstall-only 20% win-back discount.
 
-| Tier | Price | ChatGPT Plus comparison | Included listings | Draft speed |
-| --- | ---: | --- | ---: | --- |
-| Starter | €3.99 | ~80% cheaper | 75 | Average 5 seconds |
-| Pro | €9.99 | ~50% cheaper | 250 | Average 5 seconds |
-| Business | €19.99 | Comparable price | 600 | Average 5 seconds |
+| Tier     |  Price | ChatGPT Plus comparison | Included listings | Draft speed       |
+| -------- | -----: | ----------------------- | ----------------: | ----------------- |
+| Starter  |  €3.99 | ~80% cheaper            |                75 | Average 5 seconds |
+| Pro      |  €9.99 | ~50% cheaper            |               250 | Average 5 seconds |
+| Business | €19.99 | Comparable price        |               600 | Average 5 seconds |
 
 The comparison label is localized as appropriate. Business must not claim a saving that does not exist at its standard price.
 

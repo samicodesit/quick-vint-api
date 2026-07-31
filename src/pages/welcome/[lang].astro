@@ -45,7 +45,7 @@ const canonical = `${baseUrl}${welcomePath}`;
     <link rel="alternate" hreflang="x-default" href={`${baseUrl}/welcome/en`} />
   </Fragment>
 
-  <main class="welcome-page relative min-h-screen px-6 py-12 text-slate-900">
+  <main class="welcome-page relative min-h-screen px-6 py-6 text-slate-900 sm:py-8 lg:py-6">
     <div class="absolute inset-x-0 top-4 z-20 flex justify-center px-4 sm:top-6">
       <div
         class="animate-enter flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2 shadow-[0_12px_32px_rgba(15,23,42,0.08)] backdrop-blur"
@@ -62,81 +62,99 @@ const canonical = `${baseUrl}${welcomePath}`;
     </div>
 
     <section
-      class="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center pt-14 sm:pt-10"
+      data-welcome-content
+      class="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center pt-14 sm:pt-10 lg:pt-8 2xl:max-w-7xl"
     >
-      <div class="mb-16 w-full max-w-2xl text-center">
-        <div class="success-animation animate-enter">
-          <div class="glow-ring"></div>
-          <svg
-            class="checkmark"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 52 52"
-            aria-hidden="true"
-          >
-            <circle
-              class="checkmark__circle"
-              cx="26"
-              cy="26"
-              r="25"
-              fill="none"></circle>
-            <path
-              class="checkmark__check"
-              fill="none"
-              d="M14.1 27.2l7.1 7.2 16.7-16.8"></path>
-          </svg>
-        </div>
-
-        <h1
-          class="animate-enter delay-100 mb-4 text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl"
-        >
-          {copy.installTitle}
-        </h1>
-        <p class="animate-enter delay-200 mb-8 text-lg text-slate-500">
-          {copy.installSubtitle}
-        </p>
-
-        <div
-          class="animate-enter delay-300 mb-8 flex items-center justify-center"
-        >
-          <span
-            class="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm"
-          >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div
+        class="welcome-hero mb-6 grid w-full items-center gap-0 text-center sm:mb-8 sm:gap-4 lg:mb-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 lg:text-left 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:gap-16"
+      >
+        <div class="welcome-copy">
+          <div class="success-animation animate-enter">
+            <div class="glow-ring"></div>
+            <svg
+              class="checkmark"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 52 52"
+              aria-hidden="true"
+            >
+              <circle
+                class="checkmark__circle"
+                cx="26"
+                cy="26"
+                r="25"
+                fill="none"></circle>
               <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2.4"
-                d="M5 13l4 4L19 7"></path>
+                class="checkmark__check"
+                fill="none"
+                d="M14.1 27.2l7.1 7.2 16.7-16.8"></path>
             </svg>
-            {copy.planBadge}
-          </span>
+          </div>
+
+          <h1
+            class="animate-enter delay-100 mb-3 text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl 2xl:text-6xl"
+          >
+            {copy.installTitle}
+          </h1>
+          <p class="animate-enter delay-200 mb-5 text-lg text-slate-500 sm:mb-6">
+            {copy.installSubtitle}
+          </p>
+
+          <div
+            class="animate-enter delay-300 mb-5 flex items-center justify-center sm:mb-6 lg:justify-start"
+          >
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2.4"
+                  d="M5 13l4 4L19 7"></path>
+              </svg>
+              {copy.planBadge}
+            </span>
+          </div>
+
+          <div class="animate-enter delay-400 flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4 lg:justify-start">
+            <a
+              id="welcome-primary-cta"
+              href="https://www.vinted.com/items/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-primary inline-flex w-full items-center justify-center rounded-[14px] px-8 py-3.5 text-[15px] font-bold text-white no-underline transition-all duration-200 sm:w-auto"
+            >
+              {copy.primaryCta}
+            </a>
+            <a
+              id="welcome-pricing-cta"
+              href="/pricing"
+              class="btn-secondary inline-flex w-full items-center justify-center rounded-[14px] px-8 py-3.5 text-[15px] font-bold no-underline transition-all duration-200 sm:w-auto"
+            >
+              {copy.secondaryCta}
+            </a>
+          </div>
         </div>
 
-        <div class="animate-enter delay-400 flex w-full flex-col items-center justify-center gap-4 sm:flex-row">
-          <a
-            id="welcome-primary-cta"
-            href="https://www.vinted.com/items/new"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn-primary inline-flex w-full items-center justify-center rounded-[14px] px-8 py-3.5 text-[15px] font-bold text-white no-underline transition-all duration-200 sm:w-auto"
-          >
-            {copy.primaryCta}
-          </a>
-          <a
-            id="welcome-pricing-cta"
-            href="/pricing"
-            class="btn-secondary inline-flex w-full items-center justify-center rounded-[14px] px-8 py-3.5 text-[15px] font-bold no-underline transition-all duration-200 sm:w-auto"
-          >
-            {copy.secondaryCta}
-          </a>
-        </div>
+        <figure
+          class="welcome-character animate-enter delay-300 relative mx-auto mb-0 flex w-full max-w-[290px] items-end justify-center lg:max-w-[360px] 2xl:max-w-[420px]"
+          aria-hidden="true"
+        >
+          <img
+            src="/welcome-assistant.webp"
+            alt=""
+            width="464"
+            height="900"
+            class="relative z-10 h-auto w-full"
+          />
+        </figure>
       </div>
 
       <div
-        class="animate-enter delay-500 grid w-full grid-cols-1 items-stretch gap-6 md:grid-cols-2"
+        class="welcome-tips animate-enter delay-500 grid w-full max-w-4xl grid-cols-1 items-stretch gap-6 md:grid-cols-2 2xl:max-w-6xl"
       >
         <article class="bento-card group flex h-full flex-col">
-          <div class="grow p-6 sm:p-8">
+          <div class="welcome-card-copy grow p-6 sm:p-8">
             <div class="mb-3 flex items-center gap-2">
               <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -158,7 +176,7 @@ const canonical = `${baseUrl}${welcomePath}`;
             </p>
           </div>
           <div
-            class="relative mt-auto flex h-[280px] w-full items-end justify-center overflow-hidden border-t border-slate-100 bg-slate-50 px-4 pt-6"
+            class="welcome-card-media welcome-pin-media relative mt-auto flex h-[280px] w-full items-end justify-center overflow-hidden border-t border-slate-100 bg-slate-50 px-4 pt-6"
           >
             <div
               class="absolute bottom-0 h-1/2 w-3/4 rounded-full bg-indigo-500/5 blur-2xl"
@@ -170,13 +188,13 @@ const canonical = `${baseUrl}${welcomePath}`;
               width="390"
               height="247"
               loading="lazy"
-              class="relative z-10 w-full max-w-[360px] translate-y-6 rounded-t-xl border border-slate-200/80 bg-white object-cover object-top shadow-[0_-8px_30px_rgba(0,0,0,0.10)] transition-transform duration-500 group-hover:translate-y-2"
+              class="welcome-pin-image relative z-10 w-full max-w-[360px] translate-y-6 rounded-t-xl border border-slate-200/80 bg-white object-cover object-top shadow-[0_-8px_30px_rgba(0,0,0,0.10)] transition-transform duration-500 group-hover:translate-y-2"
             />
           </div>
         </article>
 
         <article class="bento-card group flex h-full flex-col">
-          <div class="grow p-6 sm:p-8">
+          <div class="welcome-card-copy grow p-6 sm:p-8">
             <div class="mb-3 flex items-center gap-2">
               <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -203,7 +221,7 @@ const canonical = `${baseUrl}${welcomePath}`;
             </p>
           </div>
           <div
-            class="relative mt-auto flex h-[280px] w-full items-center justify-center overflow-hidden border-t border-slate-100 bg-slate-50"
+            class="welcome-card-media welcome-label-media relative mt-auto flex h-[280px] w-full items-center justify-center overflow-hidden border-t border-slate-100 bg-slate-50"
           >
             <div
               class="label-photo label-photo-left absolute z-10 -translate-x-16 -rotate-6 rounded-xl shadow-lg transition-all duration-300 hover:z-40 hover:-translate-y-2 hover:rotate-0 hover:scale-105 sm:-translate-x-20"
@@ -248,7 +266,7 @@ const canonical = `${baseUrl}${welcomePath}`;
       </div>
 
       <p
-        class="animate-enter delay-500 mt-16 text-center text-sm text-slate-400"
+        class="welcome-footer animate-enter delay-500 mt-16 text-center text-sm text-slate-400"
       >
         &copy; 2026 Autolister.app. All rights reserved.
       </p>
@@ -463,7 +481,7 @@ const canonical = `${baseUrl}${welcomePath}`;
     .success-animation {
       display: flex;
       justify-content: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.25rem;
       position: relative;
     }
 
@@ -474,12 +492,12 @@ const canonical = `${baseUrl}${welcomePath}`;
       border-radius: 50%;
       box-shadow: inset 0 0 0 transparent;
       display: block;
-      height: 80px;
+      height: 72px;
       position: relative;
       stroke: #fff;
       stroke-miterlimit: 10;
       stroke-width: 3.5;
-      width: 80px;
+      width: 72px;
       z-index: 10;
     }
 
@@ -504,14 +522,39 @@ const canonical = `${baseUrl}${welcomePath}`;
       animation: pulse-glow 2s cubic-bezier(0.16, 1, 0.3, 1) 1.2s infinite;
       background-color: #10b981;
       border-radius: 50%;
-      height: 80px;
+      height: 72px;
       left: 50%;
       opacity: 0;
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 80px;
+      width: 72px;
       z-index: 0;
+    }
+
+    .welcome-character {
+      align-items: flex-start;
+      height: clamp(140px, 22svh, 190px);
+      overflow: hidden;
+    }
+
+    .welcome-character img {
+      height: auto;
+      max-width: none;
+      width: clamp(190px, 56vw, 235px);
+    }
+
+    .welcome-character::before {
+      background: radial-gradient(
+        circle,
+        rgba(91, 82, 255, 0.13),
+        rgba(16, 185, 129, 0.06) 48%,
+        transparent 72%
+      );
+      border-radius: 999px;
+      content: "";
+      inset: 16% -10% 2%;
+      position: absolute;
     }
 
     .btn-primary {
@@ -632,6 +675,178 @@ const canonical = `${baseUrl}${welcomePath}`;
 
       .glow-ring {
         opacity: 0;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .success-animation {
+        justify-content: flex-start;
+        margin-bottom: 1.5rem;
+      }
+
+      .checkmark,
+      .glow-ring {
+        height: 80px;
+        width: 80px;
+      }
+
+      .glow-ring {
+        left: 40px;
+      }
+
+      .welcome-character {
+        align-items: flex-end;
+        height: min(55svh, 520px);
+        overflow: visible;
+      }
+
+      .welcome-character img {
+        height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+        width: auto;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .welcome-page {
+        min-height: 100svh;
+        padding-bottom: 1rem;
+        padding-top: 1rem;
+      }
+
+      [data-welcome-content] {
+        padding-top: 4rem;
+      }
+
+      .welcome-hero {
+        gap: clamp(1.5rem, 4vw, 4rem);
+        grid-template-columns: minmax(0, 1fr) clamp(230px, 28vw, 420px);
+        margin-bottom: 1rem;
+        text-align: left;
+      }
+
+      .welcome-copy .success-animation {
+        justify-content: flex-start;
+        margin-bottom: 0.75rem;
+      }
+
+      .welcome-copy .checkmark,
+      .welcome-copy .glow-ring {
+        height: 56px;
+        width: 56px;
+      }
+
+      .welcome-copy .glow-ring {
+        left: 28px;
+      }
+
+      .welcome-copy h1 {
+        font-size: clamp(2rem, 3.5vw, 3rem);
+        margin-bottom: 0.5rem;
+      }
+
+      .welcome-copy > p {
+        margin-bottom: 0.75rem;
+      }
+
+      .welcome-copy > div:nth-of-type(2) {
+        margin-bottom: 0.75rem;
+      }
+
+      .welcome-copy > div:last-child {
+        justify-content: flex-start;
+      }
+
+      .welcome-character {
+        align-items: flex-end;
+        height: clamp(260px, 38svh, 520px);
+        max-width: 420px;
+        overflow: visible;
+      }
+
+      .welcome-character img {
+        height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+        width: auto;
+      }
+
+      .welcome-tips {
+        gap: 1rem;
+      }
+
+      .welcome-card-copy {
+        padding: 1rem;
+      }
+
+      .welcome-card-copy > div {
+        margin-bottom: 0.5rem;
+      }
+
+      .welcome-card-copy h2 {
+        font-size: 1.125rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .welcome-card-media {
+        height: clamp(100px, calc(100svh - 700px), 580px);
+      }
+
+      .welcome-pin-media {
+        padding-top: 0.75rem;
+      }
+
+      .welcome-pin-image {
+        height: min(calc(100% + 1.5rem), 440px);
+        max-width: min(90%, 520px);
+        object-fit: cover;
+        object-position: top;
+        transform: translateY(1.5rem);
+      }
+
+      .welcome-label-media .label-photo {
+        height: 72%;
+        max-height: 420px;
+        max-width: 160px;
+        width: 25%;
+      }
+
+      .welcome-label-media .label-photo-center {
+        height: 84%;
+        max-height: 500px;
+        max-width: 190px;
+        width: 30%;
+      }
+
+      .welcome-label-media .label-photo img {
+        height: 100%;
+        width: 100%;
+      }
+
+      .welcome-footer {
+        margin-top: 1rem;
+      }
+    }
+
+    @media (min-width: 768px) and (min-height: 1000px) {
+      .welcome-pin-media {
+        align-items: center;
+        padding-bottom: 1rem;
+        padding-top: 1rem;
+      }
+
+      .welcome-pin-image {
+        height: auto;
+        max-height: calc(100% - 2rem);
+        object-fit: contain;
+        transform: none;
+      }
+    }
+
+    @media (min-width: 1536px) and (min-height: 1200px) {
+      .welcome-character {
+        height: min(38svh, 520px);
       }
     }
   </style>

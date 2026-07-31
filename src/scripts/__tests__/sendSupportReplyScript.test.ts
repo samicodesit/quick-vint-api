@@ -20,6 +20,7 @@ function runDryRun(args: string[]) {
   return JSON.parse(output) as {
     payload: {
       from: string;
+      html: string;
       reply_to: string[];
     };
   };
@@ -42,5 +43,20 @@ describe("send-support-reply script", () => {
 
     expect(result.payload.from).toBe("AutoLister AI <hello@autolister.app>");
     expect(result.payload.reply_to).toEqual(["hello@autolister.app"]);
+  });
+
+  it("renders quoted text in a dashed callout", () => {
+    const result = runDryRun([
+      "--to",
+      "glyn@example.com",
+      "--subject",
+      "Cancellation request",
+      "--text",
+      "Your report:\n\n> Please cancel my subscription.",
+    ]);
+
+    expect(result.payload.html).toContain("border:1px dashed #c9c2dc");
+    expect(result.payload.html).toContain("Please cancel my subscription.");
+    expect(result.payload.html).not.toContain("<strong>Your report:</strong>");
   });
 });

@@ -121,6 +121,7 @@ function textToSupportHtml(text) {
   const blocks = [];
   let paragraph = [];
   let bullets = [];
+  let quote = [];
 
   function flushParagraph() {
     if (paragraph.length === 0) return;
@@ -140,28 +141,48 @@ function textToSupportHtml(text) {
     bullets = [];
   }
 
+  function flushQuote() {
+    if (quote.length === 0) return;
+    blocks.push(
+      `<div style="margin:0 0 18px 0;padding:14px 16px;background:#faf9fd;border:1px dashed #c9c2dc;border-radius:8px;color:#4b4658;">${renderInlineText(quote)}</div>`,
+    );
+    quote = [];
+  }
+
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
     const bulletMatch = line.match(/^\s*[-*]\s+(.+)$/);
+    const quoteMatch = line.match(/^\s*>\s?(.*)$/);
 
     if (!line.trim()) {
       flushParagraph();
       flushBullets();
+      flushQuote();
+      continue;
+    }
+
+    if (quoteMatch) {
+      flushParagraph();
+      flushBullets();
+      quote.push(quoteMatch[1]);
       continue;
     }
 
     if (bulletMatch) {
       flushParagraph();
+      flushQuote();
       bullets.push(bulletMatch[1]);
       continue;
     }
 
     flushBullets();
+    flushQuote();
     paragraph.push(line);
   }
 
   flushParagraph();
   flushBullets();
+  flushQuote();
 
   return `<!doctype html>
 <html>

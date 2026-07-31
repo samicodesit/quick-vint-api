@@ -520,7 +520,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl/reviews",
       ),
       el.p(
-        "Just reply if you want. <strong>I can customize the AI to match your listing preferences at no extra cost.</strong>",
+        "Want the AI to write listings in your style? <strong>Just reply with what you prefer, and I’ll tailor it for you at no extra cost.</strong>",
       ),
       el.p("This is a one-time request, so I will not keep asking."),
       el.p("Thanks, and happy selling,<br />Sami<br />Founder, AutoLister AI"),

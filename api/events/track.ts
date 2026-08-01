@@ -3,6 +3,9 @@ import Cors from "cors";
 import { ApiLogger } from "../../utils/apiLogger";
 import { detectAndPauseDuplicateIpAccount } from "../../utils/duplicateIpAutoPause";
 import { supabase } from "../../utils/supabaseClient";
+import { shouldRunAiStyleLearning } from "../../utils/aiStyleLearning";
+import { suggestAiStyle } from "../../utils/aiStyleLearner";
+import { FREE_LIFETIME_LIMIT, getEffectiveTier } from "../../utils/tierConfig";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
@@ -27,6 +30,149 @@ const cors = Cors({
 });
 
 const UNINSTALL_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+
+function editExample(item: any) {
+  const context = item?.context || {};
+  const fields = [
+    "generatedTitle",
+    "generatedDescription",
+    "finalTitle",
+    "finalDescription",
+  ];
+  if (!fields.every((field) => typeof context[field] === "string")) return null;
+  return {
+    generatedTitle: context.generatedTitle,
+    generatedDescription: context.generatedDescription,
+    finalTitle: context.finalTitle,
+    finalDescription: context.finalDescription,
+  };
+}
+
+async function maybeLearnAiStyle(userId: string, item: any) {
+  if (item.event !== "generation_output_edited") return;
+  const context = item.context || {};
+  const generationAttemptId = String(context.generationAttemptId || "");
+  const currentExample = editExample(item);
+  if (!generationAttemptId || !currentExample) return;
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select(
+      "email, subscription_status, subscription_tier, free_lifetime_generations_used, ai_instructions, ai_style_learning_state",
+    )
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError || !profile) return;
+
+  const state = (profile.ai_style_learning_state || {}) as {
+    analyzedAttemptIds?: string[];
+    lastPaidAnalysisAt?: string;
+  };
+  const lastAnalyzedAttemptIds = Array.isArray(state.analyzedAttemptIds)
+    ? state.analyzedAttemptIds.filter((id) => typeof id === "string")
+    : [];
+  const { data: recentGenerations } = await supabase
+    .from("api_logs")
+    .select("full_request_body")
+    .eq("user_id", userId)
+    .eq("endpoint", "/api/generate")
+    .eq("response_status", 200)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  const recentGenerationAttemptIds = (recentGenerations || [])
+    .map((row: any) => row.full_request_body?.generationAttemptId)
+    .filter((id): id is string => typeof id === "string");
+  const editedSince = state.lastPaidAnalysisAt || "1970-01-01T00:00:00.000Z";
+  const { data: editedLogs } = await supabase
+    .from("api_logs")
+    .select("full_request_body")
+    .eq("user_id", userId)
+    .eq("endpoint", "/event/generation_output_edited")
+    .gte("created_at", editedSince)
+    .order("created_at", { ascending: false })
+    .limit(25);
+  const editedItems = [
+    item,
+    ...(editedLogs || []).map((row: any) => row.full_request_body),
+  ].filter(Boolean);
+  const editedAttemptIdsSinceLastAnalysis = editedItems
+    .map((event: any) => event.context?.generationAttemptId)
+    .filter((id): id is string => typeof id === "string");
+  const effectiveTier = getEffectiveTier(profile);
+  const remainingFreeGenerations = Math.max(
+    0,
+    FREE_LIFETIME_LIMIT - Number(profile.free_lifetime_generations_used || 0),
+  );
+  if (
+    !shouldRunAiStyleLearning({
+      effectiveTier,
+      remainingFreeGenerations,
+      generationAttemptId,
+      lastAnalyzedAttemptIds,
+      recentGenerationAttemptIds,
+      editedAttemptIdsSinceLastAnalysis,
+    })
+  )
+    return;
+
+  const recent = new Set(recentGenerationAttemptIds);
+  const examples =
+    effectiveTier === "free"
+      ? [currentExample]
+      : (editedItems
+          .filter((event: any) =>
+            recent.has(event.context?.generationAttemptId),
+          )
+          .map(editExample)
+          .filter(Boolean)
+          .slice(0, 3) as NonNullable<ReturnType<typeof editExample>>[]);
+  const nextState = {
+    analyzedAttemptIds: [...lastAnalyzedAttemptIds, generationAttemptId].slice(
+      -50,
+    ),
+    lastPaidAnalysisAt:
+      effectiveTier === "free"
+        ? state.lastPaidAnalysisAt || null
+        : new Date().toISOString(),
+  };
+  const suggestion = await suggestAiStyle({
+    currentInstructions: profile.ai_instructions || null,
+    examples: examples.length ? examples : [currentExample],
+  });
+  const update: Record<string, any> = { ai_style_learning_state: nextState };
+  if (suggestion) {
+    if (effectiveTier === "free")
+      update.ai_instructions = suggestion.aiInstructions;
+    else {
+      update.ai_style_suggestion = suggestion.aiInstructions;
+      update.ai_style_suggestion_reason = suggestion.reason;
+    }
+  }
+  await supabase.from("profiles").update(update).eq("id", userId);
+  await ApiLogger.logRequest({
+    requestMethod: "SYSTEM",
+    userId,
+    userEmail: profile.email || undefined,
+    endpoint: "/event/ai_style_learning",
+    responseStatus: 200,
+    subscriptionTier: profile.subscription_tier || "free",
+    subscriptionStatus: profile.subscription_status || "free",
+    fullRequestBody: {
+      event: "ai_style_learning",
+      context: {
+        generationAttemptId,
+        tier: effectiveTier,
+        exampleCount: examples.length,
+        outcome: suggestion
+          ? effectiveTier === "free"
+            ? "free_style_updated"
+            : "paid_suggestion_created"
+          : "no_change",
+        reason: suggestion?.reason || null,
+      },
+    },
+  });
+}
 
 function runCors(req: VercelRequest, res: VercelResponse) {
   return new Promise<void>((resolve, reject) => {
@@ -284,6 +430,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fullRequestBody: item,
     })),
   );
+
+  if (userId) {
+    await Promise.allSettled(
+      loggableEventItems.map((item) => maybeLearnAiStyle(userId!, item)),
+    );
+  }
 
   return res.status(204).end();
 }

@@ -3076,6 +3076,8 @@
                 generate_success: 'Generation success',
                 generate_error: 'Generation error',
                 generation_output_edited: 'Generated output edited',
+                ai_style_learning: 'AI style learning',
+                ai_style_suggestion_resolved: 'AI style suggestion resolved',
                 generate_missing_photo: 'Missing photo',
                 generate_limit_hit: 'Limit hit',
                 generate_click: 'Generate click',
@@ -3213,6 +3215,10 @@
                 ].filter(Boolean);
                 return parts.join(' · ');
             }
+            if (event === 'ai_style_learning') {
+                return [context.outcome, context.tier, context.exampleCount ? `${context.exampleCount} edit example${context.exampleCount === 1 ? '' : 's'}` : '', context.reason].filter(Boolean).join(' · ');
+            }
+            if (event === 'ai_style_suggestion_resolved') return context.outcome || '';
             if (event === 'listing_report_submitted') {
                 return [context.category, context.message].filter(Boolean).join(' · ');
             }
@@ -3916,6 +3922,7 @@
                         <button class="quick-filter-btn ${state.logsSearch === 'generate_request' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_request')">Request</button>
                         <button class="quick-filter-btn ${state.logsSearch === 'generate_click' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'generate_click')">Click</button>
                         <button class="quick-filter-btn ${state.logsSearch === 'extension_uninstalled' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'extension_uninstalled')">Uninstalls</button>
+                        <button class="quick-filter-btn ${state.logsSearch === 'ai_style_learning' ? 'active' : ''}" onclick="setLogsQuickFilter('events', 'ai_style_learning')">AI style learning</button>
                         <button class="quick-filter-btn ${!state.logsSearch ? 'active' : ''}" onclick="setLogsQuickFilter('events', '')">Clear</button>
                     </div>
                 `
@@ -4299,6 +4306,7 @@
             const encodedEmail = encodeURIComponent(u.email || '');
             const isPaused = u.account_status === 'paused';
             const hasAiInstructions = Boolean(String(u.ai_instructions || '').trim());
+            const hasAiSuggestion = Boolean(String(u.ai_style_suggestion || '').trim());
             const reviewAlreadySent = Boolean(u.review_request_sent_at);
             const canSendReview = Boolean(u.email_can_contact && !isPaused);
             const reviewTitle = !u.email
@@ -4317,7 +4325,7 @@
                     <button class="btn-secondary" onclick="openLogsForUser('${userId}', '${encodedEmail}', 'all')">Logs</button>
                     <button class="btn-secondary" onclick="openCustomerUsagePage('${encodedEmail}')">Usage page</button>
                     ${reviewAlreadySent ? '' : `<button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>`}
-                    <button class="btn-secondary" onclick="openAiInstructions('${userId}')">${hasAiInstructions ? 'AI style active' : 'AI style'}</button>
+                    <button class="btn-secondary" onclick="openAiInstructions('${userId}')">${hasAiSuggestion ? 'AI style suggestion' : hasAiInstructions ? 'AI style active' : 'AI style'}</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
                         ? `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'active')">Unpause</button>`
@@ -4484,9 +4492,12 @@
             }
 
             const instructions = String(user.ai_instructions || '');
+            const suggestion = String(user.ai_style_suggestion || '');
+            const suggestionReason = String(user.ai_style_suggestion_reason || '');
             openModal(`AI style · ${user.email || user.id}`, `
                 <div style="display:grid; gap:0.75rem;">
                     <p class="text-sm text-muted" style="margin:0;">Paste a concise, reviewed behavior instruction. It can change sales style and presentation, but generated product facts still stay grounded in the photos.</p>
+                    ${suggestion ? `<div class="filter-input" style="white-space:pre-wrap; background:#f8fafc;"><strong>Suggested change</strong>${suggestionReason ? `<div class="text-sm text-muted">${escapeHtml(suggestionReason)}</div>` : ''}<hr style="border:0; border-top:1px solid #e5e7eb; margin:0.5rem 0;">${escapeHtml(suggestion)}</div><div style="display:flex; gap:0.5rem;"><button class="btn-secondary" onclick="resolveAiStyleSuggestion('${escapeAttribute(user.id)}', false)">Reject</button><button class="btn-primary" onclick="resolveAiStyleSuggestion('${escapeAttribute(user.id)}', true)">Accept suggestion</button></div>` : ''}
                     <textarea id="aiInstructionsText" class="filter-input" maxlength="1000" rows="8" style="width:100%; resize:vertical;" oninput="updateAiInstructionsCount(this.value.length)">${escapeHtml(instructions)}</textarea>
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
                         <span id="aiInstructionsCount" class="text-sm text-muted">${instructions.length}/1000</span>
@@ -4534,6 +4545,22 @@
             } catch (e) {
                 showToast('Connection failed', 'error');
             }
+        }
+
+        async function resolveAiStyleSuggestion(userId, accept) {
+            try {
+                const res = await fetch('/api/admin?action=resolve-ai-style-suggestion', {
+                    method: 'POST', headers: { 'Authorization': `Bearer ${state.secret}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, accept })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || 'Request failed');
+                const user = state.currentUsers.find(item => item.id === userId);
+                if (user) { user.ai_style_suggestion = null; user.ai_style_suggestion_reason = null; if (accept) user.ai_instructions = data.aiInstructions; }
+                closeModal();
+                invalidateAdminCache('action=list-users');
+                if (state.currentView === 'users') await renderUsers(document.getElementById('contentArea'));
+            } catch (e) { showToast(e.message || 'Failed to resolve suggestion', 'error'); }
         }
 
         async function resetUsage(userId) {

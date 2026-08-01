@@ -71,38 +71,42 @@ async function maybeLearnAiStyle(userId: string, item: any) {
   const lastAnalyzedAttemptIds = Array.isArray(state.analyzedAttemptIds)
     ? state.analyzedAttemptIds.filter((id) => typeof id === "string")
     : [];
-  const { data: recentGenerations } = await supabase
-    .from("api_logs")
-    .select("full_request_body")
-    .eq("user_id", userId)
-    .eq("endpoint", "/api/generate")
-    .eq("response_status", 200)
-    .order("created_at", { ascending: false })
-    .limit(5);
-  const recentGenerationAttemptIds = (recentGenerations || [])
-    .map((row: any) => row.full_request_body?.generationAttemptId)
-    .filter((id): id is string => typeof id === "string");
-  const editedSince = state.lastPaidAnalysisAt || "1970-01-01T00:00:00.000Z";
-  const { data: editedLogs } = await supabase
-    .from("api_logs")
-    .select("full_request_body")
-    .eq("user_id", userId)
-    .eq("endpoint", "/event/generation_output_edited")
-    .gte("created_at", editedSince)
-    .order("created_at", { ascending: false })
-    .limit(25);
-  const editedItems = [
-    item,
-    ...(editedLogs || []).map((row: any) => row.full_request_body),
-  ].filter(Boolean);
-  const editedAttemptIdsSinceLastAnalysis = editedItems
-    .map((event: any) => event.context?.generationAttemptId)
-    .filter((id): id is string => typeof id === "string");
   const effectiveTier = getEffectiveTier(profile);
   const remainingFreeGenerations = Math.max(
     0,
     FREE_LIFETIME_LIMIT - Number(profile.free_lifetime_generations_used || 0),
   );
+  if (lastAnalyzedAttemptIds.includes(generationAttemptId)) return;
+  let recentGenerationAttemptIds: string[] = [];
+  let editedItems: any[] = [item];
+  if (effectiveTier !== "free") {
+    const { data: recentGenerations } = await supabase
+      .from("api_logs")
+      .select("full_request_body")
+      .eq("user_id", userId)
+      .eq("endpoint", "/api/generate")
+      .eq("response_status", 200)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    recentGenerationAttemptIds = (recentGenerations || [])
+      .map((row: any) => row.full_request_body?.generationAttemptId)
+      .filter((id): id is string => typeof id === "string");
+    const { data: editedLogs } = await supabase
+      .from("api_logs")
+      .select("full_request_body")
+      .eq("user_id", userId)
+      .eq("endpoint", "/event/generation_output_edited")
+      .gte("created_at", state.lastPaidAnalysisAt || "1970-01-01T00:00:00.000Z")
+      .order("created_at", { ascending: false })
+      .limit(25);
+    editedItems = [
+      item,
+      ...(editedLogs || []).map((row: any) => row.full_request_body),
+    ].filter(Boolean);
+  }
+  const editedAttemptIdsSinceLastAnalysis = editedItems
+    .map((event: any) => event.context?.generationAttemptId)
+    .filter((id): id is string => typeof id === "string");
   if (
     !shouldRunAiStyleLearning({
       effectiveTier,

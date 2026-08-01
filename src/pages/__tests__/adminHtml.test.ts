@@ -679,6 +679,10 @@ describe("admin HTML", () => {
     context.state.currentUsers = [user];
 
     expect(context.renderUserActions(user)).toContain("AI style active");
+    expect(context.renderUserActions(user)).toContain("ai-style-active");
+    expect(
+      context.renderUserActions({ ...user, ai_style_suggestion: "Use concise copy." }),
+    ).toContain("ai-style-suggestion");
 
     context.openAiInstructions("user-1");
     expect(modalTitle.textContent).toBe("AI style · seller@example.com");

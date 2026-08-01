@@ -599,6 +599,18 @@
             opacity: 0.5;
         }
 
+        .btn-secondary.ai-style-active {
+            background: #ecfdf5;
+            border-color: #86efac;
+            color: #047857;
+        }
+
+        .btn-secondary.ai-style-suggestion {
+            background: #fff7ed;
+            border-color: #fdba74;
+            color: #c2410c;
+        }
+
         .segmented-control,
         .quick-filter-row {
             display: flex;
@@ -4307,6 +4319,7 @@
             const isPaused = u.account_status === 'paused';
             const hasAiInstructions = Boolean(String(u.ai_instructions || '').trim());
             const hasAiSuggestion = Boolean(String(u.ai_style_suggestion || '').trim());
+            const aiStyleClass = hasAiSuggestion ? 'ai-style-suggestion' : hasAiInstructions ? 'ai-style-active' : '';
             const reviewAlreadySent = Boolean(u.review_request_sent_at);
             const canSendReview = Boolean(u.email_can_contact && !isPaused);
             const reviewTitle = !u.email
@@ -4325,7 +4338,7 @@
                     <button class="btn-secondary" onclick="openLogsForUser('${userId}', '${encodedEmail}', 'all')">Logs</button>
                     <button class="btn-secondary" onclick="openCustomerUsagePage('${encodedEmail}')">Usage page</button>
                     ${reviewAlreadySent ? '' : `<button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>`}
-                    <button class="btn-secondary" onclick="openAiInstructions('${userId}')">${hasAiSuggestion ? 'AI style suggestion' : hasAiInstructions ? 'AI style active' : 'AI style'}</button>
+                    <button class="btn-secondary ${aiStyleClass}" onclick="openAiInstructions('${userId}')">${hasAiSuggestion ? 'AI style suggestion' : hasAiInstructions ? 'AI style active' : 'AI style'}</button>
                     <button class="btn-secondary" onclick="resetUsage('${userId}')">Reset</button>
                     ${isPaused
                         ? `<button class="btn-secondary" onclick="setAccountStatus('${userId}', 'active')">Unpause</button>`

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Email `samicodesit@gmail.com` once for every accepted `listing_report_submitted` event and no other tracking event.
+**Goal:** Email `samicodesit@gmail.com` once for every authenticated `listing_report_submitted` event and no other tracking event.
 
 **Architecture:** Keep the behavior in the existing `/api/events/track` handler, immediately after event persistence. Reuse the installed Resend client, send a plain-text report summary, and treat delivery as best-effort so notification failures never discard reports.
 
@@ -11,6 +11,7 @@
 ## Global Constraints
 
 - Match only the exact event name `listing_report_submitted`.
+- Require a user identity validated from the existing bearer token before sending.
 - Send to `samicodesit@gmail.com` from `AutoLister AI Alerts <alerts@autolister.app>`.
 - Include report context, authenticated user email, plan, page, and extension version when available.
 - Do not add dependencies, frontend changes, database changes, queues, or retries.
@@ -50,8 +51,9 @@ Extend `src/api/__tests__/eventsTrack.test.ts` with Resend, Supabase, and logger
 
 Assert the endpoint returns 204 and the outbound email has literal recipient
 `samicodesit@gmail.com`, the alerts sender, and text containing the category,
-message, authenticated email, plan, page, and version. Add a second invocation
-with `listing_report_opened` and assert that it sends no email.
+message, authenticated email, plan, page, and version. Add separate invocations
+with `listing_report_opened` and an anonymous `listing_report_submitted` event;
+assert that neither sends email.
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
@@ -88,9 +90,9 @@ await resend.emails.send({
 });
 ```
 
-After `ApiLogger.logRequests` resolves, filter `loggableEventItems` by the exact
-event name and await each send in a `try/catch`. Log caught exceptions and
-resolved Resend errors without rethrowing.
+After `ApiLogger.logRequests` resolves, require the validated `userId`, filter
+`loggableEventItems` by the exact event name, and await each send in a
+`try/catch`. Log caught exceptions and resolved Resend errors without rethrowing.
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 

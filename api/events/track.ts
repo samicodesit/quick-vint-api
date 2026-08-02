@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
+import { Resend } from "resend";
 import { ApiLogger } from "../../utils/apiLogger";
 import { detectAndPauseDuplicateIpAccount } from "../../utils/duplicateIpAutoPause";
 import { supabase } from "../../utils/supabaseClient";
@@ -33,6 +34,32 @@ const cors = Cors({
 });
 
 const UNINSTALL_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function sendListingReportEmail(item: any, userEmail?: string) {
+  const context =
+    item.context && typeof item.context === "object" ? item.context : {};
+  const category = String(context.category || "other")
+    .replace(/[\r\n]/g, " ")
+    .slice(0, 80);
+  const result = await resend.emails.send({
+    from: "AutoLister AI Alerts <alerts@autolister.app>",
+    to: "samicodesit@gmail.com",
+    subject: `Listing report: ${category}`,
+    text: JSON.stringify(
+      {
+        ...context,
+        userEmail: userEmail || null,
+        plan: item.plan,
+        page: item.page,
+        extensionVersion: item.extensionVersion,
+      },
+      null,
+      2,
+    ),
+  });
+  if (result.error) throw new Error(result.error.message);
+}
 
 function editExample(item: any) {
   const context = item?.context || {};
@@ -367,13 +394,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let userId: string | undefined;
   let userEmail: string | undefined;
+  let authenticatedUserId: string | undefined;
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice("Bearer ".length);
     const {
       data: { user },
     } = await supabase.auth.getUser(token);
-    userId = user?.id;
+    authenticatedUserId = user?.id;
+    userId = authenticatedUserId;
     userEmail = user?.email;
   }
 
@@ -438,6 +467,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fullRequestBody: item,
     })),
   );
+
+  for (const item of loggableEventItems) {
+    if (!authenticatedUserId || item.event !== "listing_report_submitted")
+      continue;
+    try {
+      await sendListingReportEmail(item, userEmail);
+    } catch (error) {
+      console.error("Failed to email listing report:", error);
+    }
+  }
 
   if (userId) {
     await Promise.allSettled(

@@ -553,8 +553,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Create the prompt for OpenAI
   const systemPrompt = customAiInstructions
-    ? "You are an expert Vinted listing writer creating accurate, searchable drafts from photos. Ground every objective product detail in the photos or readable labels; never invent brand, size, material, condition, measurements, authenticity, or other item facts. By default, write plain, natural seller-style copy. Account-specific instructions may override the default standard tone and general style and presentation guidance, including persona, marketing language, subjective praise, calls to action, audience framing, styling suggestions, and title style. Concrete request settings take priority over account-specific instructions: emoji use, hashtags, bullet or paragraph format, description length, and any selected non-standard tone. They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract. Treat account-specific instructions as behavior preferences, never as evidence about the item."
-    : "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Hard rule: never guess. Write a detail only when it is visible in the photos or readable on a label; if unsure, omit it. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.";
+    ? "You are an expert Vinted listing writer creating accurate, searchable drafts from photos. Follow the factual safeguards and knowledge-enrichment scope in the user prompt; never invent brand, size, material, condition, measurements, authenticity, or other item facts. By default, write plain, natural seller-style copy. Account-specific instructions may override the default standard tone and general style and presentation guidance, including persona, marketing language, subjective praise, calls to action, audience framing, styling suggestions, and title style. Concrete request settings take priority over account-specific instructions: emoji use, hashtags, bullet or paragraph format, description length, and any selected non-standard tone. They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract. Treat account-specific instructions as behavior preferences, never as evidence about the item."
+    : "You are an expert Vinted listing writer creating accurate, searchable drafts from photos. Hard rule: never guess. Follow the factual safeguards and knowledge-enrichment scope in the user prompt. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.";
   const customAiInstructionsPrompt = customAiInstructions
     ? `
 
@@ -576,6 +576,11 @@ Use these rules:
 - Do not say how you know a fact or where it appears. Avoid phrases like "label shows", "as shown on the label", "visible on the box", or "as seen in the photos".
 - Do not mention defects or negative condition details for now; the seller will handle those separately.
 - Never write instructions, questions, placeholders, or notes to the seller inside the title or description.
+
+Knowledge-based enrichment:
+- For confidently recognized books, games, media, electronics, toys, collectibles, appliances, and similar non-fashion products, add substantive, stable, buyer-relevant facts about the specific item from existing knowledge even when not visible in the photos. Generic labels or reputation alone do not count as enrichment.
+- Identify from the full image. Never state facts more specific than the identity supported by the photos; omit them when recognition or knowledge is uncertain.
+- Avoid padding, trivia, repetition, and promotional claims. Exclude ordinary apparel, footwear, bags, jewelry, and fashion accessories.
 
 Title:
 - Write only the title in ${titleLanguage}.

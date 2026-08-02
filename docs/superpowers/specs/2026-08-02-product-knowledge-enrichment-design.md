@@ -6,6 +6,7 @@ Enrich listings for confidently recognized non-fashion products with useful fact
 
 ## Design
 
+- Point both existing system-prompt branches to the factual safeguards and knowledge-enrichment scope in the user prompt so higher-priority instructions do not suppress the feature or duplicate its detailed rules.
 - Add one concise, three-bullet `Knowledge-based enrichment:` block to the existing generation user prompt, after the general evidence rules and before `Title:`.
 - Apply it to confidently recognized books, games, media, electronics, toys, collectibles, appliances, and similar identifiable products.
 - Allow recognition from the full image, including covers, packaging, branding, readable text, and distinctive design.
@@ -19,4 +20,4 @@ The existing title rules, output schema, request settings, and account-instructi
 
 ## Verification
 
-Update the existing generation prompt test to assert that the labeled block, uncertainty fallback, fashion exclusion, and requested-length behavior are present. Run that focused test.
+Update the existing generation prompt tests to assert that both system-prompt branches allow the labeled enrichment block while retaining uncertainty fallback and the fashion exclusion. Run those focused tests.

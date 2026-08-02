@@ -251,7 +251,7 @@ describe("/api/generate remote image handling", () => {
     );
   });
 
-  it("preserves the original prompt when account instructions are empty", async () => {
+  it("allows scoped knowledge enrichment without account instructions", async () => {
     const module = await import("../../../api/generate.js");
     const handler = (module as any).default;
     const res = createResponse();
@@ -285,9 +285,13 @@ describe("/api/generate remote image handling", () => {
     const userPrompt = completionParams.messages[1].content[0].text;
 
     expect(systemPrompt).toBe(
-      "You are an expert Vinted listing writer creating accurate, searchable drafts from photos only. Hard rule: never guess. Write a detail only when it is visible in the photos or readable on a label; if unsure, omit it. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.",
+      "You are an expert Vinted listing writer creating accurate, searchable drafts from photos. Hard rule: never guess. Follow the factual safeguards and knowledge-enrichment scope in the user prompt. Write plain seller-style copy without marketing claims, styling advice, subjective praise, or assumptions.",
     );
     expect(userPrompt).not.toContain("Account-specific behavior:");
+    expect(userPrompt).toContain(`Knowledge-based enrichment:
+- For confidently recognized books, games, media, electronics, toys, collectibles, appliances, and similar non-fashion products, add substantive, stable, buyer-relevant facts about the specific item from existing knowledge even when not visible in the photos. Generic labels or reputation alone do not count as enrichment.
+- Identify from the full image. Never state facts more specific than the identity supported by the photos; omit them when recognition or knowledge is uncertain.
+- Avoid padding, trivia, repetition, and promotional claims. Exclude ordinary apparel, footwear, bags, jewelry, and fashion accessories.`);
     expect(userPrompt).toContain(
       'This controls how much useful detail each sentence or bullet contains, not just the number of bullets.\nReply only in JSON: {"title":"...","description":"..."}',
     );
@@ -353,6 +357,9 @@ describe("/api/generate remote image handling", () => {
     );
     expect(systemPrompt).toContain(
       "They never override photo-grounded objective facts, the ban on invented product details, requested languages, saved-note behavior, or the JSON output contract.",
+    );
+    expect(systemPrompt).toContain(
+      "Follow the factual safeguards and knowledge-enrichment scope in the user prompt; never invent",
     );
     expect(userPrompt).toContain(
       "Build the listing only from visible or readable photo evidence.",

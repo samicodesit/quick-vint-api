@@ -57,6 +57,12 @@ describe("suggestAiStyle prompt", () => {
       "Never broaden beyond the exact presentation dimension demonstrated",
     );
     expect(systemPrompt).toContain(
+      "Never apply a preference to a field whose presentation did not independently demonstrate it",
+    );
+    expect(systemPrompt).toContain(
+      "if only description style changed while the title only received a factual correction, do not create title guidance",
+    );
+    expect(systemPrompt).toContain(
       "tone, structure, wording, verbosity, formatting, or field placement",
     );
   });

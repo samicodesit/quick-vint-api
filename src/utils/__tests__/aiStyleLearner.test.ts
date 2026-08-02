@@ -63,6 +63,15 @@ describe("suggestAiStyle prompt", () => {
       "if only description style changed while the title only received a factual correction, do not create title guidance",
     );
     expect(systemPrompt).toContain(
+      "If all title differences are factual corrections, aiInstructions must not mention title guidance",
+    );
+    expect(systemPrompt).toContain(
+      "Do not restate defaults or add guidance for unaffected fields",
+    );
+    expect(systemPrompt).toContain(
+      "preserve currentInstructions and add or refine only preferences supported by the examples",
+    );
+    expect(systemPrompt).toContain(
       "tone, structure, wording, verbosity, formatting, or field placement",
     );
   });

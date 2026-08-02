@@ -4504,8 +4504,8 @@
                 return;
             }
 
-            const instructions = String(user.ai_instructions || '');
             const suggestion = String(user.ai_style_suggestion || '');
+            const instructions = suggestion || String(user.ai_instructions || '');
             const suggestionReason = String(user.ai_style_suggestion_reason || '');
             openModal(`AI style · ${user.email || user.id}`, `
                 <div style="display:grid; gap:0.75rem;">
@@ -4521,6 +4521,7 @@
                     </div>
                 </div>
             `);
+            document.getElementById('aiInstructionsText').value = instructions;
         }
 
         function updateAiInstructionsCount(length) {

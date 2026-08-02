@@ -716,6 +716,34 @@ describe("admin HTML", () => {
     });
   });
 
+  it("prefills pending AI style suggestions for saving", async () => {
+    const { context, modalBody } = buildAdminHarness();
+    context.state.currentUsers = [
+      {
+        id: "user-1",
+        email: "seller@example.com",
+        ai_instructions: "Use persuasive copy.",
+        ai_style_suggestion: "Use concise titles.",
+      },
+    ];
+
+    context.openAiInstructions("user-1");
+
+    const textarea = context.document.getElementById("aiInstructionsText");
+    expect(modalBody.innerHTML).toContain(">Use concise titles.</textarea>");
+    expect(textarea.value).toBe("Use concise titles.");
+
+    await context.saveAiInstructions("user-1");
+
+    const saveRequest = context.fetchRequests.find((request) =>
+      request.url.includes("set-ai-instructions"),
+    );
+    expect(JSON.parse(String(saveRequest?.options.body))).toEqual({
+      userId: "user-1",
+      aiInstructions: "Use concise titles.",
+    });
+  });
+
   it("shows only the limit follow-up exclusion count", async () => {
     const { context } = buildAdminHarness();
 

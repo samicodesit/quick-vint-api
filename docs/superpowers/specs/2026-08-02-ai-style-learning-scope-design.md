@@ -20,4 +20,3 @@ Limit automatic style learning to newly created listings and reduce drift from f
 - Test that rejected pages stop before profile access.
 - Test that the learner system prompt explicitly separates factual corrections from independent presentation changes and forbids broadening beyond the observed dimension.
 - Run the focused backend tests, production verification gate, deploy through `main`, then repeat the correction and omission production API probes on the dedicated test account.
-

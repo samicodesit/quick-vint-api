@@ -1,6 +1,32 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldRunAiStyleLearning } from "../../../utils/aiStyleLearning";
+import {
+  isAiStyleLearningPage,
+  shouldRunAiStyleLearning,
+} from "../../../utils/aiStyleLearning";
+
+describe("isAiStyleLearningPage", () => {
+  it.each([
+    "/items/new",
+    "/items/new/",
+    "https://www.vinted.com/items/new",
+    "https://www.vinted.fr/items/new/",
+  ])("allows new-listing page %s", (page) => {
+    expect(isAiStyleLearningPage(page)).toBe(true);
+  });
+
+  it.each([
+    "/items/123/edit",
+    "https://www.vinted.com/items/123/edit",
+    "/member/signup/select_type",
+    "not a url",
+    "",
+    null,
+    undefined,
+  ])("rejects non-new-listing page %s", (page) => {
+    expect(isAiStyleLearningPage(page)).toBe(false);
+  });
+});
 
 describe("shouldRunAiStyleLearning", () => {
   it("learns from every edited free listing while a trial generation remains", () => {

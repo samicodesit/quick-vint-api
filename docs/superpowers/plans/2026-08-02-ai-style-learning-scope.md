@@ -20,11 +20,13 @@
 ### Task 1: New-listing learner gate
 
 **Files:**
+
 - Modify: `utils/aiStyleLearning.ts`
 - Modify: `api/events/track.ts`
 - Test: `src/utils/__tests__/aiStyleLearning.test.ts`
 
 **Interfaces:**
+
 - Produces: `isAiStyleLearningPage(page: unknown): boolean`
 - Consumes: the normalized event item's root `page` value.
 
@@ -47,10 +49,12 @@ Run `npm test -- src/utils/__tests__/aiStyleLearning.test.ts`.
 ### Task 2: Tighten learner judgment
 
 **Files:**
+
 - Modify: `utils/aiStyleLearner.ts`
 - Create: `src/utils/__tests__/aiStyleLearner.test.ts`
 
 **Interfaces:**
+
 - Keeps: `suggestAiStyle({ currentInstructions, examples })`
 - Changes: only its system instruction text.
 
@@ -73,9 +77,11 @@ Run `npm test -- src/utils/__tests__/aiStyleLearner.test.ts src/utils/__tests__/
 ### Task 3: Verify, deploy, and production-probe
 
 **Files:**
+
 - No additional runtime files.
 
 **Interfaces:**
+
 - Production endpoint remains `POST /api/events/track`.
 
 - [ ] **Step 1: Run production verification**
@@ -93,4 +99,3 @@ On the dedicated test account, clear its current test style, submit a size-subst
 - [ ] **Step 4: Report exact evidence**
 
 Report learner outcomes, retained instruction, endpoint timings, log IDs, deployment push proof, and any remaining model variability.
-

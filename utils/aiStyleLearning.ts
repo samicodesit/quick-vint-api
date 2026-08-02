@@ -7,6 +7,16 @@ type AiStyleLearningEligibility = {
   editedAttemptIdsSinceLastAnalysis: string[];
 };
 
+export function isAiStyleLearningPage(page: unknown) {
+  if (typeof page !== "string" || !page.trim()) return false;
+  try {
+    const pathname = new URL(page, "https://autolister.invalid").pathname;
+    return pathname.replace(/\/+$/, "") === "/items/new";
+  } catch {
+    return false;
+  }
+}
+
 export function shouldRunAiStyleLearning({
   effectiveTier,
   remainingFreeGenerations,

@@ -681,7 +681,10 @@ describe("admin HTML", () => {
     expect(context.renderUserActions(user)).toContain("AI style active");
     expect(context.renderUserActions(user)).toContain("ai-style-active");
     expect(
-      context.renderUserActions({ ...user, ai_style_suggestion: "Use concise copy." }),
+      context.renderUserActions({
+        ...user,
+        ai_style_suggestion: "Use concise copy.",
+      }),
     ).toContain("ai-style-suggestion");
 
     context.openAiInstructions("user-1");

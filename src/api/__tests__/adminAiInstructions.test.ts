@@ -68,10 +68,10 @@ describe("POST /api/admin?action=set-ai-instructions", () => {
       aiInstructions: "Use a persuasive, audience-focused voice.",
       message: "AI instructions saved",
     });
-      expect(profileUpdate).toHaveBeenCalledWith({
-        ai_instructions: "Use a persuasive, audience-focused voice.",
-        ai_style_suggestion: null,
-        ai_style_suggestion_reason: null,
+    expect(profileUpdate).toHaveBeenCalledWith({
+      ai_instructions: "Use a persuasive, audience-focused voice.",
+      ai_style_suggestion: null,
+      ai_style_suggestion_reason: null,
     });
     expect(profileEq).toHaveBeenCalledWith("id", "user-1");
   });

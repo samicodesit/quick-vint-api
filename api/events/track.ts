@@ -3,7 +3,10 @@ import Cors from "cors";
 import { ApiLogger } from "../../utils/apiLogger";
 import { detectAndPauseDuplicateIpAccount } from "../../utils/duplicateIpAutoPause";
 import { supabase } from "../../utils/supabaseClient";
-import { shouldRunAiStyleLearning } from "../../utils/aiStyleLearning";
+import {
+  isAiStyleLearningPage,
+  shouldRunAiStyleLearning,
+} from "../../utils/aiStyleLearning";
 import { suggestAiStyle } from "../../utils/aiStyleLearner";
 import { FREE_LIFETIME_LIMIT, getEffectiveTier } from "../../utils/tierConfig";
 
@@ -50,6 +53,7 @@ function editExample(item: any) {
 
 async function maybeLearnAiStyle(userId: string, item: any) {
   if (item.event !== "generation_output_edited") return;
+  if (!isAiStyleLearningPage(item.page)) return;
   const context = item.context || {};
   const generationAttemptId = String(context.generationAttemptId || "");
   const currentExample = editExample(item);

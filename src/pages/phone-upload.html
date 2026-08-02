@@ -144,7 +144,8 @@
             flex-shrink: 0;
         }
 
-        .batch-mode .file-order {
+        .batch-mode .file-order,
+        .v2-mode .file-order {
             display: flex;
         }
 
@@ -155,7 +156,8 @@
             flex-shrink: 0;
         }
 
-        .batch-mode .file-actions {
+        .batch-mode .file-actions,
+        .v2-mode .file-actions {
             display: flex;
         }
 
@@ -308,6 +310,70 @@
             margin-top: 14px;
             height: 6px;
         }
+
+        .phone-upload-action-bar {
+            margin-top: 24px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .session-expiry-hint {
+            display: none;
+        }
+
+        body.v2-mode .session-expiry-hint {
+            display: block;
+            margin: -24px 0 24px;
+            font-size: 12px;
+        }
+
+        body.v2-mode .session-footer {
+            display: none;
+        }
+
+        body.v2-mode {
+            padding-bottom: 132px;
+        }
+
+        body.v2-mode .phone-upload-action-bar {
+            position: fixed;
+            left: 50%;
+            right: auto;
+            bottom: 0;
+            z-index: 50;
+            width: min(100%, 440px);
+            margin: 0;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+            transform: translateX(-50%);
+            background: rgba(248, 250, 252, 0.97);
+            border-top: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        body.v2-mode .phone-upload-action-bar #sendBtn:not(:disabled) {
+            animation: upload-cta-glow 1.6s ease-in-out infinite;
+        }
+
+        .remove-photo {
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            background: #fff;
+            color: #b91c1c;
+            min-width: 34px;
+            height: 28px;
+            font-weight: 800;
+        }
+
+        @keyframes upload-cta-glow {
+            0%, 100% { box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.35); }
+            50% { box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.18), 0 12px 30px -4px rgba(79, 70, 229, 0.65); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            body.v2-mode .phone-upload-action-bar #sendBtn {
+                animation: none;
+            }
+        }
     </style>
 </head>
 
@@ -316,16 +382,22 @@
     <div class="container">
         <h1 id="pageTitle">Upload Photos</h1>
         <p id="pageCopy">Select photos for your <strong>current item</strong>.<br>Start a new session for a different item.</p>
+        <p class="session-expiry-hint">Expires after 1 hour idle.</p>
 
-        <button class="upload-btn" id="mainBtn">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Select Photos
-        </button>
-        <button class="upload-btn secondary" id="sendBtn" style="display: none;" disabled>
-            Retry Failed Photos
-        </button>
+        <div class="phone-upload-action-bar">
+            <button class="upload-btn" id="mainBtn">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Select Photos
+            </button>
+            <button class="upload-btn secondary" id="sendBtn" style="display: none;" disabled>
+                Retry Failed Photos
+            </button>
+            <button class="upload-btn secondary" id="cancelBtn" style="display: none;">
+                Cancel Entire Upload
+            </button>
+        </div>
 
         <div class="file-list" id="fileList"></div>
 
@@ -352,6 +424,7 @@
             const fileInput = document.getElementById('fileInput');
             const mainBtn = document.getElementById('mainBtn');
             const sendBtn = document.getElementById('sendBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
             const fileList = document.getElementById('fileList');
             const toastEl = document.getElementById('toast');
             const sessionFooter = document.getElementById('sessionFooter');
@@ -363,6 +436,9 @@
                 nextOrder: 0,
                 completeSent: false,
                 completeFailed: false,
+                draftLocked: false,
+                cancelled: false,
+                activeRequests: new Set(),
                 wakeLock: null,
                 eventQueue: [],
                 eventFlushTimer: null
@@ -378,6 +454,10 @@
             function isBatchMode() {
                 const url = new URL(window.location.href);
                 return url.searchParams.get('mode') === 'batch';
+            }
+
+            function isV2() {
+                return new URL(window.location.href).searchParams.get('v') === '2';
             }
 
             function getTrackingMode() {
@@ -432,11 +512,23 @@
             }
 
             function syncPageCopy() {
-                if (!isBatchMode()) return;
-                document.body.classList.add('batch-mode');
-                pageTitle.textContent = 'Upload Batch Photos';
-                pageCopy.innerHTML = 'Select photos once. Upload starts immediately in your phone gallery order.';
-                mainBtn.lastChild.textContent = 'Select Photos';
+                if (isV2()) {
+                    document.body.classList.add('v2-mode');
+                    pageCopy.textContent = 'Choose photos, add or remove any mistakes, then send them all together.';
+                    mainBtn.classList.add('secondary');
+                    mainBtn.lastChild.textContent = 'Choose photos';
+                    sendBtn.classList.remove('secondary');
+                    sendBtn.style.display = 'flex';
+                    sendBtn.textContent = 'Send 0 photos';
+                }
+                if (isBatchMode()) {
+                    document.body.classList.add('batch-mode');
+                    pageTitle.textContent = 'Upload Batch Photos';
+                    if (!isV2()) {
+                        pageCopy.innerHTML = 'Select photos once. Upload starts immediately in your phone gallery order.';
+                        mainBtn.lastChild.textContent = 'Select Photos';
+                    }
+                }
             }
 
             function showToast(msg) {
@@ -446,10 +538,13 @@
             }
 
             function renderFile(item) {
-                if (isBatchMode()) return null;
+                if (isBatchMode() && !isV2()) return null;
 
                 const el = document.createElement('div');
                 el.className = 'file-item';
+                const reorderActions = isV2() ? '' : `
+                <button type="button" class="move-up">Up</button>
+                <button type="button" class="move-down">Down</button>`;
                 el.innerHTML = `
             <div class="file-order"></div>
             <img src="${item.preview}" class="file-preview">
@@ -459,14 +554,15 @@
                 <div class="file-status">Waiting...</div>
             </div>
             <div class="file-actions">
-                <button type="button" class="move-up">Up</button>
-                <button type="button" class="move-down">Down</button>
+                ${reorderActions}
+                <button type="button" class="remove-photo" aria-label="Remove photo">×</button>
             </div>
         `;
                 fileList.appendChild(el);
                 item.el = el;
                 el.querySelector('.move-up')?.addEventListener('click', () => moveItem(item, -1));
                 el.querySelector('.move-down')?.addEventListener('click', () => moveItem(item, 1));
+                el.querySelector('.remove-photo')?.addEventListener('click', () => removeItem(item));
                 updateBatchOrderUI();
                 return {
                     el,
@@ -506,7 +602,7 @@
                     detail = sent === total ? 'Finalizing desktop handoff...' : 'Upload is paused.';
                 }
 
-                fileList.innerHTML = `
+                if (!isV2()) fileList.innerHTML = `
                     <div class="batch-progress">
                         <div class="batch-progress-main">
                             <span>${title}</span>
@@ -517,9 +613,9 @@
                     </div>
                 `;
 
-                sendBtn.style.display = (failed > 0 || state.completeFailed) && !state.isSending && !state.completeSent ? 'flex' : 'none';
+                sendBtn.style.display = isV2() || ((failed > 0 || state.completeFailed) && !state.isSending && !state.completeSent) ? 'flex' : 'none';
                 sendBtn.disabled = state.isSending;
-                mainBtn.disabled = state.isSending || state.completeSent;
+                mainBtn.disabled = state.isSending || state.completeSent || (isV2() && state.draftLocked);
             }
 
             function wait(ms) {
@@ -527,6 +623,7 @@
             }
 
             function isRetryableUploadStatus(status) {
+                if (isV2() && (status === 409 || status === 410)) return false;
                 return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
             }
 
@@ -538,7 +635,11 @@
                     form.append('file', item.file);
 
                     const xhr = new XMLHttpRequest();
-                    xhr.open('POST', API_UPLOAD, true);
+                    const uploadUrl = isV2()
+                        ? `${API_UPLOAD}?v=2&sessionId=${encodeURIComponent(state.sessionId)}`
+                        : API_UPLOAD;
+                    xhr.open('POST', uploadUrl, true);
+                    state.activeRequests.add(xhr);
                     item.failed = false;
                     item.uploading = true;
                     if (ui) {
@@ -560,6 +661,7 @@
                     };
 
                     xhr.onload = () => {
+                        state.activeRequests.delete(xhr);
                         if (xhr.status >= 200 && xhr.status < 300) {
                             if (ui) {
                                 ui.fill.style.width = '100%';
@@ -573,6 +675,10 @@
                             renderBatchProgress();
                             resolve();
                         } else {
+                            if (isV2() && xhr.status === 410) {
+                                pageTitle.textContent = 'Upload Expired';
+                                pageCopy.textContent = 'This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.';
+                            }
                             if (ui) {
                                 ui.status.textContent = 'Failed';
                                 ui.status.classList.add('status-error');
@@ -588,6 +694,7 @@
                     };
 
                     xhr.onerror = () => {
+                        state.activeRequests.delete(xhr);
                         if (ui) {
                             ui.status.textContent = 'Error';
                             ui.status.classList.add('status-error');
@@ -596,6 +703,12 @@
                         item.uploading = false;
                         renderBatchProgress();
                         reject(new Error('Upload error'));
+                    };
+
+                    xhr.onabort = () => {
+                        state.activeRequests.delete(xhr);
+                        item.uploading = false;
+                        reject(new Error('Upload cancelled'));
                     };
 
                     xhr.send(form);
@@ -763,16 +876,18 @@
             }
 
             function updateBatchOrderUI() {
-                if (!isBatchMode()) return;
+                if (!isBatchMode() && !isV2()) return;
 
                 state.files.forEach((item, index) => {
                     item.order = index;
                     const orderEl = item.el?.querySelector('.file-order');
                     const upBtn = item.el?.querySelector('.move-up');
                     const downBtn = item.el?.querySelector('.move-down');
+                    const removeBtn = item.el?.querySelector('.remove-photo');
                     if (orderEl) orderEl.textContent = String(index + 1);
-                    if (upBtn) upBtn.disabled = state.isSending || index === 0;
-                    if (downBtn) downBtn.disabled = state.isSending || index === state.files.length - 1;
+                    if (upBtn) upBtn.disabled = state.isSending || state.draftLocked || index === 0;
+                    if (downBtn) downBtn.disabled = state.isSending || state.draftLocked || index === state.files.length - 1;
+                    if (removeBtn) removeBtn.disabled = state.isSending || state.draftLocked;
                 });
 
                 const allDone = state.files.length > 0 && state.files.every((item) => item.done);
@@ -782,12 +897,36 @@
                 } else if (allDone && state.completeSent) {
                     sendBtn.textContent = 'Sent to Desktop';
                 } else {
-                    sendBtn.textContent = 'Send Photos';
+                    sendBtn.textContent = `Send ${state.files.length} photo${state.files.length === 1 ? '' : 's'}`;
+                }
+                if (isV2()) {
+                    mainBtn.lastChild.textContent = state.files.length > 0 ? 'Add more photos' : 'Choose photos';
                 }
             }
 
+            function removeItem(item) {
+                if (state.isSending || state.draftLocked || item.done) return;
+                const index = state.files.indexOf(item);
+                if (index < 0) return;
+                state.files.splice(index, 1);
+                if (item.preview) URL.revokeObjectURL(item.preview);
+                item.el?.remove();
+                updateBatchOrderUI();
+                renderBatchProgress();
+            }
+
+            function setDraftControlsLocked(locked) {
+                state.draftLocked = locked;
+                fileInput.disabled = locked;
+                mainBtn.disabled = locked;
+                fileList.querySelectorAll('.move-up, .move-down, .remove-photo').forEach((control) => {
+                    control.disabled = locked;
+                });
+                cancelBtn.style.display = locked && !state.completeSent ? 'flex' : 'none';
+            }
+
             function moveItem(item, direction) {
-                if (state.isSending) return;
+                if (state.isSending || state.draftLocked) return;
                 const currentIndex = state.files.indexOf(item);
                 const nextIndex = currentIndex + direction;
                 if (currentIndex < 0 || nextIndex < 0 || nextIndex >= state.files.length) return;
@@ -805,6 +944,10 @@
                         item.preparing = true;
                         renderBatchProgress();
                         const compressedFile = await compressImage(item.originalFile || item.file);
+                        if (state.cancelled) throw new Error('Upload cancelled');
+                        if (isV2() && compressedFile.size > 4 * 1024 * 1024) {
+                            throw new Error('Photo is too large to upload. Choose a smaller copy.');
+                        }
                         item.file = compressedFile;
                         item.compressed = true;
                         item.preparing = false;
@@ -856,13 +999,22 @@
             }
 
             async function prepareExpectedCount() {
-                if (isBatchMode() || state.files.length === 0) return;
+                if ((!isV2() && isBatchMode()) || state.files.length === 0) return;
                 try {
-                    await fetch(
-                        `${API_PREPARE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`,
+                    const response = await fetch(
+                        `${API_PREPARE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}${isV2() ? '&v=2' : ''}`,
                         { method: 'POST' },
                     );
+                    if (isV2() && !response.ok) {
+                        const result = await response.json().catch(() => null);
+                        if (response.status === 410) {
+                            pageTitle.textContent = 'Upload Expired';
+                            pageCopy.textContent = 'This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.';
+                        }
+                        throw new Error(result?.error || 'Could not start upload');
+                    }
                 } catch (error) {
+                    if (isV2()) throw error;
                     // Progress count is helpful, but upload must continue without it.
                 }
             }
@@ -872,7 +1024,7 @@
                 let result = null;
                 for (let attempt = 0; attempt < 8; attempt += 1) {
                     response = await fetch(
-                        `${API_COMPLETE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`,
+                        `${API_COMPLETE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}${isV2() ? '&v=2' : ''}`,
                         {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -913,6 +1065,11 @@
 
                 state.completeSent = true;
                 state.completeFailed = false;
+                if (isV2()) {
+                    cancelBtn.style.display = 'none';
+                    mainBtn.style.display = 'none';
+                    sendBtn.disabled = true;
+                }
                 if (isBatchMode()) {
                     pageTitle.textContent = 'Photos Sent';
                     pageCopy.innerHTML =
@@ -923,9 +1080,9 @@
             }
 
             async function sendBatchFiles() {
-                if (!isBatchMode() || state.isSending || state.files.length === 0) return;
+                if ((!isBatchMode() && !isV2()) || state.isSending || state.files.length === 0) return;
                 state.isSending = true;
-                mainBtn.disabled = true;
+                setDraftControlsLocked(true);
                 state.completeSent = false;
                 state.completeFailed = false;
                 renderBatchProgress();
@@ -940,6 +1097,18 @@
                     item.order = index;
                 });
 
+                if (isV2() && !state.files.some((item) => item.done)) {
+                    try {
+                        await prepareExpectedCount();
+                    } catch (error) {
+                        state.isSending = false;
+                        sendBtn.disabled = false;
+                        cancelBtn.style.display = 'flex';
+                        showToast(error?.message || 'Could not start upload');
+                        return;
+                    }
+                }
+
                 async function runNextUpload() {
                     while (cursor < pendingItems.length) {
                         const item = pendingItems[cursor];
@@ -953,6 +1122,11 @@
                 await Promise.all(
                     Array.from({ length: workerCount }, () => runNextUpload())
                 );
+
+                if (state.cancelled) {
+                    await releaseWakeLock();
+                    return;
+                }
 
                 if (state.files.every((item) => item.done)) {
                     try {
@@ -976,9 +1150,10 @@
                 });
 
                 state.isSending = false;
-                mainBtn.disabled = state.completeSent;
+                if (!state.completeSent && !isV2()) mainBtn.disabled = false;
                 await releaseWakeLock();
                 renderBatchProgress();
+                updateBatchOrderUI();
                 flushUploadEvents();
             }
 
@@ -1016,6 +1191,7 @@
             }
 
             function handleFiles(files) {
+                if (isV2() && (state.isSending || state.draftLocked || state.completeSent || state.cancelled)) return;
                 const singleItems = [];
                 Array.from(files).forEach((originalFile) => {
                     const order = state.nextOrder++;
@@ -1024,7 +1200,7 @@
                         file: originalFile, // Will be replaced by compressed
                         originalFile,
                         name: originalFile.name,
-                        preview: isBatchMode() ? '' : URL.createObjectURL(originalFile),
+                        preview: isBatchMode() && !isV2() ? '' : URL.createObjectURL(originalFile),
                         order,
                         done: false,
                         failed: false,
@@ -1038,6 +1214,8 @@
                     const ui = renderFile(item);
                     item.ui = ui;
 
+                    if (isV2()) return;
+
                     if (isBatchMode()) {
                         renderBatchProgress();
                         return;
@@ -1046,7 +1224,10 @@
                     singleItems.push(item);
                 });
 
-                if (isBatchMode() && files.length > 0) {
+                if (isV2()) {
+                    updateBatchOrderUI();
+                    renderBatchProgress();
+                } else if (isBatchMode() && files.length > 0) {
                     setTimeout(sendBatchFiles, 0);
                 } else if (singleItems.length > 0) {
                     setTimeout(async () => {
@@ -1076,7 +1257,29 @@
             sessionCodeEl.textContent = state.sessionId;
             syncPageCopy();
             mainBtn.addEventListener('click', () => fileInput.click());
-            sendBtn.addEventListener('click', sendBatchFiles);
+            sendBtn.addEventListener('click', () => {
+                if (isV2() || isBatchMode()) sendBatchFiles();
+            });
+            cancelBtn.addEventListener('click', async () => {
+                if (!isV2()) return;
+                if (!window.confirm('Cancel this upload and discard its temporary photos?')) return;
+                state.cancelled = true;
+                state.activeRequests.forEach((request) => request.abort());
+                state.activeRequests.clear();
+                await fetch(
+                    `${API_UPLOAD}?action=cleanup&v=2&reason=cancelled&sessionId=${encodeURIComponent(state.sessionId)}`,
+                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+                ).catch(() => null);
+                state.files.forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
+                state.files = [];
+                state.isSending = false;
+                pageTitle.textContent = 'Upload Cancelled';
+                pageCopy.textContent = 'Start a new phone upload from your desktop.';
+                fileList.replaceChildren();
+                setDraftControlsLocked(true);
+                sendBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+            });
             fileInput.addEventListener('change', handleFileInputChange);
 
             document.addEventListener('visibilitychange', () => {
@@ -1085,6 +1288,11 @@
                 }
             });
             window.addEventListener('pagehide', flushUploadEvents);
+            window.addEventListener('beforeunload', (event) => {
+                if (!isV2() || state.completeSent || state.files.length === 0) return;
+                event.preventDefault();
+                event.returnValue = '';
+            });
 
             sessionFooter.addEventListener('click', () => {
                 const modeParam = isBatchMode() ? '&mode=batch' : '';

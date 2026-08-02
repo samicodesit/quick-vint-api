@@ -19,6 +19,12 @@ const storageList = vi.fn(
   }),
 );
 const storageRemove = vi.fn(async () => ({ error: null }));
+const storageDownload = vi.fn();
+const storageUpload = vi.fn(
+  async (_path: string, _body: Buffer, _options: Record<string, unknown>) => ({
+    error: null,
+  }),
+);
 
 vi.mock("../../../utils/rateLimiter", () => ({
   RateLimiter: {
@@ -38,6 +44,8 @@ vi.mock("../../../utils/supabaseClient", () => ({
       from: vi.fn(() => ({
         list: storageList,
         remove: storageRemove,
+        download: storageDownload,
+        upload: storageUpload,
       })),
     },
   },
@@ -62,6 +70,7 @@ function createResponse() {
 describe("daily cleanup cron", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.CRON_SECRET = "test-cron-secret";
     storageList.mockResolvedValue({ data: [], error: null });
     compactOldLogs.mockResolvedValue({
       cutoffHours: 6,
@@ -69,6 +78,25 @@ describe("daily cleanup cron", () => {
       batchSize: 500,
       compacted: 12,
     });
+    storageDownload.mockReset();
+    storageUpload.mockResolvedValue({ error: null });
+  });
+
+  const authorizedRequest = () => ({
+    headers: { authorization: "Bearer test-cron-secret" },
+  });
+
+  it("rejects requests without the cron secret before doing cleanup work", async () => {
+    const module = await import("../../../api/cron/daily-cleanup.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler({ headers: {} } as any, res as any);
+
+    expect(res.statusCode).toBe(401);
+    expect(cleanupExpiredRecords).not.toHaveBeenCalled();
+    expect(storageList).not.toHaveBeenCalled();
+    expect(compactOldLogs).not.toHaveBeenCalled();
   });
 
   it("runs API log compaction with existing daily cleanup work", async () => {
@@ -76,7 +104,7 @@ describe("daily cleanup cron", () => {
     const handler = (module as any).default;
     const res = createResponse();
 
-    await handler({ headers: {} } as any, res as any);
+    await handler(authorizedRequest() as any, res as any);
 
     expect(cleanupExpiredRecords).toHaveBeenCalledTimes(1);
     expect(storageList).toHaveBeenCalledWith("", {
@@ -114,9 +142,96 @@ describe("daily cleanup cron", () => {
     const handler = (module as any).default;
     const res = createResponse();
 
-    await handler({ headers: {} } as any, res as any);
+    await handler(authorizedRequest() as any, res as any);
 
     expect(res.statusCode).toBe(200);
     expect(storageRemove).not.toHaveBeenCalled();
+  });
+
+  it("removes an expired v2 session in one cleanup pass", async () => {
+    const old = new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString();
+    storageList
+      .mockResolvedValueOnce({
+        data: [{ id: null, name: "v2-session", created_at: old }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: "marker", name: "_session.json", created_at: old }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          { id: "marker", name: "_session.json", created_at: old },
+          { id: "photo", name: "000000-upload.jpg", created_at: old },
+        ],
+        error: null,
+      });
+    storageDownload.mockResolvedValue({
+      data: new Blob([
+        JSON.stringify({
+          v: 2,
+          ownerId: "user-1",
+          mode: "batch",
+          source: "phone",
+          status: "uploading",
+          expectedCount: 1,
+          createdAt: old,
+          lastActivityAt: old,
+          expiresAt: old,
+        }),
+      ]),
+      error: null,
+    });
+    const module = await import("../../../api/cron/daily-cleanup.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(authorizedRequest() as any, res as any);
+
+    expect(storageRemove).toHaveBeenCalledWith([
+      "v2-session/_session.json",
+      "v2-session/000000-upload.jpg",
+    ]);
+    expect(storageUpload).not.toHaveBeenCalled();
+  });
+
+  it("removes a terminal v2 session and any remaining photos together", async () => {
+    const old = new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString();
+    storageList
+      .mockResolvedValueOnce({
+        data: [{ id: null, name: "v2-session", created_at: old }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: "marker", name: "_session.json", created_at: old }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          { id: "marker", name: "_session.json", created_at: old },
+          { id: "photo", name: "000000-upload.jpg", created_at: old },
+        ],
+        error: null,
+      });
+    storageDownload.mockResolvedValue({
+      data: new Blob([
+        JSON.stringify({
+          v: 2,
+          status: "expired",
+          expiresAt: old,
+        }),
+      ]),
+      error: null,
+    });
+    const module = await import("../../../api/cron/daily-cleanup.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(authorizedRequest() as any, res as any);
+
+    expect(storageRemove).toHaveBeenCalledWith([
+      "v2-session/_session.json",
+      "v2-session/000000-upload.jpg",
+    ]);
   });
 });

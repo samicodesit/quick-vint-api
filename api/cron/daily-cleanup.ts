@@ -8,15 +8,14 @@ const TEMP_UPLOAD_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const TEMP_UPLOAD_ROOT_PAGE_SIZE = 100;
 const TEMP_UPLOAD_MAX_ROOT_ENTRIES = 500;
 const TEMP_UPLOAD_FILE_PAGE_SIZE = 100;
+const V2_SESSION_MARKER = "_session.json";
 const API_LOG_COMPACTION_CUTOFF_HOURS = 6;
 const API_LOG_COMPACTION_BATCH_SIZE = 500;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Secure the endpoint
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
-    // Allow if running in development or if explicitly disabled, but for now enforce
-    // return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   const results = {
@@ -91,6 +90,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const firstFile = files[0];
+        if (firstFile.name === V2_SESSION_MARKER) {
+          const { data: markerFile, error: markerError } =
+            await supabase.storage
+              .from(TEMP_UPLOAD_BUCKET)
+              .download(`${folder.name}/${V2_SESSION_MARKER}`);
+          if (!markerError && markerFile) {
+            try {
+              const marker = JSON.parse(await markerFile.text());
+              if (marker.v === 2) {
+                if (
+                  marker.status === "expired" ||
+                  marker.status === "cancelled" ||
+                  new Date(marker.expiresAt).getTime() <= now
+                ) {
+                  const allFiles = [];
+                  for (let offset = 0; ; offset += TEMP_UPLOAD_FILE_PAGE_SIZE) {
+                    const { data: pageFiles } = await supabase.storage
+                      .from(TEMP_UPLOAD_BUCKET)
+                      .list(folder.name, {
+                        limit: TEMP_UPLOAD_FILE_PAGE_SIZE,
+                        offset,
+                      });
+                    allFiles.push(...(pageFiles || []));
+                    if (
+                      !pageFiles ||
+                      pageFiles.length < TEMP_UPLOAD_FILE_PAGE_SIZE
+                    ) {
+                      break;
+                    }
+                  }
+                  const paths = allFiles.map(
+                    (file) => `${folder.name}/${file.name}`,
+                  );
+                  if (paths.length) {
+                    const { error: delError } = await supabase.storage
+                      .from(TEMP_UPLOAD_BUCKET)
+                      .remove(paths);
+                    if (delError) throw delError;
+                  }
+                  deletedCount++;
+                }
+                continue;
+              }
+            } catch (error) {
+              console.error(
+                `Invalid v2 session marker for ${folder.name}:`,
+                error,
+              );
+            }
+          }
+          continue;
+        }
         if (!firstFile.created_at) continue;
         const fileAge = now - new Date(firstFile.created_at).getTime();
 

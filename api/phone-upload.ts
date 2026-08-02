@@ -32,6 +32,7 @@ interface FileUpload {
   filename: string;
   mimeType: string;
   order: number | null;
+  tooLarge: boolean;
 }
 
 interface StoredFile {
@@ -47,6 +48,32 @@ const UPLOAD_BUCKET = "temp-uploads";
 const BATCH_COMPLETE_MARKER = "_batch-complete.json";
 const EXPECTED_COUNT_MARKER_PREFIX = "_expected-count-";
 const EXPECTED_COUNT_MARKER_PATTERN = /^_expected-count-(\d+)\.json$/;
+const SESSION_MARKER = "_session.json";
+const V2_SESSION_IDLE_MS = 60 * 60 * 1000;
+const V2_SIGNED_URL_TTL_SECONDS = 60 * 60;
+const MAX_V2_UPLOAD_BYTES = 4 * 1024 * 1024;
+const V2_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/heic",
+  "image/heif",
+]);
+const V2_SESSION_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type V2SessionMarker = {
+  v: 2;
+  ownerId: string;
+  mode: "single" | "batch";
+  source: "phone";
+  status: "open" | "uploading" | "complete" | "cancelled" | "expired";
+  expectedCount: number | null;
+  createdAt: string;
+  lastActivityAt: string;
+  expiresAt: string;
+};
 
 function getMetadataValue(
   metadata: Record<string, unknown> | null | undefined,
@@ -83,7 +110,11 @@ function isExpectedCountMarkerFile(file: { name?: string }) {
 }
 
 function isSessionMarkerFile(file: { name?: string }) {
-  return isBatchMarkerFile(file) || isExpectedCountMarkerFile(file);
+  return (
+    file.name === SESSION_MARKER ||
+    isBatchMarkerFile(file) ||
+    isExpectedCountMarkerFile(file)
+  );
 }
 
 function getExpectedCountFromFiles(
@@ -120,14 +151,81 @@ async function listSessionFiles(sessionId: string) {
   }
 }
 
+async function readV2Session(sessionId: string) {
+  const { data, error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .download(`${sessionId}/${SESSION_MARKER}`);
+  if (error || !data) return null;
+  try {
+    return JSON.parse(await data.text()) as V2SessionMarker;
+  } catch {
+    return null;
+  }
+}
+
+async function writeV2Session(sessionId: string, marker: V2SessionMarker) {
+  const { error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .upload(
+      `${sessionId}/${SESSION_MARKER}`,
+      Buffer.from(JSON.stringify(marker)),
+      { contentType: "application/json", upsert: true },
+    );
+  if (error) throw error;
+}
+
+async function removeV2SessionFiles(sessionId: string) {
+  const files = await listSessionFiles(sessionId);
+  const paths = files.map((file) => `${sessionId}/${file.name}`);
+  if (!paths.length) return;
+  const { error } = await supabase.storage.from(UPLOAD_BUCKET).remove(paths);
+  if (error) throw error;
+}
+
+async function markV2SessionTerminal(
+  sessionId: string,
+  marker: V2SessionMarker,
+  status: "expired" | "cancelled",
+) {
+  const now = new Date();
+  marker.status = status;
+  marker.expectedCount = null;
+  marker.lastActivityAt = now.toISOString();
+  await removeV2SessionFiles(sessionId);
+  return marker;
+}
+
+async function expireV2SessionIfNeeded(
+  sessionId: string,
+  marker: V2SessionMarker | null,
+) {
+  if (
+    marker &&
+    marker.status !== "expired" &&
+    marker.status !== "cancelled" &&
+    Date.parse(marker.expiresAt) <= Date.now()
+  ) {
+    try {
+      return await markV2SessionTerminal(sessionId, marker, "expired");
+    } catch (error) {
+      console.error("Expired session cleanup failed:", error);
+      marker.status = "expired";
+      marker.expectedCount = null;
+      return marker;
+    }
+  }
+  return marker;
+}
+
 async function createStoredFileResponse(
   sessionId: string,
   file: { name: string; metadata?: Record<string, unknown> | null },
+  ttlSeconds = 3600,
 ): Promise<StoredFile> {
   const path = `${sessionId}/${file.name}`;
   const { data, error } = await supabase.storage
     .from(UPLOAD_BUCKET)
-    .createSignedUrl(path, 3600);
+    .createSignedUrl(path, ttlSeconds);
 
   if (error || !data?.signedUrl) {
     throw new Error(
@@ -162,6 +260,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const action = typeof req.query.action === "string" ? req.query.action : "";
     if (contentType.includes("multipart/form-data")) {
       return handleUpload(req, res);
+    } else if (action === "open" && req.query.v === "2") {
+      return handleOpenV2(req, res);
     } else if (action === "prepare") {
       return handlePrepare(req, res);
     } else if (action === "complete") {
@@ -175,6 +275,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+async function handleOpenV2(req: VercelRequest, res: VercelResponse) {
+  const sessionId = String(req.query.sessionId || "");
+  const mode = req.query.mode;
+  if (
+    !V2_SESSION_ID.test(sessionId) ||
+    (mode !== "single" && mode !== "batch")
+  ) {
+    return res.status(400).json({ error: "Invalid v2 upload session" });
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid Authorization" });
+  }
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser(authHeader.slice("Bearer ".length));
+  if (userError || !user) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+
+  const now = new Date();
+  const marker: V2SessionMarker = {
+    v: 2,
+    ownerId: user.id,
+    mode,
+    source: "phone",
+    status: "open",
+    expectedCount: null,
+    createdAt: now.toISOString(),
+    lastActivityAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + V2_SESSION_IDLE_MS).toISOString(),
+  };
+  const { error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .upload(
+      `${sessionId}/${SESSION_MARKER}`,
+      Buffer.from(JSON.stringify(marker)),
+      { contentType: "application/json", upsert: false },
+    );
+  if (error) {
+    return res.status(409).json({ error: "Upload session already exists" });
+  }
+  return res.status(201).json({
+    success: true,
+    v: 2,
+    status: marker.status,
+    sessionId,
+  });
+}
+
 // --- Handler: List Files (GET) ---
 async function handleList(req: VercelRequest, res: VercelResponse) {
   const { sessionId } = req.query;
@@ -184,15 +336,40 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    let v2Marker = req.query.v === "2" ? await readV2Session(sessionId) : null;
+    v2Marker = await expireV2SessionIfNeeded(sessionId, v2Marker);
+    if (req.query.v === "2" && !v2Marker) {
+      return res.status(410).json({
+        success: false,
+        v: 2,
+        status: "expired",
+        complete: false,
+      });
+    }
+    if (
+      v2Marker &&
+      (v2Marker.status === "expired" || v2Marker.status === "cancelled")
+    ) {
+      return res.status(410).json({
+        success: false,
+        v: 2,
+        status: v2Marker.status,
+        complete: false,
+      });
+    }
     const files = await listSessionFiles(sessionId);
 
-    const complete = Boolean(files?.some(isBatchMarkerFile));
-    const expectedCount = getExpectedCountFromFiles(files);
+    const complete = v2Marker
+      ? v2Marker.status === "complete"
+      : Boolean(files?.some(isBatchMarkerFile));
+    const expectedCount =
+      v2Marker?.expectedCount ?? getExpectedCountFromFiles(files);
     const photoFiles =
       files?.filter((file) => !isSessionMarkerFile(file)) || [];
 
     if (photoFiles.length === 0) {
       return res.status(200).json({
+        ...(v2Marker ? { v: 2, status: v2Marker.status } : {}),
         files: [],
         count: 0,
         expectedCount,
@@ -201,13 +378,20 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
     }
 
     const signedFiles = await Promise.all(
-      photoFiles.map((file) => createStoredFileResponse(sessionId, file)),
+      photoFiles.map((file) =>
+        createStoredFileResponse(
+          sessionId,
+          file,
+          v2Marker ? V2_SIGNED_URL_TTL_SECONDS : 3600,
+        ),
+      ),
     );
     signedFiles.sort(
       (a, b) => a.order - b.order || a.name.localeCompare(b.name),
     );
 
     res.status(200).json({
+      ...(v2Marker ? { v: 2, status: v2Marker.status } : {}),
       files: signedFiles,
       count: signedFiles.length,
       expectedCount,
@@ -231,10 +415,52 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 
 // --- Handler: Upload Files (POST Multipart) ---
 async function handleUpload(req: VercelRequest, res: VercelResponse) {
-  const busboy = Busboy({ headers: req.headers });
+  const isV2 = req.query.v === "2";
+  const requestedSessionId = String(req.query.sessionId || "");
+  let v2Marker: V2SessionMarker | null = null;
+  if (isV2) {
+    if (!V2_SESSION_ID.test(requestedSessionId)) {
+      return res.status(400).json({ error: "Invalid v2 upload session" });
+    }
+    v2Marker = await expireV2SessionIfNeeded(
+      requestedSessionId,
+      await readV2Session(requestedSessionId),
+    );
+    if (
+      !v2Marker ||
+      v2Marker.status === "expired" ||
+      v2Marker.status === "cancelled"
+    ) {
+      return res.status(410).json({
+        success: false,
+        v: 2,
+        status: v2Marker?.status || "expired",
+      });
+    }
+    if (v2Marker.status === "complete") {
+      return res.status(409).json({
+        success: false,
+        v: 2,
+        status: "complete",
+      });
+    }
+    if (v2Marker.status !== "uploading" || v2Marker.expectedCount === null) {
+      return res.status(409).json({
+        success: false,
+        v: 2,
+        status: v2Marker.status,
+      });
+    }
+  }
+
+  const busboy = Busboy({
+    headers: req.headers,
+    ...(isV2 ? { limits: { files: 1, fileSize: MAX_V2_UPLOAD_BYTES } } : {}),
+  });
   const fileUploads: FileUpload[] = [];
   let sessionId = "";
   let uploadOrder: number | null = null;
+  let fileLimitReached = false;
   let responseSent = false;
 
   const sendError = (status: number, message: string) => {
@@ -254,16 +480,24 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
   busboy.on("file", (fieldname, file, info) => {
     const { filename, mimeType } = info;
     const chunks: Buffer[] = [];
+    let tooLarge = false;
 
     file.on("data", (data) => chunks.push(data));
+    file.on("limit", () => {
+      tooLarge = true;
+    });
     file.on("end", () => {
       fileUploads.push({
         buffer: Buffer.concat(chunks),
         filename,
         mimeType,
         order: uploadOrder,
+        tooLarge,
       });
     });
+  });
+  busboy.on("filesLimit", () => {
+    fileLimitReached = true;
   });
 
   busboy.on("finish", async () => {
@@ -276,6 +510,26 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
 
       if (fileUploads.length === 0) {
         return sendError(400, "No files received");
+      }
+
+      if (isV2) {
+        if (fileLimitReached || fileUploads.length !== 1) {
+          return sendError(400, "Upload one photo per request");
+        }
+        const [file] = fileUploads;
+        if (file.tooLarge || file.buffer.length > MAX_V2_UPLOAD_BYTES) {
+          return sendError(413, "Photo is too large after compression");
+        }
+        if (!V2_IMAGE_TYPES.has(file.mimeType)) {
+          return sendError(415, "Unsupported photo type");
+        }
+        if (
+          file.order === null ||
+          !v2Marker ||
+          file.order >= (v2Marker.expectedCount || 0)
+        ) {
+          return sendError(400, "Invalid upload order");
+        }
       }
 
       const uploadPromises = fileUploads.map(async (file, index) => {
@@ -306,9 +560,18 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       });
 
       const uploadedFiles = await Promise.all(uploadPromises);
+      if (v2Marker) {
+        const now = new Date();
+        v2Marker.lastActivityAt = now.toISOString();
+        v2Marker.expiresAt = new Date(
+          now.getTime() + V2_SESSION_IDLE_MS,
+        ).toISOString();
+        await writeV2Session(finalSessionId, v2Marker);
+      }
       responseSent = true;
       res.status(200).json({
         success: true,
+        ...(isV2 ? { v: 2, status: "uploading" } : {}),
         count: uploadedFiles.length,
         expectedCount: fileUploads.length,
         files: uploadedFiles,
@@ -347,6 +610,57 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
 async function handlePrepare(req: VercelRequest, res: VercelResponse) {
   const sessionId = req.query.sessionId as string;
   const expectedCount = parseExpectedCount(req.query.expectedCount);
+
+  if (req.query.v === "2") {
+    if (!V2_SESSION_ID.test(sessionId || "")) {
+      return res.status(400).json({ error: "Invalid v2 upload session" });
+    }
+    if (!expectedCount || expectedCount > 500) {
+      return res.status(400).json({ error: "Invalid expectedCount" });
+    }
+    const marker = await expireV2SessionIfNeeded(
+      sessionId,
+      await readV2Session(sessionId),
+    );
+    if (
+      !marker ||
+      marker.status === "expired" ||
+      marker.status === "cancelled"
+    ) {
+      return res.status(410).json({
+        success: false,
+        v: 2,
+        status: marker?.status || "expired",
+      });
+    }
+    if (
+      marker.status === "complete" ||
+      (marker.expectedCount !== null && marker.expectedCount !== expectedCount)
+    ) {
+      return res.status(409).json({
+        success: false,
+        v: 2,
+        status: marker.status,
+        expectedCount: marker.expectedCount,
+      });
+    }
+    if (marker.expectedCount === null) {
+      const now = new Date();
+      marker.status = "uploading";
+      marker.expectedCount = expectedCount;
+      marker.lastActivityAt = now.toISOString();
+      marker.expiresAt = new Date(
+        now.getTime() + V2_SESSION_IDLE_MS,
+      ).toISOString();
+      await writeV2Session(sessionId, marker);
+    }
+    return res.status(200).json({
+      success: true,
+      v: 2,
+      status: "uploading",
+      expectedCount,
+    });
+  }
 
   if (!sessionId) {
     return res.status(400).json({ error: "Missing sessionId" });
@@ -407,6 +721,46 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
     const photoFiles = (files || []).filter(
       (file) => !isSessionMarkerFile(file),
     );
+    if (req.query.v === "2") {
+      const marker = await expireV2SessionIfNeeded(
+        sessionId,
+        await readV2Session(sessionId),
+      );
+      if (
+        !marker ||
+        marker.status === "expired" ||
+        marker.status === "cancelled"
+      ) {
+        return res.status(410).json({
+          success: false,
+          v: 2,
+          status: marker?.status || "expired",
+        });
+      }
+      if (
+        marker.status === "complete" ||
+        marker.expectedCount === null ||
+        marker.expectedCount !== expectedCount
+      ) {
+        return res.status(409).json({
+          success: false,
+          complete: marker.status === "complete",
+          v: 2,
+          status: marker.status,
+          expectedCount: marker.expectedCount,
+        });
+      }
+      if (photoFiles.length > expectedCount) {
+        return res.status(409).json({
+          success: false,
+          complete: false,
+          v: 2,
+          status: marker.status,
+          count: photoFiles.length,
+          expectedCount,
+        });
+      }
+    }
     if (expectedCount !== null && photoFiles.length < expectedCount) {
       return res.status(202).json({
         success: false,
@@ -468,8 +822,19 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
 
     if (markerError) throw markerError;
 
+    if (req.query.v === "2") {
+      const sessionMarker = await readV2Session(sessionId);
+      if (!sessionMarker) {
+        throw new Error("Upload session marker disappeared");
+      }
+      sessionMarker.status = "complete";
+      sessionMarker.lastActivityAt = new Date().toISOString();
+      await writeV2Session(sessionId, sessionMarker);
+    }
+
     res.status(200).json({
       success: true,
+      ...(req.query.v === "2" ? { v: 2, status: "complete" } : {}),
       complete: true,
       count: manifestFiles.length,
       expectedCount,
@@ -500,6 +865,15 @@ async function handleCleanup(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    if (req.query.v === "2" && req.query.reason === "cancelled") {
+      const marker = await readV2Session(sessionId);
+      if (!marker) {
+        return res.status(200).json({ success: true, status: "cancelled" });
+      }
+      await markV2SessionTerminal(sessionId, marker, "cancelled");
+      return res.status(200).json({ success: true, v: 2, status: "cancelled" });
+    }
+
     const files = await listSessionFiles(sessionId);
 
     if (files && files.length > 0) {
@@ -519,10 +893,9 @@ async function handleCleanup(req: VercelRequest, res: VercelResponse) {
       .json({ success: true, message: "Session completed and cleaned up" });
   } catch (error: any) {
     console.error("Cleanup error:", error);
-    // Even if cleanup fails, we return success to the client so they don't retry
-    res.status(200).json({
-      success: true,
-      warning: "Cleanup failed but session marked complete",
+    res.status(500).json({
+      success: false,
+      error: "Could not clean up upload session",
     });
   }
 }

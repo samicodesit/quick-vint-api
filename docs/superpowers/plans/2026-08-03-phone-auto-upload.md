@@ -21,10 +21,12 @@
 ### Task 1: Appendable v2 storage protocol
 
 **Files:**
+
 - Modify: `api/phone-upload.ts`
 - Test: `src/api/__tests__/phoneUpload.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `V2SessionMarker`, `_uploader.json`, `handlePrepare`, `handleList`, and `handleComplete`.
 - Produces: `GET action=status`; `GET includeUrls=1&fromOrder=N`; monotonic same-uploader `prepare`.
 
@@ -96,10 +98,12 @@ git commit -m "Support appendable phone upload sessions"
 ### Task 2: Phone auto-upload and terminal UI
 
 **Files:**
+
 - Modify: `src/pages/phone-upload.html`
 - Test: `src/pages/__tests__/phoneUploadHtml.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1 `prepare`, upload, and `action=status` responses.
 - Produces: automatic v2 upload waves; `renderTerminalSuccess()`; clear CTA states.
 
@@ -158,10 +162,12 @@ git commit -m "Start phone uploads on selection"
 ### Task 3: Incremental single-listing consumption
 
 **Files:**
+
 - Modify: `quick-vint/content.js`
 - Test: `quick-vint/tests/e2e/extension.spec.js`
 
 **Interfaces:**
+
 - Consumes: Task 1 list metadata plus `includeUrls=1&fromOrder=N`, and existing `injectFilesIntoVinted` append capture.
 - Produces: `lockPhoneUploadSession(sessionId)` used by existing Done and Done + Generate actions.
 
@@ -197,10 +203,12 @@ git commit -m "Append phone photos before desktop lock"
 ### Task 4: Incremental batch grouping
 
 **Files:**
+
 - Modify: `quick-vint/content.js`
 - Test: `quick-vint/tests/e2e/extension.spec.js`
 
 **Interfaces:**
+
 - Consumes: Task 1 incremental list responses and existing batch grouping/discard UI.
 - Produces: growing ungrouped batch gallery and exact lock before `startBatchGeneration`.
 
@@ -236,9 +244,11 @@ git commit -m "Append phone waves to batch grouping"
 ### Task 5: Production gates and integration
 
 **Files:**
+
 - Verify only; update this plan's checkboxes with results if needed.
 
 **Interfaces:**
+
 - Consumes: Tasks 1–4.
 - Produces: pushed backend and frontend main branches ready for owner testing.
 

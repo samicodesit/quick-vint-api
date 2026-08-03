@@ -361,11 +361,7 @@ async function handleV2Status(req: VercelRequest, res: VercelResponse) {
     sessionId,
     await readV2Session(sessionId),
   );
-  if (
-    !marker ||
-    marker.status === "expired" ||
-    marker.status === "cancelled"
-  ) {
+  if (!marker || marker.status === "expired" || marker.status === "cancelled") {
     return res.status(410).json({
       v: 2,
       status: marker?.status || "expired",
@@ -444,7 +440,9 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 
   try {
     const includeUrls = req.query.v === "2" && req.query.includeUrls === "1";
-    const fromOrder = includeUrls ? parseUploadOrder(req.query.fromOrder ?? 0) : 0;
+    const fromOrder = includeUrls
+      ? parseUploadOrder(req.query.fromOrder ?? 0)
+      : 0;
     if (includeUrls && fromOrder === null) {
       return res.status(400).json({ error: "Invalid fromOrder" });
     }

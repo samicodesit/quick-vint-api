@@ -8,7 +8,7 @@ const html = readFileSync(
 );
 
 describe("phone upload page v2 contract", () => {
-  it("keeps the send action fixed and respects reduced motion", () => {
+  it("keeps the primary action fixed and respects reduced motion", () => {
     expect(html).toContain('class="phone-upload-action-bar"');
     expect(html).toMatch(
       /body\.v2-mode \.phone-upload-action-bar\s*\{[\s\S]*?position:\s*fixed/,
@@ -20,30 +20,40 @@ describe("phone upload page v2 contract", () => {
     );
   });
 
-  it("keeps the v2 review to add, remove, and one explicit send", () => {
+  it("starts v2 transfers on selection and keeps append available", () => {
     expect(html).toContain("Add more photos");
-    expect(html).toContain("remove-photo");
     expect(html).toContain("const reorderActions = isV2() ? '' : `");
     expect(html).toContain("${reorderActions}");
     expect(html).toMatch(
       /body\.v2-mode \.session-footer\s*\{\s*display:\s*none;/,
     );
-    expect(html).toContain("Send ${state.files.length} photo");
-    expect(html).toContain("if (isV2())");
     expect(html).toContain("await prepareExpectedCount()");
-    expect(html).toContain("removeBtn.textContent = '✓'");
-    expect(html).toContain("removeBtn.classList.add('upload-complete')");
+    expect(html).toContain("setTimeout(sendBatchFiles, 0)");
+    expect(html).toContain('class="upload-state"');
+    expect(html).toContain("uploadState.textContent = '✓'");
+    expect(html).toContain("uploadState.classList.add('upload-complete')");
     expect(html).toContain(
-      "removeBtn.setAttribute('aria-label', 'Photo uploaded')",
+      "uploadState.setAttribute('aria-label', 'Photo ready')",
     );
+    expect(html).toContain("sendBtn.style.display = 'none'");
   });
 
-  it("locks draft controls once a v2 upload starts", () => {
-    expect(html).toContain("setDraftControlsLocked(true)");
-    expect(html).toContain("state.draftLocked = locked");
-    expect(html).toContain("state.isSending || state.draftLocked");
-    expect(html).toContain("Retry Failed Photos");
+  it("uses clear v2 primary-action states", () => {
+    expect(html).toContain("Adding ${active} of ${total}…");
+    expect(html).toContain("Retry ${failed} failed photo");
+    expect(html).toContain("${total} photos ready on your computer");
+    expect(html).toContain("mainBtn.classList.toggle('is-uploading'");
+    expect(html).toContain("mainBtn.classList.toggle('is-error'");
+    expect(html).toContain("mainBtn.classList.toggle('is-ready'");
     expect(html).toContain("Cancel Entire Upload");
+  });
+
+  it("turns a locked v2 session into a terminal page", () => {
+    expect(html).toContain("action=status&v=2");
+    expect(html).toContain("const STATUS_POLL_MS = 3000");
+    expect(html).toContain("Photos added on your computer");
+    expect(html).toContain("You can close this page.");
+    expect(html).toContain("renderTerminalSuccess()");
   });
 
   it("reports the number of upload attempts actually made", () => {
@@ -58,10 +68,10 @@ describe("phone upload page v2 contract", () => {
       /\.batch-mode \.file-info \.progress-bar,[\s\S]*?\.batch-mode \.file-status[\s\S]*?display:\s*none/,
     );
     expect(html).toContain(
-      "sendBtn.textContent = `Sending ${sent} / ${total}`",
+      "mainBtn.lastChild.textContent = `Adding ${active} of ${total}…`",
     );
     expect(html).toContain(
-      "sendBtn.disabled = state.isSending || state.completeSent",
+      "mainBtn.disabled = state.isSending || state.completeSent",
     );
   });
 

@@ -355,8 +355,19 @@
             backdrop-filter: blur(10px);
         }
 
-        body.v2-mode .phone-upload-action-bar #sendBtn:not(:disabled) {
+        body.v2-mode #mainBtn.is-uploading {
             animation: upload-cta-glow 1.6s ease-in-out infinite;
+            opacity: 1;
+        }
+
+        body.v2-mode #mainBtn.is-error {
+            background: #dc2626;
+            box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.35);
+        }
+
+        body.v2-mode #pageCopy.is-ready {
+            color: #047857;
+            font-weight: 650;
         }
 
         .remove-photo {
@@ -376,13 +387,59 @@
             opacity: 1;
         }
 
+        .upload-state {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            color: #94a3b8;
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .upload-state.upload-complete {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        body.terminal-mode {
+            padding-bottom: 20px;
+        }
+
+        .terminal-success {
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .terminal-success-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 22px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 32px;
+            font-weight: 900;
+        }
+
+        .terminal-success p {
+            margin: 0;
+        }
+
         @keyframes upload-cta-glow {
             0%, 100% { box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.35); }
             50% { box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.18), 0 12px 30px -4px rgba(79, 70, 229, 0.65); }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            body.v2-mode .phone-upload-action-bar #sendBtn {
+            body.v2-mode #mainBtn {
                 animation: none;
             }
         }
@@ -429,6 +486,7 @@
             const BATCH_UPLOAD_CONCURRENCY = 2;
             const COMPRESSION_RETRY_DELAYS_MS = [250];
             const UPLOAD_RETRY_DELAYS_MS = [700, 1500];
+            const STATUS_POLL_MS = 3000;
 
             const sessionCodeEl = document.getElementById('sessionCode');
             const pageTitle = document.getElementById('pageTitle');
@@ -454,7 +512,10 @@
                 activeRequests: new Set(),
                 wakeLock: null,
                 eventQueue: [],
-                eventFlushTimer: null
+                eventFlushTimer: null,
+                statusPollTimer: null,
+                statusCheckPromise: null,
+                terminal: false
             };
 
             function createSessionId() {
@@ -550,12 +611,9 @@
             function syncPageCopy() {
                 if (isV2()) {
                     document.body.classList.add('v2-mode');
-                    pageCopy.textContent = 'Choose photos, add or remove any mistakes, then send them all together.';
-                    mainBtn.classList.add('secondary');
+                    pageCopy.textContent = 'Choose photos. They will appear on your computer automatically.';
                     mainBtn.lastChild.textContent = 'Choose photos';
-                    sendBtn.classList.remove('secondary');
-                    sendBtn.style.display = 'flex';
-                    sendBtn.textContent = 'Send 0 photos';
+                    sendBtn.style.display = 'none';
                 }
                 if (isBatchMode()) {
                     document.body.classList.add('batch-mode');
@@ -581,6 +639,9 @@
                 const reorderActions = isV2() ? '' : `
                 <button type="button" class="move-up">Up</button>
                 <button type="button" class="move-down">Down</button>`;
+                const completionAction = isV2()
+                    ? '<span class="upload-state" role="status" aria-label="Waiting">•</span>'
+                    : '<button type="button" class="remove-photo" aria-label="Remove photo">×</button>';
                 el.innerHTML = `
             <div class="file-order"></div>
             <img src="${item.preview}" class="file-preview">
@@ -591,7 +652,7 @@
             </div>
             <div class="file-actions">
                 ${reorderActions}
-                <button type="button" class="remove-photo" aria-label="Remove photo">×</button>
+                ${completionAction}
             </div>
         `;
                 fileList.appendChild(el);
@@ -608,13 +669,14 @@
             }
 
             function renderBatchProgress() {
-                if (!isBatchMode()) return;
+                if (!isBatchMode() && !isV2()) return;
 
                 const total = state.files.length;
                 const sent = state.files.filter((item) => item.done).length;
                 const failed = state.files.filter((item) => item.failed && !item.done).length;
                 const preparing = state.files.filter((item) => item.preparing && !item.done).length;
                 const uploading = state.files.filter((item) => item.uploading && !item.done).length;
+                const active = Math.min(total, sent + preparing + uploading);
                 const pct = total ? Math.round((sent / total) * 100) : 0;
                 let title = 'Ready to send';
                 let detail = 'Choose photos from your phone gallery.';
@@ -649,7 +711,31 @@
                     </div>
                 `;
 
-                sendBtn.style.display = isV2() || state.isSending || ((failed > 0 || state.completeFailed) && !state.completeSent) ? 'flex' : 'none';
+                if (isV2()) {
+                    sendBtn.style.display = 'none';
+                    mainBtn.style.display = 'flex';
+                    mainBtn.disabled = state.isSending || state.completeSent;
+                    mainBtn.classList.toggle('is-uploading', state.isSending);
+                    mainBtn.classList.toggle('is-error', failed > 0 && !state.isSending);
+                    mainBtn.classList.toggle('is-ready', total > 0 && !state.isSending && failed === 0);
+                    pageCopy.classList.toggle('is-ready', total > 0 && !state.isSending && failed === 0);
+                    if (state.isSending) {
+                        mainBtn.lastChild.textContent = `Adding ${active} of ${total}…`;
+                        pageCopy.textContent = 'Keep this page open while your photos are added.';
+                    } else if (failed > 0) {
+                        mainBtn.lastChild.textContent = `Retry ${failed} failed photo${failed === 1 ? '' : 's'}`;
+                        pageCopy.textContent = `${failed} photo${failed === 1 ? '' : 's'} need another try.`;
+                    } else if (total > 0) {
+                        mainBtn.lastChild.textContent = 'Add more photos';
+                        pageCopy.textContent = `${total} photos ready on your computer`;
+                    } else {
+                        mainBtn.lastChild.textContent = 'Choose photos';
+                    }
+                    cancelBtn.style.display = total > 0 && !state.completeSent ? 'flex' : 'none';
+                    return;
+                }
+
+                sendBtn.style.display = state.isSending || ((failed > 0 || state.completeFailed) && !state.completeSent) ? 'flex' : 'none';
                 sendBtn.disabled = state.isSending || state.completeSent || state.files.length === 0;
                 if (state.isSending) {
                     sendBtn.textContent = `Sending ${sent} / ${total}`;
@@ -715,11 +801,11 @@
                             item.done = true;
                             item.failed = false;
                             item.uploading = false;
-                            const removeBtn = item.el?.querySelector('.remove-photo');
-                            if (removeBtn) {
-                                removeBtn.textContent = '✓';
-                                removeBtn.classList.add('upload-complete');
-                                removeBtn.setAttribute('aria-label', 'Photo uploaded');
+                            const uploadState = item.el?.querySelector('.upload-state');
+                            if (uploadState) {
+                                uploadState.textContent = '✓';
+                                uploadState.classList.add('upload-complete');
+                                uploadState.setAttribute('aria-label', 'Photo ready');
                             }
                             renderBatchProgress();
                             resolve();
@@ -942,6 +1028,10 @@
                 });
 
                 const allDone = state.files.length > 0 && state.files.every((item) => item.done);
+                if (isV2()) {
+                    renderBatchProgress();
+                    return;
+                }
                 sendBtn.disabled = state.isSending || state.files.length === 0 || (allDone && state.completeSent);
                 if (!state.isSending && state.files.some((item) => item.failed && !item.done)) {
                     sendBtn.textContent = 'Retry Failed Photos';
@@ -1144,14 +1234,18 @@
                     item.order = index;
                 });
 
-                if (isV2() && !state.files.some((item) => item.done)) {
+                if (isV2()) {
                     try {
                         await prepareExpectedCount();
                     } catch (error) {
                         state.isSending = false;
-                        sendBtn.disabled = false;
-                        cancelBtn.style.display = 'flex';
+                        setDraftControlsLocked(false);
+                        if (await checkSessionStatus()) return;
+                        pendingItems.forEach((item) => {
+                            item.failed = true;
+                        });
                         showToast(error?.message || 'Could not start upload');
+                        renderBatchProgress();
                         return;
                     }
                 }
@@ -1175,7 +1269,7 @@
                     return;
                 }
 
-                if (state.files.every((item) => item.done)) {
+                if (!isV2() && state.files.every((item) => item.done)) {
                     try {
                         await completeUpload();
                     } catch (error) {
@@ -1197,7 +1291,8 @@
                 });
 
                 state.isSending = false;
-                if (!state.completeSent && !isV2()) mainBtn.disabled = false;
+                if (isV2()) setDraftControlsLocked(false);
+                else if (!state.completeSent) mainBtn.disabled = false;
                 await releaseWakeLock();
                 renderBatchProgress();
                 updateBatchOrderUI();
@@ -1274,6 +1369,7 @@
                 if (isV2()) {
                     updateBatchOrderUI();
                     renderBatchProgress();
+                    if (files.length > 0) setTimeout(sendBatchFiles, 0);
                 } else if (isBatchMode() && files.length > 0) {
                     setTimeout(sendBatchFiles, 0);
                 } else if (singleItems.length > 0) {
@@ -1299,12 +1395,71 @@
                 setTimeout(startHandling, 120);
             }
 
+            function renderTerminalSuccess() {
+                if (state.terminal) return;
+                state.terminal = true;
+                state.completeSent = true;
+                state.isSending = false;
+                if (state.statusPollTimer) clearInterval(state.statusPollTimer);
+                state.statusPollTimer = null;
+                state.activeRequests.forEach((request) => request.abort());
+                state.activeRequests.clear();
+                fileInput.disabled = true;
+                document.body.classList.remove('v2-mode', 'batch-mode');
+                document.body.classList.add('terminal-mode');
+                document.querySelector('.container').innerHTML = `
+                    <div class="terminal-success" role="status">
+                        <div class="terminal-success-icon" aria-hidden="true">✓</div>
+                        <h1>Photos added on your computer</h1>
+                        <p>You can close this page.</p>
+                    </div>
+                `;
+            }
+
+            async function checkSessionStatus() {
+                if (!isV2() || state.terminal) return state.terminal;
+                if (state.statusCheckPromise) return state.statusCheckPromise;
+                state.statusCheckPromise = fetch(
+                    `${API_UPLOAD}?action=status&v=2&sessionId=${encodeURIComponent(state.sessionId)}`,
+                    { cache: 'no-store' },
+                )
+                    .then(async (response) => {
+                        const result = await response.json().catch(() => null);
+                        if (response.ok && result?.status === 'complete') {
+                            renderTerminalSuccess();
+                            return true;
+                        }
+                        return false;
+                    })
+                    .catch(() => false)
+                    .finally(() => {
+                        state.statusCheckPromise = null;
+                    });
+                return state.statusCheckPromise;
+            }
+
+            function syncStatusPolling() {
+                if (!isV2() || state.terminal) return;
+                if (state.statusPollTimer) clearInterval(state.statusPollTimer);
+                state.statusPollTimer = null;
+                if (document.visibilityState !== 'visible') return;
+                checkSessionStatus();
+                state.statusPollTimer = setInterval(checkSessionStatus, STATUS_POLL_MS);
+            }
+
             // Init
             state.sessionId = createSessionId();
             if (isV2()) state.uploaderId = getUploaderId(state.sessionId);
             sessionCodeEl.textContent = state.sessionId;
             syncPageCopy();
-            mainBtn.addEventListener('click', () => fileInput.click());
+            mainBtn.addEventListener('click', async () => {
+                if (state.files.some((item) => item.failed && !item.done)) {
+                    sendBatchFiles();
+                    return;
+                }
+                if (await checkSessionStatus()) return;
+                fileInput.click();
+            });
             sendBtn.addEventListener('click', () => {
                 if (isV2() || isBatchMode()) sendBatchFiles();
             });
@@ -1334,10 +1489,13 @@
                 if (document.visibilityState === 'visible' && state.isSending) {
                     requestWakeLock();
                 }
+                syncStatusPolling();
             });
+            window.addEventListener('focus', syncStatusPolling);
+            syncStatusPolling();
             window.addEventListener('pagehide', flushUploadEvents);
             window.addEventListener('beforeunload', (event) => {
-                if (!isV2() || state.completeSent || state.files.length === 0) return;
+                if (!isV2() || state.completeSent || !state.isSending) return;
                 event.preventDefault();
                 event.returnValue = '';
             });

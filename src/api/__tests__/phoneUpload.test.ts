@@ -299,6 +299,152 @@ describe("phone upload endpoint", () => {
     });
   });
 
+  it("acquires one uploader lock when a v2 batch is prepared", async () => {
+    mockV2Session();
+    uploadMock.mockResolvedValue({ error: null });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+    const uploaderId = "11111111-1111-4111-8111-111111111111";
+
+    await handler(
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        query: {
+          action: "prepare",
+          v: "2",
+          sessionId,
+          expectedCount: "3",
+          uploaderId,
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(uploadMock).toHaveBeenCalledWith(
+      `${sessionId}/_uploader.json`,
+      expect.any(Buffer),
+      expect.objectContaining({
+        contentType: "application/json",
+        upsert: false,
+      }),
+    );
+    const lockWrite = uploadMock.mock.calls.find(
+      ([path]) => path === `${sessionId}/_uploader.json`,
+    );
+    expect(JSON.parse(lockWrite![1].toString())).toMatchObject({ uploaderId });
+  });
+
+  it("allows the same uploader to retry prepare after acquiring the lock", async () => {
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+    const uploaderId = "11111111-1111-4111-8111-111111111111";
+    downloadMock.mockImplementation((path: string) =>
+      Promise.resolve({
+        data: new Blob([
+          JSON.stringify(
+            path.endsWith("/_uploader.json")
+              ? { uploaderId }
+              : {
+                  v: 2,
+                  ownerId: "user-1",
+                  mode: "batch",
+                  source: "phone",
+                  status: "uploading",
+                  expectedCount: 3,
+                  createdAt: new Date().toISOString(),
+                  lastActivityAt: new Date().toISOString(),
+                  expiresAt: new Date(
+                    Date.now() + 60 * 60 * 1000,
+                  ).toISOString(),
+                },
+          ),
+        ]),
+        error: null,
+      }),
+    );
+    uploadMock.mockResolvedValueOnce({ error: new Error("already exists") });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        query: {
+          action: "prepare",
+          v: "2",
+          sessionId,
+          expectedCount: "3",
+          uploaderId,
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("rejects a different uploader for an already claimed v2 session", async () => {
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+    downloadMock.mockImplementation((path: string) =>
+      Promise.resolve({
+        data: new Blob([
+          JSON.stringify(
+            path.endsWith("/_uploader.json")
+              ? { uploaderId: "11111111-1111-4111-8111-111111111111" }
+              : {
+                  v: 2,
+                  ownerId: "user-1",
+                  mode: "batch",
+                  source: "phone",
+                  status: "open",
+                  expectedCount: null,
+                  createdAt: new Date().toISOString(),
+                  lastActivityAt: new Date().toISOString(),
+                  expiresAt: new Date(
+                    Date.now() + 60 * 60 * 1000,
+                  ).toISOString(),
+                },
+          ),
+        ]),
+        error: null,
+      }),
+    );
+    uploadMock.mockResolvedValueOnce({ error: new Error("already exists") });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        query: {
+          action: "prepare",
+          v: "2",
+          sessionId,
+          expectedCount: "3",
+          uploaderId: "22222222-2222-4222-8222-222222222222",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toMatchObject({
+      success: false,
+      v: 2,
+      error: "This upload is already open in another tab.",
+    });
+    expect(
+      uploadMock.mock.calls.some(([path]) => path.endsWith("/_session.json")),
+    ).toBe(false);
+  });
+
   it("rejects v2 completion when stored photos exceed the fixed count", async () => {
     mockV2Session({ status: "uploading", expectedCount: 2 });
     listMock.mockResolvedValue({
@@ -724,6 +870,7 @@ describe("phone upload endpoint", () => {
     listMock.mockResolvedValue({
       data: [
         { name: "_expected-count-10.json" },
+        { name: "_uploader.json" },
         { name: "000000-a.jpg" },
         { name: "000001-b.jpg" },
       ],

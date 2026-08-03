@@ -59,4 +59,13 @@ describe("phone upload page v2 contract", () => {
       "sendBtn.disabled = state.isSending || state.completeSent",
     );
   });
+
+  it("keeps one uploader identity per v2 browser tab", () => {
+    expect(html).toContain("sessionStorage.getItem(key)");
+    expect(html).toContain("sessionStorage.setItem(key, uploaderId)");
+    expect(html).toContain("state.uploaderId = getUploaderId(state.sessionId)");
+    expect(html).toContain(
+      "&uploaderId=${encodeURIComponent(state.uploaderId)}",
+    );
+  });
 });

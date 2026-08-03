@@ -49,6 +49,7 @@ const BATCH_COMPLETE_MARKER = "_batch-complete.json";
 const EXPECTED_COUNT_MARKER_PREFIX = "_expected-count-";
 const EXPECTED_COUNT_MARKER_PATTERN = /^_expected-count-(\d+)\.json$/;
 const SESSION_MARKER = "_session.json";
+const UPLOADER_MARKER = "_uploader.json";
 const V2_SESSION_IDLE_MS = 60 * 60 * 1000;
 const V2_SIGNED_URL_TTL_SECONDS = 60 * 60;
 const MAX_V2_UPLOAD_BYTES = 4 * 1024 * 1024;
@@ -113,6 +114,7 @@ function isExpectedCountMarkerFile(file: { name?: string }) {
 function isSessionMarkerFile(file: { name?: string }) {
   return (
     file.name === SESSION_MARKER ||
+    file.name === UPLOADER_MARKER ||
     isBatchMarkerFile(file) ||
     isExpectedCountMarkerFile(file)
   );
@@ -162,6 +164,35 @@ async function readV2Session(sessionId: string) {
   } catch {
     return null;
   }
+}
+
+async function readV2Uploader(sessionId: string) {
+  const { data, error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .download(`${sessionId}/${UPLOADER_MARKER}`);
+  if (error || !data) return null;
+  try {
+    return String(JSON.parse(await data.text())?.uploaderId || "");
+  } catch {
+    return null;
+  }
+}
+
+async function acquireV2Uploader(sessionId: string, uploaderId: string) {
+  const { error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .upload(
+      `${sessionId}/${UPLOADER_MARKER}`,
+      Buffer.from(
+        JSON.stringify({ uploaderId, createdAt: new Date().toISOString() }),
+      ),
+      { contentType: "application/json", upsert: false },
+    );
+  if (!error) return true;
+
+  const existingUploaderId = await readV2Uploader(sessionId);
+  if (existingUploaderId) return existingUploaderId === uploaderId;
+  throw error;
 }
 
 async function writeV2Session(sessionId: string, marker: V2SessionMarker) {
@@ -596,6 +627,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
 async function handlePrepare(req: VercelRequest, res: VercelResponse) {
   const sessionId = req.query.sessionId as string;
   const expectedCount = parseExpectedCount(req.query.expectedCount);
+  const uploaderId = String(req.query.uploaderId || "");
 
   if (req.query.v === "2") {
     if (!V2_SESSION_ID.test(sessionId || "")) {
@@ -603,6 +635,9 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
     }
     if (!expectedCount || expectedCount > MAX_V2_UPLOAD_COUNT) {
       return res.status(400).json({ error: "Invalid expectedCount" });
+    }
+    if (uploaderId && !V2_SESSION_ID.test(uploaderId)) {
+      return res.status(400).json({ error: "Invalid uploaderId" });
     }
     const marker = await expireV2SessionIfNeeded(
       sessionId,
@@ -628,6 +663,14 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
         v: 2,
         status: marker.status,
         expectedCount: marker.expectedCount,
+      });
+    }
+    if (uploaderId && !(await acquireV2Uploader(sessionId, uploaderId))) {
+      return res.status(409).json({
+        success: false,
+        v: 2,
+        status: marker.status,
+        error: "This upload is already open in another tab.",
       });
     }
     if (marker.expectedCount === null) {

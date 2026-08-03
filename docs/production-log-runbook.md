@@ -57,6 +57,24 @@ node -e 'const d=require("/tmp/log-detail-LOG_ID.json"); const l=d.log||d; const
 
 ## What Each Log Level Proves
 
+### Daily Vinted DOM canary
+
+For real authenticated Vinted create-page selector/injection proof, search admin
+logs for `dom-canary@autolister.app`, select the newest `/api/dom-canary` row,
+and fetch its `log-detail`. Do not use the email, list row, or Windows
+`LastTaskResult` as the verdict.
+
+The detail's `full_request_body` must have `status: "passed"`, path `/items/new`,
+`result.injected: true`, and true DOM flags for `title`, `description`,
+`fileInput`, `tools`, `generateButton`, and `signInButton`. Report its
+`occurredAt`, `extensionVersion`, URL, and `result.dom.titleText`. An
+`auth_required` failure is not selector-drift evidence.
+
+This evidence comes from the installed Windows `AutoLister DOM Canary` task,
+which runs around 16:30 Europe/Amsterdam against the authenticated real Vinted
+page. Reuse the latest fresh result; do not trigger the browser task unless the
+user explicitly requests a new run.
+
 - `view-logs`: timeline, endpoint, status, user email, log id. Not enough for image source or extension version proof.
 - `log-detail` for `/event/*`: event context. Use this for `extensionVersion`, page URL, `imageSources`, `imageSourceSummary`, and `imageSourceMode`.
 - `log-detail` for `/api/generate`: generation request metadata and output. Use this for `imageUrlKinds`, `imageMetadata`, model, status, generated title, and payload source.

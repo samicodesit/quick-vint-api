@@ -66,8 +66,9 @@ and fetch its `log-detail`. Do not use the email, list row, or Windows
 
 The detail's `full_request_body` must have `status: "passed"`, path `/items/new`,
 `result.injected: true`, and true DOM flags for `title`, `description`,
-`fileInput`, `tools`, `generateButton`, and `signInButton`. Report its
-`occurredAt`, `extensionVersion`, URL, and `result.dom.titleText`. An
+`fileInput`, `tools`, `generateButton`, `signInButton`, `phoneButton`,
+`titleLanguage`, and `descriptionLanguage`. Report its `occurredAt`,
+`extensionVersion`, URL, and `result.dom.titleText`. An
 `auth_required` failure is not selector-drift evidence.
 
 This evidence comes from the installed Windows `AutoLister DOM Canary` task,

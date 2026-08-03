@@ -40,4 +40,23 @@ describe("phone upload page v2 contract", () => {
     expect(html).toContain("Retry Failed Photos");
     expect(html).toContain("Cancel Entire Upload");
   });
+
+  it("reports the number of upload attempts actually made", () => {
+    expect(html).toContain("let attempts = 0");
+    expect(html).toContain("attempts += 1");
+    expect(html).toContain("attempts,");
+    expect(html).not.toContain("attempts: UPLOAD_RETRY_DELAYS_MS.length + 1");
+  });
+
+  it("shows batch progress on the disabled send action instead of every photo", () => {
+    expect(html).toMatch(
+      /\.batch-mode \.file-info \.progress-bar,[\s\S]*?\.batch-mode \.file-status[\s\S]*?display:\s*none/,
+    );
+    expect(html).toContain(
+      "sendBtn.textContent = `Sending ${sent} / ${total}`",
+    );
+    expect(html).toContain(
+      "sendBtn.disabled = state.isSending || state.completeSent",
+    );
+  });
 });

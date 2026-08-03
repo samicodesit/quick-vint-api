@@ -119,6 +119,11 @@
             margin-top: 22px;
         }
 
+        .batch-mode .file-info .progress-bar,
+        .batch-mode .file-status {
+            display: none;
+        }
+
         .file-item {
             display: flex;
             align-items: center;
@@ -613,8 +618,15 @@
                     </div>
                 `;
 
-                sendBtn.style.display = isV2() || ((failed > 0 || state.completeFailed) && !state.isSending && !state.completeSent) ? 'flex' : 'none';
-                sendBtn.disabled = state.isSending;
+                sendBtn.style.display = isV2() || state.isSending || ((failed > 0 || state.completeFailed) && !state.completeSent) ? 'flex' : 'none';
+                sendBtn.disabled = state.isSending || state.completeSent || state.files.length === 0;
+                if (state.isSending) {
+                    sendBtn.textContent = `Sending ${sent} / ${total}`;
+                } else if (state.completeSent) {
+                    sendBtn.textContent = 'Sent to Desktop';
+                } else if (failed > 0 || state.completeFailed) {
+                    sendBtn.textContent = 'Retry Failed Photos';
+                }
                 mainBtn.disabled = state.isSending || state.completeSent || (isV2() && state.draftLocked);
             }
 
@@ -717,7 +729,9 @@
 
             async function uploadFile(item, ui) {
                 let lastError = null;
+                let attempts = 0;
                 for (let attempt = 0; attempt <= UPLOAD_RETRY_DELAYS_MS.length; attempt += 1) {
+                    attempts += 1;
                     try {
                         return await uploadFileOnce(item, ui, attempt);
                     } catch (error) {
@@ -748,7 +762,7 @@
                 }
                 trackUploadEvent('phone_upload_file_error', {
                     order: item.order,
-                    attempts: UPLOAD_RETRY_DELAYS_MS.length + 1,
+                    attempts,
                     status: Number.isFinite(Number(lastError?.status)) ? Number(lastError.status) : null,
                     message: lastError?.message || String(lastError || 'Upload failed')
                 });

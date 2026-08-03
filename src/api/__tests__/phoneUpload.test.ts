@@ -411,6 +411,79 @@ describe("phone upload endpoint", () => {
     expect(uploadMock).not.toHaveBeenCalled();
   });
 
+  it("accepts a v2 upload when storage still returns the pre-prepare open marker", async () => {
+    mockV2Session({ status: "open", expectedCount: null });
+    uploadMock.mockResolvedValue({ error: null });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+    const req = createMultipartUploadRequest({
+      sessionId,
+      uploadOrder: 38,
+      filename: "late-visible-marker.jpg",
+    });
+    req.query.v = "2";
+    const res = createResponse();
+
+    await handler(req, res as any);
+    await res.finished;
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      success: true,
+      v: 2,
+      status: "uploading",
+    });
+    expect(uploadMock).toHaveBeenCalledWith(
+      `${sessionId}/000038-upload.jpg`,
+      expect.any(Buffer),
+      expect.objectContaining({ upsert: true }),
+    );
+    expect(
+      uploadMock.mock.calls.filter(([path]) => path.endsWith("/_session.json")),
+    ).toHaveLength(0);
+  });
+
+  it("completes a v2 upload when exact files exist but the marker read is stale", async () => {
+    mockV2Session({ status: "open", expectedCount: null });
+    listMock.mockResolvedValue({
+      data: [
+        { name: "_session.json" },
+        { name: "000000-first.jpg" },
+        { name: "000001-second.jpg" },
+      ],
+      error: null,
+    });
+    uploadMock.mockResolvedValue({ error: null });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+
+    await handler(
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        query: {
+          action: "complete",
+          v: "2",
+          sessionId,
+          expectedCount: "2",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    const markerWrite = uploadMock.mock.calls.find(
+      ([path]) => path === `${sessionId}/_session.json`,
+    );
+    expect(JSON.parse(markerWrite![1].toString())).toMatchObject({
+      status: "complete",
+      expectedCount: 2,
+    });
+  });
+
   it("rejects unsupported v2 image types before storage", async () => {
     mockV2Session({ status: "uploading", expectedCount: 2 });
     const module = await import("../../../api/phone-upload.js");

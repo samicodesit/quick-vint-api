@@ -52,6 +52,7 @@ const SESSION_MARKER = "_session.json";
 const V2_SESSION_IDLE_MS = 60 * 60 * 1000;
 const V2_SIGNED_URL_TTL_SECONDS = 60 * 60;
 const MAX_V2_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_V2_UPLOAD_COUNT = 500;
 const V2_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -444,13 +445,6 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         status: "complete",
       });
     }
-    if (v2Marker.status !== "uploading" || v2Marker.expectedCount === null) {
-      return res.status(409).json({
-        success: false,
-        v: 2,
-        status: v2Marker.status,
-      });
-    }
   }
 
   const busboy = Busboy({
@@ -526,7 +520,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         if (
           file.order === null ||
           !v2Marker ||
-          file.order >= (v2Marker.expectedCount || 0)
+          file.order >= (v2Marker.expectedCount ?? MAX_V2_UPLOAD_COUNT)
         ) {
           return sendError(400, "Invalid upload order");
         }
@@ -560,14 +554,6 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       });
 
       const uploadedFiles = await Promise.all(uploadPromises);
-      if (v2Marker) {
-        const now = new Date();
-        v2Marker.lastActivityAt = now.toISOString();
-        v2Marker.expiresAt = new Date(
-          now.getTime() + V2_SESSION_IDLE_MS,
-        ).toISOString();
-        await writeV2Session(finalSessionId, v2Marker);
-      }
       responseSent = true;
       res.status(200).json({
         success: true,
@@ -615,7 +601,7 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
     if (!V2_SESSION_ID.test(sessionId || "")) {
       return res.status(400).json({ error: "Invalid v2 upload session" });
     }
-    if (!expectedCount || expectedCount > 500) {
+    if (!expectedCount || expectedCount > MAX_V2_UPLOAD_COUNT) {
       return res.status(400).json({ error: "Invalid expectedCount" });
     }
     const marker = await expireV2SessionIfNeeded(
@@ -722,6 +708,9 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       (file) => !isSessionMarkerFile(file),
     );
     if (req.query.v === "2") {
+      if (expectedCount === null) {
+        return res.status(400).json({ error: "Invalid expectedCount" });
+      }
       const marker = await expireV2SessionIfNeeded(
         sessionId,
         await readV2Session(sessionId),
@@ -739,8 +728,8 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       }
       if (
         marker.status === "complete" ||
-        marker.expectedCount === null ||
-        marker.expectedCount !== expectedCount
+        (marker.expectedCount !== null &&
+          marker.expectedCount !== expectedCount)
       ) {
         return res.status(409).json({
           success: false,
@@ -828,6 +817,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
         throw new Error("Upload session marker disappeared");
       }
       sessionMarker.status = "complete";
+      sessionMarker.expectedCount = expectedCount;
       sessionMarker.lastActivityAt = new Date().toISOString();
       await writeV2Session(sessionId, sessionMarker);
     }

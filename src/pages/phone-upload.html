@@ -765,7 +765,7 @@
 
                     const xhr = new XMLHttpRequest();
                     const uploadUrl = isV2()
-                        ? `${API_UPLOAD}?v=2&sessionId=${encodeURIComponent(state.sessionId)}`
+                        ? `${API_UPLOAD}?v=2&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`
                         : API_UPLOAD;
                     xhr.open('POST', uploadUrl, true);
                     state.activeRequests.add(xhr);

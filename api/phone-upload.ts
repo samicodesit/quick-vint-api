@@ -540,10 +540,19 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 async function handleUpload(req: VercelRequest, res: VercelResponse) {
   const isV2 = req.query.v === "2";
   const requestedSessionId = String(req.query.sessionId || "");
+  const requestedExpectedCount = isV2
+    ? parseExpectedCount(req.query.expectedCount)
+    : null;
   let v2Marker: V2SessionMarker | null = null;
   if (isV2) {
     if (!V2_SESSION_ID.test(requestedSessionId)) {
       return res.status(400).json({ error: "Invalid v2 upload session" });
+    }
+    if (
+      req.query.expectedCount !== undefined &&
+      (!requestedExpectedCount || requestedExpectedCount > MAX_V2_UPLOAD_COUNT)
+    ) {
+      return res.status(400).json({ error: "Invalid expectedCount" });
     }
     v2Marker = await expireV2SessionIfNeeded(
       requestedSessionId,
@@ -642,7 +651,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         if (
           file.order === null ||
           !v2Marker ||
-          file.order >= (v2Marker.expectedCount ?? MAX_V2_UPLOAD_COUNT)
+          file.order >= (requestedExpectedCount ?? MAX_V2_UPLOAD_COUNT)
         ) {
           return sendError(400, "Invalid upload order");
         }

@@ -724,6 +724,51 @@ describe("phone upload endpoint", () => {
     ).toHaveLength(0);
   });
 
+  it("accepts an appended v2 order when the prepared session read is stale", async () => {
+    mockV2Session({ status: "uploading", expectedCount: 27 });
+    uploadMock.mockResolvedValue({ error: null });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+    const req = createMultipartUploadRequest({
+      sessionId,
+      uploadOrder: 28,
+      filename: "appended.jpg",
+    });
+    req.query.v = "2";
+    const res = createResponse();
+
+    await handler(req, res as any);
+    await res.finished;
+
+    expect(res.statusCode).toBe(200);
+    expect(uploadMock).toHaveBeenCalledWith(
+      `${sessionId}/000028-upload.jpg`,
+      expect.any(Buffer),
+      expect.objectContaining({ upsert: true }),
+    );
+  });
+
+  it("rejects a v2 order outside the request's prepared total", async () => {
+    mockV2Session({ status: "uploading", expectedCount: 27 });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const req = createMultipartUploadRequest({
+      sessionId: "550e8400-e29b-41d4-a716-446655440000",
+      uploadOrder: 29,
+      filename: "outside-total.jpg",
+    });
+    req.query = { ...req.query, v: "2", expectedCount: "29" };
+    const res = createResponse();
+
+    await handler(req, res as any);
+    await res.finished;
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: "Invalid upload order" });
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
   it("completes a v2 upload when exact files exist but the marker read is stale", async () => {
     mockV2Session({ status: "open", expectedCount: null });
     listMock.mockResolvedValue({

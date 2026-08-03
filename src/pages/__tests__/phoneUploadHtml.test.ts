@@ -31,6 +31,11 @@ describe("phone upload page v2 contract", () => {
     expect(html).toContain("Send ${state.files.length} photo");
     expect(html).toContain("if (isV2())");
     expect(html).toContain("await prepareExpectedCount()");
+    expect(html).toContain("removeBtn.textContent = '✓'");
+    expect(html).toContain("removeBtn.classList.add('upload-complete')");
+    expect(html).toContain(
+      "removeBtn.setAttribute('aria-label', 'Photo uploaded')",
+    );
   });
 
   it("locks draft controls once a v2 upload starts", () => {

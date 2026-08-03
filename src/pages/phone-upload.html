@@ -369,6 +369,13 @@
             font-weight: 800;
         }
 
+        .remove-photo.upload-complete {
+            border-color: #a7f3d0;
+            background: #ecfdf5;
+            color: #059669;
+            opacity: 1;
+        }
+
         @keyframes upload-cta-glow {
             0%, 100% { box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.35); }
             50% { box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.18), 0 12px 30px -4px rgba(79, 70, 229, 0.65); }
@@ -708,6 +715,12 @@
                             item.done = true;
                             item.failed = false;
                             item.uploading = false;
+                            const removeBtn = item.el?.querySelector('.remove-photo');
+                            if (removeBtn) {
+                                removeBtn.textContent = '✓';
+                                removeBtn.classList.add('upload-complete');
+                                removeBtn.setAttribute('aria-label', 'Photo uploaded');
+                            }
                             renderBatchProgress();
                             resolve();
                         } else {

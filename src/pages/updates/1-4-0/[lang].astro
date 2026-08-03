@@ -1,0 +1,13 @@
+---
+import Release140Page from "../../../components/updates/Release140Page.astro";
+import { SUPPORTED_SITE_LOCALES, normalizeSiteLocale } from "../../../i18n/site.js";
+import type { SiteLocale } from "../../../i18n/site.js";
+
+export function getStaticPaths() {
+  return SUPPORTED_SITE_LOCALES.map((lang: SiteLocale) => ({ params: { lang } }));
+}
+
+const locale = normalizeSiteLocale(Astro.params.lang);
+---
+
+<Release140Page locale={locale} />

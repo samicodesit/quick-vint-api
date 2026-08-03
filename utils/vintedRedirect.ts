@@ -5,6 +5,7 @@ export const VINTED_DOMAINS = {
   // Main European markets
   FR: "vinted.fr",
   DE: "vinted.de",
+  GB: "vinted.co.uk",
   UK: "vinted.co.uk",
   ES: "vinted.es",
   IT: "vinted.it",
@@ -50,16 +51,8 @@ export function detectUserCountryAndGetVintedUrl(): string {
   // Try to detect country from browser/system
   let countryCode: string | undefined;
 
-  // Method 1: Try navigator.language (e.g., 'fr-FR' -> 'FR')
-  if (typeof navigator !== "undefined" && navigator.language) {
-    const parts = navigator.language.split("-");
-    if (parts.length > 1) {
-      countryCode = parts[1];
-    }
-  }
-
-  // Method 2: Try Intl.DateTimeFormat (more reliable for country detection)
-  if (!countryCode && typeof Intl !== "undefined") {
+  // Method 1: Timezone reflects location more reliably than browser language.
+  if (typeof Intl !== "undefined") {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       // Basic timezone to country mapping for major Vinted markets
@@ -92,6 +85,14 @@ export function detectUserCountryAndGetVintedUrl(): string {
       countryCode = timezoneToCountry[timezone];
     } catch {
       // Fallback if Intl is not available
+    }
+  }
+
+  // Method 2: Fall back to the browser's regional language.
+  if (!countryCode && typeof navigator !== "undefined" && navigator.language) {
+    const parts = navigator.language.split("-");
+    if (parts.length > 1) {
+      countryCode = parts[1];
     }
   }
 

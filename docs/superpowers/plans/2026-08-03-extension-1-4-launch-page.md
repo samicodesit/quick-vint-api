@@ -20,6 +20,7 @@
 ### Task 1: Proven motion and typography dependencies
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `pnpm-lock.yaml`
 
@@ -29,6 +30,7 @@
 ### Task 2: Reusable product screenshot stage
 
 **Files:**
+
 - Create: `src/components/updates/ReleaseScreenshot.astro`
 
 - [ ] Accept `src`, `file`, `label`, `guidance`, and `alt` props.
@@ -38,6 +40,7 @@
 ### Task 3: Rebuild the launch story
 
 **Files:**
+
 - Modify: `src/pages/updates/1-4-0.astro`
 
 - [ ] Replace custom scroll progress code with GSAP ScrollTrigger pin/scrub timelines.
@@ -49,6 +52,7 @@
 ### Task 4: Rendered visual gate
 
 **Files:**
+
 - Modify only if visual evidence exposes a defect: `src/pages/updates/1-4-0.astro`
 
 - [ ] Inspect desktop screenshots across every pinned timeline and both handoffs.
@@ -59,6 +63,7 @@
 ### Task 5: Reuse the wardrobe mascot in the opening
 
 **Files:**
+
 - Copy: `../quick-vint/images/wardrobe-rewrite-character.webp` to `public/updates/1-4-0/wardrobe-rewrite-character.webp`
 - Modify: `src/pages/updates/1-4-0.astro`
 

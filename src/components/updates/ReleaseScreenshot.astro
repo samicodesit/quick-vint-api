@@ -1,0 +1,106 @@
+---
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
+interface Props {
+  src: string;
+  file: string;
+  label: string;
+  guidance: string;
+  alt: string;
+  eager?: boolean;
+}
+
+const { src, file, label, guidance, alt, eager = false } = Astro.props;
+const available = existsSync(
+  join(process.cwd(), "public", src.replace(/^\//, "")),
+);
+---
+
+<figure class="product-shell atropos" data-product-frame>
+  <div class="atropos-scale">
+    <div class="atropos-rotate">
+      <div class="atropos-inner product-window">
+        {
+          available ? (
+            <img src={src} alt={alt} loading={eager ? "eager" : "lazy"} data-atropos-offset="1.5" />
+          ) : (
+            <div class="capture-placeholder" role="img" aria-label={alt} data-atropos-offset="2">
+              <span>REAL SCREENSHOT PLACEHOLDER</span>
+              <strong>{file}</strong>
+              <p>{label}</p>
+              <small>{guidance}</small>
+            </div>
+          )
+        }
+      </div>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .product-shell,
+  .atropos-scale,
+  .atropos-rotate,
+  .atropos-inner { width: 100%; height: 100%; }
+  .product-shell { position: relative; margin: 0; border-radius: inherit; transform-style: preserve-3d; }
+  .atropos-scale, .atropos-rotate, .atropos-inner { border-radius: inherit; }
+  .product-window {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(81, 70, 229, 0.2);
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 88% 4%, rgba(36, 205, 180, 0.2), transparent 34%),
+      linear-gradient(135deg, #fff, #f7f7ff 66%, #f0fffc);
+    box-shadow: 0 3rem 8rem rgba(43, 37, 115, 0.18), inset 0 1px rgba(255, 255, 255, 0.95);
+  }
+  .product-window::after {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+    content: "";
+    pointer-events: none;
+  }
+  img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .capture-placeholder {
+    position: absolute;
+    inset: clamp(3.1rem, 8%, 5.2rem);
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    padding: 1.5rem;
+    border: 1px dashed rgba(81, 70, 229, 0.28);
+    border-radius: clamp(1rem, 2vw, 1.8rem);
+    color: #11102f;
+    text-align: center;
+  }
+  .capture-placeholder span {
+    color: #5146e5;
+    font: 750 clamp(0.6rem, 0.9vw, 0.76rem) / 1.2 "Inter Variable", sans-serif;
+    letter-spacing: 0.12em;
+  }
+  .capture-placeholder strong {
+    margin-top: clamp(0.75rem, 1.7vw, 1.25rem);
+    font: 700 clamp(1.3rem, 3vw, 2.65rem) / 0.95 "Inter Tight Variable", sans-serif;
+    letter-spacing: -0.045em;
+    overflow-wrap: anywhere;
+  }
+  .capture-placeholder p {
+    max-width: 36rem;
+    margin: 1rem 0 0;
+    color: rgba(17, 16, 47, 0.58);
+    font: 550 clamp(0.68rem, 1vw, 0.86rem) / 1.45 "Inter Variable", sans-serif;
+  }
+  .capture-placeholder small {
+    margin-top: 0.55rem;
+    color: rgba(17, 16, 47, 0.42);
+    font: 500 clamp(0.58rem, 0.85vw, 0.72rem) / 1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (max-width: 560px) {
+    .capture-placeholder { inset: 3.2rem 1.15rem 1.15rem; padding: 1rem; }
+    .capture-placeholder p { max-width: 17rem; }
+  }
+</style>

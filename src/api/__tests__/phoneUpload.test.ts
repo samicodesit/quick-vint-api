@@ -390,6 +390,138 @@ describe("phone upload endpoint", () => {
     expect(res.statusCode).toBe(200);
   });
 
+  it("lets the owning v2 uploader increase the expected count", async () => {
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+    const uploaderId = "11111111-1111-4111-8111-111111111111";
+    downloadMock.mockImplementation((path: string) =>
+      Promise.resolve({
+        data: new Blob([
+          JSON.stringify(
+            path.endsWith("/_uploader.json")
+              ? { uploaderId }
+              : {
+                  v: 2,
+                  ownerId: "user-1",
+                  mode: "batch",
+                  source: "phone",
+                  status: "uploading",
+                  expectedCount: 2,
+                  createdAt: new Date().toISOString(),
+                  lastActivityAt: new Date().toISOString(),
+                  expiresAt: new Date(
+                    Date.now() + 60 * 60 * 1000,
+                  ).toISOString(),
+                },
+          ),
+        ]),
+        error: null,
+      }),
+    );
+    uploadMock.mockImplementation((path: string) =>
+      Promise.resolve({
+        error: path.endsWith("/_uploader.json")
+          ? new Error("already exists")
+          : null,
+      }),
+    );
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        query: {
+          action: "prepare",
+          v: "2",
+          sessionId,
+          expectedCount: "5",
+          uploaderId,
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      success: true,
+      status: "uploading",
+      expectedCount: 5,
+    });
+    const markerWrite = uploadMock.mock.calls.find(
+      ([path]) => path === `${sessionId}/_session.json`,
+    );
+    expect(JSON.parse(markerWrite![1].toString())).toMatchObject({
+      status: "uploading",
+      expectedCount: 5,
+    });
+  });
+
+  it("rejects a v2 expected-count decrease", async () => {
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+    const uploaderId = "11111111-1111-4111-8111-111111111111";
+    downloadMock.mockImplementation((path: string) =>
+      Promise.resolve({
+        data: new Blob([
+          JSON.stringify(
+            path.endsWith("/_uploader.json")
+              ? { uploaderId }
+              : {
+                  v: 2,
+                  ownerId: "user-1",
+                  mode: "batch",
+                  source: "phone",
+                  status: "uploading",
+                  expectedCount: 5,
+                  createdAt: new Date().toISOString(),
+                  lastActivityAt: new Date().toISOString(),
+                  expiresAt: new Date(
+                    Date.now() + 60 * 60 * 1000,
+                  ).toISOString(),
+                },
+          ),
+        ]),
+        error: null,
+      }),
+    );
+    uploadMock.mockImplementation((path: string) =>
+      Promise.resolve({
+        error: path.endsWith("/_uploader.json")
+          ? new Error("already exists")
+          : null,
+      }),
+    );
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        query: {
+          action: "prepare",
+          v: "2",
+          sessionId,
+          expectedCount: "4",
+          uploaderId,
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toMatchObject({
+      success: false,
+      status: "uploading",
+      expectedCount: 5,
+    });
+    expect(
+      uploadMock.mock.calls.some(([path]) => path.endsWith("/_session.json")),
+    ).toBe(false);
+  });
+
   it("rejects a different uploader for an already claimed v2 session", async () => {
     const sessionId = "550e8400-e29b-41d4-a716-446655440000";
     downloadMock.mockImplementation((path: string) =>
@@ -1019,6 +1151,91 @@ describe("phone upload endpoint", () => {
       "000000-a.jpg",
       "000001-b.jpg",
     ]);
+  });
+
+  it("signs only the requested completed v2 wave", async () => {
+    mockV2Session({ status: "uploading", expectedCount: 5 });
+    listMock.mockResolvedValue({
+      data: [
+        { name: "_session.json" },
+        { name: "000000-upload.jpg" },
+        { name: "000001-upload.jpg" },
+        { name: "000002-upload.jpg" },
+        { name: "000003-upload.jpg" },
+        { name: "000004-upload.jpg" },
+      ],
+      error: null,
+    });
+    createSignedUrlsMock.mockImplementation((paths: string[]) =>
+      Promise.resolve({
+        data: paths.map((path) => ({
+          path,
+          signedUrl: `https://signed.test/${path}`,
+        })),
+        error: null,
+      }),
+    );
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    const sessionId = "550e8400-e29b-41d4-a716-446655440000";
+
+    await handler(
+      {
+        method: "GET",
+        headers: {},
+        query: {
+          v: "2",
+          sessionId,
+          includeUrls: "1",
+          fromOrder: "2",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      status: "uploading",
+      count: 5,
+      expectedCount: 5,
+      complete: false,
+    });
+    expect(res.body.files.map((file: any) => file.order)).toEqual([2, 3, 4]);
+    expect(res.body.files.map((file: any) => file.url)).toEqual([
+      `https://signed.test/${sessionId}/000002-upload.jpg`,
+      `https://signed.test/${sessionId}/000003-upload.jpg`,
+      `https://signed.test/${sessionId}/000004-upload.jpg`,
+    ]);
+  });
+
+  it("returns terminal v2 status without listing files", async () => {
+    mockV2Session({ status: "complete", expectedCount: 5 });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "GET",
+        headers: {},
+        query: {
+          action: "status",
+          v: "2",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      v: 2,
+      status: "complete",
+      complete: true,
+      expectedCount: 5,
+    });
+    expect(listMock).not.toHaveBeenCalled();
   });
 
   it("returns 202 while expected batch files are still settling", async () => {

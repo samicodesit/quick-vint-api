@@ -325,6 +325,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await runMiddleware(req, res, cors);
 
   if (req.method === "GET") {
+    if (req.query.action === "status" && req.query.v === "2") {
+      return handleV2Status(req, res);
+    }
     return handleList(req, res);
   } else if (req.method === "POST") {
     // Check if it's a multipart request (upload) or JSON (complete/cleanup).
@@ -346,6 +349,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } else {
     return res.status(405).json({ error: "Method not allowed" });
   }
+}
+
+async function handleV2Status(req: VercelRequest, res: VercelResponse) {
+  const sessionId = String(req.query.sessionId || "");
+  if (!V2_SESSION_ID.test(sessionId)) {
+    return res.status(400).json({ error: "Invalid v2 upload session" });
+  }
+
+  const marker = await expireV2SessionIfNeeded(
+    sessionId,
+    await readV2Session(sessionId),
+  );
+  if (
+    !marker ||
+    marker.status === "expired" ||
+    marker.status === "cancelled"
+  ) {
+    return res.status(410).json({
+      v: 2,
+      status: marker?.status || "expired",
+      complete: false,
+      expectedCount: null,
+    });
+  }
+
+  return res.status(200).json({
+    v: 2,
+    status: marker.status,
+    complete: marker.status === "complete",
+    expectedCount: marker.expectedCount,
+  });
 }
 
 async function handleOpenV2(req: VercelRequest, res: VercelResponse) {
@@ -409,6 +443,11 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const includeUrls = req.query.v === "2" && req.query.includeUrls === "1";
+    const fromOrder = includeUrls ? parseUploadOrder(req.query.fromOrder ?? 0) : 0;
+    if (includeUrls && fromOrder === null) {
+      return res.status(400).json({ error: "Invalid fromOrder" });
+    }
     let v2Marker = req.query.v === "2" ? await readV2Session(sessionId) : null;
     v2Marker = await expireV2SessionIfNeeded(sessionId, v2Marker);
     if (req.query.v === "2" && !v2Marker) {
@@ -452,14 +491,21 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    const responsePhotoFiles = includeUrls
+      ? photoFiles.filter(
+          (file) => getStoredFileOrder(file.name) >= (fromOrder || 0),
+        )
+      : photoFiles;
     const signedFiles = v2Marker
-      ? complete
+      ? complete || includeUrls
         ? await createStoredFileResponses(
             sessionId,
-            photoFiles,
+            responsePhotoFiles,
             V2_SIGNED_URL_TTL_SECONDS,
           )
-        : photoFiles.map((file) => createStoredFileMetadata(sessionId, file))
+        : responsePhotoFiles.map((file) =>
+            createStoredFileMetadata(sessionId, file),
+          )
       : await Promise.all(
           photoFiles.map((file) =>
             createStoredFileResponse(sessionId, file, 3600),
@@ -472,7 +518,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({
       ...(v2Marker ? { v: 2, status } : {}),
       files: signedFiles,
-      count: signedFiles.length,
+      count: photoFiles.length,
       expectedCount,
       complete,
     });
@@ -701,10 +747,7 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
         status: marker?.status || "expired",
       });
     }
-    if (
-      marker.status === "complete" ||
-      (marker.expectedCount !== null && marker.expectedCount !== expectedCount)
-    ) {
+    if (marker.status === "complete") {
       return res.status(409).json({
         success: false,
         v: 2,
@@ -720,7 +763,19 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
         error: "This upload is already open in another tab.",
       });
     }
-    if (marker.expectedCount === null) {
+    if (
+      marker.expectedCount !== null &&
+      (expectedCount < marker.expectedCount ||
+        (expectedCount > marker.expectedCount && !uploaderId))
+    ) {
+      return res.status(409).json({
+        success: false,
+        v: 2,
+        status: marker.status,
+        expectedCount: marker.expectedCount,
+      });
+    }
+    if (marker.expectedCount === null || expectedCount > marker.expectedCount) {
       const now = new Date();
       marker.status = "uploading";
       marker.expectedCount = expectedCount;

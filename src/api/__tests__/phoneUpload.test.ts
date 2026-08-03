@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listMock = vi.fn();
 const uploadMock = vi.fn();
 const createSignedUrlMock = vi.fn();
+const createSignedUrlsMock = vi.fn();
 const downloadMock = vi.fn();
 const removeMock = vi.fn();
 const getUserMock = vi.fn();
@@ -15,6 +16,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
         list: listMock,
         upload: uploadMock,
         createSignedUrl: createSignedUrlMock,
+        createSignedUrls: createSignedUrlsMock,
         download: downloadMock,
         remove: removeMock,
       })),
@@ -670,14 +672,29 @@ describe("phone upload endpoint", () => {
     expect(uploadMock).not.toHaveBeenCalled();
   });
 
-  it("issues one-hour signed URLs for active v2 sessions", async () => {
-    mockV2Session({ status: "complete", expectedCount: 1 });
+  it("bulk-signs completed v2 photos once", async () => {
+    mockV2Session({ status: "complete", expectedCount: 2 });
     listMock.mockResolvedValue({
-      data: [{ name: "_session.json" }, { name: "000000-upload.jpg" }],
+      data: [
+        { name: "_session.json" },
+        { name: "000000-upload.jpg" },
+        { name: "000001-upload.jpg" },
+      ],
       error: null,
     });
-    createSignedUrlMock.mockResolvedValue({
-      data: { signedUrl: "https://signed.test/photo" },
+    createSignedUrlsMock.mockResolvedValue({
+      data: [
+        {
+          path: "550e8400-e29b-41d4-a716-446655440000/000000-upload.jpg",
+          signedUrl: "https://signed.test/photo-0",
+          error: null,
+        },
+        {
+          path: "550e8400-e29b-41d4-a716-446655440000/000001-upload.jpg",
+          signedUrl: "https://signed.test/photo-1",
+          error: null,
+        },
+      ],
       error: null,
     });
     const module = await import("../../../api/phone-upload.js");
@@ -700,14 +717,109 @@ describe("phone upload endpoint", () => {
     expect(res.body).toMatchObject({
       v: 2,
       status: "complete",
-      count: 1,
-      expectedCount: 1,
+      count: 2,
+      expectedCount: 2,
       complete: true,
     });
-    expect(createSignedUrlMock).toHaveBeenCalledWith(
-      "550e8400-e29b-41d4-a716-446655440000/000000-upload.jpg",
+    expect(res.body.files.map((file: any) => file.url)).toEqual([
+      "https://signed.test/photo-0",
+      "https://signed.test/photo-1",
+    ]);
+    expect(createSignedUrlsMock).toHaveBeenCalledWith(
+      [
+        "550e8400-e29b-41d4-a716-446655440000/000000-upload.jpg",
+        "550e8400-e29b-41d4-a716-446655440000/000001-upload.jpg",
+      ],
       60 * 60,
     );
+    expect(createSignedUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("does not sign incomplete v2 photos", async () => {
+    mockV2Session({ status: "uploading", expectedCount: 2 });
+    listMock.mockResolvedValue({
+      data: [{ name: "_session.json" }, { name: "000000-upload.jpg" }],
+      error: null,
+    });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "GET",
+        headers: {},
+        query: {
+          v: "2",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      v: 2,
+      status: "uploading",
+      count: 1,
+      expectedCount: 2,
+      complete: false,
+      files: [
+        {
+          name: "000000-upload.jpg",
+          path: "550e8400-e29b-41d4-a716-446655440000/000000-upload.jpg",
+          order: 0,
+        },
+      ],
+    });
+    expect(createSignedUrlsMock).not.toHaveBeenCalled();
+    expect(createSignedUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the immutable completion marker when the v2 session read is stale", async () => {
+    mockV2Session({ status: "uploading", expectedCount: 1 });
+    listMock.mockResolvedValue({
+      data: [
+        { name: "_session.json" },
+        { name: "_batch-complete.json" },
+        { name: "000000-upload.jpg" },
+      ],
+      error: null,
+    });
+    createSignedUrlsMock.mockResolvedValue({
+      data: [
+        {
+          path: "550e8400-e29b-41d4-a716-446655440000/000000-upload.jpg",
+          signedUrl: "https://signed.test/photo",
+          error: null,
+        },
+      ],
+      error: null,
+    });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "GET",
+        headers: {},
+        query: {
+          v: "2",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      v: 2,
+      status: "complete",
+      complete: true,
+      count: 1,
+      expectedCount: 1,
+    });
   });
 
   it("returns an active v2 session status before any photos arrive", async () => {

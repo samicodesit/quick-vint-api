@@ -35,13 +35,16 @@ interface FileUpload {
   tooLarge: boolean;
 }
 
-interface StoredFile {
+interface StoredFileMetadata {
   name: string;
   path: string;
-  url: string;
   order: number;
   size: unknown;
   type: unknown;
+}
+
+interface StoredFile extends StoredFileMetadata {
+  url: string;
 }
 
 const UPLOAD_BUCKET = "temp-uploads";
@@ -249,26 +252,15 @@ async function expireV2SessionIfNeeded(
   return marker;
 }
 
-async function createStoredFileResponse(
+function createStoredFileMetadata(
   sessionId: string,
   file: { name: string; metadata?: Record<string, unknown> | null },
-  ttlSeconds = 3600,
-): Promise<StoredFile> {
+): StoredFileMetadata {
   const path = `${sessionId}/${file.name}`;
-  const { data, error } = await supabase.storage
-    .from(UPLOAD_BUCKET)
-    .createSignedUrl(path, ttlSeconds);
-
-  if (error || !data?.signedUrl) {
-    throw new Error(
-      `Failed to create signed URL for ${path}: ${error?.message || "No signed URL returned"}`,
-    );
-  }
 
   return {
     name: file.name,
     path,
-    url: data.signedUrl,
     order: getStoredFileOrder(file.name),
     size: getMetadataValue(file.metadata, ["size", "contentLength"]),
     type: getMetadataValue(file.metadata, [
@@ -278,6 +270,55 @@ async function createStoredFileResponse(
       "content-type",
     ]),
   };
+}
+
+async function createStoredFileResponse(
+  sessionId: string,
+  file: { name: string; metadata?: Record<string, unknown> | null },
+  ttlSeconds = 3600,
+): Promise<StoredFile> {
+  const storedFile = createStoredFileMetadata(sessionId, file);
+  const { data, error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .createSignedUrl(storedFile.path, ttlSeconds);
+
+  if (error || !data?.signedUrl) {
+    throw new Error(
+      `Failed to create signed URL for ${storedFile.path}: ${error?.message || "No signed URL returned"}`,
+    );
+  }
+
+  return {
+    ...storedFile,
+    url: data.signedUrl,
+  };
+}
+
+async function createStoredFileResponses(
+  sessionId: string,
+  files: { name: string; metadata?: Record<string, unknown> | null }[],
+  ttlSeconds: number,
+): Promise<StoredFile[]> {
+  const storedFiles = files.map((file) =>
+    createStoredFileMetadata(sessionId, file),
+  );
+  const { data, error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .createSignedUrls(
+      storedFiles.map((file) => file.path),
+      ttlSeconds,
+    );
+
+  if (error || !data) throw error || new Error("No signed URLs returned");
+  const signedByPath = new Map(data.map((file) => [file.path, file]));
+
+  return storedFiles.map((file) => {
+    const signed = signedByPath.get(file.path);
+    if (signed?.error || !signed?.signedUrl) {
+      throw new Error(`Failed to create signed URL for ${file.path}`);
+    }
+    return { ...file, url: signed.signedUrl };
+  });
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -391,9 +432,15 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
     }
     const files = await listSessionFiles(sessionId);
 
+    const hasCompleteMarker = Boolean(files?.some(isBatchMarkerFile));
     const complete = v2Marker
-      ? v2Marker.status === "complete"
-      : Boolean(files?.some(isBatchMarkerFile));
+      ? v2Marker.status === "complete" || hasCompleteMarker
+      : hasCompleteMarker;
+    const status = v2Marker
+      ? complete
+        ? "complete"
+        : v2Marker.status
+      : null;
     const expectedCount =
       v2Marker?.expectedCount ?? getExpectedCountFromFiles(files);
     const photoFiles =
@@ -401,7 +448,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
 
     if (photoFiles.length === 0) {
       return res.status(200).json({
-        ...(v2Marker ? { v: 2, status: v2Marker.status } : {}),
+        ...(v2Marker ? { v: 2, status } : {}),
         files: [],
         count: 0,
         expectedCount,
@@ -409,21 +456,25 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const signedFiles = await Promise.all(
-      photoFiles.map((file) =>
-        createStoredFileResponse(
-          sessionId,
-          file,
-          v2Marker ? V2_SIGNED_URL_TTL_SECONDS : 3600,
-        ),
-      ),
-    );
+    const signedFiles = v2Marker
+      ? complete
+        ? await createStoredFileResponses(
+            sessionId,
+            photoFiles,
+            V2_SIGNED_URL_TTL_SECONDS,
+          )
+        : photoFiles.map((file) => createStoredFileMetadata(sessionId, file))
+      : await Promise.all(
+          photoFiles.map((file) =>
+            createStoredFileResponse(sessionId, file, 3600),
+          ),
+        );
     signedFiles.sort(
       (a, b) => a.order - b.order || a.name.localeCompare(b.name),
     );
 
     res.status(200).json({
-      ...(v2Marker ? { v: 2, status: v2Marker.status } : {}),
+      ...(v2Marker ? { v: 2, status } : {}),
       files: signedFiles,
       count: signedFiles.length,
       expectedCount,

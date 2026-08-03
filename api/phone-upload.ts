@@ -209,6 +209,23 @@ async function writeV2Session(sessionId: string, marker: V2SessionMarker) {
   if (error) throw error;
 }
 
+async function writeExpectedCountMarker(
+  sessionId: string,
+  expectedCount: number,
+) {
+  const { error } = await supabase.storage.from(UPLOAD_BUCKET).upload(
+    `${sessionId}/${EXPECTED_COUNT_MARKER_PREFIX}${expectedCount}.json`,
+    Buffer.from(
+      JSON.stringify({
+        expectedCount,
+        updatedAt: new Date().toISOString(),
+      }),
+    ),
+    { contentType: "application/json", upsert: true },
+  );
+  if (error) throw error;
+}
+
 async function removeV2SessionFiles(sessionId: string) {
   const files = await listSessionFiles(sessionId);
   const paths = files.map((file) => `${sessionId}/${file.name}`);
@@ -475,7 +492,10 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       : hasCompleteMarker;
     const status = v2Marker ? (complete ? "complete" : v2Marker.status) : null;
     const expectedCount =
-      v2Marker?.expectedCount ?? getExpectedCountFromFiles(files);
+      Math.max(
+        v2Marker?.expectedCount ?? 0,
+        getExpectedCountFromFiles(files) ?? 0,
+      ) || null;
     const photoFiles =
       files?.filter((file) => !isSessionMarkerFile(file)) || [];
 
@@ -792,6 +812,7 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
       ).toISOString();
       await writeV2Session(sessionId, marker);
     }
+    await writeExpectedCountMarker(sessionId, expectedCount);
     return res.status(200).json({
       success: true,
       v: 2,
@@ -809,22 +830,7 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const markerPath = `${sessionId}/${EXPECTED_COUNT_MARKER_PREFIX}${expectedCount}.json`;
-    const { error } = await supabase.storage.from(UPLOAD_BUCKET).upload(
-      markerPath,
-      Buffer.from(
-        JSON.stringify({
-          expectedCount,
-          updatedAt: new Date().toISOString(),
-        }),
-      ),
-      {
-        contentType: "application/json",
-        upsert: true,
-      },
-    );
-
-    if (error) throw error;
+    await writeExpectedCountMarker(sessionId, expectedCount);
 
     res.status(200).json({ success: true, expectedCount });
   } catch (error: any) {

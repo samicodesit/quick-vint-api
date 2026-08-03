@@ -456,6 +456,14 @@ describe("phone upload endpoint", () => {
       status: "uploading",
       expectedCount: 5,
     });
+    expect(uploadMock).toHaveBeenCalledWith(
+      `${sessionId}/_expected-count-5.json`,
+      expect.any(Buffer),
+      expect.objectContaining({
+        contentType: "application/json",
+        upsert: true,
+      }),
+    );
   });
 
   it("rejects a v2 expected-count decrease", async () => {
@@ -1196,6 +1204,42 @@ describe("phone upload endpoint", () => {
       "000000-a.jpg",
       "000001-b.jpg",
     ]);
+  });
+
+  it("uses the immutable wave total when the v2 session read is stale", async () => {
+    mockV2Session({ status: "uploading", expectedCount: 2 });
+    listMock.mockResolvedValue({
+      data: [
+        { name: "_session.json" },
+        { name: "_expected-count-3.json" },
+        { name: "000000-upload.jpg" },
+        { name: "000001-upload.jpg" },
+        { name: "000002-upload.jpg" },
+      ],
+      error: null,
+    });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "GET",
+        headers: {},
+        query: {
+          v: "2",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      count: 3,
+      expectedCount: 3,
+      complete: false,
+    });
   });
 
   it("signs only the requested completed v2 wave", async () => {

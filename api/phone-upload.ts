@@ -436,11 +436,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
     const complete = v2Marker
       ? v2Marker.status === "complete" || hasCompleteMarker
       : hasCompleteMarker;
-    const status = v2Marker
-      ? complete
-        ? "complete"
-        : v2Marker.status
-      : null;
+    const status = v2Marker ? (complete ? "complete" : v2Marker.status) : null;
     const expectedCount =
       v2Marker?.expectedCount ?? getExpectedCountFromFiles(files);
     const photoFiles =

@@ -19,10 +19,12 @@
 ### Task 1: V2 completion and URL response
 
 **Files:**
+
 - Modify: `api/phone-upload.ts`
 - Test: `src/api/__tests__/phoneUpload.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `_batch-complete.json`, `listSessionFiles`, and Supabase Storage `createSignedUrls(paths, ttlSeconds)`.
 - Produces: unchanged list response shape; incomplete v2 files may omit `url`, complete files include it.
 
@@ -35,12 +37,14 @@
 ### Task 2: Honest finalization copy and stable displayed names
 
 **Files:**
+
 - Modify: `../quick-vint/content.js`
 - Test: `../quick-vint/tests/e2e/extension.spec.js`
 - Modify: `src/pages/phone-upload.html`
 - Test: `src/pages/__tests__/phoneUploadHtml.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `batchExpectedCount`, `batchRemoteFiles`, `batchIsComplete`, and `item.originalFile`.
 - Produces: `Finalizing N photos…` while received equals expected; original visible filename remains unchanged.
 
@@ -52,9 +56,11 @@
 ### Task 3: Verification
 
 **Files:**
+
 - Verify only.
 
 **Interfaces:**
+
 - Consumes: both repository diffs.
 - Produces: fresh test and build evidence.
 

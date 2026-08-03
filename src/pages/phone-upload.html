@@ -989,10 +989,6 @@
                         item.file = compressedFile;
                         item.compressed = true;
                         item.preparing = false;
-                        if (item.name !== compressedFile.name) {
-                            item.name = compressedFile.name;
-                            if (ui) ui.el.querySelector('.file-name').textContent = compressedFile.name;
-                        }
                     }
                     if (ui) ui.status.textContent = 'Uploading...';
                     renderBatchProgress();

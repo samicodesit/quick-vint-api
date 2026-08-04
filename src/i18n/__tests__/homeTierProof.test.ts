@@ -9,6 +9,8 @@ describe("homepage tier proof", () => {
       const proof = (
         home as typeof home & {
           tierProof?: {
+            chooseTier: string;
+            noCardRequired: string;
             tiers: Record<
               "starter" | "pro" | "business",
               {
@@ -22,6 +24,8 @@ describe("homepage tier proof", () => {
         }
       ).tierProof;
 
+      expect(proof?.chooseTier.length).toBeGreaterThan(4);
+      expect(proof?.noCardRequired.length).toBeGreaterThan(8);
       expect(proof?.tiers.starter.priceValue).toMatch(/3[.,]99/);
       expect(proof?.tiers.pro.priceValue).toMatch(/9[.,]99/);
       expect(proof?.tiers.business.priceValue).toMatch(/19[.,]99/);

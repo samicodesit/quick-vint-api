@@ -629,8 +629,14 @@ const subtitleParts =
             data-home-tier-link
             data-track-event="pricing_view"
             data-track-context="home_tier_proof"
+            data-track-plan="starter"
           >
-            {extra.tierProof.chooseTier}
+            <span class="home-tier-proof-link-title">
+              {extra.tierProof.chooseTier}
+            </span>
+            <span class="home-tier-proof-link-note">
+              {extra.tierProof.noCardRequired}
+            </span>
           </a>
         </div>
       </section>
@@ -1689,7 +1695,10 @@ const subtitleParts =
         option.setAttribute("aria-selected", String(active));
       });
 
-      if (tierLink) tierLink.href = `${pricingHref}?plan=${tier}#pricing`;
+      if (tierLink) {
+        tierLink.href = `${pricingHref}?plan=${tier}#pricing`;
+        tierLink.dataset.trackPlan = tier;
+      }
     }
 
     tierOptions.forEach((option) => {
@@ -1972,21 +1981,45 @@ const subtitleParts =
 
   .home-tier-proof-link {
     display: inline-flex;
-    min-width: 124px;
+    min-width: 184px;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 12px 18px;
-    background: #4f46e5;
+    gap: 2px;
+    padding: 10px 18px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #6258f4 0%, #4338ca 100%);
     color: #fff;
-    font-size: 13px;
-    font-weight: 900;
+    box-shadow: 0 9px 22px rgba(79, 70, 229, 0.24);
     text-align: center;
     text-decoration: none;
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  }
+
+  .home-tier-proof-link-title {
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.15;
+  }
+
+  .home-tier-proof-link-note {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 9px;
+    font-weight: 750;
+    line-height: 1.15;
   }
 
   .home-tier-proof-link:hover,
   .home-tier-proof-link:focus-visible {
-    background: #4338ca;
+    box-shadow: 0 12px 28px rgba(79, 70, 229, 0.32);
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+  }
+
+  .home-tier-proof-link:focus-visible {
+    outline: 3px solid rgba(99, 102, 241, 0.25);
+    outline-offset: 3px;
   }
 
   @media (min-width: 1024px) {

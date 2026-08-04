@@ -428,6 +428,7 @@ export type SiteExtraHomeCopy = {
     ariaLabel: string;
     tierLabel: string;
     chooseTier: string;
+    noCardRequired: string;
     priceLabel: string;
     comparisonLabel: string;
     listingsLabel: string;
@@ -592,7 +593,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "AutoLister plan value",
         tierLabel: "Plan",
-        chooseTier: "See plan",
+        chooseTier: "Try first for free",
+        noCardRequired: "No credit card required",
         priceLabel: "per month",
         comparisonLabel: "vs ChatGPT Plus",
         listingsLabel: "included each month",
@@ -777,7 +779,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "Valeur des offres AutoLister",
         tierLabel: "Offre",
-        chooseTier: "Voir l'offre",
+        chooseTier: "Essayez gratuitement",
+        noCardRequired: "Aucune carte bancaire requise",
         priceLabel: "par mois",
         comparisonLabel: "vs ChatGPT Plus",
         listingsLabel: "incluses chaque mois",
@@ -962,7 +965,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "AutoLister Tarifvorteile",
         tierLabel: "Tarif",
-        chooseTier: "Tarif ansehen",
+        chooseTier: "Kostenlos testen",
+        noCardRequired: "Keine Kreditkarte erforderlich",
         priceLabel: "pro Monat",
         comparisonLabel: "vs. ChatGPT Plus",
         listingsLabel: "jeden Monat enthalten",
@@ -1147,7 +1151,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "Waarde van AutoLister-abonnementen",
         tierLabel: "Abonnement",
-        chooseTier: "Bekijk abonnement",
+        chooseTier: "Eerst gratis proberen",
+        noCardRequired: "Geen creditcard nodig",
         priceLabel: "per maand",
         comparisonLabel: "vs. ChatGPT Plus",
         listingsLabel: "elke maand inbegrepen",
@@ -1333,7 +1338,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "Wartość planów AutoLister",
         tierLabel: "Plan",
-        chooseTier: "Zobacz plan",
+        chooseTier: "Wypróbuj najpierw za darmo",
+        noCardRequired: "Karta płatnicza nie jest wymagana",
         priceLabel: "miesięcznie",
         comparisonLabel: "vs ChatGPT Plus",
         listingsLabel: "co miesiąc w cenie",
@@ -1519,7 +1525,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "Valor de los planes de AutoLister",
         tierLabel: "Plan",
-        chooseTier: "Ver plan",
+        chooseTier: "Pruébalo gratis primero",
+        noCardRequired: "No se requiere tarjeta",
         priceLabel: "al mes",
         comparisonLabel: "vs ChatGPT Plus",
         listingsLabel: "incluidos cada mes",
@@ -1704,7 +1711,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "Valore dei piani AutoLister",
         tierLabel: "Piano",
-        chooseTier: "Vedi piano",
+        chooseTier: "Prova prima gratuitamente",
+        noCardRequired: "Nessuna carta di credito richiesta",
         priceLabel: "al mese",
         comparisonLabel: "vs ChatGPT Plus",
         listingsLabel: "inclusi ogni mese",
@@ -1889,7 +1897,8 @@ export const SITE_EXTRA_COPY: Record<
       tierProof: {
         ariaLabel: "Valor dos planos AutoLister",
         tierLabel: "Plano",
-        chooseTier: "Ver plano",
+        chooseTier: "Experimente primeiro grátis",
+        noCardRequired: "Não é necessário cartão",
         priceLabel: "por mês",
         comparisonLabel: "vs ChatGPT Plus",
         listingsLabel: "incluídos todos os meses",

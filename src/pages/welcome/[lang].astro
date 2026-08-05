@@ -134,6 +134,16 @@ const canonical = `${baseUrl}${welcomePath}`;
               {copy.secondaryCta}
             </a>
           </div>
+          <a
+            href={`/updates/1-4-0/${locale}`}
+            class="animate-enter delay-500 mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 no-underline transition-colors hover:text-indigo-600"
+          >
+            <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-indigo-600">
+              {copy.whatsNewBadge}
+            </span>
+            {copy.whatsNewLink}
+            <span aria-hidden="true">→</span>
+          </a>
         </div>
 
         <figure

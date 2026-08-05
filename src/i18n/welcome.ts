@@ -35,6 +35,8 @@ type WelcomeCopy = {
   labelTipBody: string;
   primaryCta: string;
   secondaryCta: string;
+  whatsNewBadge: string;
+  whatsNewLink: string;
   fallbackCta: string;
   reassurance: string;
   compliance: string;
@@ -70,6 +72,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Include clear photos of tags, sizes, and materials for accurate AI descriptions.",
     primaryCta: "Go to Vinted and list now",
     secondaryCta: "See pricing plans",
+    whatsNewBadge: "New",
+    whatsNewLink: "See what’s new in AutoLister 1.4",
     fallbackCta: "Open default Vinted listing page",
     reassurance: "Free plan included. Upgrade any time.",
     compliance:
@@ -105,6 +109,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
       "Cela aide AutoLister à lire la marque, la taille et la matière.",
     primaryCta: "Aller sur Vinted et publier",
     secondaryCta: "Voir les offres",
+    whatsNewBadge: "Nouveau",
+    whatsNewLink: "Découvrez les nouveautés d’AutoLister 1.4",
     fallbackCta: "Ouvrir la page Vinted par défaut",
     reassurance:
       "Le plan gratuit inclut 2 annonces par jour. Passez à une offre supérieure quand vous voulez.",
@@ -139,6 +145,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     labelTipBody: "So erkennt AutoLister Marke, Größe und Material besser.",
     primaryCta: "Zu Vinted und jetzt inserieren",
     secondaryCta: "Preise ansehen",
+    whatsNewBadge: "Neu",
+    whatsNewLink: "Neu in AutoLister 1.4",
     fallbackCta: "Standard-Vinted-Seite öffnen",
     reassurance:
       "Im Free-Plan sind 2 Inserate pro Tag enthalten. Upgrade jederzeit möglich.",
@@ -173,6 +181,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     labelTipBody: "Zo kan AutoLister merk, maat en materiaal beter lezen.",
     primaryCta: "Ga naar Vinted en plaats nu",
     secondaryCta: "Bekijk prijzen",
+    whatsNewBadge: "Nieuw",
+    whatsNewLink: "Bekijk wat er nieuw is in AutoLister 1.4",
     fallbackCta: "Open standaard Vinted-pagina",
     reassurance:
       "Gratis plan bevat 2 advertenties per dag. Upgrade wanneer je wilt.",
@@ -207,6 +217,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     labelTipBody: "To pomaga AutoLister odczytać markę, rozmiar i materiał.",
     primaryCta: "Przejdź do Vinted i wystaw teraz",
     secondaryCta: "Zobacz plany",
+    whatsNewBadge: "Nowość",
+    whatsNewLink: "Zobacz, co nowego w AutoLister 1.4",
     fallbackCta: "Otwórz domyślną stronę Vinted",
     reassurance:
       "Plan darmowy obejmuje 2 ogłoszenia dziennie. Możesz przejść na wyższy plan w dowolnym momencie.",
@@ -241,6 +253,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     labelTipBody: "Ayuda a AutoLister a leer marca, talla y material.",
     primaryCta: "Ir a Vinted y publicar ahora",
     secondaryCta: "Ver planes",
+    whatsNewBadge: "Nuevo",
+    whatsNewLink: "Descubre las novedades de AutoLister 1.4",
     fallbackCta: "Abrir página predeterminada de Vinted",
     reassurance:
       "El plan gratuito incluye 2 anuncios al día. Mejora cuando quieras.",
@@ -275,6 +289,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     labelTipBody: "Aiuta AutoLister a leggere marca, taglia e materiale.",
     primaryCta: "Vai su Vinted e pubblica ora",
     secondaryCta: "Vedi i piani",
+    whatsNewBadge: "Novità",
+    whatsNewLink: "Scopri le novità di AutoLister 1.4",
     fallbackCta: "Apri pagina Vinted predefinita",
     reassurance:
       "Il piano gratuito include 2 annunci al giorno. Puoi fare upgrade quando vuoi.",
@@ -309,6 +325,8 @@ export const WELCOME_COPY: Record<WelcomeLocale, WelcomeCopy> = {
     labelTipBody: "Ajuda o AutoLister a ler marca, tamanho e material.",
     primaryCta: "Ir para o Vinted e publicar agora",
     secondaryCta: "Ver planos",
+    whatsNewBadge: "Novo",
+    whatsNewLink: "Veja as novidades do AutoLister 1.4",
     fallbackCta: "Abrir página padrão do Vinted",
     reassurance:
       "O plano gratuito inclui 2 anúncios por dia. Atualize quando quiser.",

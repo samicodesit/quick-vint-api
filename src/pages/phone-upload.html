@@ -674,6 +674,7 @@
                 const total = state.files.length;
                 const sent = state.files.filter((item) => item.done).length;
                 const failed = state.files.filter((item) => item.failed && !item.done).length;
+                const failureMessage = state.files.find((item) => item.failureMessage)?.failureMessage;
                 const preparing = state.files.filter((item) => item.preparing && !item.done).length;
                 const uploading = state.files.filter((item) => item.uploading && !item.done).length;
                 const active = Math.min(total, sent + preparing + uploading);
@@ -694,7 +695,7 @@
                     detail = 'Tap retry to notify your desktop again.';
                 } else if (failed > 0) {
                     title = `${failed} photo${failed === 1 ? '' : 's'} failed`;
-                    detail = 'Retry the failed photos when your connection is stable.';
+                    detail = failureMessage || 'Retry the failed photos when your connection is stable.';
                 } else if (total > 0) {
                     title = `${sent} of ${total} photos sent`;
                     detail = sent === total ? 'Finalizing desktop handoff...' : 'Upload is paused.';
@@ -724,7 +725,7 @@
                         pageCopy.textContent = 'Keep this page open while your photos are added.';
                     } else if (failed > 0) {
                         mainBtn.lastChild.textContent = `Retry ${failed} failed photo${failed === 1 ? '' : 's'}`;
-                        pageCopy.textContent = `${failed} photo${failed === 1 ? '' : 's'} need another try.`;
+                        pageCopy.textContent = failureMessage || `${failed} photo${failed === 1 ? '' : 's'} need another try.`;
                     } else if (total > 0) {
                         mainBtn.lastChild.textContent = 'Add more photos';
                         pageCopy.textContent = `${total} photos ready on your computer`;
@@ -927,7 +928,7 @@
                 return loadImageElementForCompression(url);
             }
 
-            function compressImageOnce(file) {
+            function compressImageOnce(file, orientation = 1) {
                 return new Promise((resolve, reject) => {
                     const url = URL.createObjectURL(file);
 
@@ -951,9 +952,17 @@
                             }
                         }
 
-                        canvas.width = width;
-                        canvas.height = height;
+                        const swapsDimensions = orientation >= 5 && orientation <= 8;
+                        canvas.width = swapsDimensions ? height : width;
+                        canvas.height = swapsDimensions ? width : height;
                         const ctx = canvas.getContext('2d');
+                        if (orientation === 2) ctx.transform(-1, 0, 0, 1, width, 0);
+                        if (orientation === 3) ctx.transform(-1, 0, 0, -1, width, height);
+                        if (orientation === 4) ctx.transform(1, 0, 0, -1, 0, height);
+                        if (orientation === 5) ctx.transform(0, 1, 1, 0, 0, 0);
+                        if (orientation === 6) ctx.transform(0, 1, -1, 0, height, 0);
+                        if (orientation === 7) ctx.transform(0, -1, -1, 0, height, width);
+                        if (orientation === 8) ctx.transform(0, -1, 1, 0, 0, width);
                         ctx.drawImage(image, 0, 0, width, height);
                         close(image);
 
@@ -982,6 +991,32 @@
             }
 
             async function compressImage(file) {
+                const fileType = String(file.type || '').toLowerCase();
+                const fileName = String(file.name || '').toLowerCase();
+                if (fileType === 'image/x-adobe-dng' || fileType === 'image/dng' || fileName.endsWith('.dng')) {
+                    try {
+                        const { convertDngPreview } = await import('/dng-preview.js');
+                        const compressed = await convertDngPreview(file, (candidate, orientation) => {
+                            const originalName = file.name.replace(/\.[^/.]+$/, '') || 'proraw';
+                            return compressImageOnce(new File([candidate], `${originalName}-preview.jpg`, {
+                                type: 'image/jpeg',
+                                lastModified: file.lastModified || Date.now()
+                            }), orientation);
+                        });
+                        trackUploadEvent('phone_upload_dng_preview_used', {
+                            fileSizeBytes: file.size,
+                            compressedSizeBytes: compressed.size
+                        });
+                        return compressed;
+                    } catch (error) {
+                        trackUploadEvent('phone_upload_dng_preview_error', {
+                            fileSizeBytes: file.size,
+                            message: error?.message || String(error)
+                        });
+                        throw error;
+                    }
+                }
+
                 // If not an image, return as is
                 if (!file.type.startsWith('image/')) return file;
 
@@ -1083,13 +1118,29 @@
                 try {
                     if (!item.compressed) {
                         item.preparing = true;
+                        item.failureMessage = null;
                         renderBatchProgress();
-                        const compressedFile = await compressImage(item.originalFile || item.file);
+                        const originalFile = item.originalFile || item.file;
+                        const compressedFile = await compressImage(originalFile);
                         if (state.cancelled) throw new Error('Upload cancelled');
                         if (isV2() && compressedFile.size > 4 * 1024 * 1024) {
                             throw new Error('Photo is too large to upload. Choose a smaller copy.');
                         }
                         item.file = compressedFile;
+                        const originalType = String(originalFile.type || '').toLowerCase();
+                        const originalName = String(originalFile.name || '').toLowerCase();
+                        if (
+                            originalType === 'image/x-adobe-dng' ||
+                            originalType === 'image/dng' ||
+                            originalName.endsWith('.dng')
+                        ) {
+                            const preview = item.el?.querySelector('.file-preview');
+                            if (preview) {
+                                if (item.preview) URL.revokeObjectURL(item.preview);
+                                item.preview = URL.createObjectURL(compressedFile);
+                                preview.src = item.preview;
+                            }
+                        }
                         item.compressed = true;
                         item.preparing = false;
                     }
@@ -1102,8 +1153,12 @@
                     item.preparing = false;
                     item.uploading = false;
                     if (!item.done) {
+                        const message = e?.message || '';
+                        item.failureMessage = message.startsWith('RAW photo') || message.startsWith('This RAW photo')
+                            ? message
+                            : null;
                         if (ui) {
-                            ui.status.textContent = 'Failed';
+                            ui.status.textContent = item.failureMessage ? 'RAW unavailable' : 'Failed';
                             ui.status.classList.add('status-error');
                         }
                         item.failed = true;
@@ -1278,7 +1333,8 @@
                         failedCount = 1;
                     }
                 } else if (failedCount > 0) {
-                    showToast(`${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Retry when ready.`);
+                    const failureMessage = pendingItems.find((item) => item.failureMessage)?.failureMessage;
+                    showToast(failureMessage || `${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Retry when ready.`);
                 }
 
                 trackUploadEvent('phone_upload_send_summary', {
@@ -1318,7 +1374,8 @@
                         failedCount = Math.max(failedCount, 1);
                     }
                 } else if (failedCount > 0) {
-                    showToast(`${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Try again.`);
+                    const failureMessage = items.find((item) => item.failureMessage)?.failureMessage;
+                    showToast(failureMessage || `${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Try again.`);
                 }
 
                 trackUploadEvent('phone_upload_send_summary', {
@@ -1348,7 +1405,8 @@
                         failed: false,
                         compressed: false,
                         preparing: false,
-                        uploading: false
+                        uploading: false,
+                        failureMessage: null
                     };
 
                     state.files.push(item);

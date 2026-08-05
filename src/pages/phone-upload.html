@@ -587,6 +587,61 @@
                 }
             }
 
+            function getBrowserTelemetry() {
+                try {
+                    const deviceMemory = Number(navigator?.deviceMemory);
+                    return {
+                        userAgent: navigator?.userAgent || null,
+                        platform: navigator?.platform || null,
+                        deviceMemory: Number.isFinite(deviceMemory) ? deviceMemory : null,
+                        viewport: `${window?.innerWidth || 0}x${window?.innerHeight || 0}`
+                    };
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function getCompressionSummary(items) {
+                try {
+                    const safeSize = (value) => {
+                        if (value === null || value === undefined || value === '') return null;
+                        const size = Number(value);
+                        return Number.isFinite(size) && size >= 0 ? size : null;
+                    };
+                    const summarizeBytes = (values) => {
+                        const sizes = values.map(safeSize).filter((size) => size !== null);
+                        return {
+                            count: sizes.length,
+                            min: sizes.length ? Math.min(...sizes) : null,
+                            max: sizes.length ? Math.max(...sizes) : null,
+                            total: sizes.reduce((sum, size) => sum + size, 0)
+                        };
+                    };
+                    const originalTypes = {};
+                    const compressionRoutes = {};
+                    items.forEach((item) => {
+                        const type = String(item.telemetryOriginalType || 'unknown').slice(0, 80);
+                        const route = String(item.compressionRoute || 'not_started').slice(0, 40);
+                        originalTypes[type] = (originalTypes[type] || 0) + 1;
+                        compressionRoutes[route] = (compressionRoutes[route] || 0) + 1;
+                    });
+
+                    return {
+                        originalTypes,
+                        originalBytesAtSelection: summarizeBytes(items.map((item) => item.originalSizeAtSelection)),
+                        originalBytesBeforeCompression: summarizeBytes(items.map((item) => item.originalSizeBeforeCompression)),
+                        uploadedBytes: summarizeBytes(items.map((item) => item.uploadedSizeBytes)),
+                        serverReceivedBytes: summarizeBytes(items.map((item) => item.serverReceivedSizeBytes)),
+                        zeroBytesAtSelection: items.filter((item) => item.originalSizeAtSelection === 0).length,
+                        zeroBytesBeforeCompression: items.filter((item) => item.originalSizeBeforeCompression === 0).length,
+                        compressionRoutes,
+                        browser: getBrowserTelemetry()
+                    };
+                } catch (error) {
+                    return null;
+                }
+            }
+
             function flushUploadEvents() {
                 if (state.eventFlushTimer) {
                     clearTimeout(state.eventFlushTimer);
@@ -793,6 +848,13 @@
                     xhr.onload = () => {
                         state.activeRequests.delete(xhr);
                         if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const result = JSON.parse(xhr.responseText || 'null');
+                                const receivedBytes = Number(result?.files?.[0]?.size);
+                                item.serverReceivedSizeBytes = Number.isFinite(receivedBytes) ? receivedBytes : null;
+                            } catch (error) {
+                                item.serverReceivedSizeBytes = null;
+                            }
                             if (ui) {
                                 ui.fill.style.width = '100%';
                                 ui.fill.style.background = '#10b981';
@@ -823,7 +885,13 @@
                             item.failed = true;
                             item.uploading = false;
                             renderBatchProgress();
-                            const error = new Error('Upload failed');
+                            let message = 'Upload failed';
+                            try {
+                                message = JSON.parse(xhr.responseText || 'null')?.error || message;
+                            } catch (error) {
+                                // Keep the generic message when the response is not JSON.
+                            }
+                            const error = new Error(message);
                             error.status = xhr.status;
                             reject(error);
                         }
@@ -1121,18 +1189,29 @@
                         item.failureMessage = null;
                         renderBatchProgress();
                         const originalFile = item.originalFile || item.file;
+                        item.originalSizeBeforeCompression = Number.isFinite(Number(originalFile?.size))
+                            ? Number(originalFile.size)
+                            : null;
                         const compressedFile = await compressImage(originalFile);
                         if (state.cancelled) throw new Error('Upload cancelled');
+                        const originalType = String(originalFile.type || '').toLowerCase();
+                        const originalName = String(originalFile.name || '').toLowerCase();
+                        const originalIsDng =
+                            originalType === 'image/x-adobe-dng' ||
+                            originalType === 'image/dng' ||
+                            originalName.endsWith('.dng');
+                        item.compressionRoute = compressedFile === originalFile
+                            ? (originalType.startsWith('image/') ? 'fallback' : 'unchanged')
+                            : (originalIsDng ? 'dng_preview' : 'normal');
+                        item.uploadedSizeBytes = Number.isFinite(Number(compressedFile?.size))
+                            ? Number(compressedFile.size)
+                            : null;
                         if (isV2() && compressedFile.size > 4 * 1024 * 1024) {
                             throw new Error('Photo is too large to upload. Choose a smaller copy.');
                         }
                         item.file = compressedFile;
-                        const originalType = String(originalFile.type || '').toLowerCase();
-                        const originalName = String(originalFile.name || '').toLowerCase();
                         if (
-                            originalType === 'image/x-adobe-dng' ||
-                            originalType === 'image/dng' ||
-                            originalName.endsWith('.dng')
+                            originalIsDng
                         ) {
                             const preview = item.el?.querySelector('.file-preview');
                             if (preview) {
@@ -1152,6 +1231,7 @@
                     console.error(e);
                     item.preparing = false;
                     item.uploading = false;
+                    if (!item.compressionRoute) item.compressionRoute = 'failed';
                     if (!item.done) {
                         const message = e?.message || '';
                         item.failureMessage = message.startsWith('RAW photo') || message.startsWith('This RAW photo')
@@ -1343,7 +1423,8 @@
                     failedCount,
                     completeSent: state.completeSent,
                     retryCount,
-                    durationMs: Date.now() - startedAt
+                    durationMs: Date.now() - startedAt,
+                    compression: getCompressionSummary(state.files)
                 });
 
                 state.isSending = false;
@@ -1384,7 +1465,8 @@
                     failedCount,
                     completeSent: state.completeSent,
                     retryCount: 0,
-                    durationMs: Date.now() - startedAt
+                    durationMs: Date.now() - startedAt,
+                    compression: getCompressionSummary(state.files)
                 });
                 flushUploadEvents();
             }
@@ -1406,7 +1488,13 @@
                         compressed: false,
                         preparing: false,
                         uploading: false,
-                        failureMessage: null
+                        failureMessage: null,
+                        telemetryOriginalType: String(originalFile.type || (String(originalFile.name || '').toLowerCase().endsWith('.dng') ? 'image/dng' : 'unknown')).toLowerCase(),
+                        originalSizeAtSelection: Number.isFinite(Number(originalFile.size)) ? Number(originalFile.size) : null,
+                        originalSizeBeforeCompression: null,
+                        uploadedSizeBytes: null,
+                        serverReceivedSizeBytes: null,
+                        compressionRoute: null
                     };
 
                     state.files.push(item);

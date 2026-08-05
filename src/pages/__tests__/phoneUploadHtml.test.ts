@@ -63,6 +63,20 @@ describe("phone upload page v2 contract", () => {
     expect(html).not.toContain("attempts: UPLOAD_RETRY_DELAYS_MS.length + 1");
   });
 
+  it("adds fail-open compression evidence to upload summaries", () => {
+    expect(html).toContain("function getCompressionSummary(items)");
+    expect(html).toContain("originalTypes");
+    expect(html).toContain("originalBytesAtSelection");
+    expect(html).toContain("originalBytesBeforeCompression");
+    expect(html).toContain("uploadedBytes");
+    expect(html).toContain("serverReceivedBytes");
+    expect(html).toContain("zeroBytesAtSelection");
+    expect(html).toContain("zeroBytesBeforeCompression");
+    expect(html).toContain("compressionRoutes");
+    expect(html).toContain("userAgent: navigator?.userAgent || null");
+    expect(html).toContain("compression: getCompressionSummary(state.files)");
+  });
+
   it("shows batch progress on the disabled send action instead of every photo", () => {
     expect(html).toMatch(
       /\.batch-mode \.file-info \.progress-bar,[\s\S]*?\.batch-mode \.file-status[\s\S]*?display:\s*none/,

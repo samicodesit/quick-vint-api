@@ -103,6 +103,7 @@ const canonical = `${baseUrl}${welcomePath}`;
             class="animate-enter delay-300 mb-5 flex items-center justify-center sm:mb-6 lg:justify-start"
           >
             <span
+              id="welcome-plan-badge"
               class="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm"
             >
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,6 +123,12 @@ const canonical = `${baseUrl}${welcomePath}`;
               href="https://www.vinted.com/items/new"
               target="_blank"
               rel="noopener noreferrer"
+              data-selected-plan-template={copy.selectedPlanTemplate}
+              data-continue-plan-template={copy.continuePlanTemplate}
+              data-opening-sign-in={copy.openingSignIn}
+              data-finish-sign-in={copy.finishSignIn}
+              data-opening-checkout={copy.openingCheckout}
+              data-checkout-error={copy.checkoutError}
               class="btn-primary inline-flex w-full items-center justify-center rounded-[14px] px-8 py-3.5 text-[15px] font-bold text-white no-underline transition-all duration-200 sm:w-auto"
             >
               {copy.primaryCta}
@@ -134,6 +141,14 @@ const canonical = `${baseUrl}${welcomePath}`;
               {copy.secondaryCta}
             </a>
           </div>
+          <p
+            id="welcome-checkout-status"
+            role="status"
+            aria-live="polite"
+            hidden
+            class="mt-3 text-sm font-semibold text-slate-600"
+          >
+          </p>
           <a
             href={`/updates/1-4-0/${locale}`}
             class="animate-enter delay-500 mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 no-underline transition-colors hover:text-indigo-600"
@@ -409,6 +424,7 @@ const canonical = `${baseUrl}${welcomePath}`;
     if (primaryCta) {
       primaryCta.href = getVintedListingUrl();
       primaryCta.addEventListener("click", () => {
+        if (primaryCta.dataset.checkoutPlan) return;
         sendGtagEvent("welcome_primary_cta_click", {
           target_url: primaryCta.href,
           detected_country: detectCountryCode(),
@@ -437,6 +453,10 @@ const canonical = `${baseUrl}${welcomePath}`;
         });
       });
     });
+  </script>
+
+  <script>
+    import "../../scripts/welcomeCheckout.js";
   </script>
 
   <style>

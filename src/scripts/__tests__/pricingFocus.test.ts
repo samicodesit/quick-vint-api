@@ -8,55 +8,78 @@ it("keeps a background-installed extension detected when focus checks overlap", 
     bundle: true,
     format: "iife",
     write: false,
-    plugins: [
-      {
-        name: "stub-analytics",
-        setup(build) {
-          build.onResolve({ filter: /analytics\.js$/ }, () => ({
-            path: "analytics",
-            namespace: "test",
-          }));
-          build.onLoad({ filter: /.*/, namespace: "test" }, () => ({
-            contents: "export function trackEvent() {}",
-          }));
-        },
-      },
-    ],
   });
   const handlers: Record<string, () => Promise<void>> = {};
+  const storage = new Map<string, string>();
+  const opened: string[] = [];
+  const status = { textContent: "", style: {} };
   const buttons = new Map(
     ["free", "starter", "pro", "business"].map((plan) => {
       const text = { textContent: plan === "free" ? "Start free" : "Choose" };
       const status = { textContent: "" };
+      const listeners: Record<string, () => Promise<void>> = {};
       return [
         `btn-${plan}`,
         {
           dataset: { loggedOutLabel: text.textContent },
           disabled: false,
           classList: { add() {}, remove() {} },
-          addEventListener() {},
+          addEventListener(event: string, handler: () => Promise<void>) {
+            listeners[event] = handler;
+          },
           querySelector(selector: string) {
             return selector === ".btn-text" ? text : status;
           },
+          listeners,
           text,
         },
       ];
     }),
   );
   const context: Record<string, any> = {
+    Blob,
     console,
+    navigator: {
+      sendBeacon() {
+        throw new Error("analytics blocked");
+      },
+    },
     URL,
     URLSearchParams,
     setTimeout,
     clearTimeout,
     document: {
       documentElement: { lang: "en" },
+      addEventListener() {},
       getElementById(id: string) {
+        if (id === "pricing-status-message") return status;
         return buttons.get(id) || null;
+      },
+      querySelectorAll() {
+        return [];
       },
     },
     window: {
-      location: new URL("https://autolister.app/pricing"),
+      location: new URL(
+        "https://autolister.app/pricing?utm_source=google&utm_campaign=business",
+      ),
+      localStorage: {
+        getItem(key: string) {
+          return storage.get(key) || null;
+        },
+        setItem(key: string, value: string) {
+          storage.set(key, value);
+        },
+        removeItem(key: string) {
+          storage.delete(key);
+        },
+      },
+      gtag() {
+        throw new Error("analytics blocked");
+      },
+      open(url: string) {
+        opened.push(url);
+      },
       addEventListener(event: string, handler: () => Promise<void>) {
         handlers[event] = handler;
       },
@@ -70,6 +93,23 @@ it("keeps a background-installed extension detected when focus checks overlap", 
   expect(buttons.get("btn-business")?.text.textContent).toBe(
     "Get AutoLister AI",
   );
+  await buttons.get("btn-business")?.listeners.click();
+  expect(opened).toHaveLength(1);
+  expect(
+    JSON.parse(storage.get("autolister_pending_install_plan") || "null"),
+  ).toEqual({
+    plan: "business",
+    createdAt: expect.any(Number),
+    utm: {
+      utm_campaign: "business",
+      utm_source: "google",
+    },
+  });
+
+  context.window.gtag = undefined;
+  await buttons.get("btn-business")?.listeners.click();
+  await buttons.get("btn-business")?.listeners.click();
+  expect(opened).toHaveLength(3);
 
   const messages: string[] = [];
   const pendingPings: Array<(response: unknown) => void> = [];

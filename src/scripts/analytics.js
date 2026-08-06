@@ -43,10 +43,12 @@ function flushTrackedEvents() {
   }
   if (!eventQueue.length) return;
 
-  sendEventPayload(eventQueue.splice(0, eventQueue.length));
+  try {
+    sendEventPayload(eventQueue.splice(0, eventQueue.length));
+  } catch {}
 }
 
-export function trackEvent(event, properties = {}) {
+function trackEventUnsafe(event, properties) {
   if (!event) return;
 
   const payload = {
@@ -70,6 +72,12 @@ export function trackEvent(event, properties = {}) {
   if (!eventFlushTimer) {
     eventFlushTimer = setTimeout(flushTrackedEvents, 700);
   }
+}
+
+export function trackEvent(event, properties = {}) {
+  try {
+    trackEventUnsafe(event, properties);
+  } catch {}
 }
 
 function appendUtmToChromeLink(link) {

@@ -3,6 +3,7 @@ import {
   getPricingPlanAction,
   normalizePricingPlanTier,
 } from "../utils/pricingPlanAction.ts";
+import { saveInstallPlanIntent } from "../utils/installPlanIntent.ts";
 
 // Original Pricing Page Logic starts here
 // API Base URL - Use current origin to avoid CORS issues
@@ -450,6 +451,11 @@ async function handlePlanClick(planName) {
   try {
     if (!hasExtension) {
       // Download extension
+      try {
+        saveInstallPlanIntent(window.localStorage, planName, {
+          utm: getUtmParams(),
+        });
+      } catch {}
       showStatusMessage(
         "Install AutoLister AI to start free or choose a plan.",
         "info",

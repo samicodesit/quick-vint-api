@@ -845,18 +845,23 @@ window.addEventListener("DOMContentLoaded", initializePage);
 
 // Refresh user data when page gains focus (in case user signed in through extension)
 window.addEventListener("focus", async () => {
-  if (hasExtension) {
-    const userData = await getUserFromExtension();
-    if (userData) {
-      const userChanged = currentUser?.id !== userData.user?.id;
-      const profileChanged =
-        JSON.stringify(currentProfile) !== JSON.stringify(userData.profile);
+  if (!hasExtension) {
+    const extensionInstalled = await checkExtensionInstalled();
+    if (!extensionInstalled) return;
+    hasExtension = true;
+    updateButtonStates();
+  }
 
-      if (userChanged || profileChanged) {
-        currentUser = userData.user;
-        currentProfile = userData.profile;
-        updateButtonStates();
-      }
+  const userData = await getUserFromExtension();
+  if (userData) {
+    const userChanged = currentUser?.id !== userData.user?.id;
+    const profileChanged =
+      JSON.stringify(currentProfile) !== JSON.stringify(userData.profile);
+
+    if (userChanged || profileChanged) {
+      currentUser = userData.user;
+      currentProfile = userData.profile;
+      updateButtonStates();
     }
   }
 });

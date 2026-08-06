@@ -2,15 +2,23 @@
 
 This repo is mostly operated by AI agents. Treat `main` as the production backend/site/admin branch.
 
-## Support Email Replies
+## Email
 
-Use the support/Resend flow whenever the user asks to reply "via support
-template", "via support", "via Resend", "from support", or any equivalent
-wording.
+Send every AutoLister email through Resend. This includes customer support,
+replies, follow-ups, alerts, and internal test emails. This rule applies even
+when the user says only "send an email" without naming Resend.
 
-Gmail may be used to find and read the original customer email only. Do not use
-Gmail outbound tools for these requests, including `_send_email`, `_send_draft`,
-`_create_draft`, or `_update_draft`.
+Every customer-facing email must use the existing branded HTML email template.
+Never send a customer-facing plain-text-only email. Use the support template
+for support messages and the appropriate existing HTML template for other
+customer email types.
+
+Gmail is read-only for AutoLister work. It may be used to search/read messages
+or debug delivery and threads only. Never use Gmail to draft, send, reply, or
+forward, including Gmail `_send_email`, `_send_draft`, `_create_draft`,
+`_update_draft`, or forwarding tools.
+
+For customer support and replies, use the support/Resend flow below.
 
 Match the outbound AutoLister sender to the original AutoLister address the
 customer emailed. For example, if the customer wrote to `hello@autolister.app`,
@@ -34,8 +42,8 @@ Required flow:
    payload.
 4. Send only after the dry-run payload is correct and `RESEND_API_KEY` is
    available.
-5. If `RESEND_API_KEY` is missing, stop and report the blocker. Do not fall back
-   to Gmail.
+5. If `RESEND_API_KEY` is missing, stop and report the blocker. Never fall back
+   to Gmail or another outbound provider.
 6. Verify a support-template send only from the support script output/Resend
    response. A Gmail sent item is not proof of a support-template send.
 7. If a reply was already sent through the wrong channel, do not send a second

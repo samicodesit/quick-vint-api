@@ -677,6 +677,10 @@ describe("phone upload endpoint", () => {
       status: "complete",
       expectedCount: 2,
     });
+    const completedMarker = JSON.parse(sessionWrites[0][1].toString());
+    expect(Date.parse(completedMarker.expiresAt)).toBeGreaterThanOrEqual(
+      Date.now() + 6 * 60 * 60 * 1000 - 1000,
+    );
   });
 
   it("rejects v2 uploads after the session is complete", async () => {

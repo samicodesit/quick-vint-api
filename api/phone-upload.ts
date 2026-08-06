@@ -54,6 +54,7 @@ const EXPECTED_COUNT_MARKER_PATTERN = /^_expected-count-(\d+)\.json$/;
 const SESSION_MARKER = "_session.json";
 const UPLOADER_MARKER = "_uploader.json";
 const V2_SESSION_IDLE_MS = 60 * 60 * 1000;
+const V2_COMPLETED_RECOVERY_MS = 6 * 60 * 60 * 1000;
 const V2_SIGNED_URL_TTL_SECONDS = 60 * 60;
 const MAX_V2_UPLOAD_BYTES = 4 * 1024 * 1024;
 const MAX_V2_UPLOAD_COUNT = 500;
@@ -976,7 +977,11 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       }
       sessionMarker.status = "complete";
       sessionMarker.expectedCount = expectedCount;
-      sessionMarker.lastActivityAt = new Date().toISOString();
+      const completedAt = new Date();
+      sessionMarker.lastActivityAt = completedAt.toISOString();
+      sessionMarker.expiresAt = new Date(
+        completedAt.getTime() + V2_COMPLETED_RECOVERY_MS,
+      ).toISOString();
       await writeV2Session(sessionId, sessionMarker);
     }
 

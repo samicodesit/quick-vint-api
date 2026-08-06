@@ -247,6 +247,34 @@ export const el = {
 // Add new templates here. Reference by key from Postman: { "template_key": "product_update_v1" }
 
 export const TEMPLATES: Record<string, EmailTemplate> = {
+  felix_active_user_credits_v1: {
+    subject: "5 extra listings for you",
+    preheader: "A small thank-you for being an active AutoLister AI user.",
+    layout: "direct",
+    body: [
+      el.p("Hi Felix,"),
+      el.p("Thanks for being an active AutoLister AI user."),
+      el.callout(
+        "🎁 I’ve added <strong>5 extra listing credits</strong> to your account as a small thank-you.",
+      ),
+      el.p(
+        "You can use them whenever you like. They don’t expire and aren’t tied to your daily or monthly limit.",
+      ),
+      el.p(
+        "If you want the AI to write differently, just reply and tell me what you prefer.",
+      ),
+      el.p(
+        "This could be a certain tone, details you always want included, or things you want it to avoid. I’m happy to set that up for you.",
+      ),
+      el.p(
+        "If you ever need more room for listings, you can also view our higher-limit plans.",
+      ),
+      el.button("View higher-limit plans", "https://autolister.app/pricing"),
+      `<p style="margin: 0 0 20px 0; text-align: center; font-size: 13px; line-height: 1.5; color: #777;">Enjoying AutoLister AI? <a href="https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl/reviews" style="color: ${BRAND.color}; text-decoration: underline;">Share an honest review</a></p>`,
+      el.p("Best,<br />Sami<br />Founder, AutoLister AI"),
+    ].join("\n"),
+  },
+
   custom_limit_reply_marcel_v1: {
     subject: "Re: Request for more Limit a Day",
     preheader:

@@ -244,7 +244,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add user info to log data
   logData.userId = user.id;
   logData.userEmail = user.email;
-  const selectedModel = DEFAULT_OPENAI_MODEL;
+  const selectedModel = user.email?.toLowerCase() === "samicodesit+ai-style-test@gmail.com"
+    ? "gpt-5.4-mini"
+    : DEFAULT_OPENAI_MODEL;
   const selectedImageDetail = DEFAULT_OPENAI_IMAGE_DETAIL;
 
   if (isDisposableEmail(user.email || "")) {

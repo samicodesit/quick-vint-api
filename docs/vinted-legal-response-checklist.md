@@ -11,8 +11,8 @@ Response deadline in NLO letter: 11 August 2026
 - [x] Take `quick-vint.vercel.app` offline and verify `autolister.app` remains healthy. Alias detached 7 August 2026; old hostname returns 404 while the homepage, pricing, phone upload, and auth callback return 200.
   - Impact note: extension 1.3.9 migrated to `autolister.app` on 13 May 2026. Current version 1.4.3 is fully migrated; only obsolete 1.3.8-or-older installations still point at the retired hostname.
 - [x] Remove Vinted logos and copied Vinted imagery from public marketing. Static imagery cleaned 7 August 2026; the moving demo video remains assigned to the user for a motion-aware crop.
-- [ ] Remove claims including “ToS compliant”, “zero ban risk”, “account safe”, “invisible to bot detection”, and “wallet protected”.
-- [ ] Remove the DotB/Vintex comparison and unsupported competitor-risk claims.
+- [x] Remove claims including “ToS compliant”, “zero ban risk”, “account safe”, “invisible to bot detection”, and “wallet protected”.
+- [x] Remove the DotB/Vintex comparison and unsupported competitor-risk claims.
 - [ ] Review and temporarily disable the highest-risk extraction/automation features pending legal advice.
 
 ## Legal operator and advice

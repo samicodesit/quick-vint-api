@@ -68,8 +68,6 @@ describe("site localization", () => {
       "heroSubtitle",
       "heroBadgeSafe",
       "heroBulletSafety",
-      "comparisonTitle",
-      "comparisonSubtitle",
     ] as const;
     const pricingKeys = [
       "seoTitle",

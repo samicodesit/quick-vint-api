@@ -34,8 +34,6 @@ type HomeCopy = {
   heroMobileSubtitle: string;
   heroBadgeSafe: string;
   heroBulletSafety: string;
-  comparisonTitle: string;
-  comparisonSubtitle: string;
 };
 
 type PricingCopy = {
@@ -79,12 +77,8 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Create Vinted titles, descriptions, and hashtags from your item photos. Save your own seller notes and reuse them on future listings. Works directly inside Vinted, with no Vinted account connection needed.",
       heroMobileSubtitle:
         "Create better Vinted listings in seconds, directly inside Vinted.",
-      heroBadgeSafe: "100% Account-Safe · Vinted ToS Compliant",
-      heroBulletSafety:
-        "Zero ban risk - never hooks into Vinted's servers like automation bots do",
-      comparisonTitle: "AutoLister vs. DotB & Vintex",
-      comparisonSubtitle:
-        "DotB and Vintex sell automation bots - 500 daily mass-actions that hook into Vinted's private API. That's a fundamentally different product, with fundamentally different consequences for your account.",
+      heroBadgeSafe: "AI listing assistant · You stay in control",
+      heroBulletSafety: "Prepares listing drafts for you to review and publish",
     },
     pricing: {
       seoTitle: "Pricing - AutoLister AI",
@@ -121,12 +115,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Créez des titres, descriptions et hashtags Vinted depuis vos photos d'articles. Enregistrez vos propres notes vendeur et réutilisez-les sur vos prochaines annonces. Fonctionne directement dans Vinted, sans connecter votre compte Vinted.",
       heroMobileSubtitle:
         "Créez de meilleures annonces Vinted en quelques secondes, directement dans Vinted.",
-      heroBadgeSafe: "100% Sécurisé · Conforme aux règles Vinted",
+      heroBadgeSafe: "Assistant IA pour vos annonces · Vous gardez le contrôle",
       heroBulletSafety:
-        "Risque de ban nul - aucune connexion aux serveurs Vinted comme les bots",
-      comparisonTitle: "AutoLister vs DotB et Vintex",
-      comparisonSubtitle:
-        "DotB et Vintex vendent des bots d'automatisation. AutoLister reste un assistant de contenu sûr.",
+        "Prépare des brouillons que vous vérifiez avant de publier",
     },
     pricing: {
       seoTitle: "Tarifs - AutoLister AI",
@@ -163,12 +154,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Erstelle Vinted-Titel, Beschreibungen und Hashtags aus deinen Artikelfotos. Speichere eigene Verkäufernotizen und nutze sie in zukünftigen Anzeigen wieder. Funktioniert direkt in Vinted, ohne dein Vinted-Konto zu verbinden.",
       heroMobileSubtitle:
         "Erstelle bessere Vinted-Anzeigen in Sekunden, direkt in Vinted.",
-      heroBadgeSafe: "100% Sicher · Vinted-Regelkonform",
+      heroBadgeSafe: "KI-Assistent für Anzeigen · Du behältst die Kontrolle",
       heroBulletSafety:
-        "Kein Bannrisiko - keine Verbindung zu Vinted-Servern wie bei Bots",
-      comparisonTitle: "AutoLister vs. DotB & Vintex",
-      comparisonSubtitle:
-        "DotB und Vintex sind Automatisierungsbots. AutoLister ist ein sicherer Content-Assistent.",
+        "Erstellt Entwürfe, die du vor dem Veröffentlichen prüfst",
     },
     pricing: {
       seoTitle: "Preise - AutoLister AI",
@@ -204,12 +192,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Maak Vinted-titels, beschrijvingen en hashtags vanuit je itemfoto's. Bewaar je eigen verkopersnotities en gebruik ze opnieuw bij toekomstige advertenties. Werkt direct in Vinted, zonder je Vinted-account te koppelen.",
       heroMobileSubtitle:
         "Maak betere Vinted-advertenties in seconden, direct in Vinted.",
-      heroBadgeSafe: "100% Veilig · Vinted-conform",
+      heroBadgeSafe: "AI-assistent voor advertenties · Jij houdt de controle",
       heroBulletSafety:
-        "Geen ban-risico - geen koppeling met Vinted-servers zoals bots",
-      comparisonTitle: "AutoLister vs. DotB & Vintex",
-      comparisonSubtitle:
-        "DotB en Vintex zijn automatiseringsbots. AutoLister is een veilige contenttool.",
+        "Maakt concepten die je controleert voordat je publiceert",
     },
     pricing: {
       seoTitle: "Prijzen - AutoLister AI",
@@ -246,12 +231,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Twórz tytuły, opisy i hashtagi Vinted ze zdjęć swoich produktów. Zapisuj własne notatki sprzedawcy i używaj ich ponownie w przyszłych ogłoszeniach. Działa bezpośrednio w Vinted, bez łączenia konta Vinted.",
       heroMobileSubtitle:
         "Twórz lepsze ogłoszenia Vinted w kilka sekund, bezpośrednio w Vinted.",
-      heroBadgeSafe: "100% Bezpieczne · Zgodne z zasadami Vinted",
+      heroBadgeSafe: "Asystent AI do ogłoszeń · Ty zachowujesz kontrolę",
       heroBulletSafety:
-        "Brak ryzyka bana - brak polaczen z serwerami Vinted jak w botach",
-      comparisonTitle: "AutoLister vs. DotB i Vintex",
-      comparisonSubtitle:
-        "DotB i Vintex to boty automatyzujace. AutoLister to bezpieczny generator tresci.",
+        "Przygotowuje wersje robocze, które sprawdzasz przed publikacją",
     },
     pricing: {
       seoTitle: "Cennik - AutoLister AI",
@@ -287,12 +269,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crea títulos, descripciones y hashtags para Vinted desde las fotos de tus artículos. Guarda tus propias notas de vendedor y reutilízalas en futuros anuncios. Funciona directamente dentro de Vinted, sin conectar tu cuenta de Vinted.",
       heroMobileSubtitle:
         "Crea mejores anuncios de Vinted en segundos, directamente en Vinted.",
-      heroBadgeSafe: "100% Seguro · Cumple normas de Vinted",
+      heroBadgeSafe: "Asistente de anuncios con IA · Tú tienes el control",
       heroBulletSafety:
-        "Riesgo de baneo cero - sin conexion a servidores de Vinted como los bots",
-      comparisonTitle: "AutoLister vs. DotB y Vintex",
-      comparisonSubtitle:
-        "DotB y Vintex son bots de automatizacion. AutoLister es un asistente de contenido seguro.",
+        "Prepara borradores que revisas antes de publicar",
     },
     pricing: {
       seoTitle: "Precios - AutoLister AI",
@@ -329,12 +308,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crea titoli, descrizioni e hashtag Vinted dalle foto dei tuoi articoli. Salva le tue note venditore e riutilizzale negli annunci futuri. Funziona direttamente dentro Vinted, senza collegare il tuo account Vinted.",
       heroMobileSubtitle:
         "Crea annunci Vinted migliori in pochi secondi, direttamente su Vinted.",
-      heroBadgeSafe: "100% Sicuro · Conforme alle regole Vinted",
+      heroBadgeSafe: "Assistente AI per gli annunci · Decidi tu",
       heroBulletSafety:
-        "Rischio ban zero - nessun collegamento ai server Vinted come i bot",
-      comparisonTitle: "AutoLister vs. DotB e Vintex",
-      comparisonSubtitle:
-        "DotB e Vintex sono bot di automazione. AutoLister e un assistente di contenuti sicuro.",
+        "Prepara bozze che controlli prima di pubblicare",
     },
     pricing: {
       seoTitle: "Prezzi - AutoLister AI",
@@ -370,12 +346,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crie títulos, descrições e hashtags Vinted a partir das fotografias dos seus artigos. Guarde as suas próprias notas de vendedor e reutilize-as em anúncios futuros. Funciona diretamente na Vinted, sem ligar a sua conta Vinted.",
       heroMobileSubtitle:
         "Crie melhores anúncios Vinted em segundos, diretamente na Vinted.",
-      heroBadgeSafe: "100% Seguro · Em conformidade com a Vinted",
+      heroBadgeSafe: "Assistente de anúncios com IA · Você mantém o controlo",
       heroBulletSafety:
-        "Risco de banimento zero - sem ligacoes aos servidores da Vinted como bots",
-      comparisonTitle: "AutoLister vs. DotB e Vintex",
-      comparisonSubtitle:
-        "DotB e Vintex sao bots de automacao. O AutoLister e um assistente de conteudo seguro.",
+        "Prepara rascunhos que revê antes de publicar",
     },
     pricing: {
       seoTitle: "Precos - AutoLister AI",
@@ -444,46 +417,6 @@ export type SiteExtraHomeCopy = {
       }
     >;
   };
-  // Safety section
-  safetyHeading: string;
-  safetyBody: string;
-  safetyNativeBadge: string;
-  safetyCoreBadge: string;
-  safetyCoreTitle: string;
-  safetyCoreSubtitle: string;
-  safetyCoreBody: string;
-  safetyStatBotRiskLabel: string;
-  safetyStatBotRiskNote: string;
-  safetyStatAlRiskLabel: string;
-  safetyStatAlRiskNote: string;
-  safetyFeature1Title: string;
-  safetyFeature1Body: string;
-  safetyFeature2Title: string;
-  safetyFeature2Body: string;
-  safetyFeature3Title: string;
-  safetyFeature3Body: string;
-  // Comparison section
-  comparisonBadge: string;
-  comparisonBotSubtitle: string;
-  comparisonAlSubtitle: string;
-  comparisonSafeChoice: string;
-  comparisonBotBullet1Title: string;
-  comparisonBotBullet1Body: string;
-  comparisonBotBullet2Title: string;
-  comparisonBotBullet2Body: string;
-  comparisonBotBullet3Title: string;
-  comparisonBotBullet3Body: string;
-  comparisonBotBullet4Title: string;
-  comparisonBotBullet4Body: string;
-  comparisonAlBullet1Title: string;
-  comparisonAlBullet1Body: string;
-  comparisonAlBullet2Title: string;
-  comparisonAlBullet2Body: string;
-  comparisonAlBullet3Title: string;
-  comparisonAlBullet3Body: string;
-  comparisonAlBullet4Title: string;
-  comparisonAlBullet4Body: string;
-  comparisonFootnote: string;
   // Features section
   featuresTitle: string;
   featuresSubtitle: string;
@@ -584,7 +517,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Generates SEO-ready titles, descriptions, and hashtags automatically",
       heroBullet2: "No copy-paste needed. No emailing photos.",
-      heroBullet3: "Compliant with Vinted terms of service",
+      heroBullet3: "You review every draft before publishing",
       addToChrome: "Add to Chrome",
       addToChromeNote: "It's Free",
       testimonialQuote:
@@ -623,58 +556,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Zero Risk. 100% Control.",
-      safetyBody:
-        "Unlike DotB and Vintex — which hook into Vinted's private API to mass auto-follow and auto-like — AutoLister operates strictly as a browser productivity tool. It writes text for you. Nothing more.",
-      safetyNativeBadge: "100% Native Browser Extension",
-      safetyCoreBadge: "The Core Difference",
-      safetyCoreTitle: "The risk is not AI.",
-      safetyCoreSubtitle: "The risk is automating actions on Vinted.",
-      safetyCoreBody:
-        "AutoLister acts exactly like a human typing very fast. We never touch private APIs or automate likes/follows. Zero mass actions.",
-      safetyStatBotRiskLabel: "Bot ban risk",
-      safetyStatBotRiskNote: "Reported by sellers within weeks",
-      safetyStatAlRiskLabel: "AutoLister risk",
-      safetyStatAlRiskNote: "0 mass actions. 0 API access.",
-      safetyFeature1Title: "No API Access",
-      safetyFeature1Body:
-        "We never touch Vinted's internal code or private endpoints — zero Cloudflare triggers.",
-      safetyFeature2Title: "Human-Paced",
-      safetyFeature2Body:
-        "We fill in text fields for you — like a very fast typist. No mass actions, no spam loops.",
-      safetyFeature3Title: "Your Wallet Stays Safe",
-      safetyFeature3Body:
-        "You review every listing before it goes live. Your Vinted wallet and account are never at risk.",
-      comparisonBadge: "Honest Comparison",
-      comparisonBotSubtitle: "Vinted automation bots",
-      comparisonAlSubtitle: "AI content generator",
-      comparisonSafeChoice: "Safe Choice",
-      comparisonBotBullet1Title: "High account ban risk",
-      comparisonBotBullet1Body:
-        "Hook into Vinted's private API — community reports bans within weeks of use",
-      comparisonBotBullet2Title: "Cloudflare bot detection triggers",
-      comparisonBotBullet2Body:
-        "500 daily auto-likes & auto-follows flag your account as automated traffic",
-      comparisonBotBullet3Title: "Violates Vinted's Terms of Service",
-      comparisonBotBullet3Body:
-        "Automating Vinted actions via private API is explicitly prohibited in their ToS",
-      comparisonBotBullet4Title: "Your Vinted wallet at risk",
-      comparisonBotBullet4Body:
-        "Account ban = wallet frozen. Any money on the platform could be locked instantly",
-      comparisonAlBullet1Title: "Zero ban risk",
-      comparisonAlBullet1Body:
-        "Reads your photo, writes your listing text — identical behaviour to a human seller",
-      comparisonAlBullet2Title: "Zero Cloudflare triggers",
-      comparisonAlBullet2Body:
-        "No private API calls. No mass actions. Completely invisible to bot detection.",
-      comparisonAlBullet3Title: "100% Vinted ToS compliant",
-      comparisonAlBullet3Body:
-        "A writing assistant, not a bot. Helps you create better listings, fully within the rules.",
-      comparisonAlBullet4Title: "Your wallet stays protected",
-      comparisonAlBullet4Body:
-        "No account risk, no frozen funds. List more, worry less.",
-      comparisonFootnote:
-        "Comparison based on publicly advertised features of DotB and Vintex as of 2025. AutoLister AI is not affiliated with or endorsed by Vinted.",
       featuresTitle: "A Faster Way to Sell on Vinted",
       featuresSubtitle:
         "Snap. Scan. Sell. From your camera roll to Vinted listing in just a few seconds.",
@@ -704,12 +585,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Get Started Free",
     },
     pricing: {
-      safetyBannerTitle:
-        "The only Vinted tool your account is genuinely safe with.",
+      safetyBannerTitle: "An AI listing assistant that keeps you in control.",
       safetyZeroMass: "No need to connect your Vinted account",
-      safetyZeroApi: "0 API hooks",
-      safetyZeroBan: "0 ban risk",
-      accountSafe: "Account-Safe",
+      safetyZeroApi: "Drafts, not automatic publishing",
+      safetyZeroBan: "Review before publishing",
+      accountSafe: "Seller-Controlled",
       mostPopular: "Most Popular",
       perMonth: "/month",
       perForever: "/forever",
@@ -770,7 +650,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Génère des titres, descriptions et hashtags SEO automatiquement",
       heroBullet2: "Aucun copier-coller. Aucun envoi de photos par e-mail.",
-      heroBullet3: "Conforme aux conditions générales de Vinted",
+      heroBullet3: "Vous vérifiez chaque brouillon avant de publier",
       addToChrome: "Ajouter à Chrome",
       addToChromeNote: "C'est gratuit",
       testimonialQuote:
@@ -809,59 +689,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Zéro risque. 100% de contrôle.",
-      safetyBody:
-        "Contrairement à DotB et Vintex — qui se connectent à l'API privée de Vinted — AutoLister est un simple outil de rédaction. Il écrit du texte pour vous. Rien de plus.",
-      safetyNativeBadge: "Extension navigateur 100% native",
-      safetyCoreBadge: "La différence clé",
-      safetyCoreTitle: "Le risque n'est pas l'IA.",
-      safetyCoreSubtitle:
-        "Le risque, c'est l'automatisation des actions sur Vinted.",
-      safetyCoreBody:
-        "AutoLister agit comme un humain qui tape très vite. Nous n'utilisons jamais d'API privée et n'automatisons ni likes ni follows. Zéro action de masse.",
-      safetyStatBotRiskLabel: "Risque de ban",
-      safetyStatBotRiskNote: "Signalé par des vendeurs en quelques semaines",
-      safetyStatAlRiskLabel: "Risque AutoLister",
-      safetyStatAlRiskNote: "0 action de masse. 0 accès API.",
-      safetyFeature1Title: "Pas d'accès API",
-      safetyFeature1Body:
-        "Nous ne touchons jamais au code interne de Vinted — zéro déclenchement Cloudflare.",
-      safetyFeature2Title: "Rythme humain",
-      safetyFeature2Body:
-        "Nous remplissons les champs à votre place — comme un dactylo très rapide. Aucune action de masse.",
-      safetyFeature3Title: "Votre portefeuille reste en sécurité",
-      safetyFeature3Body:
-        "Vous relisez chaque annonce avant publication. Votre compte et portefeuille Vinted ne sont jamais en danger.",
-      comparisonBadge: "Comparaison honnête",
-      comparisonBotSubtitle: "Bots d'automatisation Vinted",
-      comparisonAlSubtitle: "Générateur de contenu IA",
-      comparisonSafeChoice: "Choix sûr",
-      comparisonBotBullet1Title: "Risque élevé de bannissement",
-      comparisonBotBullet1Body:
-        "Se connectent à l'API privée de Vinted — des bans signalés en quelques semaines",
-      comparisonBotBullet2Title: "Déclenchement détection Cloudflare",
-      comparisonBotBullet2Body:
-        "500 auto-likes et auto-follows par jour marquent votre compte comme automatisé",
-      comparisonBotBullet3Title: "Violation des CGU de Vinted",
-      comparisonBotBullet3Body:
-        "L'automatisation via API privée est explicitement interdite par les CGU Vinted",
-      comparisonBotBullet4Title: "Votre portefeuille Vinted en danger",
-      comparisonBotBullet4Body:
-        "Bannissement = portefeuille gelé. Tout l'argent sur la plateforme peut être bloqué instantanément",
-      comparisonAlBullet1Title: "Zéro risque de ban",
-      comparisonAlBullet1Body:
-        "Lit votre photo, rédige votre annonce — comportement identique à un vendeur humain",
-      comparisonAlBullet2Title: "Zéro déclenchement Cloudflare",
-      comparisonAlBullet2Body:
-        "Aucun appel API privé. Aucune action de masse. Totalement invisible pour la détection de bots.",
-      comparisonAlBullet3Title: "100% conforme aux CGU Vinted",
-      comparisonAlBullet3Body:
-        "Un assistant de rédaction, pas un bot. Aide à créer de meilleures annonces dans le respect des règles.",
-      comparisonAlBullet4Title: "Votre portefeuille reste protégé",
-      comparisonAlBullet4Body:
-        "Aucun risque de compte, aucun fonds gelé. Listez plus, stressez moins.",
-      comparisonFootnote:
-        "Comparaison basée sur les fonctionnalités publiquement annoncées de DotB et Vintex en 2025. AutoLister AI n'est pas affilié à Vinted.",
       featuresTitle: "Une façon plus rapide de vendre sur Vinted",
       featuresSubtitle:
         "Photo. Analyse. Vente. Passez de votre galerie à une annonce Vinted en quelques secondes.",
@@ -891,11 +718,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Commencer gratuitement",
     },
     pricing: {
-      safetyBannerTitle: "Le seul outil Vinted vraiment sûr pour votre compte.",
+      safetyBannerTitle: "Un assistant IA qui vous laisse le contrôle.",
       safetyZeroMass: "Pas besoin de connecter votre compte Vinted",
-      safetyZeroApi: "0 accès API",
-      safetyZeroBan: "0 risque de ban",
-      accountSafe: "Sécurisé",
+      safetyZeroApi: "Des brouillons, jamais de publication automatique",
+      safetyZeroBan: "À vérifier avant publication",
+      accountSafe: "Sous votre contrôle",
       mostPopular: "Le plus populaire",
       perMonth: "/mois",
       perForever: "/à vie",
@@ -956,7 +783,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Erstellt SEO-optimierte Titel, Beschreibungen und Hashtags automatisch",
       heroBullet2: "Kein Kopieren und Einfugen. Keine Fotos per E-Mail senden.",
-      heroBullet3: "Konform mit den Vinted-Nutzungsbedingungen",
+      heroBullet3: "Du prüfst jeden Entwurf vor dem Veröffentlichen",
       addToChrome: "Zu Chrome hinzufugen",
       addToChromeNote: "Kostenlos",
       testimonialQuote:
@@ -995,59 +822,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Null Risiko. 100% Kontrolle.",
-      safetyBody:
-        "Anders als DotB und Vintex — die sich in Vinteds private API einklinken — arbeitet AutoLister rein als Browser-Produktivitatswerkzeug. Es schreibt Text fur dich. Nichts weiter.",
-      safetyNativeBadge: "100% native Browser-Erweiterung",
-      safetyCoreBadge: "Der Kernunterschied",
-      safetyCoreTitle: "Das Risiko ist nicht KI.",
-      safetyCoreSubtitle:
-        "Das Risiko ist die Automatisierung von Aktionen auf Vinted.",
-      safetyCoreBody:
-        "AutoLister verhallt sich wie ein Mensch, der sehr schnell tippt. Wir nutzen keine privaten APIs und automatisieren keine Likes oder Follows. Null Massenaktionen.",
-      safetyStatBotRiskLabel: "Bot-Bannrisiko",
-      safetyStatBotRiskNote: "Von Verkaufern innerhalb von Wochen gemeldet",
-      safetyStatAlRiskLabel: "AutoLister-Risiko",
-      safetyStatAlRiskNote: "0 Massenaktionen. 0 API-Zugriff.",
-      safetyFeature1Title: "Kein API-Zugriff",
-      safetyFeature1Body:
-        "Wir beruhren niemals Vinteds internen Code oder private Endpunkte — null Cloudflare-Trigger.",
-      safetyFeature2Title: "Menschliches Tempo",
-      safetyFeature2Body:
-        "Wir fullen Textfelder fur dich — wie ein sehr schneller Tippist. Keine Massenaktionen, keine Spam-Schleifen.",
-      safetyFeature3Title: "Dein Guthaben bleibt sicher",
-      safetyFeature3Body:
-        "Du prufst jede Anzeige bevor sie live geht. Dein Vinted-Guthaben und Konto sind niemals in Gefahr.",
-      comparisonBadge: "Ehrlicher Vergleich",
-      comparisonBotSubtitle: "Vinted-Automatisierungsbots",
-      comparisonAlSubtitle: "KI-Inhaltsgenerator",
-      comparisonSafeChoice: "Sichere Wahl",
-      comparisonBotBullet1Title: "Hohes Konto-Bannrisiko",
-      comparisonBotBullet1Body:
-        "Klinken sich in Vinteds private API ein — Community berichtet von Bans innerhalb von Wochen",
-      comparisonBotBullet2Title: "Cloudflare-Bot-Erkennung ausgelost",
-      comparisonBotBullet2Body:
-        "500 tagliche Auto-Likes und Auto-Follows markieren dein Konto als automatisierten Traffic",
-      comparisonBotBullet3Title: "Verstost gegen Vinteds Nutzungsbedingungen",
-      comparisonBotBullet3Body:
-        "Die Automatisierung uber private API ist explizit in Vinteds AGB verboten",
-      comparisonBotBullet4Title: "Dein Vinted-Guthaben in Gefahr",
-      comparisonBotBullet4Body:
-        "Konto-Ban = Guthaben eingefroren. Jedes Geld auf der Plattform konnte sofort gesperrt werden",
-      comparisonAlBullet1Title: "Null Bannrisiko",
-      comparisonAlBullet1Body:
-        "Liest dein Foto, schreibt deinen Anzeigentext — identisches Verhalten wie ein menschlicher Verkaufer",
-      comparisonAlBullet2Title: "Null Cloudflare-Trigger",
-      comparisonAlBullet2Body:
-        "Keine privaten API-Aufrufe. Keine Massenaktionen. Vollig unsichtbar fur Bot-Erkennung.",
-      comparisonAlBullet3Title: "100% Vinted-AGB-konform",
-      comparisonAlBullet3Body:
-        "Ein Schreibassistent, kein Bot. Hilft dir bessere Anzeigen zu erstellen, vollstandig nach Regeln.",
-      comparisonAlBullet4Title: "Dein Guthaben bleibt geschutzt",
-      comparisonAlBullet4Body:
-        "Kein Kontorisiko, keine gesperrten Mittel. Mehr inserieren, weniger sorgen.",
-      comparisonFootnote:
-        "Vergleich basiert auf offentlich beworbenen Funktionen von DotB und Vintex Stand 2025. AutoLister AI ist nicht mit Vinted verbunden.",
       featuresTitle: "Schneller auf Vinted verkaufen",
       featuresSubtitle:
         "Foto. Analyse. Verkauf. Von der Galerie zur fertigen Vinted-Anzeige in Sekunden.",
@@ -1077,12 +851,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Kostenlos starten",
     },
     pricing: {
-      safetyBannerTitle:
-        "Das einzige Vinted-Tool, das dein Konto wirklich schutzt.",
+      safetyBannerTitle: "Ein KI-Assistent, bei dem du entscheidest.",
       safetyZeroMass: "Kein Vinted-Konto verbinden nötig",
-      safetyZeroApi: "0 API-Zugriffe",
-      safetyZeroBan: "0 Bannrisiko",
-      accountSafe: "Kontosicher",
+      safetyZeroApi: "Entwürfe statt automatischer Veröffentlichung",
+      safetyZeroBan: "Vor Veröffentlichung prüfen",
+      accountSafe: "Unter deiner Kontrolle",
       mostPopular: "Beliebteste Wahl",
       perMonth: "/Monat",
       perForever: "/dauerhaft",
@@ -1142,7 +915,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Genereert automatisch SEO-klare titels, beschrijvingen en hashtags",
       heroBullet2: "Geen kopieer-plak. Geen foto's mailen.",
-      heroBullet3: "Conform de voorwaarden van Vinted",
+      heroBullet3: "Je controleert elk concept voordat je publiceert",
       addToChrome: "Toevoegen aan Chrome",
       addToChromeNote: "Gratis",
       testimonialQuote:
@@ -1181,59 +954,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Nul risico. 100% controle.",
-      safetyBody:
-        "In tegenstelling tot DotB en Vintex — die zich koppelen aan Vinteds prive-API — werkt AutoLister puur als een browser-productiviteitstool. Het schrijft tekst voor jou. Niets meer.",
-      safetyNativeBadge: "100% native browser-extensie",
-      safetyCoreBadge: "Het kernverschil",
-      safetyCoreTitle: "Het risico is niet AI.",
-      safetyCoreSubtitle:
-        "Het risico is het automatiseren van acties op Vinted.",
-      safetyCoreBody:
-        "AutoLister gedraagt zich precies als een mens die heel snel typt. We gebruiken geen prive-API's en automatiseren geen likes of follows. Nul massa-acties.",
-      safetyStatBotRiskLabel: "Bot-banrisico",
-      safetyStatBotRiskNote: "Gemeld door verkopers binnen weken",
-      safetyStatAlRiskLabel: "AutoLister-risico",
-      safetyStatAlRiskNote: "0 massa-acties. 0 API-toegang.",
-      safetyFeature1Title: "Geen API-toegang",
-      safetyFeature1Body:
-        "We raken nooit Vinteds interne code of prive-endpoints aan — nul Cloudflare-triggers.",
-      safetyFeature2Title: "Menselijk tempo",
-      safetyFeature2Body:
-        "We vullen tekstvelden voor jou in — als een heel snelle typist. Geen massa-acties, geen spam-loops.",
-      safetyFeature3Title: "Je saldo blijft veilig",
-      safetyFeature3Body:
-        "Je controleert elke listing voor publicatie. Je Vinted-saldo en account zijn nooit in gevaar.",
-      comparisonBadge: "Eerlijke vergelijking",
-      comparisonBotSubtitle: "Vinted-automatiseringsbots",
-      comparisonAlSubtitle: "AI-contentgenerator",
-      comparisonSafeChoice: "Veilige keuze",
-      comparisonBotBullet1Title: "Hoog account-banrisico",
-      comparisonBotBullet1Body:
-        "Koppelen aan Vinteds prive-API — bans gemeld door de community binnen weken van gebruik",
-      comparisonBotBullet2Title: "Cloudflare-botdetectie getriggerd",
-      comparisonBotBullet2Body:
-        "500 dagelijkse auto-likes en auto-follows markeren je account als geautomatiseerd verkeer",
-      comparisonBotBullet3Title: "Schendt Vinteds gebruiksvoorwaarden",
-      comparisonBotBullet3Body:
-        "Automatisering via prive-API is uitdrukkelijk verboden in de Vinted-voorwaarden",
-      comparisonBotBullet4Title: "Je Vinted-saldo in gevaar",
-      comparisonBotBullet4Body:
-        "Account-ban = saldo bevroren. Al het geld op het platform kan direct worden geblokkeerd",
-      comparisonAlBullet1Title: "Nul banrisico",
-      comparisonAlBullet1Body:
-        "Leest je foto, schrijft je listingtekst — identiek gedrag als een menselijke verkoper",
-      comparisonAlBullet2Title: "Nul Cloudflare-triggers",
-      comparisonAlBullet2Body:
-        "Geen prive-API-aanroepen. Geen massa-acties. Volledig onzichtbaar voor botdetectie.",
-      comparisonAlBullet3Title: "100% conform Vinted-voorwaarden",
-      comparisonAlBullet3Body:
-        "Een schrijfassistent, geen bot. Helpt je betere listings te maken, volledig binnen de regels.",
-      comparisonAlBullet4Title: "Je saldo blijft beschermd",
-      comparisonAlBullet4Body:
-        "Geen accountrisico, geen bevroren fondsen. Meer listen, minder zorgen.",
-      comparisonFootnote:
-        "Vergelijking gebaseerd op publiek geadverteerde functies van DotB en Vintex per 2025. AutoLister AI is niet gelieerd aan Vinted.",
       featuresTitle: "Sneller verkopen op Vinted",
       featuresSubtitle:
         "Foto. Scan. Verkoop. Van je camera-rol naar een Vinted listing in seconden.",
@@ -1263,12 +983,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Gratis beginnen",
     },
     pricing: {
-      safetyBannerTitle:
-        "De enige Vinted-tool die je account echt veilig houdt.",
+      safetyBannerTitle: "Een AI-assistent waarbij jij beslist.",
       safetyZeroMass: "Je hoeft je Vinted-account niet te koppelen",
-      safetyZeroApi: "0 API-koppelingen",
-      safetyZeroBan: "0 ban-risico",
-      accountSafe: "Accountveilig",
+      safetyZeroApi: "Concepten, geen automatische publicatie",
+      safetyZeroBan: "Controleren vóór publicatie",
+      accountSafe: "Onder jouw controle",
       mostPopular: "Meest populair",
       perMonth: "/maand",
       perForever: "/altijd",
@@ -1329,7 +1048,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Automatycznie generuje tytuly, opisy i hashtagi zoptymalizowane pod SEO",
       heroBullet2: "Bez kopiowania i wklejania. Bez wysylania zdjec mailem.",
-      heroBullet3: "Zgodne z regulaminem Vinted",
+      heroBullet3: "Sprawdzasz każdą wersję roboczą przed publikacją",
       addToChrome: "Dodaj do Chrome",
       addToChromeNote: "To jest darmowe",
       testimonialQuote:
@@ -1368,59 +1087,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Zero ryzyka. 100% kontroli.",
-      safetyBody:
-        "W przeciwienstwie do DotB i Vintex — ktore lacza sie z prywatnym API Vinted — AutoLister dziala wylacznie jako narzedzie produktywnosci. Pisze dla Ciebie tekst. Nic wiecej.",
-      safetyNativeBadge: "100% natywne rozszerzenie przegladarki",
-      safetyCoreBadge: "Kluczowa roznica",
-      safetyCoreTitle: "Ryzykiem nie jest AI.",
-      safetyCoreSubtitle: "Ryzykiem jest automatyzowanie akcji na Vinted.",
-      safetyCoreBody:
-        "AutoLister dziala jak czlowiek, ktory bardzo szybko pisze. Nie korzystamy z prywatnych API i nie automatyzujemy polubien ani obserwacji. Zero akcji masowych.",
-      safetyStatBotRiskLabel: "Ryzyko bana bota",
-      safetyStatBotRiskNote:
-        "Zglaszane przez sprzedawcow w ciagu kilku tygodni",
-      safetyStatAlRiskLabel: "Ryzyko AutoLister",
-      safetyStatAlRiskNote: "0 akcji masowych. 0 dostep API.",
-      safetyFeature1Title: "Bez dostepu do API",
-      safetyFeature1Body:
-        "Nigdy nie dotykamy wewnetrznego kodu Vinted ani prywatnych endpointow — zero wyzwalan Cloudflare.",
-      safetyFeature2Title: "Ludzkie tempo",
-      safetyFeature2Body:
-        "Wypelniamy za Ciebie pola tekstowe — jak bardzo szybki maszynista. Bez akcji masowych, bez petli spamu.",
-      safetyFeature3Title: "Twoj portfel pozostaje bezpieczny",
-      safetyFeature3Body:
-        "Przegladsz kazde ogloszenie przed publikacja. Twoj portfel Vinted i konto nigdy nie sa zagrozone.",
-      comparisonBadge: "Uczciwe porownanie",
-      comparisonBotSubtitle: "Boty automatyzujace Vinted",
-      comparisonAlSubtitle: "Generator tresci AI",
-      comparisonSafeChoice: "Bezpieczny wybor",
-      comparisonBotBullet1Title: "Wysokie ryzyko bana konta",
-      comparisonBotBullet1Body:
-        "Lacza sie z prywatnym API Vinted — spolecznosc zglosila bany juz po kilku tygodniach",
-      comparisonBotBullet2Title: "Wyzwolenie wykrywania botow Cloudflare",
-      comparisonBotBullet2Body:
-        "500 dziennych auto-polubien i auto-obserwacji oznacza Twoje konto jako automatyczny ruch",
-      comparisonBotBullet3Title: "Narusza regulamin Vinted",
-      comparisonBotBullet3Body:
-        "Automatyzacja via prywatne API jest wyraznie zabroniona w regulaminie Vinted",
-      comparisonBotBullet4Title: "Twoj portfel Vinted jest zagrozony",
-      comparisonBotBullet4Body:
-        "Ban konta = zamrozony portfel. Kazde pieniadze na platformie moga byc zablokowane natychmiast",
-      comparisonAlBullet1Title: "Zero ryzyka bana",
-      comparisonAlBullet1Body:
-        "Odczytuje Twoje zdjecie, pisze tekst ogloszenia — zachowanie identyczne z ludzkim sprzedawca",
-      comparisonAlBullet2Title: "Zero wyzwalan Cloudflare",
-      comparisonAlBullet2Body:
-        "Brak prywatnych wywolan API. Brak akcji masowych. Calkowicie niewidoczny dla wykrywania botow.",
-      comparisonAlBullet3Title: "100% zgodny z regulaminem Vinted",
-      comparisonAlBullet3Body:
-        "Asystent pisania, nie bot. Pomaga tworzyc lepsze ogloszenia, w pelni zgodnie z zasadami.",
-      comparisonAlBullet4Title: "Twoj portfel pozostaje chroniony",
-      comparisonAlBullet4Body:
-        "Brak ryzyka konta, brak zamrozonych srodkow. Wiecej sprzedawaj, mniej sie martw.",
-      comparisonFootnote:
-        "Porownanie oparte na publicznie reklamowanych funkcjach DotB i Vintex z 2025 roku. AutoLister AI nie jest powiazany z Vinted.",
       featuresTitle: "Szybsza sprzedaz na Vinted",
       featuresSubtitle:
         "Zdjecie. Analiza. Sprzedaz. Od galerii do gotowego ogloszenia Vinted w kilka sekund.",
@@ -1450,12 +1116,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Zacznij za darmo",
     },
     pricing: {
-      safetyBannerTitle:
-        "Jedyne narzedzie Vinted, ktore naprawde chroni Twoje konto.",
+      safetyBannerTitle: "Asystent AI, nad którym masz kontrolę.",
       safetyZeroMass: "Nie musisz łączyć konta Vinted",
-      safetyZeroApi: "0 dostepu API",
-      safetyZeroBan: "0 ryzyka bana",
-      accountSafe: "Bezpieczne",
+      safetyZeroApi: "Wersje robocze bez automatycznej publikacji",
+      safetyZeroBan: "Sprawdź przed publikacją",
+      accountSafe: "Pod Twoją kontrolą",
       mostPopular: "Najpopularniejszy",
       perMonth: "/miesiac",
       perForever: "/zawsze",
@@ -1516,7 +1181,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Genera titulos, descripciones y hashtags optimizados para SEO automaticamente",
       heroBullet2: "Sin copiar y pegar. Sin enviar fotos por correo.",
-      heroBullet3: "Cumple con los terminos de servicio de Vinted",
+      heroBullet3: "Revisas cada borrador antes de publicarlo",
       addToChrome: "Anadir a Chrome",
       addToChromeNote: "Es gratis",
       testimonialQuote:
@@ -1555,58 +1220,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Cero riesgo. 100% de control.",
-      safetyBody:
-        "A diferencia de DotB y Vintex — que se conectan a la API privada de Vinted para auto-seguir y auto-dar likes — AutoLister funciona estrictamente como una herramienta de productividad del navegador. Escribe texto por ti. Nada mas.",
-      safetyNativeBadge: "Extension nativa del navegador al 100%",
-      safetyCoreBadge: "La diferencia clave",
-      safetyCoreTitle: "El riesgo no es la IA.",
-      safetyCoreSubtitle: "El riesgo es automatizar acciones en Vinted.",
-      safetyCoreBody:
-        "AutoLister actua exactamente como un humano escribiendo muy rapido. Nunca tocamos APIs privadas ni automatizamos likes o follows. Cero acciones masivas.",
-      safetyStatBotRiskLabel: "Riesgo de baneo del bot",
-      safetyStatBotRiskNote: "Reportado por vendedores en semanas",
-      safetyStatAlRiskLabel: "Riesgo AutoLister",
-      safetyStatAlRiskNote: "0 acciones masivas. 0 acceso API.",
-      safetyFeature1Title: "Sin acceso a API",
-      safetyFeature1Body:
-        "Nunca tocamos el codigo interno de Vinted ni endpoints privados — cero activacion de Cloudflare.",
-      safetyFeature2Title: "Ritmo humano",
-      safetyFeature2Body:
-        "Rellenamos los campos de texto por ti — como un mecanografo muy rapido. Sin acciones masivas, sin bucles de spam.",
-      safetyFeature3Title: "Tu cartera esta segura",
-      safetyFeature3Body:
-        "Revisas cada anuncio antes de publicarlo. Tu cartera y cuenta de Vinted nunca estan en riesgo.",
-      comparisonBadge: "Comparacion honesta",
-      comparisonBotSubtitle: "Bots de automatizacion de Vinted",
-      comparisonAlSubtitle: "Generador de contenido IA",
-      comparisonSafeChoice: "Eleccion segura",
-      comparisonBotBullet1Title: "Alto riesgo de baneo de cuenta",
-      comparisonBotBullet1Body:
-        "Se conectan a la API privada de Vinted — bans reportados en la comunidad a las pocas semanas",
-      comparisonBotBullet2Title: "Activacion de deteccion de bots Cloudflare",
-      comparisonBotBullet2Body:
-        "500 auto-likes y auto-follows diarios marcan tu cuenta como trafico automatizado",
-      comparisonBotBullet3Title: "Viola los Terminos de Servicio de Vinted",
-      comparisonBotBullet3Body:
-        "Automatizar acciones de Vinted via API privada esta expresamente prohibido en sus ToS",
-      comparisonBotBullet4Title: "Tu cartera de Vinted en riesgo",
-      comparisonBotBullet4Body:
-        "Baneo de cuenta = cartera congelada. Cualquier dinero en la plataforma podria bloquearse al instante",
-      comparisonAlBullet1Title: "Cero riesgo de baneo",
-      comparisonAlBullet1Body:
-        "Lee tu foto, escribe el texto del anuncio — comportamiento identico al de un vendedor humano",
-      comparisonAlBullet2Title: "Cero activaciones de Cloudflare",
-      comparisonAlBullet2Body:
-        "Sin llamadas privadas a la API. Sin acciones masivas. Completamente invisible para la deteccion de bots.",
-      comparisonAlBullet3Title: "100% conforme con los ToS de Vinted",
-      comparisonAlBullet3Body:
-        "Un asistente de escritura, no un bot. Ayuda a crear mejores anuncios totalmente dentro de las reglas.",
-      comparisonAlBullet4Title: "Tu cartera permanece protegida",
-      comparisonAlBullet4Body:
-        "Sin riesgo de cuenta, sin fondos congelados. Anuncia mas, preocupate menos.",
-      comparisonFootnote:
-        "Comparacion basada en las funciones publicamente anunciadas de DotB y Vintex a partir de 2025. AutoLister AI no esta afiliado ni respaldado por Vinted.",
       featuresTitle: "Una forma mas rapida de vender en Vinted",
       featuresSubtitle:
         "Foto. Analiza. Vende. De tu galeria a un anuncio de Vinted en segundos.",
@@ -1636,12 +1249,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Empieza gratis",
     },
     pricing: {
-      safetyBannerTitle:
-        "La unica herramienta de Vinted que protege de verdad tu cuenta.",
+      safetyBannerTitle: "Un asistente de IA donde tú decides.",
       safetyZeroMass: "No necesitas conectar tu cuenta de Vinted",
-      safetyZeroApi: "0 accesos API",
-      safetyZeroBan: "0 riesgo de baneo",
-      accountSafe: "Cuenta segura",
+      safetyZeroApi: "Borradores, no publicación automática",
+      safetyZeroBan: "Revisa antes de publicar",
+      accountSafe: "Bajo tu control",
       mostPopular: "Mas popular",
       perMonth: "/mes",
       perForever: "/siempre",
@@ -1702,7 +1314,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Genera automaticamente titoli, descrizioni e hashtag ottimizzati per il SEO",
       heroBullet2: "Nessun copia-incolla. Nessun invio di foto via email.",
-      heroBullet3: "Conforme ai termini di servizio di Vinted",
+      heroBullet3: "Controlli ogni bozza prima di pubblicarla",
       addToChrome: "Aggiungi a Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
@@ -1741,58 +1353,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Zero rischi. 100% controllo.",
-      safetyBody:
-        "A differenza di DotB e Vintex — che si collegano all'API privata di Vinted per auto-seguire e auto-mettere like — AutoLister opera strettamente come uno strumento di produttivita del browser. Scrive testo per te. Nient'altro.",
-      safetyNativeBadge: "Estensione browser 100% nativa",
-      safetyCoreBadge: "La differenza chiave",
-      safetyCoreTitle: "Il rischio non e l'AI.",
-      safetyCoreSubtitle: "Il rischio e automatizzare azioni su Vinted.",
-      safetyCoreBody:
-        "AutoLister si comporta esattamente come un umano che scrive molto velocemente. Non tocchiamo API private e non automatizziamo likes o follows. Zero azioni di massa.",
-      safetyStatBotRiskLabel: "Rischio ban bot",
-      safetyStatBotRiskNote: "Segnalato da venditori in poche settimane",
-      safetyStatAlRiskLabel: "Rischio AutoLister",
-      safetyStatAlRiskNote: "0 azioni di massa. 0 accessi API.",
-      safetyFeature1Title: "Nessun accesso API",
-      safetyFeature1Body:
-        "Non tocchiamo mai il codice interno di Vinted o endpoint privati — zero trigger Cloudflare.",
-      safetyFeature2Title: "Ritmo umano",
-      safetyFeature2Body:
-        "Compiliamo i campi di testo per te — come un dattilografo molto veloce. Nessuna azione di massa, nessun loop di spam.",
-      safetyFeature3Title: "Il tuo portafoglio e al sicuro",
-      safetyFeature3Body:
-        "Revisioni ogni annuncio prima che vada in linea. Il tuo portafoglio e account Vinted non sono mai a rischio.",
-      comparisonBadge: "Confronto onesto",
-      comparisonBotSubtitle: "Bot di automazione Vinted",
-      comparisonAlSubtitle: "Generatore di contenuti AI",
-      comparisonSafeChoice: "Scelta sicura",
-      comparisonBotBullet1Title: "Alto rischio di ban dell'account",
-      comparisonBotBullet1Body:
-        "Si collegano all'API privata di Vinted — la community segnala ban entro settimane dall'uso",
-      comparisonBotBullet2Title: "Rilevamento bot Cloudflare attivato",
-      comparisonBotBullet2Body:
-        "500 auto-like e auto-follow giornalieri contrassegnano il tuo account come traffico automatizzato",
-      comparisonBotBullet3Title: "Viola i Termini di Servizio di Vinted",
-      comparisonBotBullet3Body:
-        "Automatizzare le azioni di Vinted tramite API privata e esplicitamente vietato nei loro ToS",
-      comparisonBotBullet4Title: "Il tuo portafoglio Vinted a rischio",
-      comparisonBotBullet4Body:
-        "Ban account = portafoglio congelato. Qualsiasi denaro sulla piattaforma potrebbe essere bloccato istantaneamente",
-      comparisonAlBullet1Title: "Zero rischio di ban",
-      comparisonAlBullet1Body:
-        "Legge la tua foto, scrive il testo dell'annuncio — comportamento identico a un venditore umano",
-      comparisonAlBullet2Title: "Zero trigger Cloudflare",
-      comparisonAlBullet2Body:
-        "Nessuna chiamata API privata. Nessuna azione di massa. Completamente invisibile al rilevamento bot.",
-      comparisonAlBullet3Title: "100% conforme ai ToS di Vinted",
-      comparisonAlBullet3Body:
-        "Un assistente di scrittura, non un bot. Aiuta a creare annunci migliori, completamente nel rispetto delle regole.",
-      comparisonAlBullet4Title: "Il tuo portafoglio resta protetto",
-      comparisonAlBullet4Body:
-        "Nessun rischio account, nessun fondo congelato. Pubblica di piu, preoccupati di meno.",
-      comparisonFootnote:
-        "Confronto basato sulle funzionalita pubblicamente pubblicizzate di DotB e Vintex al 2025. AutoLister AI non e affiliato ne approvato da Vinted.",
       featuresTitle: "Un modo piu veloce di vendere su Vinted",
       featuresSubtitle:
         "Scatta. Analizza. Vendi. Dalla galleria a un annuncio Vinted in pochi secondi.",
@@ -1822,12 +1382,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Inizia gratis",
     },
     pricing: {
-      safetyBannerTitle:
-        "L'unico strumento Vinted che protegge davvero il tuo account.",
+      safetyBannerTitle: "Un assistente AI in cui decidi tu.",
       safetyZeroMass: "Non devi collegare il tuo account Vinted",
-      safetyZeroApi: "0 accessi API",
-      safetyZeroBan: "0 rischio ban",
-      accountSafe: "Account sicuro",
+      safetyZeroApi: "Bozze, non pubblicazione automatica",
+      safetyZeroBan: "Controlla prima di pubblicare",
+      accountSafe: "Sotto il tuo controllo",
       mostPopular: "Piu popolare",
       perMonth: "/mese",
       perForever: "/a vita",
@@ -1888,7 +1447,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1:
         "Gera automaticamente titulos, descricoes e hashtags otimizados para SEO",
       heroBullet2: "Sem copiar e colar. Sem enviar fotos por email.",
-      heroBullet3: "Em conformidade com os termos de servico da Vinted",
+      heroBullet3: "Revê cada rascunho antes de publicar",
       addToChrome: "Adicionar ao Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
@@ -1927,58 +1486,6 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      safetyHeading: "Zero risco. 100% controlo.",
-      safetyBody:
-        "Ao contrario do DotB e Vintex — que se ligam a API privada da Vinted para auto-seguir e auto-dar gostos — o AutoLister funciona estritamente como uma ferramenta de produtividade do navegador. Escreve texto por si. Nada mais.",
-      safetyNativeBadge: "Extensao de navegador 100% nativa",
-      safetyCoreBadge: "A diferenca central",
-      safetyCoreTitle: "O risco nao e a IA.",
-      safetyCoreSubtitle: "O risco e automatizar acoes na Vinted.",
-      safetyCoreBody:
-        "O AutoLister comporta-se exatamente como um humano a escrever muito depressa. Nunca tocamos em APIs privadas nem automatizamos gostos ou follows. Zero acoes em massa.",
-      safetyStatBotRiskLabel: "Risco de ban do bot",
-      safetyStatBotRiskNote: "Reportado por vendedores em poucas semanas",
-      safetyStatAlRiskLabel: "Risco AutoLister",
-      safetyStatAlRiskNote: "0 acoes em massa. 0 acesso API.",
-      safetyFeature1Title: "Sem acesso a API",
-      safetyFeature1Body:
-        "Nunca tocamos no codigo interno da Vinted ou endpoints privados — zero ativacoes Cloudflare.",
-      safetyFeature2Title: "Ritmo humano",
-      safetyFeature2Body:
-        "Preenchemos os campos de texto por si — como um datilografo muito rapido. Sem acoes em massa, sem loops de spam.",
-      safetyFeature3Title: "A sua carteira esta segura",
-      safetyFeature3Body:
-        "Reveja cada anuncio antes de publicar. A sua carteira e conta Vinted nunca estao em risco.",
-      comparisonBadge: "Comparacao honesta",
-      comparisonBotSubtitle: "Bots de automatizacao Vinted",
-      comparisonAlSubtitle: "Gerador de conteudo IA",
-      comparisonSafeChoice: "Escolha segura",
-      comparisonBotBullet1Title: "Alto risco de ban de conta",
-      comparisonBotBullet1Body:
-        "Ligam-se a API privada da Vinted — comunidade reporta bans em poucas semanas de uso",
-      comparisonBotBullet2Title: "Detecao de bots Cloudflare ativada",
-      comparisonBotBullet2Body:
-        "500 auto-gostos e auto-seguidores diarios marcam a sua conta como trafego automatizado",
-      comparisonBotBullet3Title: "Viola os Termos de Servico da Vinted",
-      comparisonBotBullet3Body:
-        "Automatizar acoes da Vinted via API privada e explicitamente proibido nos seus ToS",
-      comparisonBotBullet4Title: "A sua carteira Vinted em risco",
-      comparisonBotBullet4Body:
-        "Ban da conta = carteira congelada. Qualquer dinheiro na plataforma pode ser bloqueado instantaneamente",
-      comparisonAlBullet1Title: "Zero risco de ban",
-      comparisonAlBullet1Body:
-        "Le a sua foto, escreve o texto do anuncio — comportamento identico ao de um vendedor humano",
-      comparisonAlBullet2Title: "Zero ativacoes Cloudflare",
-      comparisonAlBullet2Body:
-        "Sem chamadas privadas a API. Sem acoes em massa. Completamente invisivel para detetar bots.",
-      comparisonAlBullet3Title: "100% conforme com os ToS da Vinted",
-      comparisonAlBullet3Body:
-        "Um assistente de escrita, nao um bot. Ajuda a criar melhores anuncios, totalmente dentro das regras.",
-      comparisonAlBullet4Title: "A sua carteira permanece protegida",
-      comparisonAlBullet4Body:
-        "Sem risco de conta, sem fundos congelados. Publique mais, preocupe-se menos.",
-      comparisonFootnote:
-        "Comparacao baseada nas funcionalidades publicamente anunciadas do DotB e Vintex ate 2025. O AutoLister AI nao e afiliado nem apoiado pela Vinted.",
       featuresTitle: "Uma forma mais rapida de vender na Vinted",
       featuresSubtitle:
         "Foto. Analise. Venda. Da galeria para um anuncio Vinted em segundos.",
@@ -2008,12 +1515,11 @@ export const SITE_EXTRA_COPY: Record<
       getStartedFree: "Comecar gratis",
     },
     pricing: {
-      safetyBannerTitle:
-        "A unica ferramenta Vinted que protege mesmo a sua conta.",
+      safetyBannerTitle: "Um assistente de IA em que você decide.",
       safetyZeroMass: "Nao precisa ligar a sua conta Vinted",
-      safetyZeroApi: "0 acessos API",
-      safetyZeroBan: "0 risco de ban",
-      accountSafe: "Conta segura",
+      safetyZeroApi: "Rascunhos, não publicação automática",
+      safetyZeroBan: "Reveja antes de publicar",
+      accountSafe: "Sob o seu controlo",
       mostPopular: "Mais popular",
       perMonth: "/mes",
       perForever: "/para sempre",

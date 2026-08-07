@@ -42,7 +42,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     eyebrow: "Vinted seller growth",
     title: "The Vinted Seller Playbook",
     subtitle:
-      "Practical guides for Vinted sellers and resellers who want faster listings, better buyer trust, and more sales without risky automation bots.",
+      "Practical guides for Vinted sellers and resellers who want faster listings, better buyer trust, and more control over every draft.",
     allPosts: "All posts",
     readMore: "Read guide",
     minutesRead: "min read",
@@ -73,7 +73,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     eyebrow: "Croissance vendeurs Vinted",
     title: "Le guide des vendeurs Vinted",
     subtitle:
-      "Des guides concrets pour créer de meilleures annonces, gagner la confiance des acheteurs et vendre plus vite sans bots risqués.",
+      "Des guides concrets pour créer de meilleures annonces, gagner la confiance des acheteurs et garder le contrôle de chaque brouillon.",
     allPosts: "Tous les articles",
     readMore: "Lire le guide",
     minutesRead: "min de lecture",
@@ -104,7 +104,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     eyebrow: "Vinted Verkäufer-Wachstum",
     title: "Das Vinted Verkäufer-Handbuch",
     subtitle:
-      "Konkrete Guides für bessere Vinted-Listings, mehr Vertrauen bei Käufern und schnelleres Verkaufen ohne riskante Bots.",
+      "Konkrete Guides für bessere Vinted-Listings, mehr Vertrauen bei Käufern und volle Kontrolle über jeden Entwurf.",
     allPosts: "Alle Beiträge",
     readMore: "Guide lesen",
     minutesRead: "Min. Lesezeit",
@@ -135,7 +135,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     eyebrow: "Vinted verkopersgroei",
     title: "Het Vinted verkoophandboek",
     subtitle:
-      "Concrete gidsen voor betere Vinted-advertenties, meer vertrouwen van kopers en sneller verkopen zonder riskante bots.",
+      "Concrete gidsen voor betere Vinted-advertenties, meer vertrouwen van kopers en controle over elk concept.",
     allPosts: "Alle artikelen",
     readMore: "Lees gids",
     minutesRead: "min leestijd",

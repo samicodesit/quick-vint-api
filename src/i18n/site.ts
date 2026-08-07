@@ -75,11 +75,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Vinted AI Listing Assistant & Description Generator | AutoLister AI",
       seoDescription:
         "Create Vinted titles, descriptions, and hashtags from item photos with AutoLister AI. Save seller notes, work directly inside Vinted, and never connect your Vinted account.",
-      heroTitle: "AI listing assistant for Vinted titles and descriptions",
+      heroTitle: "AI listing assistant for titles and descriptions",
       heroSubtitle:
-        "Create Vinted titles, descriptions, and hashtags from your item photos. Save your own seller notes and reuse them on future listings. Works directly inside Vinted, with no Vinted account connection needed.",
+        "Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. Works directly inside Vinted without connecting your account.",
       heroMobileSubtitle:
-        "Create better Vinted listings in seconds, directly inside Vinted.",
+        "Create listing drafts from photos, directly inside Vinted.",
       heroBadgeSafe: "AI listing assistant · You stay in control",
       heroBulletSafety: "Prepares listing drafts for you to review and publish",
     },
@@ -114,11 +114,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Assistant IA pour annonces Vinted et générateur de descriptions | AutoLister AI",
       seoDescription:
         "Créez des titres, descriptions et hashtags Vinted depuis vos photos avec AutoLister AI. Enregistrez vos notes vendeur, travaillez directement dans Vinted et ne connectez jamais votre compte Vinted.",
-      heroTitle: "Assistant IA pour les titres et descriptions Vinted",
+      heroTitle: "Assistant IA pour les titres et descriptions",
       heroSubtitle:
-        "Créez des titres, descriptions et hashtags Vinted depuis vos photos d'articles. Enregistrez vos propres notes vendeur et réutilisez-les sur vos prochaines annonces. Fonctionne directement dans Vinted, sans connecter votre compte Vinted.",
+        "Créez des titres, descriptions et hashtags depuis vos photos. Enregistrez et réutilisez vos notes vendeur. Fonctionne directement dans Vinted sans connecter votre compte.",
       heroMobileSubtitle:
-        "Créez de meilleures annonces Vinted en quelques secondes, directement dans Vinted.",
+        "Créez des brouillons depuis vos photos, directement dans Vinted.",
       heroBadgeSafe: "Assistant IA pour vos annonces · Vous gardez le contrôle",
       heroBulletSafety:
         "Prépare des brouillons que vous vérifiez avant de publier",
@@ -154,11 +154,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Vinted-KI-Assistent für Anzeigen & Beschreibungsgenerator | AutoLister AI",
       seoDescription:
         "Erstelle Vinted-Titel, Beschreibungen und Hashtags aus Artikelfotos mit AutoLister AI. Speichere Verkäufernotizen, arbeite direkt in Vinted und verbinde nie dein Vinted-Konto.",
-      heroTitle: "KI-Assistent für Vinted-Titel und -Beschreibungen",
+      heroTitle: "KI-Assistent für Titel und Beschreibungen",
       heroSubtitle:
-        "Erstelle Vinted-Titel, Beschreibungen und Hashtags aus deinen Artikelfotos. Speichere eigene Verkäufernotizen und nutze sie in zukünftigen Anzeigen wieder. Funktioniert direkt in Vinted, ohne dein Vinted-Konto zu verbinden.",
+        "Erstelle Titel, Beschreibungen und Hashtags aus Artikelfotos. Speichere und verwende eigene Verkäufernotizen. Funktioniert direkt in Vinted, ohne dein Konto zu verbinden.",
       heroMobileSubtitle:
-        "Erstelle bessere Vinted-Anzeigen in Sekunden, direkt in Vinted.",
+        "Erstelle Anzeigenentwürfe aus Fotos, direkt in Vinted.",
       heroBadgeSafe: "KI-Assistent für Anzeigen · Du behältst die Kontrolle",
       heroBulletSafety:
         "Erstellt Entwürfe, die du vor dem Veröffentlichen prüfst",
@@ -193,11 +193,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Vinted AI-assistent voor advertenties & beschrijving generator | AutoLister AI",
       seoDescription:
         "Maak Vinted-titels, beschrijvingen en hashtags vanuit itemfoto's met AutoLister AI. Bewaar verkopersnotities, werk direct in Vinted en koppel nooit je Vinted-account.",
-      heroTitle: "AI-assistent voor Vinted-titels en beschrijvingen",
+      heroTitle: "AI-assistent voor titels en beschrijvingen",
       heroSubtitle:
-        "Maak Vinted-titels, beschrijvingen en hashtags vanuit je itemfoto's. Bewaar je eigen verkopersnotities en gebruik ze opnieuw bij toekomstige advertenties. Werkt direct in Vinted, zonder je Vinted-account te koppelen.",
+        "Maak titels, beschrijvingen en hashtags vanuit itemfoto's. Bewaar en hergebruik je verkopersnotities. Werkt direct in Vinted zonder je account te koppelen.",
       heroMobileSubtitle:
-        "Maak betere Vinted-advertenties in seconden, direct in Vinted.",
+        "Maak advertentieconcepten vanuit foto's, direct in Vinted.",
       heroBadgeSafe: "AI-assistent voor advertenties · Jij houdt de controle",
       heroBulletSafety:
         "Maakt concepten die je controleert voordat je publiceert",
@@ -233,11 +233,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Asystent AI do ogłoszeń Vinted i generator opisów | AutoLister AI",
       seoDescription:
         "Twórz tytuły, opisy i hashtagi Vinted ze zdjęć produktów dzięki AutoLister AI. Zapisuj notatki sprzedawcy, pracuj bezpośrednio w Vinted i nigdy nie łącz konta Vinted.",
-      heroTitle: "Asystent AI do tytułów i opisów Vinted",
+      heroTitle: "Asystent AI do tytułów i opisów",
       heroSubtitle:
-        "Twórz tytuły, opisy i hashtagi Vinted ze zdjęć swoich produktów. Zapisuj własne notatki sprzedawcy i używaj ich ponownie w przyszłych ogłoszeniach. Działa bezpośrednio w Vinted, bez łączenia konta Vinted.",
+        "Twórz tytuły, opisy i hashtagi ze zdjęć produktów. Zapisuj i wykorzystuj ponownie notatki sprzedawcy. Działa bezpośrednio w Vinted bez łączenia konta.",
       heroMobileSubtitle:
-        "Twórz lepsze ogłoszenia Vinted w kilka sekund, bezpośrednio w Vinted.",
+        "Twórz wersje robocze ze zdjęć, bezpośrednio w Vinted.",
       heroBadgeSafe: "Asystent AI do ogłoszeń · Ty zachowujesz kontrolę",
       heroBulletSafety:
         "Przygotowuje wersje robocze, które sprawdzasz przed publikacją",
@@ -272,11 +272,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Asistente IA para anuncios de Vinted y generador de descripciones | AutoLister AI",
       seoDescription:
         "Crea títulos, descripciones y hashtags para Vinted desde fotos de artículos con AutoLister AI. Guarda notas de vendedor, trabaja directamente dentro de Vinted y nunca conectes tu cuenta de Vinted.",
-      heroTitle: "Asistente IA para títulos y descripciones de Vinted",
+      heroTitle: "Asistente IA para títulos y descripciones",
       heroSubtitle:
-        "Crea títulos, descripciones y hashtags para Vinted desde las fotos de tus artículos. Guarda tus propias notas de vendedor y reutilízalas en futuros anuncios. Funciona directamente dentro de Vinted, sin conectar tu cuenta de Vinted.",
+        "Crea títulos, descripciones y hashtags desde las fotos de tus artículos. Guarda y reutiliza tus notas de vendedor. Funciona directamente dentro de Vinted sin conectar tu cuenta.",
       heroMobileSubtitle:
-        "Crea mejores anuncios de Vinted en segundos, directamente en Vinted.",
+        "Crea borradores desde tus fotos, directamente en Vinted.",
       heroBadgeSafe: "Asistente de anuncios con IA · Tú tienes el control",
       heroBulletSafety:
         "Prepara borradores que revisas antes de publicar",
@@ -312,11 +312,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Assistente IA per annunci Vinted e generatore di descrizioni | AutoLister AI",
       seoDescription:
         "Crea titoli, descrizioni e hashtag Vinted dalle foto degli articoli con AutoLister AI. Salva note venditore, lavora direttamente dentro Vinted e non collegare mai il tuo account Vinted.",
-      heroTitle: "Assistente IA per titoli e descrizioni Vinted",
+      heroTitle: "Assistente IA per titoli e descrizioni",
       heroSubtitle:
-        "Crea titoli, descrizioni e hashtag Vinted dalle foto dei tuoi articoli. Salva le tue note venditore e riutilizzale negli annunci futuri. Funziona direttamente dentro Vinted, senza collegare il tuo account Vinted.",
+        "Crea titoli, descrizioni e hashtag dalle foto degli articoli. Salva e riutilizza le tue note venditore. Funziona direttamente dentro Vinted senza collegare il tuo account.",
       heroMobileSubtitle:
-        "Crea annunci Vinted migliori in pochi secondi, direttamente su Vinted.",
+        "Crea bozze dalle foto, direttamente su Vinted.",
       heroBadgeSafe: "Assistente AI per gli annunci · Decidi tu",
       heroBulletSafety:
         "Prepara bozze che controlli prima di pubblicare",
@@ -351,11 +351,11 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Assistente IA para anúncios Vinted e gerador de descrições | AutoLister AI",
       seoDescription:
         "Crie títulos, descrições e hashtags Vinted a partir de fotografias dos artigos com o AutoLister AI. Guarde notas de vendedor, trabalhe diretamente na Vinted e nunca ligue a sua conta Vinted.",
-      heroTitle: "Assistente IA para títulos e descrições Vinted",
+      heroTitle: "Assistente IA para títulos e descrições",
       heroSubtitle:
-        "Crie títulos, descrições e hashtags Vinted a partir das fotografias dos seus artigos. Guarde as suas próprias notas de vendedor e reutilize-as em anúncios futuros. Funciona diretamente na Vinted, sem ligar a sua conta Vinted.",
+        "Crie títulos, descrições e hashtags a partir das fotografias dos artigos. Guarde e reutilize as suas notas de vendedor. Funciona diretamente na Vinted sem ligar a sua conta.",
       heroMobileSubtitle:
-        "Crie melhores anúncios Vinted em segundos, diretamente na Vinted.",
+        "Crie rascunhos a partir de fotografias, diretamente na Vinted.",
       heroBadgeSafe: "Assistente de anúncios com IA · Você mantém o controlo",
       heroBulletSafety:
         "Prepara rascunhos que revê antes de publicar",
@@ -510,11 +510,11 @@ export const SITE_EXTRA_COPY: Record<
 > = {
   en: {
     home: {
-      heroBadgePrimary: "Vinted description generator + listing assistant",
+      heroBadgePrimary: "Description generator + listing assistant",
       watchDemo: "Watch Demo",
       videoCaption: "See how it works in 15 seconds",
       publicStatsAriaLabel: "AutoLister public usage stats",
-      publicStatsGenerationsLabel: "Vinted listings prepared",
+      publicStatsGenerationsLabel: "listings prepared",
       screenshotPreviewLabel: "New version screenshots",
       screenshotPreviewHint: "Open full size",
       screenshotPreviewBadge: "New",
@@ -531,7 +531,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "It's Free",
       testimonialQuote:
         "So much faster when I upload several items. The first draft is ready in seconds.",
-      testimonialAuthor: "— Otília N., Vinted seller",
+      testimonialAuthor: "— Otília N., seller",
       tierProof: {
         ariaLabel: "AutoLister plan value",
         tierLabel: "Plan",
@@ -640,12 +640,11 @@ export const SITE_EXTRA_COPY: Record<
   },
   fr: {
     home: {
-      heroBadgePrimary:
-        "Générateur de descriptions Vinted + assistant d'annonces",
+      heroBadgePrimary: "Générateur de descriptions + assistant d'annonces",
       watchDemo: "Voir la démo",
       videoCaption: "Voyez le résultat en 15 secondes",
       publicStatsAriaLabel: "Statistiques publiques d'utilisation d'AutoLister",
-      publicStatsGenerationsLabel: "annonces Vinted préparées",
+      publicStatsGenerationsLabel: "annonces préparées",
       screenshotPreviewLabel: "Nouvelles captures",
       screenshotPreviewHint: "Ouvrir en grand",
       screenshotPreviewBadge: "Nouveau",
@@ -662,7 +661,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "C'est gratuit",
       testimonialQuote:
         "Tellement plus rapide quand j'ajoute plusieurs articles. Le premier brouillon est prêt en quelques secondes.",
-      testimonialAuthor: "— Otília N., vendeuse Vinted",
+      testimonialAuthor: "— Otília N., vendeuse",
       tierProof: {
         ariaLabel: "Valeur des offres AutoLister",
         tierLabel: "Offre",
@@ -771,11 +770,11 @@ export const SITE_EXTRA_COPY: Record<
   },
   de: {
     home: {
-      heroBadgePrimary: "Vinted-Beschreibungsgenerator + Anzeigen-Assistent",
+      heroBadgePrimary: "Beschreibungsgenerator + Anzeigen-Assistent",
       watchDemo: "Demo ansehen",
       videoCaption: "So funktioniert es in 15 Sekunden",
       publicStatsAriaLabel: "Öffentliche Nutzungsstatistiken von AutoLister",
-      publicStatsGenerationsLabel: "vorbereitete Vinted-Anzeigen",
+      publicStatsGenerationsLabel: "vorbereitete Anzeigen",
       screenshotPreviewLabel: "Neue Versions-Screenshots",
       screenshotPreviewHint: "Groß öffnen",
       screenshotPreviewBadge: "Neu",
@@ -793,7 +792,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "Kostenlos",
       testimonialQuote:
         "So viel schneller, wenn ich mehrere Artikel hochlade. Der erste Entwurf ist in Sekunden fertig.",
-      testimonialAuthor: "— Otília N., Vinted-Verkaeuferin",
+      testimonialAuthor: "— Otília N., Verkäuferin",
       tierProof: {
         ariaLabel: "AutoLister Tarifvorteile",
         tierLabel: "Tarif",
@@ -902,11 +901,11 @@ export const SITE_EXTRA_COPY: Record<
   },
   nl: {
     home: {
-      heroBadgePrimary: "Vinted beschrijving generator + advertentie-assistent",
+      heroBadgePrimary: "Beschrijvinggenerator + advertentie-assistent",
       watchDemo: "Bekijk demo",
       videoCaption: "Zie hoe het werkt in 15 seconden",
       publicStatsAriaLabel: "Openbare gebruiksstatistieken van AutoLister",
-      publicStatsGenerationsLabel: "Vinted-listings voorbereid",
+      publicStatsGenerationsLabel: "advertenties voorbereid",
       screenshotPreviewLabel: "Nieuwe versie-screenshots",
       screenshotPreviewHint: "Open groot",
       screenshotPreviewBadge: "Nieuw",
@@ -923,7 +922,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "Gratis",
       testimonialQuote:
         "Zoveel sneller als ik meerdere items upload. De eerste versie staat er binnen een paar seconden.",
-      testimonialAuthor: "— Otília N., Vinted-verkoper",
+      testimonialAuthor: "— Otília N., verkoper",
       tierProof: {
         ariaLabel: "Waarde van AutoLister-abonnementen",
         tierLabel: "Abonnement",
@@ -1033,11 +1032,11 @@ export const SITE_EXTRA_COPY: Record<
   },
   pl: {
     home: {
-      heroBadgePrimary: "Generator opisów Vinted + asystent ogłoszeń",
+      heroBadgePrimary: "Generator opisów + asystent ogłoszeń",
       watchDemo: "Obejrzyj demo",
       videoCaption: "Zobacz jak to dziala w 15 sekund",
       publicStatsAriaLabel: "Publiczne statystyki użycia AutoLister",
-      publicStatsGenerationsLabel: "przygotowanych ogłoszeń Vinted",
+      publicStatsGenerationsLabel: "przygotowanych ogłoszeń",
       screenshotPreviewLabel: "Zrzuty nowej wersji",
       screenshotPreviewHint: "Otwórz pełny rozmiar",
       screenshotPreviewBadge: "Nowe",
@@ -1054,7 +1053,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "To jest darmowe",
       testimonialQuote:
         "Duzo szybciej, gdy dodaje kilka rzeczy naraz. Pierwszy szkic jest gotowy w kilka sekund.",
-      testimonialAuthor: "— Otília N., sprzedawczyni Vinted",
+      testimonialAuthor: "— Otília N., sprzedawczyni",
       tierProof: {
         ariaLabel: "Wartość planów AutoLister",
         tierLabel: "Plan",
@@ -1163,12 +1162,11 @@ export const SITE_EXTRA_COPY: Record<
   },
   es: {
     home: {
-      heroBadgePrimary:
-        "Generador de descripciones Vinted + asistente de anuncios",
+      heroBadgePrimary: "Generador de descripciones + asistente de anuncios",
       watchDemo: "Ver demo",
       videoCaption: "Mira como funciona en 15 segundos",
       publicStatsAriaLabel: "Estadísticas públicas de uso de AutoLister",
-      publicStatsGenerationsLabel: "anuncios de Vinted preparados",
+      publicStatsGenerationsLabel: "anuncios preparados",
       screenshotPreviewLabel: "Capturas de la nueva versión",
       screenshotPreviewHint: "Abrir a tamaño completo",
       screenshotPreviewBadge: "Nuevo",
@@ -1185,7 +1183,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "Es gratis",
       testimonialQuote:
         "Mucho mas rapido cuando subo varios articulos. El primer borrador esta listo en segundos.",
-      testimonialAuthor: "— Otília N., vendedora de Vinted",
+      testimonialAuthor: "— Otília N., vendedora",
       tierProof: {
         ariaLabel: "Valor de los planes de AutoLister",
         tierLabel: "Plan",
@@ -1294,11 +1292,11 @@ export const SITE_EXTRA_COPY: Record<
   },
   it: {
     home: {
-      heroBadgePrimary: "Generatore di descrizioni Vinted + assistente annunci",
+      heroBadgePrimary: "Generatore di descrizioni + assistente annunci",
       watchDemo: "Guarda demo",
       videoCaption: "Scopri come funziona in 15 secondi",
       publicStatsAriaLabel: "Statistiche pubbliche di utilizzo di AutoLister",
-      publicStatsGenerationsLabel: "annunci Vinted preparati",
+      publicStatsGenerationsLabel: "annunci preparati",
       screenshotPreviewLabel: "Screenshot nuova versione",
       screenshotPreviewHint: "Apri a schermo intero",
       screenshotPreviewBadge: "Nuovo",
@@ -1316,7 +1314,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "E gratis",
       testimonialQuote:
         "Molto piu veloce quando carico piu articoli insieme. La prima bozza e pronta in pochi secondi.",
-      testimonialAuthor: "— Otília N., venditrice Vinted",
+      testimonialAuthor: "— Otília N., venditrice",
       tierProof: {
         ariaLabel: "Valore dei piani AutoLister",
         tierLabel: "Piano",
@@ -1425,11 +1423,11 @@ export const SITE_EXTRA_COPY: Record<
   },
   pt: {
     home: {
-      heroBadgePrimary: "Gerador de descrições Vinted + assistente de anúncios",
+      heroBadgePrimary: "Gerador de descrições + assistente de anúncios",
       watchDemo: "Ver demo",
       videoCaption: "Veja como funciona em 15 segundos",
       publicStatsAriaLabel: "Estatísticas públicas de utilização do AutoLister",
-      publicStatsGenerationsLabel: "anúncios Vinted preparados",
+      publicStatsGenerationsLabel: "anúncios preparados",
       screenshotPreviewLabel: "Capturas da nova versão",
       screenshotPreviewHint: "Abrir em tamanho real",
       screenshotPreviewBadge: "Novo",
@@ -1447,7 +1445,7 @@ export const SITE_EXTRA_COPY: Record<
       addToChromeNote: "E gratis",
       testimonialQuote:
         "Muito mais rapido quando carrego varios artigos de uma vez. O primeiro rascunho fica pronto em segundos.",
-      testimonialAuthor: "— Otília N., vendedora Vinted",
+      testimonialAuthor: "— Otília N., vendedora",
       tierProof: {
         ariaLabel: "Valor dos planos AutoLister",
         tierLabel: "Plano",

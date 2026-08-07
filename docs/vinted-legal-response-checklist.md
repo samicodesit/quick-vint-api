@@ -3,6 +3,82 @@
 Started: 7 August 2026  
 Response deadline in NLO letter: 11 August 2026
 
+## Incident record
+
+- NLO sent an authenticated cease-and-desist notice on behalf of Vinted on
+  7 August 2026. Matter references: `B62060119WW` and `B62060120WW`.
+- The notice and its follow-up concern both `autolister.app` and the legacy
+  `quick-vint.vercel.app` deployment. Reply on the most recent follow-up thread
+  so both references and all NLO recipients remain together.
+- The requested response deadline is Tuesday 11 August 2026, after receipt on
+  Friday 7 August. A short holding reply requesting an extension through
+  21 August 2026 was prepared. Do not mark it sent without checking the actual
+  sent thread.
+- Do not send the internal legal/technical report, source details, logs, or
+  attachments with the holding reply. The holding reply only acknowledges
+  receipt, requests time, and states that precautionary steps are not an
+  admission of liability.
+
+### Approved holding reply
+
+> Dear Mr Buijs,
+>
+> Thank you for your correspondence regarding autolister.app and
+> quick-vint.vercel.app.
+>
+> I am taking Vinted’s concerns seriously and have begun carefully reviewing
+> the matter and taking precautionary steps while that review continues. As an
+> independent developer, I want to ensure that I fully understand the concerns
+> and respond properly.
+>
+> Because the notice was received on Friday with a response requested by
+> Tuesday, would you please agree to extend the deadline until 21 August 2026?
+>
+> I hope we can address this constructively and reach an amicable resolution.
+> Thank you for your understanding.
+>
+> This request and the precautionary steps taken are made without admission of
+> liability.
+>
+> Kind regards,
+>
+> Sami
+>
+> AutoLister AI
+
+### Mail-thread notes for future agents
+
+- The original AutoLister recipient was `hello@autolister.app`. Match that
+  address in the From header for a reply. If a reply was already sent from
+  `support@autolister.app`, do not send a duplicate merely to change the From
+  address.
+- Address the reply to Timo Buijs and retain Peter Simonis and Daniëlle van
+  Weezel in CC. Copying `hello@autolister.app` is optional and only sends
+  AutoLister another copy.
+- Gmail's yellow “You were BCC'd on this message” banner describes the original
+  received message. It persists after the current BCC field is cleared, does
+  not mean the new reply contains a hidden BCC recipient, and is not included
+  in the outgoing message.
+- A prior manual forward to a private recipient does not add that recipient to
+  a later reply. Verify the visible To, CC, and BCC fields before sending.
+- Agents must follow `AGENTS.md`: Gmail is read-only for AutoLister work. Any
+  agent-sent response must use the Resend support flow, the original RFC
+  `Message-ID`, a dry run, and the original inbound AutoLister address.
+
+### Chrome Web Store state
+
+- A no-cache public check on 7 August confirmed that version 1.4.3 was live.
+- Version 1.4.4 was uploaded successfully through the service-account workflow
+  and submitted for review on 7 August. Google returned `PENDING_REVIEW`.
+- The 1.4.4 package contains neutral names and summaries in all eight locales.
+  All eight detailed descriptions are neutralised in `store-descriptions/`.
+- Chrome Web Store's service-account API cannot update dashboard-only detailed
+  descriptions. Those must be pasted into each locale in the Developer
+  Dashboard. Do not claim the public description changed until the public page
+  itself has been checked after review.
+- Release workflow evidence:
+  <https://github.com/samicodesit/quick-vint-frontend/actions/runs/31183886690>
+
 ## Immediate containment
 
 - [x] Preserve both NLO emails, headers, attachments, and evidence screenshots.

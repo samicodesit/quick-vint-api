@@ -71,10 +71,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "AutoLister AI is an independent tool and is not affiliated with, endorsed by, or sponsored by Vinted.",
     },
     home: {
-      seoTitle:
-        "Vinted AI Listing Assistant & Description Generator | AutoLister AI",
+      seoTitle: "AI Listing Assistant & Description Generator | AutoLister AI",
       seoDescription:
-        "Create Vinted titles, descriptions, and hashtags from item photos with AutoLister AI. Save seller notes, work directly inside Vinted, and never connect your Vinted account.",
+        "Create editable listing titles, descriptions, and hashtags from item photos with AutoLister AI.",
       heroTitle: "AI listing assistant for titles and descriptions",
       heroSubtitle:
         "Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. Works directly inside Vinted without connecting your account.",
@@ -86,7 +85,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     pricing: {
       seoTitle: "Pricing - AutoLister AI",
       seoDescription:
-        "Discover our simple and transparent pricing plans for AutoLister AI. Choose the perfect plan for your selling journey on Vinted, with options for every seller type. Scale up or down at any time.",
+        "Discover simple and transparent pricing plans for AutoLister AI.",
       heading: "Simple, Transparent",
       headingAccent: "Pricing",
       subtitle: "Choose the perfect plan for your selling journey.",
@@ -111,9 +110,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     },
     home: {
       seoTitle:
-        "Assistant IA pour annonces Vinted et générateur de descriptions | AutoLister AI",
+        "Assistant IA pour annonces et générateur de descriptions | AutoLister AI",
       seoDescription:
-        "Créez des titres, descriptions et hashtags Vinted depuis vos photos avec AutoLister AI. Enregistrez vos notes vendeur, travaillez directement dans Vinted et ne connectez jamais votre compte Vinted.",
+        "Créez des titres, descriptions et hashtags modifiables depuis vos photos avec AutoLister AI.",
       heroTitle: "Assistant IA pour les titres et descriptions",
       heroSubtitle:
         "Créez des titres, descriptions et hashtags depuis vos photos. Enregistrez et réutilisez vos notes vendeur. Fonctionne directement dans Vinted sans connecter votre compte.",
@@ -151,9 +150,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     },
     home: {
       seoTitle:
-        "Vinted-KI-Assistent für Anzeigen & Beschreibungsgenerator | AutoLister AI",
+        "KI-Assistent für Anzeigen & Beschreibungsgenerator | AutoLister AI",
       seoDescription:
-        "Erstelle Vinted-Titel, Beschreibungen und Hashtags aus Artikelfotos mit AutoLister AI. Speichere Verkäufernotizen, arbeite direkt in Vinted und verbinde nie dein Vinted-Konto.",
+        "Erstelle bearbeitbare Titel, Beschreibungen und Hashtags aus Artikelfotos mit AutoLister AI.",
       heroTitle: "KI-Assistent für Titel und Beschreibungen",
       heroSubtitle:
         "Erstelle Titel, Beschreibungen und Hashtags aus Artikelfotos. Speichere und verwende eigene Verkäufernotizen. Funktioniert direkt in Vinted, ohne dein Konto zu verbinden.",
@@ -190,9 +189,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     },
     home: {
       seoTitle:
-        "Vinted AI-assistent voor advertenties & beschrijving generator | AutoLister AI",
+        "AI-assistent voor advertenties & beschrijvinggenerator | AutoLister AI",
       seoDescription:
-        "Maak Vinted-titels, beschrijvingen en hashtags vanuit itemfoto's met AutoLister AI. Bewaar verkopersnotities, werk direct in Vinted en koppel nooit je Vinted-account.",
+        "Maak bewerkbare titels, beschrijvingen en hashtags vanuit itemfoto's met AutoLister AI.",
       heroTitle: "AI-assistent voor titels en beschrijvingen",
       heroSubtitle:
         "Maak titels, beschrijvingen en hashtags vanuit itemfoto's. Bewaar en hergebruik je verkopersnotities. Werkt direct in Vinted zonder je account te koppelen.",
@@ -229,10 +228,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "AutoLister AI jest niezależnym narzędziem i nie jest powiązane, zatwierdzone ani sponsorowane przez Vinted.",
     },
     home: {
-      seoTitle:
-        "Asystent AI do ogłoszeń Vinted i generator opisów | AutoLister AI",
+      seoTitle: "Asystent AI do ogłoszeń i generator opisów | AutoLister AI",
       seoDescription:
-        "Twórz tytuły, opisy i hashtagi Vinted ze zdjęć produktów dzięki AutoLister AI. Zapisuj notatki sprzedawcy, pracuj bezpośrednio w Vinted i nigdy nie łącz konta Vinted.",
+        "Twórz edytowalne tytuły, opisy i hashtagi ze zdjęć produktów dzięki AutoLister AI.",
       heroTitle: "Asystent AI do tytułów i opisów",
       heroSubtitle:
         "Twórz tytuły, opisy i hashtagi ze zdjęć produktów. Zapisuj i wykorzystuj ponownie notatki sprzedawcy. Działa bezpośrednio w Vinted bez łączenia konta.",
@@ -269,9 +267,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     },
     home: {
       seoTitle:
-        "Asistente IA para anuncios de Vinted y generador de descripciones | AutoLister AI",
+        "Asistente IA para anuncios y generador de descripciones | AutoLister AI",
       seoDescription:
-        "Crea títulos, descripciones y hashtags para Vinted desde fotos de artículos con AutoLister AI. Guarda notas de vendedor, trabaja directamente dentro de Vinted y nunca conectes tu cuenta de Vinted.",
+        "Crea títulos, descripciones y hashtags editables desde fotos de artículos con AutoLister AI.",
       heroTitle: "Asistente IA para títulos y descripciones",
       heroSubtitle:
         "Crea títulos, descripciones y hashtags desde las fotos de tus artículos. Guarda y reutiliza tus notas de vendedor. Funciona directamente dentro de Vinted sin conectar tu cuenta.",
@@ -309,9 +307,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     },
     home: {
       seoTitle:
-        "Assistente IA per annunci Vinted e generatore di descrizioni | AutoLister AI",
+        "Assistente IA per annunci e generatore di descrizioni | AutoLister AI",
       seoDescription:
-        "Crea titoli, descrizioni e hashtag Vinted dalle foto degli articoli con AutoLister AI. Salva note venditore, lavora direttamente dentro Vinted e non collegare mai il tuo account Vinted.",
+        "Crea titoli, descrizioni e hashtag modificabili dalle foto degli articoli con AutoLister AI.",
       heroTitle: "Assistente IA per titoli e descrizioni",
       heroSubtitle:
         "Crea titoli, descrizioni e hashtag dalle foto degli articoli. Salva e riutilizza le tue note venditore. Funziona direttamente dentro Vinted senza collegare il tuo account.",
@@ -348,9 +346,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
     },
     home: {
       seoTitle:
-        "Assistente IA para anúncios Vinted e gerador de descrições | AutoLister AI",
+        "Assistente IA para anúncios e gerador de descrições | AutoLister AI",
       seoDescription:
-        "Crie títulos, descrições e hashtags Vinted a partir de fotografias dos artigos com o AutoLister AI. Guarde notas de vendedor, trabalhe diretamente na Vinted e nunca ligue a sua conta Vinted.",
+        "Crie títulos, descrições e hashtags editáveis a partir de fotografias dos artigos com o AutoLister AI.",
       heroTitle: "Assistente IA para títulos e descrições",
       heroSubtitle:
         "Crie títulos, descrições e hashtags a partir das fotografias dos artigos. Guarde e reutilize as suas notas de vendedor. Funciona diretamente na Vinted sem ligar a sua conta.",
@@ -581,10 +579,10 @@ export const SITE_EXTRA_COPY: Record<
       howItWorksSubtitle: "Get professional listings in three simple steps",
       step1Title: "Install Extension",
       step1Body:
-        "Add the Vinted generator to your browser in seconds. It's free to get started.",
+        "Add the listing assistant to your browser in seconds. It's free to get started.",
       step2Title: "Add Photos & Generate",
       step2Body:
-        "Upload photos directly to Vinted, or use our mobile feature to snap and sync. Then just click Generate.",
+        "Upload photos on the listing page, or use our mobile feature to snap and sync. Then click Generate.",
       step3Title: "Review & Publish",
       step3Body: "Review the draft, adjust it if needed, and publish when ready.",
       finalCtaTitle: "Ready to Prepare Your Next Listing?",
@@ -594,7 +592,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "An AI listing assistant that keeps you in control.",
-      safetyZeroMass: "No need to connect your Vinted account",
+      safetyZeroMass: "No marketplace account connection needed",
       safetyZeroApi: "You publish each draft yourself",
       safetyZeroBan: "Review before publishing",
       accountSafe: "Seller-Controlled",
@@ -605,7 +603,7 @@ export const SITE_EXTRA_COPY: Record<
       freePlanSubtitle: "Get a taste of AutoLister AI",
       freePlanCta: "Try Free",
       starterPlanName: "Starter",
-      starterPlanSubtitle: "Perfect for casual Vinted sellers",
+      starterPlanSubtitle: "Perfect for casual sellers",
       starterPlanCta: "Get Starter Plan",
       proPlanName: "Pro",
       proPlanSubtitle: "For active sellers",
@@ -706,12 +704,12 @@ export const SITE_EXTRA_COPY: Record<
         "Passez de vos photos à un brouillon modifiable directement sur la page d’annonce.",
       feature3Title: "Technologie IA intelligente",
       feature3Body:
-        "Propulsé par des modèles de langage avancés qui comprennent la mode et les pratiques Vinted.",
+        "Propulsé par des modèles de langage avancés adaptés aux annonces de mode.",
       howItWorksTitle: "Comment ça marche",
       howItWorksSubtitle: "Des annonces pro en trois étapes simples",
       step1Title: "Installez l'extension",
       step1Body:
-        "Ajoutez le générateur Vinted à votre navigateur en quelques secondes. C'est gratuit.",
+        "Ajoutez l'assistant d'annonces à votre navigateur en quelques secondes. C'est gratuit.",
       step2Title: "Ajoutez des photos et générez",
       step2Body:
         "Ajoutez vos photos puis cliquez sur Générer pour obtenir une annonce optimisée.",
@@ -724,7 +722,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Un assistant IA qui vous laisse le contrôle.",
-      safetyZeroMass: "Pas besoin de connecter votre compte Vinted",
+      safetyZeroMass: "Aucune connexion à un compte marketplace nécessaire",
       safetyZeroApi: "Vous publiez vous-même chaque brouillon",
       safetyZeroBan: "À vérifier avant publication",
       accountSafe: "Sous votre contrôle",
@@ -837,12 +835,12 @@ export const SITE_EXTRA_COPY: Record<
         "Arbeite direkt auf der Anzeigenseite von Fotos zu einem bearbeitbaren Entwurf.",
       feature3Title: "Intelligente KI-Technologie",
       feature3Body:
-        "Angetrieben von fortschrittlichen Sprachmodellen, die Modetrends und Vinted-Best-Practices verstehen.",
+        "Angetrieben von fortschrittlichen Sprachmodellen für Modeanzeigen.",
       howItWorksTitle: "So funktioniert's",
       howItWorksSubtitle: "Professionelle Anzeigen in drei einfachen Schritten",
       step1Title: "Erweiterung installieren",
       step1Body:
-        "Fuge den Vinted-Generator in Sekunden deinem Browser hinzu. Kostenloser Start.",
+        "Fuge den Anzeigen-Assistenten in Sekunden deinem Browser hinzu. Kostenloser Start.",
       step2Title: "Fotos hinzufugen und generieren",
       step2Body:
         "Fotos hochladen und auf Generieren klicken. AutoLister erstellt den optimierten Text.",
@@ -855,7 +853,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Ein KI-Assistent, bei dem du entscheidest.",
-      safetyZeroMass: "Kein Vinted-Konto verbinden nötig",
+      safetyZeroMass: "Keine Verbindung mit einem Marktplatzkonto nötig",
       safetyZeroApi: "Du veröffentlichst jeden Entwurf selbst",
       safetyZeroBan: "Vor Veröffentlichung prüfen",
       accountSafe: "Unter deiner Kontrolle",
@@ -866,7 +864,7 @@ export const SITE_EXTRA_COPY: Record<
       freePlanSubtitle: "AutoLister AI ausprobieren",
       freePlanCta: "Kostenlos testen",
       starterPlanName: "Starter",
-      starterPlanSubtitle: "Ideal fur gelegentliche Vinted-Verkaufer",
+      starterPlanSubtitle: "Ideal fur gelegentliche Verkaufer",
       starterPlanCta: "Starter wahlen",
       proPlanName: "Pro",
       proPlanSubtitle: "Fur aktive Verkaufer",
@@ -967,12 +965,12 @@ export const SITE_EXTRA_COPY: Record<
         "Werk direct op de advertentiepagina van foto's naar een bewerkbaar concept.",
       feature3Title: "Slimme AI-technologie",
       feature3Body:
-        "Aangedreven door geavanceerde taalmodellen die modetrends en Vinted-best practices begrijpen.",
+        "Aangedreven door geavanceerde taalmodellen voor modeadvertenties.",
       howItWorksTitle: "Hoe het werkt",
       howItWorksSubtitle: "Professionele listings in drie eenvoudige stappen",
       step1Title: "Installeer de extensie",
       step1Body:
-        "Voeg de Vinted-generator in seconden toe aan je browser. Gratis starten.",
+        "Voeg de advertentie-assistent in seconden toe aan je browser. Gratis starten.",
       step2Title: "Voeg foto's toe en genereer",
       step2Body:
         "Upload foto's en klik op Genereren voor direct geoptimaliseerde listingtekst.",
@@ -985,7 +983,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Een AI-assistent waarbij jij beslist.",
-      safetyZeroMass: "Je hoeft je Vinted-account niet te koppelen",
+      safetyZeroMass: "Je hoeft geen marketplace-account te koppelen",
       safetyZeroApi: "Je publiceert elk concept zelf",
       safetyZeroBan: "Controleren vóór publicatie",
       accountSafe: "Onder jouw controle",
@@ -1098,12 +1096,12 @@ export const SITE_EXTRA_COPY: Record<
         "Pracuj od zdjęć do edytowalnej wersji roboczej bezpośrednio na stronie ogłoszenia.",
       feature3Title: "Inteligentna technologia AI",
       feature3Body:
-        "Zasilany zaawansowanymi modelami jezykowymi rozumiejacymi trendy mody i najlepsze praktyki Vinted.",
+        "Zasilany zaawansowanymi modelami jezykowymi do ogloszen modowych.",
       howItWorksTitle: "Jak to dziala",
       howItWorksSubtitle: "Profesjonalne ogloszenia w trzech prostych krokach",
       step1Title: "Zainstaluj rozszerzenie",
       step1Body:
-        "Dodaj generator Vinted do przegladarki w kilka sekund. Start jest darmowy.",
+        "Dodaj asystenta ogloszen do przegladarki w kilka sekund. Start jest darmowy.",
       step2Title: "Dodaj zdjecia i generuj",
       step2Body:
         "Wgraj zdjecia i kliknij Generuj, aby od razu otrzymac zoptymalizowany opis.",
@@ -1116,7 +1114,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Asystent AI, nad którym masz kontrolę.",
-      safetyZeroMass: "Nie musisz łączyć konta Vinted",
+      safetyZeroMass: "Nie musisz laczyc konta marketplace",
       safetyZeroApi: "Każdą wersję roboczą publikujesz samodzielnie",
       safetyZeroBan: "Sprawdź przed publikacją",
       accountSafe: "Pod Twoją kontrolą",
@@ -1228,12 +1226,12 @@ export const SITE_EXTRA_COPY: Record<
         "Trabaja desde tus fotos hasta un borrador editable en la página del anuncio.",
       feature3Title: "Tecnologia IA Inteligente",
       feature3Body:
-        "Impulsado por modelos de lenguaje avanzados que entienden tendencias de moda y mejores practicas de Vinted.",
+        "Impulsado por modelos de lenguaje avanzados para anuncios de moda.",
       howItWorksTitle: "Como funciona",
       howItWorksSubtitle: "Anuncios profesionales en tres pasos simples",
       step1Title: "Instala la extension",
       step1Body:
-        "Anade el generador de Vinted a tu navegador en segundos. Es gratis para empezar.",
+        "Anade el asistente de anuncios a tu navegador en segundos. Es gratis para empezar.",
       step2Title: "Sube fotos y genera",
       step2Body:
         "Sube tus fotos y pulsa Generar para obtener texto optimizado al instante.",
@@ -1246,7 +1244,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Un asistente de IA donde tú decides.",
-      safetyZeroMass: "No necesitas conectar tu cuenta de Vinted",
+      safetyZeroMass: "No necesitas conectar una cuenta del marketplace",
       safetyZeroApi: "Tú publicas cada borrador",
       safetyZeroBan: "Revisa antes de publicar",
       accountSafe: "Bajo tu control",
@@ -1359,12 +1357,12 @@ export const SITE_EXTRA_COPY: Record<
         "Passa dalle foto a una bozza modificabile direttamente nella pagina dell'annuncio.",
       feature3Title: "Tecnologia AI Intelligente",
       feature3Body:
-        "Alimentato da modelli linguistici avanzati che comprendono tendenze della moda e best practice di Vinted.",
+        "Alimentato da modelli linguistici avanzati per annunci di moda.",
       howItWorksTitle: "Come funziona",
       howItWorksSubtitle: "Annunci professionali in tre passaggi semplici",
       step1Title: "Installa l'estensione",
       step1Body:
-        "Aggiungi il generatore Vinted al browser in pochi secondi. Inizio gratuito.",
+        "Aggiungi l'assistente per annunci al browser in pochi secondi. Inizio gratuito.",
       step2Title: "Aggiungi foto e genera",
       step2Body:
         "Carica le foto e clicca Genera per ottenere subito testi ottimizzati.",
@@ -1377,7 +1375,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Un assistente AI in cui decidi tu.",
-      safetyZeroMass: "Non devi collegare il tuo account Vinted",
+      safetyZeroMass: "Non devi collegare un account del marketplace",
       safetyZeroApi: "Pubblichi personalmente ogni bozza",
       safetyZeroBan: "Controlla prima di pubblicare",
       accountSafe: "Sotto il tuo controllo",
@@ -1490,12 +1488,12 @@ export const SITE_EXTRA_COPY: Record<
         "Passe das fotos para um rascunho editável diretamente na página do anúncio.",
       feature3Title: "Tecnologia IA Inteligente",
       feature3Body:
-        "Impulsionado por modelos de linguagem avancados que compreendem tendencias de moda e melhores praticas Vinted.",
+        "Impulsionado por modelos de linguagem avancados para anuncios de moda.",
       howItWorksTitle: "Como funciona",
       howItWorksSubtitle: "Anuncios profissionais em tres passos simples",
       step1Title: "Instale a extensao",
       step1Body:
-        "Adicione o gerador Vinted ao navegador em segundos. E gratis para comecar.",
+        "Adicione o assistente de anuncios ao navegador em segundos. E gratis para comecar.",
       step2Title: "Adicione fotos e gere",
       step2Body:
         "Carregue as fotos e clique em Gerar para obter texto otimizado de imediato.",
@@ -1508,7 +1506,7 @@ export const SITE_EXTRA_COPY: Record<
     },
     pricing: {
       safetyBannerTitle: "Um assistente de IA em que você decide.",
-      safetyZeroMass: "Nao precisa ligar a sua conta Vinted",
+      safetyZeroMass: "Nao precisa ligar uma conta do marketplace",
       safetyZeroApi: "Publica pessoalmente cada rascunho",
       safetyZeroBan: "Reveja antes de publicar",
       accountSafe: "Sob o seu controlo",

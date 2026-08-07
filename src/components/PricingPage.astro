@@ -105,13 +105,10 @@ const phoneUploadLabel = extra.phoneUpload.replace(/\s*\(.+\)\s*$/, "");
 const uploadFeatureLabel = `${phoneUploadLabel} + batch upload`;
 const restrictedSoonNote = "Soon restricted to Pro and Business";
 const customLimitsFeature = "Custom limits available - email us";
-const starterSubtitle =
-  extra.starterPlanSubtitle === "Perfect for casual Vinted sellers"
-    ? "For casual sellers"
-    : extra.starterPlanSubtitle;
+const starterSubtitle = extra.starterPlanSubtitle;
 const safetyNoLoginLabel =
   extra.safetyZeroMass === "0 mass actions"
-    ? "No need to connect your Vinted account"
+    ? "No marketplace account connection needed"
     : extra.safetyZeroMass;
 const noCardInline =
   extra.noCard.charAt(0).toLowerCase() + extra.noCard.slice(1);

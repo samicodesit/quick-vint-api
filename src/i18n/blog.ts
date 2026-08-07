@@ -38,9 +38,9 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
   en: {
     seoTitle: "Vinted Seller Blog - AutoLister AI",
     seoDescription:
-      "Actionable Vinted selling tips for faster listings, better descriptions, stronger search visibility, and safer growth with AutoLister AI.",
-    eyebrow: "Vinted seller growth",
-    title: "The Vinted Seller Playbook",
+      "Practical guides for writing clearer Vinted listings and reviewing AI-generated drafts.",
+    eyebrow: "Vinted listing guides",
+    title: "The Vinted Listing Guide",
     subtitle:
       "Practical guides for Vinted sellers and resellers who want faster listings, better buyer trust, and more control over every draft.",
     allPosts: "All posts",
@@ -56,7 +56,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Copied",
     latestTitle: "From the Blog",
     latestSubtitle:
-      "Guides for writing better Vinted listings, selling faster, and growing safely.",
+      "Guides for writing clearer Vinted listings and reviewing AI-generated drafts.",
     viewAll: "View all guides",
     categories: {
       "selling-tips": "Selling Tips",
@@ -69,9 +69,9 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
   fr: {
     seoTitle: "Blog vendeurs Vinted - AutoLister AI",
     seoDescription:
-      "Conseils pratiques pour vendre plus vite sur Vinted, améliorer vos descriptions, votre visibilité et votre organisation avec AutoLister AI.",
-    eyebrow: "Croissance vendeurs Vinted",
-    title: "Le guide des vendeurs Vinted",
+      "Conseils pratiques pour rédiger des annonces Vinted plus claires et vérifier les brouillons générés par IA.",
+    eyebrow: "Guides d’annonces Vinted",
+    title: "Le guide des annonces Vinted",
     subtitle:
       "Des guides concrets pour créer de meilleures annonces, gagner la confiance des acheteurs et garder le contrôle de chaque brouillon.",
     allPosts: "Tous les articles",
@@ -87,7 +87,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Copié",
     latestTitle: "Depuis le blog",
     latestSubtitle:
-      "Guides pour améliorer vos annonces Vinted, vendre plus vite et rester en sécurité.",
+      "Guides pour rédiger des annonces Vinted plus claires et vérifier les brouillons générés par IA.",
     viewAll: "Voir tous les guides",
     categories: {
       "selling-tips": "Conseils de vente",
@@ -100,9 +100,9 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
   de: {
     seoTitle: "Vinted Verkäufer-Blog - AutoLister AI",
     seoDescription:
-      "Praktische Tipps für Vinted-Verkäufer: bessere Beschreibungen, mehr Sichtbarkeit, schnellere Listings und sicheres Wachstum.",
-    eyebrow: "Vinted Verkäufer-Wachstum",
-    title: "Das Vinted Verkäufer-Handbuch",
+      "Praktische Guides für klarere Vinted-Listings und das Prüfen von KI-Entwürfen.",
+    eyebrow: "Vinted-Listing-Guides",
+    title: "Der Vinted-Listing-Guide",
     subtitle:
       "Konkrete Guides für bessere Vinted-Listings, mehr Vertrauen bei Käufern und volle Kontrolle über jeden Entwurf.",
     allPosts: "Alle Beiträge",
@@ -118,7 +118,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Kopiert",
     latestTitle: "Aus dem Blog",
     latestSubtitle:
-      "Guides für bessere Vinted-Listings, schnelleres Verkaufen und sicheres Wachstum.",
+      "Guides für klarere Vinted-Listings und das Prüfen von KI-Entwürfen.",
     viewAll: "Alle Guides ansehen",
     categories: {
       "selling-tips": "Verkaufstipps",
@@ -131,9 +131,9 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
   nl: {
     seoTitle: "Vinted verkopersblog - AutoLister AI",
     seoDescription:
-      "Praktische tips voor Vinted-verkopers: betere beschrijvingen, meer zichtbaarheid, snellere listings en veilig groeien.",
-    eyebrow: "Vinted verkopersgroei",
-    title: "Het Vinted verkoophandboek",
+      "Praktische gidsen voor duidelijkere Vinted-advertenties en het controleren van AI-concepten.",
+    eyebrow: "Vinted-advertentiegidsen",
+    title: "De Vinted-advertentiegids",
     subtitle:
       "Concrete gidsen voor betere Vinted-advertenties, meer vertrouwen van kopers en controle over elk concept.",
     allPosts: "Alle artikelen",
@@ -149,7 +149,7 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Gekopieerd",
     latestTitle: "Uit de blog",
     latestSubtitle:
-      "Gidsen voor betere Vinted-advertenties, sneller verkopen en veilig groeien.",
+      "Gidsen voor duidelijkere Vinted-advertenties en het controleren van AI-concepten.",
     viewAll: "Bekijk alle gidsen",
     categories: {
       "selling-tips": "Verkooptips",

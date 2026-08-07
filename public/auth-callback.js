@@ -172,7 +172,7 @@
       track("auth_extension_handoff_started");
       await sendAuthHandoff(session);
       track("auth_extension_handoff_success");
-      setStatus("Signed in.", "This tab will close automatically.", "success");
+      setStatus("Signed in.", "This tab will close shortly.", "success");
       startSuccessCountdown();
     } catch (error) {
       track("auth_extension_handoff_error", {

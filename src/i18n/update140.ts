@@ -54,13 +54,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Batch processing",
-      title: "Sell the whole pile.",
-      body: "Upload the photos, group each item, then sit back while AutoLister works through every listing one after another.",
+      title: "Prepare a group of items.",
+      body: "Upload the photos, group each item, and prepare the listing drafts in one flow.",
       benefitsLabel: "Batch processing benefits",
       benefits: [
         "Upload from your phone",
         "Or upload photos or a folder from your computer",
-        "Let the whole batch run automatically",
+        "Prepare several drafts in one flow",
       ],
     },
     review: {
@@ -78,8 +78,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Batch processing",
-          title: "Let the listings run automatically",
-          body: "Upload once, then let AutoLister work through the pile.",
+          title: "Prepare several listing drafts",
+          body: "Upload once and work through the grouped items in one flow.",
         },
         {
           eyebrow: "Review first",
@@ -122,13 +122,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Traitement par lots",
-      title: "Vendez toute la pile.",
-      body: "Ajoutez les photos, regroupez chaque article, puis laissez AutoLister créer les annonces l’une après l’autre.",
+      title: "Préparez plusieurs articles.",
+      body: "Ajoutez les photos, regroupez chaque article et préparez les brouillons dans un même flux.",
       benefitsLabel: "Avantages du traitement par lots",
       benefits: [
         "Importez depuis votre téléphone",
         "Ou depuis des photos ou un dossier sur votre ordinateur",
-        "Laissez tout le lot s’exécuter automatiquement",
+        "Préparez plusieurs brouillons dans un même flux",
       ],
     },
     review: {
@@ -146,8 +146,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Traitement par lots",
-          title: "Laissez les annonces s’enchaîner",
-          body: "Importez une fois, puis laissez AutoLister traiter toute la pile.",
+          title: "Préparez plusieurs brouillons d’annonces",
+          body: "Importez une fois et parcourez les articles groupés dans un même flux.",
         },
         {
           eyebrow: "Vérifier d’abord",
@@ -191,13 +191,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Stapelverarbeitung",
-      title: "Verkaufe den ganzen Stapel.",
-      body: "Fotos hochladen, Artikel gruppieren und entspannen, während AutoLister eine Anzeige nach der anderen erstellt.",
+      title: "Bereite mehrere Artikel vor.",
+      body: "Lade Fotos hoch, gruppiere die Artikel und bereite die Entwürfe in einem Ablauf vor.",
       benefitsLabel: "Vorteile der Stapelverarbeitung",
       benefits: [
         "Vom Handy hochladen",
         "Oder Fotos bzw. einen Ordner vom Computer auswählen",
-        "Den ganzen Stapel automatisch verarbeiten lassen",
+        "Mehrere Entwürfe in einem Ablauf vorbereiten",
       ],
     },
     review: {
@@ -215,8 +215,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Stapelverarbeitung",
-          title: "Anzeigen automatisch durchlaufen lassen",
-          body: "Einmal hochladen und AutoLister den Stapel abarbeiten lassen.",
+          title: "Mehrere Anzeigenentwürfe vorbereiten",
+          body: "Einmal hochladen und die gruppierten Artikel in einem Ablauf bearbeiten.",
         },
         {
           eyebrow: "Erst prüfen",
@@ -259,13 +259,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Batchverwerking",
-      title: "Verkoop de hele stapel.",
-      body: "Upload de foto’s, groepeer elk item en leun achterover terwijl AutoLister de advertenties één voor één afwerkt.",
+      title: "Bereid meerdere items voor.",
+      body: "Upload de foto’s, groepeer elk item en bereid de concepten in één flow voor.",
       benefitsLabel: "Voordelen van batchverwerking",
       benefits: [
         "Upload vanaf je telefoon",
         "Of kies foto’s of een map op je computer",
-        "Laat de hele batch automatisch draaien",
+        "Bereid meerdere concepten in één flow voor",
       ],
     },
     review: {
@@ -283,8 +283,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Batchverwerking",
-          title: "Laat advertenties automatisch doorlopen",
-          body: "Upload één keer en laat AutoLister de stapel afwerken.",
+          title: "Bereid meerdere advertentieconcepten voor",
+          body: "Upload één keer en werk in één flow door de gegroepeerde items.",
         },
         {
           eyebrow: "Eerst bekijken",
@@ -326,13 +326,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Przetwarzanie grupowe",
-      title: "Sprzedaj cały stos.",
-      body: "Prześlij zdjęcia, pogrupuj przedmioty i odpocznij, gdy AutoLister tworzy kolejne ogłoszenia.",
+      title: "Przygotuj kilka przedmiotów.",
+      body: "Prześlij zdjęcia, pogrupuj przedmioty i przygotuj wersje robocze w jednym procesie.",
       benefitsLabel: "Zalety przetwarzania grupowego",
       benefits: [
         "Prześlij z telefonu",
         "Albo wybierz zdjęcia lub folder na komputerze",
-        "Uruchom cały zestaw automatycznie",
+        "Przygotuj kilka wersji roboczych w jednym procesie",
       ],
     },
     review: {
@@ -350,8 +350,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Przetwarzanie grupowe",
-          title: "Pozwól ogłoszeniom tworzyć się automatycznie",
-          body: "Prześlij raz i pozwól AutoLister zająć się całym stosem.",
+          title: "Przygotuj kilka wersji roboczych ogłoszeń",
+          body: "Prześlij raz i przejdź przez pogrupowane przedmioty w jednym procesie.",
         },
         {
           eyebrow: "Najpierw sprawdź",
@@ -394,13 +394,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Procesamiento por lotes",
-      title: "Vende toda la pila.",
-      body: "Sube las fotos, agrupa cada artículo y relájate mientras AutoLister prepara los anuncios uno tras otro.",
+      title: "Prepara varios artículos.",
+      body: "Sube las fotos, agrupa cada artículo y prepara los borradores en un mismo flujo.",
       benefitsLabel: "Ventajas del procesamiento por lotes",
       benefits: [
         "Sube fotos desde el móvil",
         "O elige fotos o una carpeta en el ordenador",
-        "Deja que todo el lote se procese automáticamente",
+        "Prepara varios borradores en un mismo flujo",
       ],
     },
     review: {
@@ -418,8 +418,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Procesamiento por lotes",
-          title: "Deja que los anuncios avancen solos",
-          body: "Sube una vez y deja que AutoLister procese toda la pila.",
+          title: "Prepara varios borradores de anuncios",
+          body: "Sube una vez y revisa los artículos agrupados en un mismo flujo.",
         },
         {
           eyebrow: "Revisar primero",
@@ -464,13 +464,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Elaborazione in serie",
-      title: "Vendi tutta la pila.",
-      body: "Carica le foto, raggruppa ogni articolo e rilassati mentre AutoLister crea gli annunci uno dopo l’altro.",
+      title: "Prepara più articoli.",
+      body: "Carica le foto, raggruppa ogni articolo e prepara le bozze in un unico flusso.",
       benefitsLabel: "Vantaggi dell’elaborazione in serie",
       benefits: [
         "Carica dal telefono",
         "Oppure scegli foto o una cartella dal computer",
-        "Lascia che l’intero gruppo proceda automaticamente",
+        "Prepara più bozze in un unico flusso",
       ],
     },
     review: {
@@ -488,8 +488,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Elaborazione in serie",
-          title: "Lascia procedere gli annunci automaticamente",
-          body: "Carica una volta e lascia che AutoLister elabori tutta la pila.",
+          title: "Prepara più bozze di annunci",
+          body: "Carica una volta e passa tra gli articoli raggruppati in un unico flusso.",
         },
         {
           eyebrow: "Prima controlla",
@@ -533,13 +533,13 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
     },
     batch: {
       eyebrow: "Processamento em lote",
-      title: "Venda a pilha toda.",
-      body: "Carregue as fotografias, agrupe cada artigo e descontraia enquanto o AutoLister cria os anúncios um após outro.",
+      title: "Prepare vários artigos.",
+      body: "Carregue as fotografias, agrupe cada artigo e prepare os rascunhos num único fluxo.",
       benefitsLabel: "Vantagens do processamento em lote",
       benefits: [
         "Carregue a partir do telemóvel",
         "Ou escolha fotografias ou uma pasta no computador",
-        "Deixe o lote inteiro avançar automaticamente",
+        "Prepare vários rascunhos num único fluxo",
       ],
     },
     review: {
@@ -557,8 +557,8 @@ export const UPDATE_140_COPY: Record<SiteLocale, Update140Copy> = {
         },
         {
           eyebrow: "Processamento em lote",
-          title: "Deixe os anúncios avançar automaticamente",
-          body: "Carregue uma vez e deixe o AutoLister tratar da pilha.",
+          title: "Prepare vários rascunhos de anúncios",
+          body: "Carregue uma vez e percorra os artigos agrupados num único fluxo.",
         },
         {
           eyebrow: "Rever primeiro",

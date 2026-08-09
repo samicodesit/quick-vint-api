@@ -34,8 +34,6 @@ type HomeCopy = {
   heroTitle: string;
   heroSubtitle: string;
   heroMobileSubtitle: string;
-  heroBadgeSafe: string;
-  heroBulletSafety: string;
 };
 
 type PricingCopy = {
@@ -81,8 +79,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. Compatible with Vinted & eBay*.",
       heroMobileSubtitle:
         "Compatible with Vinted & eBay*.",
-      heroBadgeSafe: "AI listing assistant · You stay in control",
-      heroBulletSafety: "Prepares listing drafts for you to review and publish",
     },
     pricing: {
       seoTitle: "Pricing - AutoLister AI",
@@ -121,9 +117,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Créez des titres, descriptions et hashtags depuis vos photos. Enregistrez et réutilisez vos notes vendeur. Compatible avec Vinted et eBay*.",
       heroMobileSubtitle:
         "Compatible avec Vinted et eBay*.",
-      heroBadgeSafe: "Assistant IA pour vos annonces · Vous gardez le contrôle",
-      heroBulletSafety:
-        "Prépare des brouillons que vous vérifiez avant de publier",
     },
     pricing: {
       seoTitle: "Tarifs - AutoLister AI",
@@ -162,9 +155,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Erstelle Titel, Beschreibungen und Hashtags aus Artikelfotos. Speichere und verwende eigene Verkäufernotizen. Kompatibel mit Vinted und eBay*.",
       heroMobileSubtitle:
         "Kompatibel mit Vinted und eBay*.",
-      heroBadgeSafe: "KI-Assistent für Anzeigen · Du behältst die Kontrolle",
-      heroBulletSafety:
-        "Erstellt Entwürfe, die du vor dem Veröffentlichen prüfst",
     },
     pricing: {
       seoTitle: "Preise - AutoLister AI",
@@ -202,9 +192,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Maak titels, beschrijvingen en hashtags vanuit itemfoto's. Bewaar en hergebruik je verkopersnotities. Compatibel met Vinted en eBay*.",
       heroMobileSubtitle:
         "Compatibel met Vinted en eBay*.",
-      heroBadgeSafe: "AI-assistent voor advertenties · Jij houdt de controle",
-      heroBulletSafety:
-        "Maakt concepten die je controleert voordat je publiceert",
     },
     pricing: {
       seoTitle: "Prijzen - AutoLister AI",
@@ -242,9 +229,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Twórz tytuły, opisy i hashtagi ze zdjęć produktów. Zapisuj i wykorzystuj ponownie notatki sprzedawcy. Kompatybilne z Vinted i eBay*.",
       heroMobileSubtitle:
         "Kompatybilne z Vinted i eBay*.",
-      heroBadgeSafe: "Asystent AI do ogłoszeń · Ty zachowujesz kontrolę",
-      heroBulletSafety:
-        "Przygotowuje wersje robocze, które sprawdzasz przed publikacją",
     },
     pricing: {
       seoTitle: "Cennik - AutoLister AI",
@@ -282,9 +266,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crea títulos, descripciones y hashtags desde las fotos de tus artículos. Guarda y reutiliza tus notas de vendedor. Compatible con Vinted y eBay*.",
       heroMobileSubtitle:
         "Compatible con Vinted y eBay*.",
-      heroBadgeSafe: "Asistente de anuncios con IA · Tú tienes el control",
-      heroBulletSafety:
-        "Prepara borradores que revisas antes de publicar",
     },
     pricing: {
       seoTitle: "Precios - AutoLister AI",
@@ -323,9 +304,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crea titoli, descrizioni e hashtag dalle foto degli articoli. Salva e riutilizza le tue note venditore. Compatibile con Vinted ed eBay*.",
       heroMobileSubtitle:
         "Compatibile con Vinted ed eBay*.",
-      heroBadgeSafe: "Assistente AI per gli annunci · Decidi tu",
-      heroBulletSafety:
-        "Prepara bozze che controlli prima di pubblicare",
     },
     pricing: {
       seoTitle: "Prezzi - AutoLister AI",
@@ -363,9 +341,6 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crie títulos, descrições e hashtags a partir das fotografias dos artigos. Guarde e reutilize as suas notas de vendedor. Compatível com Vinted e eBay*.",
       heroMobileSubtitle:
         "Compatível com Vinted e eBay*.",
-      heroBadgeSafe: "Assistente de anúncios com IA · Você mantém o controlo",
-      heroBulletSafety:
-        "Prepara rascunhos que revê antes de publicar",
     },
     pricing: {
       seoTitle: "Precos - AutoLister AI",
@@ -517,7 +492,8 @@ export const SITE_EXTRA_COPY: Record<
 > = {
   en: {
     home: {
-      heroBadgePrimary: "Description generator + listing assistant",
+      heroBadgePrimary:
+        "AI description & listing assistant · You stay in control",
       watchDemo: "Watch Demo",
       videoCaption: "See how it works in 15 seconds",
       publicStatsAriaLabel: "AutoLister public usage stats",
@@ -533,7 +509,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Add to Chrome free",
       heroBullet1: "Creates titles, descriptions, and hashtags from your photos",
       heroBullet2: "No copy-paste needed. No emailing photos.",
-      heroBullet3: "You review every draft before publishing",
+      heroBullet3: "You review every listing before publishing",
       addToChrome: "Add to Chrome",
       addToChromeNote: "It's Free",
       testimonialQuote:
@@ -578,9 +554,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Clear Listing Drafts",
       feature1Body:
         "Create a title and description from the details visible in your photos.",
-      feature2Title: "Seamless Workflow",
+      feature2Title: "Organize photos into items",
       feature2Body:
-        "Work from your photos to a reviewable draft directly on the listing page.",
+        "Group mixed photos into separate items before creating your listing drafts.",
       feature3Title: "Smart AI Technology",
       feature3Body:
         "Uses AI to identify visible item details and prepare editable listing text.",
@@ -647,7 +623,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   fr: {
     home: {
-      heroBadgePrimary: "Générateur de descriptions + assistant d'annonces",
+      heroBadgePrimary:
+        "Assistant IA pour descriptions et annonces · Vous gardez le contrôle",
       watchDemo: "Voir la démo",
       videoCaption: "Voyez le résultat en 15 secondes",
       publicStatsAriaLabel: "Statistiques publiques d'utilisation d'AutoLister",
@@ -663,7 +640,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Ajouter à Chrome gratuitement",
       heroBullet1: "Crée des titres, descriptions et hashtags depuis vos photos",
       heroBullet2: "Aucun copier-coller. Aucun envoi de photos par e-mail.",
-      heroBullet3: "Vous vérifiez chaque brouillon avant de publier",
+      heroBullet3: "Vous vérifiez chaque annonce avant de publier",
       addToChrome: "Ajouter à Chrome",
       addToChromeNote: "C'est gratuit",
       testimonialQuote:
@@ -708,9 +685,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Des brouillons clairs",
       feature1Body:
         "Créez un titre et une description à partir des détails visibles sur vos photos.",
-      feature2Title: "Intégration fluide",
+      feature2Title: "Organisez vos photos par article",
       feature2Body:
-        "Passez de vos photos à un brouillon modifiable directement sur la page d’annonce.",
+        "Regroupez vos photos mélangées en articles distincts avant de créer vos brouillons d’annonces.",
       feature3Title: "Technologie IA intelligente",
       feature3Body:
         "Propulsé par des modèles de langage avancés adaptés aux annonces de mode.",
@@ -777,7 +754,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   de: {
     home: {
-      heroBadgePrimary: "Beschreibungsgenerator + Anzeigen-Assistent",
+      heroBadgePrimary:
+        "KI-Assistent für Beschreibungen und Anzeigen · Du behältst die Kontrolle",
       watchDemo: "Demo ansehen",
       videoCaption: "So funktioniert es in 15 Sekunden",
       publicStatsAriaLabel: "Öffentliche Nutzungsstatistiken von AutoLister",
@@ -794,7 +772,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Kostenlos zu Chrome hinzufügen",
       heroBullet1: "Erstellt Titel, Beschreibungen und Hashtags aus deinen Fotos",
       heroBullet2: "Kein Kopieren und Einfugen. Keine Fotos per E-Mail senden.",
-      heroBullet3: "Du prüfst jeden Entwurf vor dem Veröffentlichen",
+      heroBullet3: "Du prüfst jede Anzeige vor dem Veröffentlichen",
       addToChrome: "Zu Chrome hinzufugen",
       addToChromeNote: "Kostenlos",
       testimonialQuote:
@@ -839,9 +817,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Klare Anzeigenentwürfe",
       feature1Body:
         "Erstelle Titel und Beschreibung aus den sichtbaren Details deiner Fotos.",
-      feature2Title: "Nahtloser Ablauf",
+      feature2Title: "Fotos nach Artikeln ordnen",
       feature2Body:
-        "Arbeite direkt auf der Anzeigenseite von Fotos zu einem bearbeitbaren Entwurf.",
+        "Gruppiere gemischte Fotos in einzelne Artikel, bevor du deine Anzeigenentwürfe erstellst.",
       feature3Title: "Intelligente KI-Technologie",
       feature3Body:
         "Angetrieben von fortschrittlichen Sprachmodellen für Modeanzeigen.",
@@ -908,7 +886,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   nl: {
     home: {
-      heroBadgePrimary: "Beschrijvinggenerator + advertentie-assistent",
+      heroBadgePrimary:
+        "AI-assistent voor beschrijvingen en advertenties · Jij houdt de controle",
       watchDemo: "Bekijk demo",
       videoCaption: "Zie hoe het werkt in 15 seconden",
       publicStatsAriaLabel: "Openbare gebruiksstatistieken van AutoLister",
@@ -924,7 +903,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Gratis toevoegen aan Chrome",
       heroBullet1: "Maakt titels, beschrijvingen en hashtags van je foto's",
       heroBullet2: "Geen kopieer-plak. Geen foto's mailen.",
-      heroBullet3: "Je controleert elk concept voordat je publiceert",
+      heroBullet3: "Je controleert elke advertentie voordat je publiceert",
       addToChrome: "Toevoegen aan Chrome",
       addToChromeNote: "Gratis",
       testimonialQuote:
@@ -969,9 +948,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Duidelijke concepten",
       feature1Body:
         "Maak een titel en beschrijving van de zichtbare details op je foto's.",
-      feature2Title: "Naadloze Workflow",
+      feature2Title: "Foto’s per item ordenen",
       feature2Body:
-        "Werk direct op de advertentiepagina van foto's naar een bewerkbaar concept.",
+        "Groepeer gemengde foto’s per item voordat je advertentieconcepten maakt.",
       feature3Title: "Slimme AI-technologie",
       feature3Body:
         "Aangedreven door geavanceerde taalmodellen voor modeadvertenties.",
@@ -1039,7 +1018,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   pl: {
     home: {
-      heroBadgePrimary: "Generator opisów + asystent ogłoszeń",
+      heroBadgePrimary:
+        "Asystent AI do opisów i ogłoszeń · Ty zachowujesz kontrolę",
       watchDemo: "Obejrzyj demo",
       videoCaption: "Zobacz jak to dziala w 15 sekund",
       publicStatsAriaLabel: "Publiczne statystyki użycia AutoLister",
@@ -1055,7 +1035,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Dodaj do Chrome za darmo",
       heroBullet1: "Tworzy tytuły, opisy i hashtagi na podstawie zdjęć",
       heroBullet2: "Bez kopiowania i wklejania. Bez wysylania zdjec mailem.",
-      heroBullet3: "Sprawdzasz każdą wersję roboczą przed publikacją",
+      heroBullet3: "Sprawdzasz każde ogłoszenie przed publikacją",
       addToChrome: "Dodaj do Chrome",
       addToChromeNote: "To jest darmowe",
       testimonialQuote:
@@ -1100,9 +1080,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Jasne wersje robocze",
       feature1Body:
         "Utwórz tytuł i opis na podstawie szczegółów widocznych na zdjęciach.",
-      feature2Title: "Plynna praca",
+      feature2Title: "Uporządkuj zdjęcia według przedmiotów",
       feature2Body:
-        "Pracuj od zdjęć do edytowalnej wersji roboczej bezpośrednio na stronie ogłoszenia.",
+        "Pogrupuj różne zdjęcia w osobne przedmioty, zanim utworzysz wersje robocze ogłoszeń.",
       feature3Title: "Inteligentna technologia AI",
       feature3Body:
         "Zasilany zaawansowanymi modelami jezykowymi do ogloszen modowych.",
@@ -1169,7 +1149,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   es: {
     home: {
-      heroBadgePrimary: "Generador de descripciones + asistente de anuncios",
+      heroBadgePrimary:
+        "Asistente IA para descripciones y anuncios · Tú tienes el control",
       watchDemo: "Ver demo",
       videoCaption: "Mira como funciona en 15 segundos",
       publicStatsAriaLabel: "Estadísticas públicas de uso de AutoLister",
@@ -1185,7 +1166,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Añadir a Chrome gratis",
       heroBullet1: "Crea títulos, descripciones y hashtags desde tus fotos",
       heroBullet2: "Sin copiar y pegar. Sin enviar fotos por correo.",
-      heroBullet3: "Revisas cada borrador antes de publicarlo",
+      heroBullet3: "Revisas cada anuncio antes de publicarlo",
       addToChrome: "Anadir a Chrome",
       addToChromeNote: "Es gratis",
       testimonialQuote:
@@ -1230,9 +1211,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Borradores claros",
       feature1Body:
         "Crea un título y una descripción con los detalles visibles en tus fotos.",
-      feature2Title: "Flujo de Trabajo Sin Fricciones",
+      feature2Title: "Organiza las fotos por artículo",
       feature2Body:
-        "Trabaja desde tus fotos hasta un borrador editable en la página del anuncio.",
+        "Agrupa fotos mezcladas en artículos separados antes de crear los borradores de tus anuncios.",
       feature3Title: "Tecnologia IA Inteligente",
       feature3Body:
         "Impulsado por modelos de lenguaje avanzados para anuncios de moda.",
@@ -1299,7 +1280,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   it: {
     home: {
-      heroBadgePrimary: "Generatore di descrizioni + assistente annunci",
+      heroBadgePrimary:
+        "Assistente AI per descrizioni e annunci · Decidi tu",
       watchDemo: "Guarda demo",
       videoCaption: "Scopri come funziona in 15 secondi",
       publicStatsAriaLabel: "Statistiche pubbliche di utilizzo di AutoLister",
@@ -1316,7 +1298,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Aggiungi a Chrome gratis",
       heroBullet1: "Crea titoli, descrizioni e hashtag dalle tue foto",
       heroBullet2: "Nessun copia-incolla. Nessun invio di foto via email.",
-      heroBullet3: "Controlli ogni bozza prima di pubblicarla",
+      heroBullet3: "Controlli ogni annuncio prima di pubblicarlo",
       addToChrome: "Aggiungi a Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
@@ -1361,9 +1343,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Bozze chiare",
       feature1Body:
         "Crea un titolo e una descrizione dai dettagli visibili nelle foto.",
-      feature2Title: "Flusso di Lavoro Senza Intoppi",
+      feature2Title: "Organizza le foto per articolo",
       feature2Body:
-        "Passa dalle foto a una bozza modificabile direttamente nella pagina dell'annuncio.",
+        "Raggruppa foto miste in articoli separati prima di creare le bozze degli annunci.",
       feature3Title: "Tecnologia AI Intelligente",
       feature3Body:
         "Alimentato da modelli linguistici avanzati per annunci di moda.",
@@ -1430,7 +1412,8 @@ export const SITE_EXTRA_COPY: Record<
   },
   pt: {
     home: {
-      heroBadgePrimary: "Gerador de descrições + assistente de anúncios",
+      heroBadgePrimary:
+        "Assistente de IA para descrições e anúncios · Você mantém o controlo",
       watchDemo: "Ver demo",
       videoCaption: "Veja como funciona em 15 segundos",
       publicStatsAriaLabel: "Estatísticas públicas de utilização do AutoLister",
@@ -1447,7 +1430,7 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalCta: "Adicionar ao Chrome grátis",
       heroBullet1: "Cria títulos, descrições e hashtags a partir das suas fotos",
       heroBullet2: "Sem copiar e colar. Sem enviar fotos por email.",
-      heroBullet3: "Revê cada rascunho antes de publicar",
+      heroBullet3: "Revê cada anúncio antes de publicar",
       addToChrome: "Adicionar ao Chrome",
       addToChromeNote: "E gratis",
       testimonialQuote:
@@ -1492,9 +1475,9 @@ export const SITE_EXTRA_COPY: Record<
       feature1Title: "Rascunhos claros",
       feature1Body:
         "Crie um título e uma descrição com os detalhes visíveis nas fotos.",
-      feature2Title: "Fluxo de Trabalho Fluido",
+      feature2Title: "Organize as fotos por artigo",
       feature2Body:
-        "Passe das fotos para um rascunho editável diretamente na página do anúncio.",
+        "Agrupe fotografias misturadas em artigos separados antes de criar os rascunhos dos anúncios.",
       feature3Title: "Tecnologia IA Inteligente",
       feature3Body:
         "Impulsionado por modelos de linguagem avancados para anuncios de moda.",

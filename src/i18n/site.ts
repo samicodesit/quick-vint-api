@@ -25,6 +25,7 @@ type NavCopy = {
   terms: string;
   copyright: string;
   independence: string;
+  ebayAccessNote: string;
 };
 
 type HomeCopy = {
@@ -69,6 +70,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "All rights reserved.",
       independence:
         "AutoLister AI is an independent tool and is not affiliated with, endorsed by, or sponsored by Vinted.",
+      ebayAccessNote: "* eBay is available with limited access.",
     },
     home: {
       seoTitle: "AI Listing Assistant & Description Generator | AutoLister AI",
@@ -76,9 +78,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Create editable listing titles, descriptions, and hashtags from item photos with AutoLister AI.",
       heroTitle: "AI listing assistant for titles and descriptions",
       heroSubtitle:
-        "Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. Works directly inside Vinted without connecting your account.",
+        "Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. Compatible with Vinted & eBay*.",
       heroMobileSubtitle:
-        "Create listing drafts from photos, directly inside Vinted.",
+        "Compatible with Vinted & eBay*.",
       heroBadgeSafe: "AI listing assistant · You stay in control",
       heroBulletSafety: "Prepares listing drafts for you to review and publish",
     },
@@ -107,6 +109,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Tous droits réservés.",
       independence:
         "AutoLister AI est un outil indépendant, sans affiliation, approbation ni parrainage de Vinted.",
+      ebayAccessNote: "* eBay est disponible en accès limité.",
     },
     home: {
       seoTitle:
@@ -115,9 +118,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Créez des titres, descriptions et hashtags modifiables depuis vos photos avec AutoLister AI.",
       heroTitle: "Assistant IA pour les titres et descriptions",
       heroSubtitle:
-        "Créez des titres, descriptions et hashtags depuis vos photos. Enregistrez et réutilisez vos notes vendeur. Fonctionne directement dans Vinted sans connecter votre compte.",
+        "Créez des titres, descriptions et hashtags depuis vos photos. Enregistrez et réutilisez vos notes vendeur. Compatible avec Vinted et eBay*.",
       heroMobileSubtitle:
-        "Créez des brouillons depuis vos photos, directement dans Vinted.",
+        "Compatible avec Vinted et eBay*.",
       heroBadgeSafe: "Assistant IA pour vos annonces · Vous gardez le contrôle",
       heroBulletSafety:
         "Prépare des brouillons que vous vérifiez avant de publier",
@@ -147,6 +150,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Alle Rechte vorbehalten.",
       independence:
         "AutoLister AI ist ein unabhängiges Tool und weder mit Vinted verbunden noch von Vinted unterstützt oder gesponsert.",
+      ebayAccessNote: "* eBay ist mit eingeschränktem Zugang verfügbar.",
     },
     home: {
       seoTitle:
@@ -155,9 +159,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Erstelle bearbeitbare Titel, Beschreibungen und Hashtags aus Artikelfotos mit AutoLister AI.",
       heroTitle: "KI-Assistent für Titel und Beschreibungen",
       heroSubtitle:
-        "Erstelle Titel, Beschreibungen und Hashtags aus Artikelfotos. Speichere und verwende eigene Verkäufernotizen. Funktioniert direkt in Vinted, ohne dein Konto zu verbinden.",
+        "Erstelle Titel, Beschreibungen und Hashtags aus Artikelfotos. Speichere und verwende eigene Verkäufernotizen. Kompatibel mit Vinted und eBay*.",
       heroMobileSubtitle:
-        "Erstelle Anzeigenentwürfe aus Fotos, direkt in Vinted.",
+        "Kompatibel mit Vinted und eBay*.",
       heroBadgeSafe: "KI-Assistent für Anzeigen · Du behältst die Kontrolle",
       heroBulletSafety:
         "Erstellt Entwürfe, die du vor dem Veröffentlichen prüfst",
@@ -186,6 +190,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Alle rechten voorbehouden.",
       independence:
         "AutoLister AI is een onafhankelijke tool en is niet gelieerd aan, goedgekeurd door of gesponsord door Vinted.",
+      ebayAccessNote: "* eBay is beschikbaar met beperkte toegang.",
     },
     home: {
       seoTitle:
@@ -194,9 +199,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Maak bewerkbare titels, beschrijvingen en hashtags vanuit itemfoto's met AutoLister AI.",
       heroTitle: "AI-assistent voor titels en beschrijvingen",
       heroSubtitle:
-        "Maak titels, beschrijvingen en hashtags vanuit itemfoto's. Bewaar en hergebruik je verkopersnotities. Werkt direct in Vinted zonder je account te koppelen.",
+        "Maak titels, beschrijvingen en hashtags vanuit itemfoto's. Bewaar en hergebruik je verkopersnotities. Compatibel met Vinted en eBay*.",
       heroMobileSubtitle:
-        "Maak advertentieconcepten vanuit foto's, direct in Vinted.",
+        "Compatibel met Vinted en eBay*.",
       heroBadgeSafe: "AI-assistent voor advertenties · Jij houdt de controle",
       heroBulletSafety:
         "Maakt concepten die je controleert voordat je publiceert",
@@ -226,6 +231,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Wszelkie prawa zastrzezone.",
       independence:
         "AutoLister AI jest niezależnym narzędziem i nie jest powiązane, zatwierdzone ani sponsorowane przez Vinted.",
+      ebayAccessNote: "* eBay jest dostępny w ograniczonym zakresie.",
     },
     home: {
       seoTitle: "Asystent AI do ogłoszeń i generator opisów | AutoLister AI",
@@ -233,9 +239,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Twórz edytowalne tytuły, opisy i hashtagi ze zdjęć produktów dzięki AutoLister AI.",
       heroTitle: "Asystent AI do tytułów i opisów",
       heroSubtitle:
-        "Twórz tytuły, opisy i hashtagi ze zdjęć produktów. Zapisuj i wykorzystuj ponownie notatki sprzedawcy. Działa bezpośrednio w Vinted bez łączenia konta.",
+        "Twórz tytuły, opisy i hashtagi ze zdjęć produktów. Zapisuj i wykorzystuj ponownie notatki sprzedawcy. Kompatybilne z Vinted i eBay*.",
       heroMobileSubtitle:
-        "Twórz wersje robocze ze zdjęć, bezpośrednio w Vinted.",
+        "Kompatybilne z Vinted i eBay*.",
       heroBadgeSafe: "Asystent AI do ogłoszeń · Ty zachowujesz kontrolę",
       heroBulletSafety:
         "Przygotowuje wersje robocze, które sprawdzasz przed publikacją",
@@ -264,6 +270,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Todos los derechos reservados.",
       independence:
         "AutoLister AI es una herramienta independiente y no está afiliada, respaldada ni patrocinada por Vinted.",
+      ebayAccessNote: "* eBay está disponible con acceso limitado.",
     },
     home: {
       seoTitle:
@@ -272,9 +279,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crea títulos, descripciones y hashtags editables desde fotos de artículos con AutoLister AI.",
       heroTitle: "Asistente IA para títulos y descripciones",
       heroSubtitle:
-        "Crea títulos, descripciones y hashtags desde las fotos de tus artículos. Guarda y reutiliza tus notas de vendedor. Funciona directamente dentro de Vinted sin conectar tu cuenta.",
+        "Crea títulos, descripciones y hashtags desde las fotos de tus artículos. Guarda y reutiliza tus notas de vendedor. Compatible con Vinted y eBay*.",
       heroMobileSubtitle:
-        "Crea borradores desde tus fotos, directamente en Vinted.",
+        "Compatible con Vinted y eBay*.",
       heroBadgeSafe: "Asistente de anuncios con IA · Tú tienes el control",
       heroBulletSafety:
         "Prepara borradores que revisas antes de publicar",
@@ -304,6 +311,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Tutti i diritti riservati.",
       independence:
         "AutoLister AI è uno strumento indipendente e non è affiliato, approvato o sponsorizzato da Vinted.",
+      ebayAccessNote: "* eBay è disponibile con accesso limitato.",
     },
     home: {
       seoTitle:
@@ -312,9 +320,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crea titoli, descrizioni e hashtag modificabili dalle foto degli articoli con AutoLister AI.",
       heroTitle: "Assistente IA per titoli e descrizioni",
       heroSubtitle:
-        "Crea titoli, descrizioni e hashtag dalle foto degli articoli. Salva e riutilizza le tue note venditore. Funziona direttamente dentro Vinted senza collegare il tuo account.",
+        "Crea titoli, descrizioni e hashtag dalle foto degli articoli. Salva e riutilizza le tue note venditore. Compatibile con Vinted ed eBay*.",
       heroMobileSubtitle:
-        "Crea bozze dalle foto, direttamente su Vinted.",
+        "Compatibile con Vinted ed eBay*.",
       heroBadgeSafe: "Assistente AI per gli annunci · Decidi tu",
       heroBulletSafety:
         "Prepara bozze che controlli prima di pubblicare",
@@ -343,6 +351,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       copyright: "Todos os direitos reservados.",
       independence:
         "O AutoLister AI é uma ferramenta independente e não é afiliado, aprovado ou patrocinado pela Vinted.",
+      ebayAccessNote: "* eBay está disponível com acesso limitado.",
     },
     home: {
       seoTitle:
@@ -351,9 +360,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Crie títulos, descrições e hashtags editáveis a partir de fotografias dos artigos com o AutoLister AI.",
       heroTitle: "Assistente IA para títulos e descrições",
       heroSubtitle:
-        "Crie títulos, descrições e hashtags a partir das fotografias dos artigos. Guarde e reutilize as suas notas de vendedor. Funciona diretamente na Vinted sem ligar a sua conta.",
+        "Crie títulos, descrições e hashtags a partir das fotografias dos artigos. Guarde e reutilize as suas notas de vendedor. Compatível com Vinted e eBay*.",
       heroMobileSubtitle:
-        "Crie rascunhos a partir de fotografias, diretamente na Vinted.",
+        "Compatível com Vinted e eBay*.",
       heroBadgeSafe: "Assistente de anúncios com IA · Você mantém o controlo",
       heroBulletSafety:
         "Prepara rascunhos que revê antes de publicar",

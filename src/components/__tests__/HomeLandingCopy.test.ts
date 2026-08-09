@@ -24,4 +24,10 @@ describe("home hero copy", () => {
       "Group mixed photos into separate items before creating your listing drafts.",
     );
   });
+
+  it("does not render or load blog posts on the homepage", () => {
+    expect(source).not.toContain("BlogCard");
+    expect(source).not.toContain('getCollection("blog")');
+    expect(source).not.toContain("latestPosts");
+  });
 });

@@ -36,4 +36,12 @@ describe("HomeLanding performance", () => {
     expect(source).toContain('data-video-src="/vid-promo.mp4"');
     expect(source).toContain("scheduleHeroVideoLoad();");
   });
+
+  it("keeps the homepage tier proof rail in normal document flow", () => {
+    expect(source).not.toMatch(
+      /\.home-tier-proof-rail\s*{[\s\S]*?position:\s*fixed/,
+    );
+    expect(source).not.toContain("data-docked");
+    expect(source).not.toContain("IntersectionObserver");
+  });
 });

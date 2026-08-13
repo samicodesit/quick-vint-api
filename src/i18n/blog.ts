@@ -31,18 +31,19 @@ export type BlogCopy = {
   latestTitle: string;
   latestSubtitle: string;
   viewAll: string;
+  categorySeoDescriptionSuffix: string;
   categories: Record<BlogCategory, string>;
 };
 
 export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
   en: {
-    seoTitle: "Vinted Seller Blog - AutoLister AI",
+    seoTitle: "Online Selling Blog - AutoLister AI",
     seoDescription:
-      "Practical guides for writing clearer Vinted listings and reviewing AI-generated drafts.",
-    eyebrow: "Vinted listing guides",
-    title: "The Vinted Listing Guide",
+      "Practical guides for creating clearer listings, reviewing AI-generated drafts, and selling with more confidence across marketplaces.",
+    eyebrow: "Online selling guides",
+    title: "The Online Selling Guide",
     subtitle:
-      "Practical guides for Vinted sellers and resellers who want faster listings, better buyer trust, and more control over every draft.",
+      "Practical guides for sellers and resellers who want faster listing workflows, stronger buyer trust, and more control over every draft.",
     allPosts: "All posts",
     readMore: "Read guide",
     minutesRead: "min read",
@@ -56,8 +57,10 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Copied",
     latestTitle: "From the Blog",
     latestSubtitle:
-      "Guides for writing clearer Vinted listings and reviewing AI-generated drafts.",
+      "Guides for clearer listings, better workflows, and reviewing AI-generated drafts.",
     viewAll: "View all guides",
+    categorySeoDescriptionSuffix:
+      "guides for online sellers and resellers from AutoLister AI.",
     categories: {
       "selling-tips": "Selling Tips",
       "marketplace-guide": "Marketplace Guide",
@@ -67,13 +70,13 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     },
   },
   fr: {
-    seoTitle: "Blog vendeurs Vinted - AutoLister AI",
+    seoTitle: "Blog vente en ligne - AutoLister AI",
     seoDescription:
-      "Conseils pratiques pour rédiger des annonces Vinted plus claires et vérifier les brouillons générés par IA.",
-    eyebrow: "Guides d’annonces Vinted",
-    title: "Le guide des annonces Vinted",
+      "Conseils pratiques pour créer des annonces plus claires, vérifier les brouillons générés par IA et vendre avec plus de confiance sur les marketplaces.",
+    eyebrow: "Guides de vente en ligne",
+    title: "Le guide de la vente en ligne",
     subtitle:
-      "Des guides concrets pour créer de meilleures annonces, gagner la confiance des acheteurs et garder le contrôle de chaque brouillon.",
+      "Des guides concrets pour les vendeurs et revendeurs qui veulent publier plus vite, inspirer confiance et garder le contrôle de chaque brouillon.",
     allPosts: "Tous les articles",
     readMore: "Lire le guide",
     minutesRead: "min de lecture",
@@ -87,8 +90,10 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Copié",
     latestTitle: "Depuis le blog",
     latestSubtitle:
-      "Guides pour rédiger des annonces Vinted plus claires et vérifier les brouillons générés par IA.",
+      "Guides pour créer des annonces plus claires, améliorer vos méthodes et vérifier les brouillons générés par IA.",
     viewAll: "Voir tous les guides",
+    categorySeoDescriptionSuffix:
+      "pour vendeurs et revendeurs en ligne par AutoLister AI.",
     categories: {
       "selling-tips": "Conseils de vente",
       "marketplace-guide": "Guide marketplace",
@@ -98,13 +103,13 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     },
   },
   de: {
-    seoTitle: "Vinted Verkäufer-Blog - AutoLister AI",
+    seoTitle: "Online-Verkaufsblog - AutoLister AI",
     seoDescription:
-      "Praktische Guides für klarere Vinted-Listings und das Prüfen von KI-Entwürfen.",
-    eyebrow: "Vinted-Listing-Guides",
-    title: "Der Vinted-Listing-Guide",
+      "Praktische Guides für klarere Listings, das Prüfen von KI-Entwürfen und mehr Sicherheit beim Verkaufen auf Marktplätzen.",
+    eyebrow: "Guides für Online-Verkauf",
+    title: "Der Guide für Online-Verkauf",
     subtitle:
-      "Konkrete Guides für bessere Vinted-Listings, mehr Vertrauen bei Käufern und volle Kontrolle über jeden Entwurf.",
+      "Konkrete Guides für Verkäufer und Reseller, die schneller listen, mehr Vertrauen schaffen und jeden Entwurf kontrollieren möchten.",
     allPosts: "Alle Beiträge",
     readMore: "Guide lesen",
     minutesRead: "Min. Lesezeit",
@@ -118,8 +123,10 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Kopiert",
     latestTitle: "Aus dem Blog",
     latestSubtitle:
-      "Guides für klarere Vinted-Listings und das Prüfen von KI-Entwürfen.",
+      "Guides für klarere Listings, bessere Abläufe und das Prüfen von KI-Entwürfen.",
     viewAll: "Alle Guides ansehen",
+    categorySeoDescriptionSuffix:
+      "für Online-Verkäufer und Reseller von AutoLister AI.",
     categories: {
       "selling-tips": "Verkaufstipps",
       "marketplace-guide": "Marketplace Guide",
@@ -129,13 +136,13 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     },
   },
   nl: {
-    seoTitle: "Vinted verkopersblog - AutoLister AI",
+    seoTitle: "Online verkoopblog - AutoLister AI",
     seoDescription:
-      "Praktische gidsen voor duidelijkere Vinted-advertenties en het controleren van AI-concepten.",
-    eyebrow: "Vinted-advertentiegidsen",
-    title: "De Vinted-advertentiegids",
+      "Praktische gidsen voor duidelijkere advertenties, het controleren van AI-concepten en met meer vertrouwen verkopen op marketplaces.",
+    eyebrow: "Gidsen voor online verkoop",
+    title: "De gids voor online verkoop",
     subtitle:
-      "Concrete gidsen voor betere Vinted-advertenties, meer vertrouwen van kopers en controle over elk concept.",
+      "Concrete gidsen voor verkopers en resellers die sneller willen plaatsen, meer vertrouwen willen wekken en elk concept willen controleren.",
     allPosts: "Alle artikelen",
     readMore: "Lees gids",
     minutesRead: "min leestijd",
@@ -149,8 +156,10 @@ export const BLOG_COPY: Record<BlogLocale, BlogCopy> = {
     copied: "Gekopieerd",
     latestTitle: "Uit de blog",
     latestSubtitle:
-      "Gidsen voor duidelijkere Vinted-advertenties en het controleren van AI-concepten.",
+      "Gidsen voor duidelijkere advertenties, betere workflows en het controleren van AI-concepten.",
     viewAll: "Bekijk alle gidsen",
+    categorySeoDescriptionSuffix:
+      "voor online verkopers en resellers van AutoLister AI.",
     categories: {
       "selling-tips": "Verkooptips",
       "marketplace-guide": "Marketplace gids",

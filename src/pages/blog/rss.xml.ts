@@ -2,11 +2,11 @@
 import rss from "@astrojs/rss";
 import { getCollection } from "astro:content";
 import { BLOG_COPY } from "../../i18n/blog.js";
-import { getPostUrl, getPublishedPosts } from "../../utils/blog.js";
+import { getBlogEntrancePosts, getPostUrl } from "../../utils/blog.js";
 
 export async function GET(context: { site: URL }) {
   const locale = "en";
-  const posts = getPublishedPosts(
+  const posts = getBlogEntrancePosts(
     await getCollection(
       "blog",
       ({ data }) => data.locale === locale && !data.draft,

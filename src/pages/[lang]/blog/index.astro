@@ -9,7 +9,7 @@ import {
   type BlogLocale,
 } from "../../../i18n/blog.js";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
-import { getPublishedPosts, getCategoryUrl, type BlogPost } from "../../../utils/blog.js";
+import { getBlogEntrancePosts, getCategoryUrl, type BlogPost } from "../../../utils/blog.js";
 
 export function getStaticPaths() {
   return LOCALIZED_BLOG_LOCALES.map((lang) => ({ params: { lang } }));
@@ -17,7 +17,7 @@ export function getStaticPaths() {
 
 const locale = normalizeBlogLocale(Astro.params.lang) as BlogLocale;
 const copy = BLOG_COPY[locale];
-const posts = getPublishedPosts(
+const posts = getBlogEntrancePosts(
   ((await getCollection("blog")) as BlogPost[]).filter(
     (post) => post.data.locale === locale && !post.data.draft,
   ),

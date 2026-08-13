@@ -3,11 +3,11 @@ import { getCollection } from "astro:content";
 import BlogCard from "../../components/blog/BlogCard.astro";
 import { BLOG_CATEGORIES, BLOG_COPY } from "../../i18n/blog.js";
 import SiteLayout from "../../layouts/SiteLayout.astro";
-import { getPublishedPosts, getCategoryUrl, type BlogPost } from "../../utils/blog.js";
+import { getBlogEntrancePosts, getCategoryUrl, type BlogPost } from "../../utils/blog.js";
 
 const locale = "en";
 const copy = BLOG_COPY[locale];
-const posts = getPublishedPosts(
+const posts = getBlogEntrancePosts(
   ((await getCollection("blog")) as BlogPost[]).filter(
     (post) => post.data.locale === locale && !post.data.draft,
   ),

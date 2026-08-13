@@ -7,7 +7,7 @@ import {
   normalizeBlogLocale,
   type BlogLocale,
 } from "../../../i18n/blog.js";
-import { getPostUrl, getPublishedPosts } from "../../../utils/blog.js";
+import { getBlogEntrancePosts, getPostUrl } from "../../../utils/blog.js";
 
 export function getStaticPaths() {
   return LOCALIZED_BLOG_LOCALES.map((lang) => ({ params: { lang } }));
@@ -15,7 +15,7 @@ export function getStaticPaths() {
 
 export async function GET(context: { params: { lang?: string }; site: URL }) {
   const locale = normalizeBlogLocale(context.params.lang) as BlogLocale;
-  const posts = getPublishedPosts(
+  const posts = getBlogEntrancePosts(
     await getCollection(
       "blog",
       ({ data }) => data.locale === locale && !data.draft,

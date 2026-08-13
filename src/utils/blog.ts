@@ -74,8 +74,25 @@ export function sortPostsByDate(posts: BlogPost[]): BlogPost[] {
   );
 }
 
+const BLOG_ENTRANCE_HIDDEN_TRANSLATION_KEYS = new Set([
+  "batch-generate-vinted-listings",
+  "sell-many-items-at-once",
+]);
+
+export function isHiddenFromBlogEntrances(post: BlogPost): boolean {
+  return BLOG_ENTRANCE_HIDDEN_TRANSLATION_KEYS.has(post.data.translationKey);
+}
+
 export function getPublishedPosts(posts: BlogPost[]): BlogPost[] {
   return sortPostsByDate(posts.filter((post) => !post.data.draft));
+}
+
+export function getBlogEntrancePosts(posts: BlogPost[]): BlogPost[] {
+  return sortPostsByDate(
+    posts.filter(
+      (post) => !post.data.draft && !isHiddenFromBlogEntrances(post),
+    ),
+  );
 }
 
 export function getRelatedPosts(
@@ -88,6 +105,7 @@ export function getRelatedPosts(
       (post) =>
         post.id !== currentPost.id &&
         !post.data.draft &&
+        !isHiddenFromBlogEntrances(post) &&
         post.data.locale === currentPost.data.locale &&
         (post.data.category === currentPost.data.category ||
           post.data.tags.some((tag: string) =>

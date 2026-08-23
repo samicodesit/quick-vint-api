@@ -10,7 +10,9 @@ export function isCancelingSubscriptionStatus(status: SubscriptionStatusLike) {
 
 export function hasPaidEntitlementStatus(status: SubscriptionStatusLike) {
   return (
-    isActiveSubscriptionStatus(status) || isCancelingSubscriptionStatus(status)
+    isActiveSubscriptionStatus(status) ||
+    isCancelingSubscriptionStatus(status) ||
+    status === "past_due"
   );
 }
 

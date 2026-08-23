@@ -10,6 +10,7 @@ import {
   hasUnlimitedDailyLimit,
   type PricingLimitsMode,
 } from "./tierConfig";
+import { hasPaidEntitlementStatus } from "../src/utils/subscriptionStatus";
 
 // Global cost protection
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
@@ -88,6 +89,7 @@ export interface GenerationCapacity {
 
 function hasActiveCustomLimits(profile: UserProfile): boolean {
   return Boolean(
+    hasPaidEntitlementStatus(profile.subscription_status) &&
     profile.custom_limit_expires_at &&
     new Date(profile.custom_limit_expires_at) > new Date(),
   );

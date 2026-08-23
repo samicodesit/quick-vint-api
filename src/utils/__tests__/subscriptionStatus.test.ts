@@ -26,4 +26,10 @@ describe("subscription status normalization", () => {
   it("treats canceling paid users as entitled until Stripe deletion arrives", () => {
     expect(hasPaidEntitlementStatus("canceling")).toBe(true);
   });
+
+  it("keeps paid entitlement only during Stripe's retryable past-due state", () => {
+    expect(hasPaidEntitlementStatus("past_due")).toBe(true);
+    expect(hasPaidEntitlementStatus("unpaid")).toBe(false);
+    expect(hasPaidEntitlementStatus("canceled")).toBe(false);
+  });
 });

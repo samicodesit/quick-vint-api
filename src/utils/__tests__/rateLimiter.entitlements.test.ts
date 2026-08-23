@@ -209,6 +209,47 @@ describe("RateLimiter entitlement decisions", () => {
     });
   });
 
+  it("does not preserve custom paid limits after Stripe marks a subscription unpaid", async () => {
+    process.env.PRICING_LIMITS_MODE = "legacy";
+    queueSingle("system_settings", { data: null, error: null });
+    queueSingle("daily_stats", {
+      data: { total_api_calls: 0, estimated_cost: 0 },
+      error: null,
+    });
+    queueSingle("profiles", {
+      data: {
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+        custom_limit_reason: "Custom Business setup",
+      },
+      error: null,
+    });
+    queueRateCount(0);
+    queueRateCount(0);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-unpaid-custom-business",
+      {
+        subscription_status: "unpaid",
+        subscription_tier: "business",
+        api_calls_this_month: 0,
+        is_legacy_plan: false,
+        pack_credits: 0,
+      },
+      "legacy",
+    );
+
+    expect(result).toMatchObject({
+      tier: "free",
+      limits: {
+        daily: 2,
+        monthly: 8,
+      },
+    });
+  });
+
   it("enforces active custom daily limits even in legacy Business mode", async () => {
     process.env.PRICING_LIMITS_MODE = "legacy";
     queueSingle("system_settings", { data: null, error: null });

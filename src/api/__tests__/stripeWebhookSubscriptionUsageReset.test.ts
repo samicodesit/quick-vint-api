@@ -16,6 +16,8 @@ const updateFilterCalls: Array<{
   column: string;
   value: unknown;
 }> = [];
+const singleCalls: string[] = [];
+const maybeSingleCalls: string[] = [];
 const selectQueues = new Map<
   string,
   Array<{ data: unknown; error?: unknown }>
@@ -75,8 +77,14 @@ function createQueryBuilder(table: string) {
       return builder;
     }),
     ilike: vi.fn(() => builder),
-    single: vi.fn(async () => popSelect(table)),
-    maybeSingle: vi.fn(async () => popSelect(table)),
+    single: vi.fn(async () => {
+      singleCalls.push(table);
+      return popSelect(table);
+    }),
+    maybeSingle: vi.fn(async () => {
+      maybeSingleCalls.push(table);
+      return popSelect(table);
+    }),
   };
 
   return builder;
@@ -161,6 +169,8 @@ describe("Stripe webhook subscription usage reset", () => {
     delete process.env.CUSTOM_BUSINESS_MONTHLY_LIMIT;
     updateCalls.length = 0;
     updateFilterCalls.length = 0;
+    singleCalls.length = 0;
+    maybeSingleCalls.length = 0;
     selectQueues.clear();
     vi.clearAllMocks();
     rpcMock.mockResolvedValue({ data: null, error: null });
@@ -241,6 +251,44 @@ describe("Stripe webhook subscription usage reset", () => {
       stripeSubscriptionId: "sub_new",
       stripeCheckoutSessionId: undefined,
     });
+  });
+
+  it("accepts subscription checkout when no profile matches the email", async () => {
+    constructEventMock.mockReturnValue({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          subscription: "sub_new",
+          customer: "cus_123",
+          customer_details: { email: "missing@example.com" },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_new",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", { data: null, error: null });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(maybeSingleCalls).toContain("profiles");
+    expect(singleCalls).not.toContain("profiles");
+    expect(updateCalls).toHaveLength(0);
   });
 
   it("ignores a delayed checkout for a replaced subscription", async () => {

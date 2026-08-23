@@ -391,7 +391,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               "id, stripe_subscription_id, subscription_status, subscription_tier",
             )
             .ilike("email", email)
-            .single();
+            .maybeSingle();
           if (profileError) throw profileError;
 
           if (profileRow) {

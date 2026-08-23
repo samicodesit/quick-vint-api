@@ -18,11 +18,7 @@ const ACTIVE_LIKE_SUBSCRIPTION_STATUSES = new Set([
   "unpaid",
   "incomplete",
 ]);
-const USAGE_REPAIR_SUBSCRIPTION_STATUSES = new Set([
-  "active",
-  "trialing",
-  "canceling",
-]);
+const USAGE_REPAIR_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
 
 type BillingProfile = {
   id: string;
@@ -43,7 +39,10 @@ function hasBillingRisk(profile: BillingProfile) {
   );
 }
 
-async function getStripeSnapshot(customerId: string) {
+async function getStripeSnapshot(
+  customerId: string,
+  currentSubscriptionId: string | null,
+) {
   const [subscriptions, invoices] = await Promise.all([
     stripe.subscriptions.list({
       customer: customerId,
@@ -63,6 +62,9 @@ async function getStripeSnapshot(customerId: string) {
     (invoice) =>
       invoice.status === "open" && Number(invoice.amount_remaining || 0) > 0,
   );
+  const currentSubscription = activeLikeSubscriptions.find(
+    (subscription) => subscription.id === currentSubscriptionId,
+  );
   let latestPaidUsagePeriod: {
     invoiceId: string;
     subscriptionId: string;
@@ -72,6 +74,7 @@ async function getStripeSnapshot(customerId: string) {
   for (const invoice of invoices.data) {
     if (invoice.status !== "paid") continue;
     const subscriptionId = getInvoiceSubscriptionId(invoice as any);
+    if (subscriptionId !== currentSubscriptionId) continue;
     const period = getPaidSubscriptionPeriod(invoice as any);
     if (!invoice.id || !subscriptionId || !period) continue;
     latestPaidUsagePeriod = {
@@ -92,6 +95,7 @@ async function getStripeSnapshot(customerId: string) {
     hasCancelAtPeriodEnd: activeLikeSubscriptions.some(
       (subscription) => subscription.cancel_at_period_end,
     ),
+    currentSubscriptionStatus: currentSubscription?.status || null,
     latestPaidUsagePeriod,
     subscriptions: activeLikeSubscriptions.map((subscription) => ({
       id: subscription.id,
@@ -118,6 +122,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .from("profiles")
     .select(
       "id,email,subscription_status,subscription_tier,stripe_customer_id,stripe_subscription_id",
+    )
+    .or(
+      "stripe_customer_id.not.is.null,subscription_tier.neq.free,subscription_status.in.(active,trialing,past_due,unpaid,canceling)",
     )
     .limit(1000);
 
@@ -148,11 +155,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       continue;
     }
 
-    const snapshot = await getStripeSnapshot(profile.stripe_customer_id);
+    const snapshot = await getStripeSnapshot(
+      profile.stripe_customer_id,
+      profile.stripe_subscription_id,
+    );
 
     if (
       snapshot.latestPaidUsagePeriod &&
-      USAGE_REPAIR_SUBSCRIPTION_STATUSES.has(profile.subscription_status || "")
+      USAGE_REPAIR_SUBSCRIPTION_STATUSES.has(
+        snapshot.currentSubscriptionStatus || "",
+      )
     ) {
       const paidPeriod = snapshot.latestPaidUsagePeriod;
       const { data: resetResult, error: resetError } = await supabase.rpc(
@@ -215,6 +227,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
+  // Vercel does not retry failed cron invocations. Preserve a non-2xx status so
+  // partial billing repair failures remain visible to monitoring.
   return res.status(usageResetErrors ? 500 : 200).json({
     ok: usageResetErrors === 0,
     checked: profiles.length,

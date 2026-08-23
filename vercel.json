@@ -7,6 +7,10 @@
   ],
   "crons": [
     {
+      "path": "/api/cron/reset-counts",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/cron/daily-cleanup",
       "schedule": "0 * * * *"
     },

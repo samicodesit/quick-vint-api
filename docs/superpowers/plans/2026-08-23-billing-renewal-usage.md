@@ -94,6 +94,7 @@
 - Modify: `src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts`
 - Modify: `api/cron/billing-reconciliation.ts`
 - Create: `src/api/__tests__/billingReconciliationUsageReset.test.ts`
+- Create: `migrations/2026-08-23_paid_entitlement_reservation.sql`
 
 **Interfaces:**
 
@@ -114,26 +115,27 @@
 
 - [ ] **Step 3: Implement minimally**
 
-  Add paid invoice switch cases, resolve the profile by Stripe customer ID with email fallback, sync the subscription without a reset, then call the RPC. In reconciliation, pick the newest paid subscription invoice with a valid service period and call the same RPC; count reset/no-op/errors without changing unrelated drift detection.
+  Add paid invoice switch cases, resolve the profile by Stripe customer ID with email fallback, reject stale subscription identities, sync without a reset, then call the RPC. In reconciliation, pick the newest paid subscription invoice matching the stored subscription and call the same RPC; use Stripe's live status to distinguish a recovered payment from one still past due. Re-create the reservation RPC so stored custom limits require paid entitlement and only `service_role` can execute it.
 
 - [ ] **Step 4: Verify GREEN**
 
   Run the command from Step 2 and expect all endpoint tests to pass.
 
-### Task 4: Remove the independent rolling reset and verify production readiness
+### Task 4: Restrict the rolling reset to legacy rollback and verify production readiness
 
 **Files:**
 
-- Delete: `api/cron/reset-counts.ts`
+- Modify: `api/cron/reset-counts.ts`
 - Modify: `vercel.json`
+- Create: `src/api/__tests__/resetCountsLegacy.test.ts`
 
 **Interfaces:**
 
-- Removes: `/api/cron/reset-counts` and its daily Vercel schedule.
+- Preserves: `/api/cron/reset-counts` only for free profiles in legacy pricing mode.
 
-- [ ] **Step 1: Remove the obsolete route and schedule**
+- [ ] **Step 1: Restrict the compatibility route**
 
-  Delete the endpoint and remove only its cron entry from `vercel.json`.
+  Keep the endpoint and schedule, return immediately in current mode, and reset only profiles without paid entitlement when legacy mode is enabled.
 
 - [ ] **Step 2: Run focused tests**
 

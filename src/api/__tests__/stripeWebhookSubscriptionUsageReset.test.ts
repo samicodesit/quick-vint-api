@@ -76,6 +76,7 @@ function createQueryBuilder(table: string) {
     }),
     ilike: vi.fn(() => builder),
     single: vi.fn(async () => popSelect(table)),
+    maybeSingle: vi.fn(async () => popSelect(table)),
   };
 
   return builder;
@@ -209,8 +210,8 @@ describe("Stripe webhook subscription usage reset", () => {
     await handler(createRequest() as any, res as any);
 
     expect(res.statusCode).toBe(200);
-    expect(updateCalls).toHaveLength(2);
-    expect(updateCalls[1].values).toMatchObject({
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].values).toMatchObject({
       stripe_subscription_id: "sub_new",
       stripe_customer_id: "cus_123",
       subscription_tier: "starter",
@@ -222,7 +223,13 @@ describe("Stripe webhook subscription usage reset", () => {
       paused_at: null,
       paused_by: null,
     });
-    expect(updateCalls[1].values).not.toHaveProperty("last_api_call_reset");
+    expect(updateCalls[0].values).not.toHaveProperty("last_api_call_reset");
+    expect(updateFilterCalls).toContainEqual({
+      table: "profiles",
+      operator: "is",
+      column: "stripe_subscription_id",
+      value: null,
+    });
     expect(rpcMock).not.toHaveBeenCalledWith(
       "reset_monthly_usage_for_paid_invoice",
       expect.anything(),
@@ -234,6 +241,53 @@ describe("Stripe webhook subscription usage reset", () => {
       stripeSubscriptionId: "sub_new",
       stripeCheckoutSessionId: undefined,
     });
+  });
+
+  it("ignores a delayed checkout for a replaced subscription", async () => {
+    constructEventMock.mockReturnValue({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          subscription: "sub_old",
+          customer: "cus_123",
+          customer_details: { email: "seller@example.com" },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValueOnce({
+      id: "sub_old",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValueOnce({
+      id: "sub_current",
+      status: "active",
+    });
+    queueSelect("profiles", {
+      data: {
+        id: "profile_123",
+        stripe_subscription_id: "sub_current",
+        subscription_status: "active",
+        subscription_tier: "starter",
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(0);
   });
 
   it("does not reset monthly usage for routine same-subscription updates", async () => {
@@ -253,6 +307,19 @@ describe("Stripe webhook subscription usage reset", () => {
             ],
           },
         },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_current",
+      customer: "cus_123",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96o0P5rNq9hGDStClke9za" },
+            current_period_end: 1784592000,
+          },
+        ],
       },
     });
     queueSelect("profiles", { data: { id: "profile_123" } });
@@ -289,6 +356,185 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
   });
 
+  it("ignores an update for a replaced subscription", async () => {
+    retrieveSubscriptionMock.mockResolvedValueOnce({
+      id: "sub_old",
+      customer: "cus_123",
+      status: "canceled",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValueOnce({
+      id: "sub_replacement",
+      customer: "cus_123",
+      status: "active",
+    });
+    constructEventMock.mockReturnValue({
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_old",
+          customer: "cus_123",
+          status: "active",
+          items: {
+            data: [
+              {
+                price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+                current_period_end: 1784592000,
+              },
+            ],
+          },
+        },
+      },
+    });
+    queueSelect("profiles", { data: { id: "profile_123" } });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: "sub_replacement",
+        subscription_status: "active",
+        subscription_tier: "starter",
+        is_legacy_plan: false,
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it("uses live Stripe state instead of a stale same-subscription snapshot", async () => {
+    constructEventMock.mockReturnValue({
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_current",
+          customer: "cus_123",
+          status: "active",
+          items: {
+            data: [
+              {
+                price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+                current_period_end: 1784592000,
+              },
+            ],
+          },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_current",
+      customer: "cus_123",
+      status: "unpaid",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", { data: { id: "profile_123" } });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: "sub_current",
+        subscription_status: "active",
+        subscription_tier: "starter",
+        is_legacy_plan: false,
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls[0].values).toMatchObject({
+      stripe_subscription_id: "sub_current",
+      subscription_status: "unpaid",
+      subscription_tier: "starter",
+    });
+  });
+
+  it("returns 500 when a profile lookup fails so Stripe retries", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_profile_lookup_error",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_current",
+          customer: "cus_123",
+          status: "active",
+          items: { data: [] },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_current",
+      customer: "cus_123",
+      status: "active",
+      items: { data: [] },
+    });
+    queueSelect("profiles", {
+      data: null,
+      error: { code: "XX000", message: "database unavailable" },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(500);
+    expect(updateCalls).toHaveLength(0);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalled();
+  });
+
+  it("guards deletion against a replaced subscription", async () => {
+    constructEventMock.mockReturnValue({
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: "sub_old",
+          customer: "cus_123",
+          status: "canceled",
+          items: { data: [] },
+        },
+      },
+    });
+    queueSelect("profiles", { data: { id: "profile_123" } });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateFilterCalls).toContainEqual({
+      table: "profiles",
+      operator: "eq",
+      column: "stripe_subscription_id",
+      value: "sub_old",
+    });
+    expect(updateCalls[0].values).not.toHaveProperty("custom_daily_limit");
+    expect(updateCalls[0].values).not.toHaveProperty("custom_monthly_limit");
+  });
+
   it("links an email-matched profile when Stripe creates a paid subscription", async () => {
     constructEventMock.mockReturnValue({
       type: "customer.subscription.created",
@@ -311,6 +557,19 @@ describe("Stripe webhook subscription usage reset", () => {
     retrieveCustomerMock.mockResolvedValue({
       id: "cus_123",
       email: "seller@example.com",
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_created",
+      customer: "cus_123",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
     });
     queueSelect("profiles", { data: null });
     queueSelect("profiles", {
@@ -362,6 +621,19 @@ describe("Stripe webhook subscription usage reset", () => {
             ],
           },
         },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_custom",
+      customer: "cus_123",
+      status: "active",
+      current_period_end: 1784592000,
+      items: {
+        data: [
+          {
+            price: { id: "price_custom_business" },
+          },
+        ],
       },
     });
     queueSelect("profiles", { data: { id: "profile_123" } });
@@ -505,10 +777,10 @@ describe("Stripe webhook subscription usage reset", () => {
         },
       },
     });
-    retrieveSubscriptionMock.mockResolvedValue({
+    retrieveSubscriptionMock.mockResolvedValueOnce({
       id: "sub_old",
       customer: "cus_123",
-      status: "active",
+      status: "canceled",
       items: {
         data: [
           {
@@ -517,6 +789,10 @@ describe("Stripe webhook subscription usage reset", () => {
           },
         ],
       },
+    });
+    retrieveSubscriptionMock.mockResolvedValueOnce({
+      id: "sub_replacement",
+      status: "active",
     });
     queueSelect("profiles", {
       data: { id: "profile_123", email: "seller@example.com" },
@@ -529,8 +805,127 @@ describe("Stripe webhook subscription usage reset", () => {
         is_legacy_plan: false,
       },
     });
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(0);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores a delayed paid invoice from an older subscription period", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_old_paid_period",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_old_paid_period",
+          object: "invoice",
+          status: "paid",
+          customer: "cus_123",
+          billing_reason: "subscription_cycle",
+          parent: {
+            subscription_details: { subscription: "sub_current" },
+          },
+          lines: {
+            data: [
+              {
+                parent: {
+                  subscription_item_details: { proration: false },
+                },
+                period: { start: 1782864000, end: 1785542400 },
+              },
+            ],
+          },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_current",
+      customer: "cus_123",
+      status: "past_due",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1788220800,
+          },
+        ],
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(0);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("adopts a paid replacement when the stored subscription is inactive", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_replacement_paid",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_replacement_paid",
+          object: "invoice",
+          status: "paid",
+          customer: "cus_123",
+          billing_reason: "subscription_create",
+          parent: {
+            subscription_details: { subscription: "sub_replacement" },
+          },
+          lines: {
+            data: [
+              {
+                parent: {
+                  subscription_item_details: { proration: false },
+                },
+                period: { start: 1785542400, end: 1788220800 },
+              },
+            ],
+          },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValueOnce({
+      id: "sub_replacement",
+      customer: "cus_123",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1788220800,
+          },
+        ],
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValueOnce({
+      id: "sub_old",
+      customer: "cus_123",
+      status: "canceled",
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: "sub_old",
+        subscription_status: "canceled",
+        subscription_tier: "free",
+        is_legacy_plan: false,
+      },
+    });
     rpcMock.mockResolvedValueOnce({
-      data: { reset: false, reason: "subscription_mismatch" },
+      data: { reset: true, reason: "new_paid_period" },
       error: null,
     });
 
@@ -550,7 +945,7 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(rpcMock).toHaveBeenCalledWith(
       "reset_monthly_usage_for_paid_invoice",
       expect.objectContaining({
-        p_stripe_subscription_id: "sub_old",
+        p_stripe_subscription_id: "sub_replacement",
       }),
     );
   });

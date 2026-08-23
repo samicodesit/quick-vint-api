@@ -23,13 +23,15 @@ Stripe invoice service-period end is the monotonic period key. A migration backf
 
 The webhook handles both `invoice.paid` and the already-configured `invoice.payment_succeeded` event. Both routes call the same RPC, so receiving both events is harmless. The daily billing reconciliation applies the latest paid subscription invoice through that RPC, healing missed webhook delivery without creating a second reset.
 
-The rolling `/api/cron/reset-counts` route and Vercel schedule are removed. `last_api_call_reset` remains for compatibility and records the actual successful reset time, but no longer drives entitlement periods.
+The rolling `/api/cron/reset-counts` route remains only as rollback support for `PRICING_LIMITS_MODE=legacy`. It is a no-op in current mode and resets only profiles without paid entitlement. Paid subscriptions always use Stripe invoice periods.
+
+Custom grants remain stored when a profile loses paid entitlement, but both TypeScript and the authoritative reservation RPC ignore them until paid entitlement returns. Direct client access to the security-definer reservation RPC is revoked. This keeps legacy rollback safe without deleting manual grant data.
 
 ## Data flow
 
 1. Stripe sends a paid invoice event.
 2. The handler ignores non-subscription invoices and invoices without a recurring, non-proration subscription line.
-3. The handler retrieves the subscription, resolves its customer profile, and syncs tier/status/current period without resetting usage.
+3. The handler retrieves the subscription, resolves its customer profile, and syncs tier/status/current period without resetting usage. A different subscription ID is adopted only after Stripe confirms the stored subscription is no longer live.
 4. The handler calls `reset_monthly_usage_for_paid_invoice` with profile ID, subscription ID, invoice ID, and the invoice line's service-period end.
 5. PostgreSQL locks the profile row, validates that the invoice belongs to its current subscription, and resets only when the period end is newer than `last_usage_period_end`.
 6. Stripe retries or reconciliation can repeat the operation safely.
@@ -38,15 +40,15 @@ The rolling `/api/cron/reset-counts` route and Vercel schedule are removed. `las
 
 - Missing profile or malformed subscription invoice: fail the webhook so Stripe retries; reconciliation supplies a second recovery path.
 - Duplicate or stale invoice: return a no-op result and acknowledge the webhook.
-- Subscription mismatch: return a no-op result so an old subscription cannot reset a replacement subscription.
+- Subscription mismatch: keep a live stored subscription; adopt a replacement only after Stripe confirms the stored one is inactive.
 - Database error: return HTTP 500 and emit the existing critical endpoint alert.
 - Failed invoice: audit only; status changes arrive through `customer.subscription.updated`.
 
 ## Rollout safety
 
-1. Apply the additive database migration first. Its backfill prevents the first mid-cycle proration after rollout from looking like a new period.
+1. Apply both additive database migrations first. The reservation migration restricts custom limits and RPC access; the usage-period backfill prevents the first mid-cycle proration after rollout from looking like a new period.
 2. Verify the live Stripe webhook endpoint sends `invoice.payment_succeeded`; `invoice.paid` is additionally supported.
-3. Deploy the application change, which removes the independent reset cron.
+3. Deploy the application change; the independent reset cron becomes a current-mode no-op and remains available only for legacy rollback.
 4. Run reconciliation and inspect its reset/error counts plus billing audit rows.
 5. Do not claw back any allowance already granted by the old cron.
 
@@ -56,5 +58,5 @@ The rolling `/api/cron/reset-counts` route and Vercel schedule are removed. `las
 - Status tests prove `past_due` retains paid entitlement while `unpaid` does not.
 - Endpoint tests prove checkout, upgrades, failed invoices, paid renewals, and recovered payments call or avoid the reset RPC correctly.
 - Rate-limiter tests prove expired-payment customers cannot retain custom paid limits.
-- Reconciliation tests prove a missed paid invoice reaches the same idempotent RPC.
+- Reconciliation tests prove a missed paid invoice reaches the same idempotent RPC, matches the stored subscription, and repairs a recovered `past_due` profile only when Stripe is live again.
 - The complete `npm run verify:production` gate must pass before integration.

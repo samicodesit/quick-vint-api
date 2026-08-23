@@ -812,6 +812,39 @@ describe("RateLimiter entitlement decisions", () => {
     });
   });
 
+  it("passes free limits for an unpaid custom profile in legacy mode", async () => {
+    queueRpc({
+      data: {
+        allowed: true,
+        reservationId: "reservation-unpaid-custom-legacy",
+      },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    await RateLimiter.reserveGenerationRequest(
+      "user-unpaid-custom-business",
+      {
+        subscription_status: "unpaid",
+        subscription_tier: "business",
+        api_calls_this_month: 0,
+        custom_daily_limit: 100,
+        custom_monthly_limit: 1000,
+        custom_limit_expires_at: "2099-01-01T00:00:00Z",
+      },
+      "legacy",
+    );
+
+    expect(rpcCalls[0]).toMatchObject({
+      name: "reserve_generation_request",
+      params: {
+        p_effective_tier: "free",
+        p_monthly_limit: 8,
+        p_daily_limit: 2,
+      },
+    });
+  });
+
   it("fails closed when generation reservation cannot be made", async () => {
     queueRpc({
       data: null,

@@ -291,6 +291,108 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(updateCalls).toHaveLength(0);
   });
 
+  it("preserves legacy limits when subscription checkout is re-delivered", async () => {
+    constructEventMock.mockReturnValue({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          subscription: "sub_legacy",
+          customer: "cus_123",
+          customer_details: { email: "seller@example.com" },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_legacy",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", {
+      data: {
+        id: "profile_123",
+        stripe_subscription_id: "sub_legacy",
+        subscription_status: "active",
+        subscription_tier: "starter",
+        is_legacy_plan: true,
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls[0].values).toMatchObject({
+      stripe_subscription_id: "sub_legacy",
+      is_legacy_plan: true,
+    });
+  });
+
+  it.each([
+    ["cus_123", 1],
+    ["cus_other", 0],
+  ])(
+    "only replaces a missing stored subscription for the same customer (%s)",
+    async (storedCustomerId, expectedUpdates) => {
+      constructEventMock.mockReturnValue({
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "subscription",
+            subscription: "sub_new",
+            customer: "cus_123",
+            customer_details: { email: "seller@example.com" },
+          },
+        },
+      });
+      retrieveSubscriptionMock.mockResolvedValueOnce({
+        id: "sub_new",
+        customer: "cus_123",
+        status: "active",
+        items: {
+          data: [
+            {
+              price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+              current_period_end: 1784592000,
+            },
+          ],
+        },
+      });
+      retrieveSubscriptionMock.mockRejectedValueOnce({
+        code: "resource_missing",
+      });
+      queueSelect("profiles", {
+        data: {
+          id: "profile_123",
+          stripe_subscription_id: "sub_missing",
+          stripe_customer_id: storedCustomerId,
+          subscription_status: "canceled",
+          subscription_tier: "free",
+          is_legacy_plan: false,
+        },
+      });
+
+      const webhookModule = await import("../../../api/stripe/webhook.js");
+      const handler = webhookModule.default as unknown as WebhookHandler;
+      const res = createResponse();
+
+      await handler(createRequest() as any, res as any);
+
+      expect(res.statusCode).toBe(200);
+      expect(updateCalls).toHaveLength(expectedUpdates);
+    },
+  );
+
   it("ignores a delayed checkout for a replaced subscription", async () => {
     constructEventMock.mockReturnValue({
       type: "checkout.session.completed",

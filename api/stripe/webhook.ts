@@ -78,6 +78,7 @@ function getStripeObjectId(value: unknown): string | null {
 async function canAdoptSubscription(
   storedSubscriptionId: string | null | undefined,
   incomingSubscription: Stripe.Subscription,
+  profileCustomerId?: string | null,
 ) {
   const incomingSubscriptionId = incomingSubscription.id;
   if (
@@ -87,9 +88,21 @@ async function canAdoptSubscription(
     return true;
   }
 
-  const storedSubscription =
-    await stripe.subscriptions.retrieve(storedSubscriptionId);
   const paidStatuses = ["active", "trialing", "past_due"];
+  let storedSubscription: Stripe.Subscription;
+  try {
+    storedSubscription = (await stripe.subscriptions.retrieve(
+      storedSubscriptionId,
+    )) as Stripe.Subscription;
+  } catch (error) {
+    if ((error as { code?: string })?.code !== "resource_missing") throw error;
+    const incomingCustomerId = getStripeObjectId(incomingSubscription.customer);
+    return Boolean(
+      paidStatuses.includes(incomingSubscription.status) &&
+      profileCustomerId &&
+      incomingCustomerId === profileCustomerId,
+    );
+  }
   const storedCustomerId = getStripeObjectId(storedSubscription.customer);
   const incomingCustomerId = getStripeObjectId(incomingSubscription.customer);
 
@@ -171,13 +184,19 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
   const { data: existingProfile, error: existingProfileError } = await supabase
     .from("profiles")
     .select(
-      "stripe_subscription_id, subscription_status, subscription_tier, is_legacy_plan",
+      "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
     )
     .eq("id", profileRow.id)
     .single();
   if (existingProfileError) throw existingProfileError;
   const existingSubscriptionId = existingProfile?.stripe_subscription_id;
-  if (!(await canAdoptSubscription(existingSubscriptionId, subscription))) {
+  if (
+    !(await canAdoptSubscription(
+      existingSubscriptionId,
+      subscription,
+      existingProfile?.stripe_customer_id,
+    ))
+  ) {
     return;
   }
   const keepLegacy =
@@ -388,7 +407,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const { data: profileRow, error: profileError } = await supabase
             .from("profiles")
             .select(
-              "id, stripe_subscription_id, subscription_status, subscription_tier",
+              "id, stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
             )
             .ilike("email", email)
             .maybeSingle();
@@ -400,17 +419,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               !(await canAdoptSubscription(
                 existingSubscriptionId,
                 subscription,
+                profileRow.stripe_customer_id,
               ))
             ) {
               break;
             }
+            const keepLegacy =
+              Boolean(profileRow.is_legacy_plan) &&
+              existingSubscriptionId === subscription.id &&
+              profileRow.subscription_tier === tier;
             const updateData = buildSubscriptionProfileUpdate({
               subscriptionId: subscription.id,
               stripeCustomerId: customerId,
               status,
               tier,
               currentPeriodEnd,
-              isLegacyPlan: false,
+              isLegacyPlan: keepLegacy,
             });
             Object.assign(
               updateData,
@@ -513,7 +537,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             await supabase
               .from("profiles")
               .select(
-                "stripe_subscription_id, subscription_status, subscription_tier, is_legacy_plan",
+                "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
               )
               .eq("id", profileRow.id)
               .single();
@@ -528,7 +552,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             break;
           }
           if (
-            !(await canAdoptSubscription(existingSubscriptionId, subscription))
+            !(await canAdoptSubscription(
+              existingSubscriptionId,
+              subscription,
+              existingProfile?.stripe_customer_id,
+            ))
           ) {
             break;
           }

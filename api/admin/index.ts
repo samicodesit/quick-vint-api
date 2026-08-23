@@ -31,6 +31,7 @@ import {
 } from "../../utils/limitFollowupEligibility";
 import { logAdminBillingAction } from "../../utils/billingEvents";
 import { validateAiInstructions } from "../../utils/aiInstructions";
+import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -247,6 +248,7 @@ function getAdminEffectiveLimit(
   const customValue =
     key === "daily" ? user.custom_daily_limit : user.custom_monthly_limit;
   const hasActiveCustomLimits =
+    hasPaidEntitlementStatus(user.subscription_status) &&
     user.custom_limit_expires_at &&
     new Date(user.custom_limit_expires_at) > new Date();
 

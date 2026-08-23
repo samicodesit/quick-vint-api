@@ -5,6 +5,10 @@ import {
   getBillingDriftReasons,
   logBillingEvent,
 } from "../../utils/billingEvents";
+import {
+  getInvoiceSubscriptionId,
+  getPaidSubscriptionPeriod,
+} from "../../src/utils/subscriptionInvoice";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const ACTIVE_LIKE_SUBSCRIPTION_STATUSES = new Set([
@@ -14,6 +18,7 @@ const ACTIVE_LIKE_SUBSCRIPTION_STATUSES = new Set([
   "unpaid",
   "incomplete",
 ]);
+const USAGE_REPAIR_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
 
 type BillingProfile = {
   id: string;
@@ -34,7 +39,10 @@ function hasBillingRisk(profile: BillingProfile) {
   );
 }
 
-async function getStripeSnapshot(customerId: string) {
+async function getStripeSnapshot(
+  customerId: string,
+  currentSubscriptionId: string | null,
+) {
   const [subscriptions, invoices] = await Promise.all([
     stripe.subscriptions.list({
       customer: customerId,
@@ -54,6 +62,28 @@ async function getStripeSnapshot(customerId: string) {
     (invoice) =>
       invoice.status === "open" && Number(invoice.amount_remaining || 0) > 0,
   );
+  const currentSubscription = activeLikeSubscriptions.find(
+    (subscription) => subscription.id === currentSubscriptionId,
+  );
+  let latestPaidUsagePeriod: {
+    invoiceId: string;
+    subscriptionId: string;
+    periodEnd: string;
+  } | null = null;
+
+  for (const invoice of invoices.data) {
+    if (invoice.status !== "paid") continue;
+    const subscriptionId = getInvoiceSubscriptionId(invoice as any);
+    if (subscriptionId !== currentSubscriptionId) continue;
+    const period = getPaidSubscriptionPeriod(invoice as any);
+    if (!invoice.id || !subscriptionId || !period) continue;
+    latestPaidUsagePeriod = {
+      invoiceId: invoice.id,
+      subscriptionId,
+      periodEnd: period.end,
+    };
+    break;
+  }
 
   return {
     activeLikeSubscriptionCount: activeLikeSubscriptions.length,
@@ -65,6 +95,8 @@ async function getStripeSnapshot(customerId: string) {
     hasCancelAtPeriodEnd: activeLikeSubscriptions.some(
       (subscription) => subscription.cancel_at_period_end,
     ),
+    currentSubscriptionStatus: currentSubscription?.status || null,
+    latestPaidUsagePeriod,
     subscriptions: activeLikeSubscriptions.map((subscription) => ({
       id: subscription.id,
       status: subscription.status,
@@ -91,6 +123,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select(
       "id,email,subscription_status,subscription_tier,stripe_customer_id,stripe_subscription_id",
     )
+    .or(
+      "stripe_customer_id.not.is.null,subscription_tier.neq.free,subscription_status.in.(active,trialing,past_due,unpaid,canceling)",
+    )
     .limit(1000);
 
   if (error) {
@@ -100,7 +135,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const profiles = ((data || []) as BillingProfile[]).filter(hasBillingRisk);
   const mismatches = [];
+  let usageResets = 0;
+  let usageResetErrors = 0;
 
+  // ponytail: sequential snapshots cap Stripe concurrency at two; add
+  // cursor-based batches when measured cron duration approaches its limit.
   for (const profile of profiles) {
     if (!profile.stripe_customer_id) {
       if (profile.subscription_tier && profile.subscription_tier !== "free") {
@@ -118,7 +157,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       continue;
     }
 
-    const snapshot = await getStripeSnapshot(profile.stripe_customer_id);
+    const snapshot = await getStripeSnapshot(
+      profile.stripe_customer_id,
+      profile.stripe_subscription_id,
+    );
+
+    if (
+      snapshot.latestPaidUsagePeriod &&
+      USAGE_REPAIR_SUBSCRIPTION_STATUSES.has(
+        snapshot.currentSubscriptionStatus || "",
+      )
+    ) {
+      const paidPeriod = snapshot.latestPaidUsagePeriod;
+      const { data: resetResult, error: resetError } = await supabase.rpc(
+        "reset_monthly_usage_for_paid_invoice",
+        {
+          p_user_id: profile.id,
+          p_stripe_subscription_id: paidPeriod.subscriptionId,
+          p_stripe_invoice_id: paidPeriod.invoiceId,
+          p_period_end: paidPeriod.periodEnd,
+        },
+      );
+
+      if (resetError) {
+        usageResetErrors += 1;
+        await logBillingEvent({
+          user_id: profile.id,
+          user_email: profile.email,
+          source: "reconciliation",
+          event_type: "billing.reconciliation_usage_reset_failed",
+          stripe_customer_id: profile.stripe_customer_id,
+          stripe_subscription_id: paidPeriod.subscriptionId,
+          stripe_invoice_id: paidPeriod.invoiceId,
+          raw_event: { error: resetError.message || String(resetError) },
+        });
+      } else if (resetResult?.reset === true) {
+        usageResets += 1;
+        await logBillingEvent({
+          user_id: profile.id,
+          user_email: profile.email,
+          source: "reconciliation",
+          event_type: "billing.reconciliation_usage_reset",
+          stripe_customer_id: profile.stripe_customer_id,
+          stripe_subscription_id: paidPeriod.subscriptionId,
+          stripe_invoice_id: paidPeriod.invoiceId,
+          raw_event: { periodEnd: paidPeriod.periodEnd },
+        });
+      }
+    }
+
     const reasons = getBillingDriftReasons({
       profile,
       stripe: snapshot,
@@ -142,10 +229,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  return res.status(200).json({
-    ok: true,
+  // Vercel does not retry failed cron invocations. Preserve a non-2xx status so
+  // partial billing repair failures remain visible to monitoring.
+  return res.status(usageResetErrors ? 500 : 200).json({
+    ok: usageResetErrors === 0,
     checked: profiles.length,
     mismatches: mismatches.length,
+    usageResets,
+    usageResetErrors,
     mismatchDetails: mismatches.map((item) => ({
       user_id: item.profile.id,
       user_email: item.profile.email,

@@ -6,6 +6,7 @@ import {
   getCustomBusinessEntitlementDefaults,
   getEffectiveTier,
 } from "../../utils/tierConfig";
+import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 
 function positiveNumber(value: unknown) {
   const parsed = Number(value || 0);
@@ -13,9 +14,11 @@ function positiveNumber(value: unknown) {
 }
 
 function hasActiveCustomLimits(profile: {
+  subscription_status?: string | null;
   custom_limit_expires_at?: string | null;
 }) {
   return Boolean(
+    hasPaidEntitlementStatus(profile.subscription_status) &&
     profile.custom_limit_expires_at &&
     new Date(profile.custom_limit_expires_at) > new Date(),
   );

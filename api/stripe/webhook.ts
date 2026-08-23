@@ -15,6 +15,10 @@ import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 import { logStripeBillingEvent } from "../../utils/billingEvents";
 import { sendSubscriptionWelcomeEmailOnce } from "../../utils/subscriptionWelcomeEmail";
+import {
+  getInvoiceSubscriptionId,
+  getPaidSubscriptionPeriod,
+} from "../../src/utils/subscriptionInvoice";
 
 export const config = { api: { bodyParser: false } };
 
@@ -29,6 +33,7 @@ const AUDITED_STRIPE_EVENT_TYPES = new Set([
   "invoice.created",
   "invoice.finalized",
   "invoice.payment_failed",
+  "invoice.paid",
   "invoice.payment_succeeded",
   "invoice.voided",
   "invoice.marked_uncollectible",
@@ -59,6 +64,179 @@ function getSubscriptionCurrentPeriodEnd(subscription: any): string | null {
   return typeof rawEnd === "number"
     ? new Date(rawEnd * 1000).toISOString()
     : null;
+}
+
+function getStripeObjectId(value: unknown): string | null {
+  if (typeof value === "string" && value) return value;
+  if (value && typeof value === "object" && "id" in value) {
+    const id = (value as { id?: unknown }).id;
+    return typeof id === "string" && id ? id : null;
+  }
+  return null;
+}
+
+async function canAdoptSubscription(
+  storedSubscriptionId: string | null | undefined,
+  incomingSubscription: Stripe.Subscription,
+  profileCustomerId?: string | null,
+) {
+  const incomingSubscriptionId = incomingSubscription.id;
+  if (
+    !storedSubscriptionId ||
+    storedSubscriptionId === incomingSubscriptionId
+  ) {
+    return true;
+  }
+
+  const paidStatuses = ["active", "trialing", "past_due"];
+  let storedSubscription: Stripe.Subscription;
+  try {
+    storedSubscription = (await stripe.subscriptions.retrieve(
+      storedSubscriptionId,
+    )) as Stripe.Subscription;
+  } catch (error) {
+    if ((error as { code?: string })?.code !== "resource_missing") throw error;
+    const incomingCustomerId = getStripeObjectId(incomingSubscription.customer);
+    return Boolean(
+      paidStatuses.includes(incomingSubscription.status) &&
+      profileCustomerId &&
+      incomingCustomerId === profileCustomerId,
+    );
+  }
+  const storedCustomerId = getStripeObjectId(storedSubscription.customer);
+  const incomingCustomerId = getStripeObjectId(incomingSubscription.customer);
+
+  return Boolean(
+    paidStatuses.includes(incomingSubscription.status) &&
+    !paidStatuses.includes(
+      (storedSubscription as Stripe.Subscription).status,
+    ) &&
+    storedCustomerId &&
+    incomingCustomerId &&
+    storedCustomerId === incomingCustomerId,
+  );
+}
+
+async function handlePaidSubscriptionInvoice(invoice: any) {
+  if (invoice.status !== "paid") return;
+
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
+
+  const period = getPaidSubscriptionPeriod(invoice);
+  if (!period) {
+    if (
+      invoice.billing_reason === "subscription_create" ||
+      invoice.billing_reason === "subscription_cycle"
+    ) {
+      throw new Error(`Paid subscription invoice ${invoice.id} has no period`);
+    }
+    return;
+  }
+
+  const subscription = (await stripe.subscriptions.retrieve(
+    subscriptionId,
+  )) as any;
+  const customerId =
+    getStripeObjectId(invoice.customer) ||
+    getStripeObjectId(subscription.customer);
+  if (!customerId) {
+    throw new Error(`Paid subscription invoice ${invoice.id} has no customer`);
+  }
+
+  const priceId = subscription.items.data[0]?.price.id;
+  const tier = getTierByStripePriceId(priceId)?.name || "free";
+  if (tier === "free") return;
+
+  const status = mapStripeSubscriptionStatusForProfile(subscription, tier);
+  const stripeCurrentPeriodEnd = getSubscriptionCurrentPeriodEnd(subscription);
+  if (stripeCurrentPeriodEnd && period.end !== stripeCurrentPeriodEnd) return;
+  const currentPeriodEnd = stripeCurrentPeriodEnd || period.end;
+
+  let { data: profileRow, error: profileLookupError } = await supabase
+    .from("profiles")
+    .select("id,email")
+    .eq("stripe_customer_id", customerId)
+    .maybeSingle();
+  if (profileLookupError) throw profileLookupError;
+
+  if (!profileRow) {
+    let email = invoice.customer_email as string | undefined;
+    if (!email) {
+      const customer = (await stripe.customers.retrieve(customerId)) as any;
+      email = customer.email as string | undefined;
+    }
+    if (email) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id,email")
+        .ilike("email", email)
+        .maybeSingle();
+      if (error) throw error;
+      profileRow = data as any;
+    }
+  }
+
+  if (!profileRow) {
+    throw new Error(`No profile for paid subscription invoice ${invoice.id}`);
+  }
+
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from("profiles")
+    .select(
+      "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
+    )
+    .eq("id", profileRow.id)
+    .single();
+  if (existingProfileError) throw existingProfileError;
+  const existingSubscriptionId = existingProfile?.stripe_subscription_id;
+  if (
+    !(await canAdoptSubscription(
+      existingSubscriptionId,
+      subscription,
+      existingProfile?.stripe_customer_id,
+    ))
+  ) {
+    return;
+  }
+  const keepLegacy =
+    Boolean(existingProfile?.is_legacy_plan) &&
+    existingSubscriptionId === subscriptionId &&
+    existingProfile?.subscription_tier === tier;
+  const updateData = buildSubscriptionProfileUpdate({
+    subscriptionId,
+    stripeCustomerId: customerId,
+    status,
+    tier,
+    currentPeriodEnd,
+    isLegacyPlan: keepLegacy,
+  });
+  Object.assign(
+    updateData,
+    buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
+  );
+
+  let updateQuery = supabase
+    .from("profiles")
+    .update(updateData)
+    .eq("id", profileRow.id);
+  updateQuery = existingSubscriptionId
+    ? updateQuery.eq("stripe_subscription_id", existingSubscriptionId)
+    : updateQuery.is("stripe_subscription_id", null);
+
+  const { error: updateError } = await updateQuery;
+  if (updateError) throw updateError;
+
+  const { error: resetError } = await supabase.rpc(
+    "reset_monthly_usage_for_paid_invoice",
+    {
+      p_user_id: profileRow.id,
+      p_stripe_subscription_id: subscriptionId,
+      p_stripe_invoice_id: invoice.id,
+      p_period_end: period.end,
+    },
+  );
+  if (resetError) throw resetError;
 }
 
 async function sendWelcomeForPaidSubscription(input: {
@@ -225,39 +403,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const currentPeriodEnd =
             getSubscriptionCurrentPeriodEnd(subscription);
 
-          // 2a) Upsert stripe_customer_id
-          await supabase
-            .from("profiles")
-            .update({ stripe_customer_id: customerId })
-            .ilike("email", email);
-
-          // 2b) Find the user’s profile row by email
-          const { data: profileRow } = await supabase
+          // Find the user’s profile row by email
+          const { data: profileRow, error: profileError } = await supabase
             .from("profiles")
             .select(
-              "id, stripe_subscription_id, subscription_status, subscription_tier",
+              "id, stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
             )
             .ilike("email", email)
-            .single();
+            .maybeSingle();
+          if (profileError) throw profileError;
 
           if (profileRow) {
-            const updateData = buildSubscriptionProfileUpdate(profileRow, {
+            const existingSubscriptionId = profileRow.stripe_subscription_id;
+            if (
+              !(await canAdoptSubscription(
+                existingSubscriptionId,
+                subscription,
+                profileRow.stripe_customer_id,
+              ))
+            ) {
+              break;
+            }
+            const keepLegacy =
+              Boolean(profileRow.is_legacy_plan) &&
+              existingSubscriptionId === subscription.id &&
+              profileRow.subscription_tier === tier;
+            const updateData = buildSubscriptionProfileUpdate({
               subscriptionId: subscription.id,
               stripeCustomerId: customerId,
               status,
               tier,
               currentPeriodEnd,
-              isLegacyPlan: false,
+              isLegacyPlan: keepLegacy,
             });
             Object.assign(
               updateData,
               buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
             );
 
-            await supabase
+            let updateQuery = supabase
               .from("profiles")
               .update(updateData)
               .eq("id", profileRow.id);
+            updateQuery = existingSubscriptionId
+              ? updateQuery.eq("stripe_subscription_id", existingSubscriptionId)
+              : updateQuery.is("stripe_subscription_id", null);
+            const { error: updateError } = await updateQuery;
+            if (updateError) throw updateError;
 
             await sendWelcomeForPaidSubscription({
               profileId: profileRow.id,
@@ -299,7 +491,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         console.log(`⏳ Handling ${event.type}`);
-        const subscription = event.data.object as Stripe.Subscription;
+        const eventSubscription = event.data.object as Stripe.Subscription;
+        const subscription = (await stripe.subscriptions.retrieve(
+          eventSubscription.id,
+        )) as Stripe.Subscription;
         const subAny = subscription as any;
 
         const customerId = subAny.customer as string;
@@ -312,11 +507,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const currentPeriodEnd = getSubscriptionCurrentPeriodEnd(subAny);
 
         // 1) Try find profile by stripe_customer_id
-        let { data: profileRow } = await supabase
+        let { data: profileRow, error: profileLookupError } = await supabase
           .from("profiles")
           .select("id,email")
           .eq("stripe_customer_id", customerId)
-          .single();
+          .maybeSingle();
+        if (profileLookupError) throw profileLookupError;
 
         // 2) Fallback: match by email if no customer_id found
         let customerEmail: string | undefined;
@@ -326,32 +522,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const email = custAny.email as string | undefined;
           if (email) {
             customerEmail = email;
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("profiles")
               .select("id,email")
               .ilike("email", email)
-              .single();
+              .maybeSingle();
+            if (error) throw error;
             profileRow = data as any;
           }
         }
 
         if (profileRow) {
-          const { data: existingProfile } = await supabase
-            .from("profiles")
-            .select(
-              "stripe_subscription_id, subscription_status, subscription_tier, is_legacy_plan",
-            )
-            .eq("id", profileRow.id)
-            .single();
+          const { data: existingProfile, error: existingProfileError } =
+            await supabase
+              .from("profiles")
+              .select(
+                "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
+              )
+              .eq("id", profileRow.id)
+              .single();
+          if (existingProfileError) throw existingProfileError;
           const existingTier = existingProfile?.subscription_tier;
           const existingSubscriptionId =
             existingProfile?.stripe_subscription_id;
+          if (
+            existingSubscriptionId === subAny.id &&
+            existingProfile?.subscription_status === "canceled"
+          ) {
+            break;
+          }
+          if (
+            !(await canAdoptSubscription(
+              existingSubscriptionId,
+              subscription,
+              existingProfile?.stripe_customer_id,
+            ))
+          ) {
+            break;
+          }
           const keepLegacy =
             Boolean(existingProfile?.is_legacy_plan) &&
             existingSubscriptionId === subAny.id &&
             existingTier === tier;
-          const updateData = buildSubscriptionProfileUpdate(existingProfile, {
+          const updateData = buildSubscriptionProfileUpdate({
             subscriptionId: subAny.id,
+            stripeCustomerId: customerId,
             status,
             tier,
             currentPeriodEnd,
@@ -362,10 +577,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
           );
 
-          await supabase
+          let updateQuery = supabase
             .from("profiles")
             .update(updateData)
             .eq("id", profileRow.id);
+          updateQuery = existingSubscriptionId
+            ? updateQuery.eq("stripe_subscription_id", existingSubscriptionId)
+            : updateQuery.is("stripe_subscription_id", null);
+          const { error: updateError } = await updateQuery;
+          if (updateError) throw updateError;
 
           const email = (profileRow as any).email || customerEmail;
           if (event.type === "customer.subscription.created" && email) {
@@ -387,27 +607,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subAny = subscription as any;
         const customerId = subAny.customer as string;
 
-        const { data: profileRow } = await supabase
+        const { data: profileRow, error: profileLookupError } = await supabase
           .from("profiles")
           .select("id")
           .eq("stripe_customer_id", customerId)
-          .single();
+          .maybeSingle();
+        if (profileLookupError) throw profileLookupError;
 
         if (profileRow) {
-          await supabase
+          const { error: deleteError } = await supabase
             .from("profiles")
             .update({
               subscription_status: "canceled",
               subscription_tier: "free",
               current_period_end: null,
               is_legacy_plan: false,
-              custom_daily_limit: null,
-              custom_monthly_limit: null,
-              custom_limit_expires_at: null,
-              custom_limit_reason: null,
             })
-            .eq("id", profileRow.id);
+            .eq("id", profileRow.id)
+            .eq("stripe_subscription_id", subAny.id);
+          if (deleteError) throw deleteError;
         }
+        break;
+      }
+
+      case "invoice.paid":
+      case "invoice.payment_succeeded": {
+        console.log(`⏳ Handling ${event.type}`);
+        await handlePaidSubscriptionInvoice(event.data.object as any);
         break;
       }
 

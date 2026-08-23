@@ -3,6 +3,7 @@ import {
   getPricingPlanAction,
   normalizePricingPlanTier,
 } from "../utils/pricingPlanAction.ts";
+import { hasPaidEntitlementStatus } from "../utils/subscriptionStatus.ts";
 import { saveInstallPlanIntent } from "../utils/installPlanIntent.ts";
 
 // Original Pricing Page Logic starts here
@@ -291,10 +292,6 @@ function decodeUserData(token) {
     console.error("Failed to decode token:", e);
     return null;
   }
-}
-
-function hasPaidEntitlementStatus(status) {
-  return status === "active" || status === "trialing" || status === "canceling";
 }
 
 // Update button states based on user context

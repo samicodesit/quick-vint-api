@@ -10,6 +10,12 @@ const reportCriticalEndpointFailureMock = vi.fn();
 const sendSubscriptionWelcomeEmailOnceMock = vi.fn();
 const updateCalls: Array<{ table: string; values: Record<string, unknown> }> =
   [];
+const updateFilterCalls: Array<{
+  table: string;
+  operator: "eq" | "is";
+  column: string;
+  value: unknown;
+}> = [];
 const selectQueues = new Map<
   string,
   Array<{ data: unknown; error?: unknown }>
@@ -37,14 +43,37 @@ function popSelect(table: string) {
 }
 
 function createQueryBuilder(table: string) {
+  let isUpdate = false;
   const builder = {
     select: vi.fn(() => builder),
     insert: vi.fn(async () => ({ data: null, error: null })),
     update: vi.fn((values: Record<string, unknown>) => {
+      isUpdate = true;
       updateCalls.push({ table, values });
       return builder;
     }),
-    eq: vi.fn(() => builder),
+    eq: vi.fn((column: string, value: unknown) => {
+      if (isUpdate) {
+        updateFilterCalls.push({
+          table,
+          operator: "eq",
+          column,
+          value,
+        });
+      }
+      return builder;
+    }),
+    is: vi.fn((column: string, value: unknown) => {
+      if (isUpdate) {
+        updateFilterCalls.push({
+          table,
+          operator: "is",
+          column,
+          value,
+        });
+      }
+      return builder;
+    }),
     ilike: vi.fn(() => builder),
     single: vi.fn(async () => popSelect(table)),
   };
@@ -130,6 +159,7 @@ describe("Stripe webhook subscription usage reset", () => {
     delete process.env.CUSTOM_BUSINESS_DAILY_LIMIT;
     delete process.env.CUSTOM_BUSINESS_MONTHLY_LIMIT;
     updateCalls.length = 0;
+    updateFilterCalls.length = 0;
     selectQueues.clear();
     vi.clearAllMocks();
     rpcMock.mockResolvedValue({ data: null, error: null });
@@ -438,6 +468,83 @@ describe("Stripe webhook subscription usage reset", () => {
       });
     },
   );
+
+  it("guards a paid-invoice profile update against a replaced subscription", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_old_paid_invoice",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_old_paid_invoice",
+          object: "invoice",
+          status: "paid",
+          customer: "cus_123",
+          billing_reason: "subscription_cycle",
+          parent: {
+            subscription_details: { subscription: "sub_old" },
+          },
+          lines: {
+            data: [
+              {
+                parent: {
+                  subscription_item_details: { proration: false },
+                },
+                period: { start: 1785542400, end: 1788220800 },
+              },
+            ],
+          },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_old",
+      customer: "cus_123",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            current_period_end: 1788220800,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: "sub_replacement",
+        subscription_status: "active",
+        subscription_tier: "starter",
+        is_legacy_plan: false,
+      },
+    });
+    rpcMock.mockResolvedValueOnce({
+      data: { reset: false, reason: "subscription_mismatch" },
+      error: null,
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateFilterCalls).toContainEqual({
+      table: "profiles",
+      operator: "eq",
+      column: "stripe_subscription_id",
+      value: "sub_old",
+    });
+    expect(rpcMock).toHaveBeenCalledWith(
+      "reset_monthly_usage_for_paid_invoice",
+      expect.objectContaining({
+        p_stripe_subscription_id: "sub_old",
+      }),
+    );
+  });
 
   it("never resets usage when a renewal payment fails", async () => {
     constructEventMock.mockReturnValue({

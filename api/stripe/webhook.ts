@@ -143,9 +143,10 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
     )
     .eq("id", profileRow.id)
     .single();
+  const existingSubscriptionId = existingProfile?.stripe_subscription_id;
   const keepLegacy =
     Boolean(existingProfile?.is_legacy_plan) &&
-    existingProfile?.stripe_subscription_id === subscriptionId &&
+    existingSubscriptionId === subscriptionId &&
     existingProfile?.subscription_tier === tier;
   const updateData = buildSubscriptionProfileUpdate({
     subscriptionId,
@@ -160,10 +161,15 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
     buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
   );
 
-  const { error: updateError } = await supabase
+  let updateQuery = supabase
     .from("profiles")
     .update(updateData)
     .eq("id", profileRow.id);
+  updateQuery = existingSubscriptionId
+    ? updateQuery.eq("stripe_subscription_id", subscriptionId)
+    : updateQuery.is("stripe_subscription_id", null);
+
+  const { error: updateError } = await updateQuery;
   if (updateError) throw updateError;
 
   const { error: resetError } = await supabase.rpc(

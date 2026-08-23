@@ -138,6 +138,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let usageResets = 0;
   let usageResetErrors = 0;
 
+  // ponytail: sequential snapshots cap Stripe concurrency at two; add
+  // cursor-based batches when measured cron duration approaches its limit.
   for (const profile of profiles) {
     if (!profile.stripe_customer_id) {
       if (profile.subscription_tier && profile.subscription_tier !== "free") {

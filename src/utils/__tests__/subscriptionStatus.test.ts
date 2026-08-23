@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   hasPaidEntitlementStatus,
@@ -31,5 +33,15 @@ describe("subscription status normalization", () => {
     expect(hasPaidEntitlementStatus("past_due")).toBe(true);
     expect(hasPaidEntitlementStatus("unpaid")).toBe(false);
     expect(hasPaidEntitlementStatus("canceled")).toBe(false);
+  });
+
+  it("keeps the pricing page on the shared entitlement definition", () => {
+    const pricingScript = readFileSync(
+      join(process.cwd(), "src/scripts/pricing.js"),
+      "utf8",
+    );
+
+    expect(pricingScript).toContain('from "../utils/subscriptionStatus.ts"');
+    expect(pricingScript).not.toContain("function hasPaidEntitlementStatus(");
   });
 });

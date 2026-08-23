@@ -77,8 +77,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "AI listing assistant for titles and descriptions",
       heroSubtitle:
         "Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. Compatible with Vinted & eBay*.",
-      heroMobileSubtitle:
-        "Compatible with Vinted & eBay*.",
+      heroMobileSubtitle: "Compatible with Vinted & eBay*.",
     },
     pricing: {
       seoTitle: "Pricing - AutoLister AI",
@@ -115,8 +114,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "Assistant IA pour les titres et descriptions",
       heroSubtitle:
         "Créez des titres, descriptions et hashtags depuis vos photos. Enregistrez et réutilisez vos notes vendeur. Compatible avec Vinted et eBay*.",
-      heroMobileSubtitle:
-        "Compatible avec Vinted et eBay*.",
+      heroMobileSubtitle: "Compatible avec Vinted et eBay*.",
     },
     pricing: {
       seoTitle: "Tarifs - AutoLister AI",
@@ -153,8 +151,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "KI-Assistent für Titel und Beschreibungen",
       heroSubtitle:
         "Erstelle Titel, Beschreibungen und Hashtags aus Artikelfotos. Speichere und verwende eigene Verkäufernotizen. Kompatibel mit Vinted und eBay*.",
-      heroMobileSubtitle:
-        "Kompatibel mit Vinted und eBay*.",
+      heroMobileSubtitle: "Kompatibel mit Vinted und eBay*.",
     },
     pricing: {
       seoTitle: "Preise - AutoLister AI",
@@ -190,8 +187,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "AI-assistent voor titels en beschrijvingen",
       heroSubtitle:
         "Maak titels, beschrijvingen en hashtags vanuit itemfoto's. Bewaar en hergebruik je verkopersnotities. Compatibel met Vinted en eBay*.",
-      heroMobileSubtitle:
-        "Compatibel met Vinted en eBay*.",
+      heroMobileSubtitle: "Compatibel met Vinted en eBay*.",
     },
     pricing: {
       seoTitle: "Prijzen - AutoLister AI",
@@ -227,8 +223,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "Asystent AI do tytułów i opisów",
       heroSubtitle:
         "Twórz tytuły, opisy i hashtagi ze zdjęć produktów. Zapisuj i wykorzystuj ponownie notatki sprzedawcy. Kompatybilne z Vinted i eBay*.",
-      heroMobileSubtitle:
-        "Kompatybilne z Vinted i eBay*.",
+      heroMobileSubtitle: "Kompatybilne z Vinted i eBay*.",
     },
     pricing: {
       seoTitle: "Cennik - AutoLister AI",
@@ -264,8 +259,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "Asistente IA para títulos y descripciones",
       heroSubtitle:
         "Crea títulos, descripciones y hashtags desde las fotos de tus artículos. Guarda y reutiliza tus notas de vendedor. Compatible con Vinted y eBay*.",
-      heroMobileSubtitle:
-        "Compatible con Vinted y eBay*.",
+      heroMobileSubtitle: "Compatible con Vinted y eBay*.",
     },
     pricing: {
       seoTitle: "Precios - AutoLister AI",
@@ -302,8 +296,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "Assistente IA per titoli e descrizioni",
       heroSubtitle:
         "Crea titoli, descrizioni e hashtag dalle foto degli articoli. Salva e riutilizza le tue note venditore. Compatibile con Vinted ed eBay*.",
-      heroMobileSubtitle:
-        "Compatibile con Vinted ed eBay*.",
+      heroMobileSubtitle: "Compatibile con Vinted ed eBay*.",
     },
     pricing: {
       seoTitle: "Prezzi - AutoLister AI",
@@ -339,8 +332,7 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       heroTitle: "Assistente IA para títulos e descrições",
       heroSubtitle:
         "Crie títulos, descrições e hashtags a partir das fotografias dos artigos. Guarde e reutilize as suas notas de vendedor. Compatível com Vinted e eBay*.",
-      heroMobileSubtitle:
-        "Compatível com Vinted e eBay*.",
+      heroMobileSubtitle: "Compatível com Vinted e eBay*.",
     },
     pricing: {
       seoTitle: "Precos - AutoLister AI",
@@ -507,7 +499,8 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalHint: "Close this preview to continue on the page.",
       screenshotModalClose: "Close preview",
       screenshotModalCta: "Add to Chrome free",
-      heroBullet1: "Creates titles, descriptions, and hashtags from your photos",
+      heroBullet1:
+        "Creates titles, descriptions, and hashtags from your photos",
       heroBullet2: "No copy-paste needed. No emailing photos.",
       heroBullet3: "You review every listing before publishing",
       addToChrome: "Add to Chrome",
@@ -569,7 +562,8 @@ export const SITE_EXTRA_COPY: Record<
       step2Body:
         "Upload photos on the listing page, or use our mobile feature to snap and sync. Then click Generate.",
       step3Title: "Review & Publish",
-      step3Body: "Review the draft, adjust it if needed, and publish when ready.",
+      step3Body:
+        "Review the draft, adjust it if needed, and publish when ready.",
       finalCtaTitle: "Ready to Prepare Your Next Listing?",
       finalCtaBody:
         "Use AutoLister to prepare editable titles and descriptions from your photos.",
@@ -638,7 +632,8 @@ export const SITE_EXTRA_COPY: Record<
       screenshotModalHint: "Fermez cet aperçu pour continuer sur la page.",
       screenshotModalClose: "Fermer l'aperçu",
       screenshotModalCta: "Ajouter à Chrome gratuitement",
-      heroBullet1: "Crée des titres, descriptions et hashtags depuis vos photos",
+      heroBullet1:
+        "Crée des titres, descriptions et hashtags depuis vos photos",
       heroBullet2: "Aucun copier-coller. Aucun envoi de photos par e-mail.",
       heroBullet3: "Vous vérifiez chaque annonce avant de publier",
       addToChrome: "Ajouter à Chrome",
@@ -770,7 +765,8 @@ export const SITE_EXTRA_COPY: Record<
         "Schließe die Vorschau, um auf der Seite weiterzumachen.",
       screenshotModalClose: "Vorschau schließen",
       screenshotModalCta: "Kostenlos zu Chrome hinzufügen",
-      heroBullet1: "Erstellt Titel, Beschreibungen und Hashtags aus deinen Fotos",
+      heroBullet1:
+        "Erstellt Titel, Beschreibungen und Hashtags aus deinen Fotos",
       heroBullet2: "Kein Kopieren und Einfugen. Keine Fotos per E-Mail senden.",
       heroBullet3: "Du prüfst jede Anzeige vor dem Veröffentlichen",
       addToChrome: "Zu Chrome hinzufugen",
@@ -832,7 +828,8 @@ export const SITE_EXTRA_COPY: Record<
       step2Body:
         "Fotos hochladen und auf Generieren klicken. AutoLister erstellt den optimierten Text.",
       step3Title: "Prüfen und veröffentlichen",
-      step3Body: "Prüfe den Entwurf, passe ihn bei Bedarf an und veröffentliche ihn.",
+      step3Body:
+        "Prüfe den Entwurf, passe ihn bei Bedarf an und veröffentliche ihn.",
       finalCtaTitle: "Bereit für deinen nächsten Anzeigenentwurf?",
       finalCtaBody:
         "Nutze AutoLister für bearbeitbare Titel und Beschreibungen aus deinen Fotos.",
@@ -963,7 +960,8 @@ export const SITE_EXTRA_COPY: Record<
       step2Body:
         "Upload foto's en klik op Genereren voor direct geoptimaliseerde listingtekst.",
       step3Title: "Controleer en publiceer",
-      step3Body: "Controleer het concept, pas het aan en publiceer wanneer je klaar bent.",
+      step3Body:
+        "Controleer het concept, pas het aan en publiceer wanneer je klaar bent.",
       finalCtaTitle: "Klaar voor je volgende advertentieconcept?",
       finalCtaBody:
         "Gebruik AutoLister voor bewerkbare titels en beschrijvingen vanuit je foto's.",
@@ -1095,7 +1093,8 @@ export const SITE_EXTRA_COPY: Record<
       step2Body:
         "Wgraj zdjecia i kliknij Generuj, aby od razu otrzymac zoptymalizowany opis.",
       step3Title: "Sprawdź i opublikuj",
-      step3Body: "Sprawdź wersję roboczą, popraw ją i opublikuj, gdy będzie gotowa.",
+      step3Body:
+        "Sprawdź wersję roboczą, popraw ją i opublikuj, gdy będzie gotowa.",
       finalCtaTitle: "Gotowy przygotować kolejne ogłoszenie?",
       finalCtaBody:
         "Użyj AutoLister, aby przygotować edytowalne tytuły i opisy ze zdjęć.",
@@ -1226,7 +1225,8 @@ export const SITE_EXTRA_COPY: Record<
       step2Body:
         "Sube tus fotos y pulsa Generar para obtener texto optimizado al instante.",
       step3Title: "Revisa y publica",
-      step3Body: "Revisa el borrador, ajústalo si hace falta y publícalo cuando esté listo.",
+      step3Body:
+        "Revisa el borrador, ajústalo si hace falta y publícalo cuando esté listo.",
       finalCtaTitle: "¿Listo para preparar tu próximo anuncio?",
       finalCtaBody:
         "Usa AutoLister para preparar títulos y descripciones editables desde tus fotos.",
@@ -1280,8 +1280,7 @@ export const SITE_EXTRA_COPY: Record<
   },
   it: {
     home: {
-      heroBadgePrimary:
-        "Assistente AI per descrizioni e annunci · Decidi tu",
+      heroBadgePrimary: "Assistente AI per descrizioni e annunci · Decidi tu",
       watchDemo: "Guarda demo",
       videoCaption: "Scopri come funziona in 15 secondi",
       publicStatsAriaLabel: "Statistiche pubbliche di utilizzo di AutoLister",
@@ -1358,7 +1357,8 @@ export const SITE_EXTRA_COPY: Record<
       step2Body:
         "Carica le foto e clicca Genera per ottenere subito testi ottimizzati.",
       step3Title: "Controlla e pubblica",
-      step3Body: "Controlla la bozza, modificala se serve e pubblicala quando è pronta.",
+      step3Body:
+        "Controlla la bozza, modificala se serve e pubblicala quando è pronta.",
       finalCtaTitle: "Pronto a preparare il prossimo annuncio?",
       finalCtaBody:
         "Usa AutoLister per preparare titoli e descrizioni modificabili dalle tue foto.",
@@ -1428,7 +1428,8 @@ export const SITE_EXTRA_COPY: Record<
         "Feche esta pré-visualização para continuar na página.",
       screenshotModalClose: "Fechar pré-visualização",
       screenshotModalCta: "Adicionar ao Chrome grátis",
-      heroBullet1: "Cria títulos, descrições e hashtags a partir das suas fotos",
+      heroBullet1:
+        "Cria títulos, descrições e hashtags a partir das suas fotos",
       heroBullet2: "Sem copiar e colar. Sem enviar fotos por email.",
       heroBullet3: "Revê cada anúncio antes de publicar",
       addToChrome: "Adicionar ao Chrome",
@@ -1490,7 +1491,8 @@ export const SITE_EXTRA_COPY: Record<
       step2Body:
         "Carregue as fotos e clique em Gerar para obter texto otimizado de imediato.",
       step3Title: "Reveja e publique",
-      step3Body: "Reveja o rascunho, ajuste-o se necessário e publique quando estiver pronto.",
+      step3Body:
+        "Reveja o rascunho, ajuste-o se necessário e publique quando estiver pronto.",
       finalCtaTitle: "Pronto para preparar o próximo anúncio?",
       finalCtaBody:
         "Use o AutoLister para preparar títulos e descrições editáveis a partir das suas fotos.",

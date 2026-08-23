@@ -20,11 +20,13 @@
 ### Task 1: Replace the standalone logo photograph
 
 **Files:**
+
 - Modify: `src/components/HomeLanding.astro`
 - Delete: `public/feature-2.avif`
 - Reuse: `public/updates/1-4-0/phone-batch-upload.webp`
 
 **Interfaces:**
+
 - Consumes: existing homepage feature-card `<img>` markup.
 - Produces: a homepage feature card using AutoLister-owned artwork with no Vinted logo.
 
@@ -41,10 +43,12 @@ Expected: no output. Delete `public/feature-2.avif` so the obsolete logo image i
 ### Task 2: Crop the Vinted header from static product screenshots
 
 **Files:**
+
 - Modify: `public/cws-screenshot-main.png`
 - Modify: `public/blog-vinted-description-workflow.jpg`
 
 **Interfaces:**
+
 - Consumes: the current composite screenshots.
 - Produces: same-page artwork with the embedded marketplace header removed and AutoLister UI retained.
 
@@ -84,9 +88,11 @@ Expected dimensions: `1280x800` and `960x600` respectively.
 ### Task 3: Validate and record completion
 
 **Files:**
+
 - Modify: `docs/vinted-legal-response-checklist.md`
 
 **Interfaces:**
+
 - Consumes: completed visual changes.
 - Produces: checked legal-mitigation record.
 

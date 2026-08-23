@@ -20,10 +20,12 @@
 ### Task 1: Website copy
 
 **Files:**
+
 - Modify: `src/components/HomeLanding.astro`
 - Modify: `src/i18n/site.ts`
 
 **Interfaces:**
+
 - Consumes: existing `SiteCopy` and `SiteExtraHomeCopy` localization objects.
 - Produces: the same localized homepage and pricing interfaces with factual assistant-led copy.
 
@@ -35,12 +37,14 @@
 ### Task 2: Extension-facing copy and validation
 
 **Files:**
+
 - Modify: `../quick-vint/_locales/en/messages.json`
 - Modify: `../quick-vint/lib/localization.js`
 - Modify: `../quick-vint/README.md`
 - Modify: `docs/vinted-legal-response-checklist.md`
 
 **Interfaces:**
+
 - Consumes: existing extension description and onboarding feature text.
 - Produces: factual assistant wording without account-safety guarantees.
 

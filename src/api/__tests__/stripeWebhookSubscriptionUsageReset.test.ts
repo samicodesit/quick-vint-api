@@ -275,6 +275,7 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0].values).toEqual({
       stripe_subscription_id: "sub_current",
+      stripe_customer_id: "cus_123",
       subscription_tier: "pro",
       subscription_status: "active",
       current_period_end: "2026-07-21T00:00:00.000Z",
@@ -288,7 +289,7 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
   });
 
-  it("sends a welcome email when Stripe creates a paid subscription", async () => {
+  it("links an email-matched profile when Stripe creates a paid subscription", async () => {
     constructEventMock.mockReturnValue({
       type: "customer.subscription.created",
       data: {
@@ -307,6 +308,11 @@ describe("Stripe webhook subscription usage reset", () => {
         },
       },
     });
+    retrieveCustomerMock.mockResolvedValue({
+      id: "cus_123",
+      email: "seller@example.com",
+    });
+    queueSelect("profiles", { data: null });
     queueSelect("profiles", {
       data: { id: "profile_123", email: "seller@example.com" },
     });
@@ -326,6 +332,9 @@ describe("Stripe webhook subscription usage reset", () => {
     await handler(createRequest() as any, res as any);
 
     expect(res.statusCode).toBe(200);
+    expect(updateCalls[0].values).toMatchObject({
+      stripe_customer_id: "cus_123",
+    });
     expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledWith({
       profileId: "profile_123",
       email: "seller@example.com",

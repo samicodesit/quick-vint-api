@@ -475,6 +475,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             existingTier === tier;
           const updateData = buildSubscriptionProfileUpdate({
             subscriptionId: subAny.id,
+            stripeCustomerId: customerId,
             status,
             tier,
             currentPeriodEnd,

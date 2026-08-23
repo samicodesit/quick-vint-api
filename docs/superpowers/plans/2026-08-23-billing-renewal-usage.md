@@ -23,6 +23,7 @@
 ### Task 1: Define paid-invoice period parsing and grace entitlement
 
 **Files:**
+
 - Create: `src/utils/subscriptionInvoice.ts`
 - Create: `src/utils/__tests__/subscriptionInvoice.test.ts`
 - Modify: `src/utils/subscriptionStatus.ts`
@@ -31,6 +32,7 @@
 - Modify: `src/utils/__tests__/rateLimiter.entitlements.test.ts`
 
 **Interfaces:**
+
 - Produces: `getInvoiceSubscriptionId(invoice): string | null`
 - Produces: `getPaidSubscriptionPeriod(invoice): { start: string; end: string } | null`
 - Changes: `hasPaidEntitlementStatus("past_due")` returns `true`; `unpaid` remains `false`.
@@ -56,11 +58,13 @@
 ### Task 2: Add the atomic paid-period reset
 
 **Files:**
+
 - Create: `migrations/2026-08-23_paid_invoice_usage_periods.sql`
 - Modify: `src/utils/subscriptionUsageReset.ts`
 - Modify: `src/utils/__tests__/subscriptionUsageReset.test.ts`
 
 **Interfaces:**
+
 - Produces database RPC: `reset_monthly_usage_for_paid_invoice(p_user_id uuid, p_stripe_subscription_id text, p_stripe_invoice_id text, p_period_end timestamptz) -> jsonb`
 - Changes: `buildSubscriptionProfileUpdate` never resets monthly usage from a status transition.
 
@@ -85,12 +89,14 @@
 ### Task 3: Route webhooks and reconciliation through the RPC
 
 **Files:**
+
 - Modify: `api/stripe/webhook.ts`
 - Modify: `src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts`
 - Modify: `api/cron/billing-reconciliation.ts`
 - Create: `src/api/__tests__/billingReconciliationUsageReset.test.ts`
 
 **Interfaces:**
+
 - Consumes: invoice helpers from Task 1.
 - Consumes: `reset_monthly_usage_for_paid_invoice` from Task 2.
 - Produces: webhook support for `invoice.paid` and `invoice.payment_succeeded`.
@@ -117,10 +123,12 @@
 ### Task 4: Remove the independent rolling reset and verify production readiness
 
 **Files:**
+
 - Delete: `api/cron/reset-counts.ts`
 - Modify: `vercel.json`
 
 **Interfaces:**
+
 - Removes: `/api/cron/reset-counts` and its daily Vercel schedule.
 
 - [ ] **Step 1: Remove the obsolete route and schedule**

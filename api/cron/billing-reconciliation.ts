@@ -5,6 +5,10 @@ import {
   getBillingDriftReasons,
   logBillingEvent,
 } from "../../utils/billingEvents";
+import {
+  getInvoiceSubscriptionId,
+  getPaidSubscriptionPeriod,
+} from "../../src/utils/subscriptionInvoice";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const ACTIVE_LIKE_SUBSCRIPTION_STATUSES = new Set([
@@ -13,6 +17,11 @@ const ACTIVE_LIKE_SUBSCRIPTION_STATUSES = new Set([
   "past_due",
   "unpaid",
   "incomplete",
+]);
+const USAGE_REPAIR_SUBSCRIPTION_STATUSES = new Set([
+  "active",
+  "trialing",
+  "canceling",
 ]);
 
 type BillingProfile = {
@@ -54,6 +63,24 @@ async function getStripeSnapshot(customerId: string) {
     (invoice) =>
       invoice.status === "open" && Number(invoice.amount_remaining || 0) > 0,
   );
+  let latestPaidUsagePeriod: {
+    invoiceId: string;
+    subscriptionId: string;
+    periodEnd: string;
+  } | null = null;
+
+  for (const invoice of invoices.data) {
+    if (invoice.status !== "paid") continue;
+    const subscriptionId = getInvoiceSubscriptionId(invoice as any);
+    const period = getPaidSubscriptionPeriod(invoice as any);
+    if (!invoice.id || !subscriptionId || !period) continue;
+    latestPaidUsagePeriod = {
+      invoiceId: invoice.id,
+      subscriptionId,
+      periodEnd: period.end,
+    };
+    break;
+  }
 
   return {
     activeLikeSubscriptionCount: activeLikeSubscriptions.length,
@@ -65,6 +92,7 @@ async function getStripeSnapshot(customerId: string) {
     hasCancelAtPeriodEnd: activeLikeSubscriptions.some(
       (subscription) => subscription.cancel_at_period_end,
     ),
+    latestPaidUsagePeriod,
     subscriptions: activeLikeSubscriptions.map((subscription) => ({
       id: subscription.id,
       status: subscription.status,
@@ -100,6 +128,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const profiles = ((data || []) as BillingProfile[]).filter(hasBillingRisk);
   const mismatches = [];
+  let usageResets = 0;
+  let usageResetErrors = 0;
 
   for (const profile of profiles) {
     if (!profile.stripe_customer_id) {
@@ -119,6 +149,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const snapshot = await getStripeSnapshot(profile.stripe_customer_id);
+
+    if (
+      snapshot.latestPaidUsagePeriod &&
+      USAGE_REPAIR_SUBSCRIPTION_STATUSES.has(profile.subscription_status || "")
+    ) {
+      const paidPeriod = snapshot.latestPaidUsagePeriod;
+      const { data: resetResult, error: resetError } = await supabase.rpc(
+        "reset_monthly_usage_for_paid_invoice",
+        {
+          p_user_id: profile.id,
+          p_stripe_subscription_id: paidPeriod.subscriptionId,
+          p_stripe_invoice_id: paidPeriod.invoiceId,
+          p_period_end: paidPeriod.periodEnd,
+        },
+      );
+
+      if (resetError) {
+        usageResetErrors += 1;
+        await logBillingEvent({
+          user_id: profile.id,
+          user_email: profile.email,
+          source: "reconciliation",
+          event_type: "billing.reconciliation_usage_reset_failed",
+          stripe_customer_id: profile.stripe_customer_id,
+          stripe_subscription_id: paidPeriod.subscriptionId,
+          stripe_invoice_id: paidPeriod.invoiceId,
+          raw_event: { error: resetError.message || String(resetError) },
+        });
+      } else if (resetResult?.reset === true) {
+        usageResets += 1;
+        await logBillingEvent({
+          user_id: profile.id,
+          user_email: profile.email,
+          source: "reconciliation",
+          event_type: "billing.reconciliation_usage_reset",
+          stripe_customer_id: profile.stripe_customer_id,
+          stripe_subscription_id: paidPeriod.subscriptionId,
+          stripe_invoice_id: paidPeriod.invoiceId,
+          raw_event: { periodEnd: paidPeriod.periodEnd },
+        });
+      }
+    }
+
     const reasons = getBillingDriftReasons({
       profile,
       stripe: snapshot,
@@ -142,10 +215,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  return res.status(200).json({
-    ok: true,
+  return res.status(usageResetErrors ? 500 : 200).json({
+    ok: usageResetErrors === 0,
     checked: profiles.length,
     mismatches: mismatches.length,
+    usageResets,
+    usageResetErrors,
     mismatchDetails: mismatches.map((item) => ({
       user_id: item.profile.id,
       user_email: item.profile.email,

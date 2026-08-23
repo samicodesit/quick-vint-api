@@ -15,6 +15,10 @@ import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 import { logStripeBillingEvent } from "../../utils/billingEvents";
 import { sendSubscriptionWelcomeEmailOnce } from "../../utils/subscriptionWelcomeEmail";
+import {
+  getInvoiceSubscriptionId,
+  getPaidSubscriptionPeriod,
+} from "../../src/utils/subscriptionInvoice";
 
 export const config = { api: { bodyParser: false } };
 
@@ -29,6 +33,7 @@ const AUDITED_STRIPE_EVENT_TYPES = new Set([
   "invoice.created",
   "invoice.finalized",
   "invoice.payment_failed",
+  "invoice.paid",
   "invoice.payment_succeeded",
   "invoice.voided",
   "invoice.marked_uncollectible",
@@ -59,6 +64,118 @@ function getSubscriptionCurrentPeriodEnd(subscription: any): string | null {
   return typeof rawEnd === "number"
     ? new Date(rawEnd * 1000).toISOString()
     : null;
+}
+
+function getStripeObjectId(value: unknown): string | null {
+  if (typeof value === "string" && value) return value;
+  if (value && typeof value === "object" && "id" in value) {
+    const id = (value as { id?: unknown }).id;
+    return typeof id === "string" && id ? id : null;
+  }
+  return null;
+}
+
+async function handlePaidSubscriptionInvoice(invoice: any) {
+  if (invoice.status !== "paid") return;
+
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
+
+  const period = getPaidSubscriptionPeriod(invoice);
+  if (!period) {
+    if (
+      invoice.billing_reason === "subscription_create" ||
+      invoice.billing_reason === "subscription_cycle"
+    ) {
+      throw new Error(`Paid subscription invoice ${invoice.id} has no period`);
+    }
+    return;
+  }
+
+  const subscription = (await stripe.subscriptions.retrieve(
+    subscriptionId,
+  )) as any;
+  const customerId =
+    getStripeObjectId(invoice.customer) ||
+    getStripeObjectId(subscription.customer);
+  if (!customerId) {
+    throw new Error(`Paid subscription invoice ${invoice.id} has no customer`);
+  }
+
+  const priceId = subscription.items.data[0]?.price.id;
+  const tier = getTierByStripePriceId(priceId)?.name || "free";
+  if (tier === "free") return;
+
+  const status = mapStripeSubscriptionStatusForProfile(subscription, tier);
+  const currentPeriodEnd =
+    getSubscriptionCurrentPeriodEnd(subscription) || period.end;
+
+  let { data: profileRow } = await supabase
+    .from("profiles")
+    .select("id,email")
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (!profileRow) {
+    let email = invoice.customer_email as string | undefined;
+    if (!email) {
+      const customer = (await stripe.customers.retrieve(customerId)) as any;
+      email = customer.email as string | undefined;
+    }
+    if (email) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,email")
+        .ilike("email", email)
+        .single();
+      profileRow = data as any;
+    }
+  }
+
+  if (!profileRow) {
+    throw new Error(`No profile for paid subscription invoice ${invoice.id}`);
+  }
+
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select(
+      "stripe_subscription_id, subscription_status, subscription_tier, is_legacy_plan",
+    )
+    .eq("id", profileRow.id)
+    .single();
+  const keepLegacy =
+    Boolean(existingProfile?.is_legacy_plan) &&
+    existingProfile?.stripe_subscription_id === subscriptionId &&
+    existingProfile?.subscription_tier === tier;
+  const updateData = buildSubscriptionProfileUpdate({
+    subscriptionId,
+    stripeCustomerId: customerId,
+    status,
+    tier,
+    currentPeriodEnd,
+    isLegacyPlan: keepLegacy,
+  });
+  Object.assign(
+    updateData,
+    buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
+  );
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update(updateData)
+    .eq("id", profileRow.id);
+  if (updateError) throw updateError;
+
+  const { error: resetError } = await supabase.rpc(
+    "reset_monthly_usage_for_paid_invoice",
+    {
+      p_user_id: profileRow.id,
+      p_stripe_subscription_id: subscriptionId,
+      p_stripe_invoice_id: invoice.id,
+      p_period_end: period.end,
+    },
+  );
+  if (resetError) throw resetError;
 }
 
 async function sendWelcomeForPaidSubscription(input: {
@@ -241,7 +358,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .single();
 
           if (profileRow) {
-            const updateData = buildSubscriptionProfileUpdate(profileRow, {
+            const updateData = buildSubscriptionProfileUpdate({
               subscriptionId: subscription.id,
               stripeCustomerId: customerId,
               status,
@@ -350,7 +467,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             Boolean(existingProfile?.is_legacy_plan) &&
             existingSubscriptionId === subAny.id &&
             existingTier === tier;
-          const updateData = buildSubscriptionProfileUpdate(existingProfile, {
+          const updateData = buildSubscriptionProfileUpdate({
             subscriptionId: subAny.id,
             status,
             tier,
@@ -408,6 +525,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             })
             .eq("id", profileRow.id);
         }
+        break;
+      }
+
+      case "invoice.paid":
+      case "invoice.payment_succeeded": {
+        console.log(`⏳ Handling ${event.type}`);
+        await handlePaidSubscriptionInvoice(event.data.object as any);
         break;
       }
 

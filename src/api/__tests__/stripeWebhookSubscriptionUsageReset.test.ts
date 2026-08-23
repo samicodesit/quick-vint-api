@@ -39,6 +39,7 @@ function popSelect(table: string) {
 function createQueryBuilder(table: string) {
   const builder = {
     select: vi.fn(() => builder),
+    insert: vi.fn(async () => ({ data: null, error: null })),
     update: vi.fn((values: Record<string, unknown>) => {
       updateCalls.push({ table, values });
       return builder;
@@ -138,7 +139,7 @@ describe("Stripe webhook subscription usage reset", () => {
     });
   });
 
-  it("resets monthly usage when checkout completion activates a free user", async () => {
+  it("does not reset monthly usage from checkout completion", async () => {
     constructEventMock.mockReturnValue({
       type: "checkout.session.completed",
       data: {
@@ -190,10 +191,11 @@ describe("Stripe webhook subscription usage reset", () => {
       abuse_notes: null,
       paused_at: null,
       paused_by: null,
-      api_calls_this_month: 0,
     });
-    expect(updateCalls[1].values.last_api_call_reset).toEqual(
-      expect.any(String),
+    expect(updateCalls[1].values).not.toHaveProperty("last_api_call_reset");
+    expect(rpcMock).not.toHaveBeenCalledWith(
+      "reset_monthly_usage_for_paid_invoice",
+      expect.anything(),
     );
     expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledWith({
       profileId: "profile_123",
@@ -351,8 +353,122 @@ describe("Stripe webhook subscription usage reset", () => {
       custom_monthly_limit: 1000,
       custom_limit_expires_at: "2026-07-21T00:00:00.000Z",
       custom_limit_reason: "Custom Business setup",
-      api_calls_this_month: 0,
     });
+  });
+
+  it.each(["invoice.paid", "invoice.payment_succeeded"])(
+    "resets usage through the atomic RPC for a newly paid monthly period from %s",
+    async (eventType) => {
+      constructEventMock.mockReturnValue({
+        id: "evt_paid_renewal",
+        type: eventType,
+        data: {
+          object: {
+            id: "in_renewal",
+            object: "invoice",
+            status: "paid",
+            customer: "cus_123",
+            billing_reason: "subscription_cycle",
+            parent: {
+              subscription_details: { subscription: "sub_current" },
+            },
+            lines: {
+              data: [
+                {
+                  parent: {
+                    subscription_item_details: { proration: false },
+                  },
+                  period: { start: 1785542400, end: 1788220800 },
+                },
+              ],
+            },
+          },
+        },
+      });
+      retrieveSubscriptionMock.mockResolvedValue({
+        id: "sub_current",
+        customer: "cus_123",
+        status: "active",
+        items: {
+          data: [
+            {
+              price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+              current_period_end: 1788220800,
+            },
+          ],
+        },
+      });
+      queueSelect("profiles", {
+        data: { id: "profile_123", email: "seller@example.com" },
+      });
+      queueSelect("profiles", {
+        data: {
+          stripe_subscription_id: "sub_current",
+          subscription_status: "past_due",
+          subscription_tier: "starter",
+          is_legacy_plan: false,
+        },
+      });
+      rpcMock.mockResolvedValueOnce({
+        data: { reset: true, reason: "new_paid_period" },
+        error: null,
+      });
+
+      const webhookModule = await import("../../../api/stripe/webhook.js");
+      const handler = webhookModule.default as unknown as WebhookHandler;
+      const res = createResponse();
+
+      await handler(createRequest() as any, res as any);
+
+      expect(res.statusCode).toBe(200);
+      expect(rpcMock).toHaveBeenCalledWith(
+        "reset_monthly_usage_for_paid_invoice",
+        {
+          p_user_id: "profile_123",
+          p_stripe_subscription_id: "sub_current",
+          p_stripe_invoice_id: "in_renewal",
+          p_period_end: "2026-09-01T00:00:00.000Z",
+        },
+      );
+      expect(updateCalls[0].values).toMatchObject({
+        stripe_subscription_id: "sub_current",
+        subscription_status: "active",
+        subscription_tier: "starter",
+        current_period_end: "2026-09-01T00:00:00.000Z",
+      });
+    },
+  );
+
+  it("never resets usage when a renewal payment fails", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_failed_renewal",
+      type: "invoice.payment_failed",
+      data: {
+        object: {
+          id: "in_failed",
+          object: "invoice",
+          status: "open",
+          customer: "cus_123",
+          billing_reason: "subscription_cycle",
+          parent: {
+            subscription_details: { subscription: "sub_current" },
+          },
+        },
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(rpcMock).not.toHaveBeenCalledWith(
+      "reset_monthly_usage_for_paid_invoice",
+      expect.anything(),
+    );
+    expect(updateCalls).toHaveLength(0);
   });
 
   it("clears account pause after a successful credit pack purchase", async () => {

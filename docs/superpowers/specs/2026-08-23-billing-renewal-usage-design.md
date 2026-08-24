@@ -11,7 +11,7 @@ Tie monthly usage resets to paid Stripe subscription periods instead of an unrel
 - A prorated plan change inside the current period preserves usage.
 - A plan change that starts a genuinely newer paid period resets once.
 - `invoice.payment_failed` never resets usage.
-- `past_due` keeps the paid tier and remaining allowance during Stripe's retry grace period.
+- `past_due` preserves billing identity and usage; `unpaid` preserves usage. Both suspend generation until payment succeeds.
 - `unpaid` and `canceled` remove paid entitlements without changing usage, free-lifetime usage, credit packs, or manual grants.
 - A later successful retry resets the newly paid period once and returns the subscription to Stripe's current status.
 - Refunds do not alter usage periods.
@@ -55,7 +55,7 @@ Custom grants remain stored when a profile loses paid entitlement, but both Type
 ## Verification
 
 - Pure tests cover modern and legacy Stripe invoice shapes and reject proration-only invoices.
-- Status tests prove `past_due` retains paid entitlement while `unpaid` does not.
+- Status tests distinguish retained billing identity from suspended generation access while payment is delinquent.
 - Endpoint tests prove checkout, upgrades, failed invoices, paid renewals, and recovered payments call or avoid the reset RPC correctly.
 - Rate-limiter tests prove expired-payment customers cannot retain custom paid limits.
 - Reconciliation tests prove a missed paid invoice reaches the same idempotent RPC, matches the stored subscription, and repairs a recovered `past_due` profile only when Stripe is live again.

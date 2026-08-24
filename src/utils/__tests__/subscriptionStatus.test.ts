@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   hasPaidEntitlementStatus,
+  isGenerationSuspendedForPayment,
   mapStripeSubscriptionStatusForProfile,
 } from "../subscriptionStatus";
 
@@ -33,6 +34,15 @@ describe("subscription status normalization", () => {
     expect(hasPaidEntitlementStatus("past_due")).toBe(true);
     expect(hasPaidEntitlementStatus("unpaid")).toBe(false);
     expect(hasPaidEntitlementStatus("canceled")).toBe(false);
+  });
+
+  it("suspends generation while payment is past due or unpaid", () => {
+    expect(isGenerationSuspendedForPayment("active")).toBe(false);
+    expect(isGenerationSuspendedForPayment("trialing")).toBe(false);
+    expect(isGenerationSuspendedForPayment("canceling")).toBe(false);
+    expect(isGenerationSuspendedForPayment("free")).toBe(false);
+    expect(isGenerationSuspendedForPayment("past_due")).toBe(true);
+    expect(isGenerationSuspendedForPayment("unpaid")).toBe(true);
   });
 
   it("keeps the pricing page on the shared entitlement definition", () => {

@@ -10,7 +10,10 @@ import {
   hasUnlimitedDailyLimit,
   type PricingLimitsMode,
 } from "./tierConfig";
-import { hasPaidEntitlementStatus } from "../src/utils/subscriptionStatus";
+import {
+  hasPaidEntitlementStatus,
+  isGenerationSuspendedForPayment,
+} from "../src/utils/subscriptionStatus";
 
 // Global cost protection
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
@@ -23,6 +26,7 @@ interface RateLimitResult {
   code?:
     | "daily_limit"
     | "monthly_limit"
+    | "payment_required"
     | "free_lifetime_limit"
     | "emoji_retry_used"
     | "burst_limit"
@@ -569,16 +573,19 @@ export class RateLimiter {
       (hasUnlimitedDaily ? null : tierConfig.limits.daily);
 
     try {
-      const { data, error } = await supabase.rpc("reserve_generation_request", {
-        p_user_id: userId,
-        p_pricing_limits_mode: pricingLimitsMode,
-        p_effective_tier: tierKey,
-        p_monthly_limit: monthlyLimit,
-        p_daily_limit: dailyLimit,
-        p_burst_limit: burstLimit,
-        p_free_lifetime_limit: FREE_LIFETIME_LIMIT,
-        p_has_unlimited_daily: hasUnlimitedDaily,
-      });
+      const { data, error } = await supabase.rpc(
+        "reserve_generation_request_for_current_status",
+        {
+          p_user_id: userId,
+          p_pricing_limits_mode: pricingLimitsMode,
+          p_effective_tier: tierKey,
+          p_monthly_limit: monthlyLimit,
+          p_daily_limit: dailyLimit,
+          p_burst_limit: burstLimit,
+          p_free_lifetime_limit: FREE_LIFETIME_LIMIT,
+          p_has_unlimited_daily: hasUnlimitedDaily,
+        },
+      );
 
       if (error) {
         console.error("Generation reservation failed:", error);
@@ -626,6 +633,16 @@ export class RateLimiter {
     pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
   ): Promise<RateLimitResult> {
     const tierKey = getEffectiveTier(profile);
+
+    if (isGenerationSuspendedForPayment(profile.subscription_status)) {
+      return {
+        allowed: false,
+        code: "payment_required",
+        currentTier: tierKey,
+        error:
+          "Payment for your subscription is overdue. Update your payment method to continue.",
+      };
+    }
 
     if (pricingLimitsMode !== "current" || tierKey !== "free") {
       return {
@@ -810,6 +827,31 @@ export class RateLimiter {
         burstPerMinute: tierConfig.limits.burst.perMinute,
       },
     };
+
+    if (isGenerationSuspendedForPayment(profile.subscription_status)) {
+      const monthlyLimit = getEffectiveMonthlyLimit(
+        profile,
+        tierConfig.limits.monthly,
+      );
+
+      return {
+        ...baseCapacity,
+        allowed: false,
+        available: 0,
+        reason: "payment_required",
+        message:
+          "Payment for your subscription is overdue. Update your payment method to continue.",
+        limits: { ...baseCapacity.limits, monthly: monthlyLimit },
+        remaining: {
+          day: null,
+          month: Math.max(
+            0,
+            monthlyLimit - Math.max(0, profile.api_calls_this_month || 0),
+          ),
+          packCredits,
+        },
+      };
+    }
 
     try {
       const { data: emergencyBrake } = await supabase

@@ -4,7 +4,7 @@
 
 **Goal:** Reset monthly usage exactly once per paid monthly Stripe period and handle failed-renewal grace safely.
 
-**Architecture:** Parse the recurring non-proration service period from Stripe invoices and pass it to one row-locking PostgreSQL RPC. Webhooks and reconciliation share that path; subscription status remains the entitlement switch, with `past_due` included only for retry grace.
+**Architecture:** Parse the recurring non-proration service period from Stripe invoices and pass it to one row-locking PostgreSQL RPC. Webhooks and reconciliation share that path; delinquent subscriptions preserve usage but cannot generate until payment succeeds.
 
 **Tech Stack:** TypeScript, Stripe Node SDK, Supabase/PostgreSQL, Vitest, Vercel cron.
 

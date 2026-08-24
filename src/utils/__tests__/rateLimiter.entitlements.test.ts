@@ -106,6 +106,46 @@ describe("RateLimiter entitlement decisions", () => {
     delete process.env.PRICING_LIMITS_MODE;
   });
 
+  it("reports zero capacity while subscription payment is delinquent", async () => {
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity("user-past-due", {
+      subscription_status: "past_due",
+      subscription_tier: "business",
+      api_calls_this_month: 508,
+      pack_credits: 20,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      available: 0,
+      tier: "business",
+      reason: "payment_required",
+      remaining: {
+        day: null,
+        month: 92,
+        packCredits: 20,
+      },
+    });
+    expect(fromCalls).toHaveLength(0);
+  });
+
+  it("blocks free no-emoji retries while subscription payment is delinquent", async () => {
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveEmojiRetry("user-unpaid", {
+      subscription_status: "unpaid",
+      subscription_tier: "business",
+      api_calls_this_month: 508,
+      free_lifetime_generations_used: 0,
+      pack_credits: 20,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      code: "payment_required",
+    });
+    expect(fromCalls).toHaveLength(0);
+  });
+
   it("blocks free users after exactly 5 lifetime listings when no pack credits exist", async () => {
     queueCommonPreflight();
     queueRateCount(0);
@@ -667,7 +707,7 @@ describe("RateLimiter entitlement decisions", () => {
     });
     expect(rpcCalls).toHaveLength(1);
     expect(rpcCalls[0]).toMatchObject({
-      name: "reserve_generation_request",
+      name: "reserve_generation_request_for_current_status",
       params: {
         p_user_id: "user-starter",
         p_effective_tier: "starter",
@@ -710,7 +750,7 @@ describe("RateLimiter entitlement decisions", () => {
       reservationId: "reservation-credit-pack",
     });
     expect(rpcCalls[0]).toMatchObject({
-      name: "reserve_generation_request",
+      name: "reserve_generation_request_for_current_status",
       params: {
         p_user_id: "user-credit-pack",
         p_effective_tier: "free",
@@ -754,7 +794,7 @@ describe("RateLimiter entitlement decisions", () => {
       reservationId: "reservation-custom",
     });
     expect(rpcCalls[0]).toMatchObject({
-      name: "reserve_generation_request",
+      name: "reserve_generation_request_for_current_status",
       params: {
         p_user_id: "user-custom-business",
         p_effective_tier: "business",
@@ -801,7 +841,7 @@ describe("RateLimiter entitlement decisions", () => {
       reservationId: "reservation-custom-legacy",
     });
     expect(rpcCalls[0]).toMatchObject({
-      name: "reserve_generation_request",
+      name: "reserve_generation_request_for_current_status",
       params: {
         p_user_id: "user-custom-business",
         p_effective_tier: "business",
@@ -836,7 +876,7 @@ describe("RateLimiter entitlement decisions", () => {
     );
 
     expect(rpcCalls[0]).toMatchObject({
-      name: "reserve_generation_request",
+      name: "reserve_generation_request_for_current_status",
       params: {
         p_effective_tier: "free",
         p_monthly_limit: 8,

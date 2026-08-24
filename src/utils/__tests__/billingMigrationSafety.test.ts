@@ -19,4 +19,25 @@ describe("billing migration safety", () => {
     expect(sql).toContain("REVOKE ALL ON FUNCTION reserve_generation_request");
     expect(sql).toContain("TO service_role");
   });
+
+  it("blocks delinquent subscriptions before reserving any generation usage", () => {
+    const sql = readFileSync(
+      resolve(
+        process.cwd(),
+        "migrations/2026-08-24_suspend_delinquent_generation.sql",
+      ),
+      "utf8",
+    );
+
+    expect(sql).toContain(
+      "CREATE OR REPLACE FUNCTION reserve_generation_request_for_current_status",
+    );
+    expect(sql).toContain("profile_status IN ('past_due', 'unpaid')");
+    expect(sql).toContain("'code', 'payment_required'");
+    expect(sql).toContain("RETURN reserve_generation_request(");
+    expect(sql).toContain(
+      "REVOKE ALL ON FUNCTION reserve_generation_request_for_current_status",
+    );
+    expect(sql).toContain("TO service_role");
+  });
 });

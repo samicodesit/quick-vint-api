@@ -16,6 +16,12 @@ export function hasPaidEntitlementStatus(status: SubscriptionStatusLike) {
   );
 }
 
+export function isGenerationSuspendedForPayment(
+  status: SubscriptionStatusLike,
+) {
+  return status === "past_due" || status === "unpaid";
+}
+
 export function mapStripeSubscriptionStatusForProfile(
   subscription: {
     status?: string | null;

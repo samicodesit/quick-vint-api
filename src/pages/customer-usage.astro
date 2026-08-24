@@ -782,14 +782,44 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       );
     }
 
-    function getPreviewPayload(active) {
+    function renderPaymentRequired(payload) {
+      const daily = payload.usage.daily;
+      const monthly = payload.usage.monthly;
+
+      els.headline.textContent = "Payment failed";
+      els.subline.textContent =
+        "Update payment to continue using AutoLister.";
+      els.statusText.textContent = "Payment needed";
+      els.statusDot.classList.remove("active");
+
+      els.dailyValue.textContent = formatLimit(daily.used, daily.limit);
+      els.dailyRemaining.textContent = "Not available";
+      setBar(els.dailyBar, daily.percent);
+      els.monthlyValue.textContent = formatLimit(monthly.used, monthly.limit);
+      els.monthlyRemaining.textContent = "Not available";
+      setBar(els.monthlyBar, monthly.percent);
+
+      els.planName.textContent = payload.setup.label || "Custom Business setup";
+      els.cycleDate.textContent = "Payment needed";
+      els.accountEmail.textContent = payload.customer.email || "-";
+
+      els.pendingPanel.classList.add("hidden");
+      els.offerPanel.classList.add("hidden");
+      els.usagePanel.classList.remove("hidden");
+      els.detailsPanel.classList.remove("hidden");
+      els.errorPanel.classList.add("hidden");
+      els.extensionNote.classList.add("hidden");
+    }
+
+    function getPreviewPayload(status) {
+      const active = status === "active";
       return {
         customer: {
           email: "fuerallezugang@gmail.com",
         },
         setup: {
           label: "Custom Business setup",
-          status: active ? "active" : "pending",
+          status,
           customActive: active,
           offer: {
             dailyLimit: 100,
@@ -822,10 +852,18 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     }
 
     async function loadUsage() {
-      if (previewMode === "pending" || previewMode === "active") {
-        const payload = getPreviewPayload(previewMode === "active");
+      if (
+        previewMode === "pending" ||
+        previewMode === "active" ||
+        previewMode === "payment_required"
+      ) {
+        const payload = getPreviewPayload(previewMode);
         if (payload.setup.status === "active") {
           renderActive(payload);
+          return;
+        }
+        if (payload.setup.status === "payment_required") {
+          renderPaymentRequired(payload);
           return;
         }
         renderPending(payload);
@@ -852,6 +890,11 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 
       if (payload.setup?.status === "active") {
         renderActive(payload);
+        return;
+      }
+
+      if (payload.setup?.status === "payment_required") {
+        renderPaymentRequired(payload);
         return;
       }
 

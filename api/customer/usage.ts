@@ -6,7 +6,10 @@ import {
   getCustomBusinessEntitlementDefaults,
   getEffectiveTier,
 } from "../../utils/tierConfig";
-import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
+import {
+  hasPaidEntitlementStatus,
+  isGenerationSuspendedForPayment,
+} from "../../src/utils/subscriptionStatus";
 
 function positiveNumber(value: unknown) {
   const parsed = Number(value || 0);
@@ -95,7 +98,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const monthlyUsed = positiveNumber(profile.api_calls_this_month);
     const dailyLimit = capacity.limits.daily;
     const monthlyLimit = capacity.limits.monthly;
-    const customActive = hasActiveCustomLimits(profile);
+    const paymentRequired = isGenerationSuspendedForPayment(
+      profile.subscription_status,
+    );
+    const customActive = hasActiveCustomLimits(profile) && !paymentRequired;
     const tier = getEffectiveTier(profile);
     const offer = getCustomBusinessEntitlementDefaults();
 
@@ -104,8 +110,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         email: profile.email,
       },
       setup: {
-        label: customActive ? "Custom Business setup" : "Pending activation",
-        status: customActive ? "active" : "pending",
+        label:
+          customActive || paymentRequired
+            ? "Custom Business setup"
+            : "Pending activation",
+        status: paymentRequired
+          ? "payment_required"
+          : customActive
+            ? "active"
+            : "pending",
         tier,
         customActive,
         offer: {

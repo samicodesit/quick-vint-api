@@ -599,6 +599,7 @@ export class RateLimiter {
 
       const result = data as ReservationRpcResult | null;
       if (!result?.allowed) {
+        const paymentRequired = result?.code === "payment_required";
         return {
           allowed: false,
           code: result?.code,
@@ -607,7 +608,9 @@ export class RateLimiter {
           limitScope: result?.limitScope,
           currentLimit: result?.currentLimit ?? undefined,
           remainingRequests: result?.remainingRequests,
-          error: result?.error || "Too many requests. Please try again later.",
+          error: paymentRequired
+            ? "Payment failed. Update payment to continue."
+            : result?.error || "Too many requests. Please try again later.",
         };
       }
 
@@ -639,8 +642,7 @@ export class RateLimiter {
         allowed: false,
         code: "payment_required",
         currentTier: tierKey,
-        error:
-          "Payment for your subscription is overdue. Update your payment method to continue.",
+        error: "Payment failed. Update payment to continue.",
       };
     }
 
@@ -839,8 +841,7 @@ export class RateLimiter {
         allowed: false,
         available: 0,
         reason: "payment_required",
-        message:
-          "Payment for your subscription is overdue. Update your payment method to continue.",
+        message: "Payment failed. Update payment to continue.",
         limits: { ...baseCapacity.limits, monthly: monthlyLimit },
         remaining: {
           day: null,

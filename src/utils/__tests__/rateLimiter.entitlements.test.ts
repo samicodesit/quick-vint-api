@@ -120,6 +120,7 @@ describe("RateLimiter entitlement decisions", () => {
       available: 0,
       tier: "business",
       reason: "payment_required",
+      message: "Payment failed. Update payment to continue.",
       remaining: {
         day: null,
         month: 92,
@@ -715,6 +716,33 @@ describe("RateLimiter entitlement decisions", () => {
         p_daily_limit: 10,
         p_burst_limit: 10,
       },
+    });
+  });
+
+  it("uses simple customer copy when the reservation RPC blocks payment", async () => {
+    queueRpc({
+      data: {
+        allowed: false,
+        code: "payment_required",
+        currentTier: "business",
+        error:
+          "Payment for your subscription is overdue. Update your payment method to continue.",
+      },
+      error: null,
+    });
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.reserveGenerationRequest("user-past-due", {
+      subscription_status: "past_due",
+      subscription_tier: "business",
+      api_calls_this_month: 508,
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      code: "payment_required",
+      currentTier: "business",
+      error: "Payment failed. Update payment to continue.",
     });
   });
 

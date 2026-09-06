@@ -12,25 +12,29 @@ const copy = {
     eyebrow: "Listing writing controls",
     title: "Draft listing text in the style you need",
     body: "AutoLister AI can help format photo-generated descriptions with clearer structure, tone, bullets, emojis, and localized output when those writing controls are available on your plan.",
-    cta: "Add to Chrome",
+    cta: "Install AutoLister",
+    mobile: "Using an iPhone or iPad? Setup guide",
   },
   fr: {
     eyebrow: "Contrôles de rédaction",
     title: "Préparez vos annonces dans le style adapté",
     body: "AutoLister AI peut aider à formater les descriptions générées depuis vos photos avec une structure plus claire, le ton, les listes, les emojis et la langue locale quand ces contrôles sont disponibles dans votre formule.",
-    cta: "Ajouter à Chrome",
+    cta: "Installer AutoLister",
+    mobile: "Sur iPhone ou iPad ? Guide d’installation",
   },
   de: {
     eyebrow: "Schreibstil-Steuerung",
     title: "Entwirf Listing-Texte im passenden Stil",
     body: "AutoLister AI kann aus Fotos generierte Beschreibungen mit klarerer Struktur, Tonalität, Aufzählungen, Emojis und lokalisierter Ausgabe formatieren, wenn diese Schreibsteuerungen in deinem Tarif verfügbar sind.",
-    cta: "Zu Chrome hinzufügen",
+    cta: "AutoLister installieren",
+    mobile: "iPhone oder iPad? Zur Installationsanleitung",
   },
   nl: {
     eyebrow: "Schrijfstijl-instellingen",
     title: "Maak advertentietekst in de stijl die past",
     body: "AutoLister AI kan vanuit foto's gemaakte beschrijvingen helpen opmaken met duidelijkere structuur, toon, bullets, emoji's en lokale taal wanneer die schrijfinstellingen in je pakket beschikbaar zijn.",
-    cta: "Toevoegen aan Chrome",
+    cta: "AutoLister installeren",
+    mobile: "iPhone of iPad? Bekijk de installatiegids",
   },
 }[locale];
 ---
@@ -46,9 +50,19 @@ const copy = {
       href={CHROME_WEB_STORE_URL}
       target="_blank"
       rel="noopener noreferrer"
+      data-track-event="chrome_store_click"
+      data-track-context="blog_writing_style"
       class="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white no-underline transition hover:bg-slate-800"
     >
       {copy.cta}
     </a>
   </div>
+  <a
+    href="/support#iphone-ipad"
+    data-track-event="support_guide_click"
+    data-track-context="blog_writing_style_iphone_ipad"
+    class="mt-4 inline-block text-sm font-medium text-indigo-700 underline underline-offset-4 hover:text-indigo-900"
+  >
+    {copy.mobile}
+  </a>
 </aside>

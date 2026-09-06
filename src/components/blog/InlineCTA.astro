@@ -14,28 +14,32 @@ const copy = {
     quality: "Write clearer titles and descriptions buyers can actually find.",
     safe: "Prepare listing drafts while staying in control.",
     body: "AutoLister AI prepares titles and descriptions from your photos, one item or a batch, for you to review.",
-    cta: "Add to Chrome — free",
+    cta: "Install AutoLister",
+    mobile: "Using an iPhone or iPad? Setup guide",
   },
   fr: {
     speed: "Transformez vos photos en annonces ou en lots de brouillons.",
     quality: "Rédigez des titres et descriptions plus clairs, faciles à trouver.",
     safe: "Préparez vos brouillons d’annonces tout en gardant le contrôle.",
     body: "AutoLister AI prépare des titres et descriptions à partir de vos photos, à vérifier avant publication.",
-    cta: "Ajouter à Chrome — gratuit",
+    cta: "Installer AutoLister",
+    mobile: "Sur iPhone ou iPad ? Guide d’installation",
   },
   de: {
     speed: "Verwandle Fotos in Listings oder Batch-Entwürfe.",
     quality: "Schreibe klarere Titel und Beschreibungen, die Käufer finden.",
     safe: "Erstelle Entwürfe und behalte die Kontrolle.",
     body: "AutoLister AI erstellt Titel und Beschreibungen aus deinen Fotos, die du vor der Veröffentlichung prüfst.",
-    cta: "Zu Chrome hinzufügen — kostenlos",
+    cta: "AutoLister installieren",
+    mobile: "iPhone oder iPad? Zur Installationsanleitung",
   },
   nl: {
     speed: "Zet foto's om naar advertenties of batch-concepten.",
     quality: "Schrijf betere titels en beschrijvingen die kopers kunnen vinden.",
     safe: "Maak advertentieconcepten en houd zelf de controle.",
     body: "AutoLister AI maakt titels en beschrijvingen vanuit je foto's, die je voor publicatie controleert.",
-    cta: "Toevoegen aan Chrome — gratis",
+    cta: "AutoLister installeren",
+    mobile: "iPhone of iPad? Bekijk de installatiegids",
   },
 }[locale];
 ---
@@ -63,4 +67,12 @@ const copy = {
       {copy.cta}
     </a>
   </div>
+  <a
+    href="/support#iphone-ipad"
+    data-track-event="support_guide_click"
+    data-track-context={`blog_inline_${variant}_iphone_ipad`}
+    class="mt-4 inline-block text-sm font-medium text-indigo-700 underline underline-offset-4 hover:text-indigo-900"
+  >
+    {copy.mobile}
+  </a>
 </aside>

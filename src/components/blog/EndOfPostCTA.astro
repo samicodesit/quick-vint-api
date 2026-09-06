@@ -10,23 +10,27 @@ const { locale = "en" } = Astro.props;
 const copy = {
   en: {
     title: "Try AutoLister AI",
-    body: "Turn product photos into clear titles and descriptions. Free Chrome extension, no account required to start.",
-    cta: "Add to Chrome — free",
+    body: "Prepare editable listing drafts from your photos and seller notes. Create an account to try 5 free generations. No card required.",
+    cta: "Install AutoLister",
+    mobile: "Using an iPhone or iPad? Setup guide",
   },
   fr: {
     title: "Essayer AutoLister AI",
-    body: "Transformez vos photos en titres et descriptions clairs. Extension Chrome gratuite, aucun compte nécessaire.",
-    cta: "Ajouter à Chrome — gratuit",
+    body: "Préparez des brouillons modifiables à partir de vos photos et de vos notes. Créez un compte pour essayer 5 générations gratuites, sans carte bancaire.",
+    cta: "Installer AutoLister",
+    mobile: "Sur iPhone ou iPad ? Guide d’installation",
   },
   de: {
     title: "AutoLister AI testen",
-    body: "Verwandle Produktfotos in klare Titel und Beschreibungen. Kostenlose Chrome-Erweiterung, kein Konto nötig.",
-    cta: "Zu Chrome hinzufügen — kostenlos",
+    body: "Erstelle bearbeitbare Entwürfe aus deinen Fotos und Verkäufernotizen. Registriere dich für 5 kostenlose Generierungen. Keine Kreditkarte nötig.",
+    cta: "AutoLister installieren",
+    mobile: "iPhone oder iPad? Zur Installationsanleitung",
   },
   nl: {
     title: "Probeer AutoLister AI",
-    body: "Zet productfoto's om in duidelijke titels en beschrijvingen. Gratis Chrome-extensie, geen account nodig.",
-    cta: "Toevoegen aan Chrome — gratis",
+    body: "Maak bewerkbare advertentieconcepten met je foto's en verkopersnotities. Maak een account voor 5 gratis generaties. Geen betaalkaart nodig.",
+    cta: "AutoLister installeren",
+    mobile: "iPhone of iPad? Bekijk de installatiegids",
   },
 }[locale];
 ---
@@ -48,4 +52,12 @@ const copy = {
       {copy.cta}
     </a>
   </div>
+  <a
+    href="/support#iphone-ipad"
+    data-track-event="support_guide_click"
+    data-track-context="blog_end_of_post_iphone_ipad"
+    class="mt-4 inline-block text-sm font-medium text-indigo-700 underline underline-offset-4 hover:text-indigo-900"
+  >
+    {copy.mobile}
+  </a>
 </aside>

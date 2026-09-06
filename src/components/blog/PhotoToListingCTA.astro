@@ -12,25 +12,29 @@ const copy = {
     eyebrow: "Photo-to-listing writing",
     title: "Turn item photos into listing text",
     body: "AutoLister AI generates titles, descriptions, and SEO-style hashtags from your item photos. Use it for one listing or batch drafts, then review before publishing.",
-    cta: "Add to Chrome",
+    cta: "Install AutoLister",
+    mobile: "Using an iPhone or iPad? Setup guide",
   },
   fr: {
     eyebrow: "Rédaction depuis vos photos",
     title: "Transformez vos photos en texte d’annonce",
     body: "AutoLister AI génère titres, descriptions et hashtags depuis vos photos. Utilisez-le pour une annonce ou des brouillons en lot, puis vérifiez avant de publier.",
-    cta: "Ajouter à Chrome",
+    cta: "Installer AutoLister",
+    mobile: "Sur iPhone ou iPad ? Guide d’installation",
   },
   de: {
     eyebrow: "Texte aus Artikelfotos",
     title: "Verwandle Artikelfotos in Listing-Texte",
     body: "AutoLister AI erstellt Titel, Beschreibungen und SEO-ähnliche Hashtags aus deinen Fotos. Nutze es einzeln oder für Batch-Entwürfe, dann prüfe vor dem Veröffentlichen.",
-    cta: "Zu Chrome hinzufügen",
+    cta: "AutoLister installieren",
+    mobile: "iPhone oder iPad? Zur Installationsanleitung",
   },
   nl: {
     eyebrow: "Tekst vanuit foto's",
     title: "Zet itemfoto's om naar advertentietekst",
     body: "AutoLister AI maakt titels, beschrijvingen en SEO-achtige hashtags vanuit je foto's. Gebruik het per advertentie of voor batch-concepten, en controleer voor publicatie.",
-    cta: "Toevoegen aan Chrome",
+    cta: "AutoLister installeren",
+    mobile: "iPhone of iPad? Bekijk de installatiegids",
   },
 }[locale];
 ---
@@ -53,4 +57,12 @@ const copy = {
       {copy.cta}
     </a>
   </div>
+  <a
+    href="/support#iphone-ipad"
+    data-track-event="support_guide_click"
+    data-track-context="blog_photo_to_listing_iphone_ipad"
+    class="mt-4 inline-block text-sm font-medium text-indigo-700 underline underline-offset-4 hover:text-indigo-900"
+  >
+    {copy.mobile}
+  </a>
 </aside>

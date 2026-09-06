@@ -81,9 +81,28 @@ export function trackEvent(event, properties = {}) {
 }
 
 function appendUtmToChromeLink(link) {
-  if (!link.href.includes("chromewebstore.google.com")) return;
-
   const url = new URL(link.href);
+  if (url.hostname !== "chromewebstore.google.com") return;
+
+  const incoming = getUtmParams();
+  const existingSource = url.searchParams.get("utm_source");
+  if (
+    incoming.utm_source &&
+    (!existingSource || existingSource === "autolister_site")
+  ) {
+    // Preserve the acquisition campaign at the store boundary. Keep content
+    // as the CTA label so store reports can still distinguish placements.
+    for (const key of KNOWN_UTM_KEYS.filter((key) => key !== "utm_content")) {
+      url.searchParams.delete(key);
+      if (incoming[key]) url.searchParams.set(key, incoming[key]);
+    }
+    if (!url.searchParams.has("utm_content")) {
+      url.searchParams.set(
+        "utm_content",
+        link.dataset.trackContext || "site_cta",
+      );
+    }
+  }
   if (!url.searchParams.has("utm_source")) {
     url.searchParams.set("utm_source", "autolister_site");
     url.searchParams.set("utm_medium", "website");

@@ -82,9 +82,28 @@ function escapeHtml(value) {
 }
 
 function renderInlineText(lines) {
-  return escapeHtml(lines.join("\n"))
+  const source = lines.join("\n");
+  const pattern = /\[([^\]\n]+)\]\((https?:\/\/[^\s<>"()]+)\)|(https?:\/\/[^\s<>"()]+)/g;
+  const plain = (value) => escapeHtml(value)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\n/g, "<br />");
+  let result = "";
+  let position = 0;
+  for (const match of source.matchAll(pattern)) {
+    result += plain(source.slice(position, match.index));
+    const rawUrl = match[2] || match[3];
+    const url = match[2] ? rawUrl : rawUrl.replace(/[.,;!?]+$/, "");
+    const suffix = rawUrl.slice(url.length);
+    try {
+      const parsed = new URL(url);
+      const label = match[1] || `${parsed.hostname}${parsed.pathname}`;
+      result += `<a href="${escapeHtml(url)}" style="color:#6d42c7;text-decoration:underline;overflow-wrap:anywhere;">${escapeHtml(label)}</a>${plain(suffix)}`;
+    } catch {
+      result += plain(match[0]);
+    }
+    position = match.index + match[0].length;
+  }
+  return result + plain(source.slice(position));
 }
 
 function renderSupportBlock(content) {
@@ -135,7 +154,7 @@ function textToSupportHtml(text) {
     if (bullets.length === 0) return;
     blocks.push(
       `<ul style="margin: -4px 0 18px 0; padding-left: 22px;">${bullets
-        .map((line) => `<li style="margin: 0 0 6px 0;">${escapeHtml(line)}</li>`)
+        .map((line) => `<li style="margin: 0 0 6px 0;">${renderInlineText([line])}</li>`)
         .join("")}</ul>`,
     );
     bullets = [];

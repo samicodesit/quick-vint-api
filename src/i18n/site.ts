@@ -503,7 +503,7 @@ export const SITE_EXTRA_COPY: Record<
         "Creates titles, descriptions, and hashtags from your photos",
       heroBullet2: "No copy-paste needed. No emailing photos.",
       heroBullet3: "You review every listing before publishing",
-      addToChrome: "Add to Chrome",
+      addToChrome: "Install AutoLister",
       addToChromeNote: "It's Free",
       testimonialQuote:
         "So much faster when I upload several items. The first draft is ready in seconds.",
@@ -636,7 +636,7 @@ export const SITE_EXTRA_COPY: Record<
         "Crée des titres, descriptions et hashtags depuis vos photos",
       heroBullet2: "Aucun copier-coller. Aucun envoi de photos par e-mail.",
       heroBullet3: "Vous vérifiez chaque annonce avant de publier",
-      addToChrome: "Ajouter à Chrome",
+      addToChrome: "Installer AutoLister",
       addToChromeNote: "C'est gratuit",
       testimonialQuote:
         "Tellement plus rapide quand j'ajoute plusieurs articles. Le premier brouillon est prêt en quelques secondes.",
@@ -769,7 +769,7 @@ export const SITE_EXTRA_COPY: Record<
         "Erstellt Titel, Beschreibungen und Hashtags aus deinen Fotos",
       heroBullet2: "Kein Kopieren und Einfugen. Keine Fotos per E-Mail senden.",
       heroBullet3: "Du prüfst jede Anzeige vor dem Veröffentlichen",
-      addToChrome: "Zu Chrome hinzufugen",
+      addToChrome: "AutoLister installieren",
       addToChromeNote: "Kostenlos",
       testimonialQuote:
         "So viel schneller, wenn ich mehrere Artikel hochlade. Der erste Entwurf ist in Sekunden fertig.",
@@ -901,7 +901,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1: "Maakt titels, beschrijvingen en hashtags van je foto's",
       heroBullet2: "Geen kopieer-plak. Geen foto's mailen.",
       heroBullet3: "Je controleert elke advertentie voordat je publiceert",
-      addToChrome: "Toevoegen aan Chrome",
+      addToChrome: "AutoLister installeren",
       addToChromeNote: "Gratis",
       testimonialQuote:
         "Zoveel sneller als ik meerdere items upload. De eerste versie staat er binnen een paar seconden.",
@@ -1034,7 +1034,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1: "Tworzy tytuły, opisy i hashtagi na podstawie zdjęć",
       heroBullet2: "Bez kopiowania i wklejania. Bez wysylania zdjec mailem.",
       heroBullet3: "Sprawdzasz każde ogłoszenie przed publikacją",
-      addToChrome: "Dodaj do Chrome",
+      addToChrome: "Zainstaluj AutoLister",
       addToChromeNote: "To jest darmowe",
       testimonialQuote:
         "Duzo szybciej, gdy dodaje kilka rzeczy naraz. Pierwszy szkic jest gotowy w kilka sekund.",
@@ -1166,7 +1166,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1: "Crea títulos, descripciones y hashtags desde tus fotos",
       heroBullet2: "Sin copiar y pegar. Sin enviar fotos por correo.",
       heroBullet3: "Revisas cada anuncio antes de publicarlo",
-      addToChrome: "Anadir a Chrome",
+      addToChrome: "Instalar AutoLister",
       addToChromeNote: "Es gratis",
       testimonialQuote:
         "Mucho mas rapido cuando subo varios articulos. El primer borrador esta listo en segundos.",
@@ -1298,7 +1298,7 @@ export const SITE_EXTRA_COPY: Record<
       heroBullet1: "Crea titoli, descrizioni e hashtag dalle tue foto",
       heroBullet2: "Nessun copia-incolla. Nessun invio di foto via email.",
       heroBullet3: "Controlli ogni annuncio prima di pubblicarlo",
-      addToChrome: "Aggiungi a Chrome",
+      addToChrome: "Installa AutoLister",
       addToChromeNote: "E gratis",
       testimonialQuote:
         "Molto piu veloce quando carico piu articoli insieme. La prima bozza e pronta in pochi secondi.",
@@ -1432,7 +1432,7 @@ export const SITE_EXTRA_COPY: Record<
         "Cria títulos, descrições e hashtags a partir das suas fotos",
       heroBullet2: "Sem copiar e colar. Sem enviar fotos por email.",
       heroBullet3: "Revê cada anúncio antes de publicar",
-      addToChrome: "Adicionar ao Chrome",
+      addToChrome: "Instalar AutoLister",
       addToChromeNote: "E gratis",
       testimonialQuote:
         "Muito mais rapido quando carrego varios artigos de uma vez. O primeiro rascunho fica pronto em segundos.",

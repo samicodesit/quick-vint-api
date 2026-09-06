@@ -19,6 +19,16 @@ const chromeHref =
   "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 const pricingHref = locale === "en" ? "/pricing" : `/${locale}/pricing`;
 const tierProofValues = JSON.stringify(extra.tierProof.tiers);
+const iphoneHelpLabels: Record<string, string> = {
+  en: "iPhone or iPad? Set up with Orion",
+  fr: "iPhone ou iPad ? Installer avec Orion",
+  de: "iPhone oder iPad? Mit Orion einrichten",
+  nl: "iPhone of iPad? Instellen met Orion",
+  pl: "iPhone lub iPad? Skonfiguruj w Orion",
+  es: "¿iPhone o iPad? Configura con Orion",
+  it: "iPhone o iPad? Configura con Orion",
+  pt: "iPhone ou iPad? Configure com Orion",
+};
 
 const subtitleParts =
   heroSubtitleEmphasis && copy.heroSubtitle.includes(heroSubtitleEmphasis)
@@ -277,6 +287,13 @@ const subtitleParts =
             <span class="break-words leading-tight">{extra.watchDemo}</span>
           </button>
         </div>
+
+        <a
+          href="/support#iphone-ipad"
+          class="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-700 underline underline-offset-4 hover:text-brand-900"
+        >
+          {iphoneHelpLabels[locale] || iphoneHelpLabels.en}
+        </a>
 
         <div
           class="sm:hidden mt-5 grid w-full max-w-sm grid-cols-1 gap-2 px-1 text-left"

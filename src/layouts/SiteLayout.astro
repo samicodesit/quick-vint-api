@@ -25,7 +25,7 @@ const {
   description = "Create editable listing titles and descriptions from photos.",
   canonical,
   ogUrl = "https://autolister.app/",
-  ogImage = "https://autolister.app/banner.png",
+  ogImage = "https://autolister.app/social-card-sep2026.png",
   ogType = "website",
   htmlLang = "en",
   currentLocale,
@@ -67,6 +67,14 @@ const chromeHref =
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
+    {ogImage === "https://autolister.app/social-card-sep2026.png" && (
+      <>
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="AutoLister AI: group photos, reuse seller notes and prepare drafts you review. Try 5 free generations after signup, no card required." />
+        <meta name="twitter:image:alt" content="AutoLister AI: group photos, reuse seller notes and prepare drafts you review. Try 5 free generations after signup, no card required." />
+      </>
+    )}
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={ogUrl} />
     <meta property="twitter:title" content={title} />

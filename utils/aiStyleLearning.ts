@@ -3,8 +3,6 @@ type AiStyleLearningEligibility = {
   remainingFreeGenerations: number;
   generationAttemptId: string;
   lastAnalyzedAttemptIds: string[];
-  recentGenerationAttemptIds: string[];
-  editedAttemptIdsSinceLastAnalysis: string[];
 };
 
 export function isAiStyleLearningPage(page: unknown) {
@@ -22,8 +20,6 @@ export function shouldRunAiStyleLearning({
   remainingFreeGenerations,
   generationAttemptId,
   lastAnalyzedAttemptIds,
-  recentGenerationAttemptIds,
-  editedAttemptIdsSinceLastAnalysis,
 }: AiStyleLearningEligibility) {
   if (
     !generationAttemptId ||
@@ -32,12 +28,5 @@ export function shouldRunAiStyleLearning({
     return false;
   }
 
-  if (effectiveTier === "free") return remainingFreeGenerations > 0;
-  if (!lastAnalyzedAttemptIds.length) return true;
-
-  const recent = new Set(recentGenerationAttemptIds);
-  const newRecentEdits = new Set(
-    editedAttemptIdsSinceLastAnalysis.filter((id) => recent.has(id)),
-  );
-  return newRecentEdits.size >= 3;
+  return effectiveTier === "free" && remainingFreeGenerations > 0;
 }

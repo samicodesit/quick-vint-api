@@ -95,6 +95,10 @@ async function maybeLearnAiStyle(userId: string, item: any) {
     .maybeSingle();
   if (profileError || !profile) return;
 
+  // Learning is a free-trial onboarding feature. Paid edits still get logged,
+  // but must not trigger model calls, history queries or profile changes.
+  const effectiveTier = getEffectiveTier(profile);
+  if (effectiveTier !== "free") return;
   const state = (profile.ai_style_learning_state || {}) as {
     analyzedAttemptIds?: string[];
     lastPaidAnalysisAt?: string;
@@ -102,87 +106,34 @@ async function maybeLearnAiStyle(userId: string, item: any) {
   const lastAnalyzedAttemptIds = Array.isArray(state.analyzedAttemptIds)
     ? state.analyzedAttemptIds.filter((id) => typeof id === "string")
     : [];
-  const effectiveTier = getEffectiveTier(profile);
   const remainingFreeGenerations = Math.max(
     0,
     FREE_LIFETIME_LIMIT - Number(profile.free_lifetime_generations_used || 0),
   );
-  if (lastAnalyzedAttemptIds.includes(generationAttemptId)) return;
-  let recentGenerationAttemptIds: string[] = [];
-  let editedItems: any[] = [item];
-  if (effectiveTier !== "free") {
-    const { data: recentGenerations } = await supabase
-      .from("api_logs")
-      .select("full_request_body")
-      .eq("user_id", userId)
-      .eq("endpoint", "/api/generate")
-      .eq("response_status", 200)
-      .order("created_at", { ascending: false })
-      .limit(5);
-    recentGenerationAttemptIds = (recentGenerations || [])
-      .map((row: any) => row.full_request_body?.generationAttemptId)
-      .filter((id): id is string => typeof id === "string");
-    const { data: editedLogs } = await supabase
-      .from("api_logs")
-      .select("full_request_body")
-      .eq("user_id", userId)
-      .eq("endpoint", "/event/generation_output_edited")
-      .gte("created_at", state.lastPaidAnalysisAt || "1970-01-01T00:00:00.000Z")
-      .order("created_at", { ascending: false })
-      .limit(25);
-    editedItems = [
-      item,
-      ...(editedLogs || []).map((row: any) => row.full_request_body),
-    ].filter(Boolean);
-  }
-  const editedAttemptIdsSinceLastAnalysis = editedItems
-    .map((event: any) => event.context?.generationAttemptId)
-    .filter((id): id is string => typeof id === "string");
   if (
     !shouldRunAiStyleLearning({
       effectiveTier,
       remainingFreeGenerations,
       generationAttemptId,
       lastAnalyzedAttemptIds,
-      recentGenerationAttemptIds,
-      editedAttemptIdsSinceLastAnalysis,
     })
   )
     return;
 
-  const recent = new Set(recentGenerationAttemptIds);
-  const examples =
-    effectiveTier === "free"
-      ? [currentExample]
-      : (editedItems
-          .filter((event: any) =>
-            recent.has(event.context?.generationAttemptId),
-          )
-          .map(editExample)
-          .filter(Boolean)
-          .slice(0, 3) as NonNullable<ReturnType<typeof editExample>>[]);
-  const nextState = {
-    analyzedAttemptIds: [...lastAnalyzedAttemptIds, generationAttemptId].slice(
-      -50,
-    ),
-    lastPaidAnalysisAt:
-      effectiveTier === "free"
-        ? state.lastPaidAnalysisAt || null
-        : new Date().toISOString(),
-  };
   const suggestion = await suggestAiStyle({
     currentInstructions: profile.ai_instructions || null,
-    examples: examples.length ? examples : [currentExample],
+    examples: [currentExample],
   });
-  const update: Record<string, any> = { ai_style_learning_state: nextState };
-  if (suggestion) {
-    if (effectiveTier === "free")
-      update.ai_instructions = suggestion.aiInstructions;
-    else {
-      update.ai_style_suggestion = suggestion.aiInstructions;
-      update.ai_style_suggestion_reason = suggestion.reason;
-    }
-  }
+  const update: Record<string, any> = {
+    ai_style_learning_state: {
+      ...state,
+      analyzedAttemptIds: [
+        ...lastAnalyzedAttemptIds,
+        generationAttemptId,
+      ].slice(-50),
+    },
+  };
+  if (suggestion) update.ai_instructions = suggestion.aiInstructions;
   await supabase.from("profiles").update(update).eq("id", userId);
   await ApiLogger.logRequest({
     requestMethod: "SYSTEM",
@@ -197,12 +148,8 @@ async function maybeLearnAiStyle(userId: string, item: any) {
       context: {
         generationAttemptId,
         tier: effectiveTier,
-        exampleCount: examples.length,
-        outcome: suggestion
-          ? effectiveTier === "free"
-            ? "free_style_updated"
-            : "paid_suggestion_created"
-          : "no_change",
+        exampleCount: 1,
+        outcome: suggestion ? "free_style_updated" : "no_change",
         reason: suggestion?.reason || null,
       },
     },

@@ -36,8 +36,6 @@ describe("shouldRunAiStyleLearning", () => {
         remainingFreeGenerations: 2,
         generationAttemptId: "free-edit-1",
         lastAnalyzedAttemptIds: [],
-        recentGenerationAttemptIds: [],
-        editedAttemptIdsSinceLastAnalysis: [],
       }),
     ).toBe(true);
   });
@@ -49,47 +47,39 @@ describe("shouldRunAiStyleLearning", () => {
         remainingFreeGenerations: 0,
         generationAttemptId: "free-edit-5",
         lastAnalyzedAttemptIds: [],
-        recentGenerationAttemptIds: [],
-        editedAttemptIdsSinceLastAnalysis: [],
       }),
     ).toBe(false);
   });
 
-  it("learns from a paid seller's first edited listing", () => {
+  it("does not learn from a paid seller's first edited listing", () => {
     expect(
       shouldRunAiStyleLearning({
         effectiveTier: "starter",
         remainingFreeGenerations: 0,
         generationAttemptId: "paid-edit-1",
         lastAnalyzedAttemptIds: [],
-        recentGenerationAttemptIds: ["paid-edit-1"],
-        editedAttemptIdsSinceLastAnalysis: [],
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("relearns for paid sellers only after three new edits within their latest five listings", () => {
+  it("does not relearn for paid sellers with prior learning", () => {
     expect(
       shouldRunAiStyleLearning({
         effectiveTier: "pro",
         remainingFreeGenerations: 0,
         generationAttemptId: "g5",
         lastAnalyzedAttemptIds: ["g1"],
-        recentGenerationAttemptIds: ["g1", "g2", "g3", "g4", "g5"],
-        editedAttemptIdsSinceLastAnalysis: ["g2", "g3", "g5"],
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("does not relearn for paid sellers when the three edits are not all in the latest five listings", () => {
+  it("does not learn for business sellers", () => {
     expect(
       shouldRunAiStyleLearning({
         effectiveTier: "business",
         remainingFreeGenerations: 0,
         generationAttemptId: "g6",
         lastAnalyzedAttemptIds: ["g1"],
-        recentGenerationAttemptIds: ["g2", "g3", "g4", "g5", "g6"],
-        editedAttemptIdsSinceLastAnalysis: ["g1", "g2", "g3"],
       }),
     ).toBe(false);
   });

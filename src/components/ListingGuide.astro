@@ -64,7 +64,7 @@ const structuredData = {
       <link rel="alternate" hreflang={language} href={`${origin}${localizedPath(language, basePath)}`} />
     ))}
     <link rel="alternate" hreflang="x-default" href={`${origin}${basePath}`} />
-    <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData).replace(/</g, "\u003c")} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData).replace(/</g, "\\u003c")} />
   </Fragment>
 
   <main class="pt-28 sm:pt-36">
@@ -77,7 +77,7 @@ const structuredData = {
         </ol>
       </nav>
       <p class="mb-4 text-sm font-bold text-brand-700">{ui.resources}</p>
-      <h1 class="max-w-4xl text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">{page.heading}</h1>
+      <h1 class="max-w-4xl break-words text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">{page.heading}</h1>
       <div class="mt-8 grid gap-7 lg:grid-cols-[1.7fr_1fr] lg:items-start">
         <div>
           <h2 class="text-sm font-bold text-slate-900">{ui.answer}</h2>

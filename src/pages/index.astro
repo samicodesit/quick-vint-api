@@ -1,5 +1,6 @@
 ---
 import HomeLanding from "../components/HomeLanding.astro";
+import ListingGuideLinks from "../components/ListingGuideLinks.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { SITE_EXTRA_COPY, SITE_COPY } from "../i18n/site.js";
 
@@ -32,4 +33,5 @@ const extra = SITE_EXTRA_COPY.en;
   </Fragment>
 
   <HomeLanding copy={copy.home} extra={extra.home} locale="en" />
+  <ListingGuideLinks locale="en" />
 </SiteLayout>

@@ -1,5 +1,6 @@
 ---
 import HomeLanding from "../../components/HomeLanding.astro";
+import ListingGuideLinks from "../../components/ListingGuideLinks.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import {
   SITE_EXTRA_COPY,
@@ -47,4 +48,5 @@ const canonical = `${baseUrl}${canonicalPath}`;
   </Fragment>
 
   <HomeLanding copy={copy.home} extra={extra.home} locale={locale} />
+  <ListingGuideLinks locale={locale} />
 </SiteLayout>

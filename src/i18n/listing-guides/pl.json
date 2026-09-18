@@ -1,0 +1,170 @@
+{
+  "ui": {
+    "resources": "Materiały do tworzenia ogłoszeń na Vinted",
+    "home": "Strona główna",
+    "answer": "Praktyczna odpowiedź",
+    "contents": "Na tej stronie",
+    "examples": "Skopiuj szablon i dopasuj go do przedmiotu",
+    "exampleNote": "To szablony, a nie prawdziwe ogłoszenia klientów. Zastąp wszystkie dane w nawiasach kwadratowych i usuń niepasujące wiersze.",
+    "copy": "Kopiuj szablon",
+    "copied": "Skopiowano",
+    "copyError": "Zaznacz i skopiuj tekst ręcznie.",
+    "checks": "Przed publikacją",
+    "progress": "Sprawdzono {done} z {total}",
+    "faq": "Pytania sprzedających",
+    "related": "Więcej pomocy przy kolejnym ogłoszeniu",
+    "ctaTitle": "Wolisz zacząć od zdjęć?",
+    "ctaBody": "AutoLister przygotowuje edytowalne tytuły i opisy na podstawie zdjęć przedmiotów. Sprawdź szkic, dodaj szczegóły niewidoczne na zdjęciach i opublikuj samodzielnie.",
+    "freeNote": "5 bezpłatnych generacji po rejestracji. Bez karty płatniczej.",
+    "setup": "Pomoc w instalacji",
+    "setupNote": "AutoLister to rozszerzenie przeglądarki, a nie generator na tej stronie. Sprawdź instrukcję instalacji dla swojego urządzenia.",
+    "photoCaption": "Organizer zdjęć z telefonu w AutoLister. Sprawdź, czy każda grupa zawiera zdjęcia tego samego przedmiotu."
+  },
+  "pages": {
+    "vinted-description-template": {
+      "title": "Szablony opisów na Vinted do skopiowania | AutoLister AI",
+      "description": "Skopiuj szablon opisu na Vinted dla ubrań, butów lub przedmiotów z wadami. Dodaj prawdziwe wymiary i stan, a następnie sprawdź ogłoszenie przed publikacją.",
+      "heading": "Szablony opisów na Vinted do skopiowania i edycji",
+      "answer": "Przydatny opis na Vinted podaje rodzaj przedmiotu, rozmiar z metki, rzeczywisty stan i ewentualne wady. Potraktuj poniższe szablony jako punkt wyjścia, nie jako fakty o swoim przedmiocie. Sprawdź metkę, wykonaj przydatne pomiary i uzupełnij każde pole przed publikacją.",
+      "sections": [
+        {
+          "heading": "Co powinien zawierać opis na Vinted?",
+          "body": "Podaj informacje potrzebne do oceny, czy przedmiot pasuje: rodzaj, markę, jeśli jest znana, rozmiar z metki, kolor i stan. Dodaj istotne wymiary oraz informacje o zużyciu, naprawach lub brakujących częściach. Materiał wpisuj tylko wtedy, gdy potwierdza go metka lub inne wiarygodne źródło. Zdjęcie nie pokazuje wszystkiego."
+        },
+        {
+          "heading": "Jak dostosować szablon, żeby nie powtarzać tego samego?",
+          "body": "Zachowaj spójną kolejność, ale dopasuj fakty do każdego przedmiotu. Zamiast ogólników takich jak 'ładna bluzka' podaj konkretny krój, kolor lub zapięcie. Usuwaj puste wiersze, zamiast wypełniać je domysłami. Krótki, dokładny akapit jest bardziej przydatny niż niezwiązane słowa kluczowe czy powtarzane obietnice."
+        },
+        {
+          "heading": "Kiedy lepiej wygenerować tekst ze zdjęć?",
+          "body": "Szablon sprawdza się, gdy już wiesz, co chcesz napisać. Przy kilku sfotografowanych przedmiotach AutoLister może przygotować pierwszy tytuł i opis z każdej grupy zdjęć. Nadal trzeba sprawdzić wynik i dodać niewidoczne informacje, takie jak zmierzone wymiary czy ukryta wada. Rozszerzenie tworzy szkic tekstu; nie publikuje przedmiotu za Ciebie."
+        }
+      ],
+      "examples": [
+        {
+          "label": "Ubrania: prosty opis",
+          "text": "[Marka, jeśli znana] [rodzaj ubrania] w kolorze [kolor]. Rozmiar z metki: [rozmiar].\n[Krój, zapięcie lub inny przydatny szczegół].\nStan: [rzeczywiste zużycie i ewentualne wady].\nWymiary: [pomiar i jednostka, jeśli zmierzono].\nMateriał: [potwierdzone dane z metki albo usuń ten wiersz]."
+        },
+        {
+          "label": "Buty: wyraźnie opisz rozmiar i zużycie",
+          "text": "[Marka, jeśli znana] [rodzaj obuwia] w kolorze [kolor], podany rozmiar [rozmiar i system rozmiarów].\nWierzch: [rzeczywisty stan]. Podeszwy: [rzeczywiste zużycie].\nWady: [otarcia, plamy lub uszkodzenia i ich lokalizacja].\nW zestawie: [pudełko, dodatkowe sznurówki lub rzeczywiście dołączone akcesoria, albo usuń ten wiersz]."
+        },
+        {
+          "label": "Przedmiot z wadą: wskaż dokładne miejsce",
+          "text": "[Rodzaj przedmiotu], [marka, jeśli znana], rozmiar z metki [rozmiar].\nStan: [ogólny stan].\nUwaga: [konkretna wada] w miejscu [dokładna lokalizacja], pokazana na [odpowiednim zdjęciu szczegółowym].\nWymiary: [pomiar i jednostka, jeśli zmierzono].\n[Inny przydatny, sprawdzony szczegół]."
+        }
+      ],
+      "checks": [
+        "Wszystkie pola w nawiasach kwadratowych zostały zastąpione lub usunięte.",
+        "Marka, rozmiar i materiał zgadzają się z przedmiotem i metkami.",
+        "Zużycie i wady są opisane wraz z ich lokalizacją.",
+        "Wymiary zostały naprawdę zmierzone i mają podane jednostki.",
+        "Tekst i zdjęcia opisują ten sam przedmiot."
+      ],
+      "faq": [
+        {
+          "question": "Czy mogę używać tego samego szablonu do kilku przedmiotów?",
+          "answer": "Tak, używaj ponownie struktury, nie danych przedmiotu. Dla każdej rzeczy osobno sprawdź rozmiar, stan, wymiary i wady. Usuń niepasujące twierdzenia, zamiast kopiować je do następnego ogłoszenia."
+        },
+        {
+          "question": "Czy warto dodawać dużo hashtagów lub nazw marek?",
+          "answer": "Trzymaj się informacji związanych z przedmiotem. Nie dopisuj obcych marek, materiałów lub stylów tylko po to, by przechwycić wyszukiwania. Jasny tytuł i opis są lepsze niż długa lista słów kluczowych zastępująca prawdziwe szczegóły."
+        },
+        {
+          "question": "Czy szablony są bezpłatne i czy potrzebuję konta?",
+          "answer": "Szablony na tej stronie można kopiować bezpłatnie i bez konta. Generowanie tekstu ze zdjęć przez AI to osobna funkcja rozszerzenia AutoLister: 5 bezpłatnych generacji po rejestracji, a następnie płatne plany."
+        }
+      ]
+    },
+    "vinted-listing-checklist": {
+      "title": "Lista kontrolna ogłoszenia na Vinted | AutoLister AI",
+      "description": "Sprawdź zdjęcia, metki, wymiary, stan i tekst dzięki interaktywnej liście kontrolnej Vinted. Wyłap brakujące szczegóły przed opublikowaniem ogłoszenia.",
+      "heading": "Lista kontrolna Vinted dla Twojego następnego przedmiotu",
+      "answer": "Przed publikacją na Vinted sprawdź, czy zdjęcia, tytuł i opis są zgodne. Wyraźnie pokaż przedmiot oraz wady, potwierdź rozmiar i stan, a potem sprawdź cenę i kategorię. Zaznaczaj poniższe punkty podczas pracy. To pomoc w przygotowaniu, nie gwarancja akceptacji ani sprzedaży.",
+      "sections": [
+        {
+          "heading": "Jakie zdjęcia przygotować?",
+          "body": "Zacznij od wyraźnego zdjęcia całego przedmiotu. Dodaj tył, istotne detale oraz czytelne metki z rozmiarem lub składem, jeśli są dostępne. Pokaż zużycie i wady na zbliżeniach zamiast wspominać o nich tylko w tekście. Usuń z kadru inne rzeczy, jeśli mogłyby sugerować, że są częścią oferty. Obejrzyj zdjęcia w pełnym rozmiarze."
+        },
+        {
+          "heading": "Które fakty trzeba sprawdzić samodzielnie?",
+          "body": "Przeczytaj metkę i obejrzyj rzeczywisty przedmiot. Zdjęcie może ukryć luźny szew, zapach, naprawę lub brakującą część. Wykonaj przydatne pomiary, zamiast szacować je z obrazu. Nie przedstawiaj niepewnej marki, materiału lub modelu jako faktu. Opisz niepewność albo pomiń niepotwierdzoną informację."
+        },
+        {
+          "heading": "Jak sprawdzić ogłoszenie wygenerowane przez AI?",
+          "body": "Traktuj wynik jako pierwszy szkic, nie jako zakończone oględziny. Porównaj każde twierdzenie z przedmiotem, szczególnie markę, rozmiar, materiał i stan. Dodaj pominięte wady i usuń wymyślone akcesoria lub niepotwierdzone zapewnienia o autentyczności. AutoLister pomaga pisać; cena, sprawdzenie ogłoszenia i decyzja o publikacji pozostają po Twojej stronie."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "Zdjęcie główne wyraźnie pokazuje cały przedmiot.",
+        "Dodatkowe zdjęcia pokazują tył i istotne szczegóły.",
+        "Dostępne metki z rozmiarem i składem są czytelne.",
+        "Wady i ślady zużycia mają osobne zbliżenia.",
+        "Tytuł opisuje rzeczywisty przedmiot bez obcych marek.",
+        "Rozmiar z metki i ewentualne wymiary są sprawdzone.",
+        "Opis stanu odpowiada rzeczywistym oględzinom.",
+        "Nie ma wymyślonych materiałów, modeli ani akcesoriów.",
+        "Cena, kategoria i pola ogłoszenia są sprawdzone.",
+        "Całe ogłoszenie zostało ponownie przeczytane przed publikacją."
+      ],
+      "faq": [
+        {
+          "question": "Czy mogę korzystać z tej listy na telefonie?",
+          "answer": "Tak, działa w przeglądarce bez konta. Zaznaczenia dotyczą tylko bieżącej sesji strony i znikają po jej przeładowaniu. Rozszerzenie AutoLister wymaga osobnej instalacji odpowiedniej dla urządzenia."
+        },
+        {
+          "question": "Czy muszę mierzyć każdy przedmiot?",
+          "answer": "Dodaj wymiary, gdy pomagają ocenić dopasowanie lub rozmiar, zwłaszcza jeśli metka nie wystarcza. Podawaj tylko rzeczywiście wykonane pomiary wraz z jednostkami i opisem mierzonego miejsca. Nie wyliczaj ich ze zdjęcia."
+        },
+        {
+          "question": "Czy wypełnienie listy gwarantuje sprzedaż?",
+          "answer": "Nie. Lista pomaga przygotować jaśniejsze i dokładniejsze ogłoszenie. Popyt, cena, stan i inne czynniki nadal wpływają na sprzedaż. Ani ta lista, ani opis napisany przez AI nie gwarantują widoczności czy kupującego."
+        }
+      ]
+    },
+    "vinted-photo-to-listing": {
+      "title": "Od zdjęć do szkicu ogłoszenia Vinted | AutoLister AI",
+      "description": "Twórz tytuły i opisy Vinted ze zdjęć z telefonu w AutoLister. Pogrupuj zdjęcia przedmiotów, wygeneruj edytowalny tekst i sprawdź go przed publikacją.",
+      "heading": "Od zdjęć z telefonu do szkicu ogłoszenia na Vinted",
+      "answer": "AutoLister może przygotować tytuł i opis Vinted na podstawie zdjęć przedmiotu. Wyślij zdjęcia z telefonu do sesji na komputerze, pogrupuj je według przedmiotów i wygeneruj edytowalne szkice. Sprawdzasz szczegóły i publikujesz samodzielnie. Przygotowanie szkicu nie oznacza automatycznej publikacji.",
+      "sections": [
+        {
+          "heading": "Jak wykorzystać zdjęcia z telefonu przy tworzeniu ogłoszenia?",
+          "body": "Zainstaluj AutoLister w obsługiwanej przeglądarce na komputerze i otwórz proces tworzenia ogłoszenia. Uruchom przesyłanie z telefonu i postępuj zgodnie z instrukcjami połączenia lub kodu QR na smartfonie. Wyślij zdjęcia i sprawdź ich obecność w sesji na komputerze. Ten sposób łączy telefon z komputerem; nie uruchamia rozszerzenia wewnątrz mobilnej aplikacji Vinted."
+        },
+        {
+          "heading": "Jak uporządkować zdjęcia kilku przedmiotów?",
+          "body": "Sfotografuj każdy przedmiot z przodu i z tyłu oraz dodaj metki i wady. Przed generowaniem tekstu pogrupuj zdjęcia według przedmiotów w organizerze. Sprawdź każdą grupę: zdjęcie metki z innego ubrania może spowodować błędny szkic. Zacznij od małej partii, by skontrolować proces i nie pomylić przedmiotów ze zdjęciami."
+        },
+        {
+          "heading": "Co poprawić w wygenerowanym szkicu?",
+          "body": "Porównaj proponowany tytuł i opis z rzeczywistym przedmiotem. Popraw źle odczytane metki, dodaj wykonane pomiary i opisz niewidoczne zużycie. Usuń niepotwierdzone informacje o marce, materiale lub modelu. Sprawdź pozostałe pola i publikuj dopiero, gdy wszystko się zgadza. AutoLister ogranicza powtarzalne pisanie, ale nie zastępuje oględzin przedmiotów."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "Zdjęcia z telefonu trafiły do właściwej sesji na komputerze.",
+        "Każda grupa zdjęć zawiera jeden przedmiot i jego własne metki.",
+        "Ważne metki i wady są widoczne oraz czytelne.",
+        "Wygenerowany tekst został poprawiony po porównaniu z przedmiotem.",
+        "Dodano istotne informacje niewidoczne na zdjęciach.",
+        "Każde ogłoszenie sprawdzę i opublikuję samodzielnie."
+      ],
+      "faq": [
+        {
+          "question": "Czy AI potrafi napisać opis Vinted na podstawie zdjęcia?",
+          "answer": "Tak. AutoLister tworzy edytowalne szkice tytułów i opisów ze zdjęć. Może jednak źle odczytać metkę lub przeoczyć wadę, dlatego sprawdź wynik i dodaj fakty niewidoczne na zdjęciach."
+        },
+        {
+          "question": "Czy AutoLister automatycznie publikuje wszystkie moje ogłoszenia?",
+          "answer": "Nie. Organizowanie zdjęć i generowanie szkiców pomagają w przygotowaniu. Samodzielnie sprawdzasz tekst i szczegóły, uzupełniasz ogłoszenie i publikujesz. Przygotowywanie partiami nie oznacza automatycznej publikacji."
+        },
+        {
+          "question": "Czy muszę wysyłać zdjęcia na komputer e-mailem?",
+          "answer": "Nie. Funkcja przesyłania z telefonu łączy Twoje zdjęcia z pracą na komputerze. Postępuj zgodnie z instrukcjami połączenia w rozszerzeniu. Aby uruchomić rozszerzenie bezpośrednio na telefonie, sprawdź osobną instrukcję dla tego urządzenia."
+        }
+      ]
+    }
+  }
+}

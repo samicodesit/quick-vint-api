@@ -1,0 +1,170 @@
+{
+  "ui": {
+    "resources": "Recursos para tus anuncios de Vinted",
+    "home": "Inicio",
+    "answer": "La respuesta práctica",
+    "contents": "En esta página",
+    "examples": "Copia una plantilla y adáptala",
+    "exampleNote": "Son plantillas, no anuncios reales de clientes. Sustituye cada dato entre corchetes y elimina las líneas que no correspondan.",
+    "copy": "Copiar plantilla",
+    "copied": "Copiado",
+    "copyError": "Selecciona y copia el texto manualmente.",
+    "checks": "Antes de publicar",
+    "progress": "{done} de {total} comprobados",
+    "faq": "Preguntas de los vendedores",
+    "related": "Más ayuda para tu próximo anuncio",
+    "ctaTitle": "¿Prefieres empezar con tus fotos?",
+    "ctaBody": "AutoLister prepara títulos y descripciones editables a partir de las fotos de tus artículos. Revisa el borrador, añade los detalles que no se ven y publica tú mismo.",
+    "freeNote": "5 generaciones gratis tras registrarte. Sin tarjeta bancaria.",
+    "setup": "Ayuda de instalación",
+    "setupNote": "AutoLister es una extensión de navegador, no un generador integrado en esta página. Consulta la guía de instalación para tu dispositivo.",
+    "photoCaption": "El organizador de fotos del móvil de AutoLister. Comprueba que cada grupo contiene fotos del mismo artículo."
+  },
+  "pages": {
+    "vinted-description-template": {
+      "title": "Plantillas de descripción para Vinted | AutoLister AI",
+      "description": "Copia una plantilla de descripción para Vinted de ropa, zapatos o artículos con defectos. Añade medidas y estado reales y revisa el anuncio antes de publicarlo.",
+      "heading": "Plantillas de descripción para Vinted que puedes copiar y editar",
+      "answer": "Una descripción útil de Vinted identifica el artículo, indica la talla de la etiqueta y explica su estado real y sus defectos. Usa estas plantillas como punto de partida, no como hechos sobre tu artículo. Revisa la etiqueta, toma las medidas útiles y sustituye todos los campos antes de publicar.",
+      "sections": [
+        {
+          "heading": "¿Qué debe incluir una descripción de Vinted?",
+          "body": "Escribe lo necesario para decidir si el artículo encaja: tipo de artículo, marca si la conoces, talla de la etiqueta, color y estado. Añade medidas relevantes y explica el desgaste, las reparaciones o las piezas que faltan. Indica el material solo cuando puedas confirmarlo mediante la etiqueta u otra información fiable. Una foto no lo muestra todo."
+        },
+        {
+          "heading": "¿Cómo adapto una plantilla sin repetir siempre lo mismo?",
+          "body": "Mantén un orden coherente, pero personaliza los hechos de cada artículo. Cambia expresiones vagas como 'camiseta bonita' por detalles concretos del corte, el color o el cierre. Elimina las líneas vacías en vez de rellenarlas con suposiciones. Un párrafo breve y preciso es más útil que una lista de palabras clave sin relación o promesas repetidas."
+        },
+        {
+          "heading": "¿Cuándo conviene generar el texto desde las fotos?",
+          "body": "Una plantilla funciona bien cuando ya sabes qué escribir. Si has fotografiado varios artículos, AutoLister puede preparar un primer título y una descripción a partir de cada grupo de fotos. Debes revisar el resultado y añadir datos que no se ven, como medidas o un defecto oculto. La extensión redacta borradores; no publica el artículo por ti."
+        }
+      ],
+      "examples": [
+        {
+          "label": "Ropa: una descripción sencilla",
+          "text": "[Marca, si se conoce] [tipo de prenda] de color [color]. Talla en la etiqueta: [talla].\n[Corte, cierre u otro detalle útil].\nEstado: [desgaste real y posibles defectos].\nMedidas: [medida y unidad, si se han tomado].\nMaterial: [información confirmada de la etiqueta, o elimina esta línea]."
+        },
+        {
+          "label": "Zapatos: aclara la talla y el desgaste",
+          "text": "[Marca, si se conoce] [tipo de calzado] de color [color], talla indicada [talla y sistema de tallaje].\nParte superior: [estado real]. Suelas: [desgaste real].\nDefectos: [roces, manchas o daños y su ubicación].\nIncluye: [caja, cordones u otros accesorios realmente incluidos, o elimina esta línea]."
+        },
+        {
+          "label": "Un artículo con un defecto: indica dónde está",
+          "text": "[Tipo de artículo], [marca si se conoce], talla de la etiqueta [talla].\nEstado: [estado general].\nImportante: [defecto concreto] en [ubicación exacta], visible en [la foto de detalle correspondiente].\nMedidas: [medida y unidad, si se han tomado].\n[Otro detalle útil y verificado]."
+        }
+      ],
+      "checks": [
+        "Todos los campos entre corchetes se han sustituido o eliminado.",
+        "La marca, la talla y el material coinciden con el artículo y sus etiquetas.",
+        "Se han descrito el desgaste y los defectos, incluida su ubicación.",
+        "Las medidas se han tomado realmente e incluyen unidades.",
+        "El texto y las fotos describen el mismo artículo."
+      ],
+      "faq": [
+        {
+          "question": "¿Puedo reutilizar la misma plantilla para varios artículos?",
+          "answer": "Sí, reutiliza la estructura, no los datos del artículo. Comprueba la talla, el estado, las medidas y los defectos de cada artículo por separado. Elimina las afirmaciones que no correspondan en vez de copiarlas al siguiente anuncio."
+        },
+        {
+          "question": "¿Debo añadir muchos hashtags o nombres de marcas?",
+          "answer": "Mantén el texto relacionado con el artículo. No añadas marcas, materiales o estilos ajenos solo para captar búsquedas. Usa un título y una descripción claros en lugar de sustituir los datos precisos por una larga lista de palabras clave."
+        },
+        {
+          "question": "¿Las plantillas son gratis y necesito una cuenta?",
+          "answer": "Puedes copiar las plantillas de esta página gratis y sin cuenta. La generación con IA desde fotos es una función distinta de la extensión AutoLister, con 5 generaciones gratis tras registrarte y planes de pago para seguir usándola."
+        }
+      ]
+    },
+    "vinted-listing-checklist": {
+      "title": "Checklist para anuncios de Vinted | AutoLister AI",
+      "description": "Revisa fotos, etiquetas, medidas, estado y texto con esta checklist interactiva de Vinted. Detecta información que falta antes de publicar el anuncio de tu artículo.",
+      "heading": "Una checklist de Vinted para tu próximo artículo",
+      "answer": "Antes de publicar en Vinted, comprueba que las fotos, el título y la descripción coinciden. Muestra el artículo y sus defectos con claridad, verifica la talla y el estado y revisa el precio y la categoría. Marca los pasos de abajo. Esta ayuda no garantiza aprobación ni ventas.",
+      "sections": [
+        {
+          "heading": "¿Qué fotos debo preparar?",
+          "body": "Empieza por una imagen clara del artículo completo. Añade la parte trasera, los detalles útiles y las etiquetas legibles de talla o material, si las hay. Fotografía de cerca el desgaste y los defectos en vez de mencionarlos solo en el texto. Evita incluir otros objetos que generen dudas sobre lo que se vende. Revisa las fotos a tamaño completo."
+        },
+        {
+          "heading": "¿Qué datos tengo que comprobar personalmente?",
+          "body": "Lee la etiqueta e inspecciona el artículo real. Una foto puede ocultar una costura suelta, un olor, una reparación o una pieza ausente. Toma las medidas útiles en lugar de estimarlas a partir de la imagen. Si no sabes con certeza la marca, el material o el modelo, no presentes una suposición como un hecho. Explica la duda u omite ese dato."
+        },
+        {
+          "heading": "¿Cómo reviso un anuncio generado por IA?",
+          "body": "Trata el resultado como un primer borrador, no como una inspección terminada. Compara cada afirmación con el artículo, especialmente marca, talla, material y estado. Añade los defectos omitidos y elimina accesorios inventados o afirmaciones de autenticidad no verificadas. AutoLister ayuda a redactar; elegir el precio, revisar y decidir publicar sigue siendo tu responsabilidad."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "La foto principal muestra claramente el artículo completo.",
+        "Las fotos adicionales muestran la parte trasera y los detalles útiles.",
+        "Las etiquetas disponibles de talla y material son legibles.",
+        "Los defectos y el desgaste tienen sus propias fotos de detalle.",
+        "El título describe el artículo real sin marcas ajenas.",
+        "He comprobado la talla indicada y las medidas.",
+        "La descripción del estado coincide con mi inspección.",
+        "No hay materiales, modelos ni accesorios inventados.",
+        "He revisado el precio, la categoría y los campos del anuncio.",
+        "He releído el anuncio completo antes de publicar."
+      ],
+      "faq": [
+        {
+          "question": "¿Puedo usar esta checklist en el móvil?",
+          "answer": "Sí, funciona en el navegador sin cuenta. Las marcas solo se mantienen durante la sesión actual y se reinician al recargar la página. La extensión AutoLister necesita una instalación independiente según el dispositivo."
+        },
+        {
+          "question": "¿Necesito medidas de todos los artículos?",
+          "answer": "Añádelas cuando ayuden a explicar el ajuste o el tamaño, especialmente si la etiqueta no basta. Incluye solo medidas que hayas tomado, indica las unidades y explica qué has medido. No las deduzcas de una foto."
+        },
+        {
+          "question": "¿Completar la checklist garantiza que se venda el artículo?",
+          "answer": "No. Ayuda a preparar un anuncio más claro y preciso. La demanda, el precio, el estado y otros factores siguen influyendo en la venta. Ni esta checklist ni una descripción con IA garantizan visibilidad o un comprador."
+        }
+      ]
+    },
+    "vinted-photo-to-listing": {
+      "title": "De fotos a borradores de anuncios Vinted | AutoLister AI",
+      "description": "Convierte fotos del móvil en títulos y descripciones para Vinted con AutoLister. Organiza cada artículo, genera texto editable y revísalo antes de publicar.",
+      "heading": "De las fotos del móvil a un borrador de anuncio Vinted",
+      "answer": "AutoLister puede preparar un título y una descripción de Vinted a partir de tus fotos. Envía las imágenes del móvil a tu sesión de ordenador, agrúpalas por artículo y genera borradores editables. Tú revisas los detalles y publicas. Preparar un borrador no equivale a publicar automáticamente.",
+      "sections": [
+        {
+          "heading": "¿Cómo llevo las fotos del móvil a mi proceso de publicación?",
+          "body": "Instala AutoLister en un navegador de ordenador compatible y abre tu proceso de creación de anuncios. Inicia la subida desde el móvil y sigue en el teléfono las instrucciones de conexión o del código QR. Envía las fotos y comprueba que han llegado a tu sesión de ordenador. Este flujo conecta móvil y ordenador; no ejecuta la extensión dentro de la aplicación móvil de Vinted."
+        },
+        {
+          "heading": "¿Cómo organizo las fotos de varios artículos?",
+          "body": "Fotografía cada artículo por delante y por detrás, junto con sus etiquetas y defectos. Agrupa las imágenes por artículo en el organizador antes de generar el texto. Comprueba cada grupo: una etiqueta de otra prenda puede producir un borrador incorrecto. Empieza con un lote pequeño para revisar el proceso sin confundir los artículos con sus fotos."
+        },
+        {
+          "heading": "¿Qué debo cambiar en el borrador generado?",
+          "body": "Compara el título y la descripción con el artículo real. Corrige etiquetas mal leídas, añade medidas que hayas tomado y describe el desgaste que no se ve. Elimina afirmaciones no confirmadas sobre marca, material o modelo. Revisa los demás campos y publica solo cuando todo sea correcto. AutoLister reduce la redacción repetitiva, pero no sustituye la inspección de los artículos."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "Las fotos del móvil han llegado a la sesión de ordenador correcta.",
+        "Cada grupo contiene un solo artículo y sus propias etiquetas.",
+        "Las etiquetas importantes y los defectos son visibles y legibles.",
+        "He corregido el texto generado comparándolo con el artículo real.",
+        "He añadido los detalles relevantes que las fotos no muestran.",
+        "Revisaré y publicaré cada anuncio personalmente."
+      ],
+      "faq": [
+        {
+          "question": "¿Puede la IA escribir una descripción de Vinted a partir de una foto?",
+          "answer": "Sí. AutoLister utiliza fotos para preparar títulos y descripciones editables. Puede leer mal una etiqueta o pasar por alto un defecto, así que revisa el resultado y añade los datos que las fotos no muestran."
+        },
+        {
+          "question": "¿AutoLister publica automáticamente todos mis anuncios de Vinted?",
+          "answer": "No. Organizar fotos y generar borradores ayuda con la preparación. Tú revisas el texto y los detalles, completas el anuncio y publicas. Preparar varios artículos no es publicarlos automáticamente."
+        },
+        {
+          "question": "¿Tengo que enviar las fotos al ordenador por correo electrónico?",
+          "answer": "No. La subida desde el móvil de AutoLister conecta tus fotos con el proceso de ordenador. Sigue las instrucciones de conexión de la extensión. Para usar la extensión directamente en el móvil, consulta la guía específica de instalación del dispositivo."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "ui": {
+    "resources": "Hulp bij je Vinted-advertenties",
+    "home": "Home",
+    "answer": "Het praktische antwoord",
+    "contents": "Op deze pagina",
+    "examples": "Kopieer een sjabloon en pas het aan",
+    "exampleNote": "Dit zijn sjablonen, geen echte advertenties van klanten. Vervang alles tussen vierkante haken en verwijder regels die niet van toepassing zijn.",
+    "copy": "Sjabloon kopiëren",
+    "copied": "Gekopieerd",
+    "copyError": "Selecteer en kopieer de tekst handmatig.",
+    "checks": "Voordat je publiceert",
+    "progress": "{done} van {total} gecontroleerd",
+    "faq": "Vragen van verkopers",
+    "related": "Meer hulp bij je volgende advertentie",
+    "ctaTitle": "Liever beginnen met je foto's?",
+    "ctaBody": "AutoLister maakt bewerkbare titels en beschrijvingen op basis van je artikelfoto's. Controleer het concept, voeg onzichtbare details toe en publiceer zelf.",
+    "freeNote": "5 gratis generaties na registratie. Geen betaalkaart nodig.",
+    "setup": "Hulp bij installeren",
+    "setupNote": "AutoLister is een browserextensie, geen generator op deze pagina. Bekijk de installatiehandleiding voor je apparaat.",
+    "photoCaption": "De foto-organisator van AutoLister. Controleer of elke groep alleen foto's van hetzelfde artikel bevat."
+  },
+  "pages": {
+    "vinted-description-template": {
+      "title": "Vinted-beschrijving: sjablonen om te kopiëren | AutoLister AI",
+      "description": "Kopieer een Vinted-beschrijvingssjabloon voor kleding, schoenen of artikelen met gebreken. Voeg echte afmetingen en de staat toe en controleer je advertentie.",
+      "heading": "Vinted-beschrijvingen om te kopiëren en aan te passen",
+      "answer": "Een bruikbare Vinted-beschrijving vermeldt het artikel, de maat op het label, de echte staat en eventuele gebreken. Gebruik de sjablonen hieronder als startpunt, niet als feiten over je artikel. Controleer het label, meet waar dat nuttig is en vervang elke invulplek voordat je publiceert.",
+      "sections": [
+        {
+          "heading": "Wat zet je in een Vinted-beschrijving?",
+          "body": "Vermeld wat iemand nodig heeft om te bepalen of het artikel geschikt is: het soort artikel, het merk als je dat weet, de labelmaat, kleur en staat. Voeg relevante afmetingen toe en beschrijf slijtage, reparaties of ontbrekende onderdelen. Noem het materiaal alleen als het label of andere betrouwbare informatie dit bevestigt. Een foto vertelt niet alles."
+        },
+        {
+          "heading": "Hoe pas je een sjabloon aan zonder steeds hetzelfde te schrijven?",
+          "body": "Houd een vaste volgorde aan, maar maak de feiten specifiek voor elk artikel. Vervang vage woorden zoals 'leuke top' door een concrete beschrijving van de pasvorm, kleur of sluiting. Verwijder lege regels in plaats van ontbrekende informatie te verzinnen. Een korte, nauwkeurige alinea is nuttiger dan een verzameling irrelevante zoekwoorden of herhaalde beloftes."
+        },
+        {
+          "heading": "Wanneer is genereren vanuit foto's handiger?",
+          "body": "Een sjabloon werkt goed wanneer je al weet wat je wilt schrijven. Heb je meerdere artikelen gefotografeerd, dan kan AutoLister per fotogroep een eerste titel en beschrijving maken. Controleer het resultaat en voeg feiten toe die niet zichtbaar zijn, zoals afmetingen of een verborgen gebrek. De extensie maakt concepttekst; je publiceert het artikel zelf."
+        }
+      ],
+      "examples": [
+        {
+          "label": "Kleding: een duidelijke basisbeschrijving",
+          "text": "[Merk, indien bekend] [soort kledingstuk] in [kleur]. Maat op het label: [maat].\n[Pasvorm, sluiting of ander nuttig detail].\nStaat: [beschrijf echte slijtage en eventuele gebreken].\nAfmetingen: [meting en eenheid, indien gemeten].\nMateriaal: [bevestigde labelinformatie, of verwijder deze regel]."
+        },
+        {
+          "label": "Schoenen: wees duidelijk over slijtage en maat",
+          "text": "[Merk, indien bekend] [soort schoenen] in [kleur], maat op het label [maat en maatsysteem].\nBovenkant: [echte staat]. Zolen: [echte slijtage].\nGebreken: [beschrijf krassen, vlekken of schade en de locatie].\nInbegrepen: [doos, extra veters of andere daadwerkelijk inbegrepen accessoires, of verwijder deze regel]."
+        },
+        {
+          "label": "Een artikel met een gebrek: geef de exacte plek aan",
+          "text": "[Soort artikel], [merk indien bekend], labelmaat [maat].\nStaat: [algemene staat].\nLet op: [specifiek gebrek] op [exacte locatie], te zien op [de bijbehorende detailfoto].\nAfmetingen: [meting en eenheid, indien gemeten].\n[Ander nuttig en gecontroleerd detail]."
+        }
+      ],
+      "checks": [
+        "Alles tussen vierkante haken is vervangen of verwijderd.",
+        "Merk, maat en materiaal komen overeen met het artikel en de labels.",
+        "Slijtage en gebreken zijn beschreven, inclusief de locatie.",
+        "Afmetingen zijn echt gemeten en hebben een eenheid.",
+        "De tekst en foto's beschrijven hetzelfde artikel."
+      ],
+      "faq": [
+        {
+          "question": "Kan ik hetzelfde beschrijvingssjabloon voor meerdere artikelen gebruiken?",
+          "answer": "Ja, hergebruik de structuur, niet de artikelgegevens. Controleer maat, staat, afmetingen en gebreken voor elk artikel apart. Verwijder beweringen die niet van toepassing zijn in plaats van ze naar de volgende advertentie te kopiëren."
+        },
+        {
+          "question": "Moet ik veel hashtags of merknamen toevoegen?",
+          "answer": "Houd de tekst relevant voor het artikel. Voeg geen ongerelateerde merken, materialen of stijlen toe om zoekopdrachten mee te pakken. Gebruik een duidelijke titel en beschrijving in plaats van een lange lijst zoekwoorden als vervanging voor juiste details."
+        },
+        {
+          "question": "Zijn deze sjablonen gratis en heb ik een account nodig?",
+          "answer": "De sjablonen op deze pagina zijn gratis te kopiëren zonder account. AI-generatie vanuit foto's is een aparte functie van de AutoLister-browserextensie, met 5 gratis generaties na registratie en betaalde abonnementen voor verder gebruik."
+        }
+      ]
+    },
+    "vinted-listing-checklist": {
+      "title": "Vinted-advertentiechecklist: foto's en details | AutoLister AI",
+      "description": "Controleer foto's, labels, afmetingen, staat en concepttekst met deze interactieve Vinted-checklist. Ontdek ontbrekende details voordat je je advertentie plaatst.",
+      "heading": "Een Vinted-checklist voor je volgende artikel",
+      "answer": "Controleer voordat je iets op Vinted zet of de foto's, titel en beschrijving overeenkomen. Laat het artikel en de gebreken duidelijk zien, controleer de maat en staat en bekijk daarna de prijs en categorie. Vink de stappen hieronder af. Dit is een hulpmiddel, geen garantie op goedkeuring of verkoop.",
+      "sections": [
+        {
+          "heading": "Welke foto's moet ik voorbereiden?",
+          "body": "Begin met een duidelijke foto van het hele artikel. Voeg de achterkant, nuttige details en leesbare maat- of materiaallabels toe als die aanwezig zijn. Maak close-ups van slijtage en gebreken in plaats van ze alleen in de beschrijving te noemen. Houd andere artikelen buiten beeld wanneer ze onduidelijk maken wat inbegrepen is. Bekijk de foto's op volledig formaat."
+        },
+        {
+          "heading": "Welke feiten moet ik zelf controleren?",
+          "body": "Lees het label en inspecteer het echte artikel. Een foto kan een losse naad, geur, reparatie of ontbrekend onderdeel verbergen. Neem relevante afmetingen op in plaats van ze vanaf een foto te schatten. Presenteer een onbekend merk, materiaal of model niet als zekerheid. Beschrijf de onzekerheid of laat het onbevestigde detail weg."
+        },
+        {
+          "heading": "Hoe controleer ik een door AI gemaakte advertentie?",
+          "body": "Zie de tekst als een eerste concept, niet als een afgeronde inspectie. Vergelijk elke feitelijke bewering met het artikel, vooral merk, maat, materiaal en staat. Voeg gemiste gebreken toe en verwijder verzonnen accessoires of onbevestigde claims over echtheid. AutoLister helpt met schrijven; de prijs, controle en beslissing om te publiceren blijven jouw verantwoordelijkheid."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "De hoofdfoto laat het hele artikel duidelijk zien.",
+        "Extra foto's tonen de achterkant en relevante details.",
+        "Aanwezige maat- en materiaallabels zijn leesbaar.",
+        "Gebreken en slijtage hebben eigen detailfoto's.",
+        "De titel beschrijft het echte artikel, zonder ongerelateerde merken.",
+        "De labelmaat en eventuele afmetingen zijn gecontroleerd.",
+        "De beschrijving van de staat klopt met mijn inspectie.",
+        "Er staan geen verzonnen materialen, modelnamen of accessoires in.",
+        "De prijs, categorie en advertentievelden zijn gecontroleerd.",
+        "Ik heb de volledige advertentie nogmaals gelezen voordat ik publiceer."
+      ],
+      "faq": [
+        {
+          "question": "Kan ik deze checklist op mijn telefoon gebruiken?",
+          "answer": "Ja, de checklist werkt zonder account in je browser. Vinkjes gelden alleen voor de huidige paginasessie en verdwijnen wanneer je de pagina opnieuw laadt. Voor de AutoLister-extensie is een aparte installatie op je apparaat nodig."
+        },
+        {
+          "question": "Moet ik elk artikel opmeten?",
+          "answer": "Voeg afmetingen toe wanneer ze helpen bij het beoordelen van de pasvorm of maat, vooral als het label niet genoeg zegt. Gebruik alleen echt gemeten afmetingen, vermeld de eenheden en leg uit wat je hebt gemeten. Leid ze niet af uit een foto."
+        },
+        {
+          "question": "Garandeert een volledige checklist dat mijn artikel wordt verkocht?",
+          "answer": "Nee. De checklist helpt je een duidelijkere en nauwkeurigere advertentie te maken. Vraag, prijs, staat en andere factoren blijven invloed hebben op de verkoop. Deze checklist en AI-tekst garanderen geen zichtbaarheid of koper."
+        }
+      ]
+    },
+    "vinted-photo-to-listing": {
+      "title": "Van foto's naar Vinted-advertentieconcepten | AutoLister AI",
+      "description": "Maak met AutoLister Vinted-titels en beschrijvingen vanuit telefoonfoto's. Groepeer foto's per artikel, genereer bewerkbare tekst en controleer voor publicatie.",
+      "heading": "Van telefoonfoto's naar een Vinted-advertentieconcept",
+      "answer": "AutoLister kan een Vinted-titel en beschrijving maken op basis van je artikelfoto's. Stuur foto's van je telefoon naar je desktopsessie, groepeer ze per artikel en genereer bewerkbare concepten. Je controleert de details en publiceert zelf. Een concept voorbereiden is niet hetzelfde als automatisch een advertentie plaatsen.",
+      "sections": [
+        {
+          "heading": "Hoe krijg ik telefoonfoto's in mijn advertentieworkflow?",
+          "body": "Installeer AutoLister in een ondersteunde desktopbrowser en open je advertentieworkflow. Start de telefoonupload en volg de verbindings- of QR-instructies op je telefoon. Verstuur de foto's en controleer of ze in de desktopsessie zijn aangekomen. Dit werkt van telefoon naar desktop; het betekent niet dat de extensie in de mobiele Vinted-app draait."
+        },
+        {
+          "heading": "Hoe organiseer ik foto's van meerdere artikelen?",
+          "body": "Fotografeer elk artikel van voren en achteren en voeg foto's van labels en gebreken toe. Groepeer de beelden per artikel in de foto-organisator voordat je tekst genereert. Controleer elke groep: een labelfoto van een ander kledingstuk kan tot een verkeerd concept leiden. Begin met een kleine batch zodat je artikelen en foto's niet door elkaar haalt."
+        },
+        {
+          "heading": "Wat moet ik aan het gegenereerde concept aanpassen?",
+          "body": "Vergelijk de voorgestelde titel en beschrijving met het echte artikel. Corrigeer verkeerd gelezen labels, voeg zelf gemeten afmetingen toe en beschrijf onzichtbare slijtage. Verwijder onbevestigde claims over merk, materiaal of model. Controleer de overige advertentievelden en publiceer pas als alles klopt. AutoLister vermindert herhaald schrijfwerk, maar vervangt het inspecteren van je artikelen niet."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "Mijn telefoonfoto's zijn in de bedoelde desktopsessie aangekomen.",
+        "Elke fotogroep bevat één artikel met de bijbehorende labels.",
+        "Belangrijke labels en gebreken zijn zichtbaar en leesbaar.",
+        "Ik heb de gegenereerde tekst met het echte artikel vergeleken en gecorrigeerd.",
+        "Ik heb relevante details toegevoegd die foto's niet laten zien.",
+        "Ik controleer en publiceer elke advertentie zelf."
+      ],
+      "faq": [
+        {
+          "question": "Kan AI een Vinted-beschrijving schrijven op basis van een foto?",
+          "answer": "Ja. AutoLister gebruikt artikelfoto's om bewerkbare titels en beschrijvingen voor te bereiden. Een label kan verkeerd worden gelezen of een gebrek gemist worden. Controleer de tekst en voeg feiten toe die niet zichtbaar zijn op de foto's."
+        },
+        {
+          "question": "Publiceert AutoLister al mijn Vinted-advertenties automatisch?",
+          "answer": "Nee. Foto's organiseren en concepten genereren helpen bij de voorbereiding. Je controleert zelf de tekst en artikelgegevens, vult de advertentie aan en publiceert. Voorbereiden in batches is niet hetzelfde als automatisch plaatsen."
+        },
+        {
+          "question": "Moet ik foto's naar mijn computer e-mailen?",
+          "answer": "Nee. Met de telefoonupload van AutoLister komen je telefoonfoto's in je desktopworkflow terecht. Volg de verbindingsinstructies in de extensie. Wil je de extensie op de telefoon zelf gebruiken, bekijk dan de aparte installatiehandleiding voor dat apparaat."
+        }
+      ]
+    }
+  }
+}

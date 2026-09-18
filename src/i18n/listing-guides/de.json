@@ -1,0 +1,170 @@
+{
+  "ui": {
+    "resources": "Hilfen für deine Vinted-Angebote",
+    "home": "Startseite",
+    "answer": "Die praktische Antwort",
+    "contents": "Auf dieser Seite",
+    "examples": "Vorlage kopieren und anpassen",
+    "exampleNote": "Dies sind Vorlagen, keine echten Kundenangebote. Ersetze alle Angaben in eckigen Klammern und entferne nicht zutreffende Zeilen.",
+    "copy": "Vorlage kopieren",
+    "copied": "Kopiert",
+    "copyError": "Markiere und kopiere den Text stattdessen manuell.",
+    "checks": "Vor dem Veröffentlichen",
+    "progress": "{done} von {total} geprüft",
+    "faq": "Häufige Fragen von Verkäufern",
+    "related": "Weitere Hilfe für dein nächstes Angebot",
+    "ctaTitle": "Lieber mit deinen Fotos beginnen?",
+    "ctaBody": "AutoLister erstellt bearbeitbare Titel und Beschreibungen aus deinen Artikelfotos. Prüfe den Entwurf, ergänze nicht sichtbare Details und veröffentliche selbst.",
+    "freeNote": "5 kostenlose Generierungen nach der Anmeldung. Keine Kreditkarte nötig.",
+    "setup": "Hilfe bei der Installation",
+    "setupNote": "AutoLister ist eine Browser-Erweiterung, kein Generator auf dieser Seite. Prüfe die Installationsanleitung für dein Gerät.",
+    "photoCaption": "AutoListers Organizer für Handyfotos. Prüfe, ob jede Gruppe nur Fotos desselben Artikels enthält."
+  },
+  "pages": {
+    "vinted-description-template": {
+      "title": "Vinted-Beschreibung: Vorlagen zum Kopieren | AutoLister AI",
+      "description": "Kopiere eine Vinted-Beschreibung für Kleidung, Schuhe oder Artikel mit Mängeln. Ergänze echte Maße und Zustandsangaben und prüfe dein Angebot vor dem Veröffentlichen.",
+      "heading": "Vinted-Beschreibungen zum Kopieren und Anpassen",
+      "answer": "Eine hilfreiche Vinted-Beschreibung nennt den Artikel, die Größe auf dem Etikett, den tatsächlichen Zustand und mögliche Mängel. Nutze die Vorlagen unten als Ausgangspunkt, nicht als Tatsachen über deinen Artikel. Prüfe das Etikett, miss bei Bedarf nach und ersetze vor dem Veröffentlichen jeden Platzhalter.",
+      "sections": [
+        {
+          "heading": "Was gehört in eine Vinted-Beschreibung?",
+          "body": "Nenne die Informationen, mit denen jemand beurteilen kann, ob der Artikel passt: Artikelart, bekannte Marke, Etikettgröße, Farbe und Zustand. Ergänze hilfreiche Maße und beschreibe Abnutzung, Reparaturen oder fehlende Teile. Gib das Material nur an, wenn es durch das Etikett oder andere verlässliche Informationen bestätigt ist. Ein Foto zeigt nicht alles."
+        },
+        {
+          "heading": "Wie passe ich eine Vorlage an, ohne mich zu wiederholen?",
+          "body": "Behalte eine klare Reihenfolge bei, aber passe die Fakten an jeden Artikel an. Ersetze vage Formulierungen wie 'schönes Oberteil' durch konkrete Angaben zu Schnitt, Farbe oder Verschluss. Lösche leere Zeilen, statt Wissenslücken mit Vermutungen zu füllen. Ein kurzer, genauer Absatz hilft mehr als unpassende Suchbegriffe oder wiederholte Versprechen."
+        },
+        {
+          "heading": "Wann ist das Erstellen aus Fotos sinnvoller?",
+          "body": "Eine Vorlage hilft, wenn du bereits weißt, was du schreiben möchtest. Bei mehreren fotografierten Artikeln kann AutoLister aus jeder Fotogruppe einen ersten Titel und eine Beschreibung erstellen. Prüfe das Ergebnis und ergänze nicht sichtbare Fakten wie gemessene Maße oder verdeckte Mängel. Die Erweiterung entwirft Texte; sie veröffentlicht den Artikel nicht für dich."
+        }
+      ],
+      "examples": [
+        {
+          "label": "Kleidung: eine einfache Beschreibung",
+          "text": "[Marke, falls bekannt] [Kleidungsstück] in [Farbe]. Größe laut Etikett: [Größe].\n[Schnitt, Verschluss oder anderes hilfreiches Detail].\nZustand: [tatsächliche Abnutzung und mögliche Mängel].\nMaße: [gemessener Wert und Einheit, falls gemessen].\nMaterial: [bestätigte Etikettangabe oder diese Zeile entfernen]."
+        },
+        {
+          "label": "Schuhe: Größe und Abnutzung klar beschreiben",
+          "text": "[Marke, falls bekannt] [Schuhart] in [Farbe], angegebene Größe [Größe und Größensystem].\nOberseite: [tatsächlicher Zustand]. Sohlen: [tatsächliche Abnutzung].\nMängel: [Kratzer, Flecken oder Schäden und deren Stelle].\nEnthalten: [Karton, Ersatzschnürsenkel oder tatsächlich enthaltenes Zubehör, sonst Zeile entfernen]."
+        },
+        {
+          "label": "Ein Artikel mit Mangel: die genaue Stelle nennen",
+          "text": "[Artikelart], [Marke falls bekannt], Etikettgröße [Größe].\nZustand: [allgemeiner Zustand].\nBitte beachten: [konkreter Mangel] an [genauer Stelle], sichtbar auf [dem entsprechenden Detailfoto].\nMaße: [gemessener Wert und Einheit, falls gemessen].\n[Weiteres hilfreiches, geprüftes Detail]."
+        }
+      ],
+      "checks": [
+        "Alle Platzhalter in eckigen Klammern wurden ersetzt oder entfernt.",
+        "Marke, Größe und Material stimmen mit Artikel und Etiketten überein.",
+        "Abnutzung und Mängel sind mit genauer Stelle beschrieben.",
+        "Die Maße wurden tatsächlich genommen und enthalten Einheiten.",
+        "Text und Fotos beschreiben denselben Artikel."
+      ],
+      "faq": [
+        {
+          "question": "Kann ich dieselbe Beschreibungsvorlage für mehrere Artikel verwenden?",
+          "answer": "Ja, verwende die Struktur wieder, nicht die Artikeldetails. Prüfe Größe, Zustand, Maße und Mängel für jeden Artikel einzeln. Entferne nicht zutreffende Angaben, statt sie in das nächste Angebot zu übernehmen."
+        },
+        {
+          "question": "Sollte ich viele Hashtags oder Markennamen hinzufügen?",
+          "answer": "Bleibe beim tatsächlichen Artikel. Füge keine unpassenden Marken, Materialien oder Stile hinzu, nur um Suchanfragen abzufangen. Ein klarer Titel und eine genaue Beschreibung sind sinnvoller als eine lange Suchwortliste ohne verlässliche Details."
+        },
+        {
+          "question": "Sind diese Vorlagen kostenlos und brauche ich ein Konto?",
+          "answer": "Die Vorlagen auf dieser Seite kannst du kostenlos und ohne Konto kopieren. Die KI-Erstellung aus Fotos ist eine separate Funktion der AutoLister-Erweiterung, mit 5 kostenlosen Generierungen nach Anmeldung und kostenpflichtigen Tarifen für weitere Nutzung."
+        }
+      ]
+    },
+    "vinted-listing-checklist": {
+      "title": "Vinted-Checkliste: Fotos und Artikeldetails | AutoLister AI",
+      "description": "Prüfe Fotos, Etiketten, Maße, Zustand und Entwurf mit dieser interaktiven Vinted-Checkliste. Entdecke fehlende Angaben, bevor du dein Angebot veröffentlichst.",
+      "heading": "Eine Vinted-Checkliste für deinen nächsten Artikel",
+      "answer": "Prüfe vor dem Einstellen auf Vinted, ob Fotos, Titel und Beschreibung übereinstimmen. Zeige den Artikel und seine Mängel deutlich, bestätige Größe und Zustand und prüfe dann Preis und Kategorie. Hake die Punkte unten ab. Die Liste hilft bei der Vorbereitung, garantiert aber weder Freigabe noch Verkauf.",
+      "sections": [
+        {
+          "heading": "Welche Fotos sollte ich vorbereiten?",
+          "body": "Beginne mit einem klaren Bild des gesamten Artikels. Ergänze Rückseite, wichtige Details und lesbare Größen- oder Materialetiketten, soweit vorhanden. Fotografiere Abnutzung und Mängel aus der Nähe, statt sie nur im Text zu erwähnen. Halte andere Gegenstände aus dem Bild, wenn dadurch der Lieferumfang unklar würde. Prüfe die Fotos in voller Größe."
+        },
+        {
+          "heading": "Welche Angaben muss ich selbst überprüfen?",
+          "body": "Lies das Etikett und untersuche den tatsächlichen Artikel. Fotos können eine lose Naht, Geruch, Reparaturen oder fehlende Teile verbergen. Miss relevante Maße, statt sie aus einem Bild zu schätzen. Stelle eine unsichere Marke, ein Material oder Modell nicht als Tatsache dar. Benenne die Unsicherheit oder lasse die unbestätigte Angabe weg."
+        },
+        {
+          "heading": "Wie prüfe ich ein KI-generiertes Angebot?",
+          "body": "Behandle den Text als ersten Entwurf, nicht als abgeschlossene Prüfung. Vergleiche jede Tatsachenbehauptung mit dem Artikel, besonders Marke, Größe, Material und Zustand. Ergänze übersehene Mängel und entferne erfundenes Zubehör oder unbelegte Echtheitsangaben. AutoLister hilft beim Schreiben; Preis, Kontrolle und Entscheidung zur Veröffentlichung bleiben deine Aufgabe."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "Das Hauptfoto zeigt den gesamten Artikel deutlich.",
+        "Weitere Fotos zeigen Rückseite und relevante Details.",
+        "Vorhandene Größen- und Materialetiketten sind lesbar.",
+        "Mängel und Abnutzung sind auf eigenen Nahaufnahmen zu sehen.",
+        "Der Titel beschreibt den echten Artikel ohne unpassende Marken.",
+        "Etikettgröße und mögliche Maße sind überprüft.",
+        "Die Zustandsbeschreibung entspricht meiner Prüfung.",
+        "Es gibt keine erfundenen Materialien, Modellnamen oder Zubehörteile.",
+        "Preis, Kategorie und Angebotsfelder sind geprüft.",
+        "Ich habe das gesamte Angebot vor dem Veröffentlichen erneut gelesen."
+      ],
+      "faq": [
+        {
+          "question": "Kann ich diese Checkliste auf dem Handy verwenden?",
+          "answer": "Ja, sie funktioniert ohne Konto im Browser. Die Häkchen gelten nur für die aktuelle Seitensitzung und werden beim Neuladen zurückgesetzt. Die AutoLister-Erweiterung benötigt eine separate Einrichtung für dein Gerät."
+        },
+        {
+          "question": "Muss ich jeden Artikel ausmessen?",
+          "answer": "Ergänze Maße, wenn sie Passform oder Größe verständlicher machen, insbesondere wenn das Etikett nicht ausreicht. Nenne nur tatsächlich gemessene Werte, die Einheiten und die gemessene Stelle. Leite keine Maße aus einem Foto ab."
+        },
+        {
+          "question": "Garantiert eine ausgefüllte Checkliste einen Verkauf?",
+          "answer": "Nein. Sie hilft dir, ein klareres und genaueres Angebot vorzubereiten. Nachfrage, Preis, Zustand und weitere Faktoren beeinflussen weiterhin den Verkauf. Weder diese Checkliste noch KI-Texte garantieren Sichtbarkeit oder einen Käufer."
+        }
+      ]
+    },
+    "vinted-photo-to-listing": {
+      "title": "Aus Fotos Vinted-Angebotsentwürfe erstellen | AutoLister AI",
+      "description": "Erstelle mit AutoLister Vinted-Titel und Beschreibungen aus Handyfotos. Gruppiere die Artikel, erzeuge bearbeitbare Entwürfe und prüfe sie vor dem Veröffentlichen.",
+      "heading": "Von Handyfotos zum Vinted-Angebotsentwurf",
+      "answer": "AutoLister kann aus Artikelfotos einen Vinted-Titel und eine Beschreibung vorbereiten. Sende Handyfotos an deine Desktop-Sitzung, gruppiere sie nach Artikel und erstelle bearbeitbare Entwürfe. Du prüfst die Angaben und veröffentlichst selbst. Ein vorbereiteter Entwurf ist keine automatische Veröffentlichung.",
+      "sections": [
+        {
+          "heading": "Wie nutze ich Handyfotos beim Erstellen eines Angebots?",
+          "body": "Installiere AutoLister in einem unterstützten Desktop-Browser und öffne deinen Angebotsablauf. Starte den Handy-Upload und folge auf dem Smartphone den Verbindungs- oder QR-Anweisungen. Sende die Artikelfotos und prüfe, ob sie in deiner Desktop-Sitzung angekommen sind. Dieser Ablauf verbindet Handy und Computer; die Erweiterung läuft dadurch nicht innerhalb der mobilen Vinted-App."
+        },
+        {
+          "heading": "Wie organisiere ich Fotos mehrerer Artikel?",
+          "body": "Fotografiere jeden Artikel von vorne und hinten sowie Etiketten und Mängel. Gruppiere die Bilder im Foto-Organizer nach Artikel, bevor du Text erzeugst. Prüfe jede Gruppe: Ein Etikettfoto eines anderen Kleidungsstücks kann einen falschen Entwurf verursachen. Beginne mit einer kleinen Gruppe von Artikeln, damit du Fotos und Gegenstände nicht verwechselst."
+        },
+        {
+          "heading": "Was sollte ich am generierten Entwurf ändern?",
+          "body": "Vergleiche vorgeschlagenen Titel und Beschreibung mit dem tatsächlichen Artikel. Korrigiere falsch gelesene Etiketten, ergänze selbst gemessene Maße und beschreibe nicht sichtbare Abnutzung. Entferne unbestätigte Angaben zu Marke, Material oder Modell. Prüfe die übrigen Felder und veröffentliche erst, wenn alles stimmt. AutoLister reduziert wiederholtes Schreiben, ersetzt aber keine Artikelprüfung."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "Meine Handyfotos sind in der richtigen Desktop-Sitzung angekommen.",
+        "Jede Fotogruppe enthält nur einen Artikel und dessen Etiketten.",
+        "Wichtige Etiketten und Mängel sind sichtbar und lesbar.",
+        "Ich habe den generierten Text mit dem echten Artikel abgeglichen.",
+        "Ich habe relevante, auf Fotos nicht sichtbare Details ergänzt.",
+        "Ich prüfe und veröffentliche jedes Angebot selbst."
+      ],
+      "faq": [
+        {
+          "question": "Kann KI aus einem Foto eine Vinted-Beschreibung schreiben?",
+          "answer": "Ja. AutoLister erstellt aus Artikelfotos bearbeitbare Titel- und Beschreibungsentwürfe. Etiketten können falsch gelesen und Mängel übersehen werden. Prüfe deshalb das Ergebnis und ergänze Informationen, die auf den Fotos nicht sichtbar sind."
+        },
+        {
+          "question": "Veröffentlicht AutoLister alle meine Vinted-Angebote automatisch?",
+          "answer": "Nein. Foto-Organisation und Texterstellung helfen bei der Vorbereitung. Du prüfst Text und Artikeldetails, vervollständigst das Angebot und veröffentlichst selbst. Stapelvorbereitung ist keine automatische Veröffentlichung."
+        },
+        {
+          "question": "Muss ich Fotos per E-Mail an meinen Computer senden?",
+          "answer": "Nein. AutoListers Handy-Upload verbindet deine Smartphone-Fotos mit dem Desktop-Ablauf. Folge den Verbindungsanweisungen in der Erweiterung. Möchtest du die Erweiterung direkt auf dem Handy nutzen, lies die gesonderte Installationsanleitung für das Gerät."
+        }
+      ]
+    }
+  }
+}

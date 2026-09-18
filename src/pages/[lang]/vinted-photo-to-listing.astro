@@ -1,0 +1,12 @@
+---
+import ListingGuide from "../../components/ListingGuide.astro";
+import { SUPPORTED_SITE_LOCALES, normalizeSiteLocale } from "../../i18n/site.js";
+
+export function getStaticPaths() {
+  return SUPPORTED_SITE_LOCALES.filter((lang) => lang !== "en").map((lang) => ({ params: { lang } }));
+}
+
+const locale = normalizeSiteLocale(Astro.params.lang);
+---
+
+<ListingGuide locale={locale} slug="vinted-photo-to-listing" />

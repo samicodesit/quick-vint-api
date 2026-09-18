@@ -1,0 +1,204 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import ListingGuideLinks from "./ListingGuideLinks.astro";
+import { LISTING_GUIDE_COPY } from "../i18n/listingGuides.js";
+import type { ListingGuideSlug } from "../i18n/listingGuides.js";
+import { localizedPath } from "../i18n/routing.js";
+import { SITE_COPY, SUPPORTED_SITE_LOCALES } from "../i18n/site.js";
+import type { SiteLocale } from "../i18n/site.js";
+
+interface Props {
+  locale: SiteLocale;
+  slug: ListingGuideSlug;
+}
+
+const { locale, slug } = Astro.props;
+const { ui, pages } = LISTING_GUIDE_COPY[locale];
+const page = pages[slug];
+const origin = "https://autolister.app";
+const basePath = `/${slug}`;
+const canonical = `${origin}${localizedPath(locale, basePath)}`;
+const home = localizedPath(locale, "/");
+const setup = `/welcome/${locale}`;
+const chromeHref = "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
+const primarySection = page.examples.length ? "templates" : "checklist";
+const progressText = ui.progress.replace("{done}", "0").replace("{total}", String(page.checks.length));
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${canonical}#webpage`,
+      url: canonical,
+      name: page.heading,
+      description: page.description,
+      inLanguage: locale,
+      isPartOf: { "@type": "WebSite", name: "AutoLister AI", url: `${origin}/` },
+      breadcrumb: { "@id": `${canonical}#breadcrumb` },
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${canonical}#breadcrumb`,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: ui.home, item: `${origin}${home}` },
+        { "@type": "ListItem", position: 2, name: page.heading, item: canonical },
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${canonical}#faq`,
+      inLanguage: locale,
+      mainEntity: page.faq.map(({ question, answer }) => ({
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: { "@type": "Answer", text: answer },
+      })),
+    },
+  ],
+};
+---
+
+<SiteLayout title={page.title} description={page.description} canonical={canonical} ogUrl={canonical} htmlLang={locale} currentLocale={locale} localeBasePath={basePath}>
+  <Fragment slot="head">
+    {SUPPORTED_SITE_LOCALES.map((language) => (
+      <link rel="alternate" hreflang={language} href={`${origin}${localizedPath(language, basePath)}`} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={`${origin}${basePath}`} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData).replace(/</g, "\\u003c")} />
+  </Fragment>
+
+  <main class="pt-28 sm:pt-36">
+    <header class="mx-auto max-w-6xl px-4 pb-12 sm:px-6 sm:pb-16 lg:px-8">
+      <nav aria-label={ui.home} class="mb-7 text-sm leading-relaxed text-slate-500">
+        <ol class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <li><a href={home} class="text-slate-600 underline-offset-4 hover:underline">{ui.home}</a></li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page">{page.heading}</li>
+        </ol>
+      </nav>
+      <p class="mb-4 text-sm font-bold text-brand-700">{ui.resources}</p>
+      <h1 class="max-w-4xl break-words text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">{page.heading}</h1>
+      <div class="mt-8 grid gap-7 lg:grid-cols-[1.7fr_1fr] lg:items-start">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">{ui.answer}</h2>
+          <p class="mt-3 text-lg leading-relaxed text-slate-600">{page.answer}</p>
+          <nav aria-label={ui.contents} class="mt-6 flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold">
+            <a href={`#${primarySection}`} class="text-brand-700 underline underline-offset-4">{page.examples.length ? ui.examples : ui.checks}</a>
+            <a href="#guide" class="text-brand-700 underline underline-offset-4">{page.sections[0].heading}</a>
+            <a href="#faq" class="text-brand-700 underline underline-offset-4">{ui.faq}</a>
+          </nav>
+        </div>
+        <aside class="rounded-2xl border border-brand-100 bg-brand-50 p-6">
+          <h2 class="text-xl font-bold tracking-tight text-slate-900">{ui.ctaTitle}</h2>
+          <p class="mt-3 text-sm leading-relaxed text-slate-600">{ui.ctaBody}</p>
+          <a href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context={`guide_${slug}_hero`} class="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-center text-sm font-bold text-white no-underline hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600">{SITE_COPY[locale].nav.cta}</a>
+          <p class="mt-3 text-xs leading-relaxed text-slate-600">{ui.freeNote}</p>
+          <p class="mt-4 text-xs leading-relaxed text-slate-600">{ui.setupNote} <a href={setup} class="font-semibold text-brand-700 underline underline-offset-2">{ui.setup}</a></p>
+        </aside>
+      </div>
+    </header>
+
+    {page.examples.length > 0 && (
+      <section id="templates" class="scroll-mt-28 border-y border-slate-200 bg-slate-50 py-12 sm:py-16" aria-labelledby="templates-heading">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 id="templates-heading" class="text-2xl font-extrabold tracking-tight sm:text-3xl">{ui.examples}</h2>
+          <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">{ui.exampleNote}</p>
+          <div class="mt-7 grid gap-5 lg:grid-cols-3">
+            {page.examples.map((example, index) => (
+              <article class="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+                <span aria-hidden="true" class="text-sm font-bold text-brand-700">{String(index + 1).padStart(2, "0")}</span>
+                <h3 class="mt-2 text-lg font-bold leading-snug">{example.label}</h3>
+                <pre id={`template-${index}`} class="my-5 flex-1 whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-600">{example.text}</pre>
+                <button type="button" class="hidden min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600" data-copy-template={`template-${index}`} data-copied={ui.copied} data-copy-error={ui.copyError} aria-describedby={`copy-status-${index}`}>{ui.copy}</button>
+                <p id={`copy-status-${index}`} data-copy-status class="mt-2 min-h-5 text-xs text-slate-600" role="status" aria-live="polite"></p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <div class="mx-auto max-w-3xl px-4 pb-14 sm:px-6 sm:pb-20">
+      {slug === "vinted-photo-to-listing" && (
+        <figure class="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+          <img src="/updates/1-4-0/phone-batch-upload.webp" width="1600" height="1000" loading="lazy" decoding="async" alt={ui.photoCaption} class="h-auto w-full" />
+          <figcaption class="border-t border-slate-200 p-4 text-sm leading-relaxed text-slate-600">{ui.photoCaption}</figcaption>
+        </figure>
+      )}
+
+      <section id="checklist" class="scroll-mt-28 py-10 sm:py-12" aria-labelledby="checklist-heading" data-listing-checklist data-progress-template={ui.progress}>
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="checklist-heading" class="text-2xl font-extrabold tracking-tight sm:text-3xl">{ui.checks}</h2>
+          <output data-checklist-progress class="text-sm font-semibold text-brand-700" aria-live="polite" aria-atomic="true">{progressText}</output>
+        </div>
+        <ul class="mt-6 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white px-4 sm:px-5">
+          {page.checks.map((check) => (
+            <li>
+              <label class="flex cursor-pointer items-start gap-3 py-4 text-base leading-relaxed text-slate-700">
+                <input type="checkbox" autocomplete="off" class="mt-1 h-5 w-5 shrink-0 accent-brand-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600" />
+                <span>{check}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div id="guide" class="scroll-mt-28 space-y-10 border-t border-slate-200 pt-10">
+        {page.sections.map((section, index) => (
+          <section aria-labelledby={`section-${index}`}>
+            <h2 id={`section-${index}`} class="text-2xl font-bold leading-snug tracking-tight">{section.heading}</h2>
+            <p class="mt-4 text-base leading-8 text-slate-600">{section.body}</p>
+          </section>
+        ))}
+      </div>
+
+      <section id="faq" class="mt-12 scroll-mt-28 border-t border-slate-200 pt-10" aria-labelledby="faq-heading">
+        <h2 id="faq-heading" class="text-2xl font-extrabold tracking-tight sm:text-3xl">{ui.faq}</h2>
+        <div class="mt-5 divide-y divide-slate-200">
+          {page.faq.map((item) => (
+            <details class="group py-4">
+              <summary class="cursor-pointer py-2 pr-3 text-base font-bold leading-relaxed text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600">{item.question}</summary>
+              <p class="pb-2 pt-3 text-base leading-relaxed text-slate-600">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    </div>
+
+    <ListingGuideLinks locale={locale} currentSlug={slug} />
+  </main>
+</SiteLayout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("[data-copy-template]").forEach((button) => {
+    button.classList.remove("hidden");
+    button.addEventListener("click", async () => {
+      const target = document.getElementById(button.dataset.copyTemplate || "");
+      const status = document.getElementById(button.getAttribute("aria-describedby") || "");
+      if (!target || !status) return;
+      try {
+        await navigator.clipboard.writeText(target.textContent || "");
+        status.textContent = button.dataset.copied || "";
+      } catch {
+        status.textContent = button.dataset.copyError || "";
+      }
+    });
+  });
+
+  document.querySelectorAll<HTMLElement>("[data-listing-checklist]").forEach((section) => {
+    const checkboxes = Array.from(section.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+    const progress = section.querySelector<HTMLOutputElement>("[data-checklist-progress]");
+    const template = section.dataset.progressTemplate || "";
+    const updateProgress = () => {
+      if (!progress) return;
+      progress.textContent = template
+        .replace("{done}", String(checkboxes.filter((checkbox) => checkbox.checked).length))
+        .replace("{total}", String(checkboxes.length));
+    };
+    checkboxes.forEach((checkbox) => {
+      checkbox.checked = false;
+      checkbox.addEventListener("change", updateProgress);
+    });
+    updateProgress();
+  });
+</script>

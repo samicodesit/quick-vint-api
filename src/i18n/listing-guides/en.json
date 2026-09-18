@@ -1,0 +1,170 @@
+{
+  "ui": {
+    "resources": "Vinted listing resources",
+    "home": "Home",
+    "answer": "The practical answer",
+    "contents": "On this page",
+    "examples": "Copy a template, then make it yours",
+    "exampleNote": "These are templates, not actual customer listings. Replace every bracketed detail and remove any line that does not apply.",
+    "copy": "Copy template",
+    "copied": "Copied",
+    "copyError": "Select and copy the text manually instead.",
+    "checks": "Before you publish",
+    "progress": "{done} of {total} checked",
+    "faq": "Questions sellers ask",
+    "related": "More help with your next listing",
+    "ctaTitle": "Prefer to start from your photos?",
+    "ctaBody": "AutoLister prepares editable titles and descriptions from your item photos. Review the draft, add details the photos cannot show, and publish yourself.",
+    "freeNote": "5 free generations after signup. No card required.",
+    "setup": "Installation help",
+    "setupNote": "AutoLister is a browser extension, not a generator embedded on this page. Check the setup guide for your device.",
+    "photoCaption": "AutoLister's phone-photo organizer. Check that each group contains photos of the same item."
+  },
+  "pages": {
+    "vinted-description-template": {
+      "title": "Vinted Description Templates to Copy & Edit | AutoLister AI",
+      "description": "Copy a Vinted description template for clothes, shoes or an item with flaws. Add real measurements and condition details, then check your listing before posting.",
+      "heading": "Vinted description templates you can copy and edit",
+      "answer": "A useful Vinted description names the item, gives the labelled size, describes its actual condition and mentions any flaws. Use the templates below as a starting point, not as facts about your item. Check the label, take measurements when useful and replace every placeholder before publishing.",
+      "sections": [
+        {
+          "heading": "What should a Vinted description include?",
+          "body": "Write the details someone needs to decide whether the item is right for them: item type, brand when known, labelled size, colour and condition. Add relevant measurements and explain wear, repairs or missing parts. State the material only when you can confirm it from the label or other reliable information. A photo cannot tell you everything."
+        },
+        {
+          "heading": "How do I adapt a template without sounding repetitive?",
+          "body": "Keep a consistent order, but make the facts specific to each item. Replace vague phrases such as 'lovely top' with a concrete description of the cut, colour or fastening. Remove empty lines rather than filling gaps with guesses. Your description does not need to be long: a short, accurate paragraph is more useful than unrelated keywords or repeated promises."
+        },
+        {
+          "heading": "When is generating from photos more useful?",
+          "body": "A template works well when you already know what to write. When you have several photographed items, AutoLister can prepare the first title and description from each photo set instead. You still need to check the result and add facts that are not visible, such as measurements or a defect hidden from the camera. The extension drafts text; it does not publish the item for you."
+        }
+      ],
+      "examples": [
+        {
+          "label": "Clothes: a straightforward description",
+          "text": "[Brand, if known] [item type] in [colour]. Labelled size [size].\n[Cut, fastening or other useful detail].\nCondition: [describe actual wear and any flaws].\nMeasurements: [measurement and unit, if taken].\nMaterial: [confirmed label information, or remove this line]."
+        },
+        {
+          "label": "Shoes: make wear and sizing clear",
+          "text": "[Brand, if known] [shoe type] in [colour], labelled size [size and sizing system].\nUppers: [actual condition]. Soles: [actual wear].\nFlaws: [describe scuffs, marks or damage and their location].\nIncluded: [box, spare laces or other accessories actually included, or remove this line]."
+        },
+        {
+          "label": "An item with a flaw: say exactly where it is",
+          "text": "[Item type], [brand if known], labelled size [size].\nCondition: [overall condition].\nPlease note: [specific flaw] on [exact location], shown in [the relevant close-up photo].\nMeasurements: [measurement and unit, if taken].\n[Other useful, verified detail]."
+        }
+      ],
+      "checks": [
+        "Every bracketed placeholder has been replaced or removed.",
+        "Brand, size and material agree with the item and its labels.",
+        "Wear and flaws are described, including their location.",
+        "Measurements include units and were actually taken.",
+        "The text and photos describe the same item."
+      ],
+      "faq": [
+        {
+          "question": "Can I reuse the same description template for several items?",
+          "answer": "Yes, reuse the structure, not the item details. Check the size, condition, measurements and flaws separately for every item. Remove claims that do not apply instead of copying them into the next listing."
+        },
+        {
+          "question": "Should I add lots of hashtags or brand names?",
+          "answer": "Keep the wording relevant to the item. Do not add unrelated brands, materials or styles just to catch searches. Use a clear title and description rather than treating a long list of keywords as a substitute for accurate details."
+        },
+        {
+          "question": "Are these templates free, and do I need an account?",
+          "answer": "The templates on this page are free to copy without an account. AutoLister's photo-based AI generation is a separate browser-extension feature, with 5 free generations after signup and paid plans for further use."
+        }
+      ]
+    },
+    "vinted-listing-checklist": {
+      "title": "Vinted Listing Checklist: Photos & Details | AutoLister AI",
+      "description": "Use this interactive Vinted listing checklist to review photos, labels, measurements, condition and draft text. Catch missing details before you publish.",
+      "heading": "A Vinted listing checklist for your next item",
+      "answer": "Before posting an item on Vinted, check that its photos, title and description agree. Show the item and its flaws clearly, verify the size and condition, then review the price and category. Tick the checklist below as you work. It is a preparation aid, not a guarantee of approval or sales.",
+      "sections": [
+        {
+          "heading": "What photos should I prepare?",
+          "body": "Start with a clear view of the whole item. Add the back, useful details and readable size or material labels where available. Include close-ups of wear and flaws instead of leaving them for the description alone. Keep other items out of the frame when they could make it unclear what is included. Check the photos at full size before moving on."
+        },
+        {
+          "heading": "Which facts need checking by hand?",
+          "body": "Read the label and inspect the actual item. A photograph may hide a loose seam, an odour, a repair or a missing part. Take relevant measurements instead of estimating them from an image. If a brand, material or model is uncertain, do not present a guess as a fact. Describe the uncertainty or leave out the unsupported detail."
+        },
+        {
+          "heading": "How should I review an AI-generated listing?",
+          "body": "Treat the output as a first draft, not a completed inspection. Compare every factual claim with the item, especially brand, size, material and condition. Add flaws that the photos missed and remove invented accessories or claims about authenticity. AutoLister helps with writing; choosing the price, checking the listing and deciding to publish remain your responsibility."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "The main photo clearly shows the whole item.",
+        "Additional photos show the back and relevant details.",
+        "Available size and material labels are readable.",
+        "Flaws and signs of wear have their own close-up photos.",
+        "The title describes the actual item, without unrelated brands.",
+        "The labelled size and any measurements are checked.",
+        "The condition description matches my inspection.",
+        "There are no invented materials, model names or accessories.",
+        "The price, category and listing fields have been reviewed.",
+        "I have reread the complete listing before publishing."
+      ],
+      "faq": [
+        {
+          "question": "Can I use this checklist on my phone?",
+          "answer": "Yes. The checklist works in your browser without an account. Ticks are only for the current page session and reset when the page is reloaded. The AutoLister extension has a separate device setup."
+        },
+        {
+          "question": "Do I need measurements for every item?",
+          "answer": "Add them when they help explain fit or size, especially when the label does not tell the whole story. Only include measurements you have actually taken, state the units and explain what was measured. Do not infer them from a photo."
+        },
+        {
+          "question": "Does completing the checklist guarantee my item will sell?",
+          "answer": "No. It helps you prepare a clearer, more accurate listing. Demand, price, the item's condition and other factors still affect a sale. Neither this checklist nor an AI-written description guarantees visibility or a buyer."
+        }
+      ]
+    },
+    "vinted-photo-to-listing": {
+      "title": "Turn Photos into Vinted Listing Drafts | AutoLister AI",
+      "description": "Learn how to turn phone photos into Vinted title and description drafts with AutoLister. Organize each item, generate editable text and review before publishing.",
+      "heading": "From phone photos to a Vinted listing draft",
+      "answer": "AutoLister can prepare a Vinted title and description from your item photos. Use its phone-upload workflow to send photos to your desktop session, organize them into items and generate editable drafts. You check the details and publish yourself. Preparing a draft is not the same as automatically posting a listing.",
+      "sections": [
+        {
+          "heading": "How do I get phone photos into my listing workflow?",
+          "body": "Install AutoLister in a supported desktop browser and open your listing workflow. Start the phone-upload feature and follow its connection or QR instructions on your phone. Send the item photos, then check that they have arrived in your desktop session. This is a phone-to-desktop workflow; it does not mean the extension runs inside the Vinted mobile app."
+        },
+        {
+          "heading": "How do I organize photos of several items?",
+          "body": "Photograph each item from the front and back, then add its labels and any flaws. Use the photo organizer to group pictures by item before generating text. Check every group: a label photo from a different garment can lead to an incorrect draft. Start with a small batch so you can check the process without losing track of which item belongs to which photos."
+        },
+        {
+          "heading": "What should I change in the generated draft?",
+          "body": "Check the suggested title and description against the actual item. Correct misread labels, add measurements you have taken and describe wear that is not visible. Remove any unsupported brand, material or model claims. Review the remaining listing fields and publish only when the draft is accurate. AutoLister reduces repeated writing, but does not replace inspecting your items."
+        }
+      ],
+      "examples": [],
+      "checks": [
+        "My phone photos have arrived in the intended desktop session.",
+        "Each photo group contains only one item and its own labels.",
+        "Important labels and any flaws are visible and readable.",
+        "I have corrected the generated text against the actual item.",
+        "I have added relevant details the photos cannot show.",
+        "I will review and publish each listing myself."
+      ],
+      "faq": [
+        {
+          "question": "Can AI write a Vinted description from a photo?",
+          "answer": "Yes. AutoLister uses item photos to prepare editable title and description drafts. It can still misread a label or miss a flaw, so check its output and add facts that are not visible in the photos."
+        },
+        {
+          "question": "Does AutoLister publish all my Vinted listings automatically?",
+          "answer": "No. Photo organization and draft generation help with preparation. You review the text and item details, complete the listing and publish yourself. Batch preparation is not automatic posting."
+        },
+        {
+          "question": "Do I have to email photos to my computer?",
+          "answer": "No. AutoLister's phone-upload feature connects your phone photos to your desktop workflow. Follow the connection instructions shown in the extension. For running the extension on a phone itself, use the separate device-specific installation guide."
+        }
+      ]
+    }
+  }
+}

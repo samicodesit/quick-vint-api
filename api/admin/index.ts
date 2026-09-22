@@ -32,6 +32,13 @@ import {
 import { logAdminBillingAction } from "../../utils/billingEvents";
 import { validateAiInstructions } from "../../utils/aiInstructions";
 import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
+import {
+  buildAttributionReport,
+  isNewAcquisition,
+  type AttributionClaimRow,
+  type AttributionGeneration,
+  type AttributionProfile,
+} from "../../utils/attribution";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -65,6 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleUsageStats(req, res);
     } else if (action === "growth-stats") {
       return handleGrowthStats(req, res);
+    } else if (action === "attribution-report") {
+      return handleAttributionReport(req, res);
     } else if (action === "list-users") {
       return handleListUsers(req, res);
     } else if (action === "user-journey") {
@@ -485,6 +494,262 @@ async function fetchAdminRows(
     if (!data || data.length < 1000) break;
   }
   return rows;
+}
+
+function getAttributionWindow(days: number, now = new Date()) {
+  const end = now.toISOString();
+  const start = new Date(
+    now.getTime() - (days - 1) * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  return { days, start, end };
+}
+
+function isMissingAttributionSchemaError(error: any) {
+  const code = String(error?.code || "").toUpperCase();
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    code === "42P01" ||
+    code === "PGRST205" ||
+    (message.includes("user_attributions") &&
+      (message.includes("schema cache") ||
+        message.includes("does not exist") ||
+        message.includes("relation")))
+  );
+}
+
+function attributionUnavailableResponse(
+  window: ReturnType<typeof getAttributionWindow>,
+) {
+  return {
+    available: false,
+    status: "unavailable",
+    generatedAt: new Date().toISOString(),
+    window,
+    reason: "attribution_schema_unavailable",
+    message:
+      "TikTok attribution is unavailable because the attribution table has not been installed in this environment.",
+    measurement: {
+      userLevel: "authenticated_client_claim",
+      platformVerified: false,
+      platformProof: "not_connected",
+    },
+  };
+}
+
+async function fetchAttributionRowsByIds(
+  table: string,
+  columns: string,
+  column: string,
+  ids: string[],
+  buildQuery?: (query: any) => any,
+) {
+  const rows: any[] = [];
+  let truncated = false;
+  for (let offset = 0; offset < ids.length; offset += 900) {
+    const chunk = ids.slice(offset, offset + 900);
+    let query = supabase
+      .from(table)
+      .select(columns)
+      .in(column, chunk)
+      .range(0, 999);
+    if (buildQuery) query = buildQuery(query);
+    const { data, error } = await query;
+    if (error) throw error;
+    rows.push(...(data || []));
+    if ((data || []).length >= 1000) truncated = true;
+  }
+  return { rows, truncated };
+}
+
+async function handleAttributionReport(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  const days = parsePositiveInt(req.query.days, 30, 365);
+  const window = getAttributionWindow(days);
+
+  try {
+    const { data: rawClaims, error: claimsError } = await supabase
+      .from("user_attributions")
+      .select(
+        "user_id, source, medium, campaign, content, captured_at, claimed_at",
+      )
+      .gte("claimed_at", window.start)
+      .lte("claimed_at", window.end)
+      .order("claimed_at", { ascending: false })
+      .range(0, 9999);
+    if (claimsError) throw claimsError;
+
+    const claims: AttributionClaimRow[] = (rawClaims || [])
+      .filter((row: any) => row?.user_id && row?.captured_at && row?.claimed_at)
+      .map((row: any) => ({
+        userId: String(row.user_id),
+        source: row.source,
+        medium: row.medium,
+        campaign: row.campaign || null,
+        content: row.content || null,
+        capturedAt: row.captured_at,
+        claimedAt: row.claimed_at,
+      })) as AttributionClaimRow[];
+
+    const claimUserIds = Array.from(
+      new Set(claims.map((claim) => claim.userId).filter(Boolean)),
+    );
+    const recentProfiles = await fetchAdminRows(
+      "profiles",
+      "id, created_at, subscription_status, subscription_tier",
+      (query) =>
+        query.gte("created_at", window.start).lte("created_at", window.end),
+      10000,
+    );
+    const recentProfileIds = new Set(
+      recentProfiles.map((profile) => profile.id),
+    );
+    const olderClaimProfileResult = claimUserIds.length
+      ? await fetchAttributionRowsByIds(
+          "profiles",
+          "id, created_at, subscription_status, subscription_tier",
+          "id",
+          claimUserIds.filter((id) => !recentProfileIds.has(id)),
+        )
+      : { rows: [], truncated: false };
+    const profiles = [
+      ...recentProfiles,
+      ...olderClaimProfileResult.rows,
+    ] as AttributionProfile[];
+
+    const generationResult = claimUserIds.length
+      ? await fetchAttributionRowsByIds(
+          "api_logs",
+          "user_id, endpoint, response_status, created_at",
+          "user_id",
+          claimUserIds,
+          (query) =>
+            query.gte("created_at", window.start).lte("created_at", window.end),
+        )
+      : { rows: [], truncated: false };
+    const generations = generationResult.rows as AttributionGeneration[];
+
+    const profileById = new Map(
+      profiles.map((profile) => [profile.id, profile]),
+    );
+    const signupClaims = claims.filter((claim) => {
+      const profile = profileById.get(claim.userId);
+      if (!profile) return false;
+      const capturedAt = Date.parse(claim.capturedAt);
+      const profileCreatedAt = Date.parse(profile.created_at);
+      return (
+        Number.isFinite(capturedAt) &&
+        Number.isFinite(profileCreatedAt) &&
+        capturedAt <= profileCreatedAt &&
+        isNewAcquisition({
+          profileCreatedAt: profile.created_at,
+          claimedAt: claim.claimedAt,
+        })
+      );
+    });
+    const report = buildAttributionReport(claims, profiles, generations, {
+      now: window.end,
+      days,
+    });
+    const acquisitionReport = buildAttributionReport(
+      signupClaims,
+      profiles,
+      generations,
+      { now: window.end, days },
+    );
+    const acquisitionCohorts = new Map(
+      acquisitionReport.cohorts.map((cohort) => [
+        [cohort.source, cohort.medium, cohort.campaign || ""].join("|"),
+        cohort,
+      ]),
+    );
+    const cohorts = report.cohorts.map((cohort) => {
+      const { paid: _paid, ...cohortWithoutPaid } = cohort;
+      const acquisitionCohort = acquisitionCohorts.get(
+        [cohort.source, cohort.medium, cohort.campaign || ""].join("|"),
+      );
+      const newSignups = acquisitionCohort?.newSignups || 0;
+      return {
+        ...cohortWithoutPaid,
+        newSignups,
+        activated: acquisitionCohort?.activated || 0,
+        activePaidProfiles: acquisitionCohort?.paid || 0,
+        nonNewClaims: Math.max(cohort.captured - newSignups, 0),
+      };
+    });
+    const tiktokCohorts = cohorts.filter(
+      (cohort) => cohort.source === "tiktok",
+    );
+    const tiktok = tiktokCohorts.reduce(
+      (totals, cohort) => ({
+        captured: totals.captured + cohort.captured,
+        newSignups: totals.newSignups + cohort.newSignups,
+        activated: totals.activated + cohort.activated,
+        nonNewClaims: totals.nonNewClaims + cohort.nonNewClaims,
+        activePaidProfiles:
+          totals.activePaidProfiles + cohort.activePaidProfiles,
+      }),
+      {
+        captured: 0,
+        newSignups: 0,
+        activated: 0,
+        nonNewClaims: 0,
+        activePaidProfiles: 0,
+      },
+    );
+    const { paid: _paidTotal, ...reportTotalsWithoutPaid } = report.totals;
+
+    return res.status(200).json({
+      available: true,
+      status: "ok",
+      generatedAt: new Date().toISOString(),
+      window: report.window,
+      tiktok,
+      cohorts,
+      totals: {
+        ...reportTotalsWithoutPaid,
+        newSignups: acquisitionReport.totals.newSignups,
+        activated: acquisitionReport.totals.activated,
+        activePaidProfiles: acquisitionReport.totals.paid,
+        nonNewClaims: Math.max(
+          report.totals.captured - acquisitionReport.totals.newSignups,
+          0,
+        ),
+      },
+      unknown: {
+        profiles: report.unknownProfiles,
+        crossDeviceUnobservable: report.unobservableCrossDevice,
+      },
+      measurement: {
+        userLevel: "authenticated_client_claim",
+        platformVerified: false,
+        platformProof: "not_connected",
+      },
+      completeness: {
+        truncated:
+          claims.length >= 10000 ||
+          recentProfiles.length >= 10000 ||
+          olderClaimProfileResult.truncated ||
+          generationResult.truncated,
+        note: "This report is bounded to the admin query row limits; a truncated result is labeled incomplete.",
+      },
+      notes: [
+        "Counts come from an authenticated first-touch claim and are not independently verified by TikTok analytics.",
+        "Non-new claims include existing-profile re-engagement and late claims after signup; they are not a pure repeat-user measure.",
+        "Active paid profiles reflect current subscription truth at report time, not payments or paid conversions during this window.",
+        "Unattributed profiles and cross-device visits cannot be assigned to TikTok from this report.",
+      ],
+    });
+  } catch (error: any) {
+    if (isMissingAttributionSchemaError(error)) {
+      return res.status(200).json(attributionUnavailableResponse(window));
+    }
+    console.error("Error building attribution report:", error);
+    return res
+      .status(500)
+      .json({ error: "Unable to build attribution report" });
+  }
 }
 
 async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {

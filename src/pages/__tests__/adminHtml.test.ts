@@ -402,6 +402,41 @@ function buildAdminHarness() {
       let body: unknown = usage;
       if (url.includes("auth-check")) body = { ok: true };
       if (url.includes("list-users")) body = users;
+      if (url.includes("attribution-report")) {
+        body = {
+          available: true,
+          status: "ok",
+          window: {
+            start: "2026-06-01T12:00:00.000Z",
+            end: now,
+          },
+          tiktok: {
+            captured: 2,
+            newSignups: 1,
+            activated: 1,
+            nonNewClaims: 1,
+            activePaidProfiles: 1,
+          },
+          cohorts: [
+            {
+              source: "tiktok",
+              campaign: "profile",
+              captured: 2,
+              newSignups: 1,
+              activated: 1,
+              nonNewClaims: 1,
+              activePaidProfiles: 1,
+            },
+          ],
+          unknown: { profiles: 3, crossDeviceUnobservable: true },
+          measurement: {
+            userLevel: "authenticated_client_claim",
+            platformVerified: false,
+            platformProof: "not_connected",
+          },
+          completeness: { truncated: false },
+        };
+      }
       if (url.includes("view-logs")) body = logs;
       if (url.includes("log-detail")) {
         const id = new URL(url, "https://admin.test").searchParams.get("id");
@@ -488,6 +523,7 @@ describe("admin HTML", () => {
     for (const view of [
       "costs",
       "reports",
+      "acquisition",
       "logs",
       "users",
       "emails",
@@ -499,6 +535,12 @@ describe("admin HTML", () => {
       await context.loadView(view);
       expect(content.innerHTML, view).not.toContain("Error loading view");
       expect(content.innerHTML.length, view).toBeGreaterThan(1000);
+      if (view === "acquisition") {
+        expect(content.innerHTML).toContain("TikTok acquisition evidence");
+        expect(content.innerHTML).toContain("Non-new claims");
+        expect(content.innerHTML).toContain("Currently active paid profiles");
+        expect(content.innerHTML).toContain("Unknowns");
+      }
     }
 
     expect(content.innerHTML).toContain('src="/welcome/en"');
@@ -640,6 +682,7 @@ describe("admin HTML", () => {
 
     expect(html).toContain('href="/admin/logs"');
     expect(html).toContain('href="/admin/users"');
+    expect(html).toContain('href="/admin/acquisition"');
     expect(html).toContain('href="/ui-components"');
     expect(html).not.toContain("localhost:");
 

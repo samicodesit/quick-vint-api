@@ -2,6 +2,46 @@
   const API_BASE = "https://autolister.app";
   const EXTENSION_ID = "mommklhpammnlojjobejddmidmdcalcl";
   const SUCCESS_CLOSE_DELAY_MS = 3400;
+  const ATTRIBUTION_CLAIM_TIMEOUT_MS = 1500;
+  const FIRST_TOUCH_STORAGE_KEY = "autolister.first_touch.v1";
+  const ATTRIBUTION_SOURCES = new Set([
+    "tiktok",
+    "instagram",
+    "youtube",
+    "facebook",
+    "linkedin",
+    "reddit",
+    "google",
+    "direct",
+    "unknown",
+  ]);
+  const ATTRIBUTION_MEDIA = new Set([
+    "organic_social",
+    "paid_social",
+    "referral",
+    "search",
+    "email",
+    "direct",
+    "unknown",
+  ]);
+  const ATTRIBUTION_REFERRERS = new Set([
+    "tiktok.com",
+    "www.tiktok.com",
+    "vm.tiktok.com",
+    "instagram.com",
+    "www.instagram.com",
+    "youtube.com",
+    "www.youtube.com",
+    "youtu.be",
+    "facebook.com",
+    "www.facebook.com",
+    "linkedin.com",
+    "www.linkedin.com",
+    "reddit.com",
+    "www.reddit.com",
+    "google.com",
+    "www.google.com",
+  ]);
 
   const cardEl = document.getElementById("authCallbackCard");
   const statusEl = document.getElementById("authCallbackStatus");
@@ -12,6 +52,119 @@
     if (cardEl && state) cardEl.dataset.state = state;
     if (statusEl) statusEl.textContent = message;
     if (copyEl && copy) copyEl.textContent = copy;
+  }
+
+  function normalizeAttributionSlug(value) {
+    if (typeof value !== "string") return null;
+    const normalized = value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80);
+    return normalized || null;
+  }
+
+  function readFirstTouchAttribution() {
+    try {
+      const raw = window.localStorage?.getItem(FIRST_TOUCH_STORAGE_KEY);
+      if (!raw) return null;
+      const value = JSON.parse(raw);
+      if (!value || typeof value !== "object" || Array.isArray(value))
+        return null;
+      const source = typeof value.source === "string" ? value.source : "";
+      const medium = typeof value.medium === "string" ? value.medium : "";
+      const capturedAt =
+        typeof value.capturedAt === "string" &&
+        Number.isFinite(Date.parse(value.capturedAt))
+          ? new Date(value.capturedAt).toISOString()
+          : null;
+      if (!ATTRIBUTION_SOURCES.has(source) || !ATTRIBUTION_MEDIA.has(medium)) {
+        return null;
+      }
+      if (!capturedAt) return null;
+
+      let referrerHost = null;
+      if (typeof value.referrerHost === "string") {
+        const candidate = value.referrerHost
+          .trim()
+          .toLowerCase()
+          .replace(/\.$/, "");
+        if (ATTRIBUTION_REFERRERS.has(candidate)) referrerHost = candidate;
+      }
+
+      return {
+        source,
+        medium,
+        campaign: normalizeAttributionSlug(value.campaign),
+        content: normalizeAttributionSlug(value.content),
+        capturedAt,
+        referrerHost,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function removeFirstTouchAttribution() {
+    try {
+      window.localStorage?.removeItem(FIRST_TOUCH_STORAGE_KEY);
+    } catch {
+      // Storage is optional. A failed cleanup must not affect authentication.
+    }
+  }
+
+  function claimFirstTouchAttribution(session) {
+    const attribution = readFirstTouchAttribution();
+    if (!attribution || typeof session?.access_token !== "string") {
+      return Promise.resolve(false);
+    }
+
+    let controller = null;
+    let timeoutId = null;
+    if (typeof AbortController === "function") {
+      controller = new AbortController();
+      timeoutId = setTimeout(
+        () => controller.abort(),
+        ATTRIBUTION_CLAIM_TIMEOUT_MS,
+      );
+    }
+
+    const request = {
+      method: "POST",
+      keepalive: true,
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ attribution }),
+      ...(controller ? { signal: controller.signal } : {}),
+    };
+
+    let claimRequest;
+    try {
+      claimRequest = fetch(`${API_BASE}/api/attribution/claim`, request);
+    } catch {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      return Promise.resolve(false);
+    }
+
+    return claimRequest
+      .then((response) => {
+        if (response?.ok) {
+          removeFirstTouchAttribution();
+          return true;
+        }
+        if (response?.status === 400) {
+          removeFirstTouchAttribution();
+        }
+        return false;
+      })
+      .catch(() => false)
+      .finally(() => {
+        if (timeoutId !== null) clearTimeout(timeoutId);
+      });
   }
 
   function getParams() {
@@ -87,22 +240,23 @@
         return;
       }
 
-      chrome.runtime.sendMessage(
-        EXTENSION_ID,
-        { type: "AUTH_HANDOFF", closeDelayMs: SUCCESS_CLOSE_DELAY_MS, session },
-        (response) => {
-          const lastError = chrome.runtime.lastError;
-          if (lastError) {
-            reject(new Error(lastError.message || "extension_handoff_failed"));
-            return;
-          }
-          if (!response?.ok) {
-            reject(new Error(response?.error || "extension_handoff_rejected"));
-            return;
-          }
-          resolve(response);
-        },
-      );
+      const message = {
+        type: "AUTH_HANDOFF",
+        closeDelayMs: SUCCESS_CLOSE_DELAY_MS,
+        session,
+      };
+      chrome.runtime.sendMessage(EXTENSION_ID, message, (response) => {
+        const lastError = chrome.runtime.lastError;
+        if (lastError) {
+          reject(new Error(lastError.message || "extension_handoff_failed"));
+          return;
+        }
+        if (!response?.ok) {
+          reject(new Error(response?.error || "extension_handoff_rejected"));
+          return;
+        }
+        resolve(response);
+      });
     });
   }
 
@@ -167,6 +321,9 @@
       return;
     }
     clearAuthParamsFromUrl();
+    // Claim in the website while the magic-link bearer is available. This is
+    // deliberately independent of extension messaging, and never gates auth.
+    void claimFirstTouchAttribution(session);
 
     try {
       track("auth_extension_handoff_started");

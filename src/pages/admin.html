@@ -2009,6 +2009,17 @@
                         <span class="nav-meta">User feedback from listing tools</span>
                     </span>
                 </a>
+                <a class="nav-item" data-view="acquisition" href="/admin/acquisition" onclick="return handleAdminNav(event, 'acquisition')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"></path>
+                        <path d="m7 16 4-5 3 3 5-7"></path>
+                    </svg>
+                    <span class="nav-copy">
+                        <span class="nav-label">Acquisition</span>
+                        <span class="nav-meta">Source, activation, and paid outcomes</span>
+                    </span>
+                </a>
                 <a class="nav-item active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2122,6 +2133,7 @@
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
             <a class="mobile-bottom-btn" data-view="costs" href="/admin/costs" onclick="return handleAdminNav(event, 'costs')">Costs</a>
             <a class="mobile-bottom-btn" data-view="reports" href="/admin/reports" onclick="return handleAdminNav(event, 'reports')">Reports</a>
+            <a class="mobile-bottom-btn" data-view="acquisition" href="/admin/acquisition" onclick="return handleAdminNav(event, 'acquisition')">Acquisition</a>
             <a class="mobile-bottom-btn active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">Logs</a>
             <a class="mobile-bottom-btn" data-view="users" href="/admin/users" onclick="return handleAdminNav(event, 'users')">Users</a>
             <a class="mobile-bottom-btn" data-view="emails" href="/admin/emails" onclick="return handleAdminNav(event, 'emails')">Emails</a>
@@ -2158,7 +2170,7 @@
     </div>
 
     <script>
-        const ADMIN_VIEWS = ['costs', 'reports', 'logs', 'users', 'emails', 'ui-pages'];
+        const ADMIN_VIEWS = ['costs', 'reports', 'acquisition', 'logs', 'users', 'emails', 'ui-pages'];
         // State Management
         const state = {
             secret: '',
@@ -2410,6 +2422,11 @@
                     subtitle: 'Feedback and complaints submitted from the Vinted listing tools.',
                     loading: 'Loading submitted reports...'
                 },
+                acquisition: {
+                    title: 'Acquisition',
+                    subtitle: 'Authenticated first-touch source evidence and downstream outcomes.',
+                    loading: 'Loading acquisition evidence...'
+                },
                 logs: {
                     title: 'Logs',
                     subtitle: 'Raw generation, system, and event logs for debugging user problems.',
@@ -2482,6 +2499,7 @@
             try {
                 if (view === 'costs') await renderCosts(content);
                 else if (view === 'reports') await renderReports(content);
+                else if (view === 'acquisition') await renderAcquisition(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
                 else if (view === 'emails') await renderEmails(content);
@@ -2793,6 +2811,101 @@
             const amount = Number(value);
             if (!Number.isFinite(amount)) return 'n/a';
             return `${amount.toFixed(1)}%`;
+        }
+
+        async function renderAcquisition(container) {
+            const data = await fetchAPI('/api/admin?action=attribution-report&days=30');
+            if (!data.available || data.status === 'unavailable') {
+                container.innerHTML = `
+                    <div class="view-brief">
+                        <div class="view-brief-top">
+                            <div>
+                                <div class="view-brief-title">Acquisition evidence is unavailable</div>
+                                <div class="view-brief-copy">${escapeHtml(data.message || 'The attribution schema is not available in this environment yet.')}</div>
+                            </div>
+                            <span class="badge badge-warning">Unavailable</span>
+                        </div>
+                    </div>
+                    <div class="card" style="padding:1.25rem;">
+                        <div class="text-sm text-muted">No zero has been substituted. Apply the attribution migration, then refresh this view.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const tiktok = data.tiktok || {};
+            const unknown = data.unknown || {};
+            const measurement = data.measurement || {};
+            const completeness = data.completeness || {};
+            const cohorts = Array.isArray(data.cohorts) ? data.cohorts : [];
+            const count = value => Number(value || 0).toLocaleString();
+            const window = data.window || {};
+            const rangeCopy = window.start && window.end
+                ? `${formatDateTime(window.start)} to ${formatDateTime(window.end)}`
+                : 'Last 30 days';
+            const cohortRows = cohorts.length ? cohorts.map(cohort => `
+                <tr>
+                    <td><strong>${escapeHtml(cohort.source || 'unknown')}</strong></td>
+                    <td>${escapeHtml(cohort.campaign || 'Unspecified')}</td>
+                    <td>${count(cohort.captured)}</td>
+                    <td>${count(cohort.newSignups)}</td>
+                    <td>${count(cohort.activated)}</td>
+                    <td>${count(cohort.nonNewClaims)}</td>
+                    <td>${count(cohort.activePaidProfiles)}</td>
+                </tr>
+            `).join('') : '<tr><td colspan="7"><div class="empty-state">No authenticated source claims in this window.</div></td></tr>';
+
+            container.innerHTML = `
+                <div class="view-brief">
+                    <div class="view-brief-top">
+                        <div>
+                            <div class="view-brief-title">TikTok acquisition evidence</div>
+                            <div class="view-brief-copy">${escapeHtml(rangeCopy)} · landing claims, new profiles, successful generation, non-new claims, and current paid status are kept separate.</div>
+                        </div>
+                        <span class="badge badge-neutral">${escapeHtml(measurement.userLevel || 'Authenticated claim')}</span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:0.85rem; margin-bottom:1rem;">
+                    ${[
+                        ['TikTok claims', tiktok.captured],
+                        ['New signups', tiktok.newSignups],
+                        ['Activated', tiktok.activated],
+                        ['Non-new claims', tiktok.nonNewClaims],
+                        ['Currently active paid profiles', tiktok.activePaidProfiles]
+                    ].map(([label, value]) => `
+                        <div class="card" style="padding:1rem;">
+                            <div class="text-sm text-muted">${label}</div>
+                            <div style="font-size:1.8rem; font-weight:800; margin-top:0.35rem;">${count(value)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="card" style="margin-bottom:1rem;">
+                    <div style="padding:1rem 1rem 0.75rem;">
+                        <div class="card-title">Source cohorts</div>
+                        <div class="text-sm text-muted">Non-new claims combine existing-profile re-engagement with late claims after signup. Current paid status is not a payment or conversion count for this window.</div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Source</th><th>Campaign</th><th>Claims</th><th>New signups</th><th>Activated</th><th>Non-new claims</th><th>Current paid status</th></tr></thead>
+                            <tbody>${cohortRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem;">
+                    <div class="card" style="padding:1rem;">
+                        <div class="card-title">Unknowns</div>
+                        <div style="font-size:1.6rem; font-weight:800; margin:0.35rem 0;">${count(unknown.profiles)}</div>
+                        <div class="text-sm text-muted">Profiles created in this window without a matching source claim.</div>
+                    </div>
+                    <div class="card" style="padding:1rem;">
+                        <div class="card-title">Evidence limits</div>
+                        <div class="text-sm text-muted">${completeness.truncated ? 'Incomplete bounded sample. Refresh after narrowing the window.' : ''} ${measurement.platformVerified ? 'Platform verified' : 'TikTok platform analytics are not connected.'} Cross-device visits remain unobservable.</div>
+                    </div>
+                </div>
+            `;
         }
 
         async function renderCosts(container) {

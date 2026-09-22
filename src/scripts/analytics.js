@@ -1,3 +1,5 @@
+import { captureFirstTouch } from "./attribution.js";
+
 const KNOWN_UTM_KEYS = [
   "utm_source",
   "utm_medium",
@@ -5,6 +7,8 @@ const KNOWN_UTM_KEYS = [
   "utm_content",
   "utm_term",
 ];
+
+captureFirstTouch();
 
 function getUtmParams() {
   const params = new URLSearchParams(window.location.search);

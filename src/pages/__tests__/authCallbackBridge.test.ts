@@ -6,10 +6,24 @@ import { describe, expect, it } from "vitest";
 async function runBridge(
   href: string,
   extensionResponse: unknown,
-  options: { lastError?: { message: string } | null } = {},
+  options: {
+    lastError?: { message: string } | null;
+    storage?: {
+      getItem: (key: string) => string | null;
+      removeItem?: (key: string) => void;
+    };
+    fetch?: (
+      url: string,
+      options: { body?: string; headers?: Record<string, string> },
+    ) => Promise<{ ok: boolean; status?: number }>;
+  } = {},
 ) {
   const events: unknown[] = [];
   const messages: unknown[] = [];
+  const requests: {
+    url: string;
+    options: { body?: string; headers?: Record<string, string> };
+  }[] = [];
   const replacedUrls: string[] = [];
   const timers: { delay: number; callback: () => void }[] = [];
   const elements = new Map<
@@ -57,6 +71,7 @@ async function runBridge(
     },
     window: {
       location: new URL(href),
+      localStorage: options.storage || { getItem: () => null },
       addEventListener() {},
       history: {
         replaceState(_state: unknown, _title: string, url: string) {
@@ -79,9 +94,14 @@ async function runBridge(
         lastError: null as { message: string } | null,
       },
     },
-    fetch: async (_url: string, options: { body?: string }) => {
-      events.push(JSON.parse(String(options.body || "{}")));
-      return { ok: true };
+    fetch: async (
+      _url: string,
+      fetchOptions: { body?: string; headers?: Record<string, string> },
+    ) => {
+      requests.push({ url: _url, options: fetchOptions });
+      events.push(JSON.parse(String(fetchOptions.body || "{}")));
+      if (options.fetch) return options.fetch(_url, fetchOptions);
+      return { ok: true, status: 200 };
     },
   };
   (context.window as any).window = context.window;
@@ -98,6 +118,7 @@ async function runBridge(
   return {
     events,
     messages,
+    requests,
     replacedUrls,
     elements,
     timers,
@@ -136,6 +157,95 @@ describe("auth callback bridge", () => {
     ]);
     expect(elements.get("authCountdown")?.textContent).toBe("3");
     expect(timers[0].delay).toBe(1000);
+  });
+
+  it("claims first touch on the website without changing extension handoff data", async () => {
+    const removedKeys: string[] = [];
+    const { messages, requests } = await runBridge(
+      "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1",
+      { ok: true },
+      {
+        storage: {
+          getItem: (key) =>
+            key === "autolister.first_touch.v1"
+              ? JSON.stringify({
+                  source: "tiktok",
+                  medium: "organic_social",
+                  campaign: "profile-link",
+                  content: "comment-1",
+                  capturedAt: "2026-09-22T10:00:00.000Z",
+                  referrerHost: "www.tiktok.com",
+                  ignored: "secret",
+                })
+              : null,
+          removeItem: (key) => removedKeys.push(key),
+        },
+      },
+    );
+
+    expect(messages).toEqual([
+      {
+        extensionId: "mommklhpammnlojjobejddmidmdcalcl",
+        message: {
+          type: "AUTH_HANDOFF",
+          closeDelayMs: 3400,
+          session: {
+            access_token: "access-1",
+            expires_in: undefined,
+            refresh_token: "refresh-1",
+            token_type: "bearer",
+          },
+        },
+      },
+    ]);
+    const claim = requests.find(({ url }) =>
+      url.endsWith("/api/attribution/claim"),
+    );
+    expect(claim).toBeDefined();
+    expect(claim?.options.headers).toEqual({
+      "Content-Type": "application/json",
+      Authorization: "Bearer access-1",
+    });
+    expect(JSON.parse(String(claim?.options.body))).toEqual({
+      attribution: {
+        source: "tiktok",
+        medium: "organic_social",
+        campaign: "profile-link",
+        content: "comment-1",
+        capturedAt: "2026-09-22T10:00:00.000Z",
+        referrerHost: "www.tiktok.com",
+      },
+    });
+    expect(removedKeys).toEqual(["autolister.first_touch.v1"]);
+    expect(JSON.stringify(messages[0])).not.toContain("secret");
+  });
+
+  it("keeps the auth handoff successful when the website claim fails", async () => {
+    const { messages } = await runBridge(
+      "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1",
+      { ok: true },
+      {
+        storage: {
+          getItem: () =>
+            JSON.stringify({
+              source: "tiktok",
+              medium: "organic_social",
+              capturedAt: "2026-09-22T10:00:00.000Z",
+            }),
+        },
+        fetch: async (url) => {
+          if (url.endsWith("/api/attribution/claim")) {
+            throw new Error("offline");
+          }
+          return { ok: true, status: 200 };
+        },
+      },
+    );
+
+    expect(messages[0]).toEqual({
+      extensionId: "mommklhpammnlojjobejddmidmdcalcl",
+      message: expect.objectContaining({ type: "AUTH_HANDOFF" }),
+    });
   });
 
   it("logs a hard handoff error when the extension rejects the session", async () => {

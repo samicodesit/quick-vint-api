@@ -6,11 +6,29 @@ import { handleCheckoutCors } from "../../utils/checkoutCors";
 import {
   createBillingPortalSessionForProfile,
   findManageableBillingByEmail,
+  findManageableSubscriptionForCustomer,
 } from "../../utils/stripeBillingPortal";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import {
+  getMobilePortalReturnUrl,
+  MobileBillingRequestError,
+  resolveMobileBillingProfile,
+} from "../../utils/mobileCheckout";
+import { getMobileWebClient, MOBILE_WEB_CLIENT } from "../../utils/mobileWeb";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const RETURN_URL = process.env.STRIPE_PORTAL_RETURN_URL!;
+
+function isMobileWebRequest(req: VercelRequest) {
+  const value = req.headers?.["x-autolister-client"];
+  const client = Array.isArray(value) ? value[0] : value;
+  return getMobileWebClient(client) === MOBILE_WEB_CLIENT;
+}
+
+function getRequestOrigin(req: VercelRequest) {
+  const value = req.headers?.origin;
+  return Array.isArray(value) ? value[0] : value;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!(await handleCheckoutCors(req, res))) return;
@@ -26,6 +44,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = {};
 
   try {
+    if (isMobileWebRequest(req)) {
+      const profile = await resolveMobileBillingProfile(req);
+      let customerId = profile.stripe_customer_id;
+      let subscriptionId = profile.stripe_subscription_id;
+      alertContext = { customerId, subscriptionId };
+
+      if (!customerId) {
+        return res
+          .status(400)
+          .json({ error: "No Stripe customer on file for this user." });
+      }
+
+      if (!subscriptionId) {
+        const manageableSubscription =
+          await findManageableSubscriptionForCustomer(stripe, customerId);
+        subscriptionId = manageableSubscription?.id || null;
+      }
+
+      const portalSession = await createBillingPortalSessionForProfile({
+        stripe,
+        email: profile.email,
+        customerId,
+        subscriptionId,
+        returnUrl: getMobilePortalReturnUrl(getRequestOrigin(req)),
+        context: "create_portal_mobile",
+      });
+
+      return res.status(200).json({ url: portalSession.url });
+    }
+
     const { email } = req.body as { email: string };
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return res.status(400).json({ error: "A valid email is required." });
@@ -72,6 +120,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 3) Return the URL to the popup
     return res.status(200).json({ url: portalSession.url });
   } catch (err: any) {
+    if (err instanceof MobileBillingRequestError) {
+      return res.status(err.statusCode).json({
+        error: err.message,
+        code: err.code,
+      });
+    }
+
     console.error("❌ create-portal error:", err);
     reportCriticalEndpointFailure({
       endpoint: "/api/stripe/create-portal",

@@ -13,6 +13,13 @@ import {
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 import { verifyPricingOfferToken } from "../../utils/pricingOfferToken";
 import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
+import {
+  getMobileCheckoutUrls,
+  getMobilePortalReturnUrl,
+  MobileBillingRequestError,
+  resolveMobileBillingProfile,
+} from "../../utils/mobileCheckout";
+import { getMobileWebClient, MOBILE_WEB_CLIENT } from "../../utils/mobileWeb";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
@@ -34,6 +41,17 @@ function pricingOfferError(message: string) {
   const error = new Error(message);
   error.name = "PricingOfferError";
   return error;
+}
+
+function isMobileWebRequest(req: VercelRequest) {
+  const value = req.headers?.["x-autolister-client"];
+  const client = Array.isArray(value) ? value[0] : value;
+  return getMobileWebClient(client) === MOBILE_WEB_CLIENT;
+}
+
+function getRequestOrigin(req: VercelRequest) {
+  const value = req.headers?.origin;
+  return Array.isArray(value) ? value[0] : value;
 }
 
 async function getOfferPromotionCodeId(
@@ -123,6 +141,153 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = {};
 
   try {
+    if (isMobileWebRequest(req)) {
+      const profile = await resolveMobileBillingProfile(req);
+      const body = (req.body || {}) as {
+        tier?: unknown;
+        offerToken?: unknown;
+        utm?: unknown;
+      };
+      const tier = body.tier;
+      alertContext = {
+        userId: profile.id,
+        tier: typeof tier === "string" ? tier : undefined,
+        source: "mobile_web",
+      };
+
+      if (
+        typeof tier !== "string" ||
+        !PAID_TIERS.has(tier) ||
+        !Object.prototype.hasOwnProperty.call(TIER_CONFIGS, tier)
+      ) {
+        return res.status(400).json({ error: "Invalid tier specified." });
+      }
+
+      const tierKey = tier as keyof typeof TIER_CONFIGS;
+      const tierConfig = TIER_CONFIGS[tierKey];
+      const priceId = tierConfig.stripe.priceId;
+      const offerToken =
+        typeof body.offerToken === "string" ? body.offerToken : undefined;
+      const utm =
+        body.utm && typeof body.utm === "object"
+          ? (body.utm as Record<string, unknown>)
+          : {};
+
+      let promotionCodeId: string | null = null;
+      try {
+        promotionCodeId = await getOfferPromotionCodeId(
+          profile.email,
+          tier,
+          offerToken,
+        );
+      } catch (offerErr: any) {
+        if (offerErr?.name === "PricingOfferError") {
+          return res.status(400).json({
+            error: offerErr.message || "Offer is no longer available.",
+          });
+        }
+        throw offerErr;
+      }
+
+      let customerId = profile.stripe_customer_id;
+      let activeSubscriptionId: string | null = null;
+      if (
+        hasPaidEntitlementStatus(profile.subscription_status) &&
+        profile.subscription_tier !== "free" &&
+        profile.stripe_subscription_id
+      ) {
+        activeSubscriptionId = profile.stripe_subscription_id;
+      }
+
+      if (customerId) {
+        try {
+          await stripe.customers.retrieve(customerId);
+        } catch (stripeErr: any) {
+          console.warn(
+            "Stored mobile customer not found, will create new:",
+            stripeErr?.message || stripeErr,
+          );
+          customerId = null;
+          activeSubscriptionId = null;
+        }
+      }
+
+      if (customerId && !activeSubscriptionId) {
+        const manageableSubscription =
+          await findManageableSubscriptionForCustomer(stripe, customerId);
+        if (manageableSubscription) {
+          activeSubscriptionId = manageableSubscription.id;
+        }
+      }
+
+      if (customerId && activeSubscriptionId) {
+        const portalSession = await createBillingPortalSessionForProfile({
+          stripe,
+          email: profile.email,
+          customerId,
+          subscriptionId: activeSubscriptionId,
+          returnUrl: getMobilePortalReturnUrl(getRequestOrigin(req)),
+          context: "create_checkout_mobile_active_subscriber_guard",
+        });
+
+        return res.status(200).json({
+          url: portalSession.url,
+          mode: "portal",
+          reason: "existing_active_subscription",
+        });
+      }
+
+      if (!customerId) {
+        const newCustomer = await stripe.customers.create({
+          email: profile.email,
+          metadata: { source: "mobile_web" },
+        });
+        customerId = newCustomer.id;
+
+        const { error: updateErr } = await supabase
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("id", profile.id);
+
+        if (updateErr) {
+          console.error(
+            "Error saving new mobile stripe_customer_id:",
+            updateErr,
+          );
+        }
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: priceId, quantity: 1 }],
+        customer: customerId,
+        success_url: getMobileCheckoutUrls({
+          origin: getRequestOrigin(req),
+          status: "success",
+        }),
+        cancel_url: getMobileCheckoutUrls({
+          origin: getRequestOrigin(req),
+          status: "cancel",
+        }),
+        ...(promotionCodeId
+          ? { discounts: [{ promotion_code: promotionCodeId }] }
+          : { allow_promotion_codes: true }),
+        metadata: {
+          source: "mobile_web",
+          tier,
+          utm_source: typeof utm.utm_source === "string" ? utm.utm_source : "",
+          utm_medium: typeof utm.utm_medium === "string" ? utm.utm_medium : "",
+          utm_campaign:
+            typeof utm.utm_campaign === "string" ? utm.utm_campaign : "",
+          utm_content:
+            typeof utm.utm_content === "string" ? utm.utm_content : "",
+          utm_term: typeof utm.utm_term === "string" ? utm.utm_term : "",
+        },
+      });
+
+      return res.status(200).json({ url: session.url });
+    }
+
     const {
       email: requestEmail,
       tier,
@@ -305,6 +470,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
+    if (err instanceof MobileBillingRequestError) {
+      return res.status(err.statusCode).json({
+        error: err.message,
+        code: err.code,
+      });
+    }
+
     console.error("❌ create-checkout error:", err);
     reportCriticalEndpointFailure({
       endpoint: "/api/stripe/create-checkout",

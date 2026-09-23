@@ -1,0 +1,225 @@
+---
+import {
+  getMobileLanguageFlagUrl,
+  getMobileOutputLanguage,
+  SUPPORTED_OUTPUT_LANGUAGES,
+} from "../../utils/mobileOutputLanguages";
+import type { DescriptionLength } from "../../app/mobile-web/formatting";
+
+export interface Props {
+  selectedTitleLanguageCode?: string;
+  selectedDescriptionLanguageCode?: string;
+  descriptionLength?: DescriptionLength;
+  useBulletPoints?: boolean;
+}
+
+const {
+  selectedTitleLanguageCode = "en",
+  selectedDescriptionLanguageCode = "en",
+  descriptionLength = "long",
+  useBulletPoints = true,
+} = Astro.props;
+
+const titleLanguage =
+  getMobileOutputLanguage(selectedTitleLanguageCode) ?? SUPPORTED_OUTPUT_LANGUAGES[0];
+const descriptionLanguage =
+  getMobileOutputLanguage(selectedDescriptionLanguageCode) ??
+  SUPPORTED_OUTPUT_LANGUAGES[0];
+---
+
+<section class="mobile-listing-controls" data-mobile-listing-controls>
+  <div class="mobile-listing-language-grid">
+    <div class="mobile-listing-control" data-mobile-language-control="title">
+      <label class="mobile-listing-control-label" for="mobile-title-language-trigger">
+        Title language
+      </label>
+      <button
+        id="mobile-title-language-trigger"
+        type="button"
+        class="mobile-language-trigger"
+        data-mobile-language-trigger="title"
+        data-value={titleLanguage.code}
+        aria-haspopup="listbox"
+        aria-expanded="false"
+      >
+        <span class="mobile-language-trigger-value">
+          <img
+            src={getMobileLanguageFlagUrl(titleLanguage)}
+            srcset={`${getMobileLanguageFlagUrl(titleLanguage)} 1x`}
+            width="20"
+            height="15"
+            alt=""
+            referrerpolicy="no-referrer"
+            class="mobile-language-flag"
+          />
+          <span data-mobile-language-label="title">{titleLanguage.label}</span>
+        </span>
+        <svg class="mobile-language-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <div
+        class="mobile-language-menu"
+        data-mobile-language-menu="title"
+        role="listbox"
+        aria-label="Title language"
+        hidden
+      >
+        {
+          SUPPORTED_OUTPUT_LANGUAGES.map((language) => (
+            <button
+              type="button"
+              class:list={{ "is-selected": language.code === titleLanguage.code }}
+              class="mobile-language-option"
+              data-mobile-language-option="title"
+              data-value={language.code}
+              role="option"
+              aria-selected={language.code === titleLanguage.code}
+            >
+              <img
+                src={getMobileLanguageFlagUrl(language)}
+                width="20"
+                height="15"
+                alt=""
+                referrerpolicy="no-referrer"
+                loading="lazy"
+                class="mobile-language-flag"
+              />
+              <span>{language.label}</span>
+              {language.code === titleLanguage.code && (
+                <svg class="mobile-language-check" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              )}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="mobile-listing-control" data-mobile-language-control="description">
+      <label class="mobile-listing-control-label" for="mobile-description-language-trigger">
+        Description language
+      </label>
+      <button
+        id="mobile-description-language-trigger"
+        type="button"
+        class="mobile-language-trigger"
+        data-mobile-language-trigger="description"
+        data-value={descriptionLanguage.code}
+        aria-haspopup="listbox"
+        aria-expanded="false"
+      >
+        <span class="mobile-language-trigger-value">
+          <img
+            src={getMobileLanguageFlagUrl(descriptionLanguage)}
+            srcset={`${getMobileLanguageFlagUrl(descriptionLanguage)} 1x`}
+            width="20"
+            height="15"
+            alt=""
+            referrerpolicy="no-referrer"
+            class="mobile-language-flag"
+          />
+          <span data-mobile-language-label="description">{descriptionLanguage.label}</span>
+        </span>
+        <svg class="mobile-language-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <div
+        class="mobile-language-menu"
+        data-mobile-language-menu="description"
+        role="listbox"
+        aria-label="Description language"
+        hidden
+      >
+        {
+          SUPPORTED_OUTPUT_LANGUAGES.map((language) => (
+            <button
+              type="button"
+              class:list={{ "is-selected": language.code === descriptionLanguage.code }}
+              class="mobile-language-option"
+              data-mobile-language-option="description"
+              data-value={language.code}
+              role="option"
+              aria-selected={language.code === descriptionLanguage.code}
+            >
+              <img
+                src={getMobileLanguageFlagUrl(language)}
+                width="20"
+                height="15"
+                alt=""
+                referrerpolicy="no-referrer"
+                loading="lazy"
+                class="mobile-language-flag"
+              />
+              <span>{language.label}</span>
+              {language.code === descriptionLanguage.code && (
+                <svg class="mobile-language-check" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              )}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <button
+    type="button"
+    class="mobile-format-summary"
+    data-mobile-format-sheet-trigger
+    aria-haspopup="dialog"
+    aria-expanded="false"
+  >
+    <span class="mobile-format-summary-copy">
+      <span class="mobile-listing-control-label">Description style</span>
+      <span data-mobile-format-summary>
+        {descriptionLength === "long" ? "Long" : "Short"} · {useBulletPoints ? "Bullet points" : "Paragraphs"}
+      </span>
+    </span>
+    <svg class="mobile-language-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </button>
+
+  <div class="mobile-format-sheet" data-mobile-format-sheet hidden>
+    <div class="mobile-format-sheet-handle" aria-hidden="true"></div>
+    <h2 class="mobile-format-sheet-title">Description style</h2>
+
+    <fieldset class="mobile-format-group" data-mobile-format-group="length">
+      <legend>Description length</legend>
+      <div class="mobile-format-segmented">
+        <button type="button" class:list={{ "is-selected": descriptionLength === "short" }} class="mobile-format-option" data-mobile-format-option="length" data-value="short" aria-pressed={descriptionLength === "short"}>
+          Short
+        </button>
+        <button type="button" class:list={{ "is-selected": descriptionLength === "long" }} class="mobile-format-option" data-mobile-format-option="length" data-value="long" aria-pressed={descriptionLength === "long"}>
+          Long
+        </button>
+      </div>
+    </fieldset>
+
+    <fieldset class="mobile-format-group" data-mobile-format-group="shape">
+      <legend>Format</legend>
+      <div class="mobile-format-segmented">
+        <button type="button" class:list={{ "is-selected": useBulletPoints }} class="mobile-format-option" data-mobile-format-option="shape" data-value="bullets" aria-pressed={useBulletPoints}>
+          <span class="format-icon" aria-hidden="true">
+            <span class="format-icon-bullet"><span></span></span>
+            <span class="format-icon-bullet"><span></span></span>
+            <span class="format-icon-bullet"><span></span></span>
+          </span>
+          <span>Bullet points</span>
+        </button>
+        <button type="button" class:list={{ "is-selected": !useBulletPoints }} class="mobile-format-option" data-mobile-format-option="shape" data-value="paragraphs" aria-pressed={!useBulletPoints}>
+          <span class="format-icon format-icon-para" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </span>
+          <span>Paragraphs</span>
+        </button>
+      </div>
+    </fieldset>
+
+    <button type="button" class="mobile-format-done" data-mobile-format-done>Done</button>
+  </div>
+</section>

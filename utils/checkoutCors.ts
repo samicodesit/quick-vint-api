@@ -1,28 +1,17 @@
 import Cors from "cors";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-
-const vintedOriginPattern =
-  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
-
-const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
-const allowedOrigins = rawOrigins
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+import { isAllowedAppOrigin, isAllowedVintedOrigin } from "./allowedOrigins";
 
 const checkoutCors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
-    if (incomingOrigin === "https://autolister.app")
-      return callback(null, true);
-    if (incomingOrigin === "https://www.autolister.app")
-      return callback(null, true);
-    if (allowedOrigins.includes(incomingOrigin)) return callback(null, true);
-    if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
+    if (isAllowedAppOrigin(incomingOrigin)) return callback(null, true);
+    if (isAllowedVintedOrigin(incomingOrigin)) return callback(null, true);
     return callback(new Error("CORS origin denied for checkout"), false);
   },
   methods: ["POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Autolister-Client"],
+  preflightContinue: true,
 });
 
 export function runCheckoutCors(req: VercelRequest, res: VercelResponse) {

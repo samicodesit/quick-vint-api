@@ -12,10 +12,7 @@ import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
 import { detectAndPauseDuplicateIpAccount } from "../utils/duplicateIpAutoPause";
 import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
-import {
-  getEffectiveTier,
-  getPricingLimitsModeForExtension,
-} from "../utils/tierConfig";
+import { getEffectiveTier } from "../utils/tierConfig";
 import {
   buildAccountPausedResponse,
   isAccountPaused,
@@ -42,6 +39,11 @@ import { prepareOpenAIImageUrls } from "../utils/openaiImageUrls";
 import { validateAiInstructions } from "../utils/aiInstructions";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 import { shouldStoreDebugGenerationImages } from "../utils/debugGenerationImages";
+import {
+  isAllowedAppOrigin,
+  isAllowedVintedOrigin,
+  getPricingLimitsModeForClient,
+} from "../utils/mobileWeb";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -52,21 +54,11 @@ const OPEN_AI_MAX_OUTPUT_TOKENS = 1000;
 const DEBUG_IMAGE_BUCKET = "temp-uploads";
 const DEBUG_IMAGE_MAX_COUNT = 8;
 const DEBUG_IMAGE_MAX_BYTES = 1_500_000;
-// allow vinted page origins (so extension fetch from page context works)
-const vintedOriginPattern =
-  /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
-
-const rawOrigins = process.env.VERCEL_APP_ALLOWED_ORIGINS || "";
-const ALLOWED_ORIGINS = rawOrigins
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
-
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(incomingOrigin)) return callback(null, true);
-    if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
+    if (isAllowedAppOrigin(incomingOrigin)) return callback(null, true);
+    if (isAllowedVintedOrigin(incomingOrigin)) return callback(null, true);
     return callback(new Error("CORS origin denied for generate"), false);
   },
   methods: ["POST", "OPTIONS"],
@@ -74,7 +66,10 @@ const cors = Cors({
     "Content-Type",
     "Authorization",
     "X-Autolister-Extension-Version",
+    "X-Autolister-Client",
+    "X-Autolister-Request-Id",
   ],
+  preflightContinue: true,
 });
 
 function runCors(req: VercelRequest, res: VercelResponse) {
@@ -171,7 +166,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const extensionVersion = Array.isArray(extensionVersionHeader)
     ? extensionVersionHeader[0]
     : extensionVersionHeader;
-  const pricingLimitsMode = getPricingLimitsModeForExtension(extensionVersion);
+  const clientHeader = req.headers["x-autolister-client"];
+  const client = Array.isArray(clientHeader) ? clientHeader[0] : clientHeader;
+  const pricingLimitsMode = getPricingLimitsModeForClient({
+    client,
+    extensionVersion,
+  });
 
   // Initialize log data
   let logData: any = {

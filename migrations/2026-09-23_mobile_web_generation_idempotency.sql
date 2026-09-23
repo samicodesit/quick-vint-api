@@ -44,7 +44,7 @@ BEGIN
 
   IF jsonb_typeof(p_value) = 'object' THEN
     FOR key_text, child IN SELECT key, value FROM jsonb_each(p_value) LOOP
-      IF key_text ~* '(^|[_-])(url|urls|token|secret|signature|authorization|access[_-]?token)([_-]|$)'
+      IF key_text ~* '(url|token|secret|signature|authorization)'
         OR NOT public.mobile_generation_json_is_safe(to_jsonb(key_text))
         OR NOT public.mobile_generation_json_is_safe(child)
       THEN

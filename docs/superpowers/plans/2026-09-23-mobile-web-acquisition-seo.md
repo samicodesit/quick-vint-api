@@ -2,74 +2,77 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add eight distinct, indexable Vinted listing-generator landing pages that turn search and existing site traffic into the authenticated `/app` flow while preserving extension-first intent, schema, locale, and Orion behavior.
+**Goal:** Add eight distinct, crawlable Vinted listing-generator landing pages that introduce the authenticated `/app` flow while preserving current extension, guide, pricing, description-generator, and Orion intent.
 
-**Architecture:** A separate typed landing-copy model drives the English root and seven localized routes. A route-aware CTA abstraction determines one filled primary per route and breakpoint, while page-scoped schema explicitly suppresses the global Chrome-extension schema on the new family. The public sample is a reviewed static artifact rendered through the app's shared mobile-web components, so it proves the product without visitor uploads, anonymous generation, or fake success state.
+**Architecture:** A typed eight-locale copy model drives static Astro routes and initial HTML. A route-aware CTA policy supplies one filled primary per route and breakpoint, while `SiteLayout` can opt the new family out of the global Chrome-extension schema. A reviewed static sample reuses the app client's read-only components and never calls generation for visitors. A normalized sitemap filter and built-output checks enforce the public/private boundary.
 
-**Tech Stack:** Astro 5 static routes, TypeScript 5.8, existing `SiteLayout.astro`, `localizedPath`, `SUPPORTED_SITE_LOCALES`, `@astrojs/sitemap`, existing Tailwind Vite CSS, JSON-LD, Vitest 4, static build and preview checks.
+**Tech Stack:** Astro 5 static routes, TypeScript 5.8, existing `SiteLayout.astro`, `localizedPath`, `SUPPORTED_SITE_LOCALES`, `@astrojs/sitemap`, existing CSS and brand tokens, JSON-LD, Vitest 4, `pnpm` build and preview scripts, and the existing `CHROME_WEB_STORE_URL` constant from `src/utils/blog.ts`.
 
 **Spec:** `docs/superpowers/specs/2026-09-23-mobile-web-app-phase-1-design.md`
 
 ## Global Constraints
 
 - The landing family is exactly `/vinted-listing-generator`, `/fr/vinted-listing-generator`, `/de/vinted-listing-generator`, `/nl/vinted-listing-generator`, `/pl/vinted-listing-generator`, `/es/vinted-listing-generator`, `/it/vinted-listing-generator`, and `/pt/vinted-listing-generator`; English is x-default.
-- These are separate commercial pages, not `LISTING_GUIDE_SLUGS` and not replacements for existing extension, description, template, checklist, photo-to-listing, ChatGPT, or Orion pages.
-- Each route has unique human-quality localized title, H1, description, examples, FAQ, and CTA copy, initial HTML product content, mobile content parity, an absolute self canonical, reciprocal eight-locale hreflang plus x-default, and sitemap inclusion.
-- A public sample uses the app's real mobile-web UI components and a disclosed item, photo, title, and description produced by the actual AutoLister backend and approved before publication.
+- These are separate commercial pages, not `LISTING_GUIDE_SLUGS` and not replacements for existing extension, description, template, checklist, photo-to-desktop, ChatGPT, or Orion pages.
+- Every route has unique human-quality localized title, H1, description, examples, visible FAQ, signup truth, and CTA copy. Initial HTML contains the product explanation and sample disclosure. Mobile content has parity with desktop content. Canonicals are absolute self URLs with no trailing slash, and every page has reciprocal alternates for the eight locales plus x-default.
+- A public sample uses the app client's real read-only components and a disclosed item, photo, title, and description produced by the actual AutoLister backend and approved through a manual release record. No API approval-identifier contract is invented.
 - Public pages never accept visitor photos, call generation anonymously, create guest quota, show fake success state, or imply seller-note, history, batch, offline, share-target, or native Vinted support.
-- The landing family uses one filled `/app` CTA on both mobile and desktop. Existing marketing surfaces use `/app` filled on mobile but preserve extension-primary desktop behavior. Orion is extension-primary on every viewport and may mention web only after instructions.
-- CTA policy is route context plus CSS breakpoint, never user-agent sniffing, extension detection, or Orion detection. No viewport shows two filled primary CTAs.
-- New landing pages use page-scoped `WebPage`, `BreadcrumbList`, accurate browser `SoftwareApplication`, and visible-FAQ-only `FAQPage` data. They do not inherit the global Chrome-extension schema, Chrome Web Store claims, or unsupported aggregate rating.
-- `/app`, `/app/auth/callback`, `/auth/callback`, and private account paths remain noindex and excluded from the sitemap. `robots.txt` remains crawlable so crawlers can observe noindex.
-- The 18 output languages remain authenticated product controls, not public SEO route variants.
-- Matching locale internal links preserve existing ref, UTM, first-touch, source route, locale, CTA placement, and `web_app_click` analytics context.
-- Public pages must meet the launch budgets of mobile p75 LCP at or below 2.5 seconds and CLS at or below 0.1, with no generation request or large app bundle required before initial content and CTA are usable.
-- Do not claim rankings, traffic, conversion, or native app opening. Discoverability and outcomes are measured after release.
-- Do not publish a route, sample, or CTA before the app-client plan's iPhone Safari and Android Chrome gates pass. Do not deploy or submit a production Search Console change from implementation tasks.
-- Run commands from `/home/mests/projects/quick-vint-api`; preserve unrelated dirty files and stage only files owned by the current task.
+- The new landing family uses `/app` as the single filled primary CTA on mobile and desktop. Existing homepage, guides, blog, and pricing surfaces use `/app` as filled primary on mobile while preserving the current extension primary and demo on desktop. Orion remains extension-primary on every viewport and may offer only a subtle web link after instructions.
+- CTA policy is route context plus CSS breakpoint, never user-agent sniffing, extension detection, or Orion runtime detection. No viewport shows two filled primaries. The shared abstraction preserves locale and sanitized attribution.
+- New landing pages use page-scoped `WebPage`, `BreadcrumbList`, `SoftwareApplication` with `applicationCategory: "BrowserApplication"`, and `FAQPage` only for visible FAQ entries. They must not inherit or misrepresent the global Chrome-extension schema, Chrome Web Store URL, `aggregateRating`, or `applicationCategory: "BrowserExtension"`.
+- `/app`, `/app/auth/callback`, `/auth/callback`, and `/customer-usage` remain noindex and excluded from the sitemap. Existing private exclusions remain. `robots.txt` stays crawlable so crawlers can observe noindex.
+- The 18 output languages remain authenticated product controls, not public SEO route variants. Blog CTA paths are limited to the four blog locales currently implemented: en, fr, de, and nl.
+- Matching-locale internal links preserve approved `ref`, UTM, first-touch, source route, locale, CTA placement, and `web_app_click` context. The existing attribution code does not currently decorate `/app`; the plan adds a new sanitized app-link helper.
+- Public pages must meet lab mobile budgets of LCP at or below 2.5 seconds, CLS at or below 0.1, and initial JavaScript transfer at or below 150 KB compressed before launch. These are preview lab proxies, not field p75 claims. Real field p75 is monitored after launch.
+- Do not claim rankings, traffic, conversion, or native app opening. Crawlable distinct pages support discoverability, but outcomes are measured after release.
+- Do not publish a route, sample, or filled CTA before the app-client plan's iPhone Safari and Android Chrome gates pass. No implementation task deploys production or submits a Search Console change.
+- Use `pnpm` commands from `/home/mests/projects/quick-vint-api`; preserve unrelated dirty files and stage only files owned by this task.
 
 ## Review Focus
 
-1. A landing route must have reciprocal alternate links and x-default without slipping into the existing guide slug map. Pin this to `landing_routes_have_reciprocal_hreflang_and_are_not_guides` in Task 2.
-2. The new page must not emit the global Chrome-extension schema or an invisible FAQ schema. Pin this to `landing_schema_is_web_scoped_and_faq_is_visible` in Task 1.
-3. CTA policy must yield exactly one filled primary at each route and breakpoint while Orion remains extension-first. Pin this to `cta_policy_has_one_primary_and_preserves_orion` in Task 1.
-4. The sample must carry backend approval metadata and never expose an anonymous generation path. Pin this to `sample_requires_backend_verified_artifact` in Task 3.
-5. Sitemap and noindex boundaries must survive Astro's trailing-slash normalization and include all eight public routes. Pin this to `sitemap_includes_landings_and_excludes_private_routes` in Task 5.
+1. Every public route must have reciprocal hreflang and x-default without entering the existing guide slug map. Pin this to `landing_routes_have_reciprocal_hreflang_and_are_not_guides` in Task 2.
+2. The new page must emit web-scoped schema only, and FAQ JSON-LD must describe visible FAQ content. Pin this to `landing_schema_is_web_scoped_and_faq_is_visible` in Task 1.
+3. CTA policy must yield exactly one filled primary at each route and breakpoint while Orion remains extension-first. Pin this to `cta_policy_has_one_primary_and_preserves_orion` in Task 4.
+4. The sample must be static, disclosed, and tied to manual backend approval evidence without inventing an API approval field. Pin this to `sample_requires_manual_backend_evidence` in Task 3.
+5. Sitemap and noindex boundaries must survive trailing-slash normalization and include all eight public routes. Pin this to `sitemap_includes_landings_and_excludes_private_routes` in Task 5.
 
 ---
 
 ## File structure map
 
-| File                                                                                                            | Responsibility                                                                                                                              |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/components/RouteAwareCta.astro`                                                                            | Shared CTA markup and route policy classes for landing, existing marketing, and Orion contexts.                                             |
-| `src/utils/routeContext.ts`                                                                                     | Pure route and breakpoint policy returning the single filled primary and quiet secondary links.                                             |
-| `src/utils/publicSchema.ts`                                                                                     | Page-scoped WebPage, BreadcrumbList, browser SoftwareApplication, and visible FAQ JSON-LD builders.                                         |
-| `src/layouts/SiteLayout.astro`                                                                                  | Additive `includeExtensionSchema` and CTA integration props, defaulting to current extension schema and nav behavior for existing pages.    |
-| `src/i18n/mobileListingGenerator.ts`                                                                            | Typed eight-locale landing copy, alternates, localized CTA labels, FAQ, examples, and route metadata.                                       |
-| `src/components/MobileListingGeneratorLanding.astro`                                                            | Initial HTML landing layout, metadata, schema, signup truth, internal links, and route-aware CTA.                                           |
-| `src/components/MobileListingGeneratorSample.astro`                                                             | Disclosed static sample rendered through the app's shared `WorkspaceShell`, `PhotoRail`, `ListingControls`, and `ListingResult` components. |
-| `src/data/mobileListingGeneratorSample.ts`                                                                      | Backend-verified sample manifest, approval metadata, image path, and exact generated output used by all eight pages.                        |
-| `public/landing-samples/vinted-listing-generator/approved-item.jpg`                                             | Reviewed sample photo produced or prepared through the real backend workflow.                                                               |
-| `src/pages/vinted-listing-generator.astro`                                                                      | English x-default route.                                                                                                                    |
-| `src/pages/[lang]/vinted-listing-generator.astro`                                                               | Seven localized static routes, limited to supported site locales.                                                                           |
-| `src/components/__tests__/RouteAwareCta.test.ts`                                                                | CTA policy and schema isolation unit tests.                                                                                                 |
-| `src/pages/__tests__/mobileListingGenerator.test.ts`                                                            | Locale model, route, copy uniqueness, sample, and initial HTML tests.                                                                       |
-| `src/pages/__tests__/acquisitionLinks.test.ts`                                                                  | Internal link, attribution, route-context, and Orion preservation tests.                                                                    |
-| `src/pages/__tests__/acquisitionSeo.test.ts`                                                                    | Build-output canonical, hreflang, schema, sitemap, noindex, trailing-slash, and private-route tests.                                        |
-| `astro.config.mjs`                                                                                              | Additive sitemap exclusion for private app, callback, and account paths while retaining public landing routes.                              |
-| `src/pages/index.astro`, `src/pages/[lang]/index.astro`                                                         | Matching-locale browser-app CTA and landing internal link.                                                                                  |
-| `src/components/PricingPage.astro`                                                                              | Matching-locale landing link and route-aware CTA placement.                                                                                 |
-| `src/pages/vinted-description-generator.astro`                                                                  | English related landing link while retaining extension-first intent.                                                                        |
-| `src/components/ListingGuide.astro`                                                                             | Matching-locale related landing link and responsive CTA.                                                                                    |
-| `src/components/blog/InlineCTA.astro`, `EndOfPostCTA.astro`, `PhotoToListingCTA.astro`, `WritingStyleCTA.astro` | Route-aware blog conversion links with quiet extension preservation.                                                                        |
-| `src/pages/vinted-extension-iphone-orion.astro`                                                                 | Extension-first CTA unchanged, with only a post-instruction subtle web alternative.                                                         |
+| File                                                                                                                                                                        | Responsibility                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/utils/routeContext.ts`                                                                                                                                                 | Pure route and breakpoint CTA policy for generator landing, existing marketing, and Orion contexts.                                    |
+| `src/components/RouteAwareCta.astro`                                                                                                                                        | Shared CTA markup, filled/quiet classes, locale links, and sanitized attribution data attributes.                                      |
+| `src/utils/publicSchema.ts`                                                                                                                                                 | Typed `JsonLd` plus page-scoped WebPage, BreadcrumbList, browser SoftwareApplication, and visible FAQ builders.                        |
+| `src/layouts/SiteLayout.astro`                                                                                                                                              | Existing layout integration, optional global extension-schema suppression, and route-aware nav props while retaining current defaults. |
+| `src/i18n/mobileListingGenerator.ts`                                                                                                                                        | Typed eight-locale landing copy, paths, alternates, localized CTA labels, examples, and FAQ.                                           |
+| `src/components/MobileListingGeneratorLanding.astro`                                                                                                                        | Initial HTML landing layout, metadata, schema, signup truth, sample disclosure, internal links, and route-aware CTA.                   |
+| `src/components/MobileListingGeneratorSample.astro`                                                                                                                         | Disclosed static sample rendered through app-client shared read-only components.                                                       |
+| `src/data/mobileListingGeneratorSample.ts`                                                                                                                                  | Sample manifest and manual evidence reference, without an API approval contract.                                                       |
+| `public/landing-samples/vinted-listing-generator/approved-item.jpg`                                                                                                         | Reviewed sample image from the real backend workflow.                                                                                  |
+| `src/pages/vinted-listing-generator.astro`                                                                                                                                  | English x-default route.                                                                                                               |
+| `src/pages/[lang]/vinted-listing-generator.astro`                                                                                                                           | Seven localized static routes limited to the approved eight-locale family.                                                             |
+| `src/components/__tests__/RouteAwareCta.test.ts`                                                                                                                            | Pure route policy, schema type, and schema isolation tests.                                                                            |
+| `src/pages/__tests__/mobileListingGenerator.test.ts`                                                                                                                        | Locale model, static route, output copy, sample, and initial HTML tests.                                                               |
+| `src/pages/__tests__/acquisitionLinks.test.ts`                                                                                                                              | Internal links, app-link attribution, route contexts, and Orion preservation.                                                          |
+| `src/pages/__tests__/acquisitionSeo.test.ts`                                                                                                                                | Built-output canonical, hreflang, schema, sitemap, noindex, trailing-slash, and performance-contract tests.                            |
+| `astro.config.mjs`                                                                                                                                                          | Normalized sitemap filter for known private routes and existing exclusions.                                                            |
+| `src/utils/appLink.ts`                                                                                                                                                      | New sanitized `/app` and landing href builder plus bounded `web_app_click` context.                                                    |
+| `src/pages/index.astro`, `src/pages/[lang]/index.astro`                                                                                                                     | Matching-locale app and landing links while retaining existing home intent.                                                            |
+| `src/pages/pricing.astro`, `src/pages/[lang]/pricing.astro`                                                                                                                 | Root and localized pricing route props and matching landing links.                                                                     |
+| `src/components/PricingPage.astro`                                                                                                                                          | Pricing CTA placement and locale-aware landing link.                                                                                   |
+| `src/pages/vinted-description-generator.astro`                                                                                                                              | Related landing link while preserving extension-first page intent.                                                                     |
+| `src/components/ListingGuide.astro`                                                                                                                                         | Matching-locale related landing link and responsive CTA.                                                                               |
+| `src/components/blog/InlineCTA.astro`, `src/components/blog/EndOfPostCTA.astro`, `src/components/blog/PhotoToListingCTA.astro`, `src/components/blog/WritingStyleCTA.astro` | Blog links for en, fr, de, and nl only.                                                                                                |
+| `src/pages/vinted-extension-iphone-orion.astro`                                                                                                                             | Extension-first Orion CTA with optional post-instruction web alternative.                                                              |
+| `src/pages/customer-usage.astro`                                                                                                                                            | Noindex metadata for the known private usage route.                                                                                    |
 
 ## Dependencies and execution order
 
-The app-client plan must complete and pass preview plus iPhone Safari and Android Chrome gates before this plan publishes a filled `/app` CTA or an approved sample. Task 1 is the shared policy and schema foundation. Task 2 consumes Task 1 and produces the eight routes. Task 3 consumes Task 2 and the app client's shared component interfaces, and cannot pass until a real backend-generated sample is approved. Task 4 updates existing sources with the shared CTA and matching links. Task 5 consumes all prior tasks and validates the built output, sitemap, noindex boundaries, and release checks. Backend foundation endpoints are not called by public pages.
+The app-client plan must complete and pass preview plus iPhone Safari and Android Chrome gates before this plan publishes a filled `/app` CTA or approved sample. Task 1 defines pure CTA and schema contracts. Task 2 consumes those contracts and defines the eight routes. Task 3 consumes the app client's shared read-only components and requires manual backend evidence. Task 4 integrates existing surfaces and owns `SiteLayout`, `HomeLanding`, pricing routes, and the new app-link helper. Task 5 consumes all prior tasks and validates built output, sitemap, noindex, and release checks. Public pages never call backend generation.
 
-### Task 1: Route-aware CTA and page-scoped schema foundation
+### Task 1: Route-aware policy and page-scoped schema foundation
 
 **Files:**
 
@@ -77,70 +80,69 @@ The app-client plan must complete and pass preview plus iPhone Safari and Androi
 - Create: `src/components/RouteAwareCta.astro`
 - Create: `src/utils/publicSchema.ts`
 - Create: `src/components/__tests__/RouteAwareCta.test.ts`
-- Modify: `src/layouts/SiteLayout.astro: optional extension schema and nav CTA props`
 
 **Interfaces:**
 
-- Produces `RouteContext = "generator_landing" | "existing_marketing" | "orion"`, `getCtaPolicy(context: RouteContext): { mobile: CtaPolicy; desktop: CtaPolicy }`, and `buildPublicSchema(input): JsonLd[]`.
-- `CtaPolicy` contains exactly one `primary: { href: string; label: string }`, optional `secondary`, and `demo: boolean`. `generator_landing` uses `/app` primary at both breakpoints; `existing_marketing` uses `/app` mobile and extension desktop; `orion` uses extension primary at both breakpoints.
-- `SiteLayout` keeps `includeExtensionSchema=true` by default. New landing pages pass `false` and add only `buildPublicSchema` output. Existing pages keep current global schema unless their route CTA is explicitly adapted.
+- Produces `RouteContext = "generator_landing" | "existing_marketing" | "orion"`, `getCtaPolicy(context)`, and `buildPublicSchema(input): JsonLd[]`.
+- `CtaPolicy` contains exactly one `primary`, optional quiet `secondary`, and a `demo` flag. Generator landing uses `/app` at both breakpoints. Existing marketing uses `/app` mobile and the imported `CHROME_WEB_STORE_URL` desktop extension CTA. Orion uses that same imported constant at both breakpoints.
+- `JsonLd` is `{ "@context": "https://schema.org"; "@type": string; [key: string]: unknown }`. `buildPublicSchema` returns `WebPage`, `BreadcrumbList`, `SoftwareApplication` with `applicationCategory: "BrowserApplication"` and `operatingSystem: "Web"`, and FAQPage only when supplied FAQ entries are visible on the page.
 
-- [ ] **Step 1: Write failing tests for CTA policy and schema isolation.**
+- [ ] **Step 1: Write failing policy and schema tests.**
 
 ```ts
-it("has one filled primary and keeps Orion extension-first", () => {
+it("builds one primary for each context and uses the existing store constant", () => {
   expect(getCtaPolicy("generator_landing").mobile.primary.href).toBe("/app");
   expect(getCtaPolicy("generator_landing").desktop.primary.href).toBe("/app");
-  expect(getCtaPolicy("orion").mobile.primary.href).toContain(
-    "chrome.google.com",
-  );
-  expect(getCtaPolicy("orion").desktop.primary.href).toContain(
-    "chrome.google.com",
-  );
+  expect(getCtaPolicy("orion").mobile.primary.href).toBe(CHROME_WEB_STORE_URL);
+  expect(getCtaPolicy("orion").desktop.primary.href).toBe(CHROME_WEB_STORE_URL);
   expect(getCtaPolicy("generator_landing").desktop.secondary?.kind).toBe(
     "extension",
   );
 });
 
-it("builds browser schema without Chrome extension claims", () => {
+it("landing_schema_is_web_scoped_and_faq_is_visible", () => {
   const json = JSON.stringify(
     buildPublicSchema({
       locale: "en",
       url: "https://autolister.app/vinted-listing-generator",
-      faq: [{ question: "Q", answer: "A" }],
+      faq: [{ question: "Q", answer: "A", visible: true }],
     }),
   );
-  expect(json).toContain("BrowserApplication");
+  expect(json).toContain('"@type":"SoftwareApplication"');
+  expect(json).toContain('"applicationCategory":"BrowserApplication"');
   expect(json).toContain("BreadcrumbList");
   expect(json).not.toContain("BrowserExtension");
-  expect(json).not.toContain("Chrome Web Store");
+  expect(json).not.toContain("aggregateRating");
+  expect(json).not.toContain(CHROME_WEB_STORE_URL);
 });
 ```
 
-- [ ] **Step 2: Run the focused test to verify it fails.**
+- [ ] **Step 2: Run the focused test to verify RED.**
 
-Run: `npx vitest run src/components/__tests__/RouteAwareCta.test.ts`
+Run: `pnpm exec vitest run src/components/__tests__/RouteAwareCta.test.ts`
 
-Expected: FAIL because no route policy or page-scoped schema builder exists and `SiteLayout` always emits its current extension schema.
+Expected: FAIL because the pure route policy, typed schema builder, and shared CTA component do not exist.
 
-- [ ] **Step 3: Implement pure policy, schema, and opt-out prop.**
+- [ ] **Step 3: Implement the policy and typed builders.**
 
-Implement route policy as data, not user-agent logic. Render one filled CTA class, a quiet text or outline extension link, and optional demo link. Add `includeExtensionSchema?: boolean` to `SiteLayout` with the existing behavior as the default. `buildPublicSchema` returns WebPage, BreadcrumbList, browser SoftwareApplication with `applicationCategory: "BrowserApplication"` and `operatingSystem: "Web"` only if the validator accepts it, and FAQPage only for visible FAQ entries. Never include the current Chrome Web Store rating in the browser object.
+Render one filled CTA, quiet text or outline extension link, and optional demo link. Import `CHROME_WEB_STORE_URL` from `src/utils/blog.ts` for extension destinations. Keep policy independent of browser user-agent and Orion runtime state. Build page-scoped schema without extension rating or store URL. Make FAQ entries eligible only when the component also renders their exact visible question and answer.
 
 - [ ] **Step 4: Run unit tests and type-check.**
 
-Run: `npx vitest run src/components/__tests__/RouteAwareCta.test.ts && npm run type-check`
+Run: `pnpm exec vitest run src/components/__tests__/RouteAwareCta.test.ts && pnpm run type-check`
 
-Expected: PASS, with existing pages retaining their default extension schema and the new policy exposing exactly one filled primary per route context.
+Expected: PASS. The policy and schema tests prove exact web schema, no extension claims, visible FAQ gating, and one primary per route context.
 
 - [ ] **Step 5: Commit the shared foundation.**
 
 ```bash
-git add src/utils/routeContext.ts src/components/RouteAwareCta.astro src/utils/publicSchema.ts src/components/__tests__/RouteAwareCta.test.ts src/layouts/SiteLayout.astro
+git add src/utils/routeContext.ts src/components/RouteAwareCta.astro src/utils/publicSchema.ts src/components/__tests__/RouteAwareCta.test.ts
 git commit -m "feat: add route-aware acquisition CTA policy"
 ```
 
-### Task 2: Localized landing model, routes, and initial HTML
+### Task 2: Eight-locale landing model, routes, and initial HTML
+
+**Prerequisites:** Task 1 and the app-client Task 6 route/component contract. The public route can be developed with static placeholders only until Task 3's approved sample evidence exists; it cannot be published before the client gates.
 
 **Files:**
 
@@ -149,18 +151,18 @@ git commit -m "feat: add route-aware acquisition CTA policy"
 - Create: `src/components/MobileListingGeneratorSample.astro`
 - Create: `src/pages/vinted-listing-generator.astro`
 - Create: `src/pages/[lang]/vinted-listing-generator.astro`
-- Test: `src/pages/__tests__/mobileListingGenerator.test.ts`
+- Create: `src/pages/__tests__/mobileListingGenerator.test.ts`
 
 **Interfaces:**
 
 - Produces `MOBILE_LISTING_GENERATOR_LOCALES = ["en", "fr", "de", "nl", "pl", "es", "it", "pt"] as const`, `getMobileListingGeneratorCopy(locale)`, `getMobileListingGeneratorPath(locale)`, and `getMobileListingGeneratorAlternates()`.
-- `LandingCopy` includes localized `title`, `description`, `h1`, `intro`, `examples`, `faq`, `signupCopy`, `freeGenerationCopy`, `primaryCta`, `quietExtensionCta`, `breadcrumb`, and `sampleDisclosure`.
-- Consumes `SUPPORTED_SITE_LOCALES`, `localizedPath`, `RouteAwareCta`, `buildPublicSchema`, and the app-client shared mobile-web components. It does not consume `LISTING_GUIDE_SLUGS` or call any API at render time.
+- `LandingCopy` includes localized title, description, H1, intro, examples, FAQ, signup copy, five-free-lifetime-generations copy, primary CTA, quiet extension CTA, breadcrumb, and sample disclosure.
+- Consumes `SUPPORTED_SITE_LOCALES`, `localizedPath`, `RouteAwareCta`, `buildPublicSchema`, and app-client shared components. It does not consume `LISTING_GUIDE_SLUGS` and does not call an API at render time.
 
-- [ ] **Step 1: Write failing tests for all eight routes, unique copy, alternates, and initial HTML requirements.**
+- [ ] **Step 1: Write failing route-model tests.**
 
 ```ts
-it("defines eight separate commercial routes", () => {
+it("landing_routes_have_reciprocal_hreflang_and_are_not_guides", () => {
   expect(MOBILE_LISTING_GENERATOR_LOCALES).toEqual([
     "en",
     "fr",
@@ -183,45 +185,41 @@ it("defines eight separate commercial routes", () => {
     "/it/vinted-listing-generator",
     "/pt/vinted-listing-generator",
   ]);
-  expect(
-    new Set(
-      MOBILE_LISTING_GENERATOR_LOCALES.map(
-        (locale) => getMobileListingGeneratorCopy(locale).title,
-      ),
-    ).size,
-  ).toBe(8);
+  expect(LISTING_GUIDE_SLUGS).not.toContain("vinted-listing-generator");
+  expect(getMobileListingGeneratorAlternates()).toHaveLength(9);
 });
 
-it("renders signup truth, sample disclosure, and eight alternates in initial markup", () => {
-  const source = readFileSync(
-    "src/components/MobileListingGeneratorLanding.astro",
-    "utf8",
+it("copy records are distinct and state the signup requirement", () => {
+  const records = MOBILE_LISTING_GENERATOR_LOCALES.map(
+    getMobileListingGeneratorCopy,
   );
-  expect(source).toContain("five free lifetime generations");
-  expect(source).toContain("sampleDisclosure");
-  expect(source).toContain("hreflang");
+  expect(new Set(records.map((record) => record.title)).size).toBe(8);
+  expect(records.every((record) => record.signupCopy.length > 0)).toBe(true);
+  expect(records.every((record) => record.freeGenerationCopy.length > 0)).toBe(
+    true,
+  );
 });
 ```
 
-- [ ] **Step 2: Run the route test to verify it fails.**
+- [ ] **Step 2: Run the focused test to verify RED.**
 
-Run: `npx vitest run src/pages/__tests__/mobileListingGenerator.test.ts`
+Run: `pnpm exec vitest run src/pages/__tests__/mobileListingGenerator.test.ts`
 
-Expected: FAIL because the typed copy model and landing routes do not exist.
+Expected: FAIL because the typed copy model, alternates, and landing routes do not exist.
 
-- [ ] **Step 3: Implement human-quality localized copy and static paths.**
+- [ ] **Step 3: Implement human-quality locale records and static paths.**
 
-Define eight complete copy records, not machine-translated filler: title, H1, description, product explanation, examples, visible FAQ, signup requirement, five-free-lifetime-generations statement, sample disclosure, and CTA labels must be unique and natural in each locale. Use `getStaticPaths` only for the seven non-English locale params and render English at the root. Build absolute self canonical and reciprocal alternate links for all eight routes plus x-default, with the existing no-trailing-slash route helper.
+Write complete natural copy for all eight locales, including distinct title, H1, description, examples, visible FAQ, signup truth, five free lifetime generations statement, sample disclosure, and CTA labels. Render English at the root and the other seven locales through `getStaticPaths`. Keep route slugs in this family separate from guide slugs.
 
-- [ ] **Step 4: Implement initial HTML and the approved UI component mount.**
+- [ ] **Step 4: Implement initial HTML and metadata.**
 
-Render the hero, one filled `/app` CTA, quiet extension link, product explanation, approved-sample slot, examples, visible FAQ, signup truth, and internal links in Astro HTML before any client script. `MobileListingGeneratorSample.astro` composes the app-client `WorkspaceShell`, `PhotoRail`, `ListingControls`, and `ListingResult` in read-only mode and displays the manifest's disclosure. Do not import app auth, upload, generation, Supabase, or Stripe code into the public page.
+Render product explanation, one filled `/app` CTA, quiet extension link, approved-sample slot, examples, visible FAQ, signup truth, and internal links before client JavaScript. Emit absolute self canonical, reciprocal eight-locale alternates plus x-default, page-scoped schema from Task 1, and no public schema from the app shell. Use no trailing slash in canonical values without changing public route serving.
 
-- [ ] **Step 5: Run route tests, build, and inspect initial output.**
+- [ ] **Step 5: Run route tests and built-output inspection.**
 
-Run: `npx vitest run src/pages/__tests__/mobileListingGenerator.test.ts && npm run build`
+Run: `pnpm exec vitest run src/pages/__tests__/mobileListingGenerator.test.ts && pnpm run build`
 
-Expected: PASS. `dist/vinted-listing-generator/index.html` and all seven localized files contain localized H1, FAQ, signup copy, sample disclosure, canonical, and alternate links before client JavaScript runs.
+Expected: PASS. Built English and localized HTML contains the localized H1, FAQ, signup text, five-free-generation truth, disclosure slot, canonical, and alternate links before client JavaScript. Later tests inspect the built output, not source strings.
 
 - [ ] **Step 6: Commit the landing family.**
 
@@ -230,56 +228,60 @@ git add src/i18n/mobileListingGenerator.ts src/components/MobileListingGenerator
 git commit -m "feat: add localized web generator landing family"
 ```
 
-### Task 3: Backend-verified public sample artifact
+### Task 3: Real-backend sample artifact and manual approval evidence
+
+**Prerequisites:** Task 2 and app-client Task 6. No public sample is approved from a prototype screenshot or fabricated result.
 
 **Files:**
 
 - Create: `src/data/mobileListingGeneratorSample.ts`
 - Create: `public/landing-samples/vinted-listing-generator/approved-item.jpg`
-- Test: `src/pages/__tests__/mobileListingGenerator.test.ts`
-- Modify: `src/components/MobileListingGeneratorSample.astro: manifest binding`
+- Modify: `src/components/MobileListingGeneratorSample.astro: manifest binding and disclosure`
+- Modify: `src/pages/__tests__/mobileListingGenerator.test.ts: static manifest shape`
 
 **Interfaces:**
 
-- Produces `APPROVED_MOBILE_LISTING_SAMPLE` with `{ approvalId, source: "staging_api_generate", generatedAt, itemLabel, imagePath, title, description, outputLanguage, disclosure }`.
-- Consumes the actual backend output from the authenticated staging `/api/generate` path, the approved image preparation rules, and the app-client read-only component props. It never adds a public generation endpoint.
+- Produces `APPROVED_MOBILE_LISTING_SAMPLE` with `{ source, generatedAt, itemLabel, imagePath, title, description, outputLanguage, disclosure, evidence }`. `evidence` records a release approval record or log path and review date; it is not an API field and is not asserted as backend provenance by automated tests.
+- Consumes a real authenticated staging `/api/phone-upload` plus one-call `/api/generate` result and the app-client read-only component props. It never adds a public generation endpoint.
 
-- [ ] **Step 1: Add the failing artifact contract test.**
+- [ ] **Step 1: Write the failing static manifest test.**
 
 ```ts
-it("requires a backend-verified approved sample artifact", () => {
+it("sample_requires_manual_backend_evidence", () => {
   expect(APPROVED_MOBILE_LISTING_SAMPLE.source).toBe("staging_api_generate");
-  expect(APPROVED_MOBILE_LISTING_SAMPLE.approvalId).toMatch(
-    /^sample-[a-z0-9-]+$/,
-  );
   expect(APPROVED_MOBILE_LISTING_SAMPLE.imagePath).toBe(
     "/landing-samples/vinted-listing-generator/approved-item.jpg",
   );
   expect(APPROVED_MOBILE_LISTING_SAMPLE.title.length).toBeGreaterThan(0);
   expect(APPROVED_MOBILE_LISTING_SAMPLE.description.length).toBeGreaterThan(0);
-  expect(APPROVED_MOBILE_LISTING_SAMPLE.disclosure).toContain("sample");
+  expect(APPROVED_MOBILE_LISTING_SAMPLE.disclosure.toLowerCase()).toContain(
+    "sample",
+  );
+  expect(
+    APPROVED_MOBILE_LISTING_SAMPLE.evidence.recordPath.length,
+  ).toBeGreaterThan(0);
 });
 ```
 
-- [ ] **Step 2: Run the artifact test to verify it fails before approval.**
+- [ ] **Step 2: Run the artifact test to verify RED.**
 
-Run: `npx vitest run src/pages/__tests__/mobileListingGenerator.test.ts -t "backend-verified"`
+Run: `pnpm exec vitest run src/pages/__tests__/mobileListingGenerator.test.ts -t sample_requires_manual_backend_evidence`
 
-Expected: FAIL because the approved manifest and image are not present. This failure is intentional until the release owner supplies the real backend-generated artifact.
+Expected: FAIL because the manifest and reviewed image do not exist. This is an implementation gate, not permission to fabricate a result.
 
-- [ ] **Step 3: Generate and approve one staging artifact through the existing authenticated backend flow.**
+- [ ] **Step 3: Obtain and record the real sample through the authorized staging workflow.**
 
-The release owner uses an authenticated staging account and the real `/api/phone-upload` plus `/api/generate` path, with one disclosed sample item, one selected output language, and the normal one-call title and description response. Save the backend-prepared image as `public/landing-samples/vinted-listing-generator/approved-item.jpg`, copy the exact returned title and description into the manifest, record the staging generation time and an approval ID, and verify that the visible disclosure states it is an approved sample. Do not use a production account, anonymous request, fabricated output, prototype-only asset, signed URL, token, or raw API response containing credentials.
+The release owner uses an authenticated staging account and the real upload plus `/api/generate` flow for one disclosed sample item. Save the backend-prepared image and exact returned title and description, record the generation timestamp and manual reviewer record or log path in the manifest, and verify that the visible disclosure says the UI is an approved sample. Do not use production credentials, visitor requests, anonymous generation, signed URLs, tokens, raw credential-bearing responses, prototype-only assets, or an invented approval-identifier request field.
 
-- [ ] **Step 4: Bind the manifest and keep the sample static.**
+- [ ] **Step 4: Bind the manifest to read-only shared components.**
 
-Import `APPROVED_MOBILE_LISTING_SAMPLE` into the sample component, pass the image and exact output into shared read-only result props, and render the disclosure beside the sample. The page must not fetch, generate, upload, authenticate, or mutate state for a visitor. The sample is build-time content after approval.
+Pass the reviewed image and exact output into `WorkspaceShell` sample mode, render disclosure beside the sample, and omit auth, Supabase, upload, generation, Stripe, and analytics transport from the public page. The sample is static build content after the manual approval record exists.
 
 - [ ] **Step 5: Run artifact, build, and privacy checks.**
 
-Run: `npx vitest run src/pages/__tests__/mobileListingGenerator.test.ts -t "backend-verified" && npm run build && rg -n "api/generate|phone-upload|signed|Bearer|supabase" dist/vinted-listing-generator dist/fr/vinted-listing-generator`
+Run: `pnpm exec vitest run src/pages/__tests__/mobileListingGenerator.test.ts -t sample_requires_manual_backend_evidence && pnpm run build && if rg -n 'api/generate|phone-upload|signed|Bearer|supabase' dist/vinted-listing-generator dist/fr/vinted-listing-generator; then exit 1; fi`
 
-Expected: PASS for the artifact test and build. The final `rg` command returns no visitor-generation, upload, signed-URL, bearer, or Supabase reference in public landing output.
+Expected: PASS for the manifest and build. The conditional `rg` check exits successfully only when no visitor-generation, upload, signed-URL, bearer, or Supabase reference is present in the public output.
 
 - [ ] **Step 6: Commit only the approved sample files.**
 
@@ -288,13 +290,20 @@ git add src/data/mobileListingGeneratorSample.ts public/landing-samples/vinted-l
 git commit -m "feat: add approved web generator sample"
 ```
 
-### Task 4: Internal links, attribution, and responsive CTA integration
+### Task 4: Route-aware nav, internal links, app attribution, and CTA integration
+
+**Prerequisites:** Tasks 1 through 3 and app-client Task 6. This task owns existing marketing surface modifications; it does not modify app-client components or routes.
 
 **Files:**
 
+- Create: `src/utils/appLink.ts`
 - Create: `src/pages/__tests__/acquisitionLinks.test.ts`
+- Modify: `src/layouts/SiteLayout.astro: route-aware nav props and extension schema opt-out`
+- Modify: `src/components/HomeLanding.astro: hard-coded hero and final CTA surfaces`
 - Modify: `src/pages/index.astro`
 - Modify: `src/pages/[lang]/index.astro`
+- Modify: `src/pages/pricing.astro`
+- Modify: `src/pages/[lang]/pricing.astro`
 - Modify: `src/components/PricingPage.astro`
 - Modify: `src/pages/vinted-description-generator.astro`
 - Modify: `src/components/ListingGuide.astro`
@@ -306,83 +315,100 @@ git commit -m "feat: add approved web generator sample"
 
 **Interfaces:**
 
-- Consumes `RouteAwareCta`, `getCtaPolicy`, `getMobileListingGeneratorPath`, existing `localizedPath`, and existing attribution query helpers.
-- Produces matching-locale landing links and app links with preserved `ref`, UTM, and first-touch state. Existing extension CTAs remain available according to route policy. Orion's extension install remains primary.
+- `buildAppHref(input: { locale?: string; ref?: string; utm?: Record<string, string>; context: string; placement: string }): string` accepts only approved attribution keys and returns a same-origin `/app` href. `buildWebAppClickContext(input)` returns bounded locale, source path, route context, CTA placement, and sample/hero placement values.
+- `SiteLayout` accepts additive route context, app href, and `includeExtensionSchema` props with defaults that preserve existing pages. Its desktop nav and mobile menu cannot emit two filled primaries.
+- Blog copy and links support only the four existing blog locales en, fr, de, and nl. The eight landing locales are not implied for blog content.
 
-- [ ] **Step 1: Write failing link and CTA tests.**
+- [ ] **Step 1: Write failing built-surface and attribution tests.**
 
 ```ts
-it("links each localized marketing surface to its matching landing route", () => {
-  expect(readFileSync("src/pages/[lang]/index.astro", "utf8")).toContain(
-    "getMobileListingGeneratorPath",
-  );
-  expect(readFileSync("src/components/PricingPage.astro", "utf8")).toContain(
-    "vinted-listing-generator",
-  );
-  expect(readFileSync("src/components/ListingGuide.astro", "utf8")).toContain(
-    "getMobileListingGeneratorPath",
-  );
-});
-
-it("keeps Orion extension-first and preserves attribution on app links", () => {
+it("cta_policy_has_one_primary_and_preserves_orion", () => {
+  const home = readFileSync("src/components/HomeLanding.astro", "utf8");
+  const siteLayout = readFileSync("src/layouts/SiteLayout.astro", "utf8");
   const orion = readFileSync(
     "src/pages/vinted-extension-iphone-orion.astro",
     "utf8",
   );
-  expect(orion).toContain("chrome.google.com");
+  expect(home).toContain("RouteAwareCta");
+  expect(siteLayout).toContain("routeContext");
+  expect(orion).toContain("CHROME_WEB_STORE_URL");
   expect(orion).toContain("after");
-  expect(readFileSync("src/components/RouteAwareCta.astro", "utf8")).toContain(
-    "utm",
+});
+
+it("sanitizes app links and preserves only approved attribution", () => {
+  expect(
+    buildAppHref({
+      locale: "fr",
+      ref: "guide",
+      utm: { utm_source: "blog", evil: "drop" },
+      context: "home",
+      placement: "hero",
+    }),
+  ).toBe("/app?ref=guide&utm_source=blog");
+  expect(
+    buildWebAppClickContext({
+      locale: "fr",
+      sourcePath: "/fr",
+      routeContext: "existing_marketing",
+      placement: "hero",
+    }),
+  ).toEqual(
+    expect.objectContaining({
+      locale: "fr",
+      routeContext: "existing_marketing",
+    }),
   );
 });
 ```
 
-- [ ] **Step 2: Run the link test to verify it fails.**
+- [ ] **Step 2: Run the focused test to verify RED.**
 
-Run: `npx vitest run src/pages/__tests__/acquisitionLinks.test.ts`
+Run: `pnpm exec vitest run src/pages/__tests__/acquisitionLinks.test.ts`
 
-Expected: FAIL because existing pages still hard-code extension CTAs and do not expose the matching landing links.
+Expected: FAIL because nav and home CTAs are still hard-coded and no sanitized app-link helper exists.
 
-- [ ] **Step 3: Replace only the CTA surfaces with the shared abstraction.**
+- [ ] **Step 3: Implement route-aware nav and home CTA policy.**
 
-On the new landing routes, render `/app` as the single filled primary on all breakpoints and the extension as a quiet secondary. On home, guides, blog, and pricing, render `/app` as filled primary on mobile while preserving extension filled primary and demo on desktop. On Orion, retain the current extension primary and place one quiet web link only after the instructions. Use CSS breakpoint classes and route context, never `navigator.userAgent`, Vinted host detection, or Orion runtime detection.
+Pass route context into `SiteLayout` and replace the current filled Chrome links in desktop nav and mobile menu with policy-driven markup. Update `HomeLanding.astro` hero and final CTAs as well as its other CTA surface so mobile has one filled `/app` primary with a quiet extension link, while desktop keeps the extension primary and demo and exposes the web app only as a small nav or text link. New generator landing pages use `/app` as the single filled primary on both breakpoints. Orion imports `CHROME_WEB_STORE_URL`, remains extension-primary, and receives only a subtle web alternative after instructions. Do not use user-agent, extension, or Orion detection.
 
-- [ ] **Step 4: Add matching-locale links and preserve attribution.**
+- [ ] **Step 4: Add locale links and the new sanitized app-link layer.**
 
-Add the landing route to localized homepages, pricing, related resources on `/vinted-description-generator`, localized guides, and relevant blog CTA surfaces. Build `/app` and landing hrefs with the existing sanitized `ref`, UTM, and first-touch query handling. Emit `web_app_click` with source path, locale, route context, CTA placement, and sample-vs-hero placement, without email or image data.
+Link homepage, both pricing routes, `/vinted-description-generator`, localized guides, and blog CTA surfaces to the matching landing path. For blog links use only en, fr, de, and nl paths. Preserve current extension CTAs and page intent. Build `/app` hrefs through `buildAppHref`, preserve first-touch/ref/approved UTM values, and emit bounded `web_app_click` context without email, image, generated text, or arbitrary query keys. The feature flag is checked before filled web CTAs are enabled; existing extension CTAs remain available when mobile web is disabled.
 
-- [ ] **Step 5: Run links, build, and existing CTA tests.**
+- [ ] **Step 5: Run link, CTA, build, and type checks.**
 
-Run: `npx vitest run src/pages/__tests__/acquisitionLinks.test.ts src/components/__tests__/RouteAwareCta.test.ts && npm run build`
+Run: `pnpm exec vitest run src/pages/__tests__/acquisitionLinks.test.ts src/components/__tests__/RouteAwareCta.test.ts && pnpm run build && pnpm run type-check`
 
-Expected: PASS. Existing extension links remain valid, each supported locale reaches its matching landing route, Orion stays extension-first, and the build has exactly one filled primary per route context and breakpoint class.
+Expected: PASS. Existing extension links remain valid, route contexts produce one filled primary, Orion stays extension-first, locale links target matching routes, and sanitized attribution survives in built hrefs.
 
-- [ ] **Step 6: Commit internal link integration.**
+- [ ] **Step 6: Commit existing-surface integration.**
 
 ```bash
-git add src/pages/index.astro 'src/pages/[lang]/index.astro' src/components/PricingPage.astro src/pages/vinted-description-generator.astro src/components/ListingGuide.astro src/components/blog/InlineCTA.astro src/components/blog/EndOfPostCTA.astro src/components/blog/PhotoToListingCTA.astro src/components/blog/WritingStyleCTA.astro src/pages/vinted-extension-iphone-orion.astro src/pages/__tests__/acquisitionLinks.test.ts
-git commit -m "feat: connect localized acquisition paths"
+git add src/utils/appLink.ts src/layouts/SiteLayout.astro src/components/HomeLanding.astro src/pages/index.astro 'src/pages/[lang]/index.astro' src/pages/pricing.astro 'src/pages/[lang]/pricing.astro' src/components/PricingPage.astro src/pages/vinted-description-generator.astro src/components/ListingGuide.astro src/components/blog/InlineCTA.astro src/components/blog/EndOfPostCTA.astro src/components/blog/PhotoToListingCTA.astro src/components/blog/WritingStyleCTA.astro src/pages/vinted-extension-iphone-orion.astro src/pages/__tests__/acquisitionLinks.test.ts
+git commit -m "feat: connect localized mobile acquisition paths"
 ```
 
-### Task 5: Sitemap, noindex boundaries, SEO output checks, and release gate
+### Task 5: Sitemap, private noindex boundaries, built-output SEO checks, and release gate
+
+**Prerequisites:** Tasks 1 through 4 and the app-client route output. This task owns sitemap and public SEO validation only; it does not modify app components or routes. If a private route test finds a demonstrated app contract bug, coordinate that fix with the app plan rather than changing app ownership here.
 
 **Files:**
 
-- Modify: `astro.config.mjs: sitemap filter`
-- Create: `src/pages/__tests__/acquisitionSeo.test.ts`
-- Modify: `src/components/MobileListingGeneratorLanding.astro: final metadata and schema assertions`
-- Modify: `src/pages/app/index.astro: noindex contract if required by build output`
-- Modify: `src/pages/app/auth/callback.astro: noindex contract if required by build output`
+- Modify: `astro.config.mjs: normalized sitemap filter`
+- Modify: `src/pages/customer-usage.astro: noindex metadata`
+- Test: `src/pages/__tests__/acquisitionSeo.test.ts`
+- Test: built output from `src/pages/vinted-listing-generator.astro`, localized route, `src/pages/auth/callback.html`, and app routes
 
 **Interfaces:**
 
-- Consumes all public routes and schemas from Tasks 1 through 4 plus the app-client private route output.
-- Produces sitemap output with all eight public landings and no `/app`, `/app/auth/callback`, `/auth/callback`, or private account route. It keeps the existing crawlable `robots.txt` and one non-home trailing-slash policy.
+- `normalizePublicPath(input: string): string` strips query, hash, and trailing slash except for `/`; sitemap serialization uses the same normalized no-trailing-slash representation without changing how public routes are served.
+- The sitemap includes all eight public landings and excludes `/app`, `/app/auth/callback`, `/auth/callback`, `/customer-usage`, and the existing known private exclusions. Filter input is normalized before comparison.
+- Built output tests reject `applicationCategory: "BrowserExtension"`, any `aggregateRating` on the landing family, and the imported `CHROME_WEB_STORE_URL` in landing page JSON-LD. They assert the browser schema values instead of source-string copies.
 
-- [ ] **Step 1: Write failing build-output checks for canonical, hreflang, schema, sitemap, noindex, and trailing slash.**
+- [ ] **Step 1: Write failing built-output tests.**
 
 ```ts
-it("includes landings and excludes private routes from the generated sitemap", () => {
+it("sitemap_includes_landings_and_excludes_private_routes", () => {
   const sitemap = readFileSync("dist/sitemap-0.xml", "utf8");
   for (const path of [
     "/vinted-listing-generator",
@@ -394,7 +420,7 @@ it("includes landings and excludes private routes from the generated sitemap", (
     "/it/vinted-listing-generator",
     "/pt/vinted-listing-generator",
   ])
-    expect(sitemap).toContain(path);
+    expect(sitemap).toContain(`https://autolister.app${path}`);
   for (const path of [
     "/app",
     "/app/auth/callback",
@@ -402,55 +428,72 @@ it("includes landings and excludes private routes from the generated sitemap", (
     "/customer-usage",
   ])
     expect(sitemap).not.toContain(path);
+  expect(sitemap).not.toContain("/vinted-listing-generator/");
 });
 
-it("keeps landing schema web-scoped and app documents noindex", () => {
+it("built landing metadata is web-scoped and private documents are noindex", () => {
   const landing = readFileSync(
     "dist/vinted-listing-generator/index.html",
     "utf8",
   );
+  const localized = readFileSync(
+    "dist/fr/vinted-listing-generator/index.html",
+    "utf8",
+  );
   const app = readFileSync("dist/app/index.html", "utf8");
-  expect(landing.match(/hreflang=/g)?.length).toBe(9);
+  const callback = readFileSync("dist/auth/callback.html", "utf8");
+  const usage = readFileSync("dist/customer-usage/index.html", "utf8");
+  expect((landing.match(/hreflang=/g) || []).length).toBe(9);
   expect(landing).toContain(
     'rel="canonical" href="https://autolister.app/vinted-listing-generator"',
   );
-  expect(landing).toContain('"@type":"BrowserApplication"');
-  expect(landing).not.toContain('"@type":"BrowserExtension"');
-  expect(app).toContain('name="robots" content="noindex, nofollow"');
-  expect(app).not.toContain("application/ld+json");
+  expect(localized).toContain(
+    'rel="canonical" href="https://autolister.app/fr/vinted-listing-generator"',
+  );
+  expect(landing).toContain('"@type":"SoftwareApplication"');
+  expect(landing).toContain('"applicationCategory":"BrowserApplication"');
+  expect(landing).not.toContain('"applicationCategory":"BrowserExtension"');
+  expect(landing).not.toContain("aggregateRating");
+  expect(landing).not.toContain(CHROME_WEB_STORE_URL);
+  for (const html of [app, callback, usage])
+    expect(html).toContain('name="robots" content="noindex, nofollow"');
 });
 ```
 
-- [ ] **Step 2: Run the SEO test to verify it fails before sitemap integration.**
+- [ ] **Step 2: Run the built-output test to verify RED.**
 
-Run: `npm run build && npx vitest run src/pages/__tests__/acquisitionSeo.test.ts`
+Run: `pnpm run build && pnpm exec vitest run src/pages/__tests__/acquisitionSeo.test.ts`
 
-Expected: FAIL because the current sitemap filter does not exclude `/app` or callbacks and the new landing metadata/schema is not yet complete.
+Expected: FAIL because the current sitemap filter does not cover every approved private route, customer usage lacks noindex, and new landing metadata is not complete.
 
-- [ ] **Step 3: Update sitemap filtering and route metadata without changing existing public intent.**
+- [ ] **Step 3: Implement normalized sitemap filtering and private metadata.**
 
-Normalize sitemap pathnames before comparison, exclude `/app`, `/app/auth/callback`, `/auth/callback`, private account paths, and the current existing private exclusions, and leave public landing paths included. Keep `public/robots.txt` allowing crawlers to observe noindex. Use absolute self canonicals, nine alternate links including x-default, and the existing no-trailing-slash route convention for non-home paths. Verify every landing FAQ is visible in the page body before emitting FAQPage.
+Add `normalizePublicPath` to the sitemap filter, preserve the current exclusion list, add only `/app`, `/app/auth/callback`, `/auth/callback`, and `/customer-usage`, and serialize public URLs without trailing slash. Add noindex to `customer-usage.astro`; preserve the existing callback noindex. Do not block the entire site in `robots.txt`. The landing route remains public and indexable.
 
-- [ ] **Step 4: Validate the built output and responsive performance gate.**
+- [ ] **Step 4: Validate rendered metadata, schema, and copy parity.**
 
-Run: `npm run build && npx vitest run src/pages/__tests__/acquisitionSeo.test.ts src/pages/__tests__/mobileListingGenerator.test.ts src/pages/__tests__/acquisitionLinks.test.ts && npm run verify:production`
+Build before assertions. Inspect all eight built landing files for unique localized H1, visible FAQ text, signup truth, sample disclosure, absolute self canonical, nine alternates, x-default, and no trailing slash. Assert schema from rendered HTML, not source strings. Validate that the FAQ JSON-LD questions and answers are visible body content, that no extension schema or store URL leaks into landing JSON-LD, and that `SiteLayout` defaults still preserve existing extension schema on non-landing pages.
 
-Expected: PASS. The built HTML contains initial localized content, schema isolation, canonical and alternates, matching sample disclosure, and no private sitemap entries. Run `npm run preview -- --host 0.0.0.0` for the release owner to measure representative mobile and desktop Web Vitals; approve only p75 LCP at or below 2.5 seconds, CLS at or below 0.1, content parity, and no generation request before CTA readiness.
+- [ ] **Step 5: Run lab performance and release checks without claiming field p75.**
 
-- [ ] **Step 5: Run post-build release checks without deployment.**
+Run: `pnpm run build && pnpm exec vitest run src/pages/__tests__/acquisitionSeo.test.ts src/pages/__tests__/mobileListingGenerator.test.ts src/pages/__tests__/acquisitionLinks.test.ts && pnpm run verify:production && pnpm run preview -- --host 0.0.0.0`
 
-Inspect representative English and localized URLs with the configured browser at mobile and desktop widths, validate JSON-LD with the chosen structured-data validator, verify internal links and one-filled-primary behavior, and record the result in the existing growth QA record. After an explicitly approved production release, run Search Console URL Inspection and structured-data checks for the English and one localized route. These checks measure discoverability and correctness; they do not assert rankings or traffic.
+Expected: PASS. Use the preview with Chrome DevTools Lighthouse mobile preset for three runs on representative English and localized routes. Approve only LCP at or below 2.5 seconds, CLS at or below 0.1, initial JavaScript transfer at or below 150 KB compressed, initial HTML content parity, and no generation request before CTA readiness. Record real field p75 LCP and CLS after launch separately; local preview cannot prove it.
 
-- [ ] **Step 6: Commit only acquisition SEO files.**
+- [ ] **Step 6: Run post-release verification only after explicit approval.**
+
+Inspect representative mobile and desktop routes, validate JSON-LD with the chosen structured-data validator, verify one filled primary per route context, check internal links and attribution, and record evidence in the existing growth QA record. After a separately approved production release, use Search Console URL Inspection and structured-data checks for the English and one localized route. These checks measure discoverability and correctness, not rankings or traffic.
+
+- [ ] **Step 7: Commit only acquisition SEO files.**
 
 ```bash
-git add astro.config.mjs src/components/MobileListingGeneratorLanding.astro src/pages/app/index.astro src/pages/app/auth/callback.astro src/pages/__tests__/acquisitionSeo.test.ts
+git add astro.config.mjs src/pages/customer-usage.astro src/pages/__tests__/acquisitionSeo.test.ts
 git commit -m "feat: finalize mobile acquisition SEO boundaries"
 ```
 
 ## Release and rollback boundary
 
-The implementation order is Task 1, Task 2, Task 3, Task 4, then Task 5. The app feature flag, backend server contracts, and app-client device gates are prerequisites. Preview must pass `npm run verify:production`, built-output SEO checks, approved-sample privacy checks, responsive performance budgets, and real iPhone Safari and Android Chrome checks before the public pages or filled app CTA are exposed. Production rollout is a separate approved release action. If a gate fails, disable the mobile app flag and route-aware app CTA, retain existing extension CTAs and public pages, and remove only the new public landing routes from the sitemap through a reviewed revert. Do not delete the idempotency migration, alter subscriptions, reset quotas, or change extension callbacks during rollback.
+The implementation order is Task 1, Task 2, Task 3, Task 4, then Task 5. The backend server contracts, app-client feature flag, approved sample evidence, and iPhone Safari and Android Chrome gates are prerequisites. Preview must pass the repository verification command, built-output SEO checks, sample privacy checks, lab performance budgets, and CTA policy checks before public routes or filled app CTAs are exposed. Production rollout and Search Console verification are separate approved release actions. If a gate fails, keep existing extension CTAs and public pages, leave the app CTA disabled, and remove only the new landing routes from the sitemap through a reviewed revert. Do not delete an idempotency migration, alter subscriptions, reset quotas, change extension callbacks, or change Orion runtime behavior during rollback.
 
 ## Non-goals carried into implementation
 

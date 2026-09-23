@@ -1,0 +1,92 @@
+---
+import { getMobileWebBuildConfig } from "../../../app/mobile-web/config";
+
+const buildConfig = getMobileWebBuildConfig({
+  PUBLIC_MOBILE_WEB_APP_ENABLED: import.meta.env.PUBLIC_MOBILE_WEB_APP_ENABLED,
+  PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL,
+  PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+});
+const connectSources = [
+  "'self'",
+  ...(buildConfig.supabaseUrl ? [buildConfig.supabaseUrl] : []),
+  "https://api.stripe.com",
+  "https://www.google-analytics.com",
+  "https://www.googletagmanager.com",
+].join(" ");
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `connect-src ${connectSources}`,
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline'",
+  "frame-ancestors 'none'",
+].join("; ");
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta http-equiv="Content-Security-Policy" content={contentSecurityPolicy} />
+    <title>Signing in to AutoLister</title>
+    <style>
+      :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8fc; color: #1e1b4b; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: #f8f8fc; }
+      main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+      .card { width: min(100%, 440px); border: 1px solid #e8e7f4; border-radius: 28px; padding: 32px 24px; background: #fff; box-shadow: 0 24px 72px rgba(43, 37, 105, .12); text-align: center; }
+      h1 { margin: 0 0 10px; font-size: 24px; letter-spacing: -.04em; }
+      p { margin: 0; color: #625f7d; line-height: 1.55; }
+      [data-state="error"] p { color: #a33d52; }
+      @media (prefers-color-scheme: dark) { :root, body { background: #17162b; color: #f6f5ff; } .card { border-color: #302d4c; background: #211f3b; box-shadow: none; } p { color: #b9b6d0; } }
+    </style>
+  </head>
+  <body>
+    <main data-mobile-web="auth-callback">
+      {
+        buildConfig.enabled ? (
+          <section class="card" data-mobile-web="callback-status" aria-live="polite">
+            <h1>Signing you in</h1>
+            <p>Just a moment while we finish securely.</p>
+          </section>
+        ) : (
+          <section class="card" data-mobile-web="disabled" aria-live="polite">
+            <h1>Mobile web app unavailable</h1>
+            <p>This private workspace is not enabled yet.</p>
+          </section>
+        )
+      }
+    </main>
+    {
+      buildConfig.enabled && (
+        <script
+          is:inline
+          define:vars={{
+            mobileWebConfig: {
+              supabaseUrl: buildConfig.supabaseUrl,
+              supabaseAnonKey: buildConfig.supabaseAnonKey,
+            },
+          }}
+        >
+          window.__AUTOLISTER_MOBILE_WEB_CONFIG__ = mobileWebConfig;
+        </script>
+      )
+    }
+    {
+      buildConfig.enabled && (
+        <script>
+          import { completeWebCallback } from "../../../app/mobile-web/auth";
+
+          completeWebCallback(new URL(window.location.href)).catch(() => {
+            const copy = document.querySelector("[data-mobile-web='callback-status'] p");
+            if (copy) copy.textContent = "We could not finish sign-in. Please return to the app and try again.";
+            document.querySelector("[data-mobile-web='callback-status']")?.setAttribute("data-state", "error");
+          });
+        </script>
+      )
+    }
+  </body>
+</html>

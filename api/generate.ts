@@ -1024,14 +1024,14 @@ Reply only in JSON: {"title":"...","description":"..."}
     let statusCode = 500;
 
     // Check for specific error types
-    if (err.status === 429 || err.message?.includes("Rate limit")) {
-      userMessage =
-        "Our AI service is currently busy. Please try again in a few seconds.";
-      statusCode = 429;
-    } else if (err.status === 403) {
+    if (isMobileWebRequest && err.status === 403) {
       userMessage =
         "The AI service rejected this request. Please try different images.";
       statusCode = 403;
+    } else if (err.status === 429 || err.message?.includes("Rate limit")) {
+      userMessage =
+        "Our AI service is currently busy. Please try again in a few seconds.";
+      statusCode = 429;
     } else if (
       err.message?.includes("timeout") ||
       err.message?.includes("timed out")

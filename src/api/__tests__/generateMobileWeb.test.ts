@@ -285,9 +285,12 @@ describe("mobile web generation idempotency", () => {
   });
 
   it("preserves provider 403 as a bounded non-retryable mobile failure", async () => {
-    const providerError = Object.assign(new Error("provider forbidden"), {
-      status: 403,
-    });
+    const providerError = Object.assign(
+      new Error("provider forbidden rate limit"),
+      {
+        status: 403,
+      },
+    );
     createCompletion.mockReturnValue({
       withResponse: vi.fn().mockRejectedValue(providerError),
     });
@@ -306,6 +309,30 @@ describe("mobile web generation idempotency", () => {
         retryable: false,
       }),
     );
+  });
+
+  it("keeps extension provider 403 behavior unchanged", async () => {
+    const providerError = Object.assign(new Error("provider forbidden"), {
+      status: 403,
+    });
+    createCompletion.mockReturnValue({
+      withResponse: vi.fn().mockRejectedValue(providerError),
+    });
+
+    const response = await invoke(
+      {
+        authorization: "Bearer token",
+        "x-autolister-extension-version": "1.4.2",
+      },
+      body,
+    );
+
+    expect(response.statusCode).toBe(500);
+    expect(refundGenerationReservation).toHaveBeenCalledWith(
+      "reservation-1",
+      "generation_failed",
+    );
+    expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
   });
 
   it.each([null, "not-an-object", []])(

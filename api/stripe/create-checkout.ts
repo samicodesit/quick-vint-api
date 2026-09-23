@@ -14,6 +14,7 @@ import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert
 import { verifyPricingOfferToken } from "../../utils/pricingOfferToken";
 import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 import {
+  getMobileCustomerIdempotencyKey,
   getMobileCheckoutUrls,
   getMobilePortalReturnUrl,
   isConfirmedMissingStripeCustomerError,
@@ -192,6 +193,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       let customerId = profile.stripe_customer_id;
+      let replacementForCustomerId: string | null = null;
       let activeSubscriptionId: string | null = null;
       if (
         hasPaidEntitlementStatus(profile.subscription_status) &&
@@ -205,6 +207,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           const customer = await stripe.customers.retrieve(customerId);
           if (isDeletedStripeCustomer(customer)) {
+            replacementForCustomerId = customerId;
             customerId = null;
             activeSubscriptionId = null;
           }
@@ -212,6 +215,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (!isConfirmedMissingStripeCustomerError(stripeErr)) {
             throw stripeErr;
           }
+          replacementForCustomerId = customerId;
           console.warn(
             "Stored mobile customer not found, will create new:",
             stripeErr?.message || stripeErr,
@@ -253,7 +257,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             metadata: { source: "mobile_web" },
           },
           {
-            idempotencyKey: `mobile-web-customer:${profile.id}`,
+            idempotencyKey: getMobileCustomerIdempotencyKey(
+              profile.id,
+              replacementForCustomerId,
+            ),
           },
         );
         customerId = newCustomer.id;

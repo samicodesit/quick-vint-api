@@ -31,6 +31,15 @@ export function isConfirmedMissingStripeCustomerError(error: unknown): boolean {
   );
 }
 
+export function getMobileCustomerIdempotencyKey(
+  profileId: string,
+  replacementForCustomerId?: string | null,
+): string {
+  return replacementForCustomerId
+    ? `mobile-web-customer:${profileId}:replacement:${replacementForCustomerId}`
+    : `mobile-web-customer:${profileId}`;
+}
+
 export class MobileBillingRequestError extends Error {
   readonly statusCode: number;
   readonly code: string;

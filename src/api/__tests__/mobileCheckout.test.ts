@@ -361,12 +361,73 @@ describe("bearer-owned mobile Stripe billing", () => {
       expect(customerCreateMock).toHaveBeenCalledWith(
         expect.objectContaining({ email: "owner@example.com" }),
         expect.objectContaining({
-          idempotencyKey: "mobile-web-customer:bearer-user",
+          idempotencyKey:
+            "mobile-web-customer:bearer-user:replacement:cus_owner",
         }),
       );
       expect(checkoutCreateMock).toHaveBeenCalled();
     },
   );
+
+  it("uses a distinct replacement key for a deleted stored customer", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_deleted",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValueOnce({
+      id: "cus_deleted",
+      deleted: true,
+    });
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const response = createResponse();
+
+    await handler(mobileRequest() as any, response as any);
+
+    expect(response.statusCode).toBe(200);
+    expect(customerCreateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        idempotencyKey:
+          "mobile-web-customer:bearer-user:replacement:cus_deleted",
+      }),
+    );
+    expect(customerCreateMock.mock.calls[0][1]).not.toEqual({
+      idempotencyKey: "mobile-web-customer:bearer-user",
+    });
+  });
+
+  it("uses a stable replacement key for a resource-missing stored customer", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_missing",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockRejectedValueOnce({ code: "resource_missing" });
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const response = createResponse();
+
+    await handler(mobileRequest() as any, response as any);
+
+    expect(response.statusCode).toBe(200);
+    expect(customerCreateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        idempotencyKey:
+          "mobile-web-customer:bearer-user:replacement:cus_missing",
+      }),
+    );
+  });
 
   it("keeps extension checkout email ownership and metadata unchanged", async () => {
     profileResponse.data = {
@@ -510,7 +571,7 @@ describe("bearer-owned mobile Stripe billing", () => {
     expect(checkoutCreateMock).not.toHaveBeenCalled();
   });
 
-  it("retries a failed customer link with the same idempotency key", async () => {
+  it("retries an initial no-customer profile with the same idempotency key", async () => {
     profileResponse.data = {
       id: "bearer-user",
       email: "owner@example.com",
@@ -552,5 +613,105 @@ describe("bearer-owned mobile Stripe billing", () => {
       idempotencyKey: "mobile-web-customer:bearer-user",
     });
     expect(checkoutCreateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("reuses one replacement key across persistence retries", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_deleted",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockRejectedValue({ code: "resource_missing" });
+    const customersByKey = new Map<string, { id: string }>();
+    customerCreateMock.mockImplementation(
+      async (_params: unknown, options: { idempotencyKey?: string } = {}) => {
+        const key = options.idempotencyKey || "";
+        const existing = customersByKey.get(key);
+        if (existing) return existing;
+        const customer = { id: `cus_replacement_${customersByKey.size + 1}` };
+        customersByKey.set(key, customer);
+        return customer;
+      },
+    );
+    profileUpdateResponse.error = { message: "database unavailable" };
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const firstResponse = createResponse();
+
+    await handler(mobileRequest() as any, firstResponse as any);
+
+    profileUpdateResponse.error = null;
+    const secondResponse = createResponse();
+    await handler(mobileRequest() as any, secondResponse as any);
+
+    const expectedKey =
+      "mobile-web-customer:bearer-user:replacement:cus_deleted";
+    expect(firstResponse.statusCode).toBe(500);
+    expect(secondResponse.statusCode).toBe(200);
+    expect(customerCreateMock).toHaveBeenCalledTimes(2);
+    expect(customerCreateMock.mock.calls[0][1]).toEqual({
+      idempotencyKey: expectedKey,
+    });
+    expect(customerCreateMock.mock.calls[1][1]).toEqual({
+      idempotencyKey: expectedKey,
+    });
+    expect(checkoutCreateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("advances the replacement key when a replacement customer is later deleted", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_original",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValueOnce({
+      id: "cus_original",
+      deleted: true,
+    });
+    customerCreateMock.mockResolvedValueOnce({ id: "cus_replacement" });
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const firstResponse = createResponse();
+
+    await handler(mobileRequest() as any, firstResponse as any);
+
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_replacement",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockResolvedValueOnce({
+      id: "cus_replacement",
+      deleted: true,
+    });
+    customerCreateMock.mockResolvedValueOnce({ id: "cus_replacement_2" });
+    const secondResponse = createResponse();
+
+    await handler(mobileRequest() as any, secondResponse as any);
+
+    expect(firstResponse.statusCode).toBe(200);
+    expect(secondResponse.statusCode).toBe(200);
+    expect(customerCreateMock.mock.calls[0][1]).toEqual({
+      idempotencyKey:
+        "mobile-web-customer:bearer-user:replacement:cus_original",
+    });
+    expect(customerCreateMock.mock.calls[1][1]).toEqual({
+      idempotencyKey:
+        "mobile-web-customer:bearer-user:replacement:cus_replacement",
+    });
+    expect(customerCreateMock.mock.calls[0][1]).not.toEqual(
+      customerCreateMock.mock.calls[1][1],
+    );
   });
 });

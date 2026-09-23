@@ -533,7 +533,7 @@ describe("mobile web generation idempotency", () => {
         .fn()
         .mockRejectedValue(
           new Error(
-            "provider failed at https://provider.example/request?token=secret Bearer abcdefghijklmnop.qrstuvwxyz123456.abcdefghijklmnop JWT eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.signature token=secret-token-value",
+            "provider failed at https://provider.example/request?token=secret Bearer abcdefghijklmnop.qrstuvwxyz123456.abcdefghijklmnop JWT eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.signature token=secret-token-value access_token=oauth-access-value refresh-token:oauth-refresh-value client_secret=client-secret-value api-key=api-key-value",
           ),
         ),
     });
@@ -547,6 +547,10 @@ describe("mobile web generation idempotency", () => {
     expect(flaggedReason).not.toContain("Bearer ");
     expect(flaggedReason).not.toContain("eyJhbGciOiJIUzI1NiJ9");
     expect(flaggedReason).not.toContain("secret-token-value");
+    expect(flaggedReason).not.toContain("oauth-access-value");
+    expect(flaggedReason).not.toContain("oauth-refresh-value");
+    expect(flaggedReason).not.toContain("client-secret-value");
+    expect(flaggedReason).not.toContain("api-key-value");
   });
 
   it("keeps extension provider 403 behavior unchanged", async () => {

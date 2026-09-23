@@ -83,6 +83,7 @@ SET search_path = public
 AS $$
 DECLARE
   reservation_id uuid;
+  reservation_owner uuid := p_user_id;
 BEGIN
   IF p_effective_tier = 'deny' THEN
     RETURN jsonb_build_object(
@@ -94,9 +95,42 @@ BEGIN
     );
   END IF;
 
+  IF p_effective_tier = 'wrong_owner' THEN
+    reservation_owner := '00000000-0000-4000-8000-000000000002';
+  END IF;
+
   INSERT INTO public.generation_reservations (user_id)
-  VALUES (p_user_id)
+  VALUES (reservation_owner)
   RETURNING id INTO reservation_id;
+
+  IF p_effective_tier = 'post_bind_failure' THEN
+    UPDATE public.mobile_generation_idempotency
+    SET request_hash = repeat('0', 64)
+    WHERE id = (
+      SELECT id
+      FROM public.mobile_generation_idempotency
+      WHERE user_id = p_user_id
+        AND client = 'mobile_web'
+        AND status = 'in_progress'
+        AND reservation_id IS NULL
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    );
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'post-bind failure hook could not find active row';
+    END IF;
+  END IF;
+
+  IF p_effective_tier = 'missing_reservation_id' THEN
+    RETURN jsonb_build_object(
+      'allowed', true,
+      'remainingRequests', jsonb_build_object(
+        'minute', GREATEST(p_burst_limit - 1, 0),
+        'day', p_daily_limit,
+        'month', GREATEST(p_monthly_limit - 1, 0)
+      )
+    );
+  END IF;
 
   RETURN jsonb_build_object(
     'allowed', true,
@@ -127,11 +161,19 @@ DECLARE
   reservation_count_before integer;
   reservation_count_after integer;
   stale_claim jsonb;
-  stale_record uuid;
   stale_attempt uuid;
   denial_claim jsonb;
   denial_record uuid;
   denial_attempt uuid;
+  wrong_owner_claim jsonb;
+  wrong_owner_record uuid;
+  wrong_owner_attempt uuid;
+  missing_id_claim jsonb;
+  missing_id_record uuid;
+  missing_id_attempt uuid;
+  post_bind_claim jsonb;
+  post_bind_record uuid;
+  post_bind_attempt uuid;
   first_claim jsonb;
   first_record uuid;
   first_attempt uuid;
@@ -278,6 +320,158 @@ BEGIN
   WHERE user_id = '00000000-0000-4000-8000-000000000001';
   IF reservation_count_after <> reservation_count_before THEN
     RAISE EXCEPTION 'quota denial left a reservation behind';
+  END IF;
+
+  wrong_owner_claim := public.claim_mobile_generation_idempotency(
+    '00000000-0000-4000-8000-000000000001',
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000107',
+    repeat('7', 64)
+  );
+  IF wrong_owner_claim->>'kind' <> 'new' THEN
+    RAISE EXCEPTION 'expected wrong-owner claim to be new: %', wrong_owner_claim;
+  END IF;
+  SELECT id, attempt_id
+  INTO wrong_owner_record, wrong_owner_attempt
+  FROM public.mobile_generation_idempotency
+  WHERE request_id = '00000000-0000-4000-8000-000000000107';
+  SELECT COUNT(*)
+  INTO reservation_count_before
+  FROM public.generation_reservations;
+  BEGIN
+    PERFORM public.reserve_and_bind_mobile_generation_reservation(
+      '00000000-0000-4000-8000-000000000001',
+      wrong_owner_record,
+      wrong_owner_attempt,
+      'mobile_web',
+      '00000000-0000-4000-8000-000000000107',
+      repeat('7', 64),
+      'current',
+      'wrong_owner',
+      75,
+      10,
+      10,
+      5,
+      false
+    );
+    RAISE EXCEPTION 'wrong-owner bind unexpectedly succeeded';
+  EXCEPTION
+    WHEN OTHERS THEN
+      IF SQLERRM <> 'mobile_generation_attempt_stale' THEN
+        RAISE;
+      END IF;
+  END;
+  SELECT COUNT(*)
+  INTO reservation_count_after
+  FROM public.generation_reservations;
+  IF reservation_count_after <> reservation_count_before THEN
+    RAISE EXCEPTION 'wrong-owner bind failure left a reservation behind';
+  END IF;
+
+  missing_id_claim := public.claim_mobile_generation_idempotency(
+    '00000000-0000-4000-8000-000000000001',
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000108',
+    repeat('8', 64)
+  );
+  IF missing_id_claim->>'kind' <> 'new' THEN
+    RAISE EXCEPTION 'expected missing-ID claim to be new: %', missing_id_claim;
+  END IF;
+  SELECT id, attempt_id
+  INTO missing_id_record, missing_id_attempt
+  FROM public.mobile_generation_idempotency
+  WHERE request_id = '00000000-0000-4000-8000-000000000108';
+  SELECT COUNT(*)
+  INTO reservation_count_before
+  FROM public.generation_reservations;
+  BEGIN
+    PERFORM public.reserve_and_bind_mobile_generation_reservation(
+      '00000000-0000-4000-8000-000000000001',
+      missing_id_record,
+      missing_id_attempt,
+      'mobile_web',
+      '00000000-0000-4000-8000-000000000108',
+      repeat('8', 64),
+      'current',
+      'missing_reservation_id',
+      75,
+      10,
+      10,
+      5,
+      false
+    );
+    RAISE EXCEPTION 'missing reservation ID unexpectedly succeeded';
+  EXCEPTION
+    WHEN OTHERS THEN
+      IF SQLERRM <> 'mobile_generation_reservation_missing' THEN
+        RAISE;
+      END IF;
+  END;
+  SELECT COUNT(*)
+  INTO reservation_count_after
+  FROM public.generation_reservations;
+  IF reservation_count_after <> reservation_count_before THEN
+    RAISE EXCEPTION 'missing reservation ID left a reservation behind';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM public.mobile_generation_idempotency
+    WHERE id = missing_id_record AND reservation_id IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'missing reservation ID left an idempotency binding behind';
+  END IF;
+
+  post_bind_claim := public.claim_mobile_generation_idempotency(
+    '00000000-0000-4000-8000-000000000002',
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000109',
+    repeat('9', 64)
+  );
+  IF post_bind_claim->>'kind' <> 'new' THEN
+    RAISE EXCEPTION 'expected post-bind claim to be new: %', post_bind_claim;
+  END IF;
+  SELECT id, attempt_id
+  INTO post_bind_record, post_bind_attempt
+  FROM public.mobile_generation_idempotency
+  WHERE request_id = '00000000-0000-4000-8000-000000000109';
+  SELECT COUNT(*)
+  INTO reservation_count_before
+  FROM public.generation_reservations;
+  BEGIN
+    PERFORM public.reserve_and_bind_mobile_generation_reservation(
+      '00000000-0000-4000-8000-000000000002',
+      post_bind_record,
+      post_bind_attempt,
+      'mobile_web',
+      '00000000-0000-4000-8000-000000000109',
+      repeat('9', 64),
+      'current',
+      'post_bind_failure',
+      75,
+      10,
+      10,
+      5,
+      false
+    );
+    RAISE EXCEPTION 'post-reservation bind unexpectedly succeeded';
+  EXCEPTION
+    WHEN OTHERS THEN
+      IF SQLERRM <> 'mobile_generation_attempt_stale' THEN
+        RAISE;
+      END IF;
+  END;
+  SELECT COUNT(*)
+  INTO reservation_count_after
+  FROM public.generation_reservations;
+  IF reservation_count_after <> reservation_count_before THEN
+    RAISE EXCEPTION 'post-reservation bind failure left a reservation behind';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM public.mobile_generation_idempotency
+    WHERE id = post_bind_record AND reservation_id IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'post-reservation bind failure left an idempotency binding behind';
   END IF;
 
   first_claim := public.claim_mobile_generation_idempotency(

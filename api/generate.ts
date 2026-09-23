@@ -103,6 +103,10 @@ function sanitizeProviderErrorForLog(value: unknown): string {
       "[redacted-token]",
     )
     .replace(
+      /\b(?:[a-z][a-z0-9]*[_-])?(?:token|secret|key)\s*[:=]\s*[^\s,;]+/gi,
+      "[redacted-token]",
+    )
+    .replace(
       /\b(?:sk|pk|rk|tok|token|secret|key)[-_: =][A-Za-z0-9._~-]{8,}\b/gi,
       "[redacted-token]",
     )

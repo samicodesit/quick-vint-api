@@ -472,6 +472,26 @@ describe("mobile generation idempotency", () => {
     );
     expect(harness).toContain("stale attempt left a reservation behind");
     expect(harness).toContain("quota denial left a reservation behind");
+
+    const declarationBlock = harness.slice(
+      harness.indexOf("DO $$\nDECLARE"),
+      harness.indexOf("BEGIN", harness.indexOf("DO $$\nDECLARE")),
+    );
+    expect(
+      declarationBlock.match(/^\s*stale_record uuid(?:\s*:=.*)?$/gm),
+    ).toHaveLength(1);
+    expect(harness).toContain("p_effective_tier = 'wrong_owner'");
+    expect(harness).toContain("p_effective_tier = 'missing_reservation_id'");
+    expect(harness).toContain("p_effective_tier = 'post_bind_failure'");
+    expect(harness).toContain(
+      "wrong-owner bind failure left a reservation behind",
+    );
+    expect(harness).toContain(
+      "missing reservation ID left a reservation behind",
+    );
+    expect(harness).toContain(
+      "post-reservation bind failure left a reservation behind",
+    );
   });
 
   it("does not leave an expired commit-pending reservation stuck", () => {

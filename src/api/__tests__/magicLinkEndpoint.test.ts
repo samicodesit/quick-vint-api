@@ -161,6 +161,25 @@ describe("magic link endpoint", () => {
     );
   });
 
+  it("keeps a mobile request on the HTTPS app callback from an extension origin", async () => {
+    const res = await invokeMagicLink({
+      headers: { origin: "chrome-extension://test-extension" },
+      body: {
+        email: "seller@example.com",
+        client: "mobile_web",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(generateLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          redirectTo: "https://autolister.app/app/auth/callback",
+        },
+      }),
+    );
+  });
+
   it("keeps the extension callback for an unknown client context", async () => {
     const res = await invokeMagicLink({
       body: {

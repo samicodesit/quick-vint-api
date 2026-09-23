@@ -371,10 +371,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const requestOrigin =
-    typeof req.headers?.origin === "string" ? req.headers.origin : undefined;
   const emailRedirectTo = mobileWebClient
-    ? getMobileWebCallbackUrl(requestOrigin)
+    ? getMobileWebCallbackUrl()
     : getAuthCallbackUrl();
 
   let linkResult;

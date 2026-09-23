@@ -112,6 +112,7 @@ async function request(
   ensureNotAborted(signal);
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${session.accessToken}`);
+  headers.set("X-Autolister-Client", "mobile_web");
   let response: Response;
   try {
     response = await fetch(url, { ...init, headers, signal });

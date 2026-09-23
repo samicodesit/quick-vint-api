@@ -7,9 +7,70 @@ import {
   getMobileCopyAnalyticsContext,
   resetMobileCopyStateOnEdit,
   revokeMobileUploadedPreviews,
+  closeMobileLanguageMenus,
+  toggleMobileLanguageMenu,
 } from "../app.js";
 
 describe("mobile web app state helpers", () => {
+  it("opens one language menu at a time and keeps trigger state accessible", () => {
+    const titleTrigger = {
+      setAttribute: vi.fn(),
+    };
+    const descriptionTrigger = {
+      setAttribute: vi.fn(),
+    };
+    const titleMenu = {
+      hidden: true,
+      dataset: { mobileLanguageMenu: "title" },
+    };
+    const descriptionMenu = {
+      hidden: true,
+      dataset: { mobileLanguageMenu: "description" },
+    };
+    const root = {
+      querySelector: vi.fn((selector: string) => {
+        if (selector === '[data-mobile-language-trigger="title"]')
+          return titleTrigger;
+        if (selector === '[data-mobile-language-trigger="description"]')
+          return descriptionTrigger;
+        if (selector === '[data-mobile-language-menu="title"]')
+          return titleMenu;
+        if (selector === '[data-mobile-language-menu="description"]')
+          return descriptionMenu;
+        return null;
+      }),
+      querySelectorAll: vi.fn(() => [titleMenu, descriptionMenu]),
+    } as unknown as ParentNode;
+
+    toggleMobileLanguageMenu(root, "title");
+    expect(titleMenu.hidden).toBe(false);
+    expect(descriptionMenu.hidden).toBe(true);
+    expect(titleTrigger.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "true",
+    );
+
+    toggleMobileLanguageMenu(root, "description");
+    expect(titleMenu.hidden).toBe(true);
+    expect(descriptionMenu.hidden).toBe(false);
+    expect(titleTrigger.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "false",
+    );
+    expect(descriptionTrigger.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "true",
+    );
+
+    closeMobileLanguageMenus(root);
+    expect(titleMenu.hidden).toBe(true);
+    expect(descriptionMenu.hidden).toBe(true);
+    expect(descriptionTrigger.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "false",
+    );
+  });
+
   it("shows free lifetime plus pack capacity instead of hiding pack credits", () => {
     expect(
       getMobileUsageDisplay({

@@ -235,6 +235,12 @@ describe("mobile V2 upload client", () => {
       "signed-5",
     ]);
     expect(fetchLog.at(-1)?.url).toContain("v=2&includeUrls=1");
+    expect(
+      fetchLog.every(
+        ({ init }) =>
+          new Headers(init.headers).get("X-Autolister-Client") === "mobile_web",
+      ),
+    ).toBe(true);
   });
 
   it("sends the complete order manifest and does not clean up before generation", async () => {

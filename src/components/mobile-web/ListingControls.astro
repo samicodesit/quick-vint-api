@@ -39,6 +39,7 @@ const descriptionLanguage =
         class="mobile-language-trigger"
         data-mobile-language-trigger="title"
         data-value={titleLanguage.code}
+        aria-controls="mobile-title-language-menu"
         aria-haspopup="listbox"
         aria-expanded="false"
       >
@@ -60,6 +61,7 @@ const descriptionLanguage =
       </button>
       <div
         class="mobile-language-menu"
+        id="mobile-title-language-menu"
         data-mobile-language-menu="title"
         role="listbox"
         aria-label="Title language"
@@ -107,6 +109,7 @@ const descriptionLanguage =
         class="mobile-language-trigger"
         data-mobile-language-trigger="description"
         data-value={descriptionLanguage.code}
+        aria-controls="mobile-description-language-menu"
         aria-haspopup="listbox"
         aria-expanded="false"
       >
@@ -128,6 +131,7 @@ const descriptionLanguage =
       </button>
       <div
         class="mobile-language-menu"
+        id="mobile-description-language-menu"
         data-mobile-language-menu="description"
         role="listbox"
         aria-label="Description language"

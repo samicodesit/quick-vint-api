@@ -93,6 +93,45 @@ function setHidden(root: ParentNode, selector: string, hidden: boolean): void {
   if (element) element.hidden = hidden;
 }
 
+export type MobileLanguageKind = "title" | "description";
+
+export function closeMobileLanguageMenus(root: ParentNode): void {
+  root
+    .querySelectorAll<HTMLElement>("[data-mobile-language-menu]")
+    .forEach((menu) => {
+      menu.hidden = true;
+      const kind = menu.dataset.mobileLanguageMenu;
+      if (kind === "title" || kind === "description") {
+        asElement<HTMLButtonElement>(
+          root,
+          `[data-mobile-language-trigger="${kind}"]`,
+        )?.setAttribute("aria-expanded", "false");
+      }
+    });
+}
+
+export function toggleMobileLanguageMenu(
+  root: ParentNode,
+  kind: MobileLanguageKind,
+): void {
+  const menu = asElement<HTMLElement>(
+    root,
+    `[data-mobile-language-menu="${kind}"]`,
+  );
+  const trigger = asElement<HTMLButtonElement>(
+    root,
+    `[data-mobile-language-trigger="${kind}"]`,
+  );
+  if (!menu || !trigger) return;
+
+  const shouldOpen = menu.hidden;
+  closeMobileLanguageMenus(root);
+  if (!shouldOpen) return;
+
+  menu.hidden = false;
+  trigger.setAttribute("aria-expanded", "true");
+}
+
 type CheckoutReturnStatus = "success" | "cancel" | "manage";
 
 function readCheckoutReturnStatus(): CheckoutReturnStatus | null {
@@ -536,7 +575,7 @@ export function mountMobileWebApp(
   const vintedDestination = getMobileVintedDestination();
 
   const bind = (
-    element: Element | null,
+    element: EventTarget | null,
     event: string,
     handler: EventListener,
   ): void => {
@@ -1082,18 +1121,32 @@ export function mountMobileWebApp(
     showAuth(root),
   );
 
-  bind(asElement(root, "[data-mobile-listing-controls]"), "click", (event) => {
+  const listingControls = asElement<HTMLElement>(
+    root,
+    "[data-mobile-listing-controls]",
+  );
+  bind(listingControls, "click", (event) => {
     const target = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-mobile-language-option], [data-mobile-format-option], [data-mobile-format-sheet-trigger], [data-mobile-format-done]",
+      "[data-mobile-language-trigger], [data-mobile-language-option], [data-mobile-format-option], [data-mobile-format-sheet-trigger], [data-mobile-format-done]",
     );
-    if (!target) return;
+    if (!target) {
+      closeMobileLanguageMenus(root);
+      return;
+    }
+    const languageTriggerKind = target.dataset.mobileLanguageTrigger as
+      | MobileLanguageKind
+      | undefined;
+    if (languageTriggerKind) {
+      toggleMobileLanguageMenu(root, languageTriggerKind);
+      return;
+    }
     const languageKind = target.dataset.mobileLanguageOption as
-      | "title"
-      | "description"
+      | MobileLanguageKind
       | undefined;
     if (languageKind && target.dataset.value) {
       language = persistLanguage(languageKind, target.dataset.value);
       updateLanguageControls(root, language);
+      closeMobileLanguageMenus(root);
       return;
     }
     const formatKind = target.dataset.mobileFormatOption;
@@ -1120,19 +1173,27 @@ export function mountMobileWebApp(
         );
       updateFormattingControls(root, formatting);
     }
-    if (target.dataset.mobileFormatSheetTrigger)
+    if (target.dataset.mobileFormatSheetTrigger) {
+      closeMobileLanguageMenus(root);
       setHidden(root, "[data-mobile-format-sheet]", false);
-    if (target.dataset.mobileFormatDone)
+    }
+    if (target.dataset.mobileFormatDone) {
       setHidden(root, "[data-mobile-format-sheet]", true);
+      closeMobileLanguageMenus(root);
+    }
   });
-  bind(
-    asElement(root, "[data-mobile-listing-controls]"),
-    "keydown",
-    (event) => {
-      if ((event as KeyboardEvent).key === "Escape")
-        setHidden(root, "[data-mobile-format-sheet]", true);
-    },
-  );
+  if (typeof document !== "undefined" && listingControls) {
+    bind(document, "click", (event) => {
+      if (!listingControls.contains(event.target as Node))
+        closeMobileLanguageMenus(root);
+    });
+  }
+  bind(listingControls, "keydown", (event) => {
+    if ((event as KeyboardEvent).key === "Escape") {
+      closeMobileLanguageMenus(root);
+      setHidden(root, "[data-mobile-format-sheet]", true);
+    }
+  });
 
   updateLanguageControls(root, language);
   updateFormattingControls(root, formatting);

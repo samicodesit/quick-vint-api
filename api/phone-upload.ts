@@ -3,6 +3,7 @@ import Busboy from "busboy";
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
+import { getMobileWebClient, MOBILE_WEB_CLIENT } from "../utils/mobileWeb";
 
 // Initialize CORS middleware
 const cors = Cors({
@@ -72,6 +73,7 @@ const V2_SESSION_ID =
 type V2SessionMarker = {
   v: 2;
   ownerId: string;
+  client?: typeof MOBILE_WEB_CLIENT;
   mode: "single" | "batch";
   source: "phone";
   status: "open" | "uploading" | "complete" | "cancelled" | "expired";
@@ -270,6 +272,44 @@ async function expireV2SessionIfNeeded(
   return marker;
 }
 
+/**
+ * Mobile web sessions are owned by the authenticated account that opened
+ * them. Legacy QR sessions intentionally have no client marker and retain
+ * their existing capability-based contract.
+ */
+async function authorizeV2Session(
+  req: VercelRequest,
+  res: VercelResponse,
+  marker: V2SessionMarker,
+) {
+  if (marker.client !== MOBILE_WEB_CLIENT) return true;
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Missing or invalid Authorization" });
+    return false;
+  }
+
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(authHeader.slice("Bearer ".length));
+    if (error || !user) {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return false;
+    }
+    if (!marker.ownerId || marker.ownerId !== user.id) {
+      res.status(403).json({ error: "You do not own this upload session" });
+      return false;
+    }
+    return true;
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token" });
+    return false;
+  }
+}
+
 function createStoredFileMetadata(
   sessionId: string,
   file: { name: string; metadata?: Record<string, unknown> | null },
@@ -375,10 +415,11 @@ async function handleV2Status(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Invalid v2 upload session" });
   }
 
-  const marker = await expireV2SessionIfNeeded(
-    sessionId,
-    await readV2Session(sessionId),
-  );
+  const storedMarker = await readV2Session(sessionId);
+  if (storedMarker && !(await authorizeV2Session(req, res, storedMarker))) {
+    return;
+  }
+  const marker = await expireV2SessionIfNeeded(sessionId, storedMarker);
   if (!marker || marker.status === "expired" || marker.status === "cancelled") {
     return res.status(410).json({
       v: 2,
@@ -419,9 +460,11 @@ async function handleOpenV2(req: VercelRequest, res: VercelResponse) {
   }
 
   const now = new Date();
+  const client = getMobileWebClient(req.headers["x-autolister-client"]);
   const marker: V2SessionMarker = {
     v: 2,
     ownerId: user.id,
+    ...(client ? { client } : {}),
     mode,
     source: "phone",
     status: "open",
@@ -465,6 +508,9 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Invalid fromOrder" });
     }
     let v2Marker = req.query.v === "2" ? await readV2Session(sessionId) : null;
+    if (v2Marker && !(await authorizeV2Session(req, res, v2Marker))) {
+      return;
+    }
     v2Marker = await expireV2SessionIfNeeded(sessionId, v2Marker);
     if (req.query.v === "2" && !v2Marker) {
       return res.status(410).json({
@@ -575,10 +621,11 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
     ) {
       return res.status(400).json({ error: "Invalid expectedCount" });
     }
-    v2Marker = await expireV2SessionIfNeeded(
-      requestedSessionId,
-      await readV2Session(requestedSessionId),
-    );
+    const storedMarker = await readV2Session(requestedSessionId);
+    if (storedMarker && !(await authorizeV2Session(req, res, storedMarker))) {
+      return;
+    }
+    v2Marker = await expireV2SessionIfNeeded(requestedSessionId, storedMarker);
     if (
       !v2Marker ||
       v2Marker.status === "expired" ||
@@ -760,10 +807,11 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
     if (uploaderId && !V2_SESSION_ID.test(uploaderId)) {
       return res.status(400).json({ error: "Invalid uploaderId" });
     }
-    const marker = await expireV2SessionIfNeeded(
-      sessionId,
-      await readV2Session(sessionId),
-    );
+    const storedMarker = await readV2Session(sessionId);
+    if (storedMarker && !(await authorizeV2Session(req, res, storedMarker))) {
+      return;
+    }
+    const marker = await expireV2SessionIfNeeded(sessionId, storedMarker);
     if (
       !marker ||
       marker.status === "expired" ||
@@ -861,49 +909,55 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
 
   try {
     const expectedCount = parseExpectedCount(req.query.expectedCount);
+    let v2Marker: V2SessionMarker | null = null;
+    let v2ExpectedCount: number | null = null;
+    if (req.query.v === "2") {
+      if (expectedCount === null) {
+        return res.status(400).json({ error: "Invalid expectedCount" });
+      }
+      v2ExpectedCount = expectedCount;
+      const storedMarker = await readV2Session(sessionId);
+      if (storedMarker && !(await authorizeV2Session(req, res, storedMarker))) {
+        return;
+      }
+      v2Marker = await expireV2SessionIfNeeded(sessionId, storedMarker);
+      if (
+        !v2Marker ||
+        v2Marker.status === "expired" ||
+        v2Marker.status === "cancelled"
+      ) {
+        return res.status(410).json({
+          success: false,
+          v: 2,
+          status: v2Marker?.status || "expired",
+        });
+      }
+      if (
+        v2Marker.status === "complete" ||
+        (v2Marker.expectedCount !== null &&
+          v2Marker.expectedCount !== expectedCount)
+      ) {
+        return res.status(409).json({
+          success: false,
+          complete: v2Marker.status === "complete",
+          v: 2,
+          status: v2Marker.status,
+          expectedCount: v2Marker.expectedCount,
+        });
+      }
+    }
     const files = await listSessionFiles(sessionId);
 
     const photoFiles = (files || []).filter(
       (file) => !isSessionMarkerFile(file),
     );
-    if (req.query.v === "2") {
-      if (expectedCount === null) {
-        return res.status(400).json({ error: "Invalid expectedCount" });
-      }
-      const marker = await expireV2SessionIfNeeded(
-        sessionId,
-        await readV2Session(sessionId),
-      );
-      if (
-        !marker ||
-        marker.status === "expired" ||
-        marker.status === "cancelled"
-      ) {
-        return res.status(410).json({
-          success: false,
-          v: 2,
-          status: marker?.status || "expired",
-        });
-      }
-      if (
-        marker.status === "complete" ||
-        (marker.expectedCount !== null &&
-          marker.expectedCount !== expectedCount)
-      ) {
-        return res.status(409).json({
-          success: false,
-          complete: marker.status === "complete",
-          v: 2,
-          status: marker.status,
-          expectedCount: marker.expectedCount,
-        });
-      }
-      if (photoFiles.length > expectedCount) {
+    if (v2Marker && v2ExpectedCount !== null) {
+      if (photoFiles.length > v2ExpectedCount) {
         return res.status(409).json({
           success: false,
           complete: false,
           v: 2,
-          status: marker.status,
+          status: v2Marker.status,
           count: photoFiles.length,
           expectedCount,
         });
@@ -971,18 +1025,17 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
     if (markerError) throw markerError;
 
     if (req.query.v === "2") {
-      const sessionMarker = await readV2Session(sessionId);
-      if (!sessionMarker) {
+      if (!v2Marker) {
         throw new Error("Upload session marker disappeared");
       }
-      sessionMarker.status = "complete";
-      sessionMarker.expectedCount = expectedCount;
+      v2Marker.status = "complete";
+      v2Marker.expectedCount = expectedCount;
       const completedAt = new Date();
-      sessionMarker.lastActivityAt = completedAt.toISOString();
-      sessionMarker.expiresAt = new Date(
+      v2Marker.lastActivityAt = completedAt.toISOString();
+      v2Marker.expiresAt = new Date(
         completedAt.getTime() + V2_COMPLETED_RECOVERY_MS,
       ).toISOString();
-      await writeV2Session(sessionId, sessionMarker);
+      await writeV2Session(sessionId, v2Marker);
     }
 
     res.status(200).json({
@@ -1018,8 +1071,23 @@ async function handleCleanup(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    if (req.query.v === "2" && req.query.reason === "cancelled") {
-      const marker = await readV2Session(sessionId);
+    const isV2 = req.query.v === "2";
+    const isMobileRequest =
+      getMobileWebClient(req.headers["x-autolister-client"]) ===
+      MOBILE_WEB_CLIENT;
+    const marker = isV2 ? await readV2Session(sessionId) : null;
+    if (marker && !(await authorizeV2Session(req, res, marker))) {
+      return;
+    }
+    if (isMobileRequest && !marker) {
+      return res.status(410).json({
+        success: false,
+        v: 2,
+        status: "expired",
+      });
+    }
+
+    if (isV2 && req.query.reason === "cancelled") {
       if (!marker) {
         return res.status(200).json({ success: true, status: "cancelled" });
       }

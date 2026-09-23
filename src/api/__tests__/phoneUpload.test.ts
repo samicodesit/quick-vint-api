@@ -149,6 +149,8 @@ function createMultipartMultiUploadRequest({
 
 function mockV2Session(
   overrides: Partial<{
+    ownerId: string;
+    client: "mobile_web";
     status: "open" | "uploading" | "complete" | "cancelled" | "expired";
     expectedCount: number | null;
     expiresAt: string;
@@ -158,7 +160,8 @@ function mockV2Session(
     data: new Blob([
       JSON.stringify({
         v: 2,
-        ownerId: "user-1",
+        ownerId: overrides.ownerId || "user-1",
+        ...(overrides.client ? { client: overrides.client } : {}),
         mode: "batch",
         source: "phone",
         status: "open",
@@ -236,6 +239,175 @@ describe("phone upload endpoint", () => {
       new Date(marker.expiresAt).getTime() -
         new Date(marker.createdAt).getTime(),
     ).toBe(60 * 60 * 1000);
+  });
+
+  it("marks mobile web sessions so follow-up operations require the owner", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+    uploadMock.mockResolvedValue({ error: null });
+
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer valid-token",
+          "x-autolister-client": "mobile_web",
+        },
+        query: {
+          action: "open",
+          v: "2",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+          mode: "single",
+        },
+      } as any,
+      res as any,
+    );
+
+    const marker = JSON.parse(uploadMock.mock.calls[0][1].toString());
+    expect(marker).toMatchObject({ ownerId: "user-1", client: "mobile_web" });
+  });
+
+  it.each([
+    ["status", "GET"],
+    ["prepare", "POST"],
+    ["complete", "POST"],
+    ["cleanup", "POST"],
+  ] as const)(
+    "rejects unauthenticated mobile web %s requests before touching session data",
+    async (action, method) => {
+      mockV2Session({ client: "mobile_web" });
+      const module = await import("../../../api/phone-upload.js");
+      const handler = (module as any).default;
+      const res = createResponse();
+
+      await handler(
+        {
+          method,
+          headers: {
+            "content-type": "application/json",
+            "x-autolister-client": "mobile_web",
+          },
+          query: {
+            action,
+            v: "2",
+            sessionId: "550e8400-e29b-41d4-a716-446655440000",
+            expectedCount: "1",
+          },
+        } as any,
+        res as any,
+      );
+
+      expect(res.statusCode).toBe(401);
+      expect(uploadMock).not.toHaveBeenCalled();
+      expect(removeMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a cross-owner mobile web signed URL request", async () => {
+    mockV2Session({ client: "mobile_web" });
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "user-2" } },
+      error: null,
+    });
+
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+
+    await handler(
+      {
+        method: "GET",
+        headers: {
+          authorization: "Bearer other-user-token",
+          "x-autolister-client": "mobile_web",
+        },
+        query: {
+          v: "2",
+          includeUrls: "1",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        },
+      } as any,
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(createSignedUrlsMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["status", "GET"],
+    ["prepare", "POST"],
+    ["complete", "POST"],
+    ["cleanup", "POST"],
+  ] as const)(
+    "rejects a cross-owner mobile web %s request before changing session data",
+    async (action, method) => {
+      mockV2Session({ client: "mobile_web" });
+      getUserMock.mockResolvedValue({
+        data: { user: { id: "user-2" } },
+        error: null,
+      });
+
+      const module = await import("../../../api/phone-upload.js");
+      const handler = (module as any).default;
+      const res = createResponse();
+
+      await handler(
+        {
+          method,
+          headers: {
+            "content-type": "application/json",
+            authorization: "Bearer other-user-token",
+            "x-autolister-client": "mobile_web",
+          },
+          query: {
+            action,
+            v: "2",
+            sessionId: "550e8400-e29b-41d4-a716-446655440000",
+            expectedCount: "1",
+          },
+        } as any,
+        res as any,
+      );
+
+      expect(res.statusCode).toBe(403);
+      expect(listMock).not.toHaveBeenCalled();
+      expect(uploadMock).not.toHaveBeenCalled();
+      expect(removeMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a cross-owner mobile web multipart upload before consuming the body", async () => {
+    mockV2Session({ client: "mobile_web" });
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "user-2" } },
+      error: null,
+    });
+
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    const req = createMultipartUploadRequest({
+      sessionId: "550e8400-e29b-41d4-a716-446655440000",
+      uploadOrder: 0,
+      filename: "photo.jpg",
+    });
+    req.query.v = "2";
+    req.query.expectedCount = "1";
+    req.headers.authorization = "Bearer other-user-token";
+    req.headers["x-autolister-client"] = "mobile_web";
+
+    await handler(req, res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(uploadMock).not.toHaveBeenCalled();
   });
 
   it("rejects unauthenticated v2 session creation without affecting v1", async () => {

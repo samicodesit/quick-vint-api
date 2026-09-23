@@ -11,22 +11,28 @@ export default defineConfig({
     mdx(),
     sitemap({
       filter: (page) => {
-        const pathname = new URL(page).pathname;
+        const pathname = new URL(page).pathname.replace(/\/+$/, "") || "/";
         const excludedPaths = new Set([
-          "/admin/",
-          "/cancel/",
-          "/email-templates/",
-          "/phone-upload/",
-          "/success/",
-          "/ui-components/",
-          "/ui-components/content-components/",
-          "/uninstall/",
-          "/unsubscribe/",
-          "/updates/latest/",
-          "/welcome/",
+          "/admin",
+          "/app",
+          "/app/auth/callback",
+          "/auth/callback",
+          "/cancel",
+          "/customer-usage",
+          "/email-templates",
+          "/phone-upload",
+          "/success",
+          "/ui-components",
+          "/ui-components/content-components",
+          "/uninstall",
+          "/unsubscribe",
+          "/updates/latest",
+          "/welcome",
         ]);
 
-        return !excludedPaths.has(pathname) && !pathname.startsWith("/welcome/");
+        return (
+          !excludedPaths.has(pathname) && !pathname.startsWith("/welcome/")
+        );
       },
     }),
   ],

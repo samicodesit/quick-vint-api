@@ -15,7 +15,10 @@ describe("private mobile web documents", () => {
       expect(source).not.toContain('rel="canonical"');
       expect(source).toContain("connect-src");
       expect(source).toContain("'self'");
-      expect(source).toContain("img-src 'self' data: blob:");
+      expect(source).toContain(
+        "img-src 'self' https://flagcdn.com data: blob:",
+      );
+      expect(source).toContain("https://flagcdn.com");
       expect(source).toContain("PUBLIC_MOBILE_WEB_APP_ENABLED");
     }
   });

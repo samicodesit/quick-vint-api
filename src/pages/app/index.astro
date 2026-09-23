@@ -16,7 +16,7 @@ const connectSources = [
 const contentSecurityPolicy = [
   "default-src 'self'",
   `connect-src ${connectSources}`,
-  "img-src 'self' data: blob:",
+  "img-src 'self' https://flagcdn.com data: blob:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline'",

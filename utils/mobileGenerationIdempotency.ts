@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { supabase } from "./supabaseClient";
 import type {
   IdempotencyClaim,
+  MobileGenerationReservationParams,
   MobileGenerationRequestBody,
   MobileGenerationResponse,
   StoredResponseValidation,
@@ -33,6 +34,24 @@ const SAFE_FAILURE_STRING_KEYS = new Set([
   "currentTier",
   "nextTier",
 ]);
+
+export type MobileGenerationReservationResult = {
+  allowed: boolean;
+  code?: string;
+  error?: string;
+  currentTier?: string;
+  nextTier?: string | null;
+  limitScope?: "day" | "month" | "minute" | "service";
+  currentLimit?: number | null;
+  remainingRequests?: {
+    minute: number;
+    day?: number | null;
+    month: number;
+    freeLifetime?: number | null;
+    packCredits?: number | null;
+  };
+  reservationId?: string | null;
+};
 
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
@@ -352,6 +371,112 @@ export async function bindMobileGenerationReservation(input: {
     p_attempt_id: input.attemptId,
     p_reservation_id: input.reservationId,
   });
+}
+
+export async function reserveAndBindMobileGenerationReservation(
+  input: {
+    userId: string;
+    recordId: string;
+    attemptId: string;
+    requestId: string;
+    requestHash: string;
+  } & MobileGenerationReservationParams,
+): Promise<MobileGenerationReservationResult> {
+  try {
+    const { data, error } = await supabase.rpc(
+      "reserve_and_bind_mobile_generation_reservation",
+      {
+        p_user_id: input.userId,
+        p_record_id: input.recordId,
+        p_attempt_id: input.attemptId,
+        p_client: MOBILE_CLIENT,
+        p_request_id: input.requestId,
+        p_request_hash: input.requestHash,
+        p_pricing_limits_mode: input.pricingLimitsMode,
+        p_effective_tier: input.effectiveTier,
+        p_monthly_limit: input.monthlyLimit,
+        p_daily_limit: input.dailyLimit,
+        p_burst_limit: input.burstLimit,
+        p_free_lifetime_limit: input.freeLifetimeLimit,
+        p_has_unlimited_daily: input.hasUnlimitedDaily,
+      },
+    );
+
+    if (error) {
+      console.error(
+        "Mobile atomic generation reservation failed:",
+        error.message,
+      );
+      return { allowed: false, code: "idempotency_bind_failed" };
+    }
+
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return { allowed: false, code: "idempotency_bind_failed" };
+    }
+
+    const result = data as Record<string, unknown>;
+    const allowed = result.allowed === true;
+    const reservationId = result.reservationId ?? result.reservation_id;
+    if (allowed && typeof reservationId === "string") {
+      return {
+        allowed: true,
+        reservationId,
+        ...(result.remainingRequests &&
+        typeof result.remainingRequests === "object"
+          ? {
+              remainingRequests: result.remainingRequests as {
+                minute: number;
+                day?: number | null;
+                month: number;
+                freeLifetime?: number | null;
+                packCredits?: number | null;
+              },
+            }
+          : {}),
+      };
+    }
+
+    if (!allowed) {
+      return {
+        allowed: false,
+        ...(typeof result.code === "string" ? { code: result.code } : {}),
+        ...(typeof result.error === "string" ? { error: result.error } : {}),
+        ...(typeof result.currentTier === "string"
+          ? { currentTier: result.currentTier }
+          : {}),
+        ...(typeof result.nextTier === "string" || result.nextTier === null
+          ? { nextTier: result.nextTier }
+          : {}),
+        ...(result.limitScope === "day" ||
+        result.limitScope === "month" ||
+        result.limitScope === "minute" ||
+        result.limitScope === "service"
+          ? { limitScope: result.limitScope }
+          : {}),
+        ...(typeof result.currentLimit === "number" ||
+        result.currentLimit === null
+          ? { currentLimit: result.currentLimit }
+          : {}),
+        ...(result.remainingRequests &&
+        typeof result.remainingRequests === "object"
+          ? {
+              remainingRequests: result.remainingRequests as {
+                minute: number;
+                day?: number | null;
+                month: number;
+                freeLifetime?: number | null;
+                packCredits?: number | null;
+              },
+            }
+          : {}),
+      };
+    }
+
+    return { allowed: false, code: "idempotency_bind_failed" };
+  } catch (error: any) {
+    console.error("Mobile atomic generation reservation exception:", error);
+    return { allowed: false, code: "idempotency_bind_failed" };
+  }
 }
 
 export async function completeMobileGenerationIdempotency(input: {

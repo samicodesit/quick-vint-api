@@ -6,7 +6,10 @@ import type {
 } from "openai/resources/chat/completions";
 import Cors from "cors";
 import { supabase } from "../utils/supabaseClient";
-import { RateLimiter } from "../utils/rateLimiter";
+import {
+  getGenerationReservationParams,
+  RateLimiter,
+} from "../utils/rateLimiter";
 import { ApiLogger } from "../utils/apiLogger";
 import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
@@ -54,12 +57,12 @@ import type {
   StoredResponseValidation,
 } from "../utils/mobileGenerationTypes";
 import {
-  bindMobileGenerationReservation,
   claimMobileGenerationIdempotency,
   completeMobileGenerationIdempotency,
   failMobileGenerationIdempotency,
   markMobileGenerationCommitPending,
   normalizeMobileGenerationRequest,
+  reserveAndBindMobileGenerationReservation,
   sanitizeStoredFailureBody,
   validateStoredResponse,
 } from "../utils/mobileGenerationIdempotency";
@@ -90,6 +93,19 @@ function sanitizeProviderErrorForLog(value: unknown): string {
   return message
     .replace(/https?:\/\/[^\s)]+/gi, "[redacted-url]")
     .replace(/data:[^\s)]+/gi, "[redacted-data]")
+    .replace(/\bbearer\s+[^\s,;]+/gi, "[redacted-bearer]")
+    .replace(
+      /\b(?:jwt\s+)?[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/gi,
+      "[redacted-jwt]",
+    )
+    .replace(
+      /\b(?:token|secret|api[_-]?key|authorization|jwt)\s*[:=]\s*[^\s,;]+/gi,
+      "[redacted-token]",
+    )
+    .replace(
+      /\b(?:sk|pk|rk|tok|token|secret|key)[-_: =][A-Za-z0-9._~-]{8,}\b/gi,
+      "[redacted-token]",
+    )
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 500);
@@ -649,22 +665,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- RATE LIMITING ---
   // Reserve after request validation so malformed calls do not consume a user's
   // listing entitlement, but before OpenAI so parallel calls cannot overspend.
+  // The no-emoji retry is an extension-only allowance. Mobile web uses the
+  // regular atomic reservation path so it cannot bypass idempotency binding.
   const isEmojiRetryRequest =
-    (emojiRetry === true || emojiRetry === "true") && emojisDisabledByUser;
+    !isMobileWebRequest &&
+    (emojiRetry === true || emojiRetry === "true") &&
+    emojisDisabledByUser;
 
   let mobileIdempotencyRecordId: string | null = null;
   let mobileIdempotencyAttemptId: string | null = null;
+  let mobileRequestHash: string | null = null;
   if (isMobileWebRequest) {
     const normalizedMobileRequest = normalizeMobileGenerationRequest(
       req.body as MobileGenerationRequestBody,
     );
+    mobileRequestHash = normalizedMobileRequest.hash;
 
     let claim;
     try {
       claim = await claimMobileGenerationIdempotency({
         userId: user.id,
         requestId: mobileRequestId as string,
-        requestHash: normalizedMobileRequest.hash,
+        requestHash: mobileRequestHash,
       });
     } catch {
       logData.responseStatus = 503;
@@ -730,19 +752,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     mobileIdempotencyAttemptId = claim.attemptId;
   }
 
-  const rateLimitResult = isEmojiRetryRequest
-    ? await RateLimiter.reserveEmojiRetry(
-        user.id,
-        userProfile,
-        pricingLimitsMode,
-      )
-    : await RateLimiter.reserveGenerationRequest(
-        user.id,
-        userProfile,
-        pricingLimitsMode,
-      );
+  const rateLimitResult = isMobileWebRequest
+    ? await reserveAndBindMobileGenerationReservation({
+        userId: user.id,
+        recordId: mobileIdempotencyRecordId as string,
+        attemptId: mobileIdempotencyAttemptId as string,
+        requestId: mobileRequestId as string,
+        requestHash: mobileRequestHash as string,
+        ...getGenerationReservationParams(userProfile, pricingLimitsMode),
+      })
+    : isEmojiRetryRequest
+      ? await RateLimiter.reserveEmojiRetry(
+          user.id,
+          userProfile,
+          pricingLimitsMode,
+        )
+      : await RateLimiter.reserveGenerationRequest(
+          user.id,
+          userProfile,
+          pricingLimitsMode,
+        );
 
   if (!rateLimitResult.allowed) {
+    if (
+      isMobileWebRequest &&
+      rateLimitResult.code === "idempotency_bind_failed"
+    ) {
+      const failureBody = {
+        error: "Could not reserve this generation request. Please try again.",
+        code: "idempotency_bind_failed",
+      };
+      await failMobileGenerationIdempotency({
+        recordId: mobileIdempotencyRecordId as string,
+        attemptId: mobileIdempotencyAttemptId as string,
+        statusCode: 503,
+        body: failureBody,
+        retryable: true,
+        failureCode: "idempotency_bind_failed",
+      });
+      logData.responseStatus = 503;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason = "Mobile atomic reservation binding failed";
+      await ApiLogger.logRequest(logData);
+      return res.status(503).json(failureBody);
+    }
+
     logData.responseStatus = 429;
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = "Rate limit exceeded";
@@ -793,39 +847,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logData.responseStatus = 503;
       logData.processingDurationMs = Date.now() - startTime;
       logData.flaggedReason = "Mobile reservation missing after reserve";
-      await ApiLogger.logRequest(logData);
-      return res.status(503).json({
-        error: "Could not reserve this generation request. Please try again.",
-        code: "idempotency_bind_failed",
-      });
-    }
-
-    const boundReservation = await bindMobileGenerationReservation({
-      recordId: mobileIdempotencyRecordId as string,
-      attemptId: mobileIdempotencyAttemptId as string,
-      reservationId: generationReservationId,
-    });
-    if (!boundReservation.ok) {
-      await RateLimiter.refundGenerationReservation(
-        generationReservationId,
-        "idempotency_bind_failed",
-      );
-      await failMobileGenerationIdempotency({
-        recordId: mobileIdempotencyRecordId as string,
-        attemptId: mobileIdempotencyAttemptId as string,
-        statusCode: 503,
-        body: {
-          error: "Could not reserve this generation request. Please try again.",
-          code: "idempotency_bind_failed",
-        },
-        retryable: true,
-        failureCode: "idempotency_bind_failed",
-        reservationId: generationReservationId,
-      });
-      logData.responseStatus = 503;
-      logData.processingDurationMs = Date.now() - startTime;
-      logData.flaggedReason =
-        boundReservation.code || "Mobile reservation bind failed";
       await ApiLogger.logRequest(logData);
       return res.status(503).json({
         error: "Could not reserve this generation request. Please try again.",

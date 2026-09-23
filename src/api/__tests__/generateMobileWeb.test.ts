@@ -11,6 +11,7 @@ const commitGenerationReservationVerified = vi.fn();
 const refundGenerationReservation = vi.fn();
 const detectAndPauseDuplicateIpAccount = vi.fn();
 const claimMobileGenerationIdempotency = vi.fn();
+const reserveAndBindMobileGenerationReservation = vi.fn();
 const bindMobileGenerationReservation = vi.fn();
 const completeMobileGenerationIdempotency = vi.fn();
 const failMobileGenerationIdempotency = vi.fn();
@@ -43,10 +44,20 @@ vi.mock("../../../utils/rateLimiter", () => ({
     commitGenerationReservationVerified,
     refundGenerationReservation,
   },
+  getGenerationReservationParams: vi.fn(() => ({
+    pricingLimitsMode: "current",
+    effectiveTier: "pro",
+    monthlyLimit: 500,
+    dailyLimit: 50,
+    burstLimit: 20,
+    freeLifetimeLimit: 5,
+    hasUnlimitedDaily: false,
+  })),
 }));
 
 vi.mock("../../../utils/mobileGenerationIdempotency", () => ({
   claimMobileGenerationIdempotency,
+  reserveAndBindMobileGenerationReservation,
   bindMobileGenerationReservation,
   completeMobileGenerationIdempotency,
   failMobileGenerationIdempotency,
@@ -179,6 +190,10 @@ describe("mobile web generation idempotency", () => {
       recordId: "record-1",
       attemptId: "attempt-1",
     });
+    reserveAndBindMobileGenerationReservation.mockResolvedValue({
+      allowed: true,
+      reservationId: "reservation-1",
+    });
     completeMobileGenerationIdempotency.mockResolvedValue({ ok: true });
     failMobileGenerationIdempotency.mockResolvedValue({ ok: true });
     markMobileGenerationCommitPending.mockResolvedValue({ ok: true });
@@ -248,7 +263,8 @@ describe("mobile web generation idempotency", () => {
     expect(first.statusCode).toBe(504);
     expect(second.statusCode).toBe(504);
     expect(second.body).toEqual(first.body);
-    expect(reserveGenerationRequest).toHaveBeenCalledTimes(2);
+    expect(reserveAndBindMobileGenerationReservation).toHaveBeenCalledTimes(2);
+    expect(reserveGenerationRequest).not.toHaveBeenCalled();
     expect(third.statusCode).toBe(504);
   });
 
@@ -280,6 +296,7 @@ describe("mobile web generation idempotency", () => {
     expect(response.statusCode).toBe(200);
     expect(getUser).toHaveBeenCalledWith("token");
     expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
+    expect(reserveAndBindMobileGenerationReservation).not.toHaveBeenCalled();
     expect(commitGenerationReservation).toHaveBeenCalledWith("reservation-1");
   });
 
@@ -296,6 +313,7 @@ describe("mobile web generation idempotency", () => {
     );
     expect(extension.statusCode).toBe(200);
     expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
+    expect(reserveAndBindMobileGenerationReservation).not.toHaveBeenCalled();
     expect(commitGenerationReservation).toHaveBeenCalledWith("reservation-1");
   });
 
@@ -318,19 +336,21 @@ describe("mobile web generation idempotency", () => {
     );
   });
 
-  it("binds the reservation before starting model work", async () => {
+  it("atomically reserves and binds before starting model work", async () => {
     const events: string[] = [];
-    bindMobileGenerationReservation.mockImplementation(async (input) => {
-      events.push("bind");
-      expect(input).toEqual(
-        expect.objectContaining({
-          recordId: "record-1",
-          attemptId: "attempt-1",
-          reservationId: "reservation-1",
-        }),
-      );
-      return { ok: true };
-    });
+    reserveAndBindMobileGenerationReservation.mockImplementation(
+      async (input) => {
+        events.push("reserve-and-bind");
+        expect(input).toEqual(
+          expect.objectContaining({
+            userId: "user-1",
+            recordId: "record-1",
+            attemptId: "attempt-1",
+          }),
+        );
+        return { allowed: true, reservationId: "reservation-1" };
+      },
+    );
     createCompletion.mockImplementation(() => {
       events.push("model");
       return {
@@ -355,25 +375,54 @@ describe("mobile web generation idempotency", () => {
     const response = await invoke();
 
     expect(response.statusCode).toBe(200);
-    expect(events[0]).toBe("bind");
+    expect(events[0]).toBe("reserve-and-bind");
     expect(events).toContain("model");
   });
 
-  it("refunds and stops when reservation binding is not durable", async () => {
-    bindMobileGenerationReservation.mockResolvedValue({
-      ok: false,
-      code: "transition_rejected",
+  it("returns a quota denial from the atomic reservation without model work", async () => {
+    reserveAndBindMobileGenerationReservation.mockResolvedValue({
+      allowed: false,
+      code: "daily_limit",
+      limitScope: "day",
+      currentLimit: 10,
+      error: "Daily usage limit reached.",
     });
 
     const response = await invoke();
 
-    expect(response.statusCode).toBe(503);
-    expect(refundGenerationReservation).toHaveBeenCalledWith(
-      "reservation-1",
-      "idempotency_bind_failed",
+    expect(response.statusCode).toBe(429);
+    expect(failMobileGenerationIdempotency).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 429,
+        failureCode: "daily_limit",
+        retryable: false,
+      }),
     );
     expect(createCompletion).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["stale attempt", { allowed: false, code: "idempotency_bind_failed" }],
+    ["RPC error", { allowed: false, code: "idempotency_bind_failed" }],
+  ])(
+    "stops model work after an atomic reservation %s",
+    async (_name, result) => {
+      reserveAndBindMobileGenerationReservation.mockResolvedValue(result);
+
+      const response = await invoke();
+
+      expect(response.statusCode).toBe(503);
+      expect(failMobileGenerationIdempotency).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 503,
+          failureCode: "idempotency_bind_failed",
+          retryable: true,
+        }),
+      );
+      expect(refundGenerationReservation).not.toHaveBeenCalled();
+      expect(createCompletion).not.toHaveBeenCalled();
+    },
+  );
 
   it("resumes a commit-pending response without reserving or calling the model again", async () => {
     claimMobileGenerationIdempotency.mockResolvedValueOnce({
@@ -478,13 +527,13 @@ describe("mobile web generation idempotency", () => {
     );
   });
 
-  it("sanitizes provider URLs before API logging", async () => {
+  it("sanitizes provider URLs and token-shaped secrets before API logging", async () => {
     createCompletion.mockReturnValue({
       withResponse: vi
         .fn()
         .mockRejectedValue(
           new Error(
-            "provider failed at https://provider.example/request?token=secret",
+            "provider failed at https://provider.example/request?token=secret Bearer abcdefghijklmnop.qrstuvwxyz123456.abcdefghijklmnop JWT eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.signature token=secret-token-value",
           ),
         ),
     });
@@ -495,6 +544,9 @@ describe("mobile web generation idempotency", () => {
     const flaggedReason = logRequest.mock.calls.at(-1)?.[0]?.flaggedReason;
     expect(flaggedReason).toContain("[redacted-url]");
     expect(flaggedReason).not.toContain("token=secret");
+    expect(flaggedReason).not.toContain("Bearer ");
+    expect(flaggedReason).not.toContain("eyJhbGciOiJIUzI1NiJ9");
+    expect(flaggedReason).not.toContain("secret-token-value");
   });
 
   it("keeps extension provider 403 behavior unchanged", async () => {
@@ -568,6 +620,7 @@ describe("mobile web generation idempotency", () => {
 
     expect(first.statusCode).toBe(503);
     expect(second.statusCode).toBe(409);
-    expect(reserveGenerationRequest).toHaveBeenCalledTimes(1);
+    expect(reserveAndBindMobileGenerationReservation).toHaveBeenCalledTimes(1);
+    expect(reserveGenerationRequest).not.toHaveBeenCalled();
   });
 });

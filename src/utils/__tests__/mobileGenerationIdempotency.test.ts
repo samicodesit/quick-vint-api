@@ -129,6 +129,153 @@ describe("mobile generation idempotency", () => {
     );
   });
 
+  it("returns the atomically bound reservation outcome", async () => {
+    const { reserveAndBindMobileGenerationReservation } =
+      await import("../../../utils/mobileGenerationIdempotency.js");
+
+    rpc.mockResolvedValueOnce({
+      data: {
+        allowed: true,
+        reservationId: "reservation-atomic",
+        remainingRequests: { minute: 8, day: 7, month: 72 },
+      },
+      error: null,
+    });
+
+    await expect(
+      reserveAndBindMobileGenerationReservation({
+        userId: "user-1",
+        recordId: "record-1",
+        attemptId: "attempt-1",
+        requestId: "550e8400-e29b-41d4-a716-446655440000",
+        requestHash: "a".repeat(64),
+        pricingLimitsMode: "current",
+        effectiveTier: "starter",
+        monthlyLimit: 75,
+        dailyLimit: 10,
+        burstLimit: 10,
+        freeLifetimeLimit: 5,
+        hasUnlimitedDaily: false,
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reservationId: "reservation-atomic",
+      remainingRequests: { minute: 8, day: 7, month: 72 },
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "reserve_and_bind_mobile_generation_reservation",
+      expect.objectContaining({
+        p_user_id: "user-1",
+        p_record_id: "record-1",
+        p_attempt_id: "attempt-1",
+        p_client: "mobile_web",
+        p_request_id: "550e8400-e29b-41d4-a716-446655440000",
+        p_request_hash: "a".repeat(64),
+        p_effective_tier: "starter",
+        p_monthly_limit: 75,
+      }),
+    );
+  });
+
+  it("preserves a quota denial returned by the atomic reservation RPC", async () => {
+    const { reserveAndBindMobileGenerationReservation } =
+      await import("../../../utils/mobileGenerationIdempotency.js");
+
+    rpc.mockResolvedValueOnce({
+      data: {
+        allowed: false,
+        code: "daily_limit",
+        limitScope: "day",
+        currentLimit: 10,
+        error: "Daily usage limit reached.",
+      },
+      error: null,
+    });
+
+    await expect(
+      reserveAndBindMobileGenerationReservation({
+        userId: "user-1",
+        recordId: "record-1",
+        attemptId: "attempt-1",
+        requestId: "550e8400-e29b-41d4-a716-446655440000",
+        requestHash: "a".repeat(64),
+        pricingLimitsMode: "current",
+        effectiveTier: "starter",
+        monthlyLimit: 75,
+        dailyLimit: 10,
+        burstLimit: 10,
+        freeLifetimeLimit: 5,
+        hasUnlimitedDaily: false,
+      }),
+    ).resolves.toMatchObject({
+      allowed: false,
+      code: "daily_limit",
+      limitScope: "day",
+      currentLimit: 10,
+    });
+  });
+
+  it("reports a stale attempt without pretending a reservation was made", async () => {
+    const { reserveAndBindMobileGenerationReservation } =
+      await import("../../../utils/mobileGenerationIdempotency.js");
+
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: "P0001", message: "mobile_generation_attempt_stale" },
+    });
+
+    await expect(
+      reserveAndBindMobileGenerationReservation({
+        userId: "user-1",
+        recordId: "record-1",
+        attemptId: "attempt-1",
+        requestId: "550e8400-e29b-41d4-a716-446655440000",
+        requestHash: "a".repeat(64),
+        pricingLimitsMode: "current",
+        effectiveTier: "starter",
+        monthlyLimit: 75,
+        dailyLimit: 10,
+        burstLimit: 10,
+        freeLifetimeLimit: 5,
+        hasUnlimitedDaily: false,
+      }),
+    ).resolves.toEqual({
+      allowed: false,
+      code: "idempotency_bind_failed",
+    });
+  });
+
+  it("reports an atomic reservation RPC failure without a reservation id", async () => {
+    const { reserveAndBindMobileGenerationReservation } =
+      await import("../../../utils/mobileGenerationIdempotency.js");
+
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: "PGRST202", message: "function is unavailable" },
+    });
+
+    await expect(
+      reserveAndBindMobileGenerationReservation({
+        userId: "user-1",
+        recordId: "record-1",
+        attemptId: "attempt-1",
+        requestId: "550e8400-e29b-41d4-a716-446655440000",
+        requestHash: "a".repeat(64),
+        pricingLimitsMode: "current",
+        effectiveTier: "starter",
+        monthlyLimit: 75,
+        dailyLimit: 10,
+        burstLimit: 10,
+        freeLifetimeLimit: 5,
+        hasUnlimitedDaily: false,
+      }),
+    ).resolves.toEqual({
+      allowed: false,
+      code: "idempotency_bind_failed",
+    });
+  });
+
   it("sanitizes failure bodies before they can contain signed URLs", async () => {
     const { sanitizeStoredFailureBody } =
       await import("../../../utils/mobileGenerationIdempotency.js");
@@ -268,6 +415,63 @@ describe("mobile generation idempotency", () => {
     expect(migration).toContain("status = 'succeeded'");
     expect(migration).toContain("refund_generation_reservation");
     expect(migration).toContain("idempotency_expired");
+  });
+
+  it("uses one security-definer transaction for mobile reservation and binding", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+    const atomicFunction = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.reserve_and_bind_mobile_generation_reservation",
+      ),
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.bind_mobile_generation_reservation",
+      ),
+    );
+
+    expect(atomicFunction).toContain("SECURITY DEFINER");
+    expect(atomicFunction).toContain("SET search_path = public");
+    expect(atomicFunction).toContain(
+      "public.reserve_generation_request_for_current_status",
+    );
+    expect(atomicFunction).toContain("p_record_id");
+    expect(atomicFunction).toContain("p_attempt_id");
+    expect(atomicFunction).toContain("p_client");
+    expect(atomicFunction).toContain("p_request_id");
+    expect(atomicFunction).toContain("p_request_hash");
+    expect(atomicFunction).toContain(
+      "MESSAGE = 'mobile_generation_attempt_stale'",
+    );
+    expect(atomicFunction).toContain(
+      "-- Raising here aborts the RPC transaction, including the new reservation.",
+    );
+    expect(migration).toContain(
+      "GRANT EXECUTE ON FUNCTION public.reserve_and_bind_mobile_generation_reservation",
+    );
+  });
+
+  it("keeps the PostgreSQL harness assertions for atomic success, denial, and stale bind", () => {
+    const harness = readFileSync(
+      resolve(
+        __dirname,
+        "../../../scripts/mobile-generation-idempotency-harness.sql",
+      ),
+      "utf8",
+    );
+
+    expect(harness).toContain(
+      "public.reserve_and_bind_mobile_generation_reservation",
+    );
+    expect(harness).toContain(
+      "atomic success did not bind exactly one reservation",
+    );
+    expect(harness).toContain("stale attempt left a reservation behind");
+    expect(harness).toContain("quota denial left a reservation behind");
   });
 
   it("does not leave an expired commit-pending reservation stuck", () => {

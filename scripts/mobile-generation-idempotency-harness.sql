@@ -66,13 +66,72 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.reserve_generation_request_for_current_status(
+  p_user_id uuid,
+  p_pricing_limits_mode text,
+  p_effective_tier text,
+  p_monthly_limit integer,
+  p_daily_limit integer,
+  p_burst_limit integer,
+  p_free_lifetime_limit integer,
+  p_has_unlimited_daily boolean
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  reservation_id uuid;
+BEGIN
+  IF p_effective_tier = 'deny' THEN
+    RETURN jsonb_build_object(
+      'allowed', false,
+      'code', 'daily_limit',
+      'limitScope', 'day',
+      'currentLimit', p_daily_limit,
+      'error', 'Daily usage limit reached.'
+    );
+  END IF;
+
+  INSERT INTO public.generation_reservations (user_id)
+  VALUES (p_user_id)
+  RETURNING id INTO reservation_id;
+
+  RETURN jsonb_build_object(
+    'allowed', true,
+    'reservationId', reservation_id,
+    'remainingRequests', jsonb_build_object(
+      'minute', GREATEST(p_burst_limit - 1, 0),
+      'day', p_daily_limit,
+      'month', GREATEST(p_monthly_limit - 1, 0)
+    )
+  );
+END;
+$$;
+
 \ir /tmp/2026-09-23_mobile_web_generation_idempotency.sql
 
 INSERT INTO profiles (id)
-VALUES ('00000000-0000-4000-8000-000000000001');
+VALUES
+  ('00000000-0000-4000-8000-000000000001'),
+  ('00000000-0000-4000-8000-000000000002');
 
 DO $$
 DECLARE
+  atomic_claim jsonb;
+  atomic_record uuid;
+  atomic_attempt uuid;
+  atomic_outcome jsonb;
+  atomic_reservation uuid;
+  reservation_count_before integer;
+  reservation_count_after integer;
+  stale_claim jsonb;
+  stale_record uuid;
+  stale_attempt uuid;
+  denial_claim jsonb;
+  denial_record uuid;
+  denial_attempt uuid;
   first_claim jsonb;
   first_record uuid;
   first_attempt uuid;
@@ -83,6 +142,144 @@ DECLARE
   stale_record uuid := gen_random_uuid();
   stale_reservation uuid := gen_random_uuid();
 BEGIN
+  atomic_claim := public.claim_mobile_generation_idempotency(
+    '00000000-0000-4000-8000-000000000001',
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000104',
+    repeat('d', 64)
+  );
+  SELECT id, attempt_id
+  INTO atomic_record, atomic_attempt
+  FROM public.mobile_generation_idempotency
+  WHERE request_id = '00000000-0000-4000-8000-000000000104';
+
+  SELECT COUNT(*)
+  INTO reservation_count_before
+  FROM public.generation_reservations
+  WHERE user_id = '00000000-0000-4000-8000-000000000001';
+
+  atomic_outcome := public.reserve_and_bind_mobile_generation_reservation(
+    '00000000-0000-4000-8000-000000000001',
+    atomic_record,
+    atomic_attempt,
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000104',
+    repeat('d', 64),
+    'current',
+    'starter',
+    75,
+    10,
+    10,
+    5,
+    false
+  );
+  IF atomic_outcome->>'allowed' <> 'true'
+    OR atomic_outcome->>'reservationId' IS NULL
+  THEN
+    RAISE EXCEPTION 'atomic reservation did not succeed: %', atomic_outcome;
+  END IF;
+  atomic_reservation := (atomic_outcome->>'reservationId')::uuid;
+
+  SELECT COUNT(*)
+  INTO reservation_count_after
+  FROM public.generation_reservations
+  WHERE user_id = '00000000-0000-4000-8000-000000000001';
+  IF reservation_count_after <> reservation_count_before + 1 THEN
+    RAISE EXCEPTION 'atomic success created an unexpected reservation count: %',
+      reservation_count_after;
+  END IF;
+  IF (
+    SELECT COUNT(*)
+    FROM public.mobile_generation_idempotency
+    WHERE id = atomic_record AND reservation_id = atomic_reservation
+  ) <> 1 THEN
+    RAISE EXCEPTION 'atomic success did not bind exactly one reservation';
+  END IF;
+
+  stale_claim := public.claim_mobile_generation_idempotency(
+    '00000000-0000-4000-8000-000000000001',
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000105',
+    repeat('e', 64)
+  );
+  SELECT id, attempt_id
+  INTO stale_record, stale_attempt
+  FROM public.mobile_generation_idempotency
+  WHERE request_id = '00000000-0000-4000-8000-000000000105';
+  SELECT COUNT(*)
+  INTO reservation_count_before
+  FROM public.generation_reservations
+  WHERE user_id = '00000000-0000-4000-8000-000000000001';
+  stale_claim := public.reserve_and_bind_mobile_generation_reservation(
+    '00000000-0000-4000-8000-000000000001',
+    stale_record,
+    gen_random_uuid(),
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000105',
+    repeat('e', 64),
+    'current',
+    'starter',
+    75,
+    10,
+    10,
+    5,
+    false
+  );
+  IF stale_claim->>'allowed' <> 'false'
+    OR stale_claim->>'code' <> 'idempotency_bind_failed'
+  THEN
+    RAISE EXCEPTION 'stale attempt was not rejected: %', stale_claim;
+  END IF;
+  SELECT COUNT(*)
+  INTO reservation_count_after
+  FROM public.generation_reservations
+  WHERE user_id = '00000000-0000-4000-8000-000000000001';
+  IF reservation_count_after <> reservation_count_before THEN
+    RAISE EXCEPTION 'stale attempt left a reservation behind';
+  END IF;
+
+  denial_claim := public.claim_mobile_generation_idempotency(
+    '00000000-0000-4000-8000-000000000001',
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000106',
+    repeat('f', 64)
+  );
+  SELECT id, attempt_id
+  INTO denial_record, denial_attempt
+  FROM public.mobile_generation_idempotency
+  WHERE request_id = '00000000-0000-4000-8000-000000000106';
+  SELECT COUNT(*)
+  INTO reservation_count_before
+  FROM public.generation_reservations
+  WHERE user_id = '00000000-0000-4000-8000-000000000001';
+  denial_claim := public.reserve_and_bind_mobile_generation_reservation(
+    '00000000-0000-4000-8000-000000000001',
+    denial_record,
+    denial_attempt,
+    'mobile_web',
+    '00000000-0000-4000-8000-000000000106',
+    repeat('f', 64),
+    'current',
+    'deny',
+    75,
+    10,
+    10,
+    5,
+    false
+  );
+  IF denial_claim->>'allowed' <> 'false'
+    OR denial_claim->>'code' <> 'daily_limit'
+  THEN
+    RAISE EXCEPTION 'quota denial was not returned: %', denial_claim;
+  END IF;
+  SELECT COUNT(*)
+  INTO reservation_count_after
+  FROM public.generation_reservations
+  WHERE user_id = '00000000-0000-4000-8000-000000000001';
+  IF reservation_count_after <> reservation_count_before THEN
+    RAISE EXCEPTION 'quota denial left a reservation behind';
+  END IF;
+
   first_claim := public.claim_mobile_generation_idempotency(
     '00000000-0000-4000-8000-000000000001',
     'mobile_web',
@@ -242,6 +439,13 @@ BEGIN
   END IF;
   IF has_function_privilege('authenticated', 'public.claim_mobile_generation_idempotency(uuid,text,uuid,text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'authenticated unexpectedly has claim RPC access';
+  END IF;
+  IF has_function_privilege(
+    'authenticated',
+    'public.reserve_and_bind_mobile_generation_reservation(uuid,uuid,uuid,text,uuid,text,text,text,integer,integer,integer,integer,boolean)',
+    'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'authenticated unexpectedly has atomic reservation RPC access';
   END IF;
 END;
 $$;

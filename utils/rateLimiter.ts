@@ -14,7 +14,10 @@ import {
   hasPaidEntitlementStatus,
   isGenerationSuspendedForPayment,
 } from "../src/utils/subscriptionStatus";
-import type { VerifiedReservationCommit } from "./mobileGenerationTypes";
+import type {
+  MobileGenerationReservationParams,
+  VerifiedReservationCommit,
+} from "./mobileGenerationTypes";
 
 // Global cost protection
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
@@ -31,7 +34,8 @@ interface RateLimitResult {
     | "free_lifetime_limit"
     | "emoji_retry_used"
     | "burst_limit"
-    | "service_unavailable";
+    | "service_unavailable"
+    | "idempotency_bind_failed";
   currentTier?: string;
   nextTier?: string | null;
   limitScope?: "day" | "month" | "minute" | "service";
@@ -125,6 +129,49 @@ function getEffectiveMonthlyLimit(
   }
 
   return defaultLimit;
+}
+
+export function getGenerationReservationParams(
+  profile: UserProfile,
+  pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+): MobileGenerationReservationParams {
+  const effectiveTier = getEffectiveTier(profile);
+  const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
+  const monthlyLimit = getEffectiveMonthlyLimit(
+    profile,
+    tierConfig.limits.monthly,
+  );
+  const activeCustomDailyLimit = getActiveCustomDailyLimit(profile);
+  const hasUnlimitedDaily =
+    activeCustomDailyLimit === null &&
+    hasUnlimitedDailyLimit(profile, pricingLimitsMode);
+  const freeRemaining =
+    pricingLimitsMode === "current" && effectiveTier === "free"
+      ? Math.max(
+          FREE_LIFETIME_LIMIT -
+            Math.max(0, profile.free_lifetime_generations_used || 0),
+          0,
+        )
+      : 0;
+  const paidCreditBurstLimit =
+    pricingLimitsMode === "current" && effectiveTier === "free"
+      ? Math.max(0, freeRemaining + Math.max(0, profile.pack_credits || 0))
+      : 0;
+
+  return {
+    pricingLimitsMode,
+    effectiveTier,
+    monthlyLimit,
+    dailyLimit:
+      activeCustomDailyLimit ??
+      (hasUnlimitedDaily ? null : tierConfig.limits.daily),
+    burstLimit: Math.max(
+      tierConfig.limits.burst.perMinute,
+      paidCreditBurstLimit,
+    ),
+    freeLifetimeLimit: FREE_LIFETIME_LIMIT,
+    hasUnlimitedDaily,
+  };
 }
 
 export class RateLimiter {
@@ -578,35 +625,14 @@ export class RateLimiter {
     profile: UserProfile,
     pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
   ): Promise<RateLimitResult> {
-    const tierKey = getEffectiveTier(profile);
-    const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
-    const monthlyLimit = getEffectiveMonthlyLimit(
-      profile,
-      tierConfig.limits.monthly,
-    );
-    const activeCustomDailyLimit = getActiveCustomDailyLimit(profile);
-    const hasUnlimitedDaily =
-      activeCustomDailyLimit === null &&
-      hasUnlimitedDailyLimit(profile, pricingLimitsMode);
-    const freeRemaining =
-      pricingLimitsMode === "current" && tierKey === "free"
-        ? Math.max(
-            FREE_LIFETIME_LIMIT -
-              Math.max(0, profile.free_lifetime_generations_used || 0),
-            0,
-          )
-        : 0;
-    const paidCreditBurstLimit =
-      pricingLimitsMode === "current" && tierKey === "free"
-        ? Math.max(0, freeRemaining + Math.max(0, profile.pack_credits || 0))
-        : 0;
-    const burstLimit = Math.max(
-      tierConfig.limits.burst.perMinute,
-      paidCreditBurstLimit,
-    );
-    const dailyLimit =
-      activeCustomDailyLimit ??
-      (hasUnlimitedDaily ? null : tierConfig.limits.daily);
+    const {
+      effectiveTier,
+      monthlyLimit,
+      dailyLimit,
+      burstLimit,
+      freeLifetimeLimit,
+      hasUnlimitedDaily,
+    } = getGenerationReservationParams(profile, pricingLimitsMode);
 
     try {
       const { data, error } = await supabase.rpc(
@@ -614,11 +640,11 @@ export class RateLimiter {
         {
           p_user_id: userId,
           p_pricing_limits_mode: pricingLimitsMode,
-          p_effective_tier: tierKey,
+          p_effective_tier: effectiveTier,
           p_monthly_limit: monthlyLimit,
           p_daily_limit: dailyLimit,
           p_burst_limit: burstLimit,
-          p_free_lifetime_limit: FREE_LIFETIME_LIMIT,
+          p_free_lifetime_limit: freeLifetimeLimit,
           p_has_unlimited_daily: hasUnlimitedDaily,
         },
       );
@@ -639,8 +665,8 @@ export class RateLimiter {
         return {
           allowed: false,
           code: result?.code,
-          currentTier: result?.currentTier || tierKey,
-          nextTier: result?.nextTier ?? getNextTier(tierKey),
+          currentTier: result?.currentTier || effectiveTier,
+          nextTier: result?.nextTier ?? getNextTier(effectiveTier),
           limitScope: result?.limitScope,
           currentLimit: result?.currentLimit ?? undefined,
           remainingRequests: result?.remainingRequests,

@@ -1,3 +1,5 @@
+import type { TierKey } from "./tierConfig";
+
 export type MobileGenerationMode = "manual" | "phone_upload" | "batch";
 
 export type MobileGenerationRequestBody = {
@@ -54,6 +56,16 @@ export type StoredResponseValidation =
       bytes: number;
     }
   | { ok: false; code: "invalid_response" | "response_too_large" };
+
+export type MobileGenerationReservationParams = {
+  pricingLimitsMode: "legacy" | "current";
+  effectiveTier: TierKey;
+  monthlyLimit: number;
+  dailyLimit: number | null;
+  burstLimit: number;
+  freeLifetimeLimit: number;
+  hasUnlimitedDaily: boolean;
+};
 
 export type VerifiedReservationCommit =
   | { ok: true }

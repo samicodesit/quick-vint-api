@@ -15,6 +15,22 @@ export type MobileBillingProfile = {
   subscription_tier: string;
 };
 
+export function isDeletedStripeCustomer(value: unknown): boolean {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    (value as { deleted?: unknown }).deleted === true,
+  );
+}
+
+export function isConfirmedMissingStripeCustomerError(error: unknown): boolean {
+  return (
+    Boolean(error) &&
+    typeof error === "object" &&
+    (error as { code?: unknown }).code === "resource_missing"
+  );
+}
+
 export class MobileBillingRequestError extends Error {
   readonly statusCode: number;
   readonly code: string;

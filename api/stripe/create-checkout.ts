@@ -16,6 +16,8 @@ import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 import {
   getMobileCheckoutUrls,
   getMobilePortalReturnUrl,
+  isConfirmedMissingStripeCustomerError,
+  isDeletedStripeCustomer,
   MobileBillingRequestError,
   resolveMobileBillingProfile,
 } from "../../utils/mobileCheckout";
@@ -201,8 +203,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (customerId) {
         try {
-          await stripe.customers.retrieve(customerId);
+          const customer = await stripe.customers.retrieve(customerId);
+          if (isDeletedStripeCustomer(customer)) {
+            customerId = null;
+            activeSubscriptionId = null;
+          }
         } catch (stripeErr: any) {
+          if (!isConfirmedMissingStripeCustomerError(stripeErr)) {
+            throw stripeErr;
+          }
           console.warn(
             "Stored mobile customer not found, will create new:",
             stripeErr?.message || stripeErr,
@@ -238,10 +247,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (!customerId) {
-        const newCustomer = await stripe.customers.create({
-          email: profile.email,
-          metadata: { source: "mobile_web" },
-        });
+        const newCustomer = await stripe.customers.create(
+          {
+            email: profile.email,
+            metadata: { source: "mobile_web" },
+          },
+          {
+            idempotencyKey: `mobile-web-customer:${profile.id}`,
+          },
+        );
         customerId = newCustomer.id;
 
         const { error: updateErr } = await supabase
@@ -253,6 +267,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.error(
             "Error saving new mobile stripe_customer_id:",
             updateErr,
+          );
+          throw new Error(
+            "Could not save the Stripe customer for this account.",
           );
         }
       }

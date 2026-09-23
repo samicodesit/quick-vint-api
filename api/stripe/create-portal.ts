@@ -11,6 +11,8 @@ import {
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 import {
   getMobilePortalReturnUrl,
+  isConfirmedMissingStripeCustomerError,
+  isDeletedStripeCustomer,
   MobileBillingRequestError,
   resolveMobileBillingProfile,
 } from "../../utils/mobileCheckout";
@@ -49,6 +51,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let customerId = profile.stripe_customer_id;
       let subscriptionId = profile.stripe_subscription_id;
       alertContext = { customerId, subscriptionId };
+
+      if (!customerId) {
+        return res
+          .status(400)
+          .json({ error: "No Stripe customer on file for this user." });
+      }
+
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (isDeletedStripeCustomer(customer)) {
+          customerId = null;
+          subscriptionId = null;
+        }
+      } catch (stripeErr: any) {
+        if (!isConfirmedMissingStripeCustomerError(stripeErr)) {
+          throw stripeErr;
+        }
+        customerId = null;
+        subscriptionId = null;
+      }
 
       if (!customerId) {
         return res

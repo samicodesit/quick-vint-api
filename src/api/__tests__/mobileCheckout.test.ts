@@ -15,6 +15,7 @@ const {
   promotionCodeListMock,
   reportCriticalEndpointFailureMock,
   profileResponse,
+  profileUpdateResponse,
   queryBuilders,
 } = vi.hoisted(() => ({
   authGetUserMock: vi.fn(),
@@ -29,6 +30,7 @@ const {
   promotionCodeListMock: vi.fn(),
   reportCriticalEndpointFailureMock: vi.fn(),
   profileResponse: { data: null as unknown, error: null as unknown },
+  profileUpdateResponse: { error: null as unknown },
   queryBuilders: [] as Array<Record<string, any>>,
 }));
 
@@ -68,11 +70,22 @@ vi.mock("../../../utils/criticalEndpointAlert", () => ({
 
 function createQueryBuilder() {
   const builder: Record<string, any> = {
+    isUpdate: false,
     select: vi.fn(() => builder),
-    update: vi.fn(() => builder),
+    update: vi.fn(() => {
+      builder.isUpdate = true;
+      return builder;
+    }),
     eq: vi.fn(() => builder),
     ilike: vi.fn(() => builder),
     single: vi.fn(async () => profileResponse),
+    then: (
+      resolve: (value: unknown) => unknown,
+      reject: (error: unknown) => unknown,
+    ) =>
+      Promise.resolve(
+        builder.isUpdate ? profileUpdateResponse : profileResponse,
+      ).then(resolve, reject),
   };
   queryBuilders.push(builder);
   return builder;
@@ -142,6 +155,7 @@ describe("bearer-owned mobile Stripe billing", () => {
       subscription_tier: "free",
     };
     profileResponse.error = null;
+    profileUpdateResponse.error = null;
     authGetUserMock.mockResolvedValue({
       data: { user: { id: "bearer-user" } },
       error: null,
@@ -244,6 +258,9 @@ describe("bearer-owned mobile Stripe billing", () => {
         email: "owner@example.com",
         metadata: { source: "mobile_web" },
       }),
+      expect.objectContaining({
+        idempotencyKey: "mobile-web-customer:bearer-user",
+      }),
     );
     expect(checkoutCreateMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -290,6 +307,66 @@ describe("bearer-owned mobile Stripe billing", () => {
     );
     expect(checkoutCreateMock).not.toHaveBeenCalled();
   });
+
+  it("fails closed on a transient checkout customer lookup error", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_owner",
+      stripe_subscription_id: "sub_owner",
+      subscription_status: "active",
+      subscription_tier: "starter",
+    };
+    customerRetrieveMock.mockRejectedValueOnce(new Error("Stripe timeout"));
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const response = createResponse();
+
+    await handler(mobileRequest({ tier: "pro" }) as any, response as any);
+
+    expect(response.statusCode).toBe(500);
+    expect(customerCreateMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+    expect(portalCreateMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["resource_missing", { code: "resource_missing" }],
+    ["deleted customer", { id: "cus_owner", deleted: true }],
+  ])(
+    "recovers from a confirmed missing checkout customer: %s",
+    async (_name, result) => {
+      profileResponse.data = {
+        id: "bearer-user",
+        email: "owner@example.com",
+        stripe_customer_id: "cus_owner",
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+      };
+      if ("code" in result) {
+        customerRetrieveMock.mockRejectedValueOnce(result);
+      } else {
+        customerRetrieveMock.mockResolvedValueOnce(result);
+      }
+      const checkoutModule =
+        await import("../../../api/stripe/create-checkout.js");
+      const handler = checkoutModule.default as any;
+      const response = createResponse();
+
+      await handler(mobileRequest() as any, response as any);
+
+      expect(response.statusCode).toBe(200);
+      expect(customerCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ email: "owner@example.com" }),
+        expect.objectContaining({
+          idempotencyKey: "mobile-web-customer:bearer-user",
+        }),
+      );
+      expect(checkoutCreateMock).toHaveBeenCalled();
+    },
+  );
 
   it("keeps extension checkout email ownership and metadata unchanged", async () => {
     profileResponse.data = {
@@ -359,5 +436,121 @@ describe("bearer-owned mobile Stripe billing", () => {
       "email",
       "attacker@example.com",
     );
+  });
+
+  it("fails closed on a transient portal customer lookup error", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_owner",
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    customerRetrieveMock.mockRejectedValueOnce(new Error("Stripe timeout"));
+    const portalModule = await import("../../../api/stripe/create-portal.js");
+    const handler = portalModule.default as any;
+    const response = createResponse();
+
+    await handler(mobileRequest() as any, response as any);
+
+    expect(response.statusCode).toBe(500);
+    expect(portalCreateMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["resource_missing", { code: "resource_missing" }],
+    ["deleted customer", { id: "cus_owner", deleted: true }],
+  ])(
+    "does not trust a confirmed missing portal customer: %s",
+    async (_name, result) => {
+      profileResponse.data = {
+        id: "bearer-user",
+        email: "owner@example.com",
+        stripe_customer_id: "cus_owner",
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+      };
+      if ("code" in result) {
+        customerRetrieveMock.mockRejectedValueOnce(result);
+      } else {
+        customerRetrieveMock.mockResolvedValueOnce(result);
+      }
+      const portalModule = await import("../../../api/stripe/create-portal.js");
+      const handler = portalModule.default as any;
+      const response = createResponse();
+
+      await handler(mobileRequest() as any, response as any);
+
+      expect(response.statusCode).toBe(400);
+      expect(portalCreateMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not create checkout when linking a new customer fails", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    profileUpdateResponse.error = { message: "database unavailable" };
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const response = createResponse();
+
+    await handler(mobileRequest() as any, response as any);
+
+    expect(response.statusCode).toBe(500);
+    expect(customerCreateMock).toHaveBeenCalledTimes(1);
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("retries a failed customer link with the same idempotency key", async () => {
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      subscription_status: "free",
+      subscription_tier: "free",
+    };
+    const customersByKey = new Map<string, { id: string }>();
+    customerCreateMock.mockImplementation(
+      async (_params: unknown, options: { idempotencyKey?: string } = {}) => {
+        const key = options.idempotencyKey || "";
+        const existing = customersByKey.get(key);
+        if (existing) return existing;
+        const customer = { id: `cus_retry_${customersByKey.size + 1}` };
+        customersByKey.set(key, customer);
+        return customer;
+      },
+    );
+    profileUpdateResponse.error = { message: "database unavailable" };
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const firstResponse = createResponse();
+
+    await handler(mobileRequest() as any, firstResponse as any);
+
+    profileUpdateResponse.error = null;
+    const secondResponse = createResponse();
+    await handler(mobileRequest() as any, secondResponse as any);
+
+    expect(firstResponse.statusCode).toBe(500);
+    expect(secondResponse.statusCode).toBe(200);
+    expect(customerCreateMock).toHaveBeenCalledTimes(2);
+    expect(customerCreateMock.mock.calls[0][1]).toEqual({
+      idempotencyKey: "mobile-web-customer:bearer-user",
+    });
+    expect(customerCreateMock.mock.calls[1][1]).toEqual({
+      idempotencyKey: "mobile-web-customer:bearer-user",
+    });
+    expect(checkoutCreateMock).toHaveBeenCalledTimes(1);
   });
 });

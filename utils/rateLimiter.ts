@@ -14,6 +14,7 @@ import {
   hasPaidEntitlementStatus,
   isGenerationSuspendedForPayment,
 } from "../src/utils/subscriptionStatus";
+import type { VerifiedReservationCommit } from "./mobileGenerationTypes";
 
 // Global cost protection
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
@@ -822,6 +823,105 @@ export class RateLimiter {
       }
     } catch (err) {
       console.error("Generation reservation commit exception:", err);
+    }
+  }
+
+  static async getGenerationReservationStatus(
+    reservationId: string,
+  ): Promise<"pending" | "committed" | "refunded" | "unknown"> {
+    const decodeStatus = (value: unknown) => {
+      const status =
+        typeof value === "string"
+          ? value
+          : value && typeof value === "object"
+            ? (value as { status?: unknown }).status
+            : null;
+      if (
+        status === "pending" ||
+        status === "committed" ||
+        status === "refunded"
+      ) {
+        return status;
+      }
+      return "unknown" as const;
+    };
+
+    try {
+      const query = supabase
+        .from("generation_reservations")
+        .select("status")
+        .eq("id", reservationId) as any;
+      const { data, error } =
+        typeof query.maybeSingle === "function"
+          ? await query.maybeSingle()
+          : await query.single();
+
+      if (error) {
+        console.error("Generation reservation status read failed:", error);
+      } else {
+        const status = decodeStatus(data);
+        if (status !== "unknown") return status;
+      }
+    } catch (err) {
+      console.error("Generation reservation status exception:", err);
+    }
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "get_generation_reservation_status",
+        {
+          p_reservation_id: reservationId,
+        },
+      );
+      if (!error) return decodeStatus(data);
+      console.error("Generation reservation status fallback failed:", error);
+    } catch (err) {
+      console.error("Generation reservation status fallback exception:", err);
+    }
+
+    return "unknown";
+  }
+
+  static async commitGenerationReservationVerified(
+    reservationId?: string | null,
+  ): Promise<VerifiedReservationCommit> {
+    if (!reservationId) {
+      return {
+        ok: false,
+        state: "unknown",
+        error: "missing_reservation_id",
+      };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "commit_generation_reservation",
+        {
+          p_reservation_id: reservationId,
+        },
+      );
+
+      if (!error && (data === true || (data && (data as any).ok === true))) {
+        return { ok: true };
+      }
+
+      const state = await this.getGenerationReservationStatus(reservationId);
+      if (state === "committed") return { ok: true };
+
+      return {
+        ok: false,
+        state,
+        error:
+          error?.message || "Generation reservation commit was not verified",
+      };
+    } catch (err: any) {
+      const state = await this.getGenerationReservationStatus(reservationId);
+      if (state === "committed") return { ok: true };
+      return {
+        ok: false,
+        state,
+        error: err?.message || "Generation reservation commit was not verified",
+      };
     }
   }
 

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../../utils/supabaseClient";
 import { RateLimiter } from "../../utils/rateLimiter";
 import { ApiLogger } from "../../utils/apiLogger";
+import { cleanupExpiredMobileGenerationIdempotency } from "../../utils/mobileGenerationIdempotency";
 
 const TEMP_UPLOAD_BUCKET = "temp-uploads";
 const TEMP_UPLOAD_MAX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -25,6 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: false,
       compacted: 0,
       cutoffHours: API_LOG_COMPACTION_CUTOFF_HOURS,
+      error: null as string | null,
+    },
+    mobileGenerationIdempotency: {
+      success: false,
+      deleted: 0,
       error: null as string | null,
     },
   };
@@ -194,6 +200,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("API log compaction failed:", error);
     results.apiLogs.error = error.message;
+  }
+
+  // 4. Cleanup expired mobile generation idempotency rows. The retention
+  // buffer is enforced by the database function so in-progress callers are
+  // never removed during their short replay window.
+  const supabaseRpcAvailable =
+    typeof (supabase as unknown as { rpc?: unknown }).rpc === "function";
+  if (!supabaseRpcAvailable) {
+    results.mobileGenerationIdempotency.error = "Supabase RPC unavailable";
+  } else {
+    try {
+      results.mobileGenerationIdempotency.deleted =
+        await cleanupExpiredMobileGenerationIdempotency();
+      results.mobileGenerationIdempotency.success = true;
+    } catch (error: any) {
+      console.error("Mobile generation idempotency cleanup failed:", error);
+      results.mobileGenerationIdempotency.error = error.message;
+    }
   }
 
   return res.status(200).json({

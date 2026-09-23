@@ -43,7 +43,19 @@ import {
   isAllowedAppOrigin,
   isAllowedVintedOrigin,
   getPricingLimitsModeForClient,
+  getMobileWebClient,
+  isValidMobileRequestId,
 } from "../utils/mobileWeb";
+import type { MobileGenerationRequestBody } from "../utils/mobileGenerationTypes";
+import {
+  claimMobileGenerationIdempotency,
+  completeMobileGenerationIdempotency,
+  failMobileGenerationIdempotency,
+  markMobileGenerationCommitPending,
+  normalizeMobileGenerationRequest,
+  sanitizeStoredFailureBody,
+  validateStoredResponse,
+} from "../utils/mobileGenerationIdempotency";
 import messagesEn from "../messages/en.json";
 import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
@@ -54,6 +66,29 @@ const OPEN_AI_MAX_OUTPUT_TOKENS = 1000;
 const DEBUG_IMAGE_BUCKET = "temp-uploads";
 const DEBUG_IMAGE_MAX_COUNT = 8;
 const DEBUG_IMAGE_MAX_BYTES = 1_500_000;
+
+function sanitizeMobileFailureBody(body: Record<string, unknown>) {
+  return typeof sanitizeStoredFailureBody === "function"
+    ? sanitizeStoredFailureBody(body)
+    : body;
+}
+
+function validateMobileStoredResponse(response: Record<string, unknown>) {
+  if (typeof validateStoredResponse === "function") {
+    return validateStoredResponse(response);
+  }
+
+  try {
+    const serialized = JSON.stringify(response);
+    const bytes = Buffer.byteLength(serialized, "utf8");
+    return bytes > 32 * 1024
+      ? { ok: false as const, code: "response_too_large" as const }
+      : { ok: true as const, response, serialized, bytes };
+  } catch {
+    return { ok: false as const, code: "invalid_response" as const };
+  }
+}
+
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
@@ -168,23 +203,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : extensionVersionHeader;
   const clientHeader = req.headers["x-autolister-client"];
   const client = Array.isArray(clientHeader) ? clientHeader[0] : clientHeader;
+  const mobileWebClient = getMobileWebClient(client);
+  const isMobileWebRequest = mobileWebClient === "mobile_web";
+  const requestIdHeader = req.headers["x-autolister-request-id"];
+  const mobileRequestId = Array.isArray(requestIdHeader)
+    ? requestIdHeader[0]
+    : requestIdHeader;
   const pricingLimitsMode = getPricingLimitsModeForClient({
     client,
     extensionVersion,
   });
 
+  const redactedRequestBody = redactDescriptionFooterFromBody(req.body);
+  const mobileSafeRequestBody =
+    isMobileWebRequest &&
+    redactedRequestBody &&
+    typeof redactedRequestBody === "object" &&
+    !Array.isArray(redactedRequestBody)
+      ? (() => {
+          const { imageUrls: _imageUrls, ...safeBody } =
+            redactedRequestBody as Record<string, unknown>;
+          return {
+            ...safeBody,
+            imageCount: Array.isArray(req.body?.imageUrls)
+              ? req.body.imageUrls.length
+              : 0,
+          };
+        })()
+      : redactedRequestBody;
+
   // Initialize log data
   let logData: any = {
     ...requestMetadata,
     endpoint: "/api/generate",
-    fullRequestBody: redactDescriptionFooterFromBody(req.body),
+    fullRequestBody: mobileSafeRequestBody,
     extensionVersion,
     pricingLimitsMode,
   };
 
   // Extract imageUrls early for logging purposes (even if validation fails later)
   if (req.body && Array.isArray(req.body.imageUrls)) {
-    logData.imageUrls = req.body.imageUrls;
+    logData.imageUrls = isMobileWebRequest
+      ? { count: req.body.imageUrls.length }
+      : req.body.imageUrls;
   }
 
   try {
@@ -244,6 +305,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add user info to log data
   logData.userId = user.id;
   logData.userEmail = user.email;
+
+  if (isMobileWebRequest && !isValidMobileRequestId(mobileRequestId)) {
+    logData.responseStatus = 400;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Invalid mobile request id";
+    await ApiLogger.logRequest(logData);
+    return res.status(400).json({
+      error: "A valid X-Autolister-Request-Id is required.",
+      code: "invalid_request_id",
+    });
+  }
+
   const selectedModel =
     user.email?.toLowerCase() === "samicodesit+ai-style-test@gmail.com"
       ? "gpt-5.4-mini"
@@ -347,6 +420,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.subscriptionStatus = userProfile.subscription_status;
   logData.apiCallsCount = userProfile.api_calls_this_month;
   let generationReservationId: string | null = null;
+  let mobileReservationCommitState:
+    | "not_attempted"
+    | "committed"
+    | "uncertain" = "not_attempted";
 
   const duplicateIpPause = await detectAndPauseDuplicateIpAccount({
     userId: user.id,
@@ -400,6 +477,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     generationMode,
   } = req.body;
   const normalizedGenerationMode = normalizeGenerationMode(generationMode);
+  if (
+    isMobileWebRequest &&
+    generationMode !== undefined &&
+    generationMode !== "manual" &&
+    generationMode !== "phone_upload" &&
+    generationMode !== "batch"
+  ) {
+    logData.responseStatus = 400;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Invalid generation mode";
+    await ApiLogger.logRequest(logData);
+    return res.status(400).json({
+      error: "generationMode must be manual, phone_upload, or batch.",
+      code: "invalid_generation_mode",
+    });
+  }
   const normalizedDescriptionLength =
     descriptionLength === "short" ? "short" : "long";
 
@@ -510,6 +603,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // listing entitlement, but before OpenAI so parallel calls cannot overspend.
   const isEmojiRetryRequest =
     (emojiRetry === true || emojiRetry === "true") && emojisDisabledByUser;
+
+  let mobileIdempotencyRecordId: string | null = null;
+  if (isMobileWebRequest) {
+    const normalizedMobileRequest = normalizeMobileGenerationRequest(
+      req.body as MobileGenerationRequestBody,
+    );
+
+    let claim;
+    try {
+      claim = await claimMobileGenerationIdempotency({
+        userId: user.id,
+        requestId: mobileRequestId as string,
+        requestHash: normalizedMobileRequest.hash,
+      });
+    } catch {
+      logData.responseStatus = 503;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason = "Mobile idempotency claim unavailable";
+      await ApiLogger.logRequest(logData);
+      return res.status(503).json({
+        error: "Could not reserve this generation request. Please try again.",
+        code: "idempotency_unavailable",
+      });
+    }
+
+    if (claim.kind === "succeeded") {
+      return res.status(claim.statusCode).json(claim.response);
+    }
+    if (claim.kind === "failed") {
+      return res.status(claim.statusCode).json(claim.body);
+    }
+    if (claim.kind === "in_progress") {
+      return res.status(409).json({
+        error: "A generation for this request is already in progress.",
+        code: "generation_in_progress",
+      });
+    }
+    if (claim.kind === "conflict") {
+      return res.status(409).json({
+        error: "This request ID was already used for a different request.",
+        code: "idempotency_conflict",
+      });
+    }
+
+    mobileIdempotencyRecordId = claim.recordId;
+  }
+
   const rateLimitResult = isEmojiRetryRequest
     ? await RateLimiter.reserveEmojiRetry(
         user.id,
@@ -527,7 +667,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = "Rate limit exceeded";
     await ApiLogger.logRequest(logData);
-    return res.status(429).json({
+    const rateLimitBody = {
       error:
         rateLimitResult.error || "Too many requests. Please try again later.",
       code: rateLimitResult.code,
@@ -536,7 +676,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       limitScope: rateLimitResult.limitScope,
       currentLimit: rateLimitResult.currentLimit,
       remainingRequests: rateLimitResult.remainingRequests,
-    });
+    };
+    const mobileRateLimitBody = sanitizeMobileFailureBody(rateLimitBody);
+    if (
+      mobileIdempotencyRecordId &&
+      mobileReservationCommitState === "not_attempted"
+    ) {
+      await failMobileGenerationIdempotency({
+        recordId: mobileIdempotencyRecordId,
+        statusCode: 429,
+        body: mobileRateLimitBody,
+        retryable: false,
+        failureCode: rateLimitResult.code || "rate_limit",
+      });
+    }
+    return res
+      .status(429)
+      .json(mobileIdempotencyRecordId ? mobileRateLimitBody : rateLimitBody);
   }
 
   generationReservationId = rateLimitResult.reservationId ?? null;
@@ -716,31 +872,131 @@ Reply only in JSON: {"title":"...","description":"..."}
     const isClothing = isClothingItem(title, finalDescription);
     const measurementAdvice = getMeasurementAdvice(isClothing, messages);
 
+    const mobileResponse = {
+      title,
+      description: finalDescription,
+      measurementAdvice,
+      offers: undefined as unknown,
+    };
+
+    if (mobileIdempotencyRecordId) {
+      const responseValidation = validateMobileStoredResponse(mobileResponse);
+      if (!responseValidation.ok) {
+        await RateLimiter.refundGenerationReservation(
+          generationReservationId,
+          "response_too_large",
+        );
+        await failMobileGenerationIdempotency({
+          recordId: mobileIdempotencyRecordId,
+          statusCode: 500,
+          body: {
+            error: "The generated response was too large. Please try again.",
+            code: responseValidation.code,
+          },
+          retryable: false,
+          failureCode: responseValidation.code,
+        });
+        logData.responseStatus = 500;
+        logData.processingDurationMs = Date.now() - startTime;
+        logData.flaggedReason = responseValidation.code;
+        await ApiLogger.logRequest(logData);
+        return res.status(500).json({
+          error: "The generated response was too large. Please try again.",
+          code: responseValidation.code,
+        });
+      }
+
+      const verifiedCommit =
+        await RateLimiter.commitGenerationReservationVerified(
+          generationReservationId,
+        );
+      if (!verifiedCommit.ok) {
+        mobileReservationCommitState = "uncertain";
+        await markMobileGenerationCommitPending({
+          recordId: mobileIdempotencyRecordId,
+          reservationId: generationReservationId,
+        });
+        logData.responseStatus = 503;
+        logData.processingDurationMs = Date.now() - startTime;
+        logData.flaggedReason =
+          verifiedCommit.error || "Generation reservation commit pending";
+        await ApiLogger.logRequest(logData);
+        return res.status(503).json({
+          error: "Your generation is still being finalized. Please try again.",
+          code: "generation_commit_pending",
+        });
+      }
+      mobileReservationCommitState = "committed";
+    }
+
     // Add generated content to log
     logData.generatedTitle = title;
     logData.generatedDescription = description;
     logData.responseStatus = 200;
     logData.processingDurationMs = Date.now() - startTime;
 
-    // Log the successful request
-    await ApiLogger.logRequest(logData);
-    await RateLimiter.commitGenerationReservation(generationReservationId);
-    const offers = await maybeCreateGenerationOffer({
-      userId: user.id,
-      profile: userProfile,
-      pricingLimitsMode,
-      generationMode: normalizedGenerationMode,
-      isClothing,
-      reservationId: generationReservationId,
-      extensionVersion,
-    });
-
-    return res.status(200).json({
-      title,
-      description: finalDescription,
-      measurementAdvice,
-      offers,
-    });
+    if (mobileIdempotencyRecordId) {
+      let offers: Awaited<ReturnType<typeof maybeCreateGenerationOffer>>;
+      try {
+        offers = await maybeCreateGenerationOffer({
+          userId: user.id,
+          profile: userProfile,
+          pricingLimitsMode,
+          generationMode: normalizedGenerationMode,
+          isClothing,
+          reservationId: generationReservationId,
+          extensionVersion,
+        });
+      } catch (error) {
+        console.error("Mobile generation offer creation failed:", error);
+        offers = [];
+      }
+      const responseBody = {
+        title,
+        description: finalDescription,
+        measurementAdvice,
+        offers,
+      };
+      const completed = await completeMobileGenerationIdempotency({
+        recordId: mobileIdempotencyRecordId,
+        reservationId: generationReservationId,
+        response: responseBody,
+      });
+      if (!completed.ok) {
+        await markMobileGenerationCommitPending({
+          recordId: mobileIdempotencyRecordId,
+          reservationId: generationReservationId,
+        });
+        logData.responseStatus = 503;
+        logData.processingDurationMs = Date.now() - startTime;
+        logData.flaggedReason = "Mobile idempotency completion failed";
+        await ApiLogger.logRequest(logData);
+        return res.status(503).json({
+          error: "Your generation is still being finalized. Please try again.",
+          code: "generation_commit_pending",
+        });
+      }
+      await ApiLogger.logRequest(logData);
+      return res.status(200).json(responseBody);
+    } else {
+      await ApiLogger.logRequest(logData);
+      await RateLimiter.commitGenerationReservation(generationReservationId);
+      const offers = await maybeCreateGenerationOffer({
+        userId: user.id,
+        profile: userProfile,
+        pricingLimitsMode,
+        generationMode: normalizedGenerationMode,
+        isClothing,
+        reservationId: generationReservationId,
+        extensionVersion,
+      });
+      return res.status(200).json({
+        title,
+        description: finalDescription,
+        measurementAdvice,
+        offers,
+      });
+    }
   } catch (err: any) {
     console.error("Generation error:", err);
 
@@ -774,10 +1030,35 @@ Reply only in JSON: {"title":"...","description":"..."}
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = `OpenAI generation error: ${err.message}`;
     logData.openaiRateLimitInfo = extractOpenAIRateLimitHeaders(err.headers);
-    await RateLimiter.refundGenerationReservation(
-      generationReservationId,
-      statusCode === 400 ? "invalid_generation_input" : "generation_failed",
-    );
+    if (
+      !isMobileWebRequest ||
+      mobileReservationCommitState === "not_attempted"
+    ) {
+      await RateLimiter.refundGenerationReservation(
+        generationReservationId,
+        statusCode === 400 ? "invalid_generation_input" : "generation_failed",
+      );
+    }
+    if (
+      mobileIdempotencyRecordId &&
+      mobileReservationCommitState === "not_attempted"
+    ) {
+      const failureBody = sanitizeMobileFailureBody({
+        error: userMessage,
+        code: statusCode === 429 ? "service_unavailable" : undefined,
+        provider: statusCode === 429 ? "openai" : undefined,
+        limitScope: statusCode === 429 ? "service" : undefined,
+      });
+      await failMobileGenerationIdempotency({
+        recordId: mobileIdempotencyRecordId,
+        statusCode: statusCode as 400 | 403 | 429 | 500 | 503 | 504,
+        body: failureBody,
+        retryable:
+          statusCode === 429 || statusCode === 500 || statusCode === 504,
+        failureCode:
+          statusCode === 400 ? "invalid_generation_input" : "generation_failed",
+      });
+    }
     await ApiLogger.logRequest(logData);
     if (statusCode >= 500) {
       reportCriticalEndpointFailure({
@@ -797,11 +1078,18 @@ Reply only in JSON: {"title":"...","description":"..."}
     }
 
     // Return generic error to user (protecting sensitive details)
-    return res.status(statusCode).json({
+    const responseBody = {
       error: userMessage,
       code: statusCode === 429 ? "service_unavailable" : undefined,
       provider: statusCode === 429 ? "openai" : undefined,
       limitScope: statusCode === 429 ? "service" : undefined,
-    });
+    };
+    return res
+      .status(statusCode)
+      .json(
+        mobileIdempotencyRecordId
+          ? sanitizeMobileFailureBody(responseBody)
+          : responseBody,
+      );
   }
 }

@@ -83,7 +83,7 @@ export interface GenerationCapacity {
     burstPerMinute: number;
   };
   remaining: {
-    minute?: number;
+    minute?: number | null;
     day: number | null;
     month: number;
     freeLifetime?: number | null;
@@ -175,6 +175,41 @@ export class RateLimiter {
       console.error("Error in getCurrentCount:", err);
       return 0;
     }
+  }
+
+  private static async getCurrentCountOrNull(
+    userId: string,
+    window: string,
+  ): Promise<number | null> {
+    try {
+      const key = await this.getTimeBasedKey(userId, window);
+      const { data, error } = await supabase
+        .from("rate_limits")
+        .select("count")
+        .eq("key", key)
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") return 0;
+        console.error("Error fetching rate limit:", error);
+        return null;
+      }
+
+      return data?.count || 0;
+    } catch (err) {
+      console.error("Error in getCurrentCountOrNull:", err);
+      return null;
+    }
+  }
+
+  static async getGenerationMinuteRemaining(
+    userId: string,
+    burstPerMinute: number,
+  ): Promise<number | null> {
+    const minuteCount = await this.getCurrentCountOrNull(userId, "minute");
+    if (minuteCount === null) return null;
+    return Math.max(0, burstPerMinute - minuteCount);
   }
 
   private static async incrementCount(

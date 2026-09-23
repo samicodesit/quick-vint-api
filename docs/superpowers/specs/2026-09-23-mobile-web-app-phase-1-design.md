@@ -16,7 +16,8 @@ Phase 1 goals are:
 - show server-authoritative plan, remaining quota, and reset timing;
 - support local editing, copy actions, and a Vinted create-listing link;
 - provide authenticated subscription checkout and return to `/app`;
-- keep public acquisition pages indexable in all eight existing site locales while keeping the app private.
+- add an indexable, eight-locale public acquisition landing family for the browser generator while keeping the app private;
+- make discoverability measurable without promising search rankings, traffic, or conversion outcomes.
 
 ## Current reuse inventory
 
@@ -38,10 +39,45 @@ The following behavior is already implemented and is the source of truth for Pha
 
 Seller notes are currently profile or extension-oriented behavior, not a Phase 1 web sync contract. History, multi-item batch generation, offline generation, and a share target are not existing reusable contracts and are excluded below.
 
+## Public acquisition architecture
+
+The public acquisition family is a separate commercial product surface for the authenticated browser generator. It is not part of `LISTING_GUIDE_SLUGS`, and it does not replace the existing extension, description-generator, template, checklist, photo-to-listing, ChatGPT, or Orion pages. The initial route set is:
+
+```text
+/vinted-listing-generator
+/fr/vinted-listing-generator
+/de/vinted-listing-generator
+/nl/vinted-listing-generator
+/pl/vinted-listing-generator
+/es/vinted-listing-generator
+/it/vinted-listing-generator
+/pt/vinted-listing-generator
+```
+
+The English root is the x-default. Each route has human-quality localized title, H1, description, examples, FAQ, and CTA copy. The pages use absolute self canonicals and reciprocal alternate links for all eight routes plus x-default. They are included in the sitemap and follow the site's one trailing-slash policy. `/app`, `/app/auth/callback`, `/auth/callback`, and private account routes remain outside the sitemap.
+
+Each landing page is statically or server rendered with the primary product explanation, approved example, FAQ, and signup requirement in the initial HTML. Mobile and desktop have equivalent crawlable product content, with responsive layout rather than a mobile-only content variant. The launch performance gate is a representative mobile p75 LCP at or below 2.5 seconds, CLS at or below 0.1, and no required generation API request or large client bundle before the page's primary content and CTA are usable. Performance measurement is repeated after each substantial content or component change.
+
+The page includes a public sample demonstration built from the same approved UI components used by the app. Its sample item, photo, and title/description output are disclosed and approved, and the output is produced through the real AutoLister backend before it is published. The sample is a static or build-time artifact after approval. It is not a fake success state, does not accept visitor photos, and does not call generation anonymously. Copy clearly states that a seller must sign up and receives five free lifetime generations. The sample does not imply Phase 1 support for seller-note sync, history, batch generation, offline generation, or native Vinted handoff.
+
+Page-scoped structured data is required for the landing family: `WebPage`, `BreadcrumbList`, an accurate browser web-app `SoftwareApplication` object with `applicationCategory: "BrowserApplication"` and `operatingSystem: "Web"` when accepted by the validator, and `FAQPage` only when the FAQ is visible on that page. Omit `operatingSystem` if the chosen validator rejects the web value rather than substituting Chrome or a device platform. These pages must not inherit the global Chrome-extension `SoftwareApplication` schema or its Chrome Web Store claims, and they must not copy an aggregate rating without approved visible evidence. `/app` and `/app/auth/callback` have no public structured data.
+
+Internal links use the matching locale route while preserving each source page's purpose:
+
+- each localized homepage links to its matching landing page through the browser-app CTA, with the existing extension action retained according to the route-aware hierarchy below;
+- each localized pricing page links to its matching landing page and `/app` as conversion paths;
+- `/vinted-description-generator` links to the English landing as a related browser-generator option while retaining its extension-first CTA;
+- localized template, checklist, and photo-to-listing pages link to the matching localized landing in their related resources area without replacing their extension guidance;
+- relevant blog CTA surfaces link to the matching locale landing, preserving their current extension link as a quiet secondary where applicable;
+- the ChatGPT and Orion pages remain extension-first, with the Orion web alternative only after the instructions.
+
+All landing-to-app links carry the existing ref, UTM, and first-touch attribution state. Link events identify source page, locale, route context, and CTA placement. New pages must be distinct from existing informational pages rather than thin doorway variants.
+
 ## Architecture and routes
 
 The web UI is added in `quick-vint-api` as a same-origin Astro route and client-side app shell:
 
+- The public acquisition family is implemented as the eight routes in the public acquisition architecture section. These routes are crawlable, indexable, included in the sitemap, and use page-scoped metadata and schema. They are not generated through `LISTING_GUIDE_SLUGS` and do not change the existing guide route inventory.
 - `/app` is the authenticated application route. It has a private app layout, a `noindex, nofollow` directive, no public canonical, and no sitemap entry. It may render the signed-out auth card before session restoration, but all generation and account data require a valid Supabase session.
 - `/app/auth/callback` is the web-only Supabase callback. It completes Google or email authentication, clears auth fragments or codes from the address bar, and returns to `/app`. It is `noindex, nofollow` and excluded from the sitemap.
 - `/auth/callback` remains the extension callback page and continues to run `public/auth-callback.js`. No web logic is added to that route.
@@ -53,17 +89,20 @@ The web UI is added in `quick-vint-api` as a same-origin Astro route and client-
 
 The app uses the existing same-origin API deployment. CORS is still allowlisted for any request that can be cross-origin in preview or production. The web client never reads Supabase tables directly for quota or subscription state.
 
+The public landing pages do not expose authenticated app state, signed URLs, or generation APIs. Their approved sample is rendered from a reviewed build-time artifact. A noindex app or callback remains reachable to crawlers so the robots directive can be observed; it is excluded from the sitemap rather than blocked only by `robots.txt`. Canonical URLs and redirects use one consistent trailing-slash policy across English and localized routes.
+
 ## User flow
 
-1. A visitor opens `/app`. The browser Supabase client restores a session. If no session exists, the page shows one Google action and one email form. The copy says that the email contains a sign-in link and a six-digit code. It does not present separate magic-link and OTP email flows.
-2. Google redirects to `/app/auth/callback`. Email link clicks use the same callback. Manual OTP entry uses the email address and six-digit code from the same email.
-3. After authentication, the app requests `/api/user/usage` and renders the current plan, remaining generation count or applicable paid limits, and reset timing.
-4. The seller selects all photos for one item. The app keeps the selection order and does not impose an arbitrary UI photo-count cap.
-5. The app prepares, uploads, and completes one authenticated temporary upload session. Progress and per-photo recovery are visible.
-6. The seller chooses title language, description language, Long or Short, and Bullets or Paragraphs. Defaults come from the shared language and formatting logic, adapted for a browser with no Vinted hostname.
-7. The app sends one generation request. The returned title and description are editable locally. Copy buttons write only the selected field to the clipboard and report success or failure accessibly.
-8. The Vinted action opens the existing market-specific `/items/new` URL in a normal browser navigation. It does not promise to open the native Vinted app or to transfer fields into Vinted.
-9. After a successful generation, the app refreshes usage. A limit response also refreshes usage and presents the server-provided next-step or pricing action.
+1. A visitor opens a matching localized public landing page. The page shows the approved sample using the real UI components, explains that generation requires signup, states the five free lifetime generations accurately, and offers `/app` as the single filled primary CTA.
+2. The visitor follows `/app` with existing ref, UTM, and first-touch attribution preserved. The browser Supabase client restores a session. If no session exists, the page shows one Google action and one email form. The copy says that the email contains a sign-in link and a six-digit code. It does not present separate magic-link and OTP email flows.
+3. Google redirects to `/app/auth/callback`. Email link clicks use the same callback. Manual OTP entry uses the email address and six-digit code from the same email.
+4. After authentication, the app requests `/api/user/usage` and renders the current plan, remaining generation count or applicable paid limits, and reset timing.
+5. The seller selects all photos for one item. The app keeps the selection order and does not impose an arbitrary UI photo-count cap.
+6. The app prepares, uploads, and completes one authenticated temporary upload session. Progress and per-photo recovery are visible.
+7. The seller chooses title language, description language, Long or Short, and Bullets or Paragraphs. Defaults come from the shared language and formatting logic, adapted for a browser with no Vinted hostname.
+8. The app sends one generation request. The returned title and description are editable locally. Copy buttons write only the selected field to the clipboard and report success or failure accessibly.
+9. The Vinted action opens the existing market-specific `/items/new` URL in a normal browser navigation. It does not promise to open the native Vinted app or to transfer fields into Vinted.
+10. After a successful generation, the app refreshes usage. A limit response also refreshes usage and presents the server-provided next-step or pricing action.
 
 ## Auth and session
 
@@ -170,22 +209,23 @@ The web branch of `api/stripe/create-portal.ts` likewise resolves ownership from
 
 ## SEO, CTA, and Orion behavior
 
-Public marketing and pricing pages remain server-rendered or statically generated and indexable in `en`, `fr`, `de`, `nl`, `pl`, `es`, `it`, and `pt`. Their existing canonical, hreflang, x-default, trailing-slash, and sitemap conventions remain coherent. The 18 output languages remain product controls and are not added as public SEO pages.
+Public marketing, pricing, and acquisition pages remain server-rendered or statically generated and indexable in `en`, `fr`, `de`, `nl`, `pl`, `es`, `it`, and `pt`. The eight-route `/vinted-listing-generator` family is a distinct commercial landing surface with unique localized content, approved sample output, page-scoped metadata, absolute self canonicals, reciprocal eight-locale hreflang plus x-default, sitemap inclusion, and mobile content parity. It does not replace any existing extension, description, template, checklist, photo-to-listing, ChatGPT, or Orion page. The 18 output languages remain product controls and are not added as public SEO pages.
 
 `/app` and `/app/auth/callback` emit `noindex, nofollow`, have no public canonical, and are excluded from `astro.config.mjs` sitemap output. If deployment headers are available, the same noindex policy is added as `X-Robots-Tag`. Private routes are not hidden only with `robots.txt`, because crawlers must be able to see the noindex directive.
 
-CTA behavior is a shared responsive abstraction, driven by CSS breakpoints and route context, never by user-agent sniffing or Orion detection:
+CTA behavior is a shared responsive abstraction, driven by CSS breakpoints and route context, never by user-agent sniffing or Orion detection. There is never more than one filled primary CTA in a viewport:
 
-- mobile: one filled `/app` CTA, a quiet extension link, and the demo below the primary action;
-- desktop: extension remains the filled primary, the demo remains available, and the web app is a small navigation or text link;
+- on a new `/vinted-listing-generator` landing route, mobile and desktop both use `/app` as the one filled primary CTA. Extension install is a quiet secondary link, and the approved sample appears below the primary action;
+- on the existing homepage, guides, blog, and pricing routes, mobile uses `/app` as the filled primary with a quiet extension link; desktop keeps the extension as the filled primary and the demo available, with the web app as a small navigation or text link;
+- on the Orion guide, extension install remains the filled primary on every viewport. A subtle web alternative may appear only after the Orion instructions;
 - no viewport shows two filled primary actions;
 - locale paths and first-touch/referrer/UTM parameters are preserved when a CTA links to `/app`.
 
-The Orion guide remains extension-first. Its instructions, runtime checks, and analytics stay unchanged. A subtle web alternative may appear after the guide instructions, but never replaces the Orion hero or primary extension action. The web app does not claim native Vinted handoff, universal app opening, or automatic field injection.
+The Orion guide remains extension-first. Its instructions, runtime checks, and analytics stay unchanged. The web app does not claim native Vinted handoff, universal app opening, or automatic field injection. Discoverability is supported by distinct crawlable pages and internal links, not by a claim about rankings or traffic. Outcomes are measured after release.
 
 ## Analytics and attribution
 
-The app uses the existing event and attribution endpoints. New web events use `source: "mobile_web"`; CTA events use a `web_app_click` context and identify the page and CTA placement without user email or image data. First-touch capture uses the existing sanitized `autolister.first_touch.v1` contract. `ref`, UTM fields, and the first-touch record survive navigation to `/app` and into web checkout. Authenticated web arrival may claim the first-touch record through the existing bearer claim endpoint, best effort, without changing the extension callback claim behavior.
+The app and public landing family use the existing event and attribution endpoints. New web events use `source: "mobile_web"`; CTA events use a `web_app_click` context and identify the source route, locale, route class, CTA placement, and whether the click came from the approved sample or another visible link, without user email or image data. First-touch capture uses the existing sanitized `autolister.first_touch.v1` contract. `ref`, UTM fields, and the first-touch record survive navigation from each landing page to `/app` and into web checkout. Authenticated web arrival may claim the first-touch record through the existing bearer claim endpoint, best effort, without changing the extension callback claim behavior.
 
 Analytics must distinguish page view, auth completion, upload completion, generation success or failure, copy action, Vinted-link click, checkout start, and checkout return. It must not send access tokens, refresh tokens, raw image data, generated full text, filenames, or arbitrary query parameters.
 
@@ -215,13 +255,18 @@ The implementation is additive:
 
 Before implementation is considered ready, add and run:
 
+- static and browser SEO checks for every public landing route: the expected title, H1, description, approved sample, FAQ, and signup requirement are present in rendered initial HTML; each locale has unique human-quality copy; each page has an absolute self canonical, all eight reciprocal hreflang links plus x-default, consistent trailing-slash behavior, and sitemap inclusion;
+- checks that `/app`, `/app/auth/callback`, `/auth/callback`, and private routes are absent from the sitemap and that the app and callbacks emit noindex without a public schema; validate page-scoped `WebPage`, `BreadcrumbList`, browser web-app `SoftwareApplication`, and visible-FAQ-only `FAQPage` data, with no duplicate Chrome-extension schema on the landing family;
+- responsive content-parity and performance checks for the public landing family at representative mobile and desktop breakpoints, including the p75 LCP and CLS launch budgets defined above, with no generation request required for initial content;
+- internal-link and CTA checks from localized homepages, pricing, `/vinted-description-generator`, localized guides, and relevant blog surfaces to the matching landing route; verify one filled primary per viewport, route-aware extension preservation, `web_app_click` context, and ref/UTM/first-touch preservation;
+- post-deploy Search Console URL Inspection and structured-data checks for representative English and localized landing pages. These are production verification steps, not substitutes for local tests and not promises of ranking or traffic;
 - unit tests for callback selection, OTP and Google callback state handling, browser language fallback, formatting defaults, Vinted market mapping, idempotency state transitions, photo preparation, orientation fallback, and cleanup;
 - endpoint contract tests for `/api/user/usage`, web magic-link context, generation client context, 401 refresh behavior, 403 and 429 payloads, upload 400/413/415 recovery, and authenticated web checkout ownership;
 - regression tests proving existing extension generation, extension callback handoff, extension upload, pricing, Stripe webhook, attribution, and Orion paths are unchanged;
 - browser tests at mobile and desktop breakpoints for sign-in, session refresh, photo ordering, generation controls, editable output, clipboard permissions, usage refresh, checkout return, CTA hierarchy, noindex, and sitemap exclusion;
 - real-device checks on iPhone Safari and Android Chrome for Google OAuth, the email link and OTP, HEIC, EXIF orientation, large compressed photos, upload cancellation, copy actions, and the Vinted `/items/new` link. The native Vinted app opening behavior is not a requirement and must not be represented as verified.
 
-Roll out behind an app route feature flag or an equivalent isolated release switch. Verify Supabase site and redirect allowlists, Google OAuth redirect configuration, Resend callback selection, Stripe test-mode return URLs and webhook delivery, CORS origins, CSP, temporary-bucket lifecycle, and production environment values in preview or staging first. Do not launch until the real-device gates pass.
+Roll out the app and its route-aware CTA changes behind an app feature flag or an equivalent isolated release switch. The public landing family may be crawlable only after its localized content, approved sample, schema, sitemap, canonical, hreflang, link, and performance checks pass. Verify Supabase site and redirect allowlists, Google OAuth redirect configuration, Resend callback selection, Stripe test-mode return URLs and webhook delivery, CORS origins, CSP, temporary-bucket lifecycle, and production environment values in preview or staging first. Do not launch the app CTA or public landing pages until the real-device gates and SEO checks pass.
 
 Rollback is the route flag and CTA switch, followed by removal of mobile web traffic from analytics if needed. Existing extension APIs remain deployable throughout rollback. Any idempotency migration is additive and retained or disabled without deleting user data. No rollback step changes subscription records, quota counters, extension sessions, or the extension callback.
 
@@ -233,25 +278,32 @@ Rollback is the route flag and CTA switch, followed by removal of mobile web tra
 - offline generation, source-photo persistence in IndexedDB or Cache Storage, a service worker, or a share target;
 - native Vinted app deep-link guarantees, universal links, field injection, or automatic publishing;
 - anonymous or guest quota, a second account system, or a new free-trial ledger;
+- visitor photo upload, anonymous generation, fake public success states, or unapproved sample photos and output;
 - separate title and description model calls, a new AI endpoint, new pricing tiers, or new Stripe products;
 - indexing `/app`, creating public pages for the 18 output languages, or replacing the public homepage with the app;
+- replacing existing extension, description, template, checklist, photo-to-listing, ChatGPT, or Orion pages with the new landing family;
 - changes to extension callbacks, extension storage, extension version compatibility, Orion runtime logic, or existing extension checkout behavior.
 
 ## Approved production-touching changes
 
-The approved implementation may touch the following production surfaces, only additively: the new `/app` and `/app/auth/callback` pages; the web Supabase callback and magic-link context; `GET /api/user/usage`; mobile context and idempotency support in `/api/generate`; mobile use of V2 phone upload; bearer-owned web checkout and portal returns; mobile web analytics and attribution; responsive CTA components; sitemap and noindex route handling; Supabase, Google, Resend, Stripe, CORS, CSP, and feature-flag configuration; and the corresponding tests and additive database migration for generation idempotency.
+The approved implementation may touch the following production surfaces, only additively: the eight public `/vinted-listing-generator` landing routes and their localized copy/data; approved sample assets and real-UI sample components; page-scoped landing metadata and schema; internal-link and responsive CTA components; canonical, hreflang, sitemap, and noindex route handling; the new `/app` and `/app/auth/callback` pages; the web Supabase callback and magic-link context; `GET /api/user/usage`; mobile context and idempotency support in `/api/generate`; mobile use of V2 phone upload; bearer-owned web checkout and portal returns; mobile web analytics and attribution; Supabase, Google, Resend, Stripe, CORS, CSP, and feature-flag configuration; and the corresponding tests and additive database migration for generation idempotency. Existing extension callback, storage, checkout, Orion, and generation contracts remain protected by the isolation rules above.
 
 ## Acceptance criteria
 
 Phase 1 is accepted only when all of the following are true:
 
-1. `/app` authenticates with Google or one email containing both a working link and six-digit OTP, persists and refreshes the browser session, and never routes web users through `/auth/callback`.
-2. `/api/user/usage` reports the server plan, applicable limits, remaining counts, reset timing, and pricing without client database reads or duplicate quota logic.
-3. Every selected photo for one item is preserved through 1280 px JPEG preparation where supported, ordered upload, signed-URL generation, and cleanup. HEIC and orientation behavior is tested on both required mobile platforms.
-4. One `/api/generate` call returns both editable fields with independent languages and the existing Long or Short and Bullets or Paragraphs behavior. Quota reservation, commit, refund, and mobile request idempotency prevent accidental duplicate charges.
-5. 401, 403, 429, 400, 413, 415, 5xx, 504, cancellation, and checkout propagation states have the defined recovery behavior.
-6. Copy actions work with an accessible fallback, and the Vinted action uses the existing market mapping and `/items/new` path without claiming native handoff.
-7. Subscription checkout uses the authenticated account and existing Stripe products, returns to `/app`, and refreshes from webhook-backed server state. Extension checkout remains unchanged.
-8. Mobile web analytics and first-touch attribution use the approved `mobile_web` source and `web_app_click` contexts without tokens, raw photos, or generated listing text.
-9. Public eight-locale SEO, canonical and hreflang behavior, extension-first desktop CTA hierarchy, and Orion runtime behavior remain intact. `/app` and both callback surfaces are noindex as specified, with `/app` excluded from the sitemap.
-10. Preview or staging and real iPhone Safari and Android Chrome checks pass before production exposure, and the feature flag provides a tested rollback path.
+1. All eight public landing routes exist with distinct localized title, H1, description, examples, FAQ, CTA, and initial HTML product content. They are separate commercial pages, not `LISTING_GUIDE_SLUGS` or replacements for existing extension, description, template, checklist, photo-to-listing, ChatGPT, or Orion pages.
+2. Each public landing has an absolute self canonical, reciprocal alternates for all eight locales plus x-default, consistent trailing-slash behavior, and sitemap inclusion. `/app`, `/app/auth/callback`, `/auth/callback`, and private routes are excluded from the sitemap; `/app` and both callbacks are noindex, and `/app` has no public schema.
+3. The landing sample uses the real UI components and an approved disclosed sample item whose photo and output were produced by the actual AutoLister backend. No visitor upload, anonymous generation, guest quota, fake success state, or unsupported Phase 1 promise is present. The copy accurately says signup is required and five free lifetime generations are available.
+4. Landing pages have responsive mobile and desktop content parity, meet the defined mobile p75 LCP and CLS budgets, and do not require a generation API call before primary content and CTA are usable. Page-scoped `WebPage`, `BreadcrumbList`, browser web-app `SoftwareApplication`, and visible-FAQ-only `FAQPage` data validate without duplicate Chrome-extension schema or unsupported rating claims.
+5. Internal links from localized homepages, pricing, `/vinted-description-generator`, localized guides, and relevant blog surfaces point to the matching landing route, preserve each source page's intent, and preserve ref, UTM, and first-touch attribution to `/app`.
+6. Route-aware CTA behavior has exactly one filled primary per viewport: landing routes use `/app` on mobile and desktop; existing homepage, guides, blog, and pricing use `/app` on mobile and preserve extension-first desktop behavior; Orion remains extension-first on every viewport with any web alternative after instructions.
+7. `/app` authenticates with Google or one email containing both a working link and six-digit OTP, persists and refreshes the browser session, and never routes web users through `/auth/callback`.
+8. `/api/user/usage` reports the server plan, applicable limits, remaining counts, reset timing, and pricing without client database reads or duplicate quota logic.
+9. Every selected photo for one item is preserved through 1280 px JPEG preparation where supported, ordered upload, signed-URL generation, and cleanup. HEIC and orientation behavior is tested on both required mobile platforms.
+10. One `/api/generate` call returns both editable fields with independent languages and the existing Long or Short and Bullets or Paragraphs behavior. Quota reservation, commit, refund, and mobile request idempotency prevent accidental duplicate charges.
+11. 401, 403, 429, 400, 413, 415, 5xx, 504, cancellation, and checkout propagation states have the defined recovery behavior.
+12. Copy actions work with an accessible fallback, and the Vinted action uses the existing market mapping and `/items/new` path without claiming native handoff.
+13. Subscription checkout uses the authenticated account and existing Stripe products, returns to `/app`, and refreshes from webhook-backed server state. Extension checkout remains unchanged.
+14. Mobile web analytics and first-touch attribution use the approved `mobile_web` source and `web_app_click` contexts without tokens, raw photos, or generated listing text.
+15. Preview or staging and real iPhone Safari and Android Chrome checks pass before production exposure, and the feature flag provides a tested rollback path. Representative public landing URLs receive post-deploy Search Console URL Inspection and structured-data checks; those checks are treated as verification, not a ranking or traffic guarantee.

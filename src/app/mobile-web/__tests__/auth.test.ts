@@ -157,6 +157,36 @@ describe("mobile web browser authentication", () => {
     expect(mocks.auth.exchangeCodeForSession).toHaveBeenCalledWith("pkce-code");
     expect(mocks.auth.setSession).not.toHaveBeenCalled();
     expect(history.replaceState).toHaveBeenCalledWith({}, "", "/app");
+    expect(mocks.createClient).toHaveBeenCalledWith(
+      "https://project.supabase.co",
+      "anon-key",
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false,
+        },
+      },
+    );
+  });
+
+  it("preserves the server message and stable code for magic-link failures", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "Too many sign-in email requests. Please wait a few minutes.",
+        }),
+        { status: 429 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { requestMagicLink } = await import("../auth.js");
+
+    await expect(requestMagicLink("seller@example.com")).rejects.toMatchObject({
+      code: "magic_link_http_429",
+      status: 429,
+      message: "Too many sign-in email requests. Please wait a few minutes.",
+    });
   });
 
   it("exposes the browser session, refresh, and sign-out operations", async () => {

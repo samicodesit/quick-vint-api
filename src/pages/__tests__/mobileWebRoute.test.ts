@@ -31,6 +31,7 @@ describe("private mobile web documents", () => {
     expect(callbackSource).not.toContain("public/auth-callback.js");
     expect(callbackSource).not.toContain("chrome-extension://");
     expect(callbackSource).toContain("completeWebCallback");
+    expect(callbackSource).toContain('window.location.replace("/app")');
   });
 
   it("renders a disabled state without loading client modules when the rollout flag is off", () => {

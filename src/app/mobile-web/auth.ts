@@ -25,6 +25,7 @@ function getPublicBuildEnv(): MobileWebBuildEnv {
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "string" && error.trim()) return error;
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) return message;
@@ -32,9 +33,13 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function authError(code: string, cause?: unknown): Error {
-  const error = new Error(code);
+function authError(code: string, cause?: unknown, message?: string): Error {
+  const error = new Error(message?.trim() || code);
   error.name = "MobileWebAuthError";
+  Object.defineProperty(error, "code", {
+    value: code,
+    enumerable: true,
+  });
   if (cause && typeof cause === "object" && "status" in cause) {
     Object.defineProperty(error, "status", {
       value: (cause as { status?: unknown }).status,
@@ -42,6 +47,21 @@ function authError(code: string, cause?: unknown): Error {
     });
   }
   return error;
+}
+
+function createSupabaseClient(detectSessionInUrl: boolean): SupabaseClient {
+  const config = getMobileWebBuildConfig(getPublicBuildEnv());
+  if (!config.enabled || !config.supabaseUrl || !config.supabaseAnonKey) {
+    throw authError("mobile_web_disabled");
+  }
+
+  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl,
+    },
+  });
 }
 
 function getCallbackRedirectUrl(): string {
@@ -68,18 +88,7 @@ async function readResponseBody(
 export function createBrowserSupabaseClient(): SupabaseClient {
   if (browserClient) return browserClient;
 
-  const config = getMobileWebBuildConfig(getPublicBuildEnv());
-  if (!config.enabled || !config.supabaseUrl || !config.supabaseAnonKey) {
-    throw authError("mobile_web_disabled");
-  }
-
-  browserClient = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  });
+  browserClient = createSupabaseClient(true);
 
   return browserClient;
 }
@@ -115,7 +124,11 @@ export async function requestMagicLink(email: string) {
       typeof body.code === "string" && body.code.trim()
         ? body.code
         : `magic_link_http_${response.status}`;
-    throw authError(code, { status: response.status });
+    throw authError(
+      code,
+      { status: response.status },
+      getErrorMessage(body.error, "Unable to send the sign-in email."),
+    );
   }
 
   return body;
@@ -137,7 +150,11 @@ export async function verifyEmailOtp(
 
 export async function completeWebCallback(url: URL | string): Promise<Session> {
   const callbackUrl = typeof url === "string" ? new URL(url) : url;
-  const client = createBrowserSupabaseClient();
+  // The browser client intentionally detects URL sessions for normal app
+  // startup. Callback handling is explicit, so a second client disables URL
+  // detection to prevent Supabase's auto-initializer from exchanging a PKCE
+  // code before this function can handle it.
+  const client = createSupabaseClient(false);
 
   try {
     const code = callbackUrl.searchParams.get("code");

@@ -80,11 +80,13 @@ const contentSecurityPolicy = [
         <script>
           import { completeWebCallback } from "../../../app/mobile-web/auth";
 
-          completeWebCallback(new URL(window.location.href)).catch(() => {
-            const copy = document.querySelector("[data-mobile-web='callback-status'] p");
-            if (copy) copy.textContent = "We could not finish sign-in. Please return to the app and try again.";
-            document.querySelector("[data-mobile-web='callback-status']")?.setAttribute("data-state", "error");
-          });
+          completeWebCallback(new URL(window.location.href))
+            .then(() => window.location.replace("/app"))
+            .catch(() => {
+              const copy = document.querySelector("[data-mobile-web='callback-status'] p");
+              if (copy) copy.textContent = "We could not finish sign-in. Please return to the app and try again.";
+              document.querySelector("[data-mobile-web='callback-status']")?.setAttribute("data-state", "error");
+            });
         </script>
       )
     }

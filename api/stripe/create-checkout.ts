@@ -22,7 +22,12 @@ import {
   MobileBillingRequestError,
   resolveMobileBillingProfile,
 } from "../../utils/mobileCheckout";
-import { getMobileWebClient, MOBILE_WEB_CLIENT } from "../../utils/mobileWeb";
+import {
+  getMobileWebClient,
+  isMobileWebEnabled,
+  MOBILE_WEB_CLIENT,
+  MOBILE_WEB_DISABLED_RESPONSE,
+} from "../../utils/mobileWeb";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
@@ -135,6 +140,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  if (isMobileWebRequest(req) && !isMobileWebEnabled()) {
+    return res.status(404).json(MOBILE_WEB_DISABLED_RESPONSE);
   }
 
   let alertContext: {

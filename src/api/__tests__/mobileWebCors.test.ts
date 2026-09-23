@@ -178,4 +178,31 @@ describe("mobile web CORS contracts", () => {
       error: expect.stringContaining("CORS origin denied for generate"),
     });
   });
+
+  it("preserves the phone-upload preflight contract", async () => {
+    const handler = (await import("../../../api/phone-upload.js"))
+      .default as any;
+    const response = createResponse();
+
+    void handler(
+      {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://vinted.fr",
+          "access-control-request-method": "POST",
+          "access-control-request-headers": "Authorization",
+        },
+        query: {},
+      } as any,
+      response as any,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers["access-control-allow-origin"]).toBe(
+      "https://vinted.fr",
+    );
+    expect(response.headers["access-control-allow-methods"]).toContain("POST");
+  });
 });

@@ -6,6 +6,10 @@ import {
 } from "./tierConfig";
 
 export const MOBILE_WEB_CLIENT = "mobile_web" as const;
+export const MOBILE_WEB_DISABLED_RESPONSE = {
+  error: "Mobile web app unavailable.",
+  code: "mobile_web_disabled",
+} as const;
 
 const DEFAULT_APP_ORIGIN = "https://autolister.app";
 const MOBILE_WEB_CALLBACK_PATH = "/app/auth/callback";

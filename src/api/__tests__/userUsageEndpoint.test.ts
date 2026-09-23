@@ -121,6 +121,7 @@ async function invokeHandler(
 describe("authenticated mobile usage endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.MOBILE_WEB_APP_ENABLED = "true";
     getUserMock.mockResolvedValue({
       data: { user: { id: "user-1" } },
       error: null,
@@ -128,6 +129,19 @@ describe("authenticated mobile usage endpoint", () => {
     getGenerationCapacityMock.mockResolvedValue(freeCapacity);
     getGenerationMinuteRemainingMock.mockResolvedValue(2);
     setupProfileQuery(freeProfile);
+  });
+
+  it("returns the disabled response while the mobile usage rollout is disabled", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+
+    const response = await invokeHandler(freeProfile);
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toEqual({
+      error: "Mobile web app unavailable.",
+      code: "mobile_web_disabled",
+    });
+    expect(getUserMock).not.toHaveBeenCalled();
   });
 
   it("projects native generation capacity and UTC reset boundaries", async () => {

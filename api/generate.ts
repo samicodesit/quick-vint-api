@@ -44,7 +44,9 @@ import {
   isAllowedVintedOrigin,
   getPricingLimitsModeForClient,
   getMobileWebClient,
+  isMobileWebEnabled,
   isValidMobileRequestId,
+  MOBILE_WEB_DISABLED_RESPONSE,
 } from "../utils/mobileWeb";
 import type { MobileGenerationRequestBody } from "../utils/mobileGenerationTypes";
 import {
@@ -270,6 +272,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logData.processingDurationMs = Date.now() - startTime;
     await ApiLogger.logRequest(logData);
     return res.status(405).json({ error: "Only POST allowed" });
+  }
+
+  if (isMobileWebRequest && !isMobileWebEnabled()) {
+    logData.responseStatus = 404;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Mobile web app disabled";
+    await ApiLogger.logRequest(logData);
+    return res.status(404).json(MOBILE_WEB_DISABLED_RESPONSE);
   }
 
   // --- AUTH ---

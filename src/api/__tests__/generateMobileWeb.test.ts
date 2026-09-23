@@ -139,7 +139,7 @@ describe("mobile web generation idempotency", () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test-openai-key";
     process.env.VERCEL_APP_SUPABASE_URL = "https://project.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
-    delete process.env.MOBILE_WEB_APP_ENABLED;
+    process.env.MOBILE_WEB_APP_ENABLED = "true";
 
     getUser.mockResolvedValue({
       data: { user: { id: "user-1", email: "seller@example.com" } },
@@ -247,6 +247,37 @@ describe("mobile web generation idempotency", () => {
     expect(second.body).toEqual(first.body);
     expect(reserveGenerationRequest).toHaveBeenCalledTimes(2);
     expect(third.statusCode).toBe(504);
+  });
+
+  it("returns the disabled response before authenticating mobile requests", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+
+    const response = await invoke();
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toEqual({
+      error: "Mobile web app unavailable.",
+      code: "mobile_web_disabled",
+    });
+    expect(getUser).not.toHaveBeenCalled();
+    expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
+  });
+
+  it("keeps extension generation enabled when the mobile flag is disabled", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+
+    const response = await invoke(
+      {
+        authorization: "Bearer token",
+        "x-autolister-extension-version": "1.4.2",
+      },
+      body,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(getUser).toHaveBeenCalledWith("token");
+    expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
+    expect(commitGenerationReservation).toHaveBeenCalledWith("reservation-1");
   });
 
   it("does not claim before deterministic validation or for extension requests", async () => {

@@ -144,6 +144,7 @@ describe("bearer-owned mobile Stripe billing", () => {
     process.env.STRIPE_CANCEL_URL = "https://autolister.app/cancel";
     process.env.STRIPE_PORTAL_RETURN_URL = "https://autolister.app/pricing";
     process.env.PRICING_OFFER_TOKEN_SECRET = "test-offer-secret";
+    process.env.MOBILE_WEB_APP_ENABLED = "true";
     process.env.VERCEL_APP_ALLOWED_ORIGINS = "https://preview.autolister.app";
 
     profileResponse.data = {
@@ -179,6 +180,38 @@ describe("bearer-owned mobile Stripe billing", () => {
     promotionCodeListMock.mockResolvedValue({ data: [] });
     queryBuilders.length = 0;
     vi.clearAllMocks();
+  });
+
+  it("returns the disabled response before mobile billing ownership lookup", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const checkoutResponse = createResponse();
+    await (checkoutModule.default as any)(
+      mobileRequest(),
+      checkoutResponse as any,
+    );
+
+    expect(checkoutResponse.statusCode).toBe(404);
+    expect(checkoutResponse.body).toEqual({
+      error: "Mobile web app unavailable.",
+      code: "mobile_web_disabled",
+    });
+
+    const portalModule = await import("../../../api/stripe/create-portal.js");
+    const portalResponse = createResponse();
+    await (portalModule.default as any)(mobileRequest(), portalResponse as any);
+
+    expect(portalResponse.statusCode).toBe(404);
+    expect(portalResponse.body).toEqual({
+      error: "Mobile web app unavailable.",
+      code: "mobile_web_disabled",
+    });
+    expect(authGetUserMock).not.toHaveBeenCalled();
+    expect(customerRetrieveMock).not.toHaveBeenCalled();
+    expect(portalCreateMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
   });
 
   it("resolves the bearer user before any email ownership input", async () => {
@@ -430,6 +463,7 @@ describe("bearer-owned mobile Stripe billing", () => {
   });
 
   it("keeps extension checkout email ownership and metadata unchanged", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
     profileResponse.data = {
       id: "extension-profile",
       stripe_customer_id: "cus_existing",
@@ -456,6 +490,35 @@ describe("bearer-owned mobile Stripe billing", () => {
       expect.objectContaining({
         metadata: expect.objectContaining({ source: "auto_lister_extension" }),
       }),
+    );
+  });
+
+  it("keeps extension portal behavior enabled when the mobile flag is disabled", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+    profileResponse.data = {
+      id: "extension-profile",
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: null,
+      subscription_status: "active",
+      subscription_tier: "pro",
+    };
+
+    const portalModule = await import("../../../api/stripe/create-portal.js");
+    const handler = portalModule.default as any;
+    const response = createResponse();
+
+    await handler(
+      {
+        method: "POST",
+        headers: {},
+        body: { email: "extension@example.com" },
+      } as any,
+      response as any,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(portalCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ customer: "cus_existing" }),
     );
   });
 

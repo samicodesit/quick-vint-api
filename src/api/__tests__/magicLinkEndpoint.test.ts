@@ -213,6 +213,21 @@ describe("magic link endpoint", () => {
     expect(resendSendMock).not.toHaveBeenCalled();
   });
 
+  it("keeps extension magic links enabled when the mobile flag is disabled", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+
+    const res = await invokeMagicLink({
+      body: { email: "seller@example.com" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(generateLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: { redirectTo: "https://autolister.app/auth/callback" },
+      }),
+    );
+  });
+
   it("allows the app origin on the magic-link preflight", async () => {
     const res = await invokeMagicLink({
       method: "OPTIONS",

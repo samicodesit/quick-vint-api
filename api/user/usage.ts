@@ -1,4 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import {
+  isMobileWebEnabled,
+  MOBILE_WEB_DISABLED_RESPONSE,
+} from "../../utils/mobileWeb";
 import { runUsageCors } from "../../utils/usageCors";
 import { UsageRequestError, getUsageForBearer } from "../../utils/userUsage";
 
@@ -26,6 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader("Cache-Control", "private, no-store");
+
+  if (!isMobileWebEnabled()) {
+    return res.status(404).json(MOBILE_WEB_DISABLED_RESPONSE);
+  }
 
   const authorization = getAuthorizationHeader(req);
   const tokenMatch = authorization?.match(/^Bearer\s+(\S+)$/);

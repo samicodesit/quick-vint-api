@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   canReuseMobileGenerationUpload,
   getMobileUsageDisplay,
+  getMobileCopyAnalyticsContext,
+  resetMobileCopyStateOnEdit,
   revokeMobileUploadedPreviews,
 } from "../app.js";
 
@@ -94,5 +96,31 @@ describe("mobile web app state helpers", () => {
     expect(shellSource).toContain(
       'import ListingResult from "./ListingResult.astro"',
     );
+  });
+
+  it("reports copy success or failure without including listing text", () => {
+    expect(getMobileCopyAnalyticsContext("title", true)).toEqual({
+      field: "title",
+      resultStatus: "success",
+    });
+    expect(getMobileCopyAnalyticsContext("description", false)).toEqual({
+      field: "description",
+      resultStatus: "failed",
+    });
+  });
+
+  it("resets completion only for the field edited after copying", () => {
+    expect(
+      resetMobileCopyStateOnEdit("title", {
+        title: true,
+        description: true,
+      }),
+    ).toEqual({ title: false, description: true });
+    expect(
+      resetMobileCopyStateOnEdit("description", {
+        title: true,
+        description: true,
+      }),
+    ).toEqual({ title: true, description: false });
   });
 });

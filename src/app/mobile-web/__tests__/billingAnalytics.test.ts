@@ -203,6 +203,24 @@ describe("mobile result, billing, and analytics", () => {
     expect(JSON.stringify(body)).not.toContain("secret-token");
   });
 
+  it("keeps only approved checkout return statuses in analytics context", async () => {
+    const { trackMobileEvent } = await import("../analytics.js");
+    const getLastBody = () =>
+      JSON.parse(
+        String(fetchMobileJsonMock.mock.calls.at(-1)?.[1]?.body ?? "{}"),
+      );
+
+    await trackMobileEvent("checkout_return", { status: "success" });
+
+    const successBody = getLastBody();
+    expect(successBody.events[0].context).toEqual({ status: "success" });
+
+    await trackMobileEvent("checkout_return", { status: "unexpected" });
+
+    const unexpectedBody = getLastBody();
+    expect(unexpectedBody.events[0].context).toEqual({});
+  });
+
   it("claims sanitized first touch after authentication without sending a token in the body", async () => {
     attributionModule.getStoredAttribution.mockReturnValue({
       source: "google",

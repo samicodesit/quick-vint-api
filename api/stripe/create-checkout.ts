@@ -58,6 +58,16 @@ function isMobileWebRequest(req: VercelRequest) {
   return getMobileWebClient(client) === MOBILE_WEB_CLIENT;
 }
 
+function sanitizeMobileRef(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._:-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 function getRequestOrigin(req: VercelRequest) {
   const value = req.headers?.origin;
   return Array.isArray(value) ? value[0] : value;
@@ -335,6 +345,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             typeof utm.utm_campaign === "string" ? utm.utm_campaign : "",
           utm_content:
             typeof utm.utm_content === "string" ? utm.utm_content : "",
+          ref: sanitizeMobileRef(utm.ref),
           utm_term: typeof utm.utm_term === "string" ? utm.utm_term : "",
         },
       });

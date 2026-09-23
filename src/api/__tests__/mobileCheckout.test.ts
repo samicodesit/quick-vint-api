@@ -441,6 +441,25 @@ describe("bearer-owned mobile Stripe billing", () => {
     );
   });
 
+  it("preserves a sanitized creator ref only in mobile checkout metadata", async () => {
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const handler = checkoutModule.default as any;
+    const response = createResponse();
+
+    await handler(
+      mobileRequest({ utm: { ref: "Creator Name/2026" } }) as any,
+      response as any,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(checkoutCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ ref: "creator-name-2026" }),
+      }),
+    );
+  });
+
   it("sends active bearer subscribers to the app portal return", async () => {
     profileResponse.data = {
       id: "bearer-user",
@@ -626,6 +645,9 @@ describe("bearer-owned mobile Stripe billing", () => {
         metadata: expect.objectContaining({ source: "auto_lister_extension" }),
       }),
     );
+    expect(
+      checkoutCreateMock.mock.calls.at(-1)?.[0].metadata,
+    ).not.toHaveProperty("ref");
   });
 
   it("keeps extension portal behavior enabled when the mobile flag is disabled", async () => {

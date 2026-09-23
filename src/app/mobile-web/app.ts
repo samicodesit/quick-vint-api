@@ -207,6 +207,33 @@ export function getMobileUsageDisplay(usage: MobileUsage): string {
   return `${available} generation${available === 1 ? "" : "s"} left`;
 }
 
+export type MobileResultField = "title" | "description";
+
+export interface MobileCopyState {
+  title: boolean;
+  description: boolean;
+}
+
+export function getMobileCopyAnalyticsContext(
+  field: MobileResultField,
+  copied: boolean,
+): { field: MobileResultField; resultStatus: "success" | "failed" } {
+  return {
+    field,
+    resultStatus: copied ? "success" : "failed",
+  };
+}
+
+export function resetMobileCopyStateOnEdit(
+  field: MobileResultField,
+  state: MobileCopyState,
+): MobileCopyState {
+  return {
+    ...state,
+    [field]: false,
+  };
+}
+
 export function canReuseMobileGenerationUpload(
   selectedPhotoIds: string[],
   uploadedPhotoIds: string[],
@@ -848,9 +875,7 @@ export function mountMobileWebApp(
     requestId = undefined;
     renderPhotos(root, photos);
   });
-  const copyResultField = async (
-    field: "title" | "description",
-  ): Promise<void> => {
+  const copyResultField = async (field: MobileResultField): Promise<void> => {
     const selector =
       field === "title"
         ? '[data-mobile-web="result-title"]'
@@ -871,11 +896,11 @@ export function mountMobileWebApp(
       statusSelector,
       copied ? "Copied ✓" : "Could not copy. Try again.",
     );
+    void trackMobileEvent("copy", getMobileCopyAnalyticsContext(field, copied));
     if (!copied) return;
     if (field === "title") copiedTitle = true;
     else copiedDescription = true;
     if (typeof navigator !== "undefined") navigator.vibrate?.(20);
-    void trackMobileEvent("copy", { field });
     updateResultCompletion();
   };
   bind(
@@ -887,6 +912,28 @@ export function mountMobileWebApp(
     asElement(root, '[data-mobile-web="copy-description"]'),
     "click",
     () => void copyResultField("description"),
+  );
+  const markResultEdited = (field: MobileResultField): void => {
+    const nextState = resetMobileCopyStateOnEdit(field, {
+      title: copiedTitle,
+      description: copiedDescription,
+    });
+    copiedTitle = nextState.title;
+    copiedDescription = nextState.description;
+    text(
+      root,
+      field === "title"
+        ? '[data-mobile-web="copy-title-status"]'
+        : '[data-mobile-web="copy-description-status"]',
+      "",
+    );
+    updateResultCompletion();
+  };
+  bind(asElement(root, '[data-mobile-web="result-title"]'), "input", () =>
+    markResultEdited("title"),
+  );
+  bind(asElement(root, '[data-mobile-web="result-description"]'), "input", () =>
+    markResultEdited("description"),
   );
   const vintedAction = asElement<HTMLAnchorElement>(
     root,

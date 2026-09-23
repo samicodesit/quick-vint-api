@@ -44,6 +44,8 @@ const ALLOWED_CONTEXT_KEYS = new Set([
   "retryable",
 ]);
 
+const CHECKOUT_RETURN_STATUSES = new Set(["success", "cancel", "manage"]);
+
 function getStorage(): StorageLike | null {
   try {
     return typeof window === "undefined" ? null : window.localStorage;
@@ -146,12 +148,18 @@ export function getMobileUtmParameters(): Record<string, string> {
 
 function sanitizeContext(
   value: unknown,
+  event: MobileAnalyticsEvent,
 ): Record<string, string | number | boolean> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const source = value as Record<string, unknown>;
   const context: Record<string, string | number | boolean> = {};
   for (const [key, item] of Object.entries(source)) {
     if (!ALLOWED_CONTEXT_KEYS.has(key)) continue;
+    if (key === "status" && event === "checkout_return") {
+      const status = stringValue(item);
+      if (status && CHECKOUT_RETURN_STATUSES.has(status)) context[key] = status;
+      continue;
+    }
     if (key === "imageCount" || key === "status" || key === "count") {
       const numeric = numericValue(item);
       if (numeric !== null) context[key] = numeric;
@@ -193,7 +201,7 @@ export async function trackMobileEvent(
               event,
               source: "mobile_web",
               page: "/app",
-              context: sanitizeContext(context),
+              context: sanitizeContext(context, event),
               utm: getMobileUtmParameters(),
             },
           ],

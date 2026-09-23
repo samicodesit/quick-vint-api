@@ -9,6 +9,12 @@ import {
   getAuthEmailBlockReason,
   getEmailDomain,
 } from "../../utils/authAbuseGuard";
+import {
+  getMobileWebCallbackUrl,
+  getMobileWebClient,
+  isAllowedAppOrigin,
+  isMobileWebEnabled,
+} from "../../utils/mobileWeb";
 
 // Read and parse allowed origins from env for CORS
 // This should primarily be your Chrome extension's origin
@@ -24,7 +30,10 @@ const cors = Cors({
       // Allow server-to-server or tools like Postman
       return callback(null, true);
     }
-    if (ALLOWED_ORIGINS.includes(incomingOrigin)) {
+    if (
+      ALLOWED_ORIGINS.includes(incomingOrigin) ||
+      isAllowedAppOrigin(incomingOrigin)
+    ) {
       return callback(null, true);
     }
     if (process.env.NODE_ENV !== "production") {
@@ -304,6 +313,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Only POST requests allowed" });
   }
 
+  const mobileWebClient = getMobileWebClient(body.client);
+  if (mobileWebClient && !isMobileWebEnabled()) {
+    await logMagicLinkAttempt({
+      req,
+      email,
+      status: 404,
+      startedAt,
+      error: "mobile_web_disabled",
+    });
+    return res.status(404).json({
+      error: "Mobile web app unavailable.",
+      code: "mobile_web_disabled",
+    });
+  }
+
   if (!email || typeof email !== "string" || !email.includes("@")) {
     await logMagicLinkAttempt({
       req,
@@ -347,7 +371,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const emailRedirectTo = getAuthCallbackUrl();
+  const requestOrigin =
+    typeof req.headers?.origin === "string" ? req.headers.origin : undefined;
+  const emailRedirectTo = mobileWebClient
+    ? getMobileWebCallbackUrl(requestOrigin)
+    : getAuthCallbackUrl();
 
   let linkResult;
   try {

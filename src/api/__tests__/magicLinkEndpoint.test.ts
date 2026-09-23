@@ -6,10 +6,35 @@ const logRequestMock = vi.fn();
 const reportCriticalEndpointFailureMock = vi.fn();
 
 vi.mock("cors", () => ({
-  default: vi.fn(
-    () => (_req: unknown, _res: unknown, callback: (err?: unknown) => void) =>
-      callback(),
-  ),
+  default: vi.fn((options: any) => {
+    return (req: any, res: any, callback: (err?: unknown) => void) => {
+      options.origin(
+        req.headers?.origin,
+        (error: unknown, allowed: boolean) => {
+          if (error) {
+            callback(error);
+            return;
+          }
+          if (allowed && req.headers?.origin) {
+            res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+          }
+          if (options.methods) {
+            res.setHeader(
+              "Access-Control-Allow-Methods",
+              options.methods.join(","),
+            );
+          }
+          if (options.allowedHeaders) {
+            res.setHeader(
+              "Access-Control-Allow-Headers",
+              options.allowedHeaders.join(","),
+            );
+          }
+          callback();
+        },
+      );
+    };
+  }),
 }));
 
 vi.mock("../../../utils/apiLogger", () => ({
@@ -57,7 +82,11 @@ function createResponse() {
   const res = {
     statusCode: 200,
     body: undefined as unknown,
-    setHeader: vi.fn(),
+    headers: {} as Record<string, string>,
+    setHeader: vi.fn((name: string, value: string) => {
+      res.headers[name.toLowerCase()] = value;
+      return res;
+    }),
     status: vi.fn((code: number) => {
       res.statusCode = code;
       return res;
@@ -71,11 +100,34 @@ function createResponse() {
   return res;
 }
 
+async function invokeMagicLink({
+  method = "POST",
+  headers = { origin: "chrome-extension://test-extension" },
+  body = { email: "seller@example.com" },
+}: {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: Record<string, unknown>;
+} = {}) {
+  const handlerModule = await import("../../../api/auth/magic-link.js");
+  const handler = handlerModule.default as unknown as (
+    req: unknown,
+    res: unknown,
+  ) => Promise<unknown>;
+  const res = createResponse();
+
+  await handler({ method, headers, body } as any, res as any);
+  return res;
+}
+
 describe("magic link endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.RESEND_API_KEY = "resend-key";
     process.env.AUTH_CALLBACK_URL = "";
+    process.env.MOBILE_WEB_APP_ENABLED = "true";
+    process.env.VERCEL_APP_ALLOWED_ORIGINS =
+      "chrome-extension://test-extension";
     process.env.VERCEL_APP_SITE_URL = "chrome-extension://legacy-extension";
     generateLinkMock.mockResolvedValue({
       data: {
@@ -89,22 +141,78 @@ describe("magic link endpoint", () => {
     resendSendMock.mockResolvedValue({ data: { id: "email-1" }, error: null });
   });
 
-  it("uses the HTTPS auth callback bridge instead of direct chrome-extension redirects", async () => {
-    const handlerModule = await import("../../../api/auth/magic-link.js");
-    const handler = handlerModule.default as unknown as (
-      req: unknown,
-      res: unknown,
-    ) => Promise<unknown>;
-    const res = createResponse();
+  it("uses the app callback only for the validated mobile client", async () => {
+    const res = await invokeMagicLink({
+      headers: { origin: "https://autolister.app" },
+      body: {
+        email: "seller@example.com",
+        client: "mobile_web",
+        redirectTo: "https://evil.example",
+      },
+    });
 
-    await handler(
-      {
-        method: "POST",
-        headers: { origin: "chrome-extension://test-extension" },
-        body: { email: "seller@example.com" },
-      } as any,
-      res as any,
+    expect(res.statusCode).toBe(200);
+    expect(generateLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          redirectTo: "https://autolister.app/app/auth/callback",
+        },
+      }),
     );
+  });
+
+  it("keeps the extension callback for an unknown client context", async () => {
+    const res = await invokeMagicLink({
+      body: {
+        email: "seller@example.com",
+        client: "mobile_web_preview",
+        redirectTo: "https://evil.example",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(generateLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: { redirectTo: "https://autolister.app/auth/callback" },
+      }),
+    );
+  });
+
+  it("returns the mobile disabled response without generating an extension link", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+    const res = await invokeMagicLink({
+      headers: { origin: "https://autolister.app" },
+      body: { email: "seller@example.com", client: "mobile_web" },
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({
+      error: "Mobile web app unavailable.",
+      code: "mobile_web_disabled",
+    });
+    expect(generateLinkMock).not.toHaveBeenCalled();
+    expect(resendSendMock).not.toHaveBeenCalled();
+  });
+
+  it("allows the app origin on the magic-link preflight", async () => {
+    const res = await invokeMagicLink({
+      method: "OPTIONS",
+      headers: {
+        origin: "https://autolister.app",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "Content-Type",
+      },
+      body: {},
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["access-control-allow-origin"]).toBe(
+      "https://autolister.app",
+    );
+  });
+
+  it("uses the HTTPS auth callback bridge instead of direct chrome-extension redirects", async () => {
+    const res = await invokeMagicLink();
 
     expect(res.statusCode).toBe(200);
     expect(generateLinkMock).toHaveBeenCalledWith({
@@ -138,21 +246,7 @@ describe("magic link endpoint", () => {
           "For security purposes, you can only request this after 35 seconds.",
       },
     });
-    const handlerModule = await import("../../../api/auth/magic-link.js");
-    const handler = handlerModule.default as unknown as (
-      req: unknown,
-      res: unknown,
-    ) => Promise<unknown>;
-    const res = createResponse();
-
-    await handler(
-      {
-        method: "POST",
-        headers: { origin: "chrome-extension://test-extension" },
-        body: { email: "seller@example.com" },
-      } as any,
-      res as any,
-    );
+    const res = await invokeMagicLink();
 
     expect(res.statusCode).toBe(429);
     expect(res.body).toEqual({

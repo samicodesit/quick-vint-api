@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const appRoute = readFileSync("src/pages/app/index.astro", "utf8");
@@ -16,9 +16,22 @@ describe("mobile web launch contract", () => {
     expect(appRoute).toContain('import "../../styles/mobile-web-app.css"');
     expect(appRoute).toContain("buildConfig.enabled");
     expect(appRoute).toContain("mountMobileWebApp");
+    expect(appRoute).toContain("<script>");
+    expect(appRoute).not.toContain('<script type="module">');
     expect(appRoute).toContain('data-mobile-web="disabled"');
     expect(appRoute).not.toContain("indexedDB");
     expect(appRoute).not.toContain("serviceWorker");
+  });
+
+  it("bundles the enabled client instead of leaving a source-relative import", () => {
+    const builtPath = "dist/app/index.html";
+    if (!existsSync(builtPath)) return;
+
+    const builtApp = readFileSync(builtPath, "utf8");
+    if (builtApp.includes("Mobile web app unavailable")) return;
+
+    expect(builtApp).not.toContain("../../app/mobile-web/app");
+    expect(builtApp).toMatch(/<script type="module" src="\/_astro\//);
   });
 
   it("keeps private app documents out of indexing and public schema", () => {

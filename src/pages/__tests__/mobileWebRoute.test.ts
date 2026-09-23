@@ -42,6 +42,7 @@ describe("private mobile web documents", () => {
 
     expect(source).toContain("Mobile web app unavailable");
     expect(source).toContain("buildConfig.enabled");
-    expect(source).toContain('type="module"');
+    expect(source).toContain("mountMobileWebApp");
+    expect(source).not.toContain('<script type="module">');
   });
 });

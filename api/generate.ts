@@ -462,6 +462,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // --- VALIDATE BODY ---
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+    logData.responseStatus = 400;
+    logData.processingDurationMs = Date.now() - startTime;
+    logData.flaggedReason = "Invalid request body";
+    await ApiLogger.logRequest(logData);
+    return res
+      .status(400)
+      .json({ error: "imageUrls must be a non-empty array of strings." });
+  }
+
   const {
     imageUrls,
     languageCode,
@@ -605,6 +615,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     (emojiRetry === true || emojiRetry === "true") && emojisDisabledByUser;
 
   let mobileIdempotencyRecordId: string | null = null;
+  let mobileIdempotencyAttemptId: string | null = null;
   if (isMobileWebRequest) {
     const normalizedMobileRequest = normalizeMobileGenerationRequest(
       req.body as MobileGenerationRequestBody,
@@ -648,6 +659,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     mobileIdempotencyRecordId = claim.recordId;
+    mobileIdempotencyAttemptId = claim.attemptId;
   }
 
   const rateLimitResult = isEmojiRetryRequest
@@ -684,6 +696,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ) {
       await failMobileGenerationIdempotency({
         recordId: mobileIdempotencyRecordId,
+        attemptId: mobileIdempotencyAttemptId as string,
         statusCode: 429,
         body: mobileRateLimitBody,
         retryable: false,
@@ -888,11 +901,13 @@ Reply only in JSON: {"title":"...","description":"..."}
         );
         await failMobileGenerationIdempotency({
           recordId: mobileIdempotencyRecordId,
+          attemptId: mobileIdempotencyAttemptId as string,
           statusCode: 500,
           body: {
             error: "The generated response was too large. Please try again.",
             code: responseValidation.code,
           },
+          reservationId: generationReservationId,
           retryable: false,
           failureCode: responseValidation.code,
         });
@@ -914,6 +929,7 @@ Reply only in JSON: {"title":"...","description":"..."}
         mobileReservationCommitState = "uncertain";
         await markMobileGenerationCommitPending({
           recordId: mobileIdempotencyRecordId,
+          attemptId: mobileIdempotencyAttemptId as string,
           reservationId: generationReservationId,
         });
         logData.responseStatus = 503;
@@ -959,12 +975,14 @@ Reply only in JSON: {"title":"...","description":"..."}
       };
       const completed = await completeMobileGenerationIdempotency({
         recordId: mobileIdempotencyRecordId,
+        attemptId: mobileIdempotencyAttemptId as string,
         reservationId: generationReservationId,
         response: responseBody,
       });
       if (!completed.ok) {
         await markMobileGenerationCommitPending({
           recordId: mobileIdempotencyRecordId,
+          attemptId: mobileIdempotencyAttemptId as string,
           reservationId: generationReservationId,
         });
         logData.responseStatus = 503;
@@ -1010,6 +1028,10 @@ Reply only in JSON: {"title":"...","description":"..."}
       userMessage =
         "Our AI service is currently busy. Please try again in a few seconds.";
       statusCode = 429;
+    } else if (err.status === 403) {
+      userMessage =
+        "The AI service rejected this request. Please try different images.";
+      statusCode = 403;
     } else if (
       err.message?.includes("timeout") ||
       err.message?.includes("timed out")
@@ -1051,8 +1073,10 @@ Reply only in JSON: {"title":"...","description":"..."}
       });
       await failMobileGenerationIdempotency({
         recordId: mobileIdempotencyRecordId,
+        attemptId: mobileIdempotencyAttemptId as string,
         statusCode: statusCode as 400 | 403 | 429 | 500 | 503 | 504,
         body: failureBody,
+        reservationId: generationReservationId,
         retryable:
           statusCode === 429 || statusCode === 500 || statusCode === 504,
         failureCode:

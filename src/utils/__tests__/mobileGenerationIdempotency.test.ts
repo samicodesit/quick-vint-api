@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpc = vi.fn();
@@ -50,7 +52,11 @@ describe("mobile generation idempotency", () => {
     } = await import("../../../utils/mobileGenerationIdempotency.js");
 
     rpc.mockResolvedValueOnce({
-      data: { kind: "new", recordId: "record-1" },
+      data: {
+        kind: "new",
+        recordId: "record-1",
+        attemptId: "attempt-1",
+      },
       error: null,
     });
     expect(
@@ -59,17 +65,23 @@ describe("mobile generation idempotency", () => {
         requestId: "550e8400-e29b-41d4-a716-446655440000",
         requestHash: "a".repeat(64),
       }),
-    ).toEqual({ kind: "new", recordId: "record-1" });
+    ).toEqual({
+      kind: "new",
+      recordId: "record-1",
+      attemptId: "attempt-1",
+    });
 
     rpc.mockResolvedValueOnce({ data: true, error: null });
     await completeMobileGenerationIdempotency({
       recordId: "record-1",
+      attemptId: "attempt-1",
       response: { title: "Title", description: "Description" },
     });
     expect(rpc).toHaveBeenLastCalledWith(
       "complete_mobile_generation_idempotency",
       expect.objectContaining({
         p_record_id: "record-1",
+        p_attempt_id: "attempt-1",
         p_response_status: 200,
       }),
     );
@@ -77,6 +89,7 @@ describe("mobile generation idempotency", () => {
     rpc.mockResolvedValueOnce({ data: true, error: null });
     await failMobileGenerationIdempotency({
       recordId: "record-1",
+      attemptId: "attempt-1",
       statusCode: 504,
       body: { error: "The request took too long. Please try again." },
       retryable: true,
@@ -85,6 +98,7 @@ describe("mobile generation idempotency", () => {
       "fail_mobile_generation_idempotency",
       expect.objectContaining({
         p_record_id: "record-1",
+        p_attempt_id: "attempt-1",
         p_status_code: 504,
         p_retryable: true,
       }),
@@ -124,6 +138,45 @@ describe("mobile generation idempotency", () => {
       error: "Generation failed. Please try again.",
       code: "generation_failed",
     });
+  });
+
+  it("guards commit-pending reconciliation and terminal transitions in SQL", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+
+    expect(migration).toContain("attempt_id uuid NOT NULL");
+    expect(migration).toContain("reservation_status");
+    expect(migration).toContain("existing_row.commit_pending");
+    expect(migration).toContain("reservation_status = 'refunded'");
+    expect(migration).toContain("p_attempt_id uuid");
+    expect(migration).toContain("attempt_id = p_attempt_id");
+  });
+
+  it("rejects raw URLs, data URLs, encoded payloads, and tokens in terminal RPCs", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+
+    expect(migration).toContain("mobile_generation_json_is_safe");
+    expect(migration).toContain("https?://");
+    expect(migration).toContain("data:");
+    expect(migration).toContain("base64");
+    expect(migration).toContain("bearer");
+    expect(migration).toContain(
+      "IF NOT public.mobile_generation_json_is_safe(p_response_json)",
+    );
+    expect(migration).toContain(
+      "IF NOT public.mobile_generation_json_is_safe(p_body)",
+    );
   });
 
   it("verifies an uncertain reservation commit through its status read", async () => {

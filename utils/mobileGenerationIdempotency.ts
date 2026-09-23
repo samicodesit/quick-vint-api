@@ -221,13 +221,25 @@ function decodeClaim(data: unknown): IdempotencyClaim {
   const kind = result.kind;
 
   const recordId = result.recordId ?? result.record_id ?? result.id;
-  if (kind === "new" && typeof recordId === "string") {
-    return { kind: "new", recordId };
+  const attemptId = result.attemptId ?? result.attempt_id;
+  if (
+    kind === "new" &&
+    typeof recordId === "string" &&
+    typeof attemptId === "string"
+  ) {
+    return { kind: "new", recordId, attemptId };
   }
   if (kind === "conflict") return { kind: "conflict" };
   const requestId = result.requestId ?? result.request_id;
   if (kind === "in_progress" && typeof requestId === "string") {
-    return { kind: "in_progress", requestId };
+    return {
+      kind: "in_progress",
+      requestId,
+      ...(typeof attemptId === "string" ? { attemptId } : {}),
+      ...(result.commitPending === true || result.commit_pending === true
+        ? { commitPending: true }
+        : {}),
+    };
   }
   if (kind === "succeeded") {
     const response = result.response ?? result.response_json;
@@ -311,6 +323,7 @@ export async function claimMobileGenerationIdempotency(input: {
 
 export async function completeMobileGenerationIdempotency(input: {
   recordId: string;
+  attemptId: string;
   response: MobileGenerationResponse;
   reservationId?: string | null;
   expiresAt?: string;
@@ -320,6 +333,7 @@ export async function completeMobileGenerationIdempotency(input: {
 
   return callMutation("complete_mobile_generation_idempotency", {
     p_record_id: input.recordId,
+    p_attempt_id: input.attemptId,
     p_response_json: validated.response,
     p_response_status: 200,
     p_reservation_id: input.reservationId ?? null,
@@ -331,10 +345,12 @@ export async function completeMobileGenerationIdempotency(input: {
 
 export async function failMobileGenerationIdempotency(input: {
   recordId: string;
+  attemptId: string;
   statusCode: 400 | 403 | 429 | 500 | 503 | 504;
   body: Record<string, unknown>;
   retryable: boolean;
   failureCode?: string | null;
+  reservationId?: string | null;
   expiresAt?: string;
 }): Promise<{ ok: true } | { ok: false; code: string }> {
   const sanitizedBody = sanitizeStoredFailureBody(input.body);
@@ -349,21 +365,25 @@ export async function failMobileGenerationIdempotency(input: {
 
   return callMutation("fail_mobile_generation_idempotency", {
     p_record_id: input.recordId,
+    p_attempt_id: input.attemptId,
     p_status_code: input.statusCode,
     p_body: sanitizedBody,
     p_failure_code: input.failureCode ?? null,
     p_retryable: input.retryable,
+    p_reservation_id: input.reservationId ?? null,
     p_expires_at: expiresAt,
   });
 }
 
 export async function markMobileGenerationCommitPending(input: {
   recordId: string;
+  attemptId: string;
   reservationId?: string | null;
   expiresAt?: string;
 }): Promise<{ ok: true } | { ok: false; code: string }> {
   return callMutation("mark_mobile_generation_commit_pending", {
     p_record_id: input.recordId,
+    p_attempt_id: input.attemptId,
     p_reservation_id: input.reservationId ?? null,
     p_expires_at:
       input.expiresAt ??

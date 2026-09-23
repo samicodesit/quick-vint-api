@@ -175,6 +175,7 @@ describe("mobile web generation idempotency", () => {
     claimMobileGenerationIdempotency.mockResolvedValue({
       kind: "new",
       recordId: "record-1",
+      attemptId: "attempt-1",
     });
     completeMobileGenerationIdempotency.mockResolvedValue({ ok: true });
     failMobileGenerationIdempotency.mockResolvedValue({ ok: true });
@@ -210,6 +211,16 @@ describe("mobile web generation idempotency", () => {
       { method: "POST", headers, body: requestBody } as any,
       response as any,
     );
+    return response;
+  }
+
+  async function invokeWithoutBody(
+    headers: Record<string, string> = mobileHeaders,
+  ) {
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const response = createResponse();
+    await handler({ method: "POST", headers } as any, response as any);
     return response;
   }
 
@@ -267,8 +278,83 @@ describe("mobile web generation idempotency", () => {
     expect(markMobileGenerationCommitPending).toHaveBeenCalledWith(
       expect.objectContaining({
         recordId: "record-1",
+        attemptId: "attempt-1",
         reservationId: "reservation-1",
       }),
     );
+  });
+
+  it("preserves provider 403 as a bounded non-retryable mobile failure", async () => {
+    const providerError = Object.assign(new Error("provider forbidden"), {
+      status: 403,
+    });
+    createCompletion.mockReturnValue({
+      withResponse: vi.fn().mockRejectedValue(providerError),
+    });
+
+    const response = await invoke();
+
+    expect(response.statusCode).toBe(403);
+    expect(refundGenerationReservation).toHaveBeenCalledWith(
+      "reservation-1",
+      "generation_failed",
+    );
+    expect(failMobileGenerationIdempotency).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attemptId: "attempt-1",
+        statusCode: 403,
+        retryable: false,
+      }),
+    );
+  });
+
+  it.each([null, "not-an-object", []])(
+    "returns deterministic 400 for an invalid request body (%j) before claiming",
+    async (requestBody) => {
+      const response = await invoke(mobileHeaders, requestBody as any);
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({
+        error: "imageUrls must be a non-empty array of strings.",
+      });
+      expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
+      expect(reserveGenerationRequest).not.toHaveBeenCalled();
+    },
+  );
+
+  it("returns deterministic 400 for a missing request body before claiming", async () => {
+    const response = await invokeWithoutBody();
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).toEqual({
+      error: "imageUrls must be a non-empty array of strings.",
+    });
+    expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
+    expect(reserveGenerationRequest).not.toHaveBeenCalled();
+  });
+
+  it("does not reserve again while a prior commit-pending attempt is unresolved", async () => {
+    commitGenerationReservationVerified.mockResolvedValue({
+      state: "committed",
+      ok: false,
+    });
+    claimMobileGenerationIdempotency.mockResolvedValueOnce({
+      kind: "new",
+      recordId: "record-1",
+      attemptId: "attempt-1",
+    });
+    const first = await invoke();
+
+    claimMobileGenerationIdempotency.mockResolvedValueOnce({
+      kind: "in_progress",
+      requestId,
+      attemptId: "attempt-1",
+      commitPending: true,
+    });
+    const second = await invoke();
+
+    expect(first.statusCode).toBe(503);
+    expect(second.statusCode).toBe(409);
+    expect(reserveGenerationRequest).toHaveBeenCalledTimes(1);
   });
 });

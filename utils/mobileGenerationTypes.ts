@@ -23,9 +23,14 @@ export type MobileGenerationResponse = {
 };
 
 export type IdempotencyClaim =
-  | { kind: "new"; recordId: string }
+  | { kind: "new"; recordId: string; attemptId: string }
   | { kind: "succeeded"; response: MobileGenerationResponse; statusCode: 200 }
-  | { kind: "in_progress"; requestId: string }
+  | {
+      kind: "in_progress";
+      requestId: string;
+      attemptId?: string;
+      commitPending?: boolean;
+    }
   | {
       kind: "failed";
       statusCode: 400 | 403 | 429 | 500 | 503 | 504;

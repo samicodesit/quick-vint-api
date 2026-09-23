@@ -12,7 +12,7 @@ export type MobileGenerationRequestBody = {
   useBulletPoints?: boolean | string;
   descriptionLength?: string;
   descriptionFooterText?: string;
-  generationMode?: MobileGenerationMode | string;
+  generationMode?: MobileGenerationMode;
 };
 
 export type MobileGenerationResponse = {
@@ -30,6 +30,13 @@ export type IdempotencyClaim =
       requestId: string;
       attemptId?: string;
       commitPending?: boolean;
+    }
+  | {
+      kind: "commit_pending";
+      recordId: string;
+      attemptId: string;
+      reservationId: string;
+      response: MobileGenerationResponse;
     }
   | {
       kind: "failed";

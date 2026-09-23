@@ -163,7 +163,7 @@ function getPlanStatus(
   tier: string,
 ): UsagePlanStatus {
   if (isAccountPaused(profile)) return "paused";
-  if (profile.account_status && profile.account_status !== "active") {
+  if (profile.account_status !== "active") {
     return "inactive";
   }
   if (
@@ -190,8 +190,10 @@ export function buildUsageResponse(
   const freeLifetimeLimit = freeLifetimeApplicable
     ? nonNegativeNumber(capacity.limits.freeLifetime)
     : null;
-  const dailyLimit = nonNegativeNumber(capacity.limits.daily);
-  const monthlyLimit = nonNegativeNumber(capacity.limits.monthly);
+  const dailyLimit =
+    tier === "free" ? null : nonNegativeNumber(capacity.limits.daily);
+  const monthlyLimit =
+    tier === "free" ? null : nonNegativeNumber(capacity.limits.monthly);
   const burstPerMinute =
     nonNegativeNumber(capacity.limits.burstPerMinute) ??
     TIER_CONFIGS[tier].limits.burst.perMinute ??

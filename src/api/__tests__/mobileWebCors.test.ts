@@ -51,10 +51,14 @@ function createResponse() {
   return response;
 }
 
-function preflightHeaders(origin: string, requestedHeaders: string) {
+function preflightHeaders(
+  origin: string,
+  requestedHeaders: string,
+  method = "POST",
+) {
   return {
     origin,
-    "access-control-request-method": "POST",
+    "access-control-request-method": method,
     "access-control-request-headers": requestedHeaders,
   };
 }
@@ -106,6 +110,7 @@ describe("mobile web CORS contracts", () => {
         headers: preflightHeaders(
           "https://autolister.app",
           "Authorization, Content-Type, X-Autolister-Client",
+          "GET",
         ),
       } as any,
       response as any,

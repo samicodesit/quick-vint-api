@@ -1,4 +1,4 @@
-import { isAllowedAppOrigin } from "./allowedOrigins";
+import { isAllowedAppOrigin, isAllowedVintedOrigin } from "./allowedOrigins";
 import {
   getPricingLimitsMode,
   getPricingLimitsModeForExtension,
@@ -36,9 +36,42 @@ export function isMobileWebEnabled(
   return env.MOBILE_WEB_APP_ENABLED === "true";
 }
 
+/**
+ * Redirect destinations are intentionally narrower than the extension CORS
+ * allowlist. Configured extension schemes may continue to call API endpoints,
+ * but a browser auth or billing redirect must always land on an HTTPS origin.
+ */
+export function isAllowedMobileRedirectOrigin(origin?: string): boolean {
+  if (typeof origin !== "string" || !origin) return false;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.port ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash ||
+    parsed.origin !== origin
+  ) {
+    return false;
+  }
+
+  return isAllowedAppOrigin(origin) && !isAllowedVintedOrigin(origin);
+}
+
 export function getMobileWebCallbackUrl(origin?: string): string {
   const appOrigin =
-    origin && isAllowedAppOrigin(origin) ? origin : DEFAULT_APP_ORIGIN;
+    origin && isAllowedMobileRedirectOrigin(origin)
+      ? origin
+      : DEFAULT_APP_ORIGIN;
   return `${appOrigin}${MOBILE_WEB_CALLBACK_PATH}`;
 }
 
@@ -53,7 +86,7 @@ export function getMobileWebReturnUrl(value: unknown): string | null {
   }
 
   if (
-    !isAllowedAppOrigin(url.origin) ||
+    !isAllowedMobileRedirectOrigin(url.origin) ||
     url.username ||
     url.password ||
     url.port ||

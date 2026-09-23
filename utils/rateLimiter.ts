@@ -1065,7 +1065,7 @@ export class RateLimiter {
         };
       }
 
-      const minuteCount = await this.getCurrentCount(userId, "minute");
+      const minuteCount = await this.getCurrentCountOrNull(userId, "minute");
       const dayCount = await this.getCurrentCount(userId, "day");
       const monthlyUsed = Math.max(0, profile.api_calls_this_month || 0);
       const effectiveMonthlyLimit = getEffectiveMonthlyLimit(
@@ -1119,7 +1119,10 @@ export class RateLimiter {
           burstPerMinute: tierConfig.limits.burst.perMinute,
         },
         remaining: {
-          minute: Math.max(0, tierConfig.limits.burst.perMinute - minuteCount),
+          minute:
+            minuteCount === null
+              ? null
+              : Math.max(0, tierConfig.limits.burst.perMinute - minuteCount),
           day: dayRemaining,
           month: monthRemaining,
           packCredits,

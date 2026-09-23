@@ -7,6 +7,7 @@ import { handleCheckoutCors } from "../../utils/checkoutCors";
 import {
   createBillingPortalSessionForProfile,
   findManageableBillingByEmail,
+  findManageableBillingByEmailStrict,
   findManageableSubscriptionForCustomer,
   repairProfileStripeCustomerId,
 } from "../../utils/stripeBillingPortal";
@@ -210,6 +211,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         profile.stripe_subscription_id
       ) {
         activeSubscriptionId = profile.stripe_subscription_id;
+      }
+
+      if (!customerId) {
+        const recoveredBilling = await findManageableBillingByEmailStrict(
+          stripe,
+          profile.email,
+        );
+        if (recoveredBilling) {
+          customerId = recoveredBilling.customerId;
+          activeSubscriptionId = recoveredBilling.subscriptionId;
+          const { error: repairError } = await supabase
+            .from("profiles")
+            .update({ stripe_customer_id: customerId })
+            .eq("id", profile.id);
+          if (repairError) {
+            throw new Error(
+              "Could not save the recovered Stripe customer for this account.",
+            );
+          }
+        }
       }
 
       if (customerId) {

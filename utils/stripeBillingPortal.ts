@@ -96,6 +96,69 @@ export async function findManageableBillingByEmail(
   return null;
 }
 
+/**
+ * Mobile billing uses the bearer profile email as a recovery key only when
+ * Stripe can prove there is one unambiguous, still-owned billing record. The
+ * legacy email flow intentionally keeps its historical lookup behavior.
+ */
+export async function findManageableBillingByEmailStrict(
+  stripe: StripeClient,
+  email: string,
+) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+
+  const customers = await stripe.customers.list({
+    email: normalizedEmail,
+    limit: 10,
+  });
+  if (customers.has_more) {
+    throw new Error("Ambiguous Stripe billing records for this account.");
+  }
+  const candidates = customers.data.filter(
+    (customer) => normalizeEmail(customer.email) === normalizedEmail,
+  );
+  const matches: Array<{ customerId: string; subscriptionId: string }> = [];
+
+  for (const candidate of candidates) {
+    let resolvedCustomer: Stripe.Customer | Stripe.DeletedCustomer;
+    try {
+      resolvedCustomer = await stripe.customers.retrieve(candidate.id);
+    } catch (error: any) {
+      if (error?.code === "resource_missing") continue;
+      throw error;
+    }
+
+    if ("deleted" in resolvedCustomer && resolvedCustomer.deleted === true) {
+      continue;
+    }
+    if (normalizeEmail(getCustomerEmail(resolvedCustomer)) !== normalizedEmail)
+      continue;
+
+    const manageableSubscription = await findManageableSubscriptionForCustomer(
+      stripe,
+      candidate.id,
+    );
+    if (!manageableSubscription) continue;
+
+    const subscription = await stripe.subscriptions.retrieve(
+      manageableSubscription.id,
+    );
+    if (getCustomerId(subscription.customer) !== candidate.id) continue;
+
+    matches.push({
+      customerId: candidate.id,
+      subscriptionId: manageableSubscription.id,
+    });
+  }
+
+  if (matches.length > 1) {
+    throw new Error("Ambiguous Stripe billing records for this account.");
+  }
+
+  return matches[0] || null;
+}
+
 export async function repairProfileStripeCustomerId(
   email: string,
   customerId: string,

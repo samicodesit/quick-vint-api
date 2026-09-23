@@ -230,6 +230,27 @@ function decodeClaim(data: unknown): IdempotencyClaim {
     return { kind: "new", recordId, attemptId };
   }
   if (kind === "conflict") return { kind: "conflict" };
+  if (kind === "commit_pending") {
+    const recordId = result.recordId ?? result.record_id ?? result.id;
+    const attemptId = result.attemptId ?? result.attempt_id;
+    const reservationId = result.reservationId ?? result.reservation_id;
+    const response = result.response ?? result.response_json;
+    const validated = validateStoredResponse(response);
+    if (
+      typeof recordId === "string" &&
+      typeof attemptId === "string" &&
+      typeof reservationId === "string" &&
+      validated.ok
+    ) {
+      return {
+        kind: "commit_pending",
+        recordId,
+        attemptId,
+        reservationId,
+        response: validated.response,
+      };
+    }
+  }
   const requestId = result.requestId ?? result.request_id;
   if (kind === "in_progress" && typeof requestId === "string") {
     return {
@@ -321,6 +342,18 @@ export async function claimMobileGenerationIdempotency(input: {
   return decodeClaim(data);
 }
 
+export async function bindMobileGenerationReservation(input: {
+  recordId: string;
+  attemptId: string;
+  reservationId: string;
+}): Promise<{ ok: true } | { ok: false; code: string }> {
+  return callMutation("bind_mobile_generation_reservation", {
+    p_record_id: input.recordId,
+    p_attempt_id: input.attemptId,
+    p_reservation_id: input.reservationId,
+  });
+}
+
 export async function completeMobileGenerationIdempotency(input: {
   recordId: string;
   attemptId: string;
@@ -378,13 +411,18 @@ export async function failMobileGenerationIdempotency(input: {
 export async function markMobileGenerationCommitPending(input: {
   recordId: string;
   attemptId: string;
-  reservationId?: string | null;
+  reservationId: string;
+  response: MobileGenerationResponse;
   expiresAt?: string;
 }): Promise<{ ok: true } | { ok: false; code: string }> {
+  const validated = validateStoredResponse(input.response);
+  if (!validated.ok) return validated;
+
   return callMutation("mark_mobile_generation_commit_pending", {
     p_record_id: input.recordId,
     p_attempt_id: input.attemptId,
-    p_reservation_id: input.reservationId ?? null,
+    p_reservation_id: input.reservationId,
+    p_response_json: validated.response,
     p_expires_at:
       input.expiresAt ??
       new Date(Date.now() + IDEMPOTENCY_RETRYABLE_FAILURE_TTL_MS).toISOString(),
@@ -410,6 +448,7 @@ export async function cleanupExpiredMobileGenerationIdempotency(): Promise<numbe
 }
 
 export const claimMobileGeneration = claimMobileGenerationIdempotency;
+export const bindGenerationReservation = bindMobileGenerationReservation;
 export const completeMobileGeneration = completeMobileGenerationIdempotency;
 export const failMobileGeneration = failMobileGenerationIdempotency;
 export const markCommitPending = markMobileGenerationCommitPending;

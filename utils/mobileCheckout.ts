@@ -1,5 +1,5 @@
 import type { VercelRequest } from "@vercel/node";
-import { isAllowedAppOrigin } from "./allowedOrigins";
+import { isAllowedMobileRedirectOrigin } from "./mobileWeb";
 import { supabase } from "./supabaseClient";
 
 const DEFAULT_APP_ORIGIN = "https://autolister.app";
@@ -94,7 +94,9 @@ function normalizeStatus(value: unknown): string {
 }
 
 function getApprovedOrigin(origin?: string): string {
-  return origin && isAllowedAppOrigin(origin) ? origin : DEFAULT_APP_ORIGIN;
+  return origin && isAllowedMobileRedirectOrigin(origin)
+    ? origin
+    : DEFAULT_APP_ORIGIN;
 }
 
 export async function resolveMobileBillingProfile(

@@ -261,6 +261,141 @@ describe("bearer-owned mobile Stripe billing", () => {
     expect(getMobilePortalReturnUrl("https://evil.example")).toBe(
       "https://autolister.app/app?checkout=manage",
     );
+    expect(getMobilePortalReturnUrl("chrome-extension://test-extension")).toBe(
+      "https://autolister.app/app?checkout=manage",
+    );
+  });
+
+  it("recovers an existing bearer Stripe subscription by authenticated profile email", async () => {
+    customerListMock.mockResolvedValue({
+      data: [{ id: "cus_recovered", email: "owner@example.com" }],
+    });
+    subscriptionListMock.mockResolvedValue({
+      data: [
+        { id: "sub_recovered", status: "active", customer: "cus_recovered" },
+      ],
+    });
+    customerRetrieveMock.mockResolvedValue({
+      id: "cus_recovered",
+      email: "owner@example.com",
+    });
+    subscriptionRetrieveMock.mockResolvedValue({
+      id: "sub_recovered",
+      status: "active",
+      customer: "cus_recovered",
+    });
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const checkoutResponse = createResponse();
+    await (checkoutModule.default as any)(
+      mobileRequest({ email: "attacker@example.com" }) as any,
+      checkoutResponse as any,
+    );
+
+    expect(checkoutResponse.statusCode).toBe(200);
+    expect(checkoutResponse.body).toMatchObject({ mode: "portal" });
+    expect(customerCreateMock).not.toHaveBeenCalled();
+    expect(portalCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "cus_recovered",
+        return_url: "https://autolister.app/app?checkout=manage",
+        flow_data: {
+          type: "subscription_update",
+          subscription_update: { subscription: "sub_recovered" },
+        },
+      }),
+    );
+  });
+
+  it("fails closed when authenticated email billing lookup is ambiguous", async () => {
+    customerListMock.mockResolvedValue({
+      data: [
+        { id: "cus_one", email: "owner@example.com" },
+        { id: "cus_two", email: "owner@example.com" },
+      ],
+    });
+    customerRetrieveMock.mockImplementation(async (customerId: string) => ({
+      id: customerId,
+      email: "owner@example.com",
+    }));
+    subscriptionListMock.mockImplementation(async ({ customer }: any) => ({
+      data: [{ id: `sub_${customer}`, status: "active", customer }],
+    }));
+    subscriptionRetrieveMock.mockImplementation(
+      async (subscriptionId: string) => ({
+        id: subscriptionId,
+        status: "active",
+        customer: subscriptionId.replace(/^sub_/, ""),
+      }),
+    );
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const response = createResponse();
+    await (checkoutModule.default as any)(
+      mobileRequest() as any,
+      response as any,
+    );
+
+    expect(response.statusCode).toBe(500);
+    expect(customerCreateMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on a transient authenticated email billing lookup", async () => {
+    customerListMock.mockRejectedValueOnce(new Error("Stripe timeout"));
+
+    const checkoutModule =
+      await import("../../../api/stripe/create-checkout.js");
+    const response = createResponse();
+    await (checkoutModule.default as any)(
+      mobileRequest() as any,
+      response as any,
+    );
+
+    expect(response.statusCode).toBe(500);
+    expect(customerCreateMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("recovers an existing bearer portal subscription when the profile customer id is missing", async () => {
+    customerListMock.mockResolvedValue({
+      data: [{ id: "cus_recovered", email: "owner@example.com" }],
+    });
+    subscriptionListMock.mockResolvedValue({
+      data: [
+        { id: "sub_recovered", status: "active", customer: "cus_recovered" },
+      ],
+    });
+    customerRetrieveMock.mockResolvedValue({
+      id: "cus_recovered",
+      email: "owner@example.com",
+    });
+    subscriptionRetrieveMock.mockResolvedValue({
+      id: "sub_recovered",
+      status: "active",
+      customer: "cus_recovered",
+    });
+
+    const portalModule = await import("../../../api/stripe/create-portal.js");
+    const response = createResponse();
+    await (portalModule.default as any)(
+      mobileRequest() as any,
+      response as any,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(portalCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "cus_recovered",
+        return_url: "https://autolister.app/app?checkout=manage",
+        flow_data: {
+          type: "subscription_update",
+          subscription_update: { subscription: "sub_recovered" },
+        },
+      }),
+    );
   });
 
   it("authenticates before legacy email resolution and ignores client ownership fields", async () => {

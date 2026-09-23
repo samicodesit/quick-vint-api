@@ -570,6 +570,29 @@ describe("RateLimiter entitlement decisions", () => {
     });
   });
 
+  it("returns null minute capacity when the limiter read fails", async () => {
+    queueCommonPreflight();
+    queueSingle("rate_limits", {
+      data: null,
+      error: { code: "database_unavailable", message: "timeout" },
+    });
+    queueRateCount(7);
+
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-minute-read-failed",
+      {
+        subscription_status: "active",
+        subscription_tier: "starter",
+        api_calls_this_month: 70,
+        is_legacy_plan: false,
+        pack_credits: 0,
+      },
+    );
+
+    expect(result.remaining.minute).toBeNull();
+  });
+
   it("adds pack credits beyond paid plan capacity", async () => {
     queueCommonPreflight();
     queueRateCount(0);

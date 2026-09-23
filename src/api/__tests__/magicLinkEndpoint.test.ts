@@ -161,6 +161,28 @@ describe("magic link endpoint", () => {
     );
   });
 
+  it("uses an approved HTTPS preview origin for mobile callbacks", async () => {
+    process.env.VERCEL_APP_ALLOWED_ORIGINS =
+      "chrome-extension://test-extension, https://preview.autolister.app";
+
+    const res = await invokeMagicLink({
+      headers: { origin: "https://preview.autolister.app" },
+      body: {
+        email: "seller@example.com",
+        client: "mobile_web",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(generateLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          redirectTo: "https://preview.autolister.app/app/auth/callback",
+        },
+      }),
+    );
+  });
+
   it("keeps a mobile request on the HTTPS app callback from an extension origin", async () => {
     const res = await invokeMagicLink({
       headers: { origin: "chrome-extension://test-extension" },

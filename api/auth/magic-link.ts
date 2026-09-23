@@ -13,6 +13,7 @@ import {
   getMobileWebCallbackUrl,
   getMobileWebClient,
   isAllowedAppOrigin,
+  isAllowedMobileRedirectOrigin,
   isMobileWebEnabled,
 } from "../../utils/mobileWeb";
 
@@ -48,6 +49,7 @@ const cors = Cors({
   },
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"], // Added Authorization for consistency
+  preflightContinue: true,
 });
 
 const MAGIC_LINK_TIMEOUT_MS = 15000;
@@ -145,6 +147,11 @@ function getAuthCallbackUrl() {
   return configured.startsWith("https://")
     ? configured
     : DEFAULT_AUTH_CALLBACK_URL;
+}
+
+function getRequestOrigin(req: VercelRequest): string | undefined {
+  const value = req.headers?.origin;
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function escapeHtml(value: string) {
@@ -372,7 +379,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const emailRedirectTo = mobileWebClient
-    ? getMobileWebCallbackUrl()
+    ? getMobileWebCallbackUrl(
+        isAllowedMobileRedirectOrigin(getRequestOrigin(req))
+          ? getRequestOrigin(req)
+          : undefined,
+      )
     : getAuthCallbackUrl();
 
   let linkResult;

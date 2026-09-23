@@ -48,8 +48,13 @@ import {
   isValidMobileRequestId,
   MOBILE_WEB_DISABLED_RESPONSE,
 } from "../utils/mobileWeb";
-import type { MobileGenerationRequestBody } from "../utils/mobileGenerationTypes";
+import type {
+  MobileGenerationRequestBody,
+  MobileGenerationResponse,
+  StoredResponseValidation,
+} from "../utils/mobileGenerationTypes";
 import {
+  bindMobileGenerationReservation,
   claimMobileGenerationIdempotency,
   completeMobileGenerationIdempotency,
   failMobileGenerationIdempotency,
@@ -75,7 +80,24 @@ function sanitizeMobileFailureBody(body: Record<string, unknown>) {
     : body;
 }
 
-function validateMobileStoredResponse(response: Record<string, unknown>) {
+function sanitizeProviderErrorForLog(value: unknown): string {
+  const message =
+    value instanceof Error
+      ? value.message
+      : typeof value === "string"
+        ? value
+        : String(value || "Unknown provider error");
+  return message
+    .replace(/https?:\/\/[^\s)]+/gi, "[redacted-url]")
+    .replace(/data:[^\s)]+/gi, "[redacted-data]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
+}
+
+function validateMobileStoredResponse(
+  response: Record<string, unknown>,
+): StoredResponseValidation {
   if (typeof validateStoredResponse === "function") {
     return validateStoredResponse(response);
   }
@@ -85,7 +107,12 @@ function validateMobileStoredResponse(response: Record<string, unknown>) {
     const bytes = Buffer.byteLength(serialized, "utf8");
     return bytes > 32 * 1024
       ? { ok: false as const, code: "response_too_large" as const }
-      : { ok: true as const, response, serialized, bytes };
+      : {
+          ok: true as const,
+          response: response as MobileGenerationResponse,
+          serialized,
+          bytes,
+        };
   } catch {
     return { ok: false as const, code: "invalid_response" as const };
   }
@@ -656,6 +683,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (claim.kind === "failed") {
       return res.status(claim.statusCode).json(claim.body);
     }
+    if (claim.kind === "commit_pending") {
+      const verifiedCommit =
+        await RateLimiter.commitGenerationReservationVerified(
+          claim.reservationId,
+        );
+      if (!verifiedCommit.ok) {
+        return res.status(503).json({
+          error: "Your generation is still being finalized. Please try again.",
+          code:
+            verifiedCommit.state === "refunded"
+              ? "generation_retry"
+              : "generation_commit_pending",
+        });
+      }
+
+      const completed = await completeMobileGenerationIdempotency({
+        recordId: claim.recordId,
+        attemptId: claim.attemptId,
+        reservationId: claim.reservationId,
+        response: claim.response,
+      });
+      if (!completed.ok) {
+        return res.status(503).json({
+          error: "Your generation is still being finalized. Please try again.",
+          code: "generation_commit_pending",
+        });
+      }
+
+      return res.status(200).json(claim.response);
+    }
     if (claim.kind === "in_progress") {
       return res.status(409).json({
         error: "A generation for this request is already in progress.",
@@ -720,6 +777,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   generationReservationId = rateLimitResult.reservationId ?? null;
+  if (isMobileWebRequest) {
+    if (!generationReservationId) {
+      await failMobileGenerationIdempotency({
+        recordId: mobileIdempotencyRecordId as string,
+        attemptId: mobileIdempotencyAttemptId as string,
+        statusCode: 503,
+        body: {
+          error: "Could not reserve this generation request. Please try again.",
+          code: "idempotency_bind_failed",
+        },
+        retryable: true,
+        failureCode: "idempotency_bind_failed",
+      });
+      logData.responseStatus = 503;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason = "Mobile reservation missing after reserve";
+      await ApiLogger.logRequest(logData);
+      return res.status(503).json({
+        error: "Could not reserve this generation request. Please try again.",
+        code: "idempotency_bind_failed",
+      });
+    }
+
+    const boundReservation = await bindMobileGenerationReservation({
+      recordId: mobileIdempotencyRecordId as string,
+      attemptId: mobileIdempotencyAttemptId as string,
+      reservationId: generationReservationId,
+    });
+    if (!boundReservation.ok) {
+      await RateLimiter.refundGenerationReservation(
+        generationReservationId,
+        "idempotency_bind_failed",
+      );
+      await failMobileGenerationIdempotency({
+        recordId: mobileIdempotencyRecordId as string,
+        attemptId: mobileIdempotencyAttemptId as string,
+        statusCode: 503,
+        body: {
+          error: "Could not reserve this generation request. Please try again.",
+          code: "idempotency_bind_failed",
+        },
+        retryable: true,
+        failureCode: "idempotency_bind_failed",
+        reservationId: generationReservationId,
+      });
+      logData.responseStatus = 503;
+      logData.processingDurationMs = Date.now() - startTime;
+      logData.flaggedReason =
+        boundReservation.code || "Mobile reservation bind failed";
+      await ApiLogger.logRequest(logData);
+      return res.status(503).json({
+        error: "Could not reserve this generation request. Please try again.",
+        code: "idempotency_bind_failed",
+      });
+    }
+  }
   if (shouldStoreDebugGenerationImages()) {
     try {
       const debugImages = await storeDebugGenerationImages(imageUrls);
@@ -936,7 +1049,8 @@ Reply only in JSON: {"title":"...","description":"..."}
       const commitPending = await markMobileGenerationCommitPending({
         recordId: mobileIdempotencyRecordId,
         attemptId: mobileIdempotencyAttemptId as string,
-        reservationId: generationReservationId,
+        reservationId: generationReservationId as string,
+        response: responseValidation.response,
       });
       if (!commitPending.ok) {
         await RateLimiter.refundGenerationReservation(
@@ -964,7 +1078,8 @@ Reply only in JSON: {"title":"...","description":"..."}
         await markMobileGenerationCommitPending({
           recordId: mobileIdempotencyRecordId,
           attemptId: mobileIdempotencyAttemptId as string,
-          reservationId: generationReservationId,
+          reservationId: generationReservationId as string,
+          response: responseValidation.response,
         });
         logData.responseStatus = 503;
         logData.processingDurationMs = Date.now() - startTime;
@@ -1017,7 +1132,8 @@ Reply only in JSON: {"title":"...","description":"..."}
         await markMobileGenerationCommitPending({
           recordId: mobileIdempotencyRecordId,
           attemptId: mobileIdempotencyAttemptId as string,
-          reservationId: generationReservationId,
+          reservationId: generationReservationId as string,
+          response: responseBody,
         });
         logData.responseStatus = 503;
         logData.processingDurationMs = Date.now() - startTime;
@@ -1050,7 +1166,8 @@ Reply only in JSON: {"title":"...","description":"..."}
       });
     }
   } catch (err: any) {
-    console.error("Generation error:", err);
+    const safeProviderError = sanitizeProviderErrorForLog(err);
+    console.error("Generation error:", safeProviderError);
 
     // Determine user-friendly error message
     let userMessage =
@@ -1084,7 +1201,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     // Log the detailed error (for admin)
     logData.responseStatus = statusCode;
     logData.processingDurationMs = Date.now() - startTime;
-    logData.flaggedReason = `OpenAI generation error: ${err.message}`;
+    logData.flaggedReason = `OpenAI generation error: ${safeProviderError}`;
     logData.openaiRateLimitInfo = extractOpenAIRateLimitHeaders(err.headers);
     if (
       !isMobileWebRequest ||
@@ -1129,7 +1246,7 @@ Reply only in JSON: {"title":"...","description":"..."}
           extensionVersion,
           pricingLimitsMode,
           openaiModel: logData.openaiModel,
-          error: err?.message || String(err),
+          error: safeProviderError,
           errorName: err?.name,
         },
       });

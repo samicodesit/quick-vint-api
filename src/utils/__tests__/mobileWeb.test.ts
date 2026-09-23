@@ -5,6 +5,7 @@ import {
   getMobileWebReturnUrl,
   getPricingLimitsModeForClient,
   isAllowedAppOrigin,
+  isAllowedMobileRedirectOrigin,
   isAllowedVintedOrigin,
   isMobileWebEnabled,
   isValidMobileRequestId,
@@ -81,6 +82,18 @@ describe("mobile web server context", () => {
     expect(isAllowedAppOrigin("https://preview.autolister.app")).toBe(true);
     expect(isAllowedAppOrigin("https://evil.example")).toBe(false);
     expect(isAllowedAppOrigin("https://autolister.app.evil.example")).toBe(
+      false,
+    );
+
+    process.env.VERCEL_APP_ALLOWED_ORIGINS =
+      "https://preview.autolister.app, chrome-extension://legacy-extension, http://insecure.example";
+    expect(
+      isAllowedMobileRedirectOrigin("https://preview.autolister.app"),
+    ).toBe(true);
+    expect(
+      isAllowedMobileRedirectOrigin("chrome-extension://legacy-extension"),
+    ).toBe(false);
+    expect(isAllowedMobileRedirectOrigin("http://insecure.example")).toBe(
       false,
     );
 

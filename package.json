@@ -21,6 +21,7 @@
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format-check": "prettier --check \"**/*.{ts,js,json,md}\"",
     "test": "vitest run",
+    "test:mobile-idempotency:postgres": "bash scripts/test-mobile-generation-idempotency-postgres.sh",
     "test:watch": "vitest"
   },
   "keywords": [],

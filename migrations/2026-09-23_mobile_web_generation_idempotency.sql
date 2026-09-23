@@ -117,6 +117,7 @@ DECLARE
   inserted_attempt_id uuid;
   reset_attempt_id uuid;
   reservation_status text;
+  reservation_found boolean := false;
   existing_row public.mobile_generation_idempotency%ROWTYPE;
   now_utc timestamptz := timezone('utc', now());
 BEGIN
@@ -163,15 +164,114 @@ BEGIN
     RETURN jsonb_build_object('kind', 'conflict');
   END IF;
 
-  IF existing_row.expires_at <= now_utc AND existing_row.commit_pending THEN
-    IF existing_row.reservation_id IS NOT NULL THEN
+  IF existing_row.status = 'succeeded' THEN
+    RETURN jsonb_build_object(
+      'kind', 'succeeded',
+      'response', COALESCE(existing_row.response_json, '{}'::jsonb),
+      'statusCode', COALESCE(existing_row.response_status, 200)
+    );
+  END IF;
+
+  IF existing_row.reservation_id IS NOT NULL THEN
+    SELECT true, status::text
+    INTO reservation_found, reservation_status
+    FROM public.generation_reservations
+    WHERE id = existing_row.reservation_id;
+    IF NOT FOUND THEN
+      reservation_found := false;
+      reservation_status := NULL;
+    END IF;
+  END IF;
+
+  IF existing_row.commit_pending
+    AND reservation_status = 'pending'
+    AND existing_row.expires_at <= now_utc
+  THEN
+    PERFORM public.refund_generation_reservation(
+      existing_row.reservation_id,
+      'idempotency_expired'
+    );
+    SELECT status::text
+    INTO reservation_status
+    FROM public.generation_reservations
+    WHERE id = existing_row.reservation_id;
+  END IF;
+
+  IF existing_row.commit_pending THEN
+    IF reservation_status = 'committed'
+      AND existing_row.response_json IS NOT NULL
+      AND public.mobile_generation_json_is_safe(existing_row.response_json)
+    THEN
+      UPDATE public.mobile_generation_idempotency
+      SET
+        status = 'succeeded',
+        retryable = false,
+        commit_pending = false,
+        response_status = 200,
+        expires_at = now_utc + interval '15 minutes',
+        updated_at = now_utc
+      WHERE id = existing_row.id
+        AND attempt_id = existing_row.attempt_id;
+
+      RETURN jsonb_build_object(
+        'kind', 'succeeded',
+        'response', existing_row.response_json,
+        'statusCode', 200
+      );
+    END IF;
+
+    IF reservation_status = 'refunded' OR NOT reservation_found THEN
+      IF existing_row.expires_at <= now_utc THEN
+        UPDATE public.mobile_generation_idempotency
+        SET
+          status = 'in_progress',
+          retryable = false,
+          commit_pending = false,
+          attempt_id = gen_random_uuid(),
+          reservation_id = NULL,
+          response_json = NULL,
+          response_status = NULL,
+          failure_code = NULL,
+          expires_at = now_utc + interval '15 minutes',
+          updated_at = now_utc
+        WHERE id = existing_row.id
+        RETURNING attempt_id INTO reset_attempt_id;
+
+        RETURN jsonb_build_object(
+          'kind', 'new',
+          'recordId', existing_row.id,
+          'attemptId', reset_attempt_id
+        );
+      END IF;
+    END IF;
+
+    IF reservation_status = 'pending'
+      AND existing_row.response_json IS NOT NULL
+      AND public.mobile_generation_json_is_safe(existing_row.response_json)
+    THEN
+      RETURN jsonb_build_object(
+        'kind', 'commit_pending',
+        'recordId', existing_row.id,
+        'attemptId', existing_row.attempt_id,
+        'reservationId', existing_row.reservation_id,
+        'response', existing_row.response_json
+      );
+    END IF;
+  END IF;
+
+  IF existing_row.expires_at <= now_utc THEN
+    IF reservation_status = 'pending' THEN
+      PERFORM public.refund_generation_reservation(
+        existing_row.reservation_id,
+        'idempotency_expired'
+      );
       SELECT status::text
       INTO reservation_status
       FROM public.generation_reservations
       WHERE id = existing_row.reservation_id;
     END IF;
 
-    IF reservation_status = 'refunded' THEN
+    IF reservation_status IS NULL OR reservation_status = 'refunded' THEN
       UPDATE public.mobile_generation_idempotency
       SET
         status = 'in_progress',
@@ -194,43 +294,54 @@ BEGIN
       );
     END IF;
 
-    RETURN jsonb_build_object(
-      'kind', 'in_progress',
-      'requestId', existing_row.request_id,
-      'attemptId', existing_row.attempt_id,
-      'commitPending', true
-    );
-  END IF;
+    IF reservation_status = 'committed' THEN
+      IF existing_row.response_json IS NOT NULL
+        AND public.mobile_generation_json_is_safe(existing_row.response_json)
+      THEN
+        UPDATE public.mobile_generation_idempotency
+        SET
+          status = 'succeeded',
+          retryable = false,
+          commit_pending = false,
+          response_status = 200,
+          expires_at = now_utc + interval '15 minutes',
+          updated_at = now_utc
+        WHERE id = existing_row.id
+          AND attempt_id = existing_row.attempt_id;
 
-  IF existing_row.expires_at <= now_utc THEN
-    UPDATE public.mobile_generation_idempotency
-    SET
-      status = 'in_progress',
-      retryable = false,
-      commit_pending = false,
-      attempt_id = gen_random_uuid(),
-      reservation_id = NULL,
-      response_json = NULL,
-      response_status = NULL,
-      failure_code = NULL,
-      expires_at = now_utc + interval '15 minutes',
-      updated_at = now_utc
-    WHERE id = existing_row.id
-    RETURNING attempt_id INTO reset_attempt_id;
+        RETURN jsonb_build_object(
+          'kind', 'succeeded',
+          'response', existing_row.response_json,
+          'statusCode', 200
+        );
+      ELSE
+        UPDATE public.mobile_generation_idempotency
+        SET
+          status = 'failed',
+          retryable = false,
+          commit_pending = false,
+          response_json = jsonb_build_object(
+            'error', 'Generation completed but its response could not be recovered.',
+            'code', 'generation_response_unavailable'
+          ),
+          response_status = 500,
+          failure_code = 'generation_response_unavailable',
+          expires_at = now_utc + interval '15 minutes',
+          updated_at = now_utc
+        WHERE id = existing_row.id
+          AND attempt_id = existing_row.attempt_id;
 
-    RETURN jsonb_build_object(
-      'kind', 'new',
-      'recordId', existing_row.id,
-      'attemptId', reset_attempt_id
-    );
-  END IF;
-
-  IF existing_row.status = 'succeeded' THEN
-    RETURN jsonb_build_object(
-      'kind', 'succeeded',
-      'response', COALESCE(existing_row.response_json, '{}'::jsonb),
-      'statusCode', COALESCE(existing_row.response_status, 200)
-    );
+        RETURN jsonb_build_object(
+          'kind', 'failed',
+          'statusCode', 500,
+          'body', jsonb_build_object(
+            'error', 'Generation completed but its response could not be recovered.',
+            'code', 'generation_response_unavailable'
+          ),
+          'retryable', false
+        );
+      END IF;
+    END IF;
   END IF;
 
   IF existing_row.status = 'failed' THEN
@@ -250,6 +361,42 @@ BEGIN
     'attemptId', existing_row.attempt_id,
     'commitPending', existing_row.commit_pending
   );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.bind_mobile_generation_reservation(
+  p_record_id uuid,
+  p_attempt_id uuid,
+  p_reservation_id uuid
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_reservation_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  UPDATE public.mobile_generation_idempotency AS i
+  SET
+    reservation_id = p_reservation_id,
+    updated_at = timezone('utc', now())
+  WHERE i.id = p_record_id
+    AND i.attempt_id = p_attempt_id
+    AND i.status = 'in_progress'
+    AND NOT i.commit_pending
+    AND (i.reservation_id IS NULL OR i.reservation_id = p_reservation_id)
+    AND EXISTS (
+      SELECT 1
+      FROM public.generation_reservations AS r
+      WHERE r.id = p_reservation_id
+        AND r.user_id = i.user_id
+        AND r.status = 'pending'
+    );
+
+  RETURN FOUND;
 END;
 $$;
 
@@ -291,6 +438,12 @@ BEGIN
       SELECT 1
       FROM public.generation_reservations AS r
       WHERE r.id = p_reservation_id
+        AND r.user_id = (
+          SELECT i.user_id
+          FROM public.mobile_generation_idempotency AS i
+          WHERE i.id = p_record_id
+            AND i.attempt_id = p_attempt_id
+        )
         AND r.status = 'committed'
     );
 
@@ -339,16 +492,33 @@ BEGIN
     AND attempt_id = p_attempt_id
     AND status = 'in_progress'
     AND NOT commit_pending
-    AND (p_reservation_id IS NULL OR reservation_id IS NULL OR reservation_id = p_reservation_id);
+    AND (p_reservation_id IS NULL OR reservation_id IS NULL OR reservation_id = p_reservation_id)
+    AND (
+      p_reservation_id IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM public.generation_reservations AS r
+        WHERE r.id = p_reservation_id
+          AND r.user_id = (
+            SELECT i.user_id
+            FROM public.mobile_generation_idempotency AS i
+            WHERE i.id = p_record_id
+              AND i.attempt_id = p_attempt_id
+          )
+      )
+    );
 
   RETURN FOUND;
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.mark_mobile_generation_commit_pending(uuid, uuid, uuid, timestamptz);
+
 CREATE OR REPLACE FUNCTION public.mark_mobile_generation_commit_pending(
   p_record_id uuid,
   p_attempt_id uuid,
-  p_reservation_id uuid DEFAULT NULL,
+  p_reservation_id uuid,
+  p_response_json jsonb,
   p_expires_at timestamptz DEFAULT NULL
 )
 RETURNS boolean
@@ -357,18 +527,39 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF p_reservation_id IS NULL
+    OR p_response_json IS NULL
+    OR NOT public.mobile_generation_json_is_safe(p_response_json)
+    OR octet_length(convert_to(p_response_json::text, 'UTF8')) > 32768
+  THEN
+    RETURN false;
+  END IF;
+
   UPDATE public.mobile_generation_idempotency
   SET
     status = 'in_progress',
     commit_pending = true,
-    reservation_id = COALESCE(p_reservation_id, reservation_id),
+    reservation_id = p_reservation_id,
+    response_json = p_response_json,
+    response_status = 200,
+    retryable = false,
     expires_at = COALESCE(p_expires_at, timezone('utc', now()) + interval '2 minutes'),
     updated_at = timezone('utc', now())
   WHERE id = p_record_id
     AND attempt_id = p_attempt_id
     AND status = 'in_progress'
-    AND p_reservation_id IS NOT NULL
-    AND (reservation_id IS NULL OR reservation_id = p_reservation_id);
+    AND (reservation_id IS NULL OR reservation_id = p_reservation_id)
+    AND EXISTS (
+      SELECT 1
+      FROM public.generation_reservations AS r
+      WHERE r.id = p_reservation_id
+        AND r.user_id = (
+          SELECT i.user_id
+          FROM public.mobile_generation_idempotency AS i
+          WHERE i.id = p_record_id
+        )
+        AND r.status = 'pending'
+    );
 
   RETURN FOUND;
 END;
@@ -395,34 +586,101 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  deleted_count integer;
+  deleted_count integer := 0;
+  stale_row record;
+  reservation_status text;
 BEGIN
-  DELETE FROM public.mobile_generation_idempotency AS i
-  WHERE i.expires_at < now() - interval '1 day'
-    AND (
-      NOT i.commit_pending
-      OR (
-        i.reservation_id IS NOT NULL
-        AND EXISTS (
-          SELECT 1
-          FROM public.generation_reservations AS r
-          WHERE r.id = i.reservation_id
-            AND r.status = 'refunded'
-        )
-      )
-    );
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  FOR stale_row IN
+    SELECT id, reservation_id, status, commit_pending, response_json
+    FROM public.mobile_generation_idempotency
+    WHERE expires_at < now() - interval '1 day'
+    FOR UPDATE SKIP LOCKED
+  LOOP
+    reservation_status := NULL;
+    IF stale_row.reservation_id IS NOT NULL THEN
+      SELECT status::text
+      INTO reservation_status
+      FROM public.generation_reservations
+      WHERE id = stale_row.reservation_id
+      FOR UPDATE;
+
+      IF reservation_status = 'pending' THEN
+        PERFORM public.refund_generation_reservation(
+          stale_row.reservation_id,
+          'idempotency_expired'
+        );
+        SELECT status::text
+        INTO reservation_status
+        FROM public.generation_reservations
+        WHERE id = stale_row.reservation_id;
+      END IF;
+
+      IF reservation_status = 'committed'
+        AND stale_row.status = 'in_progress'
+      THEN
+        IF stale_row.response_json IS NOT NULL
+          AND public.mobile_generation_json_is_safe(stale_row.response_json)
+        THEN
+          UPDATE public.mobile_generation_idempotency
+          SET
+            status = 'succeeded',
+            retryable = false,
+            commit_pending = false,
+            response_status = 200,
+            expires_at = timezone('utc', now()) + interval '15 minutes',
+            updated_at = timezone('utc', now())
+          WHERE id = stale_row.id;
+        ELSE
+          UPDATE public.mobile_generation_idempotency
+          SET
+            status = 'failed',
+            retryable = false,
+            commit_pending = false,
+            response_json = jsonb_build_object(
+              'error', 'Generation completed but its response could not be recovered.',
+              'code', 'generation_response_unavailable'
+            ),
+            response_status = 500,
+            failure_code = 'generation_response_unavailable',
+            expires_at = timezone('utc', now()) + interval '15 minutes',
+            updated_at = timezone('utc', now())
+          WHERE id = stale_row.id;
+        END IF;
+        CONTINUE;
+      END IF;
+    END IF;
+
+    IF stale_row.status IN ('succeeded', 'failed') THEN
+      DELETE FROM public.mobile_generation_idempotency
+      WHERE id = stale_row.id;
+      deleted_count := deleted_count + 1;
+      CONTINUE;
+    END IF;
+
+    IF stale_row.reservation_id IS NOT NULL
+      AND reservation_status IS DISTINCT FROM 'refunded'
+      AND reservation_status IS NOT NULL
+    THEN
+      CONTINUE;
+    END IF;
+
+    DELETE FROM public.mobile_generation_idempotency
+    WHERE id = stale_row.id;
+    deleted_count := deleted_count + 1;
+  END LOOP;
   RETURN deleted_count;
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.claim_mobile_generation_idempotency(uuid, text, uuid, text)
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.bind_mobile_generation_reservation(uuid, uuid, uuid)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.complete_mobile_generation_idempotency(uuid, uuid, jsonb, integer, uuid, timestamptz)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.fail_mobile_generation_idempotency(uuid, uuid, integer, jsonb, text, boolean, uuid, timestamptz)
   FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.mark_mobile_generation_commit_pending(uuid, uuid, uuid, timestamptz)
+REVOKE ALL ON FUNCTION public.mark_mobile_generation_commit_pending(uuid, uuid, uuid, jsonb, timestamptz)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.get_generation_reservation_status(uuid)
   FROM PUBLIC, anon, authenticated;
@@ -431,13 +689,15 @@ REVOKE ALL ON FUNCTION public.cleanup_expired_mobile_generation_idempotency()
 
 GRANT EXECUTE ON FUNCTION public.claim_mobile_generation_idempotency(uuid, text, uuid, text)
   TO service_role;
+GRANT EXECUTE ON FUNCTION public.bind_mobile_generation_reservation(uuid, uuid, uuid)
+  TO service_role;
 GRANT EXECUTE ON FUNCTION public.mobile_generation_json_is_safe(jsonb)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.complete_mobile_generation_idempotency(uuid, uuid, jsonb, integer, uuid, timestamptz)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.fail_mobile_generation_idempotency(uuid, uuid, integer, jsonb, text, boolean, uuid, timestamptz)
   TO service_role;
-GRANT EXECUTE ON FUNCTION public.mark_mobile_generation_commit_pending(uuid, uuid, uuid, timestamptz)
+GRANT EXECUTE ON FUNCTION public.mark_mobile_generation_commit_pending(uuid, uuid, uuid, jsonb, timestamptz)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_generation_reservation_status(uuid)
   TO service_role;

@@ -153,14 +153,14 @@ describe("authenticated mobile usage endpoint", () => {
       limits: {
         freeLifetime: 5,
         daily: null,
-        monthly: 8,
+        monthly: null,
         burstPerMinute: 3,
         packCredits: 0,
       },
       remaining: {
         freeLifetime: 5,
         daily: null,
-        monthly: 8,
+        monthly: null,
         minute: 3,
         packCredits: 0,
       },
@@ -281,6 +281,35 @@ describe("authenticated mobile usage endpoint", () => {
 
     expect(response.statusCode).toBe(200);
     expect((response.body as any).remaining.minute).toBeNull();
+  });
+
+  it("preserves a null minute read instead of guessing the full burst", async () => {
+    getGenerationCapacityMock.mockResolvedValue({
+      ...freeCapacity,
+      remaining: { ...freeCapacity.remaining, minute: null },
+    });
+
+    const response = await invokeHandler(freeProfile);
+
+    expect(response.statusCode).toBe(200);
+    expect((response.body as any).remaining.minute).toBeNull();
+    expect(getGenerationMinuteRemainingMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when account status is missing", async () => {
+    const { buildUsageResponse } = await loadProjection();
+
+    expect(
+      buildUsageResponse(
+        { ...freeProfile, account_status: null },
+        freeCapacity,
+        2,
+        now,
+      ),
+    ).toMatchObject({
+      plan: { status: "inactive" },
+      canGenerate: false,
+    });
   });
 
   it("uses a capacity minute value without a second limiter read", async () => {

@@ -105,6 +105,30 @@ describe("mobile generation idempotency", () => {
     );
   });
 
+  it("binds the reserved quota to the claimed attempt before model work", async () => {
+    const { bindMobileGenerationReservation } =
+      await import("../../../utils/mobileGenerationIdempotency.js");
+
+    rpc.mockResolvedValueOnce({ data: true, error: null });
+
+    await expect(
+      bindMobileGenerationReservation({
+        recordId: "record-1",
+        attemptId: "attempt-1",
+        reservationId: "reservation-1",
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "bind_mobile_generation_reservation",
+      expect.objectContaining({
+        p_record_id: "record-1",
+        p_attempt_id: "attempt-1",
+        p_reservation_id: "reservation-1",
+      }),
+    );
+  });
+
   it("sanitizes failure bodies before they can contain signed URLs", async () => {
     const { sanitizeStoredFailureBody } =
       await import("../../../utils/mobileGenerationIdempotency.js");
@@ -204,7 +228,115 @@ describe("mobile generation idempotency", () => {
     expect(completeFunction).not.toContain("AND NOT commit_pending");
   });
 
-  it("cleans only commit-pending rows whose reservations are refunded", () => {
+  it("stores a bounded response in commit-pending state for crash recovery", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+    const pendingFunction = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.mark_mobile_generation_commit_pending",
+      ),
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.get_generation_reservation_status",
+      ),
+    );
+
+    expect(pendingFunction).toContain("p_response_json jsonb");
+    expect(pendingFunction).toContain("response_json = p_response_json");
+    expect(pendingFunction).toContain("mobile_generation_json_is_safe");
+    expect(pendingFunction).toContain("octet_length");
+  });
+
+  it("reconciles committed output and refunds stale pending reservations before reset", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+
+    expect(migration).toContain(
+      "CREATE OR REPLACE FUNCTION public.bind_mobile_generation_reservation",
+    );
+    expect(migration).toContain("existing_row.commit_pending");
+    expect(migration).toContain("existing_row.response_json");
+    expect(migration).toContain("status = 'succeeded'");
+    expect(migration).toContain("refund_generation_reservation");
+    expect(migration).toContain("idempotency_expired");
+  });
+
+  it("does not leave an expired commit-pending reservation stuck", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+    const claimFunction = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.claim_mobile_generation_idempotency",
+      ),
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.bind_mobile_generation_reservation",
+      ),
+    );
+
+    expect(claimFunction).toContain("IF reservation_status = 'pending'");
+    expect(claimFunction).toContain("existing_row.expires_at <= now_utc");
+    expect(claimFunction).toContain("idempotency_expired");
+    expect(claimFunction).toContain("reservation_status = 'committed'");
+  });
+
+  it("guards success reconciliation to the reservation owner's attempt", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+    const completeFunction = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.complete_mobile_generation_idempotency",
+      ),
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.fail_mobile_generation_idempotency",
+      ),
+    );
+
+    expect(completeFunction).toContain("r.user_id = (");
+    expect(completeFunction).toContain("SELECT i.user_id");
+  });
+
+  it("does not let a failure attach another user's reservation", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+    const failFunction = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.fail_mobile_generation_idempotency",
+      ),
+      migration.indexOf(
+        "DROP FUNCTION IF EXISTS public.mark_mobile_generation_commit_pending",
+      ),
+    );
+
+    expect(failFunction).toContain("p_reservation_id IS NULL");
+    expect(failFunction).toContain("r.user_id = (");
+    expect(failFunction).toContain("SELECT i.user_id");
+  });
+
+  it("refunds pending reservations before deleting stale idempotency rows", () => {
     const migration = readFileSync(
       resolve(
         __dirname,
@@ -222,20 +354,22 @@ describe("mobile generation idempotency", () => {
     );
 
     expect(cleanupFunction).toContain(
-      "DELETE FROM public.mobile_generation_idempotency AS i",
+      "DELETE FROM public.mobile_generation_idempotency",
     );
     expect(cleanupFunction).toContain(
-      "i.expires_at < now() - interval '1 day'",
+      "SELECT id, reservation_id, status, commit_pending, response_json",
     );
-    expect(cleanupFunction).toContain("NOT i.commit_pending");
-    expect(cleanupFunction).toContain("i.reservation_id IS NOT NULL");
+    expect(cleanupFunction).toContain("expires_at < now() - interval '1 day'");
+    expect(cleanupFunction).toContain("FOR UPDATE SKIP LOCKED");
+    expect(cleanupFunction).toContain("stale_row.reservation_id IS NOT NULL");
+    expect(cleanupFunction).toContain("FROM public.generation_reservations");
     expect(cleanupFunction).toContain(
-      "FROM public.generation_reservations AS r",
+      "reservation_status IS DISTINCT FROM 'refunded'",
     );
-    expect(cleanupFunction).toContain("r.status = 'refunded'");
-    expect(cleanupFunction).not.toContain("r.status = 'committed'");
-    expect(cleanupFunction).not.toContain("r.status = 'pending'");
-    expect(cleanupFunction).not.toContain("r.status = 'unknown'");
+    expect(cleanupFunction).toContain("reservation_status = 'committed'");
+    expect(cleanupFunction).toContain("reservation_status = 'pending'");
+    expect(cleanupFunction).toContain("stale_row.status = 'in_progress'");
+    expect(cleanupFunction).toContain("idempotency_expired");
     expect(cleanupFunction).not.toContain(
       "WHERE expires_at < now() - interval '1 day';",
     );

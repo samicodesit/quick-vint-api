@@ -1,7 +1,10 @@
 const MAX_IMAGE_DIMENSION = 1280;
 const JPEG_QUALITY = 0.8;
 
-export type MobileImageErrorCode = "unsupported-heic" | "decode-failed";
+export type MobileImageErrorCode =
+  | "unsupported-heic"
+  | "unsupported-type"
+  | "decode-failed";
 
 export class MobileImagePreparationError extends Error {
   readonly code: MobileImageErrorCode;
@@ -178,12 +181,10 @@ export async function prepareMobileImage(
 ): Promise<PreparedMobileImage> {
   const sourceType = getSourceType(file);
   if (!sourceType.startsWith("image/")) {
-    return {
-      file,
-      previewUrl: URL.createObjectURL(file),
-      sourceType,
-      recoveredOrientation: false,
-    };
+    throw new MobileImagePreparationError(
+      "unsupported-type",
+      "This file is not an image. Choose a JPEG, PNG, WebP, or HEIC photo.",
+    );
   }
 
   const decoded =

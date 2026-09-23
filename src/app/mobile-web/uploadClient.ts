@@ -2,7 +2,8 @@ import {
   prepareMobileImage,
   revokeMobilePreview,
   type PreparedMobileImage,
-} from "./imagePreparation";
+} from "./imagePreparation.js";
+import { refreshBrowserSession, signOutBrowser } from "./auth.js";
 
 const API_UPLOAD = "/api/phone-upload";
 const MAX_WORKERS = 3;
@@ -42,7 +43,19 @@ export class MobileUploadError extends Error {
 function createUuid(): string {
   const randomUuid = globalThis.crypto?.randomUUID;
   if (randomUuid) return randomUuid.call(globalThis.crypto);
-  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+
+  const bytes = new Uint8Array(16);
+  const getRandomValues = globalThis.crypto?.getRandomValues;
+  if (getRandomValues) {
+    getRandomValues.call(globalThis.crypto, bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index += 1)
+      bytes[index] = Math.floor(Math.random() * 256);
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
 }
 
 export function createMobileUploadSession(
@@ -88,6 +101,7 @@ async function request(
   url: string,
   init: RequestInit,
   signal: AbortSignal,
+  retryOn401 = true,
 ): Promise<Record<string, unknown>> {
   ensureNotAborted(signal);
   const headers = new Headers(init.headers);
@@ -106,6 +120,22 @@ async function request(
   }
   const body = await readBody(response);
   if (!response.ok) {
+    if (response.status === 401 && retryOn401) {
+      let refreshed = null;
+      try {
+        refreshed = await refreshBrowserSession();
+      } catch {
+        refreshed = null;
+      }
+      if (refreshed?.access_token) {
+        session.accessToken = refreshed.access_token;
+        ensureNotAborted(signal);
+        return request(session, url, init, signal, false);
+      }
+      await signOutBrowser().catch(() => undefined);
+    } else if (response.status === 401) {
+      await signOutBrowser().catch(() => undefined);
+    }
     const code =
       typeof body.code === "string" ? body.code : `http_${response.status}`;
     const message =
@@ -290,14 +320,14 @@ export async function uploadSelectedPhotos(
   if (selectedFiles.length === 0)
     throw new MobileUploadError("no_photos", "Choose at least one photo.");
   ensureNotAborted(signal);
-  let opened = false;
+  let openAttempted = false;
   let completed = false;
   const prepared: (PreparedMobileImage | undefined)[] = new Array(
     selectedFiles.length,
   );
   try {
+    openAttempted = true;
     await openSingleUpload(session, signal);
-    opened = true;
     await prepareUpload(session, selectedFiles.length, signal);
 
     let nextOrder = 0;
@@ -340,7 +370,7 @@ export async function uploadSelectedPhotos(
     ) {
       error = abortError();
     }
-    if (opened)
+    if (openAttempted)
       await cleanupUploadSession(session, "cancelled").catch(() => undefined);
     throw error;
   } finally {

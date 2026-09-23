@@ -4,8 +4,14 @@ import {
   cleanupUploadSession,
   createMobileUploadSession,
   uploadSelectedPhotos,
-} from "../uploadClient";
-import { prepareMobileImage } from "../imagePreparation";
+} from "../uploadClient.js";
+import { prepareMobileImage } from "../imagePreparation.js";
+import { refreshBrowserSession, signOutBrowser } from "../auth.js";
+
+vi.mock("../auth.js", () => ({
+  refreshBrowserSession: vi.fn(),
+  signOutBrowser: vi.fn(),
+}));
 
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -32,6 +38,8 @@ describe("mobile V2 upload client", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(refreshBrowserSession).mockResolvedValue(null);
+    vi.mocked(signOutBrowser).mockResolvedValue(undefined);
     Object.assign(globalThis, {
       createImageBitmap: vi.fn(async () => ({
         width: 100,
@@ -114,6 +122,35 @@ describe("mobile V2 upload client", () => {
       if (originalURL === undefined)
         delete (globalThis as Record<string, unknown>).URL;
       else Object.assign(globalThis, { URL: originalURL });
+    }
+  });
+
+  it("rejects non-image files before creating an upload preview", async () => {
+    await expect(
+      prepareMobileImage(
+        new File(["not an image"], "notes.pdf", { type: "application/pdf" }),
+      ),
+    ).rejects.toMatchObject({ code: "unsupported-type" });
+  });
+
+  it("uses a backend-compatible v4 UUID when randomUUID is unavailable", () => {
+    const originalCrypto = globalThis.crypto;
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: {},
+    });
+
+    try {
+      const session = createMobileUploadSession("access-token");
+      const v4 =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      expect(session.sessionId).toMatch(v4);
+      expect(session.uploaderId).toMatch(v4);
+    } finally {
+      Object.defineProperty(globalThis, "crypto", {
+        configurable: true,
+        value: originalCrypto,
+      });
     }
   });
 
@@ -252,6 +289,94 @@ describe("mobile V2 upload client", () => {
     const cleanup = calls.find(({ url }) => url.includes("action=cleanup"));
     expect(cleanup?.url).toContain("v=2&reason=cancelled");
     expect(cleanup?.init.body).toBe("{}");
+  });
+
+  it("cancels after an uncertain open response", async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    globalThis.fetch = vi.fn(async (input, init = {}) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.includes("action=open"))
+        throw new TypeError("connection closed after request");
+      if (url.includes("action=cleanup"))
+        return response({ success: true, status: "cancelled" });
+      return response({ success: true });
+    }) as typeof fetch;
+
+    await expect(
+      uploadSelectedPhotos(
+        createMobileUploadSession("access-token"),
+        selectedFiles(1),
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ code: "network_error" });
+
+    expect(calls.some(({ url }) => url.includes("action=cleanup"))).toBe(true);
+  });
+
+  it("refreshes once when the upload session receives a 401", async () => {
+    vi.mocked(refreshBrowserSession).mockResolvedValue({
+      access_token: "refreshed-token",
+    } as never);
+    const authHeaders: string[] = [];
+    let openAttempts = 0;
+    globalThis.fetch = vi.fn(async (input, init = {}) => {
+      const url = String(input);
+      authHeaders.push(new Headers(init.headers).get("Authorization") || "");
+      if (url.includes("action=open")) {
+        openAttempts += 1;
+        if (openAttempts === 1) return response({ error: "expired" }, 401);
+        return response({ success: true, v: 2 });
+      }
+      if (url.includes("action=prepare")) return response({ success: true });
+      if (url.includes("action=complete"))
+        return response({ success: true, complete: true });
+      if (url.includes("includeUrls=1"))
+        return response({ files: [{ order: 0, url: "signed-0" }] });
+      return response({ success: true });
+    }) as typeof fetch;
+
+    const result = await uploadSelectedPhotos(
+      createMobileUploadSession("expired-token"),
+      selectedFiles(1),
+      new AbortController().signal,
+    );
+
+    expect(result[0]?.url).toBe("signed-0");
+    expect(openAttempts).toBe(2);
+    expect(authHeaders.slice(0, 2)).toEqual([
+      "Bearer expired-token",
+      "Bearer refreshed-token",
+    ]);
+    expect(signOutBrowser).not.toHaveBeenCalled();
+  });
+
+  it("signs out when the refreshed upload request is still unauthorized", async () => {
+    vi.mocked(refreshBrowserSession).mockResolvedValue({
+      access_token: "still-invalid-token",
+    } as never);
+    let openAttempts = 0;
+    globalThis.fetch = vi.fn(async (input) => {
+      const url = String(input);
+      if (url.includes("action=open")) {
+        openAttempts += 1;
+        return response({ error: "expired" }, 401);
+      }
+      if (url.includes("action=cleanup"))
+        return response({ success: true, status: "cancelled" });
+      return response({ success: true });
+    }) as typeof fetch;
+
+    await expect(
+      uploadSelectedPhotos(
+        createMobileUploadSession("expired-token"),
+        selectedFiles(1),
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ status: 401 });
+
+    expect(openAttempts).toBe(2);
+    expect(signOutBrowser).toHaveBeenCalledTimes(1);
   });
 
   it("uses ordinary cleanup only when explicitly asked after generation", async () => {

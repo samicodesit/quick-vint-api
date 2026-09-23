@@ -422,6 +422,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let generationReservationId: string | null = null;
   let mobileReservationCommitState:
     | "not_attempted"
+    | "commit_pending"
     | "committed"
     | "uncertain" = "not_attempted";
 
@@ -921,6 +922,29 @@ Reply only in JSON: {"title":"...","description":"..."}
         });
       }
 
+      mobileReservationCommitState = "uncertain";
+      const commitPending = await markMobileGenerationCommitPending({
+        recordId: mobileIdempotencyRecordId,
+        attemptId: mobileIdempotencyAttemptId as string,
+        reservationId: generationReservationId,
+      });
+      if (!commitPending.ok) {
+        await RateLimiter.refundGenerationReservation(
+          generationReservationId,
+          "idempotency_precommit_failed",
+        );
+        logData.responseStatus = 503;
+        logData.processingDurationMs = Date.now() - startTime;
+        logData.flaggedReason =
+          commitPending.code || "Mobile idempotency pre-commit failed";
+        await ApiLogger.logRequest(logData);
+        return res.status(503).json({
+          error: "Your generation is still being finalized. Please try again.",
+          code: "generation_commit_pending",
+        });
+      }
+
+      mobileReservationCommitState = "commit_pending";
       const verifiedCommit =
         await RateLimiter.commitGenerationReservationVerified(
           generationReservationId,

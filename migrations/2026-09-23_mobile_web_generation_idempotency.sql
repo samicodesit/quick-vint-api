@@ -285,9 +285,14 @@ BEGIN
   WHERE id = p_record_id
     AND attempt_id = p_attempt_id
     AND status = 'in_progress'
-    AND NOT commit_pending
     AND p_reservation_id IS NOT NULL
-    AND (reservation_id IS NULL OR reservation_id = p_reservation_id);
+    AND (reservation_id IS NULL OR reservation_id = p_reservation_id)
+    AND EXISTS (
+      SELECT 1
+      FROM public.generation_reservations AS r
+      WHERE r.id = p_reservation_id
+        AND r.status = 'committed'
+    );
 
   RETURN FOUND;
 END;
@@ -392,9 +397,20 @@ AS $$
 DECLARE
   deleted_count integer;
 BEGIN
-  DELETE FROM public.mobile_generation_idempotency
-  WHERE expires_at < now() - interval '1 day'
-    AND NOT commit_pending;
+  DELETE FROM public.mobile_generation_idempotency AS i
+  WHERE i.expires_at < now() - interval '1 day'
+    AND (
+      NOT i.commit_pending
+      OR (
+        i.reservation_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1
+          FROM public.generation_reservations AS r
+          WHERE r.id = i.reservation_id
+            AND r.status = 'refunded'
+        )
+      )
+    );
   GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RETURN deleted_count;
 END;

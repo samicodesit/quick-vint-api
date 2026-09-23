@@ -284,6 +284,51 @@ describe("mobile web generation idempotency", () => {
     );
   });
 
+  it("persists commit-pending before committing the reservation", async () => {
+    const events: string[] = [];
+    markMobileGenerationCommitPending.mockImplementation(async (input) => {
+      events.push("mark");
+      expect(input).toEqual(
+        expect.objectContaining({
+          recordId: "record-1",
+          attemptId: "attempt-1",
+          reservationId: "reservation-1",
+        }),
+      );
+      return { ok: true };
+    });
+    commitGenerationReservationVerified.mockImplementation(async () => {
+      events.push("commit");
+      return { ok: true };
+    });
+    completeMobileGenerationIdempotency.mockImplementation(async () => {
+      events.push("complete");
+      return { ok: true };
+    });
+
+    const response = await invoke();
+
+    expect(response.statusCode).toBe(200);
+    expect(events).toEqual(["mark", "commit", "complete"]);
+  });
+
+  it("does not commit when commit-pending persistence fails", async () => {
+    markMobileGenerationCommitPending.mockResolvedValue({
+      ok: false,
+      code: "rpc_failed",
+    });
+
+    const response = await invoke();
+
+    expect(response.statusCode).toBe(503);
+    expect(commitGenerationReservationVerified).not.toHaveBeenCalled();
+    expect(completeMobileGenerationIdempotency).not.toHaveBeenCalled();
+    expect(refundGenerationReservation).toHaveBeenCalledWith(
+      "reservation-1",
+      "idempotency_precommit_failed",
+    );
+  });
+
   it("preserves provider 403 as a bounded non-retryable mobile failure", async () => {
     const providerError = Object.assign(
       new Error("provider forbidden rate limit"),

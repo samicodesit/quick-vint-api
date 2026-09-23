@@ -179,6 +179,68 @@ describe("mobile generation idempotency", () => {
     );
   });
 
+  it("requires an authoritative committed reservation before storing success", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+    const completeFunction = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.complete_mobile_generation_idempotency",
+      ),
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.fail_mobile_generation_idempotency",
+      ),
+    );
+
+    expect(completeFunction).toContain("r.status = 'committed'");
+    expect(completeFunction).toContain(
+      "FROM public.generation_reservations AS r",
+    );
+    expect(completeFunction).toContain("p_reservation_id");
+    expect(completeFunction).not.toContain("AND NOT commit_pending");
+  });
+
+  it("cleans only commit-pending rows whose reservations are refunded", () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        "../../../migrations/2026-09-23_mobile_web_generation_idempotency.sql",
+      ),
+      "utf8",
+    );
+    const cleanupFunction = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.cleanup_expired_mobile_generation_idempotency",
+      ),
+      migration.indexOf(
+        "REVOKE ALL ON FUNCTION public.claim_mobile_generation_idempotency",
+      ),
+    );
+
+    expect(cleanupFunction).toContain(
+      "DELETE FROM public.mobile_generation_idempotency AS i",
+    );
+    expect(cleanupFunction).toContain(
+      "i.expires_at < now() - interval '1 day'",
+    );
+    expect(cleanupFunction).toContain("NOT i.commit_pending");
+    expect(cleanupFunction).toContain("i.reservation_id IS NOT NULL");
+    expect(cleanupFunction).toContain(
+      "FROM public.generation_reservations AS r",
+    );
+    expect(cleanupFunction).toContain("r.status = 'refunded'");
+    expect(cleanupFunction).not.toContain("r.status = 'committed'");
+    expect(cleanupFunction).not.toContain("r.status = 'pending'");
+    expect(cleanupFunction).not.toContain("r.status = 'unknown'");
+    expect(cleanupFunction).not.toContain(
+      "WHERE expires_at < now() - interval '1 day';",
+    );
+  });
+
   it("verifies an uncertain reservation commit through its status read", async () => {
     const { RateLimiter } = await import("../../../utils/rateLimiter.js");
 

@@ -1,6 +1,7 @@
 ---
 import PhotoRail from "./PhotoRail.astro";
 import ListingControls from "./ListingControls.astro";
+import ListingResult from "./ListingResult.astro";
 
 interface Props {
   titleLanguageCode?: string;
@@ -19,6 +20,8 @@ const {
     <div class="mobile-workspace-header-actions">
       <span class="mobile-usage-pill" data-mobile-web="usage" aria-live="polite" hidden></span>
       <button type="button" class="mobile-sign-out" data-mobile-web="sign-out" hidden>Sign out</button>
+      <button type="button" class="mobile-text-button" data-mobile-web="upgrade" data-tier="starter" hidden>Upgrade</button>
+      <button type="button" class="mobile-text-button" data-mobile-web="manage-billing" hidden>Manage plan</button>
     </div>
   </header>
 
@@ -96,23 +99,7 @@ const {
         <button type="button" class="mobile-primary-button mobile-generate-button" data-mobile-web="generate" disabled>Generate listing</button>
       </section>
 
-      <section class="mobile-listing-result" data-mobile-web="listing-result" aria-labelledby="mobile-result-title" hidden>
-        <div class="mobile-result-heading">
-          <div>
-            <p class="mobile-eyebrow">Draft ready</p>
-            <h2 id="mobile-result-title">Your listing is ready</h2>
-          </div>
-          <button type="button" class="mobile-text-button" data-mobile-web="new-item">New item</button>
-        </div>
-        <label class="mobile-result-field">
-          <span>Title</span>
-          <input type="text" data-mobile-web="result-title" autocomplete="off" />
-        </label>
-        <label class="mobile-result-field">
-          <span>Description</span>
-          <textarea rows="8" data-mobile-web="result-description"></textarea>
-        </label>
-      </section>
+      <ListingResult />
     </section>
 
     <section class="mobile-state-card" data-mobile-web="state-card" aria-live="polite" hidden>

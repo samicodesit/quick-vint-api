@@ -30,6 +30,40 @@ export const VINTED_DOMAINS = {
 
 export type VintedCountryCode = keyof typeof VINTED_DOMAINS;
 
+const STRICT_VINTED_COUNTRY_CODES = new Set(
+  Object.keys(VINTED_DOMAINS).filter((code) => code !== "DEFAULT"),
+);
+
+/**
+ * Return a create-listing URL only for an explicitly supported market.
+ *
+ * The extension helper above intentionally keeps its historical DEFAULT
+ * fallback. Mobile web uses this strict variant so an unknown or user-supplied
+ * hostname can never become a navigation target.
+ */
+export function getSafeVintedCreateListingUrl(countryCode: string): string {
+  const normalized = String(countryCode || "")
+    .trim()
+    .toUpperCase();
+  if (!STRICT_VINTED_COUNTRY_CODES.has(normalized)) {
+    throw new Error("unsupported_country");
+  }
+
+  const domain = VINTED_DOMAINS[normalized as VintedCountryCode];
+  const url = new URL(`https://www.${domain}/items/new`);
+  const allowedHost = `www.${domain}`;
+  if (
+    url.protocol !== "https:" ||
+    url.hostname !== allowedHost ||
+    url.pathname !== "/items/new" ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error("unsupported_vinted_url");
+  }
+  return url.toString();
+}
+
 /**
  * Get the appropriate Vinted create listing URL based on user's country
  * @param countryCode ISO 2-letter country code (e.g., 'FR', 'DE', 'US')

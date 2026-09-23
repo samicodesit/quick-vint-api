@@ -32,6 +32,23 @@ import {
   type UploadedMobilePhoto,
 } from "./uploadClient.js";
 import { revokeMobilePreview } from "./imagePreparation.js";
+import {
+  copyListingField,
+  isMobileBillingTier,
+  openMobilePortal,
+  refreshAfterCheckout,
+  startMobileCheckout,
+} from "./billing.js";
+import {
+  captureMobileFirstTouch,
+  claimFirstTouchAfterAuth,
+  trackMobileEvent,
+} from "./analytics.js";
+import {
+  detectUserCountryAndGetVintedUrl,
+  getSafeVintedCreateListingUrl,
+  VINTED_DOMAINS,
+} from "../../../utils/vintedRedirect.js";
 
 export type MobileGenerationState =
   | { status: "idle" }
@@ -74,6 +91,60 @@ function text(root: ParentNode, selector: string, value: string): void {
 function setHidden(root: ParentNode, selector: string, hidden: boolean): void {
   const element = asElement<HTMLElement>(root, selector);
   if (element) element.hidden = hidden;
+}
+
+type CheckoutReturnStatus = "success" | "cancel" | "manage";
+
+function readCheckoutReturnStatus(): CheckoutReturnStatus | null {
+  if (typeof window === "undefined") return null;
+  const value = new URL(window.location.href).searchParams.get("checkout");
+  return value === "success" || value === "cancel" || value === "manage"
+    ? value
+    : null;
+}
+
+function clearCheckoutReturnParams(): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("checkout");
+  url.searchParams.delete("session_id");
+  window.history.replaceState(
+    {},
+    "",
+    `${url.pathname}${url.search}${url.hash}`,
+  );
+}
+
+function getMobileVintedDestination(): {
+  countryCode: string;
+  url: string;
+} {
+  try {
+    const detectedUrl = new URL(detectUserCountryAndGetVintedUrl());
+    const match = Object.entries(VINTED_DOMAINS).find(
+      ([, domain]) => `www.${domain}` === detectedUrl.hostname,
+    );
+    const countryCode = match?.[0] && match[0] !== "DEFAULT" ? match[0] : "US";
+    return {
+      countryCode,
+      url: getSafeVintedCreateListingUrl(countryCode),
+    };
+  } catch {
+    return {
+      countryCode: "US",
+      url: getSafeVintedCreateListingUrl("US"),
+    };
+  }
+}
+
+function setBillingControls(root: ParentNode, usage: MobileUsage | null): void {
+  const tier = usage?.plan?.tier;
+  const isPaid =
+    usage?.plan?.isPaid === true ||
+    (typeof tier === "string" && tier !== "free");
+  const showUpgrade = usage?.canGenerate === false && !isPaid;
+  setHidden(root, '[data-mobile-web="upgrade"]', !showUpgrade);
+  setHidden(root, '[data-mobile-web="manage-billing"]', !isPaid);
 }
 
 function getStorage(): Storage | null {
@@ -378,6 +449,8 @@ function showAuth(root: ParentNode): void {
   setHidden(root, '[data-mobile-web="state-card"]', true);
   setHidden(root, '[data-mobile-web="sign-out"]', true);
   setHidden(root, '[data-mobile-web="usage"]', true);
+  setHidden(root, '[data-mobile-web="upgrade"]', true);
+  setHidden(root, '[data-mobile-web="manage-billing"]', true);
 }
 
 function showApp(root: ParentNode): void {
@@ -428,6 +501,12 @@ export function mountMobileWebApp(
   let formatting = safeFormattingPreferences();
   let state: MobileGenerationState = { status: "idle" };
   const listeners: Array<() => void> = [];
+  let copiedTitle = false;
+  let copiedDescription = false;
+  let appOpenedTracked = false;
+  let checkoutReturnHandled = false;
+  const checkoutReturnStatus = readCheckoutReturnStatus();
+  const vintedDestination = getMobileVintedDestination();
 
   const bind = (
     element: Element | null,
@@ -446,13 +525,18 @@ export function mountMobileWebApp(
     });
   };
 
-  const refreshUsage = async (): Promise<MobileUsage | null> => {
+  const refreshUsage = async (
+    afterCheckout = false,
+  ): Promise<MobileUsage | null> => {
     if (disposed) return null;
     try {
-      const usage = await loadUsage();
+      const usage = afterCheckout
+        ? await refreshAfterCheckout()
+        : await loadUsage();
       if (disposed) return null;
       canGenerate = usage.canGenerate !== false;
       text(root, '[data-mobile-web="usage"]', getMobileUsageDisplay(usage));
+      setBillingControls(root, usage);
       if (usage.canGenerate === false) {
         state = {
           status: "quota",
@@ -473,6 +557,7 @@ export function mountMobileWebApp(
         showAuth(root);
       } else {
         text(root, '[data-mobile-web="usage"]', "Usage unavailable");
+        setBillingControls(root, null);
       }
       return null;
     }
@@ -517,7 +602,31 @@ export function mountMobileWebApp(
     );
     if (titleInput) titleInput.value = result.title;
     if (descriptionInput) descriptionInput.value = result.description;
+    copiedTitle = false;
+    copiedDescription = false;
+    text(root, '[data-mobile-web="copy-title-status"]', "");
+    text(root, '[data-mobile-web="copy-description-status"]', "");
+    setHidden(root, '[data-mobile-web="result-done"]', true);
+    const vintedAction = asElement<HTMLAnchorElement>(
+      root,
+      '[data-mobile-web="vinted-action"]',
+    );
+    if (vintedAction) {
+      vintedAction.href = vintedDestination.url;
+      vintedAction.dataset.countryCode = vintedDestination.countryCode;
+    }
     resultSection.hidden = false;
+  };
+
+  const updateResultCompletion = (): void => {
+    const complete = copiedTitle && copiedDescription;
+    setHidden(root, '[data-mobile-web="result-done"]', !complete);
+    if (complete)
+      text(
+        root,
+        '[data-mobile-web="result-done"]',
+        "Both fields copied. Open Vinted when you are ready.",
+      );
   };
 
   const runGeneration = async (): Promise<void> => {
@@ -563,6 +672,9 @@ export function mountMobileWebApp(
           },
         );
         uploadedPhotoIds = selectedPhotoIds;
+        void trackMobileEvent("upload_complete", {
+          imageCount: photos.length,
+        });
       }
       if (disposed || cancellationRequested) return;
       state = { status: "generating" };
@@ -583,6 +695,14 @@ export function mountMobileWebApp(
       state = { status: "success", result };
       applyGenerationState();
       renderResult(result);
+      void trackMobileEvent("generation_success", {
+        imageCount: photos.length,
+        titleLanguageCode: language.titleLanguageCode,
+        descriptionLanguageCode: language.descriptionLanguageCode,
+        descriptionLength: formatting.descriptionLength,
+        useBulletPoints: formatting.useBulletPoints,
+        count: result.description.length,
+      });
       await cleanupServerSession("post-generation");
       clearPreviews();
       await refreshUsage();
@@ -598,6 +718,13 @@ export function mountMobileWebApp(
         return;
       }
       const cancelled = cancellationRequested || details.code === "aborted";
+      if (!cancelled) {
+        void trackMobileEvent("generation_error", {
+          status: details.status,
+          errorCode: details.code,
+          retryable: details.retryable,
+        });
+      }
       if (cancelled) {
         await cleanupServerSession("cancelled");
         requestId = undefined;
@@ -714,11 +841,108 @@ export function mountMobileWebApp(
   );
   bind(asElement(root, '[data-mobile-web="new-item"]'), "click", () => {
     setHidden(root, '[data-mobile-web="listing-result"]', true);
+    copiedTitle = false;
+    copiedDescription = false;
     state = { status: "idle" };
     applyGenerationState();
     requestId = undefined;
     renderPhotos(root, photos);
   });
+  const copyResultField = async (
+    field: "title" | "description",
+  ): Promise<void> => {
+    const selector =
+      field === "title"
+        ? '[data-mobile-web="result-title"]'
+        : '[data-mobile-web="result-description"]';
+    const statusSelector =
+      field === "title"
+        ? '[data-mobile-web="copy-title-status"]'
+        : '[data-mobile-web="copy-description-status"]';
+    const input = asElement<HTMLInputElement | HTMLTextAreaElement>(
+      root,
+      selector,
+    );
+    if (!input) return;
+    const copied = await copyListingField(field, input.value);
+    if (disposed) return;
+    text(
+      root,
+      statusSelector,
+      copied ? "Copied ✓" : "Could not copy. Try again.",
+    );
+    if (!copied) return;
+    if (field === "title") copiedTitle = true;
+    else copiedDescription = true;
+    if (typeof navigator !== "undefined") navigator.vibrate?.(20);
+    void trackMobileEvent("copy", { field });
+    updateResultCompletion();
+  };
+  bind(
+    asElement(root, '[data-mobile-web="copy-title"]'),
+    "click",
+    () => void copyResultField("title"),
+  );
+  bind(
+    asElement(root, '[data-mobile-web="copy-description"]'),
+    "click",
+    () => void copyResultField("description"),
+  );
+  const vintedAction = asElement<HTMLAnchorElement>(
+    root,
+    '[data-mobile-web="vinted-action"]',
+  );
+  if (vintedAction) {
+    vintedAction.href = vintedDestination.url;
+    vintedAction.dataset.countryCode = vintedDestination.countryCode;
+  }
+  bind(vintedAction, "click", () => {
+    void trackMobileEvent("vinted_click", {
+      countryCode: vintedDestination.countryCode,
+    });
+  });
+  bind(asElement(root, '[data-mobile-web="upgrade"]'), "click", (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    const tier = button.dataset.tier ?? "starter";
+    if (!isMobileBillingTier(tier)) return;
+    button.disabled = true;
+    void trackMobileEvent("checkout_start", { tier })
+      .then(() => startMobileCheckout(tier))
+      .then(({ url }) => window.location.assign(url))
+      .catch(() => {
+        if (!disposed)
+          text(
+            root,
+            '[data-mobile-web="generation-status"]',
+            "Could not open checkout. Please try again.",
+          );
+      })
+      .finally(() => {
+        if (!disposed) button.disabled = false;
+      });
+  });
+  bind(
+    asElement(root, '[data-mobile-web="manage-billing"]'),
+    "click",
+    (event) => {
+      const button = event.currentTarget as HTMLButtonElement;
+      button.disabled = true;
+      void trackMobileEvent("checkout_start", { target: "manage" })
+        .then(() => openMobilePortal())
+        .then(({ url }) => window.location.assign(url))
+        .catch(() => {
+          if (!disposed)
+            text(
+              root,
+              '[data-mobile-web="generation-status"]',
+              "Could not open billing. Please try again.",
+            );
+        })
+        .finally(() => {
+          if (!disposed) button.disabled = false;
+        });
+    },
+  );
   bind(
     asElement(root, '[data-mobile-web="google-sign-in"]'),
     "click",
@@ -780,6 +1004,8 @@ export function mountMobileWebApp(
       .then((nextSession) => {
         if (disposed) return;
         session = nextSession;
+        void claimFirstTouchAfterAuth(session);
+        void trackMobileEvent("auth_complete", { method: "email" });
         showApp(root);
         void refreshUsage();
       })
@@ -868,14 +1094,30 @@ export function mountMobileWebApp(
 
   const start = async (): Promise<void> => {
     try {
+      if (!appOpenedTracked) {
+        appOpenedTracked = true;
+        captureMobileFirstTouch();
+        void trackMobileEvent("web_app_click", { target: "app_open" });
+      }
+      if (checkoutReturnStatus) clearCheckoutReturnParams();
       session = await getBrowserSession();
       if (disposed) return;
       if (!session) {
         showAuth(root);
         return;
       }
+      void claimFirstTouchAfterAuth(session);
+      void trackMobileEvent("auth_complete", { method: "session" });
       showApp(root);
-      await refreshUsage();
+      if (checkoutReturnStatus && !checkoutReturnHandled) {
+        checkoutReturnHandled = true;
+        void trackMobileEvent("checkout_return", {
+          status: checkoutReturnStatus,
+        });
+        await refreshUsage(checkoutReturnStatus === "success");
+      } else {
+        await refreshUsage();
+      }
     } catch {
       if (disposed) return;
       showState(

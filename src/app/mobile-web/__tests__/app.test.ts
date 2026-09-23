@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -71,5 +72,27 @@ describe("mobile web app state helpers", () => {
 
     expect(revoke).toHaveBeenCalledWith("blob:0");
     revoke.mockRestore();
+  });
+
+  it("wires the Task 5 result, billing, Vinted, attribution, and analytics actions", () => {
+    const appSource = readFileSync("src/app/mobile-web/app.ts", "utf8");
+    const shellSource = readFileSync(
+      "src/components/mobile-web/WorkspaceShell.astro",
+      "utf8",
+    );
+
+    expect(appSource).toContain('from "./billing.js"');
+    expect(appSource).toContain('from "./analytics.js"');
+    expect(appSource).toContain("copyListingField");
+    expect(appSource).toContain("getSafeVintedCreateListingUrl");
+    expect(appSource).toContain("claimFirstTouchAfterAuth");
+    expect(appSource).toContain("trackMobileEvent");
+    expect(appSource).toContain("refreshAfterCheckout");
+    expect(appSource).toContain('[data-mobile-web="copy-title"]');
+    expect(appSource).toContain('[data-mobile-web="copy-description"]');
+    expect(appSource).toContain('[data-mobile-web="vinted-action"]');
+    expect(shellSource).toContain(
+      'import ListingResult from "./ListingResult.astro"',
+    );
   });
 });

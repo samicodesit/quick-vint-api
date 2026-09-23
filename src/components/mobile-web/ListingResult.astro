@@ -1,0 +1,111 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  vintedUrl?: string;
+  hidden?: boolean;
+}
+
+import { VINTED_DOMAINS } from "../../../utils/vintedRedirect";
+
+const {
+  title = "",
+  description = "",
+  vintedUrl = "https://www.vinted.com/items/new",
+  hidden = true,
+} = Astro.props;
+
+const allowedVintedHosts = new Set(
+  Object.values(VINTED_DOMAINS)
+    .filter((domain) => domain !== VINTED_DOMAINS.DEFAULT)
+    .map((domain) => `www.${domain}`),
+);
+
+function safeVintedUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (
+      parsed.protocol === "https:" &&
+      allowedVintedHosts.has(parsed.hostname) &&
+      parsed.pathname === "/items/new" &&
+      !parsed.search &&
+      !parsed.hash
+    ) {
+      return parsed.toString();
+    }
+  } catch {
+    // Use the approved fallback below.
+  }
+  return "https://www.vinted.com/items/new";
+}
+
+const safeCreateListingUrl = safeVintedUrl(vintedUrl);
+---
+
+<section
+  class="mobile-listing-result"
+  data-mobile-web="listing-result"
+  aria-labelledby="mobile-result-title"
+  hidden={hidden}
+>
+  <div class="mobile-result-heading">
+    <div>
+      <p class="mobile-eyebrow">Draft ready</p>
+      <h2 id="mobile-result-title">Your listing is ready</h2>
+    </div>
+    <button type="button" class="mobile-text-button" data-mobile-web="new-item">
+      New item
+    </button>
+  </div>
+
+  <div class="mobile-result-field">
+    <label for="mobile-result-title-input">Title</label>
+    <div class="mobile-result-input-row">
+      <input
+        id="mobile-result-title-input"
+        type="text"
+        data-mobile-web="result-title"
+        value={title}
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="button" class="mobile-secondary-button" data-mobile-web="copy-title">
+        Copy title
+      </button>
+    </div>
+    <span class="mobile-copy-status" data-mobile-web="copy-title-status" role="status" aria-live="polite"></span>
+  </div>
+
+  <div class="mobile-result-field">
+    <label for="mobile-result-description-input">Description</label>
+    <textarea
+      id="mobile-result-description-input"
+      rows="8"
+      data-mobile-web="result-description"
+      spellcheck="true"
+    >{description}</textarea>
+    <div class="mobile-result-field-actions">
+      <button type="button" class="mobile-secondary-button" data-mobile-web="copy-description">
+        Copy description
+      </button>
+      <span class="mobile-copy-status" data-mobile-web="copy-description-status" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <p class="mobile-result-safety-note">
+    Review your listing before posting. AutoLister is not affiliated with Vinted.
+  </p>
+  <p class="mobile-copy-complete" data-mobile-web="result-done" role="status" aria-live="polite" hidden>
+    Both fields copied. Open Vinted when you are ready.
+  </p>
+  <a
+    class="mobile-primary-button mobile-vinted-action"
+    data-mobile-web="vinted-action"
+    href={safeCreateListingUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Open Vinted to list
+  </a>
+</section>
+

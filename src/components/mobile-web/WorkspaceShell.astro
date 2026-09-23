@@ -1,0 +1,127 @@
+---
+import PhotoRail from "./PhotoRail.astro";
+import ListingControls from "./ListingControls.astro";
+
+interface Props {
+  titleLanguageCode?: string;
+  descriptionLanguageCode?: string;
+}
+
+const {
+  titleLanguageCode = "en",
+  descriptionLanguageCode = "en",
+} = Astro.props;
+---
+
+<div class="mobile-workspace-shell" data-mobile-web="workspace" data-state="loading">
+  <header class="mobile-workspace-header">
+    <a class="mobile-workspace-brand" href="/" aria-label="AutoLister home">AutoLister</a>
+    <div class="mobile-workspace-header-actions">
+      <span class="mobile-usage-pill" data-mobile-web="usage" aria-live="polite" hidden></span>
+      <button type="button" class="mobile-sign-out" data-mobile-web="sign-out" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main class="mobile-workspace-main">
+    <section class="mobile-auth-card" data-mobile-web="auth-card" aria-labelledby="mobile-auth-title" hidden>
+      <p class="mobile-eyebrow">AutoLister AI</p>
+      <h1 id="mobile-auth-title">Create your next listing in seconds</h1>
+      <p class="mobile-auth-copy">Sign in to turn your item photos into a ready-to-copy title and description.</p>
+      <button type="button" class="mobile-google-button" data-mobile-web="google-sign-in">
+        <span class="mobile-google-mark" aria-hidden="true">G</span>
+        Continue with Google
+      </button>
+      <div class="mobile-auth-divider" aria-hidden="true"><span>or use email</span></div>
+      <form data-mobile-web="email-form" class="mobile-email-form">
+        <label for="mobile-email">Email address</label>
+        <input id="mobile-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com" />
+        <button type="submit" class="mobile-primary-button">Send sign-in email</button>
+      </form>
+      <form data-mobile-web="otp-form" class="mobile-otp-form" hidden>
+        <label for="mobile-otp">Enter the 6-digit code from your email</label>
+        <input id="mobile-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="mobile-otp-help" />
+        <p id="mobile-otp-help" class="mobile-field-help">The same email also includes a secure sign-in link.</p>
+        <button type="button" class="mobile-text-button" data-mobile-web="change-email">Use a different email</button>
+      </form>
+      <p class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="mobile-app-view" data-mobile-web="app-view" hidden aria-labelledby="mobile-app-title">
+      <div class="mobile-app-heading">
+        <div>
+          <p class="mobile-eyebrow">New listing</p>
+          <h1 id="mobile-app-title">What are you selling?</h1>
+        </div>
+        <p class="mobile-app-subtitle">Add every photo of one item.</p>
+      </div>
+
+      <section class="mobile-upload-card" data-mobile-web="upload-card" aria-labelledby="mobile-upload-title">
+        <div class="mobile-upload-card-heading">
+          <div>
+            <h2 id="mobile-upload-title">Item photos</h2>
+            <p data-mobile-web="photo-count">No photos yet</p>
+          </div>
+          <span class="mobile-upload-status" data-mobile-web="upload-status" aria-live="polite"></span>
+        </div>
+        <PhotoRail editable={true} />
+        <div class="mobile-photo-actions">
+          <label class="mobile-photo-action">
+            <input type="file" accept="image/*" capture="environment" data-mobile-web="camera-input" />
+            <span aria-hidden="true">⌾</span> Take photo
+          </label>
+          <label class="mobile-photo-action">
+            <input type="file" accept="image/*" multiple data-mobile-web="gallery-input" />
+            <span aria-hidden="true">＋</span> Choose from gallery
+          </label>
+        </div>
+      </section>
+
+      <ListingControls
+        selectedTitleLanguageCode={titleLanguageCode}
+        selectedDescriptionLanguageCode={descriptionLanguageCode}
+        descriptionLength="long"
+        useBulletPoints={true}
+      />
+
+      <section class="mobile-generation-panel" data-mobile-web="generation-panel" aria-live="polite">
+        <div class="mobile-generation-progress" data-mobile-web="generation-progress" hidden>
+          <span class="mobile-generation-orb" aria-hidden="true"><span></span></span>
+          <div>
+            <strong data-mobile-web="generation-progress-title">Preparing your listing</strong>
+            <p data-mobile-web="generation-progress-copy">Your photos are being securely prepared.</p>
+          </div>
+          <button type="button" class="mobile-text-button" data-mobile-web="cancel-generation">Cancel</button>
+        </div>
+        <p class="mobile-generation-status" data-mobile-web="generation-status" role="status"></p>
+        <button type="button" class="mobile-primary-button mobile-generate-button" data-mobile-web="generate" disabled>Generate listing</button>
+      </section>
+
+      <section class="mobile-listing-result" data-mobile-web="listing-result" aria-labelledby="mobile-result-title" hidden>
+        <div class="mobile-result-heading">
+          <div>
+            <p class="mobile-eyebrow">Draft ready</p>
+            <h2 id="mobile-result-title">Your listing is ready</h2>
+          </div>
+          <button type="button" class="mobile-text-button" data-mobile-web="new-item">New item</button>
+        </div>
+        <label class="mobile-result-field">
+          <span>Title</span>
+          <input type="text" data-mobile-web="result-title" autocomplete="off" />
+        </label>
+        <label class="mobile-result-field">
+          <span>Description</span>
+          <textarea rows="8" data-mobile-web="result-description"></textarea>
+        </label>
+      </section>
+    </section>
+
+    <section class="mobile-state-card" data-mobile-web="state-card" aria-live="polite" hidden>
+      <p class="mobile-eyebrow" data-mobile-web="state-eyebrow">AutoLister</p>
+      <h2 data-mobile-web="state-title"></h2>
+      <p data-mobile-web="state-copy"></p>
+      <button type="button" class="mobile-primary-button" data-mobile-web="state-action" hidden></button>
+    </section>
+  </main>
+
+  <footer class="mobile-workspace-footer">AutoLister is not affiliated with Vinted.</footer>
+</div>

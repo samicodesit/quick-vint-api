@@ -273,4 +273,22 @@ describe("mobile web API transport", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("preserves an explicit abort as a cancellation instead of a network failure", async () => {
+    const controller = new AbortController();
+    const abortError = new DOMException(
+      "The operation was aborted.",
+      "AbortError",
+    );
+    const fetchMock = vi.fn().mockRejectedValue(abortError);
+    vi.stubGlobal("fetch", fetchMock);
+    const { fetchMobileJson } = await import("../api.js");
+
+    await expect(
+      fetchMobileJson("/api/generate", {
+        method: "POST",
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ status: 0, code: "aborted" });
+  });
 });

@@ -72,6 +72,15 @@ describe("mobile web generation client", () => {
     expect(requestIds).toEqual(["stable-request-id", "stable-request-id"]);
   });
 
+  it("passes the cancellation signal through to the single generation request", async () => {
+    const { generateListing } = await import("../generationClient.js");
+    const controller = new AbortController();
+
+    await generateListing({ ...input, signal: controller.signal });
+
+    expect(fetchMobileJsonMock.mock.calls[0][1].signal).toBe(controller.signal);
+  });
+
   it.each([
     [403, "limit_reached"],
     [429, "service_unavailable"],

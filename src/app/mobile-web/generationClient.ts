@@ -8,6 +8,7 @@ export interface MobileGenerationInput {
   descriptionLength: DescriptionLength;
   useBulletPoints: boolean;
   requestId?: string;
+  signal?: AbortSignal;
 }
 
 export interface MobileGenerationResult {
@@ -102,6 +103,7 @@ export async function generateListing(
         "X-Autolister-Request-Id": requestId,
       },
       body: JSON.stringify(body),
+      signal: input.signal,
     },
     { retryOn401: true },
   );

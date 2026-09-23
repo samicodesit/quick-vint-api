@@ -26,6 +26,11 @@ export interface UploadedMobilePhoto {
 
 export type UploadCleanupPhase = "cancelled" | "post-generation";
 
+export interface MobileUploadProgress {
+  completed: number;
+  total: number;
+}
+
 export class MobileUploadError extends Error {
   readonly code: string;
   readonly status: number;
@@ -102,6 +107,7 @@ async function request(
   init: RequestInit,
   signal: AbortSignal,
   retryOn401 = true,
+  rejectStatuses: readonly number[] = [],
 ): Promise<Record<string, unknown>> {
   ensureNotAborted(signal);
   const headers = new Headers(init.headers);
@@ -119,7 +125,7 @@ async function request(
     );
   }
   const body = await readBody(response);
-  if (!response.ok) {
+  if (!response.ok || rejectStatuses.includes(response.status)) {
     if (response.status === 401 && retryOn401) {
       let refreshed = null;
       try {
@@ -130,7 +136,7 @@ async function request(
       if (refreshed?.access_token) {
         session.accessToken = refreshed.access_token;
         ensureNotAborted(signal);
-        return request(session, url, init, signal, false);
+        return request(session, url, init, signal, false, rejectStatuses);
       }
       await signOutBrowser().catch(() => undefined);
     } else if (response.status === 401) {
@@ -245,6 +251,8 @@ async function completeUpload(
           body: JSON.stringify({ orders }),
         },
         signal,
+        true,
+        [202],
       );
       return;
     } catch (error) {
@@ -316,6 +324,7 @@ export async function uploadSelectedPhotos(
   session: MobileUploadSession,
   selectedFiles: File[],
   signal: AbortSignal,
+  onProgress?: (progress: MobileUploadProgress) => void,
 ): Promise<UploadedMobilePhoto[]> {
   if (selectedFiles.length === 0)
     throw new MobileUploadError("no_photos", "Choose at least one photo.");
@@ -331,6 +340,7 @@ export async function uploadSelectedPhotos(
     await prepareUpload(session, selectedFiles.length, signal);
 
     let nextOrder = 0;
+    let completedCount = 0;
     let failure: unknown;
     const worker = async () => {
       while (failure === undefined) {
@@ -342,6 +352,11 @@ export async function uploadSelectedPhotos(
           const item = await prepareMobileImage(selectedFiles[order]);
           prepared[order] = item;
           await uploadOne(session, item, order, selectedFiles.length, signal);
+          completedCount += 1;
+          onProgress?.({
+            completed: completedCount,
+            total: selectedFiles.length,
+          });
         } catch (error) {
           failure = error;
         }

@@ -258,6 +258,58 @@ describe("mobile V2 upload client", () => {
     expect(calls.some(({ url }) => url.includes("action=cleanup"))).toBe(false);
   });
 
+  it("polls when V2 completion is still settling before fetching signed URLs", async () => {
+    let completeAttempts = 0;
+    globalThis.fetch = vi.fn(async (input, init = {}) => {
+      const url = String(input);
+      if (url.includes("action=complete")) {
+        completeAttempts += 1;
+        return completeAttempts === 1
+          ? response({ success: false, complete: false, settling: true }, 202)
+          : response({ success: true, complete: true });
+      }
+      if (url.includes("includeUrls=1"))
+        return response({ files: [{ order: 0, url: "signed-0" }] });
+      return response({ success: true });
+    }) as typeof fetch;
+
+    await uploadSelectedPhotos(
+      createMobileUploadSession("access-token"),
+      selectedFiles(1),
+      new AbortController().signal,
+    );
+
+    expect(completeAttempts).toBe(2);
+  });
+
+  it("reports completed uploads while preserving the selected order", async () => {
+    globalThis.fetch = vi.fn(async (input) => {
+      const url = String(input);
+      if (url.includes("includeUrls=1"))
+        return response({
+          files: [0, 1, 2].map((order) => ({
+            order,
+            url: `signed-${order}`,
+          })),
+        });
+      return response({ success: true, complete: true });
+    }) as typeof fetch;
+    const progress: Array<{ completed: number; total: number }> = [];
+
+    await uploadSelectedPhotos(
+      createMobileUploadSession("access-token"),
+      selectedFiles(3),
+      new AbortController().signal,
+      (update) => progress.push(update),
+    );
+
+    expect(progress).toEqual([
+      { completed: 1, total: 3 },
+      { completed: 2, total: 3 },
+      { completed: 3, total: 3 },
+    ]);
+  });
+
   it("cancels the V2 session when an upload is aborted", async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     let uploadStarted = false;

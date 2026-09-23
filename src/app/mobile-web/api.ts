@@ -91,6 +91,15 @@ function networkError(): MobileApiError {
   });
 }
 
+function abortedError(): MobileApiError {
+  return new MobileApiError({
+    status: 0,
+    code: "aborted",
+    message: "The request was cancelled.",
+    retryable: false,
+  });
+}
+
 export async function fetchMobileJson<T = unknown>(
   path: string,
   init: RequestInit = {},
@@ -117,7 +126,15 @@ export async function fetchMobileJson<T = unknown>(
       const response = await fetch(path, { ...init, headers });
       const body = await readJson(response);
       return { response, body };
-    } catch {
+    } catch (error) {
+      if (
+        init.signal?.aborted ||
+        (error &&
+          typeof error === "object" &&
+          (error as { name?: unknown }).name === "AbortError")
+      ) {
+        throw abortedError();
+      }
       throw networkError();
     }
   };

@@ -28,8 +28,10 @@ import {
   createMobileUploadSession,
   uploadSelectedPhotos,
   type MobileUploadSession,
+  type MobileUploadProgress,
   type UploadedMobilePhoto,
 } from "./uploadClient.js";
+import { revokeMobilePreview } from "./imagePreparation.js";
 
 export type MobileGenerationState =
   | { status: "idle" }
@@ -106,20 +108,50 @@ function safeFormattingPreferences(): FormattingPreferences {
   });
 }
 
-function displayUsage(usage: MobileUsage): string {
+export function getMobileUsageDisplay(usage: MobileUsage): string {
   if (usage.canGenerate === false) return "Limit reached";
   const remaining = usage.remaining ?? {};
   const tier = usage.plan?.tier;
-  const keys =
+  const packCredits =
+    typeof remaining.packCredits === "number" ? remaining.packCredits : 0;
+  const planRemaining =
     tier === "free"
-      ? ["freeLifetime", "packCredits"]
-      : ["monthly", "daily", "packCredits"];
-  const value = keys
-    .map((key) => remaining[key])
-    .find((item) => typeof item === "number");
-  return typeof value === "number"
-    ? `${value} generation${value === 1 ? "" : "s"} left`
-    : "Ready to generate";
+      ? typeof remaining.freeLifetime === "number"
+        ? remaining.freeLifetime
+        : null
+      : [remaining.daily, remaining.monthly].filter(
+            (value): value is number => typeof value === "number",
+          ).length > 0
+        ? Math.min(
+            ...[remaining.daily, remaining.monthly].filter(
+              (value): value is number => typeof value === "number",
+            ),
+          )
+        : null;
+  let available =
+    planRemaining === null ? packCredits : planRemaining + packCredits;
+  if (typeof remaining.minute === "number")
+    available = Math.min(available, remaining.minute);
+  if (available <= 0) return "Limit reached";
+  return `${available} generation${available === 1 ? "" : "s"} left`;
+}
+
+export function canReuseMobileGenerationUpload(
+  selectedPhotoIds: string[],
+  uploadedPhotoIds: string[],
+  uploadedPhotoCount: number,
+): boolean {
+  return (
+    uploadedPhotoCount > 0 &&
+    selectedPhotoIds.length === uploadedPhotoIds.length &&
+    selectedPhotoIds.every((id, index) => uploadedPhotoIds[index] === id)
+  );
+}
+
+export function revokeMobileUploadedPreviews(
+  photos: UploadedMobilePhoto[],
+): void {
+  photos.forEach((photo) => revokeMobilePreview(photo.previewUrl));
 }
 
 function errorDetails(error: unknown): {
@@ -173,6 +205,7 @@ function progressCopy(state: MobileGenerationState): [string, string] {
 function setGenerationState(
   root: ParentNode,
   state: MobileGenerationState,
+  options: { canGenerate?: boolean; hasPhotos?: boolean } = {},
 ): void {
   const shell = asElement<HTMLElement>(root, '[data-mobile-web="workspace"]');
   if (shell) shell.dataset.state = state.status;
@@ -189,7 +222,27 @@ function setGenerationState(
   );
   if (generateButton)
     generateButton.disabled =
-      state.status === "uploading" || state.status === "generating";
+      state.status === "uploading" ||
+      state.status === "generating" ||
+      state.status === "quota" ||
+      options.canGenerate === false ||
+      options.hasPhotos === false;
+  const editingDisabled =
+    state.status === "uploading" || state.status === "generating";
+  root
+    .querySelectorAll<HTMLInputElement>(
+      '[data-mobile-web="camera-input"], [data-mobile-web="gallery-input"]',
+    )
+    .forEach((input) => {
+      input.disabled = editingDisabled;
+    });
+  root
+    .querySelectorAll<HTMLButtonElement>(
+      '[data-mobile-web="add-photo"], [data-photo-remove]',
+    )
+    .forEach((button) => {
+      button.disabled = editingDisabled;
+    });
   const [title, copy] = progressCopy(state);
   text(root, '[data-mobile-web="generation-progress-title"]', title);
   text(root, '[data-mobile-web="generation-progress-copy"]', copy);
@@ -237,7 +290,7 @@ function renderPhotos(root: ParentNode, photos: SelectedPhoto[]): void {
     root,
     '[data-mobile-web="generate"]',
   );
-  if (generateButton) generateButton.disabled = photos.length === 0;
+  if (generateButton && photos.length === 0) generateButton.disabled = true;
 }
 
 function updateLanguageControls(
@@ -366,8 +419,11 @@ export function mountMobileWebApp(
   let photos: SelectedPhoto[] = [];
   let uploadSession: MobileUploadSession | null = null;
   let uploadedPhotos: UploadedMobilePhoto[] = [];
+  let uploadedPhotoIds: string[] = [];
   let activeController: AbortController | null = null;
   let requestId: string | undefined;
+  let canGenerate: boolean | null = null;
+  let cancellationRequested = false;
   let language = safeLanguagePreferences();
   let formatting = safeFormattingPreferences();
   let state: MobileGenerationState = { status: "idle" };
@@ -383,19 +439,42 @@ export function mountMobileWebApp(
     listeners.push(() => element.removeEventListener(event, handler));
   };
 
-  const refreshUsage = async (): Promise<void> => {
+  const applyGenerationState = (): void => {
+    setGenerationState(root, state, {
+      canGenerate: canGenerate !== false,
+      hasPhotos: photos.length > 0,
+    });
+  };
+
+  const refreshUsage = async (): Promise<MobileUsage | null> => {
+    if (disposed) return null;
     try {
       const usage = await loadUsage();
-      text(root, '[data-mobile-web="usage"]', displayUsage(usage));
+      if (disposed) return null;
+      canGenerate = usage.canGenerate !== false;
+      text(root, '[data-mobile-web="usage"]', getMobileUsageDisplay(usage));
       if (usage.canGenerate === false) {
         state = {
           status: "quota",
           message: "You have reached your current generation limit.",
         };
-        setGenerationState(root, state);
+      } else if (state.status === "quota") {
+        state = { status: "idle" };
       }
-    } catch {
-      text(root, '[data-mobile-web="usage"]', "Usage unavailable");
+      applyGenerationState();
+      return usage;
+    } catch (error) {
+      if (disposed) return null;
+      if (errorDetails(error).status === 401) {
+        session = null;
+        activeController?.abort();
+        await cleanupServerSession("cancelled");
+        clearPreviews();
+        showAuth(root);
+      } else {
+        text(root, '[data-mobile-web="usage"]', "Usage unavailable");
+      }
+      return null;
     }
   };
 
@@ -403,6 +482,13 @@ export function mountMobileWebApp(
     photos.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
     photos = [];
     renderPhotos(root, photos);
+    applyGenerationState();
+  };
+
+  const clearUploadedPhotos = (): void => {
+    revokeMobileUploadedPreviews(uploadedPhotos);
+    uploadedPhotos = [];
+    uploadedPhotoIds = [];
   };
 
   const cleanupServerSession = async (
@@ -410,18 +496,9 @@ export function mountMobileWebApp(
   ): Promise<void> => {
     const current = uploadSession;
     uploadSession = null;
-    uploadedPhotos = [];
+    clearUploadedPhotos();
     if (current)
       await cleanupUploadSession(current, phase).catch(() => undefined);
-  };
-
-  const terminalGenerationCleanup = async (
-    keepRetryable: boolean,
-  ): Promise<void> => {
-    if (!keepRetryable) {
-      await cleanupServerSession("post-generation");
-      clearPreviews();
-    }
   };
 
   const renderResult = (result: MobileGenerationResult): void => {
@@ -448,25 +525,48 @@ export function mountMobileWebApp(
       disposed ||
       !session ||
       photos.length === 0 ||
+      canGenerate === false ||
       state.status === "uploading" ||
       state.status === "generating"
     )
       return;
     activeController?.abort();
     activeController = new AbortController();
+    cancellationRequested = false;
+    const selectedPhotoIds = photos.map((photo) => photo.id);
+    const reuseUpload = Boolean(
+      requestId &&
+      uploadSession &&
+      canReuseMobileGenerationUpload(
+        selectedPhotoIds,
+        uploadedPhotoIds,
+        uploadedPhotos.length,
+      ),
+    );
     state = { status: "uploading", completed: 0, total: photos.length };
-    setGenerationState(root, state);
+    applyGenerationState();
+    let generationStarted = false;
     try {
-      uploadSession = createMobileUploadSession(session.access_token);
-      uploadedPhotos = await uploadSelectedPhotos(
-        uploadSession,
-        photos.map((photo) => photo.file),
-        activeController.signal,
-      );
-      if (disposed) return;
+      if (!reuseUpload) {
+        if (uploadSession) await cleanupServerSession("cancelled");
+        requestId = createMobileGenerationRequestId();
+        uploadSession = createMobileUploadSession(session.access_token);
+        uploadedPhotoIds = [];
+        uploadedPhotos = await uploadSelectedPhotos(
+          uploadSession,
+          photos.map((photo) => photo.file),
+          activeController.signal,
+          (progress: MobileUploadProgress) => {
+            if (disposed || cancellationRequested) return;
+            state = { status: "uploading", ...progress };
+            applyGenerationState();
+          },
+        );
+        uploadedPhotoIds = selectedPhotoIds;
+      }
+      if (disposed || cancellationRequested) return;
       state = { status: "generating" };
-      setGenerationState(root, state);
-      requestId ??= createMobileGenerationRequestId();
+      applyGenerationState();
       const input: MobileGenerationInput = {
         imageUrls: uploadedPhotos.map((photo) => photo.url),
         titleLanguageCode: language.titleLanguageCode,
@@ -474,52 +574,87 @@ export function mountMobileWebApp(
         descriptionLength: formatting.descriptionLength,
         useBulletPoints: formatting.useBulletPoints,
         requestId,
+        signal: activeController.signal,
       };
+      generationStarted = true;
       const result = await generateListing(input);
+      if (disposed || cancellationRequested) return;
       requestId = undefined;
       state = { status: "success", result };
-      setGenerationState(root, state);
+      applyGenerationState();
       renderResult(result);
-      await terminalGenerationCleanup(false);
+      await cleanupServerSession("post-generation");
+      clearPreviews();
       await refreshUsage();
     } catch (error) {
       const details = errorDetails(error);
-      const keepRetryable =
-        GENERATION_RETRY_STATUSES.has(details.status) ||
-        (details.status === 0 && details.retryable);
-      if (state.status === "uploading" && details.code === "aborted") {
+      if (disposed) return;
+      if (details.status === 401) {
+        session = null;
         await cleanupServerSession("cancelled");
-      } else if (state.status === "generating") {
-        await terminalGenerationCleanup(keepRetryable);
+        clearPreviews();
+        state = { status: "idle" };
+        showAuth(root);
+        return;
       }
-      state =
+      const cancelled = cancellationRequested || details.code === "aborted";
+      if (cancelled) {
+        await cleanupServerSession("cancelled");
+        requestId = undefined;
+        clearPreviews();
+        state = {
+          status: "error",
+          message: "Photo generation was cancelled.",
+          retryable: false,
+        };
+        applyGenerationState();
+        return;
+      }
+      const retryableGenerationError =
+        generationStarted &&
+        (GENERATION_RETRY_STATUSES.has(details.status) ||
+          (details.status === 0 && details.retryable) ||
+          (details.status === 429 &&
+            ["burst_limit", "service_unavailable"].includes(details.code)));
+      if (!retryableGenerationError) {
+        await cleanupServerSession("cancelled");
+        requestId = undefined;
+      }
+      const usage =
         details.status === 403 || details.status === 429
-          ? { status: "quota", message: details.message }
-          : {
-              status: "error",
-              message: details.message,
-              retryable: keepRetryable,
-            };
-      setGenerationState(root, state);
-      if (details.status === 403 || details.status === 429)
-        await refreshUsage();
+          ? await refreshUsage()
+          : null;
+      const isQuota =
+        (details.status === 403 || details.status === 429) &&
+        usage?.canGenerate === false;
+      state = isQuota
+        ? { status: "quota", message: details.message }
+        : {
+            status: "error",
+            message: details.message,
+            retryable: retryableGenerationError,
+          };
+      applyGenerationState();
     } finally {
       activeController = null;
-      const button = asElement<HTMLButtonElement>(
-        root,
-        '[data-mobile-web="generate"]',
-      );
-      if (button && state.status !== "quota") {
-        button.disabled = photos.length === 0;
-        button.textContent =
-          state.status === "error" && state.retryable
-            ? "Try again"
-            : "Generate listing";
+      if (!disposed) {
+        applyGenerationState();
+        const button = asElement<HTMLButtonElement>(
+          root,
+          '[data-mobile-web="generate"]',
+        );
+        if (button) {
+          button.textContent =
+            state.status === "error" && state.retryable
+              ? "Try again"
+              : "Generate listing";
+        }
       }
     }
   };
 
   const acceptFiles = (event: Event): void => {
+    if (state.status === "uploading" || state.status === "generating") return;
     const input = event.currentTarget as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     if (!files.length) return;
@@ -532,6 +667,7 @@ export function mountMobileWebApp(
     );
     input.value = "";
     renderPhotos(root, photos);
+    applyGenerationState();
   };
 
   bind(
@@ -544,13 +680,15 @@ export function mountMobileWebApp(
     "change",
     acceptFiles,
   );
-  bind(asElement(root, '[data-mobile-web="add-photo"]'), "click", () =>
+  bind(asElement(root, '[data-mobile-web="add-photo"]'), "click", () => {
+    if (state.status === "uploading" || state.status === "generating") return;
     asElement<HTMLInputElement>(
       root,
       '[data-mobile-web="gallery-input"]',
-    )?.click(),
-  );
+    )?.click();
+  });
   bind(asElement(root, '[data-mobile-web="photo-list"]'), "click", (event) => {
+    if (state.status === "uploading" || state.status === "generating") return;
     const target = event.target as HTMLElement;
     const id = target.closest<HTMLElement>("[data-photo-remove]")?.dataset
       .photoRemove;
@@ -559,19 +697,25 @@ export function mountMobileWebApp(
     if (photo) URL.revokeObjectURL(photo.previewUrl);
     photos = photos.filter((item) => item.id !== id);
     renderPhotos(root, photos);
+    applyGenerationState();
   });
   bind(
     asElement(root, '[data-mobile-web="generate"]'),
     "click",
     () => void runGeneration(),
   );
-  bind(asElement(root, '[data-mobile-web="cancel-generation"]'), "click", () =>
-    activeController?.abort(),
+  bind(
+    asElement(root, '[data-mobile-web="cancel-generation"]'),
+    "click",
+    () => {
+      cancellationRequested = true;
+      activeController?.abort();
+    },
   );
   bind(asElement(root, '[data-mobile-web="new-item"]'), "click", () => {
     setHidden(root, '[data-mobile-web="listing-result"]', true);
     state = { status: "idle" };
-    setGenerationState(root, state);
+    applyGenerationState();
     requestId = undefined;
     renderPhotos(root, photos);
   });
@@ -580,11 +724,13 @@ export function mountMobileWebApp(
     "click",
     () =>
       void signInWithGoogle().catch((error) =>
-        text(
-          root,
-          '[data-mobile-web="auth-status"]',
-          error instanceof Error ? error.message : "Google sign-in failed.",
-        ),
+        disposed
+          ? undefined
+          : text(
+              root,
+              '[data-mobile-web="auth-status"]',
+              error instanceof Error ? error.message : "Google sign-in failed.",
+            ),
       ),
   );
   bind(
@@ -597,6 +743,7 @@ export function mountMobileWebApp(
         (new FormData(form).get("email") as string | null)?.trim() ?? "";
       void requestMagicLink(email)
         .then(() => {
+          if (disposed) return;
           form.hidden = true;
           setHidden(root, '[data-mobile-web="otp-form"]', false);
           text(
@@ -606,15 +753,16 @@ export function mountMobileWebApp(
           );
           asElement<HTMLInputElement>(root, "#mobile-otp")?.focus();
         })
-        .catch((error) =>
+        .catch((error) => {
+          if (disposed) return;
           text(
             root,
             '[data-mobile-web="auth-status"]',
             error instanceof Error
               ? error.message
               : "We could not send the sign-in email.",
-          ),
-        );
+          );
+        });
     },
   );
   bind(asElement(root, '[data-mobile-web="change-email"]'), "click", () => {
@@ -630,31 +778,33 @@ export function mountMobileWebApp(
       asElement<HTMLInputElement>(root, "#mobile-email")?.value ?? "";
     void verifyEmailOtp(email, input.value)
       .then((nextSession) => {
+        if (disposed) return;
         session = nextSession;
         showApp(root);
         void refreshUsage();
       })
-      .catch((error) =>
+      .catch((error) => {
+        if (disposed) return;
         text(
           root,
           '[data-mobile-web="auth-status"]',
           error instanceof Error
             ? error.message
             : "That code could not be verified.",
-        ),
-      );
+        );
+      });
   });
-  bind(
-    asElement(root, '[data-mobile-web="sign-out"]'),
-    "click",
-    () =>
-      void signOutBrowser().then(() => {
-        session = null;
-        void cleanupServerSession("cancelled");
-        clearPreviews();
-        showAuth(root);
-      }),
-  );
+  bind(asElement(root, '[data-mobile-web="sign-out"]'), "click", () => {
+    cancellationRequested = true;
+    activeController?.abort();
+    void signOutBrowser().then(() => {
+      if (disposed) return;
+      session = null;
+      void cleanupServerSession("cancelled");
+      clearPreviews();
+      showAuth(root);
+    });
+  });
   bind(asElement(root, '[data-mobile-web="state-action"]'), "click", () =>
     showAuth(root),
   );
@@ -714,11 +864,12 @@ export function mountMobileWebApp(
   updateLanguageControls(root, language);
   updateFormattingControls(root, formatting);
   renderPhotos(root, photos);
-  setGenerationState(root, state);
+  applyGenerationState();
 
   const start = async (): Promise<void> => {
     try {
       session = await getBrowserSession();
+      if (disposed) return;
       if (!session) {
         showAuth(root);
         return;
@@ -726,6 +877,7 @@ export function mountMobileWebApp(
       showApp(root);
       await refreshUsage();
     } catch {
+      if (disposed) return;
       showState(
         root,
         "We could not restore your session",
@@ -739,6 +891,7 @@ export function mountMobileWebApp(
   const cleanup = (): void => {
     if (disposed) return;
     disposed = true;
+    cancellationRequested = true;
     activeController?.abort();
     void cleanupServerSession("cancelled");
     clearPreviews();

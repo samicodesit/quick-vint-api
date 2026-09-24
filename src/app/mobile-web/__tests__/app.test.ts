@@ -11,6 +11,9 @@ import {
   revokeMobileUploadedPreviews,
   closeMobileLanguageMenus,
   toggleMobileLanguageMenu,
+  toggleMobileProfileMenu,
+  getMobilePhotoLayoutState,
+  getMobileGenerateButtonState,
   mountMobileWebApp,
 } from "../app.js";
 
@@ -222,6 +225,33 @@ describe("mobile web app state helpers", () => {
     );
   });
 
+  it("opens and closes the account menu through its trigger state", () => {
+    const trigger = { setAttribute: vi.fn() };
+    const menu = { hidden: true };
+    const root = {
+      querySelector: vi.fn((selector: string) => {
+        if (selector === '[data-mobile-web="profile-menu-trigger"]')
+          return trigger;
+        if (selector === '[data-mobile-web="profile-menu"]') return menu;
+        return null;
+      }),
+    } as unknown as ParentNode;
+
+    toggleMobileProfileMenu(root);
+    expect(menu.hidden).toBe(false);
+    expect(trigger.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "true",
+    );
+
+    toggleMobileProfileMenu(root);
+    expect(menu.hidden).toBe(true);
+    expect(trigger.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "false",
+    );
+  });
+
   it("summarizes the free lifetime quota and keeps credits separate", () => {
     expect(
       getMobileUsageSummary({
@@ -240,6 +270,7 @@ describe("mobile web app state helpers", () => {
       tier: "free",
       headline: "3 of 5 listings remaining",
       credits: 5,
+      free: { used: 2, remaining: 3, limit: 5 },
       daily: null,
       monthly: null,
     });
@@ -262,8 +293,8 @@ describe("mobile web app state helpers", () => {
       tier: "paid",
       headline: "Usage",
       credits: 4,
-      daily: { remaining: 2, limit: 10, unlimited: false },
-      monthly: { remaining: 20, limit: 50, unlimited: false },
+      daily: { used: 8, remaining: 2, limit: 10, unlimited: false },
+      monthly: { used: 30, remaining: 20, limit: 50, unlimited: false },
     });
     expect(summary).not.toHaveProperty("minute");
   });
@@ -276,7 +307,12 @@ describe("mobile web app state helpers", () => {
         remaining: { daily: null, monthly: 68, minute: 1, packCredits: 0 },
         canGenerate: true,
       }).daily,
-    ).toMatchObject({ remaining: null, limit: null, unlimited: true });
+    ).toMatchObject({
+      used: null,
+      remaining: null,
+      limit: null,
+      unlimited: true,
+    });
   });
 
   it("renders the free quota and conditional credits through the usage selectors", () => {
@@ -296,7 +332,7 @@ describe("mobile web app state helpers", () => {
     expect(elements.get('[data-mobile-web="usage-paid"]')?.hidden).toBe(true);
     expect(
       elements.get('[data-mobile-web="usage-free-value"]')?.textContent,
-    ).toBe("3 of 5 listings remaining");
+    ).toBe("2 / 5");
     expect(elements.get('[data-mobile-web="usage-credits"]')?.hidden).toBe(
       false,
     );
@@ -325,16 +361,16 @@ describe("mobile web app state helpers", () => {
     );
     expect(
       elements.get('[data-mobile-web="usage-daily-value"]')?.textContent,
-    ).toBe("2 of 10");
+    ).toBe("8 / 10");
     expect(
       elements.get('[data-mobile-web="usage-monthly-value"]')?.textContent,
-    ).toBe("20 of 50");
+    ).toBe("30 / 50");
     expect(
       elements.get('[data-mobile-web="usage-daily-progress"]')?.style.width,
-    ).toBe("20%");
+    ).toBe("80%");
     expect(
       elements.get('[data-mobile-web="usage-monthly-progress"]')?.style.width,
-    ).toBe("40%");
+    ).toBe("60%");
     expect(elements.get('[data-mobile-web="usage-daily-track"]')?.hidden).toBe(
       false,
     );
@@ -399,6 +435,45 @@ describe("mobile web app state helpers", () => {
     expect(canReuseMobileGenerationUpload(["photo-a"], ["photo-a"], 0)).toBe(
       false,
     );
+  });
+
+  it("switches between the empty photo state and the compact populated rail", () => {
+    expect(getMobilePhotoLayoutState(0)).toEqual({
+      hasPhotos: false,
+      showEmptyState: true,
+      showPhotoRail: false,
+      countLabel: "No photos yet",
+    });
+    expect(getMobilePhotoLayoutState(3)).toEqual({
+      hasPhotos: true,
+      showEmptyState: false,
+      showPhotoRail: true,
+      countLabel: "3 photos selected",
+    });
+  });
+
+  it("keeps the generate CTA disabled with a useful helper until it can run", () => {
+    expect(
+      getMobileGenerateButtonState({
+        status: "idle",
+        canGenerate: true,
+        hasPhotos: false,
+      }),
+    ).toEqual({ disabled: true, helper: "Add at least one photo to continue" });
+    expect(
+      getMobileGenerateButtonState({
+        status: "idle",
+        canGenerate: true,
+        hasPhotos: true,
+      }),
+    ).toEqual({ disabled: false, helper: "" });
+    expect(
+      getMobileGenerateButtonState({
+        status: "generating",
+        canGenerate: true,
+        hasPhotos: true,
+      }),
+    ).toEqual({ disabled: true, helper: "" });
   });
 
   it("releases prepared preview URLs when upload artifacts are discarded", () => {

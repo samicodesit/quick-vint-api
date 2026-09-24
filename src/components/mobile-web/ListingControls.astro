@@ -30,9 +30,6 @@ const descriptionLanguage =
 <section class="mobile-listing-controls" data-mobile-listing-controls>
   <div class="mobile-listing-language-grid">
     <div class="mobile-listing-control" data-mobile-language-control="title">
-      <label class="mobile-listing-control-label" for="mobile-title-language-trigger">
-        Title language
-      </label>
       <button
         id="mobile-title-language-trigger"
         type="button"
@@ -42,18 +39,19 @@ const descriptionLanguage =
         aria-controls="mobile-title-language-menu"
         aria-haspopup="listbox"
         aria-expanded="false"
+        aria-label="Title language"
       >
         <span class="mobile-language-trigger-value">
-          <img
-            src={getMobileLanguageFlagUrl(titleLanguage)}
-            srcset={`${getMobileLanguageFlagUrl(titleLanguage)} 1x`}
-            width="20"
-            height="15"
-            alt=""
-            referrerpolicy="no-referrer"
-            class="mobile-language-flag"
-          />
-          <span data-mobile-language-label="title">{titleLanguage.label}</span>
+          <span class="mobile-language-globe" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" />
+              <path d="M3.75 12h16.5M12 3.5c2.1 2.35 3.15 5.18 3.15 8.5S14.1 18.15 12 20.5C9.9 18.15 8.85 15.32 8.85 12S9.9 5.85 12 3.5Z" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="mobile-language-trigger-copy">
+            <span class="mobile-listing-control-label">Title</span>
+            <span data-mobile-language-label="title">{titleLanguage.label}</span>
+          </span>
         </span>
         <svg class="mobile-language-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -100,9 +98,6 @@ const descriptionLanguage =
     </div>
 
     <div class="mobile-listing-control" data-mobile-language-control="description">
-      <label class="mobile-listing-control-label" for="mobile-description-language-trigger">
-        Description language
-      </label>
       <button
         id="mobile-description-language-trigger"
         type="button"
@@ -112,18 +107,19 @@ const descriptionLanguage =
         aria-controls="mobile-description-language-menu"
         aria-haspopup="listbox"
         aria-expanded="false"
+        aria-label="Description language"
       >
         <span class="mobile-language-trigger-value">
-          <img
-            src={getMobileLanguageFlagUrl(descriptionLanguage)}
-            srcset={`${getMobileLanguageFlagUrl(descriptionLanguage)} 1x`}
-            width="20"
-            height="15"
-            alt=""
-            referrerpolicy="no-referrer"
-            class="mobile-language-flag"
-          />
-          <span data-mobile-language-label="description">{descriptionLanguage.label}</span>
+          <span class="mobile-language-globe" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" />
+              <path d="M3.75 12h16.5M12 3.5c2.1 2.35 3.15 5.18 3.15 8.5S14.1 18.15 12 20.5C9.9 18.15 8.85 15.32 8.85 12S9.9 5.85 12 3.5Z" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="mobile-language-trigger-copy">
+            <span class="mobile-listing-control-label">Description</span>
+            <span data-mobile-language-label="description">{descriptionLanguage.label}</span>
+          </span>
         </span>
         <svg class="mobile-language-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -177,6 +173,9 @@ const descriptionLanguage =
     aria-haspopup="dialog"
     aria-expanded="false"
   >
+    <span class="mobile-format-summary-icon format-icon format-icon-para" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </span>
     <span class="mobile-format-summary-copy">
       <span class="mobile-listing-control-label">Description style</span>
       <span data-mobile-format-summary>

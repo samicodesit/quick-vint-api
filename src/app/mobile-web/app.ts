@@ -88,7 +88,33 @@ function text(root: ParentNode, selector: string, value: string): void {
   if (element) element.textContent = value;
 }
 
+function setGenerateButtonLabel(root: ParentNode, label: string): void {
+  const button = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="generate"]',
+  );
+  if (!button) return;
+  const labelElement = button.querySelector<HTMLElement>(
+    ".mobile-generate-button-label",
+  );
+  if (labelElement) {
+    labelElement.textContent = label;
+  } else {
+    button.textContent = label;
+  }
+}
+
 function setHidden(root: ParentNode, selector: string, hidden: boolean): void {
+  const elements =
+    typeof root.querySelectorAll === "function"
+      ? Array.from(root.querySelectorAll<HTMLElement>(selector))
+      : [];
+  if (elements.length) {
+    elements.forEach((element) => {
+      element.hidden = hidden;
+    });
+    return;
+  }
   const element = asElement<HTMLElement>(root, selector);
   if (element) element.hidden = hidden;
 }
@@ -130,6 +156,28 @@ export function toggleMobileLanguageMenu(
 
   menu.hidden = false;
   trigger.setAttribute("aria-expanded", "true");
+}
+
+export function toggleMobileProfileMenu(root: ParentNode): void {
+  const menu = asElement<HTMLElement>(root, '[data-mobile-web="profile-menu"]');
+  const trigger = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="profile-menu-trigger"]',
+  );
+  if (!menu || !trigger) return;
+  const nextOpen = menu.hidden;
+  menu.hidden = !nextOpen;
+  trigger.setAttribute("aria-expanded", String(nextOpen));
+}
+
+function closeMobileProfileMenu(root: ParentNode): void {
+  const menu = asElement<HTMLElement>(root, '[data-mobile-web="profile-menu"]');
+  const trigger = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="profile-menu-trigger"]',
+  );
+  if (menu) menu.hidden = true;
+  trigger?.setAttribute("aria-expanded", "false");
 }
 
 type CheckoutReturnStatus = "success" | "cancel" | "manage";
@@ -219,16 +267,24 @@ function safeFormattingPreferences(): FormattingPreferences {
 }
 
 export interface MobileUsageQuotaRow {
+  used: number | null;
   remaining: number | null;
   limit: number | null;
   resetAt: string | null;
   unlimited: boolean;
 }
 
+export interface MobileFreeQuota {
+  used: number | null;
+  remaining: number | null;
+  limit: number | null;
+}
+
 export interface MobileUsageSummary {
   tier: "free" | "paid";
   headline: string;
   credits: number;
+  free: MobileFreeQuota | null;
   daily: MobileUsageQuotaRow | null;
   monthly: MobileUsageQuotaRow | null;
 }
@@ -248,8 +304,16 @@ function quotaRow(
   key: "daily" | "monthly",
 ): MobileUsageQuotaRow {
   const limit = numericValue(limits, key);
-  const value = numericValue(remaining, key);
+  const aliases = key === "daily" ? ["daily", "day"] : ["monthly", "month"];
+  const value = aliases.reduce<number | null>(
+    (found, alias) => found ?? numericValue(remaining, alias),
+    null,
+  );
   return {
+    used:
+      limit !== null && value !== null
+        ? Math.max(0, Math.min(limit, limit - value))
+        : null,
     remaining: value,
     limit,
     resetAt: typeof resetsAt?.[key] === "string" ? resetsAt[key] : null,
@@ -267,6 +331,16 @@ export function getMobileUsageSummary(usage: MobileUsage): MobileUsageSummary {
   const freeRemaining = numericValue(remaining, "freeLifetime");
   const freeLimit = numericValue(limits, "freeLifetime");
   const credits = Math.max(0, numericValue(remaining, "packCredits") ?? 0);
+  const free: MobileFreeQuota | null = isFree
+    ? {
+        used:
+          freeLimit !== null && freeRemaining !== null
+            ? Math.max(0, Math.min(freeLimit, freeLimit - freeRemaining))
+            : null,
+        remaining: freeRemaining,
+        limit: freeLimit,
+      }
+    : null;
 
   return {
     tier: isFree ? "free" : "paid",
@@ -280,6 +354,7 @@ export function getMobileUsageSummary(usage: MobileUsage): MobileUsageSummary {
             : "Free plan"
       : "Usage",
     credits,
+    free,
     daily: isFree ? null : quotaRow(remaining, limits, resetsAt, "daily"),
     monthly: isFree ? null : quotaRow(remaining, limits, resetsAt, "monthly"),
   };
@@ -290,15 +365,15 @@ export function getMobileUsageDisplay(usage: MobileUsage): string {
 }
 
 function formatQuotaValue(
-  row: MobileUsageQuotaRow,
+  row:
+    | Pick<MobileUsageQuotaRow, "used" | "remaining" | "limit" | "unlimited">
+    | MobileFreeQuota,
   kind: "daily" | "monthly",
 ): string {
-  if (row.unlimited)
+  if ("unlimited" in row && row.unlimited)
     return kind === "daily" ? "No daily cap" : "No monthly cap";
-  if (row.remaining === null) return "Unavailable";
-  return row.limit === null
-    ? `${row.remaining} left`
-    : `${row.remaining} of ${row.limit}`;
+  if (row.used === null || row.limit === null) return "Unavailable";
+  return `${row.used} / ${row.limit}`;
 }
 
 function setUsageProgress(
@@ -321,21 +396,37 @@ function setUsageProgress(
   );
   if (!track || !fill) return;
   const progress =
-    row.limit !== null && row.limit > 0 && row.remaining !== null
-      ? Math.max(0, Math.min(100, (row.remaining / row.limit) * 100))
+    row.limit !== null && row.limit > 0 && row.used !== null
+      ? Math.max(0, Math.min(100, (row.used / row.limit) * 100))
       : 0;
-  track.hidden = row.unlimited || row.limit === null || row.remaining === null;
+  track.hidden = row.unlimited || row.limit === null || row.used === null;
   fill.style.width = `${progress}%`;
 }
 
 export function renderMobileUsage(root: ParentNode, usage: MobileUsage): void {
   const summary = getMobileUsageSummary(usage);
   setHidden(root, '[data-mobile-web="usage-headline"]', true);
-  text(root, '[data-mobile-web="usage-free-value"]', summary.headline);
+  text(
+    root,
+    '[data-mobile-web="usage-free-value"]',
+    summary.free ? formatQuotaValue(summary.free, "daily") : "",
+  );
   setHidden(root, '[data-mobile-web="usage-free"]', summary.tier !== "free");
   setHidden(root, '[data-mobile-web="usage-paid"]', summary.tier !== "paid");
   setHidden(root, '[data-mobile-web="usage-credits"]', summary.credits <= 0);
   text(root, '[data-mobile-web="usage-credits-value"]', `${summary.credits}`);
+  const usageCard = asElement<HTMLElement>(root, '[data-mobile-web="usage"]');
+  if (usageCard) {
+    usageCard.dataset.columns =
+      summary.tier === "free"
+        ? summary.credits > 0
+          ? "2"
+          : "1"
+        : summary.credits > 0
+          ? "3"
+          : "2";
+    usageCard.dataset.tier = summary.tier;
+  }
   if (summary.daily) setUsageProgress(root, "daily", summary.daily);
   if (summary.monthly) setUsageProgress(root, "monthly", summary.monthly);
 }
@@ -346,6 +437,11 @@ export function clearMobileUsage(root: ParentNode): void {
   setHidden(root, '[data-mobile-web="usage-free"]', true);
   setHidden(root, '[data-mobile-web="usage-paid"]', true);
   setHidden(root, '[data-mobile-web="usage-credits"]', true);
+  const usageCard = asElement<HTMLElement>(root, '[data-mobile-web="usage"]');
+  if (usageCard) {
+    delete usageCard.dataset.columns;
+    delete usageCard.dataset.tier;
+  }
   for (const kind of ["daily", "monthly"] as const) {
     text(root, `[data-mobile-web="usage-${kind}-value"]`, "");
     const track = asElement<HTMLElement>(
@@ -472,13 +568,12 @@ function setGenerationState(
     root,
     '[data-mobile-web="generate"]',
   );
-  if (generateButton)
-    generateButton.disabled =
-      state.status === "uploading" ||
-      state.status === "generating" ||
-      state.status === "quota" ||
-      options.canGenerate === false ||
-      options.hasPhotos === false;
+  const buttonState = getMobileGenerateButtonState({
+    status: state.status,
+    canGenerate: options.canGenerate !== false,
+    hasPhotos: options.hasPhotos !== false,
+  });
+  if (generateButton) generateButton.disabled = buttonState.disabled;
   const editingDisabled =
     state.status === "uploading" || state.status === "generating";
   root
@@ -505,11 +600,70 @@ function setGenerationState(
   } else {
     text(root, '[data-mobile-web="generation-status"]', "");
   }
+  text(root, '[data-mobile-web="generation-helper"]', buttonState.helper);
+}
+
+export interface MobilePhotoLayoutState {
+  hasPhotos: boolean;
+  showEmptyState: boolean;
+  showPhotoRail: boolean;
+  countLabel: string;
+}
+
+export function getMobilePhotoLayoutState(
+  count: number,
+): MobilePhotoLayoutState {
+  const photoCount = Math.max(0, Math.floor(count));
+  return {
+    hasPhotos: photoCount > 0,
+    showEmptyState: photoCount === 0,
+    showPhotoRail: photoCount > 0,
+    countLabel:
+      photoCount > 0
+        ? `${photoCount} photo${photoCount === 1 ? "" : "s"} selected`
+        : "No photos yet",
+  };
+}
+
+export interface MobileGenerateButtonInput {
+  status: MobileGenerationState["status"];
+  canGenerate: boolean;
+  hasPhotos: boolean;
+}
+
+export interface MobileGenerateButtonState {
+  disabled: boolean;
+  helper: string;
+}
+
+export function getMobileGenerateButtonState(
+  input: MobileGenerateButtonInput,
+): MobileGenerateButtonState {
+  const disabled =
+    input.status === "uploading" ||
+    input.status === "generating" ||
+    input.status === "quota" ||
+    !input.canGenerate ||
+    !input.hasPhotos;
+  return {
+    disabled,
+    helper:
+      !input.hasPhotos && input.status === "idle"
+        ? "Add at least one photo to continue"
+        : "",
+  };
 }
 
 function renderPhotos(root: ParentNode, photos: SelectedPhoto[]): void {
   const list = asElement<HTMLElement>(root, '[data-mobile-web="photo-list"]');
   if (!list) return;
+  const layout = getMobilePhotoLayoutState(photos.length);
+  const emptyState = asElement<HTMLElement>(
+    root,
+    '[data-mobile-web="photo-empty-state"]',
+  );
+  if (emptyState) emptyState.hidden = !layout.showEmptyState;
+  list.hidden = !layout.showPhotoRail;
   list.querySelectorAll("[data-photo-id]").forEach((item) => item.remove());
   const addButton = list.querySelector('[data-mobile-web="add-photo"]');
   photos.forEach((photo, index) => {
@@ -531,13 +685,7 @@ function renderPhotos(root: ParentNode, photos: SelectedPhoto[]): void {
     if (addButton) list.insertBefore(tile, addButton);
     else list.append(tile);
   });
-  text(
-    root,
-    '[data-mobile-web="photo-count"]',
-    photos.length
-      ? `${photos.length} photo${photos.length === 1 ? "" : "s"} selected`
-      : "No photos yet",
-  );
+  text(root, '[data-mobile-web="photo-count"]', layout.countLabel);
   const generateButton = asElement<HTMLButtonElement>(
     root,
     '[data-mobile-web="generate"]',
@@ -625,9 +773,11 @@ function updateFormattingControls(
 }
 
 function showAuth(root: ParentNode): void {
+  closeMobileProfileMenu(root);
   setHidden(root, '[data-mobile-web="auth-card"]', false);
   setHidden(root, '[data-mobile-web="app-view"]', true);
   setHidden(root, '[data-mobile-web="state-card"]', true);
+  setHidden(root, '[data-mobile-web="profile-menu-root"]', true);
   setHidden(root, '[data-mobile-web="sign-out"]', true);
   setHidden(root, '[data-mobile-web="usage"]', true);
   setHidden(root, '[data-mobile-web="upgrade"]', true);
@@ -635,9 +785,11 @@ function showAuth(root: ParentNode): void {
 }
 
 function showApp(root: ParentNode): void {
+  closeMobileProfileMenu(root);
   setHidden(root, '[data-mobile-web="auth-card"]', true);
   setHidden(root, '[data-mobile-web="app-view"]', false);
   setHidden(root, '[data-mobile-web="state-card"]', true);
+  setHidden(root, '[data-mobile-web="profile-menu-root"]', false);
   setHidden(root, '[data-mobile-web="sign-out"]', false);
   setHidden(root, '[data-mobile-web="usage"]', false);
 }
@@ -648,9 +800,11 @@ function showState(
   copy: string,
   action?: string,
 ): void {
+  closeMobileProfileMenu(root);
   setHidden(root, '[data-mobile-web="auth-card"]', true);
   setHidden(root, '[data-mobile-web="app-view"]', true);
   setHidden(root, '[data-mobile-web="state-card"]', false);
+  setHidden(root, '[data-mobile-web="profile-menu-root"]', true);
   text(root, '[data-mobile-web="state-title"]', title);
   text(root, '[data-mobile-web="state-copy"]', copy);
   const button = asElement<HTMLButtonElement>(
@@ -959,10 +1113,12 @@ export function mountMobileWebApp(
           '[data-mobile-web="generate"]',
         );
         if (button) {
-          button.textContent =
+          setGenerateButtonLabel(
+            root,
             state.status === "error" && state.retryable
               ? "Try again"
-              : "Generate listing";
+              : "Generate listing",
+          );
         }
       }
     }
@@ -1002,6 +1158,17 @@ export function mountMobileWebApp(
       '[data-mobile-web="gallery-input"]',
     )?.click();
   });
+  bind(
+    asElement(root, '[data-mobile-web="photo-empty-state"]'),
+    "click",
+    () => {
+      if (state.status === "uploading" || state.status === "generating") return;
+      asElement<HTMLInputElement>(
+        root,
+        '[data-mobile-web="gallery-input"]',
+      )?.click();
+    },
+  );
   bind(asElement(root, '[data-mobile-web="photo-list"]'), "click", (event) => {
     if (state.status === "uploading" || state.status === "generating") return;
     const target = event.target as HTMLElement;
@@ -1109,6 +1276,21 @@ export function mountMobileWebApp(
       countryCode: vintedDestination.countryCode,
     });
   });
+  const profileMenuRoot = asElement<HTMLElement>(
+    root,
+    '[data-mobile-web="profile-menu-root"]',
+  );
+  const profileMenuTrigger = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="profile-menu-trigger"]',
+  );
+  bind(profileMenuTrigger, "click", () => toggleMobileProfileMenu(root));
+  if (typeof document !== "undefined" && profileMenuRoot) {
+    bind(document, "click", (event) => {
+      if (!profileMenuRoot.contains(event.target as Node))
+        closeMobileProfileMenu(root);
+    });
+  }
   bind(asElement(root, '[data-mobile-web="upgrade"]'), "click", (event) => {
     const button = event.currentTarget as HTMLButtonElement;
     const tier = button.dataset.tier ?? "starter";

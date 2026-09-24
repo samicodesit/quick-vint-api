@@ -20,6 +20,16 @@ const { photos = [], editable = true, compact = false } = Astro.props;
   data-mobile-web="photo-rail"
   aria-label="Selected photos"
 >
+  <button type="button" class="photo-empty-state" data-mobile-web="photo-empty-state">
+    <span class="photo-empty-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M5.25 8.25h2.1l1.4-2h6.5l1.4 2h2.1c.83 0 1.5.67 1.5 1.5v8.5c0 .83-.67 1.5-1.5 1.5h-13.5c-.83 0-1.5-.67-1.5-1.5v-8.5c0-.83.67-1.5 1.5-1.5Z" fill="currentColor" />
+        <circle cx="12" cy="14" r="3.15" fill="var(--mobile-brand)" />
+      </svg>
+    </span>
+    <strong>Add photos of your item</strong>
+    <span>Tap to take a photo or choose from your gallery</span>
+  </button>
   <div class="photo-rail-scroll" data-mobile-web="photo-list" role="list">
     {photos.map((photo, index) => (
       <div class="photo-tile" data-photo-id={photo.id} data-status={photo.status ?? "ready"} role="listitem">
@@ -57,6 +67,54 @@ const { photos = [], editable = true, compact = false } = Astro.props;
     min-width: 0;
   }
 
+  .photo-empty-state {
+    display: grid;
+    place-items: center;
+    gap: 7px;
+    width: 100%;
+    min-height: 194px;
+    padding: 20px 16px;
+    border: 1.5px dashed #b8b9ec;
+    border-radius: 14px;
+    background: #fbfbff;
+    color: var(--mobile-ink);
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .photo-empty-state:hover {
+    border-color: var(--mobile-brand);
+    background: #f7f7ff;
+  }
+
+  .photo-empty-state strong {
+    margin-top: 4px;
+    color: var(--mobile-ink);
+    font-size: 16px;
+    letter-spacing: -0.025em;
+  }
+
+  .photo-empty-state > span:last-child {
+    color: var(--mobile-muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .photo-empty-icon {
+    display: grid;
+    place-items: center;
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: #f0f1ff;
+    color: var(--mobile-brand);
+  }
+
+  .photo-empty-icon svg {
+    width: 34px;
+    height: 34px;
+  }
+
   .photo-rail-scroll {
     display: flex;
     align-items: center;
@@ -66,6 +124,10 @@ const { photos = [], editable = true, compact = false } = Astro.props;
     overscroll-behavior-inline: contain;
     padding: 4px 2px 8px;
     scrollbar-width: thin;
+  }
+
+  .photo-rail-scroll[hidden] {
+    display: none;
   }
 
   .photo-tile,
@@ -180,6 +242,12 @@ const { photos = [], editable = true, compact = false } = Astro.props;
     .photo-tile,
     .photo-add { flex-basis: 76px; width: 76px; height: 76px; }
     .photo-rail-scroll { min-height: 86px; }
+  }
+
+  @media (max-width: 380px) {
+    .photo-empty-state {
+      min-height: 178px;
+    }
   }
 
   .mobile-photo-rail.is-compact .photo-rail-scroll {

@@ -11,6 +11,10 @@ const photoRail = readFileSync(
   "src/components/mobile-web/PhotoRail.astro",
   "utf8",
 );
+const listingControls = readFileSync(
+  "src/components/mobile-web/ListingControls.astro",
+  "utf8",
+);
 
 describe("mobile web launch contract", () => {
   it("mounts the shared workspace only for the exact enabled build flag", () => {
@@ -82,6 +86,35 @@ describe("mobile web launch contract", () => {
     ]) {
       expect(workspaceShell).toContain(selector);
     }
+  });
+
+  it("keeps the authenticated shell selectors needed by the mobile workspace behavior", () => {
+    for (const selector of [
+      'data-mobile-web="profile-menu-trigger"',
+      'data-mobile-web="profile-menu"',
+      'data-mobile-web="camera-input"',
+      'data-mobile-web="gallery-input"',
+      'data-mobile-web="generate"',
+      'data-mobile-web="generation-status"',
+    ]) {
+      expect(workspaceShell).toContain(selector);
+    }
+    expect(photoRail).toContain('data-mobile-web="photo-empty-state"');
+    expect(photoRail).toContain('data-mobile-web="photo-list"');
+    expect(listingControls).toContain('data-mobile-language-trigger="title"');
+    expect(listingControls).toContain(
+      'data-mobile-language-trigger="description"',
+    );
+    expect(listingControls).toContain("data-mobile-format-sheet-trigger");
+  });
+
+  it("uses the compact brand treatment for the quota strip and photo actions", () => {
+    expect(stylesheet).toContain(
+      "grid-template-columns: repeat(3, minmax(0, 1fr))",
+    );
+    expect(photoRail).toContain("border: 1.5px dashed");
+    expect(stylesheet).toContain("background: var(--mobile-brand)");
+    expect(stylesheet).toContain("position: sticky");
   });
 
   it("leaves enough mobile scroll clearance for the sticky generation panel", () => {

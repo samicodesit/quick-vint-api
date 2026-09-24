@@ -17,10 +17,37 @@ const {
 <div class="mobile-workspace-shell" data-mobile-web="workspace" data-state="loading">
   <header class="mobile-workspace-header">
     <a class="mobile-workspace-brand" href="/" aria-label="AutoLister home">AutoLister</a>
-    <div class="mobile-workspace-header-actions">
-      <button type="button" class="mobile-sign-out" data-mobile-web="sign-out" hidden>Sign out</button>
-      <button type="button" class="mobile-text-button" data-mobile-web="upgrade" data-tier="starter" hidden>Upgrade</button>
-      <button type="button" class="mobile-text-button" data-mobile-web="manage-billing" hidden>Manage plan</button>
+    <div class="mobile-workspace-header-actions" data-mobile-web="profile-menu-root" hidden>
+      <button
+        type="button"
+        class="mobile-profile-menu-trigger"
+        data-mobile-web="profile-menu-trigger"
+        aria-controls="mobile-profile-menu"
+        aria-expanded="false"
+        aria-haspopup="menu"
+        aria-label="Account menu"
+      >
+        <span class="mobile-profile-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="3.25" fill="currentColor" />
+            <path d="M5.75 19.25c.55-3.2 2.56-4.8 6.25-4.8s5.7 1.6 6.25 4.8" fill="currentColor" />
+          </svg>
+        </span>
+        <svg class="mobile-profile-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m7 9 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <div
+        id="mobile-profile-menu"
+        class="mobile-profile-menu"
+        data-mobile-web="profile-menu"
+        role="menu"
+        hidden
+      >
+        <button type="button" class="mobile-profile-menu-item" data-mobile-web="upgrade" data-tier="starter" hidden role="menuitem">Upgrade</button>
+        <button type="button" class="mobile-profile-menu-item" data-mobile-web="manage-billing" hidden role="menuitem">Manage plan</button>
+        <button type="button" class="mobile-profile-menu-item" data-mobile-web="sign-out" hidden role="menuitem">Sign out</button>
+      </div>
     </div>
   </header>
 
@@ -54,41 +81,34 @@ const {
           <p class="mobile-eyebrow">New listing</p>
           <h1 id="mobile-app-title">What are you selling?</h1>
         </div>
-        <p class="mobile-app-subtitle">Add every photo of one item.</p>
       </div>
 
       <section class="mobile-usage-card" data-mobile-web="usage" aria-label="Usage" aria-live="polite" hidden>
-        <div class="mobile-usage-card-header">
-          <span class="mobile-usage-label">Usage</span>
-          <strong data-mobile-web="usage-headline" hidden></strong>
-        </div>
-        <div class="mobile-usage-free" data-mobile-web="usage-free" hidden>
-          <span data-mobile-web="usage-free-value"></span>
-        </div>
-        <div class="mobile-usage-paid" data-mobile-web="usage-paid" hidden>
-          <div class="mobile-usage-row">
-            <div class="mobile-usage-row-top">
-              <span>Today</span>
-              <strong data-mobile-web="usage-daily-value"></strong>
-            </div>
-            <div class="mobile-usage-track" data-mobile-web="usage-daily-track" aria-hidden="true">
+        <div class="mobile-usage-grid">
+          <div class="mobile-usage-cell" data-mobile-web="usage-paid">
+            <span class="mobile-usage-label">Day</span>
+            <strong data-mobile-web="usage-daily-value"></strong>
+            <span class="mobile-usage-track" data-mobile-web="usage-daily-track" aria-hidden="true">
               <span data-mobile-web="usage-daily-progress"></span>
-            </div>
+            </span>
           </div>
-          <div class="mobile-usage-row">
-            <div class="mobile-usage-row-top">
-              <span>This month</span>
-              <strong data-mobile-web="usage-monthly-value"></strong>
-            </div>
-            <div class="mobile-usage-track" data-mobile-web="usage-monthly-track" aria-hidden="true">
+          <div class="mobile-usage-cell" data-mobile-web="usage-paid">
+            <span class="mobile-usage-label">Month</span>
+            <strong data-mobile-web="usage-monthly-value"></strong>
+            <span class="mobile-usage-track" data-mobile-web="usage-monthly-track" aria-hidden="true">
               <span data-mobile-web="usage-monthly-progress"></span>
-            </div>
+            </span>
+          </div>
+          <div class="mobile-usage-cell mobile-usage-free" data-mobile-web="usage-free" hidden>
+            <span class="mobile-usage-label">Free</span>
+            <strong data-mobile-web="usage-free-value"></strong>
+          </div>
+          <div class="mobile-usage-cell" data-mobile-web="usage-credits">
+            <span class="mobile-usage-label">Extra</span>
+            <strong data-mobile-web="usage-credits-value">0</strong>
           </div>
         </div>
-        <div class="mobile-usage-credits" data-mobile-web="usage-credits" hidden>
-          <span>Extra credits</span>
-          <strong data-mobile-web="usage-credits-value">0</strong>
-        </div>
+        <strong class="mobile-usage-unavailable" data-mobile-web="usage-headline" hidden></strong>
       </section>
 
       <section class="mobile-upload-card" data-mobile-web="upload-card" aria-labelledby="mobile-upload-title">
@@ -103,11 +123,20 @@ const {
         <div class="mobile-photo-actions">
           <label class="mobile-photo-action">
             <input type="file" accept="image/*" capture="environment" data-mobile-web="camera-input" />
-            <span aria-hidden="true">⌾</span> Take photo
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5.25 8.25h2.1l1.4-2h6.5l1.4 2h2.1c.83 0 1.5.67 1.5 1.5v8.5c0 .83-.67 1.5-1.5 1.5h-13.5c-.83 0-1.5-.67-1.5-1.5v-8.5c0-.83.67-1.5 1.5-1.5Z" fill="currentColor" />
+              <circle cx="12" cy="14" r="3.15" fill="var(--mobile-brand)" />
+            </svg>
+            Take photo
           </label>
           <label class="mobile-photo-action">
             <input type="file" accept="image/*" multiple data-mobile-web="gallery-input" />
-            <span aria-hidden="true">＋</span> Choose from gallery
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4.25" y="4.75" width="15.5" height="14.5" rx="2" stroke="currentColor" stroke-width="2" />
+              <circle cx="9" cy="9.5" r="1.5" fill="currentColor" />
+              <path d="m6.75 16 3.3-3.4 2.35 2.35 1.6-1.65 3.25 2.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Choose from gallery
           </label>
         </div>
       </section>
@@ -129,7 +158,13 @@ const {
           <button type="button" class="mobile-text-button" data-mobile-web="cancel-generation">Cancel</button>
         </div>
         <p class="mobile-generation-status" data-mobile-web="generation-status" role="status"></p>
-        <button type="button" class="mobile-primary-button mobile-generate-button" data-mobile-web="generate" disabled>Generate listing</button>
+        <button type="button" class="mobile-primary-button mobile-generate-button" data-mobile-web="generate" disabled>
+          <svg class="mobile-generate-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m12 3 1.45 6.1L19 12l-5.55 2.9L12 21l-1.45-6.1L5 12l5.55-2.9L12 3Z" fill="currentColor" />
+          </svg>
+          <span class="mobile-generate-button-label">Generate listing</span>
+        </button>
+        <p class="mobile-generation-helper" data-mobile-web="generation-helper">Add at least one photo to continue</p>
       </section>
 
       <ListingResult />

@@ -144,10 +144,23 @@ describe("mobile web launch contract", () => {
     expect(stylesheet).toContain("color: #4a50a2");
   });
 
-  it("uses the existing list icon in the compact description-style summary", () => {
+  it("reuses the extension paragraph icon markup in the description-style summary", () => {
     const summaryButton = listingControls.match(
       /<button[\s\S]*?data-mobile-format-sheet-trigger[\s\S]*?<\/button>/,
     );
-    expect(summaryButton?.[0]).toContain("format-icon-bullet");
+    expect(summaryButton?.[0]).toContain('class="mobile-format-summary-icon"');
+    expect(summaryButton?.[0]).toContain(
+      'class="format-icon format-icon-para"',
+    );
+    expect(summaryButton?.[0]).toContain(
+      "<span></span><span></span><span></span><span></span>",
+    );
+    expect(summaryButton?.[0]).not.toContain("format-icon-bullet");
+  });
+
+  it("keeps the legal disclaimer below the compact initial viewport", () => {
+    expect(workspaceShell).toContain('data-mobile-web="legal-disclaimer"');
+    expect(stylesheet).toContain(".mobile-workspace-footer {");
+    expect(stylesheet).toContain("margin-top: 152px");
   });
 });

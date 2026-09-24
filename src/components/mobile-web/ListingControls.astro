@@ -173,18 +173,10 @@ const descriptionLanguage =
     aria-haspopup="dialog"
     aria-expanded="false"
   >
-    <span class="mobile-format-summary-icon format-icon" aria-hidden="true">
-      {useBulletPoints ? (
-        <>
-          <span class="format-icon-bullet"><span></span></span>
-          <span class="format-icon-bullet"><span></span></span>
-          <span class="format-icon-bullet"><span></span></span>
-        </>
-      ) : (
-        <span class="format-icon-para">
-          <span></span><span></span><span></span><span></span>
-        </span>
-      )}
+    <span class="mobile-format-summary-icon" aria-hidden="true">
+      <span class="format-icon format-icon-para">
+        <span></span><span></span><span></span><span></span>
+      </span>
     </span>
     <span class="mobile-format-summary-copy">
       <span class="mobile-listing-control-label">Description style</span>

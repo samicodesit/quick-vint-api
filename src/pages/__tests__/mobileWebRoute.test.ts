@@ -45,4 +45,20 @@ describe("private mobile web documents", () => {
     expect(source).toContain("mountMobileWebApp");
     expect(source).not.toContain('<script type="module">');
   });
+
+  it("passes only the public preview configuration names to the shared resolver", () => {
+    for (const path of routePaths) {
+      const source = readFileSync(path, "utf8");
+      expect(source).toContain("getMobileWebBuildConfig");
+      expect(source).toContain("VERCEL_ENV: import.meta.env.VERCEL_ENV");
+      expect(source).toContain(
+        "VERCEL_APP_SUPABASE_URL: import.meta.env.VERCEL_APP_SUPABASE_URL",
+      );
+      expect(source).toContain(
+        "VERCEL_APP_SUPABASE_ANON_KEY: import.meta.env.VERCEL_APP_SUPABASE_ANON_KEY",
+      );
+      expect(source).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+      expect(source).not.toContain("SUPABASE_DB_PASSWORD");
+    }
+  });
 });

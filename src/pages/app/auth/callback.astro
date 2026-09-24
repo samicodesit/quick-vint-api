@@ -5,6 +5,9 @@ const buildConfig = getMobileWebBuildConfig({
   PUBLIC_MOBILE_WEB_APP_ENABLED: import.meta.env.PUBLIC_MOBILE_WEB_APP_ENABLED,
   PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL,
   PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  VERCEL_ENV: import.meta.env.VERCEL_ENV,
+  VERCEL_APP_SUPABASE_URL: import.meta.env.VERCEL_APP_SUPABASE_URL,
+  VERCEL_APP_SUPABASE_ANON_KEY: import.meta.env.VERCEL_APP_SUPABASE_ANON_KEY,
 });
 const connectSources = [
   "'self'",

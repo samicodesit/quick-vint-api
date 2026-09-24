@@ -47,8 +47,15 @@ export function getMobileWebBuildConfig(
     };
   }
 
-  const supabaseUrl = validateSupabaseUrl(env.PUBLIC_SUPABASE_URL);
-  const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const isVercelPreview = env.VERCEL_ENV === "preview";
+  const publicSupabaseUrl =
+    env.PUBLIC_SUPABASE_URL ||
+    (isVercelPreview ? env.VERCEL_APP_SUPABASE_URL : undefined);
+  const publicSupabaseAnonKey =
+    env.PUBLIC_SUPABASE_ANON_KEY ||
+    (isVercelPreview ? env.VERCEL_APP_SUPABASE_ANON_KEY : undefined);
+  const supabaseUrl = validateSupabaseUrl(publicSupabaseUrl);
+  const supabaseAnonKey = publicSupabaseAnonKey?.trim();
   if (!supabaseAnonKey) throw configError("missing_supabase_anon_key");
 
   return { enabled: true, supabaseUrl, supabaseAnonKey };

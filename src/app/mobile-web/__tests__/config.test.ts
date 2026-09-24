@@ -16,6 +16,44 @@ describe("mobile web build configuration", () => {
     });
   });
 
+  it("uses the safe preview public names when an enabled Vercel preview omits the generic names", () => {
+    expect(
+      getMobileWebBuildConfig({
+        PUBLIC_MOBILE_WEB_APP_ENABLED: "true",
+        VERCEL_ENV: "preview",
+        VERCEL_APP_SUPABASE_URL: "https://preview-project.supabase.co",
+        VERCEL_APP_SUPABASE_ANON_KEY: "preview-anon-key",
+      }),
+    ).toEqual({
+      enabled: true,
+      supabaseUrl: "https://preview-project.supabase.co",
+      supabaseAnonKey: "preview-anon-key",
+    });
+  });
+
+  it("does not use preview fallbacks for a production build", () => {
+    expect(() =>
+      getMobileWebBuildConfig({
+        PUBLIC_MOBILE_WEB_APP_ENABLED: "true",
+        VERCEL_ENV: "production",
+        VERCEL_APP_SUPABASE_URL: "https://preview-project.supabase.co",
+        VERCEL_APP_SUPABASE_ANON_KEY: "preview-anon-key",
+      }),
+    ).toThrow("missing_supabase_url");
+  });
+
+  it("never uses secret or service-role names as public fallback values", () => {
+    expect(() =>
+      getMobileWebBuildConfig({
+        PUBLIC_MOBILE_WEB_APP_ENABLED: "true",
+        VERCEL_ENV: "preview",
+        SUPABASE_URL: "https://secret-project.supabase.co",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        SUPABASE_ANON_KEY: "anon-key",
+      }),
+    ).toThrow("missing_supabase_url");
+  });
+
   it("keeps the private documents disabled unless the exact flag is true", () => {
     expect(
       getMobileWebBuildConfig({

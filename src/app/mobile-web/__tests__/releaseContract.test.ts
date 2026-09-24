@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 
 const appRoute = readFileSync("src/pages/app/index.astro", "utf8");
 const stylesheet = readFileSync("src/styles/mobile-web-app.css", "utf8");
+const workspaceShell = readFileSync(
+  "src/components/mobile-web/WorkspaceShell.astro",
+  "utf8",
+);
 const photoRail = readFileSync(
   "src/components/mobile-web/PhotoRail.astro",
   "utf8",
@@ -46,10 +50,35 @@ describe("mobile web launch contract", () => {
     expect(stylesheet).toContain("min-height: 44px");
     expect(stylesheet).toContain("position: sticky");
     expect(stylesheet).toContain("prefers-reduced-motion");
-    expect(stylesheet).toContain("prefers-color-scheme: dark");
+    const stylesheetWithoutComments = stylesheet.replace(
+      /\/\*[\s\S]*?\*\//g,
+      "",
+    );
+    expect(stylesheetWithoutComments).toContain("color-scheme: light");
+    expect(stylesheetWithoutComments).not.toMatch(
+      /@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/,
+    );
     expect(photoRail).toContain("overflow-x: auto");
     expect(photoRail).toContain("overflow-y: hidden");
     expect(stylesheet).toContain(".mobile-primary-button");
     expect(stylesheet).not.toContain("height: 100vh");
+  });
+
+  it("wires the usage card selectors used by the authenticated renderer", () => {
+    for (const selector of [
+      'data-mobile-web="usage"',
+      'data-mobile-web="usage-headline"',
+      'data-mobile-web="usage-paid"',
+      'data-mobile-web="usage-daily-value"',
+      'data-mobile-web="usage-daily-track"',
+      'data-mobile-web="usage-daily-progress"',
+      'data-mobile-web="usage-monthly-value"',
+      'data-mobile-web="usage-monthly-track"',
+      'data-mobile-web="usage-monthly-progress"',
+      'data-mobile-web="usage-credits"',
+      'data-mobile-web="usage-credits-value"',
+    ]) {
+      expect(workspaceShell).toContain(selector);
+    }
   });
 });

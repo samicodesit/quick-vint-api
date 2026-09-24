@@ -18,7 +18,6 @@ const {
   <header class="mobile-workspace-header">
     <a class="mobile-workspace-brand" href="/" aria-label="AutoLister home">AutoLister</a>
     <div class="mobile-workspace-header-actions">
-      <span class="mobile-usage-pill" data-mobile-web="usage" aria-live="polite" hidden></span>
       <button type="button" class="mobile-sign-out" data-mobile-web="sign-out" hidden>Sign out</button>
       <button type="button" class="mobile-text-button" data-mobile-web="upgrade" data-tier="starter" hidden>Upgrade</button>
       <button type="button" class="mobile-text-button" data-mobile-web="manage-billing" hidden>Manage plan</button>
@@ -57,6 +56,37 @@ const {
         </div>
         <p class="mobile-app-subtitle">Add every photo of one item.</p>
       </div>
+
+      <section class="mobile-usage-card" data-mobile-web="usage" aria-label="Usage" aria-live="polite" hidden>
+        <div class="mobile-usage-card-header">
+          <span class="mobile-usage-label">Usage</span>
+          <strong data-mobile-web="usage-headline">Usage</strong>
+        </div>
+        <div class="mobile-usage-paid" data-mobile-web="usage-paid" hidden>
+          <div class="mobile-usage-row">
+            <div class="mobile-usage-row-top">
+              <span>Today</span>
+              <strong data-mobile-web="usage-daily-value"></strong>
+            </div>
+            <div class="mobile-usage-track" data-mobile-web="usage-daily-track" aria-hidden="true">
+              <span data-mobile-web="usage-daily-progress"></span>
+            </div>
+          </div>
+          <div class="mobile-usage-row">
+            <div class="mobile-usage-row-top">
+              <span>This month</span>
+              <strong data-mobile-web="usage-monthly-value"></strong>
+            </div>
+            <div class="mobile-usage-track" data-mobile-web="usage-monthly-track" aria-hidden="true">
+              <span data-mobile-web="usage-monthly-progress"></span>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-usage-credits" data-mobile-web="usage-credits" hidden>
+          <span>Extra credits</span>
+          <strong data-mobile-web="usage-credits-value">0</strong>
+        </div>
+      </section>
 
       <section class="mobile-upload-card" data-mobile-web="upload-card" aria-labelledby="mobile-upload-title">
         <div class="mobile-upload-card-heading">

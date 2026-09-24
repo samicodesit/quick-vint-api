@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   canReuseMobileGenerationUpload,
-  getMobileUsageDisplay,
+  getMobileUsageSummary,
+  renderMobileUsage,
+  clearMobileUsage,
   getMobileCopyAnalyticsContext,
   resetMobileCopyStateOnEdit,
   revokeMobileUploadedPreviews,
@@ -17,6 +19,7 @@ class FakeElement {
   disabled = false;
   value = "";
   textContent = "";
+  style = { width: "" };
   dataset: Record<string, string> = {};
   private readonly listeners = new Map<string, EventListener>();
 
@@ -49,6 +52,28 @@ class FakeElement {
   closest(): null {
     return null;
   }
+}
+
+function createUsageDom() {
+  const elements = new Map<string, FakeElement>();
+  const selectors = [
+    '[data-mobile-web="usage-headline"]',
+    '[data-mobile-web="usage-paid"]',
+    '[data-mobile-web="usage-credits"]',
+    '[data-mobile-web="usage-credits-value"]',
+    '[data-mobile-web="usage-daily-value"]',
+    '[data-mobile-web="usage-daily-track"]',
+    '[data-mobile-web="usage-daily-progress"]',
+    '[data-mobile-web="usage-monthly-value"]',
+    '[data-mobile-web="usage-monthly-track"]',
+    '[data-mobile-web="usage-monthly-progress"]',
+  ];
+  selectors.forEach((selector) => elements.set(selector, new FakeElement()));
+  const root = {
+    querySelector: <T extends Element = Element>(selector: string) =>
+      (elements.get(selector) ?? null) as T | null,
+  } as unknown as ParentNode;
+  return { root, elements };
 }
 
 describe("mobile web app state helpers", () => {
@@ -195,36 +220,154 @@ describe("mobile web app state helpers", () => {
     );
   });
 
-  it("shows free lifetime plus pack capacity instead of hiding pack credits", () => {
+  it("summarizes the free lifetime quota and keeps credits separate", () => {
     expect(
-      getMobileUsageDisplay({
-        plan: { tier: "free" },
+      getMobileUsageSummary({
+        plan: { tier: "free", isPaid: false },
+        limits: { freeLifetime: 5, daily: null, monthly: null },
         remaining: {
-          freeLifetime: 0,
+          freeLifetime: 3,
           daily: null,
           monthly: null,
-          minute: null,
+          minute: 1,
           packCredits: 5,
         },
         canGenerate: true,
       }),
-    ).toBe("5 generations left");
+    ).toMatchObject({
+      tier: "free",
+      headline: "3 of 5 listings remaining",
+      credits: 5,
+      daily: null,
+      monthly: null,
+    });
   });
 
-  it("uses the effective paid capacity and the minute cap", () => {
+  it("summarizes paid daily and monthly quotas without presenting minute capacity", () => {
+    const summary = getMobileUsageSummary({
+      plan: { tier: "pro", isPaid: true },
+      limits: { daily: 10, monthly: 50 },
+      remaining: {
+        freeLifetime: null,
+        daily: 2,
+        monthly: 20,
+        minute: 1,
+        packCredits: 4,
+      },
+      canGenerate: true,
+    });
+    expect(summary).toMatchObject({
+      tier: "paid",
+      headline: "Usage",
+      credits: 4,
+      daily: { remaining: 2, limit: 10, unlimited: false },
+      monthly: { remaining: 20, limit: 50, unlimited: false },
+    });
+    expect(summary).not.toHaveProperty("minute");
+  });
+
+  it("labels a null daily quota as no daily cap", () => {
     expect(
-      getMobileUsageDisplay({
-        plan: { tier: "pro" },
-        remaining: {
-          freeLifetime: null,
-          daily: 2,
-          monthly: 20,
-          minute: 1,
-          packCredits: 4,
-        },
+      getMobileUsageSummary({
+        plan: { tier: "starter", isPaid: true },
+        limits: { daily: null, monthly: 75 },
+        remaining: { daily: null, monthly: 68, minute: 1, packCredits: 0 },
         canGenerate: true,
-      }),
-    ).toBe("1 generation left");
+      }).daily,
+    ).toMatchObject({ remaining: null, limit: null, unlimited: true });
+  });
+
+  it("renders the free quota and conditional credits through the usage selectors", () => {
+    const { root, elements } = createUsageDom();
+
+    renderMobileUsage(root, {
+      plan: { tier: "free", isPaid: false },
+      limits: { freeLifetime: 5 },
+      remaining: { freeLifetime: 3, packCredits: 5, minute: 1 },
+      canGenerate: true,
+    });
+
+    expect(
+      elements.get('[data-mobile-web="usage-headline"]')?.textContent,
+    ).toBe("3 of 5 listings remaining");
+    expect(elements.get('[data-mobile-web="usage-paid"]')?.hidden).toBe(true);
+    expect(elements.get('[data-mobile-web="usage-credits"]')?.hidden).toBe(
+      false,
+    );
+    expect(
+      elements.get('[data-mobile-web="usage-credits-value"]')?.textContent,
+    ).toBe("5");
+    expect(
+      elements.get('[data-mobile-web="usage-headline"]')?.textContent,
+    ).not.toContain("minute");
+  });
+
+  it("renders paid quota values and proportional progress without minute capacity", () => {
+    const { root, elements } = createUsageDom();
+
+    renderMobileUsage(root, {
+      plan: { tier: "pro", isPaid: true },
+      limits: { daily: 10, monthly: 50 },
+      remaining: { daily: 2, monthly: 20, minute: 1, packCredits: 0 },
+      canGenerate: true,
+    });
+
+    expect(elements.get('[data-mobile-web="usage-paid"]')?.hidden).toBe(false);
+    expect(
+      elements.get('[data-mobile-web="usage-daily-value"]')?.textContent,
+    ).toBe("2 of 10");
+    expect(
+      elements.get('[data-mobile-web="usage-monthly-value"]')?.textContent,
+    ).toBe("20 of 50");
+    expect(
+      elements.get('[data-mobile-web="usage-daily-progress"]')?.style.width,
+    ).toBe("20%");
+    expect(
+      elements.get('[data-mobile-web="usage-monthly-progress"]')?.style.width,
+    ).toBe("40%");
+    expect(elements.get('[data-mobile-web="usage-daily-track"]')?.hidden).toBe(
+      false,
+    );
+    expect(elements.get('[data-mobile-web="usage-credits"]')?.hidden).toBe(
+      true,
+    );
+    expect(
+      elements.get('[data-mobile-web="usage-monthly-value"]')?.textContent,
+    ).not.toContain("minute");
+  });
+
+  it("renders no daily cap and hides stale quota rows after a usage refresh failure", () => {
+    const { root, elements } = createUsageDom();
+
+    renderMobileUsage(root, {
+      plan: { tier: "starter", isPaid: true },
+      limits: { daily: null, monthly: 75 },
+      remaining: { daily: null, monthly: 68, packCredits: 4 },
+      canGenerate: true,
+    });
+
+    expect(
+      elements.get('[data-mobile-web="usage-daily-value"]')?.textContent,
+    ).toBe("No daily cap");
+    expect(elements.get('[data-mobile-web="usage-daily-track"]')?.hidden).toBe(
+      true,
+    );
+
+    clearMobileUsage(root);
+
+    expect(
+      elements.get('[data-mobile-web="usage-headline"]')?.textContent,
+    ).toBe("Usage unavailable");
+    expect(elements.get('[data-mobile-web="usage-paid"]')?.hidden).toBe(true);
+    expect(elements.get('[data-mobile-web="usage-credits"]')?.hidden).toBe(
+      true,
+    );
+    expect(
+      elements.get('[data-mobile-web="usage-monthly-track"]')?.hidden,
+    ).toBe(true);
+    expect(
+      elements.get('[data-mobile-web="usage-monthly-progress"]')?.style.width,
+    ).toBe("0%");
   });
 
   it("does not reuse signed URLs when the selected photo order changed", () => {

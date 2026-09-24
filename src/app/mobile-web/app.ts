@@ -218,32 +218,144 @@ function safeFormattingPreferences(): FormattingPreferences {
   });
 }
 
+export interface MobileUsageQuotaRow {
+  remaining: number | null;
+  limit: number | null;
+  resetAt: string | null;
+  unlimited: boolean;
+}
+
+export interface MobileUsageSummary {
+  tier: "free" | "paid";
+  headline: string;
+  credits: number;
+  daily: MobileUsageQuotaRow | null;
+  monthly: MobileUsageQuotaRow | null;
+}
+
+function numericValue(
+  record: Record<string, unknown> | undefined,
+  key: string,
+): number | null {
+  const value = record?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function quotaRow(
+  remaining: Record<string, unknown> | undefined,
+  limits: Record<string, unknown> | undefined,
+  resetsAt: Record<string, unknown> | undefined,
+  key: "daily" | "monthly",
+): MobileUsageQuotaRow {
+  const limit = numericValue(limits, key);
+  const value = numericValue(remaining, key);
+  return {
+    remaining: value,
+    limit,
+    resetAt: typeof resetsAt?.[key] === "string" ? resetsAt[key] : null,
+    unlimited: limit === null,
+  };
+}
+
+export function getMobileUsageSummary(usage: MobileUsage): MobileUsageSummary {
+  const remaining = usage.remaining;
+  const limits = usage.limits;
+  const resetsAt = usage.resetsAt;
+  const isFree =
+    usage.plan?.isPaid !== true &&
+    (usage.plan?.tier === undefined || usage.plan.tier === "free");
+  const freeRemaining = numericValue(remaining, "freeLifetime");
+  const freeLimit = numericValue(limits, "freeLifetime");
+  const credits = Math.max(0, numericValue(remaining, "packCredits") ?? 0);
+
+  return {
+    tier: isFree ? "free" : "paid",
+    headline: isFree
+      ? usage.canGenerate === false
+        ? "Limit reached"
+        : freeRemaining !== null && freeLimit !== null
+          ? `${freeRemaining} of ${freeLimit} listings remaining`
+          : freeRemaining !== null
+            ? `${freeRemaining} listings remaining`
+            : "Free plan"
+      : "Usage",
+    credits,
+    daily: isFree ? null : quotaRow(remaining, limits, resetsAt, "daily"),
+    monthly: isFree ? null : quotaRow(remaining, limits, resetsAt, "monthly"),
+  };
+}
+
 export function getMobileUsageDisplay(usage: MobileUsage): string {
-  if (usage.canGenerate === false) return "Limit reached";
-  const remaining = usage.remaining ?? {};
-  const tier = usage.plan?.tier;
-  const packCredits =
-    typeof remaining.packCredits === "number" ? remaining.packCredits : 0;
-  const planRemaining =
-    tier === "free"
-      ? typeof remaining.freeLifetime === "number"
-        ? remaining.freeLifetime
-        : null
-      : [remaining.daily, remaining.monthly].filter(
-            (value): value is number => typeof value === "number",
-          ).length > 0
-        ? Math.min(
-            ...[remaining.daily, remaining.monthly].filter(
-              (value): value is number => typeof value === "number",
-            ),
-          )
-        : null;
-  let available =
-    planRemaining === null ? packCredits : planRemaining + packCredits;
-  if (typeof remaining.minute === "number")
-    available = Math.min(available, remaining.minute);
-  if (available <= 0) return "Limit reached";
-  return `${available} generation${available === 1 ? "" : "s"} left`;
+  return getMobileUsageSummary(usage).headline;
+}
+
+function formatQuotaValue(
+  row: MobileUsageQuotaRow,
+  kind: "daily" | "monthly",
+): string {
+  if (row.unlimited)
+    return kind === "daily" ? "No daily cap" : "No monthly cap";
+  if (row.remaining === null) return "Unavailable";
+  return row.limit === null
+    ? `${row.remaining} left`
+    : `${row.remaining} of ${row.limit}`;
+}
+
+function setUsageProgress(
+  root: ParentNode,
+  kind: "daily" | "monthly",
+  row: MobileUsageQuotaRow,
+): void {
+  text(
+    root,
+    `[data-mobile-web="usage-${kind}-value"]`,
+    formatQuotaValue(row, kind),
+  );
+  const track = asElement<HTMLElement>(
+    root,
+    `[data-mobile-web="usage-${kind}-track"]`,
+  );
+  const fill = asElement<HTMLElement>(
+    root,
+    `[data-mobile-web="usage-${kind}-progress"]`,
+  );
+  if (!track || !fill) return;
+  const progress =
+    row.limit !== null && row.limit > 0 && row.remaining !== null
+      ? Math.max(0, Math.min(100, (row.remaining / row.limit) * 100))
+      : 0;
+  track.hidden = row.unlimited || row.limit === null || row.remaining === null;
+  fill.style.width = `${progress}%`;
+}
+
+export function renderMobileUsage(root: ParentNode, usage: MobileUsage): void {
+  const summary = getMobileUsageSummary(usage);
+  text(root, '[data-mobile-web="usage-headline"]', summary.headline);
+  setHidden(root, '[data-mobile-web="usage-free"]', summary.tier !== "free");
+  setHidden(root, '[data-mobile-web="usage-paid"]', summary.tier !== "paid");
+  setHidden(root, '[data-mobile-web="usage-credits"]', summary.credits <= 0);
+  text(root, '[data-mobile-web="usage-credits-value"]', `${summary.credits}`);
+  if (summary.daily) setUsageProgress(root, "daily", summary.daily);
+  if (summary.monthly) setUsageProgress(root, "monthly", summary.monthly);
+}
+
+export function clearMobileUsage(root: ParentNode): void {
+  text(root, '[data-mobile-web="usage-headline"]', "Usage unavailable");
+  setHidden(root, '[data-mobile-web="usage-paid"]', true);
+  setHidden(root, '[data-mobile-web="usage-credits"]', true);
+  for (const kind of ["daily", "monthly"] as const) {
+    text(root, `[data-mobile-web="usage-${kind}-value"]`, "");
+    const track = asElement<HTMLElement>(
+      root,
+      `[data-mobile-web="usage-${kind}-track"]`,
+    );
+    const fill = asElement<HTMLElement>(
+      root,
+      `[data-mobile-web="usage-${kind}-progress"]`,
+    );
+    if (track) track.hidden = true;
+    if (fill) fill.style.width = "0%";
+  }
 }
 
 export type MobileResultField = "title" | "description";
@@ -608,7 +720,7 @@ export function mountMobileWebApp(
         : await loadUsage();
       if (disposed) return null;
       canGenerate = usage.canGenerate !== false;
-      text(root, '[data-mobile-web="usage"]', getMobileUsageDisplay(usage));
+      renderMobileUsage(root, usage);
       setBillingControls(root, usage);
       if (usage.canGenerate === false) {
         state = {
@@ -629,7 +741,7 @@ export function mountMobileWebApp(
         clearPreviews();
         showAuth(root);
       } else {
-        text(root, '[data-mobile-web="usage"]', "Usage unavailable");
+        clearMobileUsage(root);
         setBillingControls(root, null);
       }
       return null;

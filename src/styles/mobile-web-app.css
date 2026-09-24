@@ -114,19 +114,10 @@ textarea:focus-visible {
   min-width: 0;
 }
 
-.mobile-usage-pill,
 .mobile-text-button {
   color: var(--mobile-brand-strong);
   font-size: 12px;
   font-weight: 750;
-}
-
-.mobile-usage-pill {
-  padding: 7px 10px;
-  border: 1px solid #dcd9fb;
-  border-radius: 999px;
-  background: var(--mobile-brand-soft);
-  white-space: nowrap;
 }
 
 .mobile-text-button {
@@ -371,6 +362,71 @@ textarea:focus-visible {
   max-width: 18ch;
   margin: 0;
   text-align: right;
+}
+
+.mobile-usage-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--mobile-border);
+  border-radius: 16px;
+  background: var(--mobile-surface-soft);
+}
+
+.mobile-usage-card-header,
+.mobile-usage-row-top,
+.mobile-usage-credits {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-usage-card-header strong,
+.mobile-usage-row-top strong,
+.mobile-usage-credits strong {
+  color: var(--mobile-ink);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.mobile-usage-label,
+.mobile-usage-row-top span,
+.mobile-usage-credits span {
+  color: var(--mobile-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mobile-usage-paid {
+  display: grid;
+  gap: 9px;
+}
+
+.mobile-usage-row {
+  display: grid;
+  gap: 5px;
+}
+
+.mobile-usage-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(79, 70, 229, 0.12);
+}
+
+.mobile-usage-track > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mobile-brand);
+  transition: width 180ms ease;
+}
+
+.mobile-usage-credits {
+  padding-top: 9px;
+  border-top: 1px solid var(--mobile-border);
 }
 
 .mobile-upload-card,
@@ -921,30 +977,6 @@ textarea:focus-visible {
   .mobile-upload-card,
   .mobile-listing-controls {
     padding: 20px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --mobile-bg: #17162b;
-    --mobile-surface: #211f3b;
-    --mobile-surface-soft: #2a2750;
-    --mobile-ink: #f6f5ff;
-    --mobile-muted: #b9b6d0;
-    --mobile-subtle: #8e89ae;
-    --mobile-border: #383455;
-    --mobile-border-strong: #4c4770;
-    --mobile-brand: #8b84ff;
-    --mobile-brand-strong: #a9a4ff;
-    --mobile-brand-soft: #302c5a;
-    --mobile-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-    --mobile-panel-fade: rgba(23, 22, 43, 0);
-    color-scheme: dark;
-  }
-
-  .mobile-generate-button:disabled {
-    background: #3b3858;
-    color: #8f8aa9;
   }
 }
 

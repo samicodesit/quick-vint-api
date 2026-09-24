@@ -2,6 +2,13 @@
 
 This is the durable source of truth for current growth work. Chat is temporary; if Codex makes or changes a growth decision, update this file in the same change.
 
+## Mobile web idempotency migration canary, September 24, 2026
+
+- Applied the additive `migrations/2026-09-23_mobile_web_generation_idempotency.sql` migration to the verified production Supabase project `jqloiovdwjaornnfvmyu` through the existing authenticated Supabase CLI Management API path: `supabase db query --linked --project-ref ... --file ...`. The migration record was captured at 2026-09-24T05:20:21Z. Migration SHA-256: `83920859fffc58bfbee1f4f251d9e2f05f99e132c9bce95a08aa9c84e39983b1`.
+- Read-only preflight found the target table, indexes and functions absent, while `pgcrypto`, `profiles`, `generation_reservations`, and the existing reservation/refund functions were present. No customer rows were read.
+- Post-apply verification found `public.mobile_generation_idempotency` present with row-level security enabled, zero policies, no table SELECT for `public`, `anon`, or `authenticated`, and service-role table access only. All nine reviewed functions are security definer functions with fixed search paths, executable by `service_role` only. The three indexes are valid, including the unique `(user_id, client, request_id)` index.
+- No Vercel deployment, feature-flag change, Stripe change, credential change, or generation was performed. The SQL was executed through the management API rather than the repository migration-history runner because this repository has no Supabase migration configuration or remote migration history table.
+
 ## Current Operating Goal
 
 - Period: 2026-07-06 to 2026-08-02

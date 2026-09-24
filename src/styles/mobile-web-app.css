@@ -343,6 +343,7 @@ textarea:focus-visible {
 .mobile-app-view {
   display: grid;
   gap: 14px;
+  padding-bottom: calc(128px + env(safe-area-inset-bottom));
 }
 
 .mobile-app-heading {
@@ -391,11 +392,17 @@ textarea:focus-visible {
 }
 
 .mobile-usage-label,
+.mobile-usage-free,
 .mobile-usage-row-top span,
 .mobile-usage-credits span {
   color: var(--mobile-muted);
   font-size: 12px;
   font-weight: 650;
+}
+
+.mobile-usage-free {
+  color: var(--mobile-ink);
+  font-weight: 750;
 }
 
 .mobile-usage-paid {
@@ -931,6 +938,7 @@ textarea:focus-visible {
     grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
     align-items: start;
     gap: 16px;
+    padding-bottom: 0;
   }
 
   .mobile-app-heading,

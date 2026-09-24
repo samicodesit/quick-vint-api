@@ -58,6 +58,8 @@ function createUsageDom() {
   const elements = new Map<string, FakeElement>();
   const selectors = [
     '[data-mobile-web="usage-headline"]',
+    '[data-mobile-web="usage-free"]',
+    '[data-mobile-web="usage-free-value"]',
     '[data-mobile-web="usage-paid"]',
     '[data-mobile-web="usage-credits"]',
     '[data-mobile-web="usage-credits-value"]',
@@ -287,10 +289,14 @@ describe("mobile web app state helpers", () => {
       canGenerate: true,
     });
 
-    expect(
-      elements.get('[data-mobile-web="usage-headline"]')?.textContent,
-    ).toBe("3 of 5 listings remaining");
+    expect(elements.get('[data-mobile-web="usage-headline"]')?.hidden).toBe(
+      true,
+    );
+    expect(elements.get('[data-mobile-web="usage-free"]')?.hidden).toBe(false);
     expect(elements.get('[data-mobile-web="usage-paid"]')?.hidden).toBe(true);
+    expect(
+      elements.get('[data-mobile-web="usage-free-value"]')?.textContent,
+    ).toBe("3 of 5 listings remaining");
     expect(elements.get('[data-mobile-web="usage-credits"]')?.hidden).toBe(
       false,
     );
@@ -313,6 +319,10 @@ describe("mobile web app state helpers", () => {
     });
 
     expect(elements.get('[data-mobile-web="usage-paid"]')?.hidden).toBe(false);
+    expect(elements.get('[data-mobile-web="usage-free"]')?.hidden).toBe(true);
+    expect(elements.get('[data-mobile-web="usage-headline"]')?.hidden).toBe(
+      true,
+    );
     expect(
       elements.get('[data-mobile-web="usage-daily-value"]')?.textContent,
     ).toBe("2 of 10");
@@ -359,6 +369,7 @@ describe("mobile web app state helpers", () => {
       elements.get('[data-mobile-web="usage-headline"]')?.textContent,
     ).toBe("Usage unavailable");
     expect(elements.get('[data-mobile-web="usage-paid"]')?.hidden).toBe(true);
+    expect(elements.get('[data-mobile-web="usage-free"]')?.hidden).toBe(true);
     expect(elements.get('[data-mobile-web="usage-credits"]')?.hidden).toBe(
       true,
     );

@@ -330,7 +330,8 @@ function setUsageProgress(
 
 export function renderMobileUsage(root: ParentNode, usage: MobileUsage): void {
   const summary = getMobileUsageSummary(usage);
-  text(root, '[data-mobile-web="usage-headline"]', summary.headline);
+  setHidden(root, '[data-mobile-web="usage-headline"]', true);
+  text(root, '[data-mobile-web="usage-free-value"]', summary.headline);
   setHidden(root, '[data-mobile-web="usage-free"]', summary.tier !== "free");
   setHidden(root, '[data-mobile-web="usage-paid"]', summary.tier !== "paid");
   setHidden(root, '[data-mobile-web="usage-credits"]', summary.credits <= 0);
@@ -341,6 +342,8 @@ export function renderMobileUsage(root: ParentNode, usage: MobileUsage): void {
 
 export function clearMobileUsage(root: ParentNode): void {
   text(root, '[data-mobile-web="usage-headline"]', "Usage unavailable");
+  setHidden(root, '[data-mobile-web="usage-headline"]', false);
+  setHidden(root, '[data-mobile-web="usage-free"]', true);
   setHidden(root, '[data-mobile-web="usage-paid"]', true);
   setHidden(root, '[data-mobile-web="usage-credits"]', true);
   for (const kind of ["daily", "monthly"] as const) {

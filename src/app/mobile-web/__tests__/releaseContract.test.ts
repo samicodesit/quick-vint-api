@@ -68,6 +68,8 @@ describe("mobile web launch contract", () => {
     for (const selector of [
       'data-mobile-web="usage"',
       'data-mobile-web="usage-headline"',
+      'data-mobile-web="usage-free"',
+      'data-mobile-web="usage-free-value"',
       'data-mobile-web="usage-paid"',
       'data-mobile-web="usage-daily-value"',
       'data-mobile-web="usage-daily-track"',
@@ -80,5 +82,11 @@ describe("mobile web launch contract", () => {
     ]) {
       expect(workspaceShell).toContain(selector);
     }
+  });
+
+  it("leaves enough mobile scroll clearance for the sticky generation panel", () => {
+    expect(stylesheet).toContain(
+      "padding-bottom: calc(128px + env(safe-area-inset-bottom))",
+    );
   });
 });

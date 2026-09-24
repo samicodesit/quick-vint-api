@@ -104,16 +104,16 @@ BEGIN
   RETURNING id INTO reservation_id;
 
   IF p_effective_tier = 'post_bind_failure' THEN
-    UPDATE public.mobile_generation_idempotency
+    UPDATE public.mobile_generation_idempotency AS target
     SET request_hash = repeat('0', 64)
-    WHERE id = (
-      SELECT id
-      FROM public.mobile_generation_idempotency
-      WHERE user_id = p_user_id
-        AND client = 'mobile_web'
-        AND status = 'in_progress'
-        AND reservation_id IS NULL
-      ORDER BY created_at DESC, id DESC
+    WHERE target.id = (
+      SELECT source.id
+      FROM public.mobile_generation_idempotency AS source
+      WHERE source.user_id = p_user_id
+        AND source.client = 'mobile_web'
+        AND source.status = 'in_progress'
+        AND source.reservation_id IS NULL
+      ORDER BY source.created_at DESC, source.id DESC
       LIMIT 1
     );
     IF NOT FOUND THEN
@@ -181,6 +181,7 @@ DECLARE
   replay jsonb;
   reset_claim jsonb;
   reset_attempt uuid;
+  stale_attempt_record uuid;
   stale_record uuid := gen_random_uuid();
   stale_reservation uuid := gen_random_uuid();
 BEGIN
@@ -245,7 +246,7 @@ BEGIN
     repeat('e', 64)
   );
   SELECT id, attempt_id
-  INTO stale_record, stale_attempt
+  INTO stale_attempt_record, stale_attempt
   FROM public.mobile_generation_idempotency
   WHERE request_id = '00000000-0000-4000-8000-000000000105';
   SELECT COUNT(*)
@@ -254,7 +255,7 @@ BEGIN
   WHERE user_id = '00000000-0000-4000-8000-000000000001';
   stale_claim := public.reserve_and_bind_mobile_generation_reservation(
     '00000000-0000-4000-8000-000000000001',
-    stale_record,
+    stale_attempt_record,
     gen_random_uuid(),
     'mobile_web',
     '00000000-0000-4000-8000-000000000105',

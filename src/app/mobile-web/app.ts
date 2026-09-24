@@ -654,7 +654,7 @@ export function getMobileGenerateButtonState(
   };
 }
 
-function renderPhotos(root: ParentNode, photos: SelectedPhoto[]): void {
+export function renderPhotos(root: ParentNode, photos: SelectedPhoto[]): void {
   const list = asElement<HTMLElement>(root, '[data-mobile-web="photo-list"]');
   if (!list) return;
   const layout = getMobilePhotoLayoutState(photos.length);

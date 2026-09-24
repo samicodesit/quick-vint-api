@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
+import * as mobileWebApp from "../app.js";
+
+const stylesheet = readFileSync("src/styles/mobile-web-app.css", "utf8");
 
 import {
   canReuseMobileGenerationUpload,
@@ -79,6 +82,116 @@ function createUsageDom() {
       (elements.get(selector) ?? null) as T | null,
   } as unknown as ParentNode;
   return { root, elements };
+}
+
+class RuntimePhotoNode {
+  hidden = false;
+  disabled = false;
+  value = "";
+  textContent = "";
+  className = "";
+  type = "";
+  src = "";
+  alt = "";
+  loading = "";
+  style = { width: "" };
+  dataset: Record<string, string> = {};
+  children: RuntimePhotoNode[] = [];
+  parentNode: RuntimePhotoNode | null = null;
+  private readonly attributes = new Map<string, string>();
+
+  constructor(readonly tagName: string) {}
+
+  setAttribute(name: string, value: string): void {
+    this.attributes.set(name, value);
+    if (name.startsWith("data-")) {
+      const key = name
+        .slice(5)
+        .replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+      this.dataset[key] = value;
+    }
+  }
+
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+
+  append(...nodes: RuntimePhotoNode[]): void {
+    nodes.forEach((node) => {
+      node.parentNode = this;
+      this.children.push(node);
+    });
+  }
+
+  insertBefore(node: RuntimePhotoNode, reference: RuntimePhotoNode): void {
+    node.parentNode = this;
+    const index = this.children.indexOf(reference);
+    if (index === -1) this.children.push(node);
+    else this.children.splice(index, 0, node);
+  }
+
+  remove(): void {
+    if (!this.parentNode) return;
+    this.parentNode.children = this.parentNode.children.filter(
+      (child) => child !== this,
+    );
+    this.parentNode = null;
+  }
+
+  querySelector<T extends RuntimePhotoNode = RuntimePhotoNode>(
+    selector: string,
+  ): T | null {
+    return (this.querySelectorAll(selector)[0] as T | undefined) ?? null;
+  }
+
+  querySelectorAll<T extends RuntimePhotoNode = RuntimePhotoNode>(
+    selector: string,
+  ): T[] {
+    const matches: RuntimePhotoNode[] = [];
+    const visit = (node: RuntimePhotoNode): void => {
+      node.children.forEach((child) => {
+        if (child.matches(selector)) matches.push(child);
+        visit(child);
+      });
+    };
+    visit(this);
+    return matches as T[];
+  }
+
+  matches(selector: string): boolean {
+    if (selector === "img") return this.tagName === "img";
+    if (selector === "[data-photo-id]") return "photoId" in this.dataset;
+    if (selector === "[data-photo-remove]")
+      return "photoRemove" in this.dataset;
+    if (selector === '[data-mobile-web="photo-list"]')
+      return this.dataset.mobileWeb === "photo-list";
+    if (selector === '[data-mobile-web="photo-empty-state"]')
+      return this.dataset.mobileWeb === "photo-empty-state";
+    if (selector === '[data-mobile-web="photo-count"]')
+      return this.dataset.mobileWeb === "photo-count";
+    if (selector === '[data-mobile-web="generate"]')
+      return this.dataset.mobileWeb === "generate";
+    if (selector === '[data-mobile-web="add-photo"]')
+      return this.dataset.mobileWeb === "add-photo";
+    return false;
+  }
+}
+
+function createRuntimePhotoDom() {
+  const root = new RuntimePhotoNode("main");
+  const emptyState = new RuntimePhotoNode("button");
+  emptyState.setAttribute("data-mobile-web", "photo-empty-state");
+  const list = new RuntimePhotoNode("div");
+  list.setAttribute("data-mobile-web", "photo-list");
+  const count = new RuntimePhotoNode("p");
+  count.setAttribute("data-mobile-web", "photo-count");
+  const generate = new RuntimePhotoNode("button");
+  generate.setAttribute("data-mobile-web", "generate");
+  const add = new RuntimePhotoNode("button");
+  add.setAttribute("data-mobile-web", "add-photo");
+  list.append(add);
+  root.append(emptyState, list, count, generate);
+  return { root, emptyState, list, count, generate };
 }
 
 describe("mobile web app state helpers", () => {
@@ -450,6 +563,71 @@ describe("mobile web app state helpers", () => {
       showPhotoRail: true,
       countLabel: "3 photos selected",
     });
+  });
+
+  it("renders runtime photo tiles with the global rail and remove affordance contract", () => {
+    const renderPhotos = (
+      mobileWebApp as typeof mobileWebApp & {
+        renderPhotos?: (
+          root: ParentNode,
+          photos: Array<{ id: string; file: File; previewUrl: string }>,
+        ) => void;
+      }
+    ).renderPhotos;
+    expect(typeof renderPhotos).toBe("function");
+    if (!renderPhotos) return;
+
+    const { root, emptyState, list, count, generate } = createRuntimePhotoDom();
+    const previousDocument = globalThis.document;
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {
+        createElement: (tagName: string) => new RuntimePhotoNode(tagName),
+      },
+    });
+
+    try {
+      renderPhotos(root as unknown as ParentNode, [
+        {
+          id: "photo-a",
+          file: {} as File,
+          previewUrl: "blob:photo-a",
+        },
+      ]);
+
+      const tile = list.querySelector<RuntimePhotoNode>("[data-photo-id]");
+      const image = tile?.querySelector<RuntimePhotoNode>("img");
+      const remove = tile?.querySelector<RuntimePhotoNode>(
+        "[data-photo-remove]",
+      );
+      expect(tile?.className).toBe("photo-tile");
+      expect(image?.src).toBe("blob:photo-a");
+      expect(remove?.className).toBe("photo-remove");
+      expect(remove?.dataset.photoRemove).toBe("photo-a");
+      expect(remove?.getAttribute("aria-label")).toBe("Remove photo 1");
+      expect(list.children.map((child) => child.dataset.photoId)).toEqual([
+        "photo-a",
+        undefined,
+      ]);
+      expect(emptyState.hidden).toBe(true);
+      expect(list.hidden).toBe(false);
+      expect(count.textContent).toBe("1 photo selected");
+      expect(generate.disabled).toBe(false);
+      expect(stylesheet).toMatch(
+        /\.photo-tile,\s*\.photo-add\s*\{[\s\S]*?flex:\s*0 0 68px/,
+      );
+      expect(stylesheet).toMatch(
+        /\.photo-tile img\s*\{[\s\S]*?object-fit:\s*cover/,
+      );
+      expect(stylesheet).toMatch(
+        /\.photo-remove\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/,
+      );
+    } finally {
+      Object.defineProperty(globalThis, "document", {
+        configurable: true,
+        value: previousDocument,
+      });
+    }
   });
 
   it("keeps the generate CTA disabled with a useful helper until it can run", () => {

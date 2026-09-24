@@ -648,6 +648,106 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
+/* Runtime photo tiles are inserted after Astro renders and need unscoped rail styles. */
+.photo-rail-scroll {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 78px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+}
+
+.photo-rail-scroll[hidden] {
+  display: none;
+}
+
+.photo-tile,
+.photo-add {
+  position: relative;
+  flex: 0 0 68px;
+  width: 68px;
+  height: 68px;
+  overflow: visible;
+  border-radius: 14px;
+}
+
+.photo-tile {
+  background: #f1f0fa;
+  box-shadow: 0 1px 0 rgba(35, 28, 91, 0.04);
+}
+
+.photo-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.photo-remove {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #e8e6f4;
+  border-radius: 999px;
+  background: #fff;
+  color: #2c275f;
+  box-shadow: 0 4px 14px rgba(28, 22, 74, 0.13);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.photo-remove svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.photo-remove:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, 0.28);
+  outline-offset: 2px;
+}
+
+.mobile-photo-rail.is-compact .photo-rail-scroll {
+  min-height: 64px;
+  gap: 8px;
+  overflow-y: hidden;
+  padding-top: 2px;
+  padding-bottom: 6px;
+}
+
+.mobile-photo-rail.is-compact .photo-tile,
+.mobile-photo-rail.is-compact .photo-add {
+  flex-basis: 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+}
+
+@media (min-width: 640px) {
+  .photo-tile,
+  .photo-add {
+    flex-basis: 76px;
+    width: 76px;
+    height: 76px;
+  }
+
+  .photo-rail-scroll {
+    min-height: 86px;
+  }
+}
+
 .mobile-listing-language-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

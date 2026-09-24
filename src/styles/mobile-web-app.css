@@ -607,6 +607,7 @@ textarea:focus-visible {
   font-size: 14px;
   font-weight: 750;
   text-align: center;
+  white-space: nowrap;
 }
 
 .mobile-photo-action:first-child {
@@ -788,7 +789,7 @@ textarea:focus-visible {
   padding: 9px;
   border-radius: 11px;
   background: #f1f2ff;
-  color: #676a9f;
+  color: #4a50a2;
 }
 
 .mobile-format-summary-icon span {
@@ -804,6 +805,30 @@ textarea:focus-visible {
 
 .mobile-format-summary-icon span:nth-child(4) {
   width: 55%;
+}
+
+.mobile-format-summary-icon > .format-icon-bullet {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  height: 3px;
+}
+
+.mobile-format-summary-icon > .format-icon-bullet::before {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.mobile-format-summary-icon > .format-icon-bullet > span {
+  display: block;
+  flex: 1;
+  width: auto;
+  height: 2px;
+  background: currentColor;
 }
 
 .mobile-format-summary-copy {
@@ -1212,6 +1237,167 @@ textarea:focus-visible {
   .mobile-upload-card,
   .mobile-listing-controls {
     padding: 20px;
+  }
+}
+
+@media (max-width: 430px) {
+  .mobile-workspace-shell {
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .mobile-workspace-header {
+    min-height: 46px;
+  }
+
+  .mobile-profile-avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .mobile-workspace-main {
+    padding-top: 18px;
+    padding-bottom: 8px;
+  }
+
+  .mobile-app-view {
+    gap: 12px;
+    padding-bottom: 20px;
+  }
+
+  .mobile-eyebrow {
+    margin-bottom: 6px;
+  }
+
+  .mobile-usage-card {
+    padding: 12px 10px;
+    border-radius: 16px;
+  }
+
+  .mobile-usage-cell {
+    gap: 2px;
+    padding: 0 8px;
+  }
+
+  .mobile-usage-cell:first-child,
+  .mobile-usage-cell[data-mobile-web="usage-free"] {
+    padding-left: 8px;
+  }
+
+  .mobile-usage-label {
+    font-size: 12px;
+  }
+
+  .mobile-usage-cell strong {
+    font-size: 21px;
+  }
+
+  .mobile-usage-track {
+    height: 5px;
+    margin-top: 2px;
+  }
+
+  .mobile-upload-card,
+  .mobile-listing-controls {
+    padding: 14px;
+  }
+
+  .mobile-upload-card-heading h2 {
+    font-size: 23px;
+  }
+
+  .mobile-photo-actions {
+    grid-template-columns: 1.02fr 1.18fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .mobile-photo-action {
+    min-height: 48px;
+    gap: 7px;
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .mobile-photo-action svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .mobile-listing-language-grid {
+    gap: 6px;
+  }
+
+  .mobile-language-trigger,
+  .mobile-format-summary {
+    min-height: 56px;
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  .mobile-language-trigger-value {
+    gap: 7px;
+    font-size: 14px;
+  }
+
+  .mobile-language-trigger-copy {
+    gap: 2px;
+  }
+
+  .mobile-language-globe {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .mobile-language-globe svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .mobile-format-summary {
+    margin-top: 6px;
+  }
+
+  .mobile-format-summary-icon {
+    width: 32px;
+    height: 32px;
+    padding: 7px;
+  }
+
+  [data-mobile-format-summary] {
+    font-size: 15px;
+  }
+
+  .mobile-format-summary-copy {
+    gap: 2px;
+  }
+
+  .mobile-generation-panel {
+    position: static;
+    bottom: auto;
+    z-index: auto;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .mobile-generate-button {
+    min-height: 52px;
+    border-radius: 12px;
+    gap: 8px;
+    font-size: 15px;
+  }
+
+  .mobile-generate-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mobile-generation-helper {
+    font-size: 13px;
+    line-height: 1.2;
   }
 }
 

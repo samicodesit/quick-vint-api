@@ -122,4 +122,32 @@ describe("mobile web launch contract", () => {
       "padding-bottom: calc(128px + env(safe-area-inset-bottom))",
     );
   });
+
+  it("keeps the compact initial viewport in normal flow", () => {
+    expect(stylesheet).toContain("@media (max-width: 430px)");
+    expect(stylesheet).toContain(".mobile-generation-panel");
+    expect(stylesheet).toContain("position: static");
+    expect(stylesheet).toContain("padding-bottom: 20px");
+  });
+
+  it("keeps mobile action labels on one line without shrinking touch targets", () => {
+    expect(stylesheet).toContain("white-space: nowrap");
+    expect(stylesheet).toContain("min-height: 48px");
+    expect(stylesheet).toContain("grid-template-columns: 1.02fr 1.18fr");
+  });
+
+  it("uses the compact source proportions and high-contrast existing icons", () => {
+    expect(photoRail).toContain("min-height: 152px");
+    expect(photoRail).toContain(".photo-empty-icon circle");
+    expect(photoRail).toContain("fill: #ffffff");
+    expect(stylesheet).toContain(".mobile-format-summary-icon");
+    expect(stylesheet).toContain("color: #4a50a2");
+  });
+
+  it("uses the existing list icon in the compact description-style summary", () => {
+    const summaryButton = listingControls.match(
+      /<button[\s\S]*?data-mobile-format-sheet-trigger[\s\S]*?<\/button>/,
+    );
+    expect(summaryButton?.[0]).toContain("format-icon-bullet");
+  });
 });

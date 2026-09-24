@@ -72,8 +72,8 @@ const { photos = [], editable = true, compact = false } = Astro.props;
     place-items: center;
     gap: 7px;
     width: 100%;
-    min-height: 194px;
-    padding: 20px 16px;
+    min-height: 152px;
+    padding: 14px 12px;
     border: 1.5px dashed #b8b9ec;
     border-radius: 14px;
     background: #fbfbff;
@@ -113,6 +113,10 @@ const { photos = [], editable = true, compact = false } = Astro.props;
   .photo-empty-icon svg {
     width: 34px;
     height: 34px;
+  }
+
+  .photo-empty-icon circle {
+    fill: #ffffff;
   }
 
   .photo-rail-scroll {
@@ -246,7 +250,7 @@ const { photos = [], editable = true, compact = false } = Astro.props;
 
   @media (max-width: 380px) {
     .photo-empty-state {
-      min-height: 178px;
+      min-height: 144px;
     }
   }
 

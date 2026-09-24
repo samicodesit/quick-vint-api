@@ -551,7 +551,14 @@ function showState(
 export function mountMobileWebApp(
   root: MobileAppRoot = document.body as MobileAppRoot,
 ): () => void {
-  const shell = asElement<HTMLElement>(root, '[data-mobile-web="workspace"]');
+  const rootWithMatches = root as MobileAppRoot & {
+    matches?: (selector: string) => boolean;
+  };
+  const shell =
+    (typeof rootWithMatches.matches === "function" &&
+      rootWithMatches.matches('[data-mobile-web="workspace"]') &&
+      root) ||
+    asElement<HTMLElement>(root, '[data-mobile-web="workspace"]');
   if (!shell) return () => undefined;
   let disposed = false;
   let session: Awaited<ReturnType<typeof getBrowserSession>> = null;

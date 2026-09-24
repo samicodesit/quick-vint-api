@@ -9,9 +9,133 @@ import {
   revokeMobileUploadedPreviews,
   closeMobileLanguageMenus,
   toggleMobileLanguageMenu,
+  mountMobileWebApp,
 } from "../app.js";
 
+class FakeElement {
+  hidden = true;
+  disabled = false;
+  value = "";
+  textContent = "";
+  dataset: Record<string, string> = {};
+  private readonly listeners = new Map<string, EventListener>();
+
+  constructor(private readonly matchesWorkspace = false) {}
+
+  matches(selector: string): boolean {
+    return (
+      this.matchesWorkspace && selector === '[data-mobile-web="workspace"]'
+    );
+  }
+
+  querySelector<T extends Element = Element>(): T | null {
+    return null;
+  }
+
+  querySelectorAll(): FakeElement[] {
+    return [];
+  }
+
+  addEventListener(event: string, listener: EventListener): void {
+    this.listeners.set(event, listener);
+  }
+
+  removeEventListener(event: string, listener: EventListener): void {
+    if (this.listeners.get(event) === listener) this.listeners.delete(event);
+  }
+
+  setAttribute(): void {}
+
+  closest(): null {
+    return null;
+  }
+}
+
 describe("mobile web app state helpers", () => {
+  it("mounts when the workspace element itself is passed as the root", async () => {
+    const authCard = new FakeElement();
+    const workspace = new FakeElement(true);
+    const elements = new Map<string, FakeElement>([
+      ['[data-mobile-web="auth-card"]', authCard],
+    ]);
+    workspace.querySelector = ((selector: string) =>
+      selector === '[data-mobile-web="workspace"]'
+        ? null
+        : (elements.get(selector) ??
+          new FakeElement())) as typeof workspace.querySelector;
+
+    const storage = {
+      getItem: () => null,
+      setItem: () => undefined,
+      removeItem: () => undefined,
+      key: () => null,
+      length: 0,
+    };
+    const previousWindow = globalThis.window;
+    const previousDocument = globalThis.document;
+    const previousNavigator = globalThis.navigator;
+    const previousLocalStorage = globalThis.localStorage;
+    Object.assign(globalThis, {
+      window: {
+        __AUTOLISTER_MOBILE_WEB_CONFIG__: {
+          supabaseUrl: "https://example.supabase.co",
+          supabaseAnonKey: "anon",
+        },
+        localStorage: storage,
+        location: {
+          origin: "http://localhost:4321",
+          hostname: "localhost",
+          href: "http://localhost:4321/app",
+        },
+        history: { replaceState: () => undefined },
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      },
+      document: {
+        body: workspace,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      },
+      localStorage: storage,
+    });
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      writable: true,
+      value: { languages: ["en-US"], language: "en-US" },
+    });
+
+    try {
+      mountMobileWebApp(
+        workspace as unknown as HTMLElement & {
+          __mobileWebCleanup?: () => void;
+        },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(authCard.hidden).toBe(false);
+    } finally {
+      Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        writable: true,
+        value: previousWindow,
+      });
+      Object.defineProperty(globalThis, "document", {
+        configurable: true,
+        writable: true,
+        value: previousDocument,
+      });
+      Object.defineProperty(globalThis, "navigator", {
+        configurable: true,
+        writable: true,
+        value: previousNavigator,
+      });
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        writable: true,
+        value: previousLocalStorage,
+      });
+    }
+  });
+
   it("opens one language menu at a time and keeps trigger state accessible", () => {
     const titleTrigger = {
       setAttribute: vi.fn(),

@@ -53,6 +53,9 @@ importers:
       stripe:
         specifier: ^18.2.0
         version: 18.5.0(@types/node@22.15.20)
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
     devDependencies:
       '@astrojs/check':
         specifier: ^0.9.9

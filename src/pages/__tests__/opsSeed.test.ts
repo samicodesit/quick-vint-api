@@ -8,10 +8,16 @@ describe("OS seed safety", () => {
       assertLocalSeedTarget("https://project.supabase.co", "test"),
     ).toThrow(/local database/i);
     expect(() =>
-      assertLocalSeedTarget("http://127.0.0.1:54321", "production"),
+      assertLocalSeedTarget(
+        "postgresql://postgres@127.0.0.1:54321/ops_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "production",
+      ),
     ).toThrow(/local or test/i);
     expect(() =>
-      assertLocalSeedTarget("http://127.0.0.1:54321", "test"),
+      assertLocalSeedTarget(
+        "postgresql://postgres@127.0.0.1:54321/ops_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "test",
+      ),
     ).not.toThrow();
   });
 });

@@ -1,5 +1,6 @@
 import { createClient, type User } from "@supabase/supabase-js";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { callOps } from "./gateway";
 
 const desktop = ["Today", "Inventory", "Listings", "Orders"] as const;
 const paths = ["", "inventory", "listings", "orders"] as const;
@@ -46,6 +47,107 @@ export default function App({
       </main>
     );
 
+  return <WorkspacePanel client={client} user={user} />;
+}
+
+type Workspace = { workspaceId: string; role: string; name: string };
+const emptyWorkspaceId = "00000000-0000-0000-0000-000000000000";
+
+function WorkspacePanel({
+  client,
+  user,
+}: {
+  client: ReturnType<typeof createClient<any>>;
+  user: User;
+}) {
+  const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const pendingBootstrap = useRef<{ name: string; key: string } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const {
+        data: { session },
+      } = await client.auth.getSession();
+      const list = await callOps<Workspace[]>(
+        fetch,
+        session?.access_token ?? "",
+        {
+          kind: "query",
+          name: "workspace.list",
+          workspaceId: emptyWorkspaceId,
+          payload: {},
+        },
+      );
+      if (active) {
+        setWorkspaces(list);
+        const remembered = localStorage.getItem("ops-workspace-id");
+        setSelected(
+          list.find((workspace) => workspace.workspaceId === remembered)
+            ?.workspaceId ??
+            list[0]?.workspaceId ??
+            null,
+        );
+      }
+    })().catch((cause) => {
+      if (active)
+        setError(
+          cause instanceof Error ? cause.message : "Could not load workspaces",
+        );
+    });
+    return () => {
+      active = false;
+    };
+  }, [client, user.id]);
+
+  useEffect(() => {
+    if (selected) localStorage.setItem("ops-workspace-id", selected);
+  }, [selected]);
+
+  async function createWorkspace(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setCreating(true);
+    try {
+      if (pendingBootstrap.current?.name !== name)
+        pendingBootstrap.current = { name, key: crypto.randomUUID() };
+      const {
+        data: { session },
+      } = await client.auth.getSession();
+      const result = await callOps<{ workspaceId: string }>(
+        fetch,
+        session?.access_token ?? "",
+        {
+          kind: "command",
+          name: "workspace.bootstrap",
+          workspaceId: emptyWorkspaceId,
+          payload: { name },
+          meta: {
+            idempotencyKey: pendingBootstrap.current.key,
+            expectedVersion: null,
+          },
+        },
+      );
+      pendingBootstrap.current = null;
+      setWorkspaces((current) => [
+        ...(current ?? []),
+        { workspaceId: result.workspaceId, role: "owner", name },
+      ]);
+      setSelected(result.workspaceId);
+      setName("");
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Could not create workspace",
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
+
   const current = window.location.pathname
     .replace(/^\/app\/?/, "")
     .split("/")[0];
@@ -55,7 +157,10 @@ export default function App({
     <div className="ops-shell">
       <header>
         <a href="/app">AutoLister</a>
-        <span>{user.email}</span>
+        <span>
+          {workspaces?.find((workspace) => workspace.workspaceId === selected)
+            ?.name ?? user.email}
+        </span>
       </header>
       <nav aria-label="Workspace">
         {desktop.map((label, index) => (
@@ -70,10 +175,57 @@ export default function App({
       </nav>
       <main>
         <h1>{title}</h1>
-        <p>
-          Your workspace is being connected. No inventory changes can be made
-          here yet.
-        </p>
+        {error && <p role="alert">{error}</p>}
+        {workspaces === null ? (
+          <p>Loading workspaces...</p>
+        ) : workspaces.length === 0 ? (
+          <section>
+            <h2>Create your workspace</h2>
+            <p>
+              Start with your business name. You can add stock without setting
+              up a warehouse.
+            </p>
+            <form onSubmit={createWorkspace}>
+              <label>
+                Workspace name{" "}
+                <input
+                  required
+                  maxLength={120}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </label>
+              <button type="submit" disabled={creating}>
+                Create workspace
+              </button>
+            </form>
+          </section>
+        ) : (
+          <section>
+            {workspaces.length > 1 && (
+              <label>
+                Workspace{" "}
+                <select
+                  value={selected ?? ""}
+                  onChange={(event) => setSelected(event.target.value)}
+                >
+                  {workspaces.map((workspace) => (
+                    <option
+                      key={workspace.workspaceId}
+                      value={workspace.workspaceId}
+                    >
+                      {workspace.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <p>
+              Workspace ready. Inventory tools will appear here as they are
+              added.
+            </p>
+          </section>
+        )}
       </main>
     </div>
   );

@@ -4,9 +4,9 @@
   "scripts": {
     "dev": "astro dev",
     "ops:dev": "node scripts/ops-dev.mjs",
-    "ops:test:unit": "vitest run tests/ops/unit",
-    "ops:test:db": "vitest run tests/ops/integration",
-    "ops:test:api": "vitest run src/api/__tests__/ops.*.test.ts",
+    "ops:test:unit": "vitest run --config vitest.ops.unit.config.ts",
+    "ops:test:db": "vitest run --config vitest.ops.db.config.ts",
+    "ops:test:api": "vitest run --config vitest.ops.api.config.ts",
     "ops:test:e2e": "playwright test --config=playwright.ops.config.ts",
     "ops:seed": "node scripts/ops-seed.mjs",
     "ops:worker": "node scripts/ops-worker.mjs",
@@ -53,7 +53,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "resend": "^6.9.2",
-    "stripe": "^18.2.0"
+    "stripe": "^18.2.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",

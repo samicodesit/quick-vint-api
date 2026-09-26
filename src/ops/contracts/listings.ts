@@ -2,7 +2,15 @@ import { z } from "zod";
 import { uuidSchema } from "./core";
 import { ontology } from "./extraction";
 
-export const listingLocaleSchema = z.enum(["nl", "fr", "de", "es", "it"]);
+export const listingLocaleSchema = z.enum([
+  "en",
+  "nl",
+  "fr",
+  "de",
+  "pl",
+  "es",
+  "it",
+]);
 export const confirmedFactsSchema = z
   .object({
     brand: z.string().trim().min(1).max(120).nullable(),

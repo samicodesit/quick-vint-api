@@ -11,9 +11,18 @@ export type TemplateLabels = {
 };
 
 export const templates: Record<
-  "nl" | "fr" | "de" | "es" | "it",
+  "en" | "nl" | "fr" | "de" | "pl" | "es" | "it",
   TemplateLabels
 > = {
+  en: {
+    brand: "Brand",
+    size: "Size",
+    colour: "Colour",
+    material: "Material",
+    condition: "Condition",
+    measurements: "Measurements",
+    defects: "Defects",
+  },
   nl: {
     brand: "Merk",
     size: "Maat",
@@ -40,6 +49,15 @@ export const templates: Record<
     condition: "Zustand",
     measurements: "Maße",
     defects: "Mängel",
+  },
+  pl: {
+    brand: "Marka",
+    size: "Rozmiar",
+    colour: "Kolor",
+    material: "Materiał",
+    condition: "Stan",
+    measurements: "Wymiary",
+    defects: "Wady",
   },
   es: {
     brand: "Marca",

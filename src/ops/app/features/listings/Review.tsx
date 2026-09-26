@@ -4,6 +4,11 @@ import { ontology } from "../../../contracts/extraction";
 import type { ConfirmedFacts } from "../../../contracts/listings";
 import { renderListing } from "../../../../../utils/ops/listings/render";
 import { callOps } from "../../gateway";
+import {
+  browserExtensionTransport,
+  prepareWithExtension,
+  type HandoffPacket,
+} from "./bridge";
 
 const emptyFacts: ConfirmedFacts = {
   brand: null,
@@ -88,7 +93,9 @@ export function ReviewListing({
   const request = useOps(client, workspaceId);
   const [data, setData] = useState<ReviewData | null>(null);
   const [facts, setFacts] = useState<ConfirmedFacts>(emptyFacts);
-  const [locale, setLocale] = useState<"nl" | "fr" | "de" | "es" | "it">("nl");
+  const [locale, setLocale] = useState<
+    "en" | "nl" | "fr" | "de" | "pl" | "es" | "it"
+  >("nl");
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("EUR");
   const [override, setOverride] = useState("");
@@ -96,6 +103,10 @@ export function ReviewListing({
   const [defects, setDefects] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [packet, setPacket] = useState<HandoffPacket | null>(null);
+  const [handoffState, setHandoffState] = useState<
+    "prepared" | "filled" | null
+  >(null);
 
   async function refresh(reset = false) {
     const detail = await request<ReviewData>("query", "listing.detail", {
@@ -162,6 +173,64 @@ export function ReviewListing({
   }
   function update(field: keyof ConfirmedFacts, value: string | null) {
     setFacts((current) => ({ ...current, [field]: value }));
+  }
+  async function prepareHandoff() {
+    if (!data?.listing?.approved_revision_id || !latest) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const ids = { itemId, listingId: data.listing.id, revisionId: latest.id };
+      const approved = await request<HandoffPacket>(
+        "query",
+        "handoff.packet",
+        ids,
+      );
+      setPacket(approved);
+      const requestId = crypto.randomUUID();
+      let state: "prepared" | "filled" = "prepared";
+      let reason =
+        "Manual packet is ready. Review and publish in Vinted yourself.";
+      let channel: "manual" | "extension" = "manual";
+      const transport = browserExtensionTransport();
+      if (transport) {
+        try {
+          const { data: auth } = await client.auth.getUser();
+          if (!auth.user) throw new Error("Sign in again before handoff.");
+          const result = await prepareWithExtension(
+            transport,
+            approved,
+            auth.user.id,
+            requestId,
+          );
+          state = result.state;
+          reason =
+            result.reason ??
+            (state === "filled"
+              ? "The Vinted form was filled. Review it and publish yourself."
+              : "Manual packet is ready.");
+          if (state === "filled") channel = "extension";
+        } catch (cause) {
+          reason =
+            cause instanceof Error
+              ? cause.message
+              : "Extension unavailable. Use manual handoff.";
+        }
+      }
+      await request("command", "handoff.ack", {
+        ...ids,
+        requestId,
+        state,
+        channel,
+      });
+      setHandoffState(state);
+      setMessage(reason);
+    } catch (cause) {
+      setMessage(
+        cause instanceof Error ? cause.message : "Handoff unavailable",
+      );
+    } finally {
+      setBusy(false);
+    }
   }
   if (!data) return <p role="status">Loading item review... {message}</p>;
   if (!data.item) return <p role="alert">Item not found in this workspace.</p>;
@@ -379,7 +448,7 @@ export function ReviewListing({
                 setLocale(event.target.value as typeof locale)
               }
             >
-              {["nl", "fr", "de", "es", "it"].map((value) => (
+              {["en", "nl", "fr", "de", "pl", "es", "it"].map((value) => (
                 <option key={value}>{value}</option>
               ))}
             </select>
@@ -469,6 +538,52 @@ export function ReviewListing({
           )}
         </section>
       </div>
+      {data.listing?.status === "ready" &&
+        data.listing.approved_revision_id === latest?.id && (
+          <section>
+            <h2>Manual or assisted handoff</h2>
+            <p>
+              A prepared packet or filled form is not a live listing. Publish in
+              Vinted yourself and verify it there.
+            </p>
+            <button disabled={busy} onClick={() => void prepareHandoff()}>
+              Prepare handoff
+            </button>
+            {packet && (
+              <div>
+                <p>
+                  Handoff state: {handoffState ?? "prepared"}. Marketplace
+                  status: unverified.
+                </p>
+                <p>Reference: {packet.reference}</p>
+                <label>
+                  Title
+                  <input readOnly value={packet.title} />
+                </label>
+                <label>
+                  Description
+                  <textarea readOnly value={packet.description} />
+                </label>
+                <p>
+                  Price: {packet.price.minor / 100} {packet.price.currency}
+                </p>
+                <ul>
+                  {packet.photos.map((photo, index) => (
+                    <li key={photo.assetId}>
+                      <a
+                        href={photo.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Download approved photo {index + 1}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
     </section>
   );
 }
@@ -531,7 +646,9 @@ export function TemplateSettings({
   workspaceId: string;
 }) {
   const request = useOps(client, workspaceId);
-  const [locale, setLocale] = useState<"nl" | "fr" | "de" | "es" | "it">("nl");
+  const [locale, setLocale] = useState<
+    "en" | "nl" | "fr" | "de" | "pl" | "es" | "it"
+  >("nl");
   const [rows, setRows] = useState<
     { locale: string; prefix: string; suffix: string; version: number }[]
   >([]);
@@ -590,7 +707,7 @@ export function TemplateSettings({
             value={locale}
             onChange={(event) => setLocale(event.target.value as typeof locale)}
           >
-            {["nl", "fr", "de", "es", "it"].map((value) => (
+            {["en", "nl", "fr", "de", "pl", "es", "it"].map((value) => (
               <option key={value}>{value}</option>
             ))}
           </select>

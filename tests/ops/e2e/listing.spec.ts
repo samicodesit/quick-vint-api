@@ -125,6 +125,32 @@ test("fixture review requires a human fact step before a listing revision is app
         };
         data = { listingId, revisionId, status: "ready", version: 2 };
         break;
+      case "handoff.packet":
+        expect(body.payload).toEqual({ itemId, listingId, revisionId });
+        data = {
+          protocolVersion: 1,
+          workspaceId,
+          itemId,
+          listingId,
+          revisionId,
+          reference: "SKU-1",
+          title: "Levi's jeans W30",
+          description: "Confirmed details",
+          price: { minor: 2499, currency: "EUR" },
+          photos: [],
+          state: "prepared",
+        };
+        break;
+      case "handoff.ack":
+        expect(body.payload).toMatchObject({
+          itemId,
+          listingId,
+          revisionId,
+          state: "prepared",
+          channel: "manual",
+        });
+        data = { state: "prepared", marketplaceStatus: "unverified" };
+        break;
       default:
         throw new Error(`Unexpected fixture operation ${body.name}`);
     }
@@ -151,6 +177,11 @@ test("fixture review requires a human fact step before a listing revision is app
   await page.getByRole("button", { name: "Approve this revision" }).click();
   await expect(page.getByText(/Listing: ready/)).toBeVisible();
   await expect(page.getByText("Listing approved for handoff.")).toBeVisible();
+  await page.getByRole("button", { name: "Prepare handoff" }).click();
+  await expect(
+    page.getByText("Handoff state: prepared. Marketplace status: unverified."),
+  ).toBeVisible();
+  await expect(page.getByText(/Listing: ready/)).toBeVisible();
   await page.screenshot({
     path: "test-results/ops-listing-review-fixture.png",
     fullPage: true,

@@ -45,6 +45,7 @@ beforeAll(() => {
     "jobs",
     "analysis",
     "listings",
+    "handoff",
   ])
     applyMigration(database, `migrations/2026-09-26_ops_${name}.sql`);
   workspaceId = asUser(
@@ -183,5 +184,48 @@ describe("T08 confirmed listing revisions", () => {
         database,
       ),
     ).toBe(before);
+  });
+  it("records prepared handoff without claiming a live marketplace listing", () => {
+    const version = Number(
+      sql(
+        `SELECT version FROM ops_listings WHERE item_id='${itemId}';`,
+        database,
+      ),
+    );
+    const draft = save(3, version, 819, "Levi's jeans W31");
+    const approved = approve(
+      draft.listingId,
+      draft.revisionId,
+      draft.version,
+      820,
+    );
+    const requestId = key(821);
+    const ack = object(
+      asUser(
+        `SELECT ops_ack_handoff('${workspaceId}','${itemId}','${approved.listingId}','${approved.revisionId}','${requestId}','prepared','manual','${key(822)}');`,
+      ),
+    );
+    expect(ack).toMatchObject({
+      state: "prepared",
+      marketplaceStatus: "unverified",
+      revisionId: approved.revisionId,
+    });
+    expect(
+      sql(
+        `SELECT status FROM ops_listings WHERE id='${approved.listingId}';`,
+        database,
+      ),
+    ).toBe("ready");
+    expect(() =>
+      asUser(
+        `SELECT ops_ack_handoff('${workspaceId}','${itemId}','${approved.listingId}','${approved.revisionId}','${requestId}','filled','manual','${key(823)}');`,
+      ),
+    ).toThrow();
+    confirm({ ...facts, size: "W32" }, 3, 824);
+    expect(() =>
+      asUser(
+        `SELECT ops_ack_handoff('${workspaceId}','${itemId}','${approved.listingId}','${approved.revisionId}','${key(825)}','prepared','manual','${key(826)}');`,
+      ),
+    ).toThrow();
   });
 });

@@ -41,6 +41,8 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "listing.queue",
     "template.list",
     "template.save",
+    "handoff.packet",
+    "handoff.ack",
   ]),
   manager: new Set([
     "session.read",
@@ -80,6 +82,8 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "listing.queue",
     "template.list",
     "template.save",
+    "handoff.packet",
+    "handoff.ack",
   ]),
   lister: new Set([
     "session.read",
@@ -108,6 +112,8 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "listing.detail",
     "listing.queue",
     "template.list",
+    "handoff.packet",
+    "handoff.ack",
   ]),
   warehouse: new Set([
     "session.read",

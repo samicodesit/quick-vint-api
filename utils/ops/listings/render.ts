@@ -6,7 +6,7 @@ import {
 import { templates, type TemplateLabels } from "./templates";
 
 export type ListingTemplate = {
-  locale: "nl" | "fr" | "de" | "es" | "it";
+  locale: "en" | "nl" | "fr" | "de" | "pl" | "es" | "it";
   labels?: TemplateLabels;
   prefix?: string;
   suffix?: string;

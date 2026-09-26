@@ -11,7 +11,7 @@ CREATE TABLE ops_item_facts (
 );
 CREATE TABLE ops_listing_templates (
   workspace_id uuid NOT NULL REFERENCES ops_workspaces(id),
-  locale text NOT NULL CHECK (locale IN ('nl','fr','de','es','it')),
+  locale text NOT NULL CHECK (locale IN ('en','nl','fr','de','pl','es','it')),
   prefix text NOT NULL DEFAULT '' CHECK (length(prefix)<=1000),
   suffix text NOT NULL DEFAULT '' CHECK (length(suffix)<=1000),
   version integer NOT NULL DEFAULT 1 CHECK (version>0),
@@ -23,7 +23,7 @@ CREATE TABLE ops_listings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES ops_workspaces(id),
   item_id uuid NOT NULL,
-  locale text NOT NULL CHECK (locale IN ('nl','fr','de','es','it')),
+  locale text NOT NULL CHECK (locale IN ('en','nl','fr','de','pl','es','it')),
   status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','ready','queued','pending_confirmation','live','ended','failed','uncertain')),
   version integer NOT NULL DEFAULT 1 CHECK (version>0),
   current_revision_id uuid,
@@ -42,7 +42,7 @@ CREATE TABLE ops_listing_revisions (
   fact_revision integer NOT NULL CHECK (fact_revision>0),
   capture_revision integer NOT NULL CHECK (capture_revision>=0),
   template_version integer NOT NULL CHECK (template_version>0),
-  locale text NOT NULL CHECK (locale IN ('nl','fr','de','es','it')),
+  locale text NOT NULL CHECK (locale IN ('en','nl','fr','de','pl','es','it')),
   price_minor bigint NOT NULL CHECK (price_minor>0),
   currency text NOT NULL CHECK (currency ~ '^[A-Z]{3}$'),
   human_description_override text,
@@ -122,7 +122,7 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp A
 DECLARE v_facts ops_item_facts%ROWTYPE; v_item ops_items%ROWTYPE; v_listing ops_listings%ROWTYPE; v_template_version integer; v_asset_ids uuid[]; v_hash text; v_previous ops_command_results%ROWTYPE; v_revision_id uuid; v_result jsonb;
 BEGIN
   IF NOT EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=p_workspace_id AND user_id=p_actor_user_id AND active AND role IN ('owner','manager','lister')) THEN RAISE EXCEPTION 'Listing denied' USING ERRCODE='42501'; END IF;
-  IF p_key IS NULL OR p_locale NOT IN ('nl','fr','de','es','it') OR p_price_minor<=0 OR p_currency !~ '^[A-Z]{3}$' OR length(p_title) NOT BETWEEN 1 AND 100 OR length(p_description) NOT BETWEEN 1 AND 10000 OR length(p_human_override)>5000 THEN RAISE EXCEPTION 'Invalid listing draft' USING ERRCODE='22023'; END IF;
+  IF p_key IS NULL OR p_locale NOT IN ('en','nl','fr','de','pl','es','it') OR p_price_minor<=0 OR p_currency !~ '^[A-Z]{3}$' OR length(p_title) NOT BETWEEN 1 AND 100 OR length(p_description) NOT BETWEEN 1 AND 10000 OR length(p_human_override)>5000 THEN RAISE EXCEPTION 'Invalid listing draft' USING ERRCODE='22023'; END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text||':'||p_item_id::text,0));
   v_hash:=encode(digest(jsonb_build_object('item',p_item_id,'facts',p_expected_fact_revision,'listing',p_expected_listing_version,'locale',p_locale,'price',p_price_minor,'currency',p_currency,'override',p_human_override)::text,'sha256'),'hex');
   SELECT * INTO v_previous FROM ops_command_results WHERE workspace_id=p_workspace_id AND idempotency_key=p_key;
@@ -188,7 +188,7 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp A
 DECLARE v_user uuid:=auth.uid(); v_template ops_listing_templates%ROWTYPE; v_previous ops_command_results%ROWTYPE; v_hash text; v_result jsonb;
 BEGIN
   IF NOT EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=p_workspace_id AND user_id=v_user AND active AND role IN ('owner','manager')) THEN RAISE EXCEPTION 'Template change denied' USING ERRCODE='42501'; END IF;
-  IF p_key IS NULL OR p_locale NOT IN ('nl','fr','de','es','it') OR length(p_prefix)>1000 OR length(p_suffix)>1000 OR p_expected_version<0 THEN RAISE EXCEPTION 'Invalid template' USING ERRCODE='22023'; END IF;
+  IF p_key IS NULL OR p_locale NOT IN ('en','nl','fr','de','pl','es','it') OR length(p_prefix)>1000 OR length(p_suffix)>1000 OR p_expected_version<0 THEN RAISE EXCEPTION 'Invalid template' USING ERRCODE='22023'; END IF;
   v_hash:=encode(digest(jsonb_build_object('locale',p_locale,'prefix',p_prefix,'suffix',p_suffix,'expected',p_expected_version)::text,'sha256'),'hex');
   PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text||':'||p_locale,0));
   SELECT * INTO v_previous FROM ops_command_results WHERE workspace_id=p_workspace_id AND idempotency_key=p_key;

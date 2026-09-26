@@ -82,10 +82,19 @@ import {
   saveTemplate,
 } from "../utils/ops/listings/facts";
 import { approveListing, saveListing } from "../utils/ops/listings/approve";
+import {
+  handoffAckSchema,
+  handoffPacketSchema,
+} from "../src/ops/contracts/handoff";
+import {
+  acknowledgeHandoff,
+  preparedListingPacket,
+} from "../utils/ops/listings/handoff";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
 const NIL_WORKSPACE = "00000000-0000-0000-0000-000000000000";
+const EXTENSION_ORIGIN = "chrome-extension://mommklhpammnlojjobejddmidmdcalcl";
 
 type Operation = {
   kind: "query" | "command";
@@ -548,6 +557,27 @@ const operations: Record<string, Operation> = {
       );
     },
   },
+  "handoff.packet": {
+    kind: "query",
+    payload: handoffPacketSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return preparedListingPacket(actor, handoffPacketSchema.parse(payload));
+    },
+  },
+  "handoff.ack": {
+    kind: "command",
+    payload: handoffAckSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return acknowledgeHandoff(
+        actor,
+        handoffAckSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
 };
 
 export function createOpsHandler(
@@ -565,7 +595,8 @@ export function createOpsHandler(
       return res
         .status(405)
         .json(failure("VALIDATION", "POST required", requestId));
-    if (req.headers.origin) {
+    const extensionOrigin = req.headers.origin === EXTENSION_ORIGIN;
+    if (req.headers.origin && !extensionOrigin) {
       let origin: URL;
       try {
         origin = new URL(req.headers.origin);
@@ -597,6 +628,13 @@ export function createOpsHandler(
         .status(400)
         .json(failure("VALIDATION", "Invalid request", requestId));
     const request = parsed.data;
+    if (
+      extensionOrigin &&
+      !["handoff.packet", "handoff.ack"].includes(request.name)
+    )
+      return res
+        .status(403)
+        .json(failure("FORBIDDEN", "Extension operation denied", requestId));
     const operation = operations[request.name];
     if (!operation || operation.kind !== request.kind)
       return res

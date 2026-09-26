@@ -71,7 +71,15 @@ External gates: no production database migration, live Vinted credential test, p
 
 ## T08: confirmed facts and listing review locally verified
 
-- Added revisioned human-confirmed facts, editable five-locale templates, deterministic listing text, immutable draft snapshots and explicit approval. A fact or photo revision change invalidates a ready draft. Existing snapshots remain available for audit, and an unchanged fact confirmation does not invalidate approval.
+- Added revisioned human-confirmed facts, editable templates for EN, NL, FR, DE, PL, ES and IT, deterministic listing text, immutable draft snapshots and explicit approval. A fact or photo revision change invalidates a ready draft. Existing snapshots remain available for audit, and an unchanged fact confirmation does not invalidate approval.
 - Added a compact item review screen with signed derivative evidence, visibly unconfirmed AI suggestions, manual fact confirmation, price and locale preview, draft save, exact-revision approval, ready queue and template settings. AI suggestions only fill local form inputs when clicked. Owners, managers and listers can review; warehouse staff cannot.
-- Focused checks: listing renderer 7/7 unit, PostgreSQL 3/3, listing API 2/2, browser review 1/1, type check passed. The browser flow is an explicitly labelled fixture. Screenshots were inspected at desktop and 390-pixel mobile width, including no horizontal overflow. No live authenticated Supabase review was claimed.
+- Checks: `ops:verify` passed after the EN/PL update, including listing renderer 9/9 unit, listing and handoff PostgreSQL 4/4, listing API 2/2, browser review 1/1, type check and build. The browser flow is an explicitly labelled fixture. Screenshots were inspected at desktop and 390-pixel mobile width, including no horizontal overflow. No live authenticated Supabase review was claimed.
 - Next: T09 extension handshake and manual handoff.
+
+## T09: local manual and extension handoff verified with fixtures
+
+- Added an approved-revision packet with title, description, confirmed facts, price, reference and short-lived signed original-photo links. The API rejects stale fact/photo revisions or a listing that is no longer ready. A durable handoff acknowledgement records only `prepared` or `filled`; neither state marks the marketplace listing live.
+- Added a versioned `OPS_HELLO`/`OPS_PREPARE_LISTING` bridge. The extension accepts the existing exact site origin only from `/app`, checks its signed-in account, fetches the same approved packet under its own bearer session and verifies workspace/item/listing/revision identity. Its current Vinted selector path fills title and description only on one open new-listing form. Price, photos, category, condition and final publication remain manual. No host permissions were expanded.
+- Checks: API `ops:verify` passed with 33 unit, 34 PostgreSQL, 20 API and 5 browser checks, plus type check and build; lint passed. Extension unit suite passed 53/53. Its full browser suite had 174 passes and one outdated manifest assertion; after updating the assertion, the focused five-test rerun passed, including the manifest check. The OS browser fixture keeps a manual packet prepared and marketplace status unverified.
+- External gate: no live extension-to-site authenticated handoff or live Vinted form was used. The form fixture proves only the currently supported selectors. No listing was published.
+- Next: T10 current official Vinted contract verification and recoverable adapter.

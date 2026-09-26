@@ -18,7 +18,7 @@ const facts: ConfirmedFacts = {
 };
 
 describe("T08 deterministic listing copy", () => {
-  it.each(["nl", "fr", "de", "es", "it"] as const)(
+  it.each(["en", "nl", "fr", "de", "pl", "es", "it"] as const)(
     "preserves measurements and defects in %s",
     (locale) => {
       const result = renderListing(facts, { locale });

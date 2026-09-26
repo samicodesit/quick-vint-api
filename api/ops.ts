@@ -62,6 +62,11 @@ import {
   defaultImportServices,
   type ImportServices,
 } from "../utils/ops/imports/apply";
+import {
+  analysisDetailSchema,
+  requestAnalysisSchema,
+} from "../src/ops/contracts/extraction";
+import { analysisDetail, requestAnalysis } from "../utils/ops/ai/extract";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -434,6 +439,27 @@ const operations: Record<string, Operation> = {
         actor,
         exportImportSchema.parse(payload).importId,
       );
+    },
+  },
+  "analysis.request": {
+    kind: "command",
+    payload: requestAnalysisSchema,
+    requiresMembership: true,
+    async run({ actor, token, payload, meta }) {
+      return requestAnalysis(
+        actor,
+        requestAnalysisSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "analysis.detail": {
+    kind: "query",
+    payload: analysisDetailSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return analysisDetail(actor, analysisDetailSchema.parse(payload).itemId);
     },
   },
 };

@@ -19,6 +19,7 @@ export async function runWorker(options: {
   workerId: string;
   environment: string;
   repository: JobRepository;
+  analyseItem?: (job: ClaimedJob) => Promise<unknown>;
 }) {
   const { deadlineMs, maxJobs, workerId, environment, repository } = options;
   if (
@@ -46,6 +47,11 @@ export async function runWorker(options: {
           if (environment !== "local" && environment !== "test")
             throw new Error("Fixture job disabled");
           result = { fixture: true, payload: job.payload };
+          break;
+        case "analysis.item":
+          if (!options.analyseItem)
+            throw new Error("Analysis handler is unavailable");
+          result = await options.analyseItem(job);
           break;
         default:
           throw new Error("Unsupported job kind");

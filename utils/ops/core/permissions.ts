@@ -32,6 +32,8 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "import.apply",
     "import.detail",
     "import.export",
+    "analysis.request",
+    "analysis.detail",
   ]),
   manager: new Set([
     "session.read",
@@ -62,6 +64,8 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "import.apply",
     "import.detail",
     "import.export",
+    "analysis.request",
+    "analysis.detail",
   ]),
   lister: new Set([
     "session.read",
@@ -82,6 +86,8 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "media.list",
     "media.reorder",
     "media.retire",
+    "analysis.request",
+    "analysis.detail",
   ]),
   warehouse: new Set([
     "session.read",

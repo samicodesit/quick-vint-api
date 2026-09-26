@@ -1,0 +1,21 @@
+{
+  "kind": "synthetic-software-fixture",
+  "examples": [
+    {
+      "id": "unreadable-size",
+      "permission": "synthetic",
+      "expected": { "size": null },
+      "observed": { "size": null },
+      "reviewSeconds": 8,
+      "costMinor": 0
+    },
+    {
+      "id": "conflicting-label",
+      "permission": "synthetic",
+      "expected": { "brand": null, "condition": null },
+      "observed": { "brand": null, "condition": null },
+      "reviewSeconds": 13,
+      "costMinor": 0
+    }
+  ]
+}

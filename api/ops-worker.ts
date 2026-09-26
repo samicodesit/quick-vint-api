@@ -5,6 +5,7 @@ import {
   queueMetrics,
 } from "../utils/ops/jobs/claim";
 import { runWorker } from "../utils/ops/jobs/worker";
+import { analyseItem } from "../utils/ops/ai/extract";
 
 type Metrics = { claimed: number; completed: number; failed: number };
 
@@ -45,6 +46,7 @@ export default createWorkerHandler(
       workerId: `vercel-${randomUUID()}`,
       environment: process.env.OPS_ENV ?? "production",
       repository: createSupabaseJobRepository(),
+      analyseItem,
     })),
     queue: await queueMetrics(),
   }),

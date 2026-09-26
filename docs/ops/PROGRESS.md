@@ -60,3 +60,11 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: `ops:verify` passed with 17 unit, 30 PostgreSQL, 16 API and 5 browser checks, plus type check and build. Lint passed. A real local PostgreSQL fixture completed 4,000 rows in 100-row batches with no cost or location. Tests cover same-run replay, overlapping external ID, preserved human cost correction, dry-run identity conflict, invalid money and formula escaping. The browser import check uses a labelled auth/API fixture.
 - External gate: authenticated browser import against a live Supabase Auth/PostgREST service and a seller CSV trial remain unverified. No production migration or customer file was used.
 - Next: T07 bounded extraction and AI usage accounting.
+
+## T07: bounded extraction code and local database checks
+
+- Added opt-in workspace AI entitlement, revision-scoped analysis runs, selected evidence, a three-attempt dispatch ledger, usage entries and one debit per completed logical result. One SQL transaction validates proposals, settles a successful dispatch and records usage. Timeout or lost-response billing remains explicitly uncertain with budget reserved.
+- Added strict field and evidence validation, eight-image selection, an untrusted-image prompt, structured Responses payload, 12-second provider timeout, no SDK retries, explicit model/rate/token configuration, and a manual response when inference is disabled. Fixture dispatch is restricted to local/test and clearly labelled. The worker rechecks membership before dispatch.
+- Added a synthetic software fixture manifest and an evaluation script. Its two examples verify software accounting only and fail the 100 real owner-approved garment release gate.
+- Focused checks: analysis PostgreSQL 3/3, extraction unit 4/4, analysis API 2/2, type check passed. The external OpenAI call, Supabase Storage/Auth flow and 100-garment quality evaluation were not run. No production inference, migration or spend occurred.
+- Next: T08 human fact confirmation, deterministic listing renderer and review UI. The AI proposal path never writes confirmed item facts.

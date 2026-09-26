@@ -10,6 +10,7 @@
     "ops:test:e2e": "playwright test --config=playwright.ops.config.ts",
     "ops:seed": "node scripts/ops-seed.mjs",
     "ops:worker": "tsx scripts/ops-worker.mjs",
+    "ops:eval-ai": "node scripts/ops-evaluate-ai.mjs",
     "ops:verify": "npm run ops:test:unit && npm run ops:test:db && npm run ops:test:api && npm run ops:test:e2e && npm run type-check && npm run build",
     "build": "astro build",
     "preview": "astro preview",

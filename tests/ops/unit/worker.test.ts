@@ -59,4 +59,32 @@ describe("T02 bounded worker", () => {
     expect(result.failed).toBe(1);
     expect(failed).toEqual([job.id]);
   });
+
+  it("dispatches an analysis job through the bounded handler", async () => {
+    const finished: unknown[] = [];
+    const result = await runWorker({
+      deadlineMs: 1000,
+      maxJobs: 1,
+      workerId: "test-worker",
+      environment: "test",
+      analyseItem: async (claimed) => ({
+        runId: (claimed.payload as { runId: string }).runId,
+        status: "completed",
+      }),
+      repository: {
+        claimJobs: async () => [
+          { ...job, kind: "analysis.item", payload: { runId: job.id } },
+        ],
+        isAuthorized: async () => true,
+        finishJob: async (_id, _workerId, value) => {
+          finished.push(value);
+        },
+        failJob: async () => {
+          throw new Error("unexpected analysis failure");
+        },
+      },
+    });
+    expect(result).toMatchObject({ claimed: 1, completed: 1, failed: 0 });
+    expect(finished).toEqual([{ runId: job.id, status: "completed" }]);
+  });
 });

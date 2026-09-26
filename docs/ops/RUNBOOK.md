@@ -10,3 +10,7 @@ This runbook is for an isolated local/test database. It does not authorize produ
 6. Run `npm run ops:verify` with the test database variables. The existing site/legacy check remains `npm run verify:production`; a pre-existing unrelated design document currently fails its formatting stage.
 
 The `/api/ops-worker` endpoint requires a separate `OPS_WORKER_TOKEN` and accepts POST only. It returns run and queue counts. Configure a scheduler only after checking the actual Vercel plan, function limits and desired cadence. [Vercel cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing) currently allow daily Hobby jobs and minute-level Pro jobs. No production invocation was configured.
+
+## Analysis configuration
+
+Production extraction remains disabled until an operator explicitly sets `OPS_AI_ENABLED=true`, `OPS_AI_MODEL`, `OPS_AI_MAX_INPUT_TOKENS`, `OPS_AI_MAX_OUTPUT_TOKENS`, `OPS_AI_INPUT_RATE_MINOR_PER_MILLION`, `OPS_AI_OUTPUT_RATE_MINOR_PER_MILLION`, `OPS_AI_RATE_EFFECTIVE_DATE` and the existing `OPENAI_API_KEY`. The workspace also needs an enabled `ops_ai_entitlements` row with a nonzero budget and an approved `openai` mode. Neither an existing listing credit nor a fixture entitlement silently enables this service. An unavailable service yields manual fact entry. Do not enable a model until `npm run ops:eval-ai -- <owner-approved-manifest> --release` passes with at least 100 permitted real garments and the measured quality is reviewed. The repository's default manifest is synthetic and cannot pass that gate.

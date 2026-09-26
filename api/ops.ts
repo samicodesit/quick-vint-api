@@ -67,6 +67,21 @@ import {
   requestAnalysisSchema,
 } from "../src/ops/contracts/extraction";
 import { analysisDetail, requestAnalysis } from "../utils/ops/ai/extract";
+import {
+  approveListingSchema,
+  confirmFactsSchema,
+  listingDetailSchema,
+  saveListingSchema,
+  saveTemplateSchema,
+} from "../src/ops/contracts/listings";
+import {
+  confirmFacts,
+  listingDetail,
+  listingTemplates,
+  readyListings,
+  saveTemplate,
+} from "../utils/ops/listings/facts";
+import { approveListing, saveListing } from "../utils/ops/listings/approve";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -460,6 +475,77 @@ const operations: Record<string, Operation> = {
     requiresMembership: true,
     async run({ actor, payload }) {
       return analysisDetail(actor, analysisDetailSchema.parse(payload).itemId);
+    },
+  },
+  "facts.confirm": {
+    kind: "command",
+    payload: confirmFactsSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return confirmFacts(
+        actor,
+        confirmFactsSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "listing.save": {
+    kind: "command",
+    payload: saveListingSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta }) {
+      return saveListing(actor, saveListingSchema.parse(payload), meta!);
+    },
+  },
+  "listing.approve": {
+    kind: "command",
+    payload: approveListingSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return approveListing(
+        actor,
+        approveListingSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "listing.detail": {
+    kind: "query",
+    payload: listingDetailSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return listingDetail(actor, listingDetailSchema.parse(payload).itemId);
+    },
+  },
+  "listing.queue": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      return readyListings(actor);
+    },
+  },
+  "template.list": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      return listingTemplates(actor);
+    },
+  },
+  "template.save": {
+    kind: "command",
+    payload: saveTemplateSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return saveTemplate(
+        actor,
+        saveTemplateSchema.parse(payload),
+        meta!,
+        token,
+      );
     },
   },
 };

@@ -68,3 +68,10 @@ External gates: no production database migration, live Vinted credential test, p
 - Added a synthetic software fixture manifest and an evaluation script. Its two examples verify software accounting only and fail the 100 real owner-approved garment release gate.
 - Focused checks: analysis PostgreSQL 3/3, extraction unit 4/4, analysis API 2/2, type check passed. The external OpenAI call, Supabase Storage/Auth flow and 100-garment quality evaluation were not run. No production inference, migration or spend occurred.
 - Next: T08 human fact confirmation, deterministic listing renderer and review UI. The AI proposal path never writes confirmed item facts.
+
+## T08: confirmed facts and listing review locally verified
+
+- Added revisioned human-confirmed facts, editable five-locale templates, deterministic listing text, immutable draft snapshots and explicit approval. A fact or photo revision change invalidates a ready draft. Existing snapshots remain available for audit, and an unchanged fact confirmation does not invalidate approval.
+- Added a compact item review screen with signed derivative evidence, visibly unconfirmed AI suggestions, manual fact confirmation, price and locale preview, draft save, exact-revision approval, ready queue and template settings. AI suggestions only fill local form inputs when clicked. Owners, managers and listers can review; warehouse staff cannot.
+- Focused checks: listing renderer 7/7 unit, PostgreSQL 3/3, listing API 2/2, browser review 1/1, type check passed. The browser flow is an explicitly labelled fixture. Screenshots were inspected at desktop and 390-pixel mobile width, including no horizontal overflow. No live authenticated Supabase review was claimed.
+- Next: T09 extension handshake and manual handoff.

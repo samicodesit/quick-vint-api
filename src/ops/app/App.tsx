@@ -4,6 +4,11 @@ import { callOps } from "./gateway";
 import { Inventory } from "./Inventory";
 import { CaptureDesk, PhoneCapture } from "./features/capture/Capture";
 import { ImportStock } from "./features/imports/ImportStock";
+import {
+  ListingQueue,
+  ReviewListing,
+  TemplateSettings,
+} from "./features/listings/Review";
 
 const desktop = ["Today", "Inventory", "Listings", "Orders"] as const;
 const paths = ["", "inventory", "listings", "orders"] as const;
@@ -234,6 +239,45 @@ function WorkspacePanel({
               <ImportStock client={client} workspaceId={selected} />
             ) : current === "capture" && selected ? (
               <CaptureDesk client={client} workspaceId={selected} />
+            ) : current === "listings" && selected ? (
+              workspaces.find((workspace) => workspace.workspaceId === selected)
+                ?.role === "warehouse" ? (
+                <p>
+                  Listing review is available to owners, managers and listers.
+                </p>
+              ) : window.location.pathname.endsWith("/review") &&
+                new URLSearchParams(window.location.search).get("itemId") ? (
+                <ReviewListing
+                  client={client}
+                  workspaceId={selected}
+                  itemId={
+                    new URLSearchParams(window.location.search).get("itemId")!
+                  }
+                />
+              ) : window.location.pathname.endsWith("/templates") ? (
+                ["owner", "manager"].includes(
+                  workspaces.find(
+                    (workspace) => workspace.workspaceId === selected,
+                  )?.role ?? "",
+                ) ? (
+                  <TemplateSettings client={client} workspaceId={selected} />
+                ) : (
+                  <p>Template settings are available to owners and managers.</p>
+                )
+              ) : (
+                <>
+                  <ListingQueue client={client} workspaceId={selected} />
+                  {["owner", "manager"].includes(
+                    workspaces.find(
+                      (workspace) => workspace.workspaceId === selected,
+                    )?.role ?? "",
+                  ) && (
+                    <p>
+                      <a href="/app/listings/templates">Template settings</a>
+                    </p>
+                  )}
+                </>
+              )
             ) : current === "inventory" && selected ? (
               <Inventory
                 client={client}

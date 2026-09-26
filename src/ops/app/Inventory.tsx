@@ -660,6 +660,15 @@ function InventoryBody({
                 Add photos
               </a>
             </p>
+            {role !== "warehouse" && (
+              <p>
+                <a
+                  href={`/app/listings/review?itemId=${encodeURIComponent(item.id)}`}
+                >
+                  Review facts and prepare listing
+                </a>
+              </p>
+            )}
             {"lot_id" in item && typeof item.lot_id === "string" && (
               <p>
                 <a

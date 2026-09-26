@@ -29,7 +29,9 @@ CREATE TABLE ops_bootstrap_requests (
 CREATE TABLE ops_audit_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES ops_workspaces(id),
-  actor_user_id uuid NOT NULL,
+  actor_user_id uuid,
+  actor_service text,
+  CONSTRAINT ops_audit_actor_present CHECK ((actor_user_id IS NULL) <> (actor_service IS NULL)),
   action text NOT NULL,
   aggregate_id uuid NOT NULL,
   aggregate_version integer NOT NULL CHECK (aggregate_version >= 0),

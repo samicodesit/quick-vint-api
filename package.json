@@ -9,7 +9,7 @@
     "ops:test:api": "vitest run --config vitest.ops.api.config.ts",
     "ops:test:e2e": "playwright test --config=playwright.ops.config.ts",
     "ops:seed": "node scripts/ops-seed.mjs",
-    "ops:worker": "node scripts/ops-worker.mjs",
+    "ops:worker": "tsx scripts/ops-worker.mjs",
     "ops:verify": "npm run ops:test:unit && npm run ops:test:db && npm run ops:test:api && npm run ops:test:e2e && npm run type-check && npm run build",
     "build": "astro build",
     "preview": "astro preview",
@@ -81,6 +81,7 @@
     "eslint-plugin-prettier": "^5.4.0",
     "prettier": "^3.5.3",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.20.0",
     "typescript": "5.8.3",
     "vitest": "^4.1.5"
   },

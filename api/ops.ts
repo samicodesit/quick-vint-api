@@ -12,10 +12,17 @@ import {
   correctItemCostSchema,
   createItemSchema,
   createLotSchema,
-  inventoryListSchema,
   itemDetailSchema,
   lotDetailSchema,
 } from "../src/ops/contracts/inventory";
+import {
+  createLocationSchema,
+  inventorySearchSchema,
+  locationDeleteSchema,
+  locationParentSchema,
+  moveItemSchema,
+  resolveIdentifierSchema,
+} from "../src/ops/contracts/locations";
 import { defaultAuthServices, type AuthServices } from "../utils/ops/core/auth";
 import { runCommand } from "../utils/ops/core/commands";
 import { failure, statusFor } from "../utils/ops/core/errors";
@@ -24,6 +31,14 @@ import {
   defaultInventoryServices,
   type InventoryServices,
 } from "../utils/ops/inventory/intake";
+import {
+  defaultLocationServices,
+  type LocationServices,
+} from "../utils/ops/inventory/locations";
+import {
+  defaultSearchServices,
+  type SearchServices,
+} from "../utils/ops/inventory/search";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -38,6 +53,8 @@ type Operation = {
     token: string;
     services: AuthServices;
     inventory: InventoryServices;
+    locations: LocationServices;
+    search: SearchServices;
     payload: unknown;
     key?: string;
     meta?: CommandMeta;
@@ -137,12 +154,12 @@ const operations: Record<string, Operation> = {
   },
   "inventory.list": {
     kind: "query",
-    payload: inventoryListSchema,
+    payload: inventorySearchSchema,
     requiresMembership: true,
-    async run({ actor, token, inventory, payload }) {
-      return inventory.listItems(
+    async run({ actor, token, search, payload }) {
+      return search.listInventory(
         actor,
-        inventoryListSchema.parse(payload).limit,
+        inventorySearchSchema.parse(payload),
         token,
       );
     },
@@ -171,11 +188,85 @@ const operations: Record<string, Operation> = {
       );
     },
   },
+  "scan.resolve": {
+    kind: "query",
+    payload: resolveIdentifierSchema,
+    requiresMembership: true,
+    async run({ actor, token, search, payload }) {
+      return search.resolveIdentifier(
+        actor,
+        resolveIdentifierSchema.parse(payload).code,
+        token,
+      );
+    },
+  },
+  "location.list": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor, token, search }) {
+      return search.listLocations(actor, token);
+    },
+  },
+  "location.create": {
+    kind: "command",
+    payload: createLocationSchema,
+    requiresMembership: true,
+    async run({ actor, token, locations, payload, meta }) {
+      return locations.createLocation(
+        actor,
+        createLocationSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "location.parent": {
+    kind: "command",
+    payload: locationParentSchema,
+    requiresMembership: true,
+    async run({ actor, token, locations, payload, meta }) {
+      return locations.setParent(
+        actor,
+        locationParentSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "location.delete": {
+    kind: "command",
+    payload: locationDeleteSchema,
+    requiresMembership: true,
+    async run({ actor, token, locations, payload, meta }) {
+      return locations.deleteLocation(
+        actor,
+        locationDeleteSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "item.move": {
+    kind: "command",
+    payload: moveItemSchema,
+    requiresMembership: true,
+    async run({ actor, token, locations, payload, meta }) {
+      return locations.moveItem(
+        actor,
+        moveItemSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
 };
 
 export function createOpsHandler(
   services: AuthServices,
   inventory: InventoryServices = defaultInventoryServices,
+  search: SearchServices = defaultSearchServices,
+  locations: LocationServices = defaultLocationServices,
 ) {
   return async function handler(req: VercelRequest, res: VercelResponse) {
     const requestId = randomUUID();
@@ -266,6 +357,8 @@ export function createOpsHandler(
           token: match[1],
           services,
           inventory,
+          search,
+          locations,
           payload: request.payload,
           key: request.meta?.idempotencyKey,
           meta: request.meta,

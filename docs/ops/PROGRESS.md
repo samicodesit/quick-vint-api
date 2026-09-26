@@ -30,8 +30,17 @@ External gates: no production database migration, live Vinted credential test, p
 
 ## T03: local intake and lots verified, live session gate open
 
+- Commit: `97bec9f` in the API/site repository.
 - Added tenant-scoped physical items, SKU and barcode aliases, optional sourcing lots, exact minor-unit allocation and audited cost correction. Item and lot cost tables deny direct authenticated reads; API responses filter finance fields by role.
 - Added inventory list, draft intake, item detail and lot allocation screens. Drafts need no cost, source, location or photos.
 - Checks: `ops:verify` passed with 11 unit, 18 PostgreSQL integration, 10 API and 2 route browser checks, plus type check and build. T03 tests cover concurrent SKU uniqueness, generated-SKU collision, same EAN on two pieces, missing versus zero cost, exact EUR 10.00 split, overrun, cost correction detail, and a second authorised database session. A focused T03 DB rerun passed after adding audit detail.
 - External gate: authenticated browser intake, refresh and second-session flows need a local or staging Supabase Auth/PostgREST service. Current browser checks cover routes only. No fixture or SQL shim is claimed as a live Supabase integration.
 - Next: T04 inventory query, locations and contextual scanning.
+
+## T04: local search, locations and put-away verified, device gate open
+
+- Added tenant location hierarchy and numeric ordering, indexed cursor search, barcode resolution, versioned item movements and move history. A global scan is a read-only lookup; the named put-away station performs the move. Item and location QR labels contain opaque lookup IDs and no credentials.
+- Added URL-backed inventory filters, device-local saved filters, desktop item drawer, keyboard/typed scanner input, camera decoding with ZXing fallback, and responsive station controls. The UI identifies device-local filters as such.
+- Checks: `ops:verify` passed with 12 unit, 23 PostgreSQL integration, 11 API and 3 browser checks, plus type check and build. Lint passed. Database checks cover hierarchy cycles, cross-tenant parent rejection, numeric order, occupied delete, stale and repeated moves, wrong custody, cursor pages, role-filtered costs and ambiguous EAN resolution. Browser scan checks use an explicitly labelled auth/API fixture and passed at 390, 768 and 1440 CSS pixels.
+- External gates: the browser fixture is not a live Supabase integration. Real camera decoding, label printing and second-device persistence still need physical/manual checks. Indexed search performance on 20,000 items is a later measured gate.
+- Next: T05 durable media and phone capture recovery.

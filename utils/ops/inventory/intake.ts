@@ -16,7 +16,7 @@ type CreateLot = z.infer<typeof createLotSchema>;
 type AllocateLot = z.infer<typeof allocateLotSchema>;
 type CorrectItemCost = z.infer<typeof correctItemCostSchema>;
 
-function userClient(token: string) {
+export function userClient(token: string) {
   const url = process.env.VERCEL_APP_SUPABASE_URL;
   const anonKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey)
@@ -35,7 +35,7 @@ function readClient() {
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
-function check(error: { code?: string; message: string } | null) {
+export function check(error: { code?: string; message: string } | null) {
   if (!error) return;
   if (["23505", "40001"].includes(error.code ?? ""))
     throw new OpsError("CONFLICT", error.message);
@@ -191,6 +191,7 @@ export const defaultInventoryServices: InventoryServices = {
       display_sku: data.display_sku,
       source_id: data.source_id,
       lot_id: data.lot_id,
+      location_id: data.location_id,
       custody: data.custody,
       preparation: data.preparation,
       version: data.version,

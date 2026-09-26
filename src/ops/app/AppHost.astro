@@ -50,6 +50,22 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
   .ops-inventory dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px; }
   .ops-inventory dt { color: #61716a; }
   .ops-inventory dd { margin: 0; }
+  .ops-scanner video { display: block; max-width: min(100%, 460px); border-radius: 8px; }
+  .ops-scanner video[hidden] { display: none; }
+  .ops-scanner button { min-height: 44px; }
+  .ops-label-wrap { margin: 24px 0; }
+  .ops-label { width: 50mm; min-height: 30mm; padding: 2mm; background: white; border: 1px solid #dce3df; display: grid; justify-items: center; align-content: center; }
+  .ops-label img { width: 18mm; height: 18mm; }
+  .ops-label small { font-size: 7px; }
+  @media (min-width: 900px) {
+    .ops-inventory--detail { position: fixed; top: 68px; right: 0; bottom: 0; z-index: 5; width: min(600px, 60vw); overflow: auto; padding: 28px; background: #f7f8f5; box-shadow: -12px 0 40px #1d292629; }
+  }
+  @media print {
+    @page { size: 50mm 30mm; margin: 0; }
+    body * { visibility: hidden; }
+    .ops-label, .ops-label * { visibility: visible; }
+    .ops-label { position: absolute; inset: 0 auto auto 0; border: 0; }
+  }
   @media (max-width: 700px) {
     .ops-shell { grid-template-columns: 1fr; grid-template-rows: 58px 1fr 66px; }
     .ops-shell header { grid-column: 1; padding: 0 16px; }

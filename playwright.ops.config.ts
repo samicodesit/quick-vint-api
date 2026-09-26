@@ -8,5 +8,6 @@ export default defineConfig({
     url: "http://127.0.0.1:4328/app",
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    env: { PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", PUBLIC_SUPABASE_ANON_KEY: "local-browser-fixture" },
   },
 });

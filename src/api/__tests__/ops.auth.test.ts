@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { describe, expect, it } from "vitest";
 import { createOpsHandler } from "../../../api/ops";
 import type { InventoryServices } from "../../../utils/ops/inventory/intake";
+import type { LocationServices } from "../../../utils/ops/inventory/locations";
+import type { SearchServices } from "../../../utils/ops/inventory/search";
 
 const workspaceId = "c0000000-0000-4000-8000-000000000001";
 const userId = "a0000000-0000-4000-8000-000000000001";
@@ -312,5 +314,88 @@ describe("T03 intake gateway", () => {
       forbidden.res,
     );
     expect(forbidden.state.status).toBe(403);
+  });
+});
+
+describe("T04 scanner gateway", () => {
+  it("keeps global scan as a read-only query and validates a put-away command", async () => {
+    let scans = 0;
+    let moves = 0;
+    const search = {
+      resolveIdentifier: async () => {
+        scans += 1;
+        return {
+          kind: "item",
+          items: [{ itemId: workspaceId }],
+          locations: [],
+        };
+      },
+    } as unknown as SearchServices;
+    const locations = {
+      moveItem: async () => {
+        moves += 1;
+        return { version: 2 };
+      },
+    } as unknown as LocationServices;
+    const handler = createOpsHandler(
+      {
+        authenticate: async () => ({ userId, email: null }),
+        membership: async () => "warehouse",
+        bootstrap: async () => workspaceId,
+        listWorkspaces: async () => [],
+      },
+      undefined,
+      search,
+      locations,
+    );
+    const scan = response();
+    await handler(
+      request(
+        {
+          kind: "query",
+          name: "scan.resolve",
+          workspaceId,
+          payload: { code: "AL-I:c0000000-0000-4000-8000-000000000001" },
+        },
+        "token",
+      ),
+      scan.res,
+    );
+    expect(scan.state.status).toBe(200);
+    expect(scans).toBe(1);
+    expect(moves).toBe(0);
+    const missingMeta = response();
+    await handler(
+      request(
+        {
+          kind: "command",
+          name: "item.move",
+          workspaceId,
+          payload: { itemId: workspaceId, locationId: workspaceId },
+        },
+        "token",
+      ),
+      missingMeta.res,
+    );
+    expect(missingMeta.state.status).toBe(400);
+    const move = response();
+    await handler(
+      request(
+        {
+          kind: "command",
+          name: "item.move",
+          workspaceId,
+          payload: { itemId: workspaceId, locationId: workspaceId },
+          meta: {
+            idempotencyKey: "c0000000-0000-4000-8000-000000000081",
+            expectedVersion: 1,
+          },
+        },
+        "token",
+      ),
+      move.res,
+    );
+    expect(move.state.status).toBe(200);
+    expect(moves).toBe(1);
   });
 });

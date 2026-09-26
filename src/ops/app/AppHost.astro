@@ -1,0 +1,52 @@
+---
+import App from "./App";
+
+const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>AutoLister OS</title>
+  </head>
+  <body>
+    {
+      enabled ? (
+        <App client:load supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL} anonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY} />
+      ) : (
+        <main><h1>OS is not enabled</h1><a href="/">AutoLister home</a></main>
+      )
+    }
+  </body>
+</html>
+
+<style is:global>
+  :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #1d2926; background: #f7f8f5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .ops-shell { min-height: 100vh; display: grid; grid-template-columns: 190px 1fr; grid-template-rows: 68px 1fr; }
+  .ops-shell header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; background: white; border-bottom: 1px solid #dce3df; }
+  .ops-shell header a { font-weight: 750; color: #17644c; text-decoration: none; }
+  .ops-shell header span { color: #61716a; font-size: .9rem; }
+  .ops-shell nav { display: flex; flex-direction: column; gap: 8px; padding: 24px 12px; border-right: 1px solid #dce3df; }
+  .ops-shell nav a { color: inherit; text-decoration: none; padding: 12px 14px; border-radius: 10px; }
+  .ops-shell nav a[aria-current="page"] { background: #e0eee7; color: #17644c; font-weight: 700; }
+  .ops-shell main { padding: 32px clamp(20px, 4vw, 64px); }
+  h1 { font-size: clamp(1.6rem, 3vw, 2.4rem); margin: 0 0 16px; }
+  p { line-height: 1.5; }
+  body > main { max-width: 450px; margin: 15vh auto; padding: 24px; }
+  input, button { font: inherit; padding: 10px; margin-top: 6px; }
+  label { display: block; }
+  button { display: block; border: 0; border-radius: 8px; background: #17644c; color: white; cursor: pointer; }
+  @media (max-width: 700px) {
+    .ops-shell { grid-template-columns: 1fr; grid-template-rows: 58px 1fr 66px; }
+    .ops-shell header { grid-column: 1; padding: 0 16px; }
+    .ops-shell header span { max-width: 45vw; overflow: hidden; text-overflow: ellipsis; }
+    .ops-shell nav { grid-row: 3; flex-direction: row; justify-content: space-around; padding: 6px; border-right: 0; border-top: 1px solid #dce3df; background: white; }
+    .ops-shell nav a { padding: 12px 6px; font-size: .85rem; }
+    .ops-shell main { grid-row: 2; padding: 24px 18px; }
+  }
+</style>

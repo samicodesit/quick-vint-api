@@ -1,4 +1,5 @@
 import mdx from "@astrojs/mdx";
+import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 
@@ -9,6 +10,7 @@ export default defineConfig({
   output: "static",
   integrations: [
     mdx(),
+    react(),
     sitemap({
       filter: (page) => {
         const pathname = new URL(page).pathname;
@@ -26,7 +28,9 @@ export default defineConfig({
           "/welcome/",
         ]);
 
-        return !excludedPaths.has(pathname) && !pathname.startsWith("/welcome/");
+        return (
+          !excludedPaths.has(pathname) && !pathname.startsWith("/welcome/")
+        );
       },
     }),
   ],

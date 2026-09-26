@@ -39,6 +39,20 @@ import {
   defaultSearchServices,
   type SearchServices,
 } from "../utils/ops/inventory/search";
+import {
+  createCaptureSchema,
+  uploadManifestSchema,
+  completeUploadSchema,
+  finishCaptureSchema,
+  pairCaptureSchema,
+  reorderMediaSchema,
+  retireMediaSchema,
+} from "../src/ops/contracts/media";
+import {
+  defaultMediaServices,
+  type MediaServices,
+  signUpload,
+} from "../utils/ops/media/capture";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -55,6 +69,7 @@ type Operation = {
     inventory: InventoryServices;
     locations: LocationServices;
     search: SearchServices;
+    media: MediaServices;
     payload: unknown;
     key?: string;
     meta?: CommandMeta;
@@ -260,6 +275,116 @@ const operations: Record<string, Operation> = {
       );
     },
   },
+  "capture.create": {
+    kind: "command",
+    payload: createCaptureSchema,
+    requiresMembership: true,
+    async run({ actor, token, media, payload, meta }) {
+      return media.createCaptureSession(
+        actor,
+        createCaptureSchema.parse(payload).itemId,
+        meta!,
+        token,
+      );
+    },
+  },
+  "capture.manifest": {
+    kind: "command",
+    payload: uploadManifestSchema,
+    requiresMembership: true,
+    async run({ actor, token, media, payload, meta }) {
+      return media.createUploadManifest(
+        actor,
+        uploadManifestSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "capture.finish": {
+    kind: "command",
+    payload: finishCaptureSchema,
+    requiresMembership: true,
+    async run({ actor, token, media, payload, meta }) {
+      return media.finishCapture(
+        actor,
+        finishCaptureSchema.parse(payload).sessionId,
+        meta!,
+        token,
+      );
+    },
+  },
+  "capture.pair": {
+    kind: "command",
+    payload: pairCaptureSchema,
+    requiresMembership: true,
+    async run({ actor, token, media, payload }) {
+      return media.createPairing(
+        actor,
+        pairCaptureSchema.parse(payload).sessionId,
+        token,
+      );
+    },
+  },
+  "media.sign": {
+    kind: "query",
+    payload: z.object({ uploadId: z.string().uuid() }).strict(),
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return signUpload(
+        actor.workspaceId,
+        (payload as { uploadId: string }).uploadId,
+      );
+    },
+  },
+  "media.complete": {
+    kind: "command",
+    payload: completeUploadSchema,
+    requiresMembership: true,
+    async run({ actor, token, media, payload }) {
+      return media.completeUpload(
+        actor,
+        completeUploadSchema.parse(payload),
+        token,
+      );
+    },
+  },
+  "media.list": {
+    kind: "query",
+    payload: z.object({ itemId: z.string().uuid() }).strict(),
+    requiresMembership: true,
+    async run({ actor, media, payload }) {
+      return media.listMedia(actor, (payload as { itemId: string }).itemId);
+    },
+  },
+  "media.reorder": {
+    kind: "command",
+    payload: reorderMediaSchema,
+    requiresMembership: true,
+    async run({ actor, token, media, payload, meta }) {
+      const input = reorderMediaSchema.parse(payload);
+      return media.reorderMedia(
+        actor,
+        input.itemId,
+        input.orderedIds,
+        meta!,
+        token,
+      );
+    },
+  },
+  "media.retire": {
+    kind: "command",
+    payload: retireMediaSchema,
+    requiresMembership: true,
+    async run({ actor, token, media, payload, meta }) {
+      return media.retireMedia(
+        actor,
+        retireMediaSchema.parse(payload).uploadId,
+        meta!,
+        token,
+      );
+    },
+  },
 };
 
 export function createOpsHandler(
@@ -267,6 +392,7 @@ export function createOpsHandler(
   inventory: InventoryServices = defaultInventoryServices,
   search: SearchServices = defaultSearchServices,
   locations: LocationServices = defaultLocationServices,
+  media: MediaServices = defaultMediaServices,
 ) {
   return async function handler(req: VercelRequest, res: VercelResponse) {
     const requestId = randomUUID();
@@ -359,6 +485,7 @@ export function createOpsHandler(
           inventory,
           search,
           locations,
+          media,
           payload: request.payload,
           key: request.meta?.idempotencyKey,
           meta: request.meta,

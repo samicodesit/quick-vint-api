@@ -2,6 +2,7 @@ import { createClient, type User } from "@supabase/supabase-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { callOps } from "./gateway";
 import { Inventory } from "./Inventory";
+import { CaptureDesk, PhoneCapture } from "./features/capture/Capture";
 
 const desktop = ["Today", "Inventory", "Listings", "Orders"] as const;
 const paths = ["", "inventory", "listings", "orders"] as const;
@@ -13,6 +14,7 @@ export default function App({
   supabaseUrl?: string;
   anonKey?: string;
 }) {
+  const phoneRoute = window.location.pathname === "/app/phone";
   const client = useMemo(
     () => (supabaseUrl && anonKey ? createClient(supabaseUrl, anonKey) : null),
     [supabaseUrl, anonKey],
@@ -36,6 +38,7 @@ export default function App({
     return () => data.subscription.unsubscribe();
   }, [client]);
 
+  if (phoneRoute) return <PhoneCapture />;
   if (!client)
     return <main>Sign-in is not configured for this environment.</main>;
   if (loading) return <main>Checking your session...</main>;
@@ -153,7 +156,8 @@ function WorkspacePanel({
     .replace(/^\/app\/?/, "")
     .split("/")[0];
   const title =
-    desktop[paths.indexOf(current as (typeof paths)[number])] ?? "Today";
+    desktop[paths.indexOf(current as (typeof paths)[number])] ??
+    (current === "capture" ? "Capture" : "Today");
   return (
     <div className="ops-shell">
       <header>
@@ -221,7 +225,9 @@ function WorkspacePanel({
                 </select>
               </label>
             )}
-            {current === "inventory" && selected ? (
+            {current === "capture" && selected ? (
+              <CaptureDesk client={client} workspaceId={selected} />
+            ) : current === "inventory" && selected ? (
               <Inventory
                 client={client}
                 workspaceId={selected}

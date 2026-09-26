@@ -612,6 +612,11 @@ function InventoryBody({
               code={itemLookupCode(item.id)}
               label={item.display_sku}
             />
+            <p>
+              <a href={`/app/capture?itemId=${encodeURIComponent(item.id)}`}>
+                Add photos
+              </a>
+            </p>
             {"lot_id" in item && typeof item.lot_id === "string" && (
               <p>
                 <a

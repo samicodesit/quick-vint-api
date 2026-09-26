@@ -44,3 +44,11 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: `ops:verify` passed with 12 unit, 23 PostgreSQL integration, 11 API and 3 browser checks, plus type check and build. Lint passed. Database checks cover hierarchy cycles, cross-tenant parent rejection, numeric order, occupied delete, stale and repeated moves, wrong custody, cursor pages, role-filtered costs and ambiguous EAN resolution. Browser scan checks use an explicitly labelled auth/API fixture and passed at 390, 768 and 1440 CSS pixels.
 - External gates: the browser fixture is not a live Supabase integration. Real camera decoding, label printing and second-device persistence still need physical/manual checks. Indexed search performance on 20,000 items is a later measured gate.
 - Next: T05 durable media and phone capture recovery.
+
+## T05: local capture flow verified, live storage gate open
+
+- Added immutable item-scoped capture sessions, manifest-first asset rows, workspace quota, single-use phone pairing with a four-hour upload grant, verified server completion, photo order and retake history. The OS buckets are separate from legacy `temp-uploads`; the Supabase-only storage migration keeps originals and derivatives private and restricts authenticated reads even if an older broad policy exists.
+- Added signed TUS upload, server checksum and actual image decode, orientation-safe WebP derivatives, device-local IndexedDB recovery, phone QR pairing, photo controls and a scoped PWA shell. Offline files are labelled as local and cannot be mistaken for verified photos. A real 41,465-byte HEIC sample decoded into a derivative in a one-off local check; the sample was removed after testing.
+- Checks: final `ops:verify` passed with 14 unit, 27 PostgreSQL, 13 API and 4 browser checks, plus type check and build. Media DB checks 4/4 and legacy phone-upload/cleanup regression 38/38 passed. Lint passed. The browser capture check uses a labelled auth/API fixture and confirms offline pending state and finish guard.
+- External gates: no live Supabase Storage/Auth instance or real phone was available, so signed TUS transfer, private-bucket RLS, capture across two devices and camera/file behavior on iOS/Android still need manual integration checks. No bucket migration or production operation was applied.
+- Next: T06 incremental CSV onboarding.

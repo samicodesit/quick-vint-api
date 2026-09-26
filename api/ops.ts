@@ -1,11 +1,29 @@
 import { randomUUID } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
-import { gatewayRequestSchema, type Actor } from "../src/ops/contracts/core";
+import {
+  gatewayRequestSchema,
+  type Actor,
+  type CommandMeta,
+} from "../src/ops/contracts/core";
+import {
+  addIdentifierSchema,
+  allocateLotSchema,
+  correctItemCostSchema,
+  createItemSchema,
+  createLotSchema,
+  inventoryListSchema,
+  itemDetailSchema,
+  lotDetailSchema,
+} from "../src/ops/contracts/inventory";
 import { defaultAuthServices, type AuthServices } from "../utils/ops/core/auth";
 import { runCommand } from "../utils/ops/core/commands";
 import { failure, statusFor } from "../utils/ops/core/errors";
 import { can } from "../utils/ops/core/permissions";
+import {
+  defaultInventoryServices,
+  type InventoryServices,
+} from "../utils/ops/inventory/intake";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -19,8 +37,10 @@ type Operation = {
     actor: Actor;
     token: string;
     services: AuthServices;
+    inventory: InventoryServices;
     payload: unknown;
     key?: string;
+    meta?: CommandMeta;
   }) => Promise<unknown>;
 };
 
@@ -50,9 +70,113 @@ const operations: Record<string, Operation> = {
       return services.listWorkspaces(actor.userId);
     },
   },
+  "item.create": {
+    kind: "command",
+    payload: createItemSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload, meta }) {
+      return inventory.createItem(
+        actor,
+        createItemSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "identifier.add": {
+    kind: "command",
+    payload: addIdentifierSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload, meta }) {
+      return inventory.addIdentifier(
+        actor,
+        addIdentifierSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "lot.create": {
+    kind: "command",
+    payload: createLotSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload, meta }) {
+      return inventory.createLot(
+        actor,
+        createLotSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "lot.allocate": {
+    kind: "command",
+    payload: allocateLotSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload, meta }) {
+      return inventory.allocateLotCost(
+        actor,
+        allocateLotSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "item.cost.correct": {
+    kind: "command",
+    payload: correctItemCostSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload, meta }) {
+      return inventory.correctItemCost(
+        actor,
+        correctItemCostSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "inventory.list": {
+    kind: "query",
+    payload: inventoryListSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload }) {
+      return inventory.listItems(
+        actor,
+        inventoryListSchema.parse(payload).limit,
+        token,
+      );
+    },
+  },
+  "item.detail": {
+    kind: "query",
+    payload: itemDetailSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload }) {
+      return inventory.itemDetail(
+        actor,
+        itemDetailSchema.parse(payload).itemId,
+        token,
+      );
+    },
+  },
+  "lot.detail": {
+    kind: "query",
+    payload: lotDetailSchema,
+    requiresMembership: true,
+    async run({ actor, token, inventory, payload }) {
+      return inventory.lotDetail(
+        actor,
+        lotDetailSchema.parse(payload).lotId,
+        token,
+      );
+    },
+  },
 };
 
-export function createOpsHandler(services: AuthServices) {
+export function createOpsHandler(
+  services: AuthServices,
+  inventory: InventoryServices = defaultInventoryServices,
+) {
   return async function handler(req: VercelRequest, res: VercelResponse) {
     const requestId = randomUUID();
     res.setHeader("Cache-Control", "no-store");
@@ -141,8 +265,10 @@ export function createOpsHandler(services: AuthServices) {
           actor,
           token: match[1],
           services,
+          inventory,
           payload: request.payload,
           key: request.meta?.idempotencyKey,
+          meta: request.meta,
         });
       const result =
         request.kind === "command"

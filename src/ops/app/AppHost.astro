@@ -41,6 +41,15 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
   input, button { font: inherit; padding: 10px; margin-top: 6px; }
   label { display: block; }
   button { display: block; border: 0; border-radius: 8px; background: #17644c; color: white; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; }
+  .ops-inventory form { max-width: 460px; padding: 20px; margin: 20px 0; background: white; border: 1px solid #dce3df; border-radius: 12px; }
+  .ops-inventory input, .ops-inventory select { display: block; width: 100%; margin: 6px 0 16px; }
+  .ops-inventory table { width: 100%; border-collapse: collapse; background: white; }
+  .ops-inventory th, .ops-inventory td { padding: 12px; border-bottom: 1px solid #dce3df; text-align: left; }
+  .ops-inventory a { color: #17644c; }
+  .ops-inventory dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px; }
+  .ops-inventory dt { color: #61716a; }
+  .ops-inventory dd { margin: 0; }
   @media (max-width: 700px) {
     .ops-shell { grid-template-columns: 1fr; grid-template-rows: 58px 1fr 66px; }
     .ops-shell header { grid-column: 1; padding: 0 16px; }

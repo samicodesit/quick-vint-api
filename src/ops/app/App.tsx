@@ -1,6 +1,7 @@
 import { createClient, type User } from "@supabase/supabase-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { callOps } from "./gateway";
+import { Inventory } from "./Inventory";
 
 const desktop = ["Today", "Inventory", "Listings", "Orders"] as const;
 const paths = ["", "inventory", "listings", "orders"] as const;
@@ -220,10 +221,19 @@ function WorkspacePanel({
                 </select>
               </label>
             )}
-            <p>
-              Workspace ready. Inventory tools will appear here as they are
-              added.
-            </p>
+            {current === "inventory" && selected ? (
+              <Inventory
+                client={client}
+                workspaceId={selected}
+                role={
+                  workspaces.find(
+                    (workspace) => workspace.workspaceId === selected,
+                  )?.role ?? "warehouse"
+                }
+              />
+            ) : (
+              <p>Choose Inventory to add and review stock.</p>
+            )}
           </section>
         )}
       </main>

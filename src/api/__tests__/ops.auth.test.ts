@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { describe, expect, it } from "vitest";
 import { createOpsHandler } from "../../../api/ops";
+import type { InventoryServices } from "../../../utils/ops/inventory/intake";
 
 const workspaceId = "c0000000-0000-4000-8000-000000000001";
 const userId = "a0000000-0000-4000-8000-000000000001";
@@ -208,5 +209,108 @@ describe("T01 ops gateway", () => {
       await handler(req, result.res);
       expect(result.state.status).toBe(403);
     }
+  });
+});
+
+describe("T03 intake gateway", () => {
+  it("passes server-derived actor and stable command metadata to intake", async () => {
+    let received: { workspaceId: string; userId: string; key: string } | null =
+      null;
+    const inventory = {
+      createItem: async (
+        actor: { workspaceId: string; userId: string },
+        _input: unknown,
+        meta: { idempotencyKey: string },
+      ) => {
+        received = {
+          workspaceId: actor.workspaceId,
+          userId: actor.userId,
+          key: meta.idempotencyKey,
+        };
+        return {
+          itemId: "c0000000-0000-4000-8000-000000000099",
+          displaySku: "AL-000001",
+          version: 1,
+        };
+      },
+    } as unknown as InventoryServices;
+    const handler = createOpsHandler(
+      {
+        authenticate: async () => ({ userId, email: null }),
+        membership: async () => "lister",
+        bootstrap: async () => workspaceId,
+        listWorkspaces: async () => [],
+      },
+      inventory,
+    );
+    const result = response();
+    await handler(
+      request(
+        {
+          kind: "command",
+          name: "item.create",
+          workspaceId,
+          payload: {},
+          meta: {
+            idempotencyKey: "c0000000-0000-4000-8000-000000000098",
+            expectedVersion: null,
+          },
+          role: "owner",
+        },
+        "token",
+      ),
+      result.res,
+    );
+    expect(result.state.status).toBe(200);
+    expect(received).toEqual({
+      workspaceId,
+      userId,
+      key: "c0000000-0000-4000-8000-000000000098",
+    });
+  });
+
+  it("rejects invalid item input and prevents a warehouse role from intake", async () => {
+    const handler = createOpsHandler({
+      authenticate: async () => ({ userId, email: null }),
+      membership: async () => "warehouse",
+      bootstrap: async () => workspaceId,
+      listWorkspaces: async () => [],
+    });
+    const invalid = response();
+    await handler(
+      request(
+        {
+          kind: "command",
+          name: "item.create",
+          workspaceId,
+          payload: { existingSku: "" },
+          meta: {
+            idempotencyKey: "c0000000-0000-4000-8000-000000000097",
+            expectedVersion: null,
+          },
+        },
+        "token",
+      ),
+      invalid.res,
+    );
+    expect(invalid.state.status).toBe(400);
+    const forbidden = response();
+    await handler(
+      request(
+        {
+          kind: "command",
+          name: "item.create",
+          workspaceId,
+          payload: {},
+          meta: {
+            idempotencyKey: "c0000000-0000-4000-8000-000000000097",
+            expectedVersion: null,
+          },
+        },
+        "token",
+      ),
+      forbidden.res,
+    );
+    expect(forbidden.state.status).toBe(403);
   });
 });

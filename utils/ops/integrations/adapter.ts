@@ -16,6 +16,8 @@ export function createAdapter(
       );
     return fixtureAdapter;
   }
-  // Official and assisted methods remain unsupported until account-specific verification.
+  // Account-scoped official credentials and capability proof are not configured.
+  // The official client is only constructed by createVintedOfficialAdapter with
+  // explicit server-side dependencies after those gates are met.
   return manualAdapter;
 }

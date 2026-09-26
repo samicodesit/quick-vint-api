@@ -60,6 +60,12 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
   .ops-media-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(130px,1fr)); gap: 12px; padding: 0; list-style: none; }
   .ops-media-grid li { display: grid; gap: 6px; background: white; padding: 8px; border: 1px solid #dce3df; border-radius: 8px; }
   .ops-media-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+  .ops-import section { padding: 20px; margin: 20px 0; background: white; border: 1px solid #dce3df; border-radius: 12px; }
+  .ops-import-map { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; }
+  .ops-import-map select, .ops-import input { display: block; width: 100%; margin: 6px 0 12px; }
+  .ops-import-table { overflow-x: auto; }
+  .ops-import table { width: 100%; border-collapse: collapse; }
+  .ops-import th, .ops-import td { padding: 9px; border-bottom: 1px solid #dce3df; text-align: left; }
   .ops-label-wrap { margin: 24px 0; }
   .ops-label { width: 50mm; min-height: 30mm; padding: 2mm; background: white; border: 1px solid #dce3df; display: grid; justify-items: center; align-content: center; }
   .ops-label img { width: 18mm; height: 18mm; }

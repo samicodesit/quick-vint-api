@@ -52,3 +52,11 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: final `ops:verify` passed with 14 unit, 27 PostgreSQL, 13 API and 4 browser checks, plus type check and build. Media DB checks 4/4 and legacy phone-upload/cleanup regression 38/38 passed. Lint passed. The browser capture check uses a labelled auth/API fixture and confirms offline pending state and finish guard.
 - External gates: no live Supabase Storage/Auth instance or real phone was available, so signed TUS transfer, private-bucket RLS, capture across two devices and camera/file behavior on iOS/Android still need manual integration checks. No bucket migration or production operation was applied.
 - Next: T06 incremental CSV onboarding.
+
+## T06: local CSV onboarding verified, live session gate open
+
+- Added persisted CSV files and raw rows, five-row preview, mapped values and provenance, account-scoped external IDs, dry-run identity conflict checks, checkpointed 100-row application, explicit status per row and spreadsheet-safe result export. Matching uses external ID then unique physical identifier. Title or image similarity never merges pieces. External image references stay unresolved; imports make no AI calls.
+- Added a responsive import screen and API upload gate. It keeps cost and location optional, distinguishes missing cost from zero, shows pending or conflicting rows, and resumes an import through its URL. Imported sale text is labelled as unreconciled on item detail.
+- Checks: `ops:verify` passed with 17 unit, 30 PostgreSQL, 16 API and 5 browser checks, plus type check and build. Lint passed. A real local PostgreSQL fixture completed 4,000 rows in 100-row batches with no cost or location. Tests cover same-run replay, overlapping external ID, preserved human cost correction, dry-run identity conflict, invalid money and formula escaping. The browser import check uses a labelled auth/API fixture.
+- External gate: authenticated browser import against a live Supabase Auth/PostgREST service and a seller CSV trial remain unverified. No production migration or customer file was used.
+- Next: T07 bounded extraction and AI usage accounting.

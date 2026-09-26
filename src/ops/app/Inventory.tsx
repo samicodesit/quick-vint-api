@@ -13,6 +13,11 @@ type Item = {
   version: number;
   cost_minor?: number | null;
   cost_currency?: string | null;
+  imported_title?: string | null;
+  imported_location_text?: string | null;
+  imported_sale_state?: string | null;
+  imported_source?: string | null;
+  imported_image_url?: string | null;
   ops_item_identifiers?: Array<{ kind: string; value: string }>;
   location_id?: string | null;
 };
@@ -525,6 +530,9 @@ function InventoryBody({
           <p>
             Create a draft now. Photos, location and cost can be added later.
           </p>
+          <p>
+            <a href="/app/import">Import existing stock from CSV</a>
+          </p>
           <form onSubmit={createItem}>
             <label>
               Existing SKU (optional)
@@ -587,6 +595,41 @@ function InventoryBody({
               <dd>{item.custody}</dd>
               <dt>Preparation</dt>
               <dd>{item.preparation}</dd>
+              {item.imported_title && (
+                <>
+                  <dt>Imported title</dt>
+                  <dd>{item.imported_title}</dd>
+                </>
+              )}
+              {item.imported_location_text && (
+                <>
+                  <dt>Imported location note</dt>
+                  <dd>
+                    {item.imported_location_text} (not assigned to a physical
+                    location)
+                  </dd>
+                </>
+              )}
+              {item.imported_sale_state && (
+                <>
+                  <dt>Imported sale state</dt>
+                  <dd>
+                    {item.imported_sale_state} (not reconciled as an order)
+                  </dd>
+                </>
+              )}
+              {item.imported_source && (
+                <>
+                  <dt>Imported source</dt>
+                  <dd>{item.imported_source}</dd>
+                </>
+              )}
+              {item.imported_image_url && (
+                <>
+                  <dt>Image reference</dt>
+                  <dd>Unresolved. Add original photos to this item.</dd>
+                </>
+              )}
               {item.cost_minor !== undefined && (
                 <>
                   <dt>Cost</dt>

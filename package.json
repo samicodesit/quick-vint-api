@@ -48,6 +48,7 @@
     "atropos": "^2.0.2",
     "busboy": "^1.6.0",
     "cors": "2.8.5",
+    "csv-parse": "^7.0.3",
     "gsap": "^3.13.0",
     "heic-convert": "^2.1.0",
     "micro": "^10.0.1",

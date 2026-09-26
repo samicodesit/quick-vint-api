@@ -53,6 +53,15 @@ import {
   type MediaServices,
   signUpload,
 } from "../utils/ops/media/capture";
+import {
+  previewImportSchema,
+  applyImportSchema,
+  exportImportSchema,
+} from "../src/ops/contracts/imports";
+import {
+  defaultImportServices,
+  type ImportServices,
+} from "../utils/ops/imports/apply";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -70,6 +79,7 @@ type Operation = {
     locations: LocationServices;
     search: SearchServices;
     media: MediaServices;
+    imports: ImportServices;
     payload: unknown;
     key?: string;
     meta?: CommandMeta;
@@ -385,6 +395,47 @@ const operations: Record<string, Operation> = {
       );
     },
   },
+  "import.preview": {
+    kind: "command",
+    payload: previewImportSchema,
+    requiresMembership: true,
+    async run({ actor, imports, payload, token }) {
+      const input = previewImportSchema.parse(payload);
+      return imports.previewImport(actor, input.fileId, input.mapping, token);
+    },
+  },
+  "import.apply": {
+    kind: "command",
+    payload: applyImportSchema,
+    requiresMembership: true,
+    async run({ actor, imports, token, payload, meta }) {
+      return imports.applyImport(
+        actor,
+        applyImportSchema.parse(payload).importId,
+        meta!,
+        token,
+      );
+    },
+  },
+  "import.detail": {
+    kind: "query",
+    payload: exportImportSchema,
+    requiresMembership: true,
+    async run({ actor, imports, payload }) {
+      return imports.detail(actor, exportImportSchema.parse(payload).importId);
+    },
+  },
+  "import.export": {
+    kind: "query",
+    payload: exportImportSchema,
+    requiresMembership: true,
+    async run({ actor, imports, payload }) {
+      return imports.exportImportResults(
+        actor,
+        exportImportSchema.parse(payload).importId,
+      );
+    },
+  },
 };
 
 export function createOpsHandler(
@@ -393,6 +444,7 @@ export function createOpsHandler(
   search: SearchServices = defaultSearchServices,
   locations: LocationServices = defaultLocationServices,
   media: MediaServices = defaultMediaServices,
+  imports: ImportServices = defaultImportServices,
 ) {
   return async function handler(req: VercelRequest, res: VercelResponse) {
     const requestId = randomUUID();
@@ -486,6 +538,7 @@ export function createOpsHandler(
           search,
           locations,
           media,
+          imports,
           payload: request.payload,
           key: request.meta?.idempotencyKey,
           meta: request.meta,

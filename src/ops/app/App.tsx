@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { callOps } from "./gateway";
 import { Inventory } from "./Inventory";
 import { CaptureDesk, PhoneCapture } from "./features/capture/Capture";
+import { ImportStock } from "./features/imports/ImportStock";
 
 const desktop = ["Today", "Inventory", "Listings", "Orders"] as const;
 const paths = ["", "inventory", "listings", "orders"] as const;
@@ -157,7 +158,11 @@ function WorkspacePanel({
     .split("/")[0];
   const title =
     desktop[paths.indexOf(current as (typeof paths)[number])] ??
-    (current === "capture" ? "Capture" : "Today");
+    (current === "capture"
+      ? "Capture"
+      : current === "import"
+        ? "Import stock"
+        : "Today");
   return (
     <div className="ops-shell">
       <header>
@@ -225,7 +230,9 @@ function WorkspacePanel({
                 </select>
               </label>
             )}
-            {current === "capture" && selected ? (
+            {current === "import" && selected ? (
+              <ImportStock client={client} workspaceId={selected} />
+            ) : current === "capture" && selected ? (
               <CaptureDesk client={client} workspaceId={selected} />
             ) : current === "inventory" && selected ? (
               <Inventory
@@ -238,7 +245,10 @@ function WorkspacePanel({
                 }
               />
             ) : (
-              <p>Choose Inventory to add and review stock.</p>
+              <p>
+                Choose <a href="/app/import">Import existing stock</a> or{" "}
+                <a href="/app/inventory/new">Add new stock</a>.
+              </p>
             )}
           </section>
         )}

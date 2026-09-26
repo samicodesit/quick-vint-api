@@ -28,6 +28,10 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "media.list",
     "media.reorder",
     "media.retire",
+    "import.preview",
+    "import.apply",
+    "import.detail",
+    "import.export",
   ]),
   manager: new Set([
     "session.read",
@@ -54,6 +58,10 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "media.list",
     "media.reorder",
     "media.retire",
+    "import.preview",
+    "import.apply",
+    "import.detail",
+    "import.export",
   ]),
   lister: new Set([
     "session.read",

@@ -63,6 +63,12 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "return.restock",
     "return.list",
     "return.detail",
+    "stocktake.start",
+    "stocktake.observe",
+    "stocktake.compare",
+    "stocktake.resolve",
+    "stocktake.list",
+    "stocktake.close",
   ]),
   manager: new Set([
     "session.read",
@@ -124,6 +130,12 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "return.restock",
     "return.list",
     "return.detail",
+    "stocktake.start",
+    "stocktake.observe",
+    "stocktake.compare",
+    "stocktake.resolve",
+    "stocktake.list",
+    "stocktake.close",
   ]),
   lister: new Set([
     "session.read",
@@ -195,6 +207,10 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "return.inspect",
     "return.list",
     "return.detail",
+    "stocktake.start",
+    "stocktake.observe",
+    "stocktake.compare",
+    "stocktake.list",
   ]),
 };
 

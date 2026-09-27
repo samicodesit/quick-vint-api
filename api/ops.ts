@@ -144,6 +144,20 @@ import {
   listReturns,
   returnDetail,
 } from "../utils/ops/returns/receive";
+import {
+  startStocktakeSchema,
+  observeStocktakeSchema,
+  resolveStocktakeSchema,
+  stocktakeIdSchema,
+} from "../src/ops/contracts/stocktake";
+import {
+  startStocktake,
+  observeStocktake,
+  compareStocktake,
+  resolveDiscrepancy,
+  listStocktakes,
+  closeStocktake,
+} from "../utils/ops/stocktake/start";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -831,6 +845,65 @@ const operations: Record<string, Operation> = {
     async run({ actor, payload }) {
       return returnDetail(actor, returnDetailSchema.parse(payload));
     },
+  },
+  "stocktake.start": {
+    kind: "command",
+    payload: startStocktakeSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return startStocktake(
+        actor,
+        startStocktakeSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "stocktake.observe": {
+    kind: "command",
+    payload: observeStocktakeSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return observeStocktake(
+        actor,
+        observeStocktakeSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "stocktake.compare": {
+    kind: "query",
+    payload: stocktakeIdSchema,
+    requiresMembership: true,
+    async run({ actor, payload, token }) {
+      return compareStocktake(actor, stocktakeIdSchema.parse(payload), token);
+    },
+  },
+  "stocktake.resolve": {
+    kind: "command",
+    payload: resolveStocktakeSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return resolveDiscrepancy(
+        actor,
+        resolveStocktakeSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "stocktake.list": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      return listStocktakes(actor);
+    },
+  },
+  "stocktake.close": {
+    kind: "command", payload: stocktakeIdSchema, requiresMembership: true,
+    async run({ actor, payload, meta, token }) { return closeStocktake(actor, stocktakeIdSchema.parse(payload), meta!, token); },
   },
 };
 

@@ -120,3 +120,10 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: PostgreSQL return tests 3/3 passed for refund before receipt, wrong garment, partial bundle, duplicate receipt, damaged quarantine, same-ID restock and late cancellation. The 390-pixel return browser fixture passed receipt, inspection and approval without page overflow. Type check and lint passed; lint has two existing import-order warnings in T10 files.
 - External gates: no real refund, carrier return, provider cancellation event or live authenticated Supabase flow was performed. Browser authentication and API data were labelled fixtures.
 - Next: T15 location stocktake and discrepancy resolution.
+
+## T15: location counts locally verified
+
+- Added one open count per location, expected item/version snapshots, deduplicated exact-code observations, a movement-aware comparison, manager-only audited discrepancy resolution and explicit count close. A moved item is shown as changed, and stale stock cannot be written off from the old count.
+- Checks: PostgreSQL stocktake tests 4/4 passed for overlap, duplicate scans, movement during count, warehouse write-off denial and restart after close. The 390-pixel count-station browser fixture passed start, scan and compare without page overflow. Type check and lint passed before the close operation; PostgreSQL tests passed again after close was added.
+- External gates: actual scanning hardware and live authenticated multi-user persistence remain unverified. Browser authentication and API data were labelled fixtures.
+- Next: T16 contribution ledger, reports and exports.

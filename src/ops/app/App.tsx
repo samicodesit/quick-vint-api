@@ -8,6 +8,7 @@ import { Orders } from "./features/orders/Orders";
 import { Pick } from "./features/pick/Pick";
 import { Pack } from "./features/pack/Pack";
 import { Returns } from "./features/returns/Returns";
+import { Stocktake } from "./features/stocktake/Stocktake";
 import {
   ListingQueue,
   ReviewListing,
@@ -22,6 +23,7 @@ const desktop = [
   "Pick",
   "Pack",
   "Returns",
+  "Stocktake",
 ] as const;
 const paths = [
   "",
@@ -31,6 +33,7 @@ const paths = [
   "pick",
   "pack",
   "returns",
+  "stocktake",
 ] as const;
 
 export default function App({
@@ -345,6 +348,24 @@ function WorkspacePanel({
                 </p>
               ) : (
                 <Returns
+                  client={client}
+                  workspaceId={selected}
+                  role={
+                    workspaces.find(
+                      (workspace) => workspace.workspaceId === selected,
+                    )?.role ?? "warehouse"
+                  }
+                />
+              )
+            ) : current === "stocktake" && selected ? (
+              workspaces.find((workspace) => workspace.workspaceId === selected)
+                ?.role === "lister" ? (
+                <p>
+                  Stocktake is available to owners, managers and warehouse
+                  staff.
+                </p>
+              ) : (
+                <Stocktake
                   client={client}
                   workspaceId={selected}
                   role={

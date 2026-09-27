@@ -1,6 +1,13 @@
 import { Resend } from "resend";
 import { ApiLogger } from "./apiLogger";
-import { BRAND, TEMPLATES, wrapDirectReplyLayout } from "./emailTemplates";
+import {
+  BRAND,
+  TEMPLATES,
+  getPaidWelcomeTemplate,
+  type PaidWelcomeBilling,
+  type PaidWelcomeLimits,
+  wrapDirectReplyLayout,
+} from "./emailTemplates";
 import { supabase } from "./supabaseClient";
 
 type PaidTier = "starter" | "pro" | "business";
@@ -19,6 +26,10 @@ type SendInput = {
   tier: string;
   stripeSubscriptionId: string;
   stripeCheckoutSessionId?: string | null;
+  isLegacyPlan?: boolean | null;
+  billing?: PaidWelcomeBilling;
+  limits?: PaidWelcomeLimits | null;
+  isCustomPlan?: boolean;
 };
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -143,10 +154,16 @@ export async function sendSubscriptionWelcomeEmailOnce(input: SendInput) {
   if (!tier) return { status: "skipped" as const };
 
   const templateKey = WELCOME_TEMPLATE_BY_TIER[tier];
-  const template = TEMPLATES[templateKey];
-  if (!template) {
+  if (!TEMPLATES[templateKey]) {
     return { status: "failed" as const, error: "Missing welcome template" };
   }
+
+  const template = getPaidWelcomeTemplate(tier, {
+    billing: input.billing,
+    isLegacyPlan: input.isLegacyPlan,
+    limits: input.limits,
+    isCustomPlan: input.isCustomPlan,
+  });
 
   const idempotencyKey = `subscription-welcome/${input.stripeSubscriptionId}/${templateKey}`;
   const claim = await reserveWelcomeEmailClaim({

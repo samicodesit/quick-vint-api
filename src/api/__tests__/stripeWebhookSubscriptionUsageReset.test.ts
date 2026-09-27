@@ -5,6 +5,7 @@ type WebhookHandler = (req: any, res: any) => Promise<unknown>;
 const constructEventMock = vi.fn();
 const retrieveSubscriptionMock = vi.fn();
 const retrieveCustomerMock = vi.fn();
+const retrieveInvoiceMock = vi.fn();
 const rpcMock = vi.fn();
 const reportCriticalEndpointFailureMock = vi.fn();
 const sendSubscriptionWelcomeEmailOnceMock = vi.fn();
@@ -101,6 +102,9 @@ vi.mock("stripe", () => {
     this.customers = {
       retrieve: retrieveCustomerMock,
     };
+    this.invoices = {
+      retrieve: retrieveInvoiceMock,
+    };
   }
 
   return { default: StripeMock };
@@ -186,9 +190,12 @@ describe("Stripe webhook subscription usage reset", () => {
       data: {
         object: {
           mode: "subscription",
+          payment_status: "paid",
           subscription: "sub_new",
           customer: "cus_123",
           customer_details: { email: "seller@example.com" },
+          amount_total: 399,
+          currency: "eur",
         },
       },
     });
@@ -198,7 +205,11 @@ describe("Stripe webhook subscription usage reset", () => {
       items: {
         data: [
           {
-            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
             current_period_end: 1784592000,
           },
         ],
@@ -250,7 +261,120 @@ describe("Stripe webhook subscription usage reset", () => {
       tier: "starter",
       stripeSubscriptionId: "sub_new",
       stripeCheckoutSessionId: undefined,
+      isLegacyPlan: false,
+      billing: {
+        amountMinor: 399,
+        currency: "eur",
+        nextRenewalAt: "2026-07-21T00:00:00.000Z",
+        statementDescriptor: "AUTOLISTER AI",
+        source: "checkout",
+      },
+      limits: null,
+      isCustomPlan: false,
     });
+  });
+
+  it("does not send a welcome email for an unpaid async checkout", async () => {
+    constructEventMock.mockReturnValue({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          payment_status: "unpaid",
+          subscription: "sub_pending",
+          customer: "cus_123",
+          customer_details: { email: "seller@example.com" },
+          amount_total: 399,
+          currency: "eur",
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_pending",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", {
+      data: {
+        id: "profile_123",
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
+  });
+
+  it("does not welcome a subscription already set to cancel at period end", async () => {
+    constructEventMock.mockReturnValue({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          payment_status: "paid",
+          subscription: "sub_canceling",
+          customer: "cus_123",
+          customer_details: { email: "seller@example.com" },
+          amount_total: 399,
+          currency: "eur",
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_canceling",
+      status: "active",
+      cancel_at_period_end: true,
+      items: {
+        data: [
+          {
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", {
+      data: {
+        id: "profile_123",
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
   });
 
   it("accepts subscription checkout when no profile matches the email", async () => {
@@ -271,7 +395,11 @@ describe("Stripe webhook subscription usage reset", () => {
       items: {
         data: [
           {
-            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
             current_period_end: 1784592000,
           },
         ],
@@ -535,7 +663,11 @@ describe("Stripe webhook subscription usage reset", () => {
           items: {
             data: [
               {
-                price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+                price: {
+                  id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+                  unit_amount: 399,
+                  currency: "eur",
+                },
                 current_period_end: 1784592000,
               },
             ],
@@ -589,7 +721,11 @@ describe("Stripe webhook subscription usage reset", () => {
       items: {
         data: [
           {
-            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
             current_period_end: 1784592000,
           },
         ],
@@ -685,7 +821,7 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(updateCalls[0].values).not.toHaveProperty("custom_monthly_limit");
   });
 
-  it("links an email-matched profile when Stripe creates a paid subscription", async () => {
+  it("links an email-matched profile without sending before Checkout completes", async () => {
     constructEventMock.mockReturnValue({
       type: "customer.subscription.created",
       data: {
@@ -712,14 +848,24 @@ describe("Stripe webhook subscription usage reset", () => {
       id: "sub_created",
       customer: "cus_123",
       status: "active",
+      latest_invoice: "in_created",
       items: {
         data: [
           {
-            price: { id: "price_1S96n6P5rNq9hGDSjEHrJV5g" },
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
             current_period_end: 1784592000,
           },
         ],
       },
+    });
+    retrieveInvoiceMock.mockResolvedValue({
+      id: "in_created",
+      amount_paid: 399,
+      currency: "eur",
     });
     queueSelect("profiles", { data: null });
     queueSelect("profiles", {
@@ -744,13 +890,182 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(updateCalls[0].values).toMatchObject({
       stripe_customer_id: "cus_123",
     });
-    expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledWith({
-      profileId: "profile_123",
-      email: "seller@example.com",
-      tier: "starter",
-      stripeSubscriptionId: "sub_created",
-      stripeCheckoutSessionId: undefined,
+    expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
+  });
+
+  it("defers the early subscription event until customer-facing billing exists", async () => {
+    constructEventMock.mockReturnValue({
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_early",
+          customer: "cus_123",
+          status: "active",
+          items: {
+            data: [
+              {
+                price: {
+                  id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+                  unit_amount: 399,
+                  currency: "eur",
+                },
+                current_period_end: 1784592000,
+              },
+            ],
+          },
+        },
+      },
     });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_early",
+      customer: "cus_123",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+        is_legacy_plan: false,
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+    const res = createResponse();
+
+    await handler(createRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
+  });
+
+  it("waits for Checkout currency when an earlier invoice has another currency", async () => {
+    constructEventMock
+      .mockReturnValueOnce({
+        type: "customer.subscription.created",
+        data: {
+          object: {
+            id: "sub_race",
+            customer: "cus_123",
+            status: "active",
+            items: {
+              data: [
+                {
+                  price: {
+                    id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+                    unit_amount: 399,
+                    currency: "eur",
+                  },
+                  current_period_end: 1784592000,
+                },
+              ],
+            },
+          },
+        },
+      })
+      .mockReturnValueOnce({
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_race",
+            mode: "subscription",
+            payment_status: "paid",
+            subscription: "sub_race",
+            customer: "cus_123",
+            customer_details: { email: "seller@example.com" },
+            amount_total: 1999,
+            currency: "usd",
+          },
+        },
+      });
+    const subscription = {
+      id: "sub_race",
+      customer: "cus_123",
+      status: "active",
+      latest_invoice: "in_race",
+      items: {
+        data: [
+          {
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    };
+    retrieveSubscriptionMock
+      .mockResolvedValueOnce(subscription)
+      .mockResolvedValueOnce(subscription);
+    retrieveInvoiceMock.mockResolvedValue({
+      id: "in_race",
+      amount_paid: 399,
+      currency: "eur",
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: null,
+        subscription_status: "free",
+        subscription_tier: "free",
+        is_legacy_plan: false,
+      },
+    });
+    queueSelect("profiles", {
+      data: {
+        id: "profile_123",
+        stripe_subscription_id: "sub_race",
+        stripe_customer_id: "cus_123",
+        subscription_status: "active",
+        subscription_tier: "starter",
+        is_legacy_plan: false,
+      },
+    });
+
+    const webhookModule = await import("../../../api/stripe/webhook.js");
+    const handler = webhookModule.default as unknown as WebhookHandler;
+
+    const firstResponse = createResponse();
+    await handler(createRequest() as any, firstResponse as any);
+    expect(firstResponse.statusCode).toBe(200);
+    expect(sendSubscriptionWelcomeEmailOnceMock).not.toHaveBeenCalled();
+
+    const secondResponse = createResponse();
+    await handler(createRequest() as any, secondResponse as any);
+
+    expect(secondResponse.statusCode).toBe(200);
+    expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledTimes(1);
+    expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stripeSubscriptionId: "sub_race",
+        stripeCheckoutSessionId: "cs_race",
+        billing: expect.objectContaining({
+          amountMinor: 1999,
+          currency: "usd",
+          source: "checkout",
+        }),
+      }),
+    );
   });
 
   it("activates custom Business limits from a subscription-level period end", async () => {

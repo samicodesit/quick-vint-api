@@ -2,6 +2,8 @@
 
 Local branches: `feature/autolister-os-build` in both repositories. No deployment or live marketplace/payment action.
 
+Local task commits in the API/site repository: T00 `57bb9b2`, T01 `00da58d`, T02 `e88f327`, T03 `97bec9f`, T04 `dcfd40d`, T05 `f6fb879`, T06 `479db22`, T07 `4e6ea1c`, T08 `879a518`, T09 `2b13a44`, T10 `fe7b135`, T11 `c058170`, T12 `26e0ab1`, T13 `50e59fe`, T14 `c95a880`, T15 `add1797`, T16 `9eac9da`, T17 `b35f65a`, T18 `0a7cc42`. The extension T09 commit is `a3c5290` in its separate repository.
+
 ## T00: code verified
 
 - Commit: `57bb9b2` in the API/site repository.
@@ -145,7 +147,7 @@ External gates: no production database migration, live Vinted credential test, p
 
 ## T18: local code verified, external release gates open
 
-- Commit: pending final local T18 commit. Branch `feature/autolister-os-build` in both repositories.
+- Commit: `0a7cc42` in the API/site repository. Branch `feature/autolister-os-build` in both repositories.
 - Added an integrated isolated PostgreSQL journey from CSV intake and capture manifest through human listing review, manual handoff, two-item sale, reservation, pick, pack, handover, partial return, quarantine, manager restock and fresh approval on the same physical item ID. The upload binary and external handoff are fixtures. Added database backup/restore with queued-job and dedupe verification, plus an expired-session API refusal check.
 - Checks before final review: `npm run ops:verify` passed 49 unit, 67 PostgreSQL, 23 API and 13 browser checks, type check and Astro build. `npm test` passed 392/392 after correcting the T00 route assertion to the current React hydration directive. API lint passed with no warnings after correcting the import order. Extension `npm run verify:production` passed 51 unit, 175 E2E and build. The restore test passed 1/1, the 20,000-item performance fixture passed 1/1, and targeted report/return browser fixture checks passed after screenshots were added. Five labelled fixture screenshots are in `docs/ops/screenshots` after the review follow-up.
 - Performance: the final local PostgreSQL 12 single-run database execution times were 0.094 ms for the first 100 items, 0.112 ms for a later page and 0.056 ms for exact SKU lookup. See `PERFORMANCE.md`; staging HTTP p95 and physical scan feedback were not measured.

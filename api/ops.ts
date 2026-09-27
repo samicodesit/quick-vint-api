@@ -1132,7 +1132,9 @@ export function createOpsHandler(
       return res
         .status(405)
         .json(failure("VALIDATION", "POST required", requestId));
-    const extensionOrigin = req.headers.origin === EXTENSION_ORIGIN;
+    const extensionOrigin =
+      req.headers.origin ===
+      (process.env.OPS_EXTENSION_ORIGIN || EXTENSION_ORIGIN);
     if (req.headers.origin && !extensionOrigin) {
       let origin: URL;
       try {

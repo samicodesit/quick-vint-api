@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createOpsHandler } from "../../../api/ops";
 
 const workspaceId = "c0000000-0000-4000-8000-000000000901";
@@ -73,5 +73,25 @@ describe("T09 handoff API boundary", () => {
       ok: false,
       error: { code: "FORBIDDEN" },
     });
+  });
+  it("accepts a separately configured staging extension origin", async () => {
+    const stagingOrigin = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
+    let authenticated = false;
+    const stagingHandler = createOpsHandler({
+      authenticate: async () => {
+        authenticated = true;
+        return { userId: "a0000000-0000-4000-8000-000000000901", email: null };
+      },
+      membership: async () => null,
+      bootstrap: async () => workspaceId,
+      listWorkspaces: async () => [],
+    });
+    vi.stubEnv("OPS_EXTENSION_ORIGIN", stagingOrigin);
+    try {
+      await stagingHandler(request(stagingOrigin), response().res);
+      expect(authenticated).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

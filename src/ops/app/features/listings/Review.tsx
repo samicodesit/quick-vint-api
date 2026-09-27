@@ -85,10 +85,12 @@ export function ReviewListing({
   client,
   workspaceId,
   itemId,
+  extensionId,
 }: {
   client: SupabaseClient;
   workspaceId: string;
   itemId: string;
+  extensionId?: string;
 }) {
   const request = useOps(client, workspaceId);
   const [data, setData] = useState<ReviewData | null>(null);
@@ -191,7 +193,7 @@ export function ReviewListing({
       let reason =
         "Manual packet is ready. Review and publish in Vinted yourself.";
       let channel: "manual" | "extension" = "manual";
-      const transport = browserExtensionTransport();
+      const transport = browserExtensionTransport(undefined, extensionId);
       if (transport) {
         try {
           const { data: auth } = await client.auth.getUser();

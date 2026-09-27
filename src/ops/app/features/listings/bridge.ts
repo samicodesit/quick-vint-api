@@ -1,4 +1,4 @@
-const EXTENSION_ID = "mommklhpammnlojjobejddmidmdcalcl";
+const PRODUCTION_EXTENSION_ID = "mommklhpammnlojjobejddmidmdcalcl";
 export const PROTOCOL_VERSION = 1;
 
 export type HandoffPacket = {
@@ -30,11 +30,12 @@ export function browserExtensionTransport(
   chromeObject: ChromeBridge | undefined = (
     globalThis as typeof globalThis & { chrome?: ChromeBridge }
   ).chrome,
+  extensionId = PRODUCTION_EXTENSION_ID,
 ): Transport | null {
   if (!chromeObject?.runtime?.sendMessage) return null;
   return (message) =>
     new Promise((resolve, reject) => {
-      chromeObject.runtime!.sendMessage(EXTENSION_ID, message, (response) => {
+      chromeObject.runtime!.sendMessage(extensionId, message, (response) => {
         const error = chromeObject.runtime?.lastError;
         if (error) reject(new Error(error.message ?? "Extension unavailable"));
         else resolve(response);

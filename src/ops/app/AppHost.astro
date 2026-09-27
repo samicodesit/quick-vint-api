@@ -17,7 +17,7 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
   <body>
     {
       enabled ? (
-        <App client:only="react" supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL} anonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY} />
+        <App client:only="react" supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL} anonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY} extensionId={import.meta.env.PUBLIC_OPS_EXTENSION_ID} />
       ) : (
         <main><h1>OS is not enabled</h1><a href="/">AutoLister home</a></main>
       )

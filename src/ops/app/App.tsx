@@ -46,9 +46,11 @@ const paths = [
 export default function App({
   supabaseUrl,
   anonKey,
+  extensionId,
 }: {
   supabaseUrl?: string;
   anonKey?: string;
+  extensionId?: string;
 }) {
   const phoneRoute = window.location.pathname === "/app/phone";
   const client = useMemo(
@@ -89,7 +91,7 @@ export default function App({
 
   if (window.location.pathname === "/app/invite")
     return <AcceptInvite client={client} />;
-  return <WorkspacePanel client={client} user={user} />;
+  return <WorkspacePanel client={client} user={user} extensionId={extensionId} />;
 }
 
 type Workspace = { workspaceId: string; role: string; name: string };
@@ -98,9 +100,11 @@ const emptyWorkspaceId = "00000000-0000-0000-0000-000000000000";
 function WorkspacePanel({
   client,
   user,
+  extensionId,
 }: {
   client: ReturnType<typeof createClient<any>>;
   user: User;
+  extensionId?: string;
 }) {
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -285,6 +289,7 @@ function WorkspacePanel({
                   itemId={
                     new URLSearchParams(window.location.search).get("itemId")!
                   }
+                  extensionId={extensionId}
                 />
               ) : window.location.pathname.endsWith("/templates") ? (
                 ["owner", "manager"].includes(

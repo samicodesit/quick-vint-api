@@ -127,3 +127,10 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: PostgreSQL stocktake tests 4/4 passed for overlap, duplicate scans, movement during count, warehouse write-off denial and restart after close. The 390-pixel count-station browser fixture passed start, scan and compare without page overflow. Type check and lint passed before the close operation; PostgreSQL tests passed again after close was added.
 - External gates: actual scanning hardware and live authenticated multi-user persistence remain unverified. Browser authentication and API data were labelled fixtures.
 - Next: T16 contribution ledger, reports and exports.
+
+## T16: contribution ledger and report locally verified
+
+- Added sale-time acquisition snapshots for new order lines, append-only seller cost and refund observations with source-key dedupe, exact minor-unit contribution calculations, labelled equal allocation of unobserved bundle line revenue, distinct-item source/lot cohorts and a CSV matching report rows. Explicit zero cost remains known; unknown cost keeps contribution incomplete. Mixed currencies stay separate. Buyer fees are excluded from seller revenue. A resold garment contributes one acquired item to cohort counts and charges acquisition once across its sales history.
+- Checks: contribution unit tests 6/6, PostgreSQL finance tests 2/2, 390-pixel report/export browser fixture 1/1 and type check passed. Lint passed with two import-order warnings in T10 files. The browser report is a labelled fixture; its numbers are not live integration evidence.
+- External gates: no provider fee/refund feed or live Supabase reporting session was available. No actual refund or payment action occurred. Existing order lines predating this migration retain unknown acquisition basis because historical sale-time cost cannot be reconstructed from current stock values.
+- Next: T17 team administration, privacy and operational controls.

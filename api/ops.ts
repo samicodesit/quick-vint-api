@@ -158,6 +158,15 @@ import {
   listStocktakes,
   closeStocktake,
 } from "../utils/ops/stocktake/start";
+import {
+  financialObservationSchema,
+  reportQuerySchema,
+} from "../src/ops/contracts/reports";
+import {
+  buildReport,
+  exportReportCsv,
+  recordFinancialObservation,
+} from "../utils/ops/reports/ledger";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -902,8 +911,50 @@ const operations: Record<string, Operation> = {
     },
   },
   "stocktake.close": {
-    kind: "command", payload: stocktakeIdSchema, requiresMembership: true,
-    async run({ actor, payload, meta, token }) { return closeStocktake(actor, stocktakeIdSchema.parse(payload), meta!, token); },
+    kind: "command",
+    payload: stocktakeIdSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return closeStocktake(
+        actor,
+        stocktakeIdSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "financial.observe": {
+    kind: "command",
+    payload: financialObservationSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return recordFinancialObservation(
+        actor,
+        financialObservationSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "report.build": {
+    kind: "query",
+    payload: reportQuerySchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return buildReport(actor, reportQuerySchema.parse(payload));
+    },
+  },
+  "report.export": {
+    kind: "query",
+    payload: reportQuerySchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return {
+        csv: exportReportCsv(
+          await buildReport(actor, reportQuerySchema.parse(payload)),
+        ),
+      };
+    },
   },
 };
 

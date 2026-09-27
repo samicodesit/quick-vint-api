@@ -89,8 +89,18 @@ export async function listStocktakes(actor: Actor) {
   check(error);
   return data ?? [];
 }
-export async function closeStocktake(actor: Actor, input: z.infer<typeof stocktakeIdSchema>, meta: CommandMeta, token: string) {
+export async function closeStocktake(
+  actor: Actor,
+  input: z.infer<typeof stocktakeIdSchema>,
+  meta: CommandMeta,
+  token: string,
+) {
   const value = stocktakeIdSchema.parse(input);
-  const { data, error } = await userClient(token).rpc("ops_close_stocktake", { p_workspace_id: actor.workspaceId, p_stocktake_id: value.stocktakeId, p_key: meta.idempotencyKey });
-  check(error); return data;
+  const { data, error } = await userClient(token).rpc("ops_close_stocktake", {
+    p_workspace_id: actor.workspaceId,
+    p_stocktake_id: value.stocktakeId,
+    p_key: meta.idempotencyKey,
+  });
+  check(error);
+  return data;
 }

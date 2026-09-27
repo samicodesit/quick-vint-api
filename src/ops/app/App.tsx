@@ -9,6 +9,7 @@ import { Pick } from "./features/pick/Pick";
 import { Pack } from "./features/pack/Pack";
 import { Returns } from "./features/returns/Returns";
 import { Stocktake } from "./features/stocktake/Stocktake";
+import { Reports } from "./features/reports/Reports";
 import {
   ListingQueue,
   ReviewListing,
@@ -24,6 +25,7 @@ const desktop = [
   "Pack",
   "Returns",
   "Stocktake",
+  "Reports",
 ] as const;
 const paths = [
   "",
@@ -34,6 +36,7 @@ const paths = [
   "pack",
   "returns",
   "stocktake",
+  "reports",
 ] as const;
 
 export default function App({
@@ -374,6 +377,16 @@ function WorkspacePanel({
                     )?.role ?? "warehouse"
                   }
                 />
+              )
+            ) : current === "reports" && selected ? (
+              ["owner", "manager"].includes(
+                workspaces.find(
+                  (workspace) => workspace.workspaceId === selected,
+                )?.role ?? "",
+              ) ? (
+                <Reports client={client} workspaceId={selected} />
+              ) : (
+                <p>Reports are available to owners and managers.</p>
               )
             ) : (
               <p>

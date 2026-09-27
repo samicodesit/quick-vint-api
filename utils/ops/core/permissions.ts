@@ -69,6 +69,9 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "stocktake.resolve",
     "stocktake.list",
     "stocktake.close",
+    "financial.observe",
+    "report.build",
+    "report.export",
   ]),
   manager: new Set([
     "session.read",
@@ -136,6 +139,9 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "stocktake.resolve",
     "stocktake.list",
     "stocktake.close",
+    "financial.observe",
+    "report.build",
+    "report.export",
   ]),
   lister: new Set([
     "session.read",

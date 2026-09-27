@@ -1,6 +1,6 @@
 # AutoLister OS release gates
 
-This is local implementation evidence on `feature/autolister-os-build`. It is not approval to deploy. The attached build specification defines 57 automated acceptance scenarios (A001 to A057) and five human or external gates (H01 to H05). `PROGRESS.md` records the task checks. Fixture browser and SQL tests do not prove a live Supabase or marketplace integration.
+This records local and isolated staging evidence on `feature/autolister-os-build`. It is not approval to deploy to the existing customer production environment. The attached build specification defines 57 automated acceptance scenarios (A001 to A057) and five human or external gates (H01 to H05). `PROGRESS.md` records the task checks. Fixture browser and SQL tests do not prove a marketplace integration.
 
 The rows below cover A001 to A054 by task range: M0 covers A001 to A014, M1 A015 to A021, M2 A022 to A035, M3 A036 to A049 and M4 T16 to T17 covers A050 to A054. The T18 table covers A055 to A057. These ranges identify implemented local checks, not a claim that every live or physical step in those scenarios passed.
 
@@ -22,6 +22,12 @@ The rows below cover A001 to A054 by task range: M0 covers A001 to A014, M1 A015
 
 ## External gates
 
+### Isolated staging evidence, 2026-09-27
+
+The separate staging Supabase and Vercel projects have all OS schema, RLS, Storage and access migrations applied. A staging-only Auth user completed the real API and private Storage paths for workspace bootstrap, item creation, signed photo upload and read, phone pairing and upload grant, CSV preview and apply, listing approval, a synthetic manual order, reservation, pick, pack, private PDF label, handover, return and same-item restock. An unauthenticated API request was refused. A second staging-only Auth user saw an empty workspace list, was denied the first user's workspace API query, and could not directly read its private object. These were service-backed checks with synthetic data. They do not prove a seller, carrier, marketplace, physical device or payment integration. The exact steps and URLs are in `STAGING_TEST.md`.
+
+The staging extension build uses a separate extension ID and staging Supabase Auth. Its source, syntax and unit checks pass. In isolated Chromium, its service worker loaded under the expected ID and the staging app's `OPS_HELLO` handshake returned the expected sign-in-required response. Owner Chrome installation and email sign-in remain device checks. H01 to H05 below remain open.
+
 | ID  | Status     | Required evidence                                                                                                                                                                      |
 | --- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | H01 | Unverified | Record actual iPhone Safari/PWA, Android Chrome, keyboard scanner and label printer versions. Test capture/resume, barcode association, print, cancel and reprint on physical devices. |
@@ -33,12 +39,12 @@ The rows below cover A001 to A054 by task range: M0 covers A001 to A014, M1 A015
 ## Known limits
 
 - The legacy API `verify:production` format stage fails on the unchanged `docs/superpowers/specs/2026-09-23-mobile-web-app-phase-1-design.md`; its other stages are run separately. This does not indicate an OS test failure.
-- Supabase Storage policies and bucket migrations are written but have not run against a live Supabase service. The isolated PostgreSQL harness supplies an `auth.uid()` shim and cannot replace that test.
+- Supabase Storage policies, buckets, private signed upload/read and cross-user denial ran against the isolated staging service. Physical phone capture and full Storage backup/restore remain unverified.
 - The official Vinted adapter has no verified account-specific capability. Manual handoff deliberately records an unverified marketplace state.
 - Sale-time acquisition snapshots apply to new order lines after the migration. Older lines retain unknown historical acquisition basis.
 - The performance fixture measures local PostgreSQL query execution, not HTTP p95, UI hydration or concurrent warehouse traffic.
 - The Today queue uses an explicit ship-by time when a manual seller supplies one. Orders without that evidence show "Ship date not supplied". Official provider due dates and connection freshness still require H02 account verification.
-- Inventory thumbnails are signed from the private derivative bucket through the server. Browser image checks use fixture URLs; live Storage signing remains unverified.
+- Inventory thumbnails are signed from the private derivative bucket through the server. A synthetic derivative signed read passed in staging; browser display on a physical device remains unverified.
 
 ## Release sequence after separate approval
 

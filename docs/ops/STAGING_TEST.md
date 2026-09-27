@@ -24,7 +24,7 @@ The live staging API and private Storage paths for these operations passed with 
 1. Open `chrome://extensions` in Chrome, enable **Developer mode**, choose **Load unpacked**, and select `C:\Users\Sami\Downloads\AutoLister Staging Extension`.
 2. Confirm the extension is named **AutoLister Staging** and its ID is `olpodlemebcdiklhjfemgdongmidnajb`. Its ID is separate from the published extension.
 3. Open the extension popup and enter the same staging organization email. The staging build requests an email sign-in link directly from staging Supabase. Follow its link or enter the six-digit code if the email supplies one. Return to the popup and confirm it shows your account.
-4. In the staging app's listing review, use **Prepare handoff**. Confirm the preview contains only your test listing and images. The extension may fill supported fields on a marketplace page, but do not submit, publish or perform any real marketplace action.
+4. Keep marketplace tabs closed. In the staging app's listing review, use **Prepare handoff**. Confirm the extension connection succeeds and the manual packet contains only your test listing and images. With no marketplace editor open, the extension returns a prepared state and does not fill or submit a real listing.
 
 If Chrome reports a different extension ID, stop before sign-in. The exact staging callback allowlist is `chrome-extension://olpodlemebcdiklhjfemgdongmidnajb/callback.html`.
 

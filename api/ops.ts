@@ -167,6 +167,29 @@ import {
   exportReportCsv,
   recordFinancialObservation,
 } from "../utils/ops/reports/ledger";
+import {
+  inviteCreateSchema,
+  inviteAcceptSchema,
+  inviteRevokeSchema,
+  memberUpdateSchema,
+  settingsUpdateSchema,
+  credentialStoreSchema,
+  credentialDeleteSchema,
+  exportPageSchema,
+} from "../src/ops/contracts/admin";
+import {
+  createInvite,
+  acceptInvite,
+  revokeInvite,
+  updateMember,
+  updateSettings,
+  requestDeletion,
+  adminOverview,
+  storeCredential,
+  deleteCredential,
+  exportWorkspacePage,
+  exportTables,
+} from "../utils/ops/admin/team";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -954,6 +977,133 @@ const operations: Record<string, Operation> = {
           await buildReport(actor, reportQuerySchema.parse(payload)),
         ),
       };
+    },
+  },
+  "invite.create": {
+    kind: "command",
+    payload: inviteCreateSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return createInvite(
+        actor,
+        inviteCreateSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "invite.accept": {
+    kind: "command",
+    payload: inviteAcceptSchema,
+    requiresMembership: false,
+    async run({ actor, payload, meta, token }) {
+      return acceptInvite(
+        actor,
+        inviteAcceptSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "invite.revoke": {
+    kind: "command",
+    payload: inviteRevokeSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return revokeInvite(
+        actor,
+        inviteRevokeSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "member.update": {
+    kind: "command",
+    payload: memberUpdateSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return updateMember(
+        actor,
+        memberUpdateSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "settings.update": {
+    kind: "command",
+    payload: settingsUpdateSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return updateSettings(
+        actor,
+        settingsUpdateSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "workspace.deletion.request": {
+    kind: "command",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor, meta, token }) {
+      return requestDeletion(actor, meta!, token);
+    },
+  },
+  "admin.overview": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      return adminOverview(actor);
+    },
+  },
+  "credential.store": {
+    kind: "command",
+    payload: credentialStoreSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return storeCredential(
+        actor,
+        credentialStoreSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "credential.delete": {
+    kind: "command",
+    payload: credentialDeleteSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return deleteCredential(
+        actor,
+        credentialDeleteSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "workspace.export.tables": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      if (actor.role !== "owner")
+        throw Object.assign(new Error("Owner access required"), {
+          opsCode: "FORBIDDEN",
+        });
+      return { tables: exportTables };
+    },
+  },
+  "workspace.export.page": {
+    kind: "query",
+    payload: exportPageSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return exportWorkspacePage(actor, exportPageSchema.parse(payload));
     },
   },
 };

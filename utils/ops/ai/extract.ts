@@ -224,6 +224,16 @@ export async function analyseItem(
     .single();
   check(error);
   const analysis = run as AnalysisRun;
+  const { data: membership, error: membershipError } = await client
+    .from("ops_memberships")
+    .select("role")
+    .eq("workspace_id", job.workspaceId)
+    .eq("user_id", analysis.requested_by)
+    .eq("active", true)
+    .maybeSingle();
+  check(membershipError);
+  if (!membership || !["owner", "manager", "lister"].includes(membership.role))
+    throw new Error("Requester no longer has analysis access");
   if (analysis.status === "completed")
     return { runId: payload.runId, status: "completed" };
   const { data: entitlement, error: entitlementError } = await client

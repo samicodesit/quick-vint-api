@@ -157,6 +157,19 @@ summary.profile = profile;
 let userId = profile?.id || null;
 let stripeCustomerId = profile?.stripe_customer_id || null;
 let stripeSubscriptionId = profile?.stripe_subscription_id || null;
+const authUser = await findAuthUserByEmail(supabase, email);
+userId ||= authUser?.id || null;
+if (userId) {
+  const { data: activeOsMemberships, error: osMembershipError } = await supabase
+    .from("ops_memberships")
+    .select("workspace_id,role")
+    .eq("user_id", userId)
+    .eq("active", true);
+  if (osMembershipError && !["42P01", "PGRST205"].includes(osMembershipError.code)) throw osMembershipError;
+  summary.active_os_memberships = activeOsMemberships || [];
+  if (!dryRun && summary.active_os_memberships.length)
+    throw new Error("Active AutoLister workspace membership remains. Transfer or revoke access, or complete a reviewed workspace deletion before account erasure.");
+}
 
 if (userId) {
   if (!dryRun) {
@@ -196,7 +209,6 @@ if (!dryRun) {
   }
 }
 
-const authUser = await findAuthUserByEmail(supabase, email);
 if (authUser && !dryRun) {
   const { error: authDeleteError } = await supabase.auth.admin.deleteUser(
     authUser.id,

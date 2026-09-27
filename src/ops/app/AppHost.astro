@@ -91,6 +91,10 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
   .ops-report-table { overflow-x: auto; }
   .ops-report-table table { border-collapse: collapse; width: 100%; }
   .ops-report-table th, .ops-report-table td { padding: 8px; border-bottom: 1px solid #dce3df; text-align: left; }
+  .ops-admin { min-width: 0; overflow-wrap: anywhere; }
+  .ops-admin section { max-width: 900px; padding: 18px; margin: 16px 0; background: white; border: 1px solid #dce3df; border-radius: 12px; }
+  .ops-admin input, .ops-admin select { display: block; width: 100%; max-width: 100%; margin: 6px 0 14px; }
+  .ops-admin code { overflow-wrap: anywhere; }
   @media (min-width: 900px) {
     .ops-inventory--detail { position: fixed; top: 68px; right: 0; bottom: 0; z-index: 5; width: min(600px, 60vw); overflow: auto; padding: 28px; background: #f7f8f5; box-shadow: -12px 0 40px #1d292629; }
   }

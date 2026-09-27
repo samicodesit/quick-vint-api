@@ -10,6 +10,7 @@ import { Pack } from "./features/pack/Pack";
 import { Returns } from "./features/returns/Returns";
 import { Stocktake } from "./features/stocktake/Stocktake";
 import { Reports } from "./features/reports/Reports";
+import { Admin, AcceptInvite } from "./features/admin/Admin";
 import {
   ListingQueue,
   ReviewListing,
@@ -26,6 +27,7 @@ const desktop = [
   "Returns",
   "Stocktake",
   "Reports",
+  "Settings",
 ] as const;
 const paths = [
   "",
@@ -37,6 +39,7 @@ const paths = [
   "returns",
   "stocktake",
   "reports",
+  "settings",
 ] as const;
 
 export default function App({
@@ -83,6 +86,8 @@ export default function App({
       </main>
     );
 
+  if (window.location.pathname === "/app/invite")
+    return <AcceptInvite client={client} />;
   return <WorkspacePanel client={client} user={user} />;
 }
 
@@ -387,6 +392,13 @@ function WorkspacePanel({
                 <Reports client={client} workspaceId={selected} />
               ) : (
                 <p>Reports are available to owners and managers.</p>
+              )
+            ) : current === "settings" && selected ? (
+              workspaces.find((workspace) => workspace.workspaceId === selected)
+                ?.role === "owner" ? (
+                <Admin client={client} workspaceId={selected} />
+              ) : (
+                <p>Settings are available to owners.</p>
               )
             ) : (
               <p>

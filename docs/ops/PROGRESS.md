@@ -161,3 +161,9 @@ External gates: no production database migration, live Vinted credential test, p
 - Focused orders/import/inventory/listing/journey PostgreSQL tests passed 22/22, Today ordering unit 1/1 and the 390-pixel Today and inventory browser fixture 1/1. New fixture screenshots are `today-mobile-fixture.png` and `inventory-mobile-fixture.png`. Live Supabase Auth, private Storage signing and provider freshness remain unverified external gates.
 - Final checks after review fixes: `npm run ops:verify` passed 50 unit, 68 PostgreSQL, 23 API and 14 browser fixture tests, plus type check and Astro build. `npm test` passed 392/392; lint passed without warnings. `npm run ops:test:perf` passed the 20,000-item fixture 1/1. Full `format-check` fails only on the unchanged legacy design document. Extension verification remains the earlier passing 51 unit, 175 E2E and build because its files did not change in this follow-up.
 - Next: local commit and handover. H01 to H05 remain open external gates.
+
+## Staging test setup, 2026-09-27
+
+- Both `feature/autolister-os-build` branches were pushed to their GitHub remotes without merging `main`. The extension branch adds an isolated unpacked staging build at commit `36ddb34`; its build isolation check and 54 unit tests passed.
+- Created a separate free Supabase project, ref `mchrnwwydjddqsdghqtl`, and a separate Vercel project, `autolister-os-staging-api`. Neither is the production project. No production deployment or migration occurred.
+- All 17 OS schema migrations and both Supabase Storage migrations were applied to staging. Validation found 63 `ops_*` tables with RLS enabled, 81 `ops_*` functions, expected core tables and key RPCs. The SQL editor caught a missing RLS enable on `ops_deletion_tombstones`; the source migration now includes it. Preview environment variables, deployment and live Auth/API/Storage checks are in progress. This is not yet a user-testable release.

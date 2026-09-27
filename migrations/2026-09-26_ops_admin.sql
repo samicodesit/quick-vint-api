@@ -65,6 +65,7 @@ ALTER TABLE ops_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ops_workspace_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ops_credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ops_workspace_deletion_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ops_deletion_tombstones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY ops_invites_owner_read ON ops_invitations FOR SELECT TO authenticated USING(EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=ops_invitations.workspace_id AND user_id=auth.uid() AND active AND role='owner'));
 CREATE POLICY ops_settings_manager_read ON ops_workspace_settings FOR SELECT TO authenticated USING(EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=ops_workspace_settings.workspace_id AND user_id=auth.uid() AND active AND role IN('owner','manager')));
 CREATE POLICY ops_deletion_owner_read ON ops_workspace_deletion_requests FOR SELECT TO authenticated USING(EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=ops_workspace_deletion_requests.workspace_id AND user_id=auth.uid() AND active AND role='owner'));

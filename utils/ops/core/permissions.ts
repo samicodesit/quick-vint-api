@@ -58,6 +58,11 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "pack.label.attach",
     "shipment.handover",
     "pack.detail",
+    "return.receipt",
+    "return.inspect",
+    "return.restock",
+    "return.list",
+    "return.detail",
   ]),
   manager: new Set([
     "session.read",
@@ -114,6 +119,11 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "pack.label.attach",
     "shipment.handover",
     "pack.detail",
+    "return.receipt",
+    "return.inspect",
+    "return.restock",
+    "return.list",
+    "return.detail",
   ]),
   lister: new Set([
     "session.read",
@@ -181,6 +191,10 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "pack.label.attach",
     "shipment.handover",
     "pack.detail",
+    "return.receipt",
+    "return.inspect",
+    "return.list",
+    "return.detail",
   ]),
 };
 

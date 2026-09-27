@@ -79,6 +79,10 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
   .ops-label { width: 50mm; min-height: 30mm; padding: 2mm; background: white; border: 1px solid #dce3df; display: grid; justify-items: center; align-content: center; }
   .ops-label img { width: 18mm; height: 18mm; }
   .ops-label small { font-size: 7px; }
+  .ops-returns-page { min-width: 0; overflow-wrap: anywhere; }
+  .ops-returns-page section { max-width: 760px; min-width: 0; padding: 18px; margin: 16px 0; background: white; border: 1px solid #dce3df; border-radius: 12px; }
+  .ops-returns-page input, .ops-returns-page select { display: block; width: 100%; max-width: 100%; min-width: 0; margin: 6px 0 14px; }
+  .ops-returns-page button { max-width: 100%; overflow-wrap: anywhere; }
   @media (min-width: 900px) {
     .ops-inventory--detail { position: fixed; top: 68px; right: 0; bottom: 0; z-index: 5; width: min(600px, 60vw); overflow: auto; padding: 28px; background: #f7f8f5; box-shadow: -12px 0 40px #1d292629; }
   }
@@ -92,8 +96,8 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
     .ops-shell { grid-template-columns: 1fr; grid-template-rows: 58px 1fr 66px; }
     .ops-shell header { grid-column: 1; padding: 0 16px; }
     .ops-shell header span { max-width: 45vw; overflow: hidden; text-overflow: ellipsis; }
-    .ops-shell nav { grid-row: 3; flex-direction: row; justify-content: space-around; padding: 6px; border-right: 0; border-top: 1px solid #dce3df; background: white; }
-    .ops-shell nav a { padding: 12px 6px; font-size: .85rem; }
-    .ops-shell main { grid-row: 2; padding: 24px 18px; }
+    .ops-shell nav { grid-row: 3; min-width: 0; flex-direction: row; justify-content: flex-start; overflow-x: auto; padding: 6px; border-right: 0; border-top: 1px solid #dce3df; background: white; }
+    .ops-shell nav a { flex: none; padding: 12px 6px; font-size: .85rem; }
+    .ops-shell main { grid-row: 2; min-width: 0; padding: 24px 18px; }
   }
 </style>

@@ -7,6 +7,7 @@ import { ImportStock } from "./features/imports/ImportStock";
 import { Orders } from "./features/orders/Orders";
 import { Pick } from "./features/pick/Pick";
 import { Pack } from "./features/pack/Pack";
+import { Returns } from "./features/returns/Returns";
 import {
   ListingQueue,
   ReviewListing,
@@ -20,8 +21,17 @@ const desktop = [
   "Orders",
   "Pick",
   "Pack",
+  "Returns",
 ] as const;
-const paths = ["", "inventory", "listings", "orders", "pick", "pack"] as const;
+const paths = [
+  "",
+  "inventory",
+  "listings",
+  "orders",
+  "pick",
+  "pack",
+  "returns",
+] as const;
 
 export default function App({
   supabaseUrl,
@@ -326,6 +336,23 @@ function WorkspacePanel({
                 </p>
               ) : (
                 <Pack client={client} workspaceId={selected} />
+              )
+            ) : current === "returns" && selected ? (
+              workspaces.find((workspace) => workspace.workspaceId === selected)
+                ?.role === "lister" ? (
+                <p>
+                  Returns are available to owners, managers and warehouse staff.
+                </p>
+              ) : (
+                <Returns
+                  client={client}
+                  workspaceId={selected}
+                  role={
+                    workspaces.find(
+                      (workspace) => workspace.workspaceId === selected,
+                    )?.role ?? "warehouse"
+                  }
+                />
               )
             ) : (
               <p>

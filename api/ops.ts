@@ -131,6 +131,19 @@ import {
   recordHandover,
   packDetail,
 } from "../utils/ops/fulfillment/pack";
+import {
+  receiveReturnSchema,
+  inspectReturnSchema,
+  restockReturnSchema,
+  returnDetailSchema,
+} from "../src/ops/contracts/returns";
+import {
+  recordReturnReceipt,
+  inspectReturn,
+  restockReturn,
+  listReturns,
+  returnDetail,
+} from "../utils/ops/returns/receive";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -762,6 +775,61 @@ const operations: Record<string, Operation> = {
     requiresMembership: true,
     async run({ actor, payload }) {
       return packDetail(actor, packDetailSchema.parse(payload));
+    },
+  },
+  "return.receipt": {
+    kind: "command",
+    payload: receiveReturnSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return recordReturnReceipt(
+        actor,
+        receiveReturnSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "return.inspect": {
+    kind: "command",
+    payload: inspectReturnSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return inspectReturn(
+        actor,
+        inspectReturnSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "return.restock": {
+    kind: "command",
+    payload: restockReturnSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return restockReturn(
+        actor,
+        restockReturnSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "return.list": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      return listReturns(actor);
+    },
+  },
+  "return.detail": {
+    kind: "query",
+    payload: returnDetailSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return returnDetail(actor, returnDetailSchema.parse(payload));
     },
   },
 };

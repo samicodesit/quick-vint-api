@@ -113,3 +113,10 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: PostgreSQL pack tests 2/2 passed for bundle completeness, duplicate scan, wrong-order label, repeated handover and cancellation before dispatch. A 390-pixel browser fixture passed the two-item scan, label upload/attach and handover path with no horizontal overflow. Type check and lint passed. The browser fixture does not verify live Supabase Storage.
 - External gates: physical print legibility and print-dialog cancellation require H01 device testing. Live private storage upload/download, provider label retrieval and a real carrier handover remain unverified. No shipping action or production migration occurred.
 - Next: T14 return receipt, inspection, quarantine and cancellation reconciliation.
+
+## T14: return custody and cancellation locally verified
+
+- Added exact-garment receipt into quarantine, separate inspection and manager restock, preserved order-line snapshots, refund observations and after-handover cancellation exceptions. Restock returns the same item ID to on-hand stock and invalidates its listing approval.
+- Checks: PostgreSQL return tests 3/3 passed for refund before receipt, wrong garment, partial bundle, duplicate receipt, damaged quarantine, same-ID restock and late cancellation. The 390-pixel return browser fixture passed receipt, inspection and approval without page overflow. Type check and lint passed; lint has two existing import-order warnings in T10 files.
+- External gates: no real refund, carrier return, provider cancellation event or live authenticated Supabase flow was performed. Browser authentication and API data were labelled fixtures.
+- Next: T15 location stocktake and discrepancy resolution.

@@ -1,5 +1,5 @@
-import type { LabelDocument } from "../../../../src/ops/contracts/integrations";
 import { TextDecoder } from "node:util";
+import type { LabelDocument } from "../../../../src/ops/contracts/integrations";
 import type { VintedClient } from "./client";
 
 export async function getOrderLabel(

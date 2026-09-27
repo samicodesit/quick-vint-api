@@ -28,6 +28,7 @@ CREATE TABLE ops_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES ops_workspaces(id),
   display_sku text NOT NULL CHECK (length(btrim(display_sku)) BETWEEN 1 AND 80),
+  catalog_title text CHECK (length(btrim(catalog_title)) BETWEEN 1 AND 200),
   normalized_sku text NOT NULL CHECK (length(normalized_sku) BETWEEN 1 AND 80),
   source_id uuid,
   lot_id uuid,

@@ -24,6 +24,8 @@ type Item = {
 type ListItem = {
   id: string;
   displaySku: string;
+  shortTitle: string | null;
+  thumbnailUrl?: string;
   custody: string;
   preparation: string;
   locationCode: string | null;
@@ -803,38 +805,57 @@ function InventoryBody({
           ) : page.items.length === 0 ? (
             <p>No items yet.</p>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th>Custody</th>
-                  <th>Preparation</th>
-                  <th>Location</th>
-                </tr>
-              </thead>
-              <tbody>
-                {page.items.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>
-                      <a
-                        href={`/app/inventory/item?itemId=${encodeURIComponent(entry.id)}&return=${encodeURIComponent(window.location.search)}`}
-                        onClick={() =>
-                          sessionStorage.setItem(
-                            `ops-inventory-scroll:${workspaceId}:${window.location.search}`,
-                            String(window.scrollY),
-                          )
-                        }
-                      >
-                        {entry.displaySku}
-                      </a>
-                    </td>
-                    <td>{entry.custody}</td>
-                    <td>{entry.preparation}</td>
-                    <td>{entry.locationCode ?? "Not located"}</td>
+            <div className="ops-inventory-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Garment</th>
+                    <th>Custody</th>
+                    <th>Preparation</th>
+                    <th>Location</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {page.items.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>
+                        <div className="ops-inventory-identity">
+                          {entry.thumbnailUrl ? (
+                            <img
+                              src={entry.thumbnailUrl}
+                              alt=""
+                              width={56}
+                              height={56}
+                            />
+                          ) : (
+                            <span className="ops-inventory-no-photo">
+                              No photo
+                            </span>
+                          )}
+                          <span>
+                            <a
+                              href={`/app/inventory/item?itemId=${encodeURIComponent(entry.id)}&return=${encodeURIComponent(window.location.search)}`}
+                              onClick={() =>
+                                sessionStorage.setItem(
+                                  `ops-inventory-scroll:${workspaceId}:${window.location.search}`,
+                                  String(window.scrollY),
+                                )
+                              }
+                            >
+                              {entry.shortTitle || "Untitled garment"}
+                            </a>
+                            <small>{entry.displaySku}</small>
+                          </span>
+                        </div>
+                      </td>
+                      <td>{entry.custody}</td>
+                      <td>{entry.preparation}</td>
+                      <td>{entry.locationCode ?? "Not located"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           {nextCursor && (
             <button

@@ -176,6 +176,7 @@ BEGIN
      NULLIF(v_revision.facts->>'category','') IS NULL OR NULLIF(v_revision.facts->>'condition','') IS NULL OR
      length(btrim(v_revision.title))<1 OR length(btrim(v_revision.description))<1 THEN RAISE EXCEPTION 'Listing needs review' USING ERRCODE='22023'; END IF;
   UPDATE ops_listing_revisions SET approved_by=v_user,approved_at=now() WHERE id=v_revision.id AND approved_at IS NULL;
+  UPDATE ops_items SET catalog_title=v_revision.title WHERE id=v_item.id AND workspace_id=p_workspace_id;
   UPDATE ops_listings SET status='ready',approved_revision_id=v_revision.id,version=version+1,updated_at=now() WHERE id=v_listing.id RETURNING * INTO v_listing;
   v_result:=jsonb_build_object('listingId',v_listing.id,'revisionId',v_revision.id,'version',v_listing.version,'status','ready');
   INSERT INTO ops_command_results(workspace_id,idempotency_key,actor_user_id,operation,payload_hash,result) VALUES(p_workspace_id,p_key,v_user,'listing.approve',v_hash,v_result);

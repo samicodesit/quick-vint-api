@@ -179,7 +179,7 @@ BEGIN
     END IF;
     UPDATE ops_items SET
       cost_minor=COALESCE(cost_minor,v_cost),cost_currency=COALESCE(cost_currency,v_currency),
-      imported_title=COALESCE(imported_title,v_title),imported_location_text=COALESCE(imported_location_text,v_location),
+      imported_title=COALESCE(imported_title,v_title),catalog_title=COALESCE(catalog_title,left(v_title,200)),imported_location_text=COALESCE(imported_location_text,v_location),
       imported_sale_state=COALESCE(imported_sale_state,v_sale),imported_source=COALESCE(imported_source,v_source),
       imported_image_url=COALESCE(imported_image_url,v_image),updated_at=now(),version=version+1
       WHERE id=v_item AND (v_created OR (cost_minor IS NULL AND v_cost IS NOT NULL) OR (imported_title IS NULL AND v_title IS NOT NULL) OR (imported_location_text IS NULL AND v_location IS NOT NULL) OR (imported_sale_state IS NULL AND v_sale IS NOT NULL) OR (imported_source IS NULL AND v_source IS NOT NULL) OR (imported_image_url IS NULL AND v_image IS NOT NULL));

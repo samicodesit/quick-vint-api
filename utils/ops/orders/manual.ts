@@ -31,6 +31,7 @@ export async function createManualOrder(
       p_seller_total_minor: value.sellerTotalMinor,
       p_lines: value.lines,
       p_key: meta.idempotencyKey,
+      p_ship_by_at: value.shipByAt ?? null,
     },
   );
   check(error);
@@ -62,7 +63,7 @@ export async function listOrders(
   let query = serviceClient()
     .from("ops_orders")
     .select(
-      "id,source,status,raw_status,currency,seller_total_minor,version,created_at,ops_order_lines(id,item_id,item_code_snapshot,title_snapshot)",
+      "id,source,status,raw_status,currency,seller_total_minor,ship_by_at,version,created_at,ops_order_lines(id,item_id,item_code_snapshot,title_snapshot)",
     )
     .eq("workspace_id", actor.workspaceId)
     .order("created_at", { ascending: false })
@@ -83,7 +84,7 @@ export async function orderDetail(actor: Actor, orderId: string) {
   const { data: order, error } = await client
     .from("ops_orders")
     .select(
-      "id,source,status,raw_status,currency,seller_total_minor,version,created_at,external_order_id",
+      "id,source,status,raw_status,currency,seller_total_minor,ship_by_at,version,created_at,external_order_id",
     )
     .eq("workspace_id", actor.workspaceId)
     .eq("id", orderId)

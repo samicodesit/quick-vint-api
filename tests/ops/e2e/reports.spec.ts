@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("fixture report displays exact contribution and matching export", async ({
@@ -92,6 +93,17 @@ test("fixture report displays exact contribution and matching export", async ({
     });
   });
   await page.goto("/app/reports");
+  await page.getByLabel("From").focus();
+  for (let step = 0; step < 5; step++) {
+    if (
+      await page
+        .getByLabel("To")
+        .evaluate((element) => element === document.activeElement)
+    )
+      break;
+    await page.keyboard.press("Tab");
+  }
+  await expect(page.getByLabel("To")).toBeFocused();
   await page.getByLabel("From").fill("2026-09-01");
   await page.getByLabel("To").fill("2026-09-30");
   await page.getByRole("button", { name: "Build report" }).click();
@@ -106,4 +118,18 @@ test("fixture report displays exact contribution and matching export", async ({
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+  mkdirSync("docs/ops/screenshots", { recursive: true });
+  await page.addStyleTag({
+    content: "astro-dev-toolbar { display: none !important; }",
+  });
+  await page.screenshot({
+    path: "docs/ops/screenshots/report-mobile-fixture.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.getByText("Known contribution: 44.00.")).toBeVisible();
+  await page.screenshot({
+    path: "docs/ops/screenshots/report-desktop-fixture.png",
+    fullPage: true,
+  });
 });

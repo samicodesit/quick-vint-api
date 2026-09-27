@@ -147,6 +147,24 @@ describe("packing and physical handover", () => {
     expect(
       object(
         asUser(
+          `SELECT ops_attach_label('${workspace}','${pack.sessionId}','${document}','${key(1351)}');`,
+        ),
+      ).labelId,
+    ).toBe(document);
+    expect(() =>
+      asUser(
+        `SELECT ops_attach_label('${workspace}','${pack.sessionId}','${order.items[0].itemId}','${key(1351)}');`,
+      ),
+    ).toThrow();
+    expect(
+      sql(
+        `SELECT count(*) FROM ops_audit_events WHERE workspace_id='${workspace}' AND aggregate_id='${pack.sessionId}' AND action='pack.label.attach';`,
+        database,
+      ),
+    ).toBe("1");
+    expect(
+      object(
+        asUser(
           `SELECT ops_record_handover('${workspace}','${pack.shipmentId}','${key(1356)}');`,
         ),
       ).status,

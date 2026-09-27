@@ -82,28 +82,46 @@ END $$;
 
 CREATE FUNCTION ops_inspect_return(p_workspace_id uuid,p_return_line_id uuid,p_decision text,p_note text,p_key uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE v_user uuid:=auth.uid(); v_line ops_return_lines%ROWTYPE; v_result jsonb;
+DECLARE v_user uuid:=auth.uid(); v_line ops_return_lines%ROWTYPE; v_result jsonb; v_prior ops_command_results%ROWTYPE; v_hash text;
 BEGIN
  IF p_key IS NULL OR p_decision NOT IN('resellable','quarantine','damaged') OR length(btrim(coalesce(p_note,'')))>1000
  THEN RAISE EXCEPTION 'Invalid inspection' USING ERRCODE='22023'; END IF;
  IF NOT EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=p_workspace_id AND user_id=v_user AND active AND role IN('owner','manager','warehouse'))
  THEN RAISE EXCEPTION 'Inspection denied' USING ERRCODE='42501'; END IF;
+ v_hash:=encode(digest(jsonb_build_object('line',p_return_line_id,'decision',p_decision,'note',btrim(coalesce(p_note,'')))::text,'sha256'),'hex');
+ PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text||':'||p_key::text,0));
+ SELECT * INTO v_prior FROM ops_command_results WHERE workspace_id=p_workspace_id AND idempotency_key=p_key;
+ IF FOUND THEN
+   IF v_prior.actor_user_id<>v_user OR v_prior.operation<>'return.inspect' OR v_prior.payload_hash<>v_hash
+   THEN RAISE EXCEPTION 'Idempotency key conflict' USING ERRCODE='23505'; END IF;
+   RETURN v_prior.result;
+ END IF;
  SELECT * INTO v_line FROM ops_return_lines WHERE id=p_return_line_id AND workspace_id=p_workspace_id FOR UPDATE;
  IF NOT FOUND OR v_line.status<>'received' THEN RAISE EXCEPTION 'Return line already inspected or missing' USING ERRCODE='40001'; END IF;
  UPDATE ops_return_lines SET status=p_decision,inspection_note=btrim(p_note),inspected_by=v_user,inspected_at=now() WHERE id=p_return_line_id;
  UPDATE ops_returns SET status='inspected' WHERE id=v_line.return_id;
  v_result:=jsonb_build_object('returnLineId',p_return_line_id,'status',p_decision);
+ INSERT INTO ops_command_results(workspace_id,idempotency_key,actor_user_id,operation,payload_hash,result)
+   VALUES(p_workspace_id,p_key,v_user,'return.inspect',v_hash,v_result);
  INSERT INTO ops_audit_events(workspace_id,actor_user_id,action,aggregate_id,aggregate_version) VALUES(p_workspace_id,v_user,'return.inspect',p_return_line_id,1);
  RETURN v_result;
 END $$;
 
 CREATE FUNCTION ops_restock_return(p_workspace_id uuid,p_return_line_id uuid,p_location_id uuid,p_expected_item_version integer,p_key uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE v_user uuid:=auth.uid(); v_line ops_return_lines%ROWTYPE; v_item ops_items%ROWTYPE; v_result jsonb;
+DECLARE v_user uuid:=auth.uid(); v_line ops_return_lines%ROWTYPE; v_item ops_items%ROWTYPE; v_result jsonb; v_prior ops_command_results%ROWTYPE; v_hash text;
 BEGIN
  IF p_key IS NULL THEN RAISE EXCEPTION 'Restock key required' USING ERRCODE='22023'; END IF;
  IF NOT EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=p_workspace_id AND user_id=v_user AND active AND role IN('owner','manager'))
  THEN RAISE EXCEPTION 'Restock approval denied' USING ERRCODE='42501'; END IF;
+ v_hash:=encode(digest(jsonb_build_object('line',p_return_line_id,'location',p_location_id,'version',p_expected_item_version)::text,'sha256'),'hex');
+ PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text||':'||p_key::text,0));
+ SELECT * INTO v_prior FROM ops_command_results WHERE workspace_id=p_workspace_id AND idempotency_key=p_key;
+ IF FOUND THEN
+   IF v_prior.actor_user_id<>v_user OR v_prior.operation<>'return.restock' OR v_prior.payload_hash<>v_hash
+   THEN RAISE EXCEPTION 'Idempotency key conflict' USING ERRCODE='23505'; END IF;
+   RETURN v_prior.result;
+ END IF;
  SELECT * INTO v_line FROM ops_return_lines WHERE id=p_return_line_id AND workspace_id=p_workspace_id FOR UPDATE;
  IF NOT FOUND OR v_line.status<>'resellable' THEN RAISE EXCEPTION 'Return is not cleared for restock' USING ERRCODE='22023'; END IF;
  SELECT * INTO v_item FROM ops_items WHERE id=v_line.item_id AND workspace_id=p_workspace_id FOR UPDATE;
@@ -115,6 +133,8 @@ BEGIN
  UPDATE ops_listings SET status='draft',approved_revision_id=NULL,version=version+1 WHERE item_id=v_item.id AND workspace_id=p_workspace_id;
  IF NOT EXISTS(SELECT 1 FROM ops_return_lines WHERE return_id=v_line.return_id AND status<>'restocked') THEN UPDATE ops_returns SET status='closed' WHERE id=v_line.return_id; END IF;
  v_result:=jsonb_build_object('returnLineId',p_return_line_id,'itemId',v_item.id,'itemVersion',v_item.version+1,'status','restocked');
+ INSERT INTO ops_command_results(workspace_id,idempotency_key,actor_user_id,operation,payload_hash,result)
+   VALUES(p_workspace_id,p_key,v_user,'return.restock',v_hash,v_result);
  INSERT INTO ops_audit_events(workspace_id,actor_user_id,action,aggregate_id,aggregate_version) VALUES(p_workspace_id,v_user,'return.restock',p_return_line_id,v_item.version+1);
  RETURN v_result;
 END $$;

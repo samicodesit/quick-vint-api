@@ -13,7 +13,7 @@ describe("OS route boundary", () => {
     );
     const host = readFileSync("src/ops/app/AppHost.astro", "utf8");
     expect(host).toContain("App");
-    expect(host).toContain("client:load");
+    expect(host).toContain('client:only="react"');
   });
 
   it("ops_flag_off_preserves_existing_product", () => {

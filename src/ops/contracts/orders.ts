@@ -3,6 +3,7 @@ import { z } from "zod";
 export const manualOrderSchema = z
   .object({
     paidConfirmed: z.boolean(),
+    shipByAt: z.string().datetime({ offset: true }).nullable().optional(),
     currency: z
       .string()
       .regex(/^[A-Z]{3}$/)

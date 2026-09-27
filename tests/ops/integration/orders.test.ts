@@ -73,6 +73,21 @@ function reserve(orderId: string, n: number) {
 }
 
 describe("manual order reservations", () => {
+  it("keeps an explicitly supplied ship-by time for Today ordering", () => {
+    const piece = item(1191);
+    const due = object(
+      asUser(
+        `SELECT ops_create_manual_order('${workspace}',true,NULL,NULL,'[{"itemId":"${piece}","title":"Due garment"}]'::jsonb,'${key(1192)}','2026-10-01T12:00:00Z');`,
+      ),
+    );
+    expect(
+      sql(
+        `SELECT ship_by_at AT TIME ZONE 'UTC' FROM ops_orders WHERE id='${due.orderId}';`,
+        database,
+      ),
+    ).toContain("2026-10-01 12:00:00");
+  });
+
   it("reserves a paid bundle atomically and prevents a double sale", () => {
     const first = item(1101);
     const second = item(1102);

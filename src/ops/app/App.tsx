@@ -11,6 +11,7 @@ import { Returns } from "./features/returns/Returns";
 import { Stocktake } from "./features/stocktake/Stocktake";
 import { Reports } from "./features/reports/Reports";
 import { Admin, AcceptInvite } from "./features/admin/Admin";
+import { Today } from "./features/today/Today";
 import {
   ListingQueue,
   ReviewListing,
@@ -400,12 +401,17 @@ function WorkspacePanel({
               ) : (
                 <p>Settings are available to owners.</p>
               )
-            ) : (
-              <p>
-                Choose <a href="/app/import">Import existing stock</a> or{" "}
-                <a href="/app/inventory/new">Add new stock</a>.
-              </p>
-            )}
+            ) : current === "" && selected ? (
+              <Today
+                client={client}
+                workspaceId={selected}
+                role={
+                  workspaces.find(
+                    (workspace) => workspace.workspaceId === selected,
+                  )?.role ?? "warehouse"
+                }
+              />
+            ) : null}
           </section>
         )}
       </main>

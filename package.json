@@ -6,6 +6,7 @@
     "ops:dev": "node scripts/ops-dev.mjs",
     "ops:test:unit": "vitest run --config vitest.ops.unit.config.ts",
     "ops:test:db": "vitest run --config vitest.ops.db.config.ts",
+    "ops:test:perf": "vitest run --config vitest.ops.perf.config.ts",
     "ops:test:api": "vitest run --config vitest.ops.api.config.ts",
     "ops:test:e2e": "playwright test --config=playwright.ops.config.ts",
     "ops:seed": "node scripts/ops-seed.mjs",

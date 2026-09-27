@@ -25,6 +25,7 @@ import {
 } from "../src/ops/contracts/locations";
 import { defaultAuthServices, type AuthServices } from "../utils/ops/core/auth";
 import { runCommand } from "../utils/ops/core/commands";
+import { todaySummary } from "../utils/ops/today";
 import { failure, statusFor } from "../utils/ops/core/errors";
 import { can } from "../utils/ops/core/permissions";
 import {
@@ -222,6 +223,14 @@ const operations: Record<string, Operation> = {
     requiresMembership: true,
     async run({ actor }) {
       return { workspaceId: actor.workspaceId, role: actor.role };
+    },
+  },
+  "today.summary": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      return todaySummary(actor);
     },
   },
   "workspace.bootstrap": {

@@ -158,6 +158,18 @@ describe("return custody", () => {
     asUser(
       `SELECT ops_inspect_return('${workspace}','${line}','resellable','Clean on receipt','${key(1443)}');`,
     );
+    expect(
+      object(
+        asUser(
+          `SELECT ops_inspect_return('${workspace}','${line}','resellable','Clean on receipt','${key(1443)}');`,
+        ),
+      ).status,
+    ).toBe("resellable");
+    expect(() =>
+      asUser(
+        `SELECT ops_inspect_return('${workspace}','${line}','damaged','Clean on receipt','${key(1443)}');`,
+      ),
+    ).toThrow();
     const version = Number(
       sql(`SELECT version FROM ops_items WHERE id='${first}';`, database).match(
         /\d+/,
@@ -170,6 +182,24 @@ describe("return custody", () => {
         ),
       ).status,
     ).toBe("restocked");
+    expect(
+      object(
+        asUser(
+          `SELECT ops_restock_return('${workspace}','${line}',NULL,${version},'${key(1444)}');`,
+        ),
+      ).status,
+    ).toBe("restocked");
+    expect(() =>
+      asUser(
+        `SELECT ops_restock_return('${workspace}','${line}',NULL,${version + 1},'${key(1444)}');`,
+      ),
+    ).toThrow();
+    expect(
+      sql(
+        `SELECT count(*) FROM ops_audit_events WHERE workspace_id='${workspace}' AND aggregate_id='${line}' AND action IN ('return.inspect','return.restock');`,
+        database,
+      ),
+    ).toBe("2");
     expect(
       sql(`SELECT custody FROM ops_items WHERE id='${first}';`, database),
     ).toContain("on_hand");
@@ -187,7 +217,10 @@ describe("return custody", () => {
       ),
     );
     const line = uuid(
-      sql(`SELECT id FROM ops_return_lines WHERE return_id='${receipt.returnId}';`, database),
+      sql(
+        `SELECT id FROM ops_return_lines WHERE return_id='${receipt.returnId}';`,
+        database,
+      ),
     );
     asUser(
       `SELECT ops_inspect_return('${workspace}','${line}','damaged','Torn seam','${key(1446)}');`,
@@ -197,8 +230,12 @@ describe("return custody", () => {
         `SELECT ops_restock_return('${workspace}','${line}',NULL,4,'${key(1447)}');`,
       ),
     ).toThrow();
-    expect(sql(`SELECT custody FROM ops_items WHERE id='${second}';`, database)).toContain("return_quarantine");
-    expect(sql(`SELECT status FROM ops_return_lines WHERE id='${line}';`, database)).toContain("damaged");
+    expect(
+      sql(`SELECT custody FROM ops_items WHERE id='${second}';`, database),
+    ).toContain("return_quarantine");
+    expect(
+      sql(`SELECT status FROM ops_return_lines WHERE id='${line}';`, database),
+    ).toContain("damaged");
   });
   it("keeps a late cancellation dispatched with an exception", () => {
     const result = object(

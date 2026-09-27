@@ -187,10 +187,20 @@ describe("location stocktake", () => {
   });
   it("closes a counted location and permits a new snapshot", () => {
     expect(
-      object(as(owner, `SELECT ops_close_stocktake('${workspace}','${take}','${key(1518)}');`)).status,
+      object(
+        as(
+          owner,
+          `SELECT ops_close_stocktake('${workspace}','${take}','${key(1518)}');`,
+        ),
+      ).status,
     ).toBe("closed");
     expect(
-      object(as(owner, `SELECT ops_start_stocktake('${workspace}','${locationA}','${key(1519)}');`)).status,
+      object(
+        as(
+          owner,
+          `SELECT ops_start_stocktake('${workspace}','${locationA}','${key(1519)}');`,
+        ),
+      ).status,
     ).toBe("open");
   });
 });

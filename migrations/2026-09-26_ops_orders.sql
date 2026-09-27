@@ -8,6 +8,7 @@ CREATE TABLE ops_orders (
   status text NOT NULL CHECK(status IN ('unpaid','confirmed','reserved','picking','packed','dispatched','cancelled','unknown')),
   raw_status text,
   provider_observed_at timestamptz,
+  ship_by_at timestamptz,
   currency text CHECK(currency ~ '^[A-Z]{3}$'),
   seller_total_minor bigint CHECK(seller_total_minor >= 0),
   version integer NOT NULL DEFAULT 1,
@@ -76,7 +77,7 @@ CREATE POLICY ops_order_issues_read ON ops_order_issues FOR SELECT TO authentica
 GRANT SELECT ON ops_orders,ops_order_lines,ops_reservations,ops_order_issues TO authenticated;
 REVOKE SELECT ON ops_orders,ops_order_lines FROM authenticated;
 
-CREATE FUNCTION ops_create_manual_order(p_workspace_id uuid,p_paid_confirmed boolean,p_currency text,p_seller_total_minor bigint,p_lines jsonb,p_key uuid)
+CREATE FUNCTION ops_create_manual_order(p_workspace_id uuid,p_paid_confirmed boolean,p_currency text,p_seller_total_minor bigint,p_lines jsonb,p_key uuid,p_ship_by_at timestamptz DEFAULT NULL)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE v_user uuid := auth.uid(); v_role text; v_hash text; v_prior ops_command_results%ROWTYPE;
   v_order uuid; v_line jsonb; v_item ops_items%ROWTYPE; v_result jsonb; v_count integer := 0;
@@ -87,15 +88,15 @@ BEGIN
      OR (p_seller_total_minor IS NULL) <> (p_currency IS NULL)
      OR p_seller_total_minor<0 OR (p_currency IS NOT NULL AND p_currency !~ '^[A-Z]{3}$')
   THEN RAISE EXCEPTION 'Invalid manual order' USING ERRCODE='22023'; END IF;
-  v_hash := encode(digest(jsonb_build_object('paid',p_paid_confirmed,'currency',p_currency,'total',p_seller_total_minor,'lines',p_lines)::text,'sha256'),'hex');
+  v_hash := encode(digest(jsonb_build_object('paid',p_paid_confirmed,'currency',p_currency,'total',p_seller_total_minor,'lines',p_lines,'shipBy',p_ship_by_at)::text,'sha256'),'hex');
   PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text||':'||p_key::text,0));
   SELECT * INTO v_prior FROM ops_command_results WHERE workspace_id=p_workspace_id AND idempotency_key=p_key;
   IF FOUND THEN
     IF v_prior.operation<>'order.manual.create' OR v_prior.payload_hash<>v_hash THEN RAISE EXCEPTION 'Idempotency key conflict' USING ERRCODE='23505'; END IF;
     RETURN v_prior.result;
   END IF;
-  INSERT INTO ops_orders(workspace_id,source,status,currency,seller_total_minor,created_by)
-    VALUES(p_workspace_id,'manual',CASE WHEN p_paid_confirmed THEN 'confirmed' ELSE 'unpaid' END,p_currency,p_seller_total_minor,v_user)
+  INSERT INTO ops_orders(workspace_id,source,status,currency,seller_total_minor,ship_by_at,created_by)
+    VALUES(p_workspace_id,'manual',CASE WHEN p_paid_confirmed THEN 'confirmed' ELSE 'unpaid' END,p_currency,p_seller_total_minor,p_ship_by_at,v_user)
     RETURNING id INTO v_order;
   FOR v_line IN SELECT value FROM jsonb_array_elements(p_lines) LOOP
     IF (v_line->>'itemId') IS NULL OR (v_line->>'title') IS NULL THEN RAISE EXCEPTION 'Manual order line incomplete' USING ERRCODE='22023'; END IF;
@@ -195,7 +196,7 @@ BEGIN
   RETURN jsonb_build_object('orderId',v_order.id,'duplicate',false,'status',v_status,'lineCount',v_line_count,'issueCount',v_issue_count);
 END $$;
 
-REVOKE ALL ON FUNCTION ops_create_manual_order(uuid,boolean,text,bigint,jsonb,uuid),ops_reserve_order(uuid,uuid,integer,uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION ops_create_manual_order(uuid,boolean,text,bigint,jsonb,uuid),ops_reserve_order(uuid,uuid,integer,uuid) TO authenticated;
+REVOKE ALL ON FUNCTION ops_create_manual_order(uuid,boolean,text,bigint,jsonb,uuid,timestamptz),ops_reserve_order(uuid,uuid,integer,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION ops_create_manual_order(uuid,boolean,text,bigint,jsonb,uuid,timestamptz),ops_reserve_order(uuid,uuid,integer,uuid) TO authenticated;
 REVOKE ALL ON FUNCTION ops_ingest_order(uuid,uuid,text,text,timestamptz,text,bigint,jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION ops_ingest_order(uuid,uuid,text,text,timestamptz,text,bigint,jsonb) TO service_role;

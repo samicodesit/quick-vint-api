@@ -10,6 +10,7 @@ type Order = {
   currency: string | null;
   seller_total_minor: number | null;
   created_at: string;
+  ship_by_at: string | null;
   ops_order_lines: Array<{
     id: string;
     item_id: string | null;
@@ -50,6 +51,7 @@ export function Orders({
   const [paid, setPaid] = useState(false);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("EUR");
+  const [shipBy, setShipBy] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   async function token() {
@@ -147,6 +149,7 @@ export function Orders({
             paidConfirmed: paid,
             currency: total === null ? null : currency,
             sellerTotalMinor: total,
+            shipByAt: shipBy ? new Date(shipBy).toISOString() : null,
             lines: lines.map(({ itemId, title }) => ({ itemId, title })),
           },
           meta: { idempotencyKey: key, expectedVersion: null },
@@ -155,6 +158,7 @@ export function Orders({
       setNotice(`Manual order ${created.orderId} saved as ${created.status}.`);
       setLines([]);
       setAmount("");
+      setShipBy("");
       setPaid(false);
       setPendingKey(null);
       await load();
@@ -271,6 +275,17 @@ export function Orders({
               </label>
             )}
             <label>
+              Ship by, if known
+              <input
+                type="datetime-local"
+                value={shipBy}
+                onChange={(event) => {
+                  setShipBy(event.target.value);
+                  setPendingKey(null);
+                }}
+              />
+            </label>
+            <label>
               <input
                 type="checkbox"
                 checked={paid}
@@ -299,6 +314,12 @@ export function Orders({
                   {order.source === "manual" ? "Manual" : "Vinted Pro"} order
                 </strong>{" "}
                 <code>{order.id}</code> <span>{order.status}</span>
+                {order.ship_by_at && (
+                  <span>
+                    {" "}
+                    Ship by {new Date(order.ship_by_at).toLocaleString()}
+                  </span>
+                )}
                 <span>
                   {" "}
                   {order.ops_order_lines.length} item
@@ -321,7 +342,7 @@ export function Orders({
                     Reserve all items
                   </button>
                 )}
-              <a href={`/app/orders?orderId=${order.id}`}>View order</a>
+                <a href={`/app/orders?orderId=${order.id}`}>View order</a>
               </li>
             ))}
           </ul>

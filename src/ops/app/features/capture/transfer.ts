@@ -3,9 +3,7 @@ import { captureQueue, type PendingPhoto } from "./queue";
 
 export type CaptureTransport = {
   manifest(photo: PendingPhoto): Promise<{ uploadId: string }>;
-  sign(
-    uploadId: string,
-  ): Promise<{
+  sign(uploadId: string): Promise<{
     path: string;
     signature: string;
     tusEndpoint: string;

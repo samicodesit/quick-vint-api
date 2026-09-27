@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import { TextDecoder } from "node:util";
+import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { decodeVintedWebhook } from "../utils/ops/integrations/vinted/webhooks";
 

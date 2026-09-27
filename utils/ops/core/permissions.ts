@@ -3,6 +3,7 @@ import type { Actor, Role } from "../../../src/ops/contracts/core";
 const permissions: Record<Role, ReadonlySet<string>> = {
   owner: new Set([
     "session.read",
+    "today.summary",
     "workspace.bootstrap",
     "workspace.list",
     "item.create",
@@ -86,6 +87,7 @@ const permissions: Record<Role, ReadonlySet<string>> = {
   ]),
   manager: new Set([
     "session.read",
+    "today.summary",
     "item.create",
     "identifier.add",
     "lot.create",
@@ -156,6 +158,7 @@ const permissions: Record<Role, ReadonlySet<string>> = {
   ]),
   lister: new Set([
     "session.read",
+    "today.summary",
     "item.create",
     "identifier.add",
     "lot.create",
@@ -190,6 +193,7 @@ const permissions: Record<Role, ReadonlySet<string>> = {
   ]),
   warehouse: new Set([
     "session.read",
+    "today.summary",
     "inventory.list",
     "item.detail",
     "lot.detail",

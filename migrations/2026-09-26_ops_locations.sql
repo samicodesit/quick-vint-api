@@ -192,7 +192,7 @@ BEGIN
     v_count:=v_count+1;
     IF v_count>p_limit THEN v_more:=true; EXIT; END IF;
     v_items:=v_items||jsonb_build_array(jsonb_build_object(
-      'id',v_row.id,'displaySku',v_row.display_sku,'custody',v_row.custody,'preparation',v_row.preparation,
+      'id',v_row.id,'displaySku',v_row.display_sku,'shortTitle',v_row.catalog_title,'custody',v_row.custody,'preparation',v_row.preparation,
       'locationId',v_row.location_id,'locationCode',v_row.location_code,'version',v_row.version,'createdAt',v_row.created_at)
       ||CASE WHEN v_role IN ('owner','manager') THEN jsonb_build_object('costMinor',v_row.cost_minor,'costCurrency',v_row.cost_currency) ELSE '{}'::jsonb END);
     v_last:=jsonb_build_object('createdAt',v_row.created_at,'id',v_row.id);

@@ -40,6 +40,29 @@ function request(body: unknown, token?: string) {
 }
 
 describe("T01 ops gateway", () => {
+  it("rejects an expired bearer session before touching workspace data", async () => {
+    let membershipReads = 0;
+    const handler = createOpsHandler({
+      authenticate: async () => null,
+      membership: async () => {
+        membershipReads += 1;
+        return "owner" as const;
+      },
+      bootstrap: async () => workspaceId,
+      listWorkspaces: async () => [],
+    });
+    const result = response();
+    await handler(
+      request(
+        { kind: "query", name: "session.read", workspaceId, payload: {} },
+        "expired-fixture-token",
+      ),
+      result.res,
+    );
+    expect(result.state.status).toBe(401);
+    expect(membershipReads).toBe(0);
+  });
+
   it("rejects unauthenticated and unknown operations", async () => {
     const handler = createOpsHandler({
       authenticate: async () => null,

@@ -63,13 +63,11 @@ test("fixture capture visibly keeps offline photos local to their item", async (
     page.getByRole("heading", { name: "Photos for this item" }),
   ).toBeVisible();
   await context.setOffline(true);
-  await page
-    .getByLabel("Add photos")
-    .setInputFiles({
-      name: "jacket.jpg",
-      mimeType: "image/jpeg",
-      buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
-    });
+  await page.getByLabel("Add photos").setInputFiles({
+    name: "jacket.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+  });
   await expect(
     page.getByRole("heading", { name: "On this device, not yet server-saved" }),
   ).toBeVisible();

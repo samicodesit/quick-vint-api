@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("fixture return stays quarantined until inspection and restock approval", async ({
@@ -159,4 +160,12 @@ test("fixture return stays quarantined until inspection and restock approval", a
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+  mkdirSync("docs/ops/screenshots", { recursive: true });
+  await page.addStyleTag({
+    content: "astro-dev-toolbar { display: none !important; }",
+  });
+  await page.screenshot({
+    path: "docs/ops/screenshots/return-mobile-fixture.png",
+    fullPage: true,
+  });
 });

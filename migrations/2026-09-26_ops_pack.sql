@@ -119,9 +119,19 @@ END $$;
 
 CREATE FUNCTION ops_attach_label(p_workspace_id uuid,p_session_id uuid,p_label_id uuid,p_key uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE v_user uuid:=auth.uid(); v_session ops_pack_sessions%ROWTYPE; v_result jsonb;
+DECLARE v_user uuid:=auth.uid(); v_session ops_pack_sessions%ROWTYPE; v_result jsonb; v_prior ops_command_results%ROWTYPE; v_hash text;
 BEGIN
  IF p_key IS NULL THEN RAISE EXCEPTION 'Label key required' USING ERRCODE='22023'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=p_workspace_id AND user_id=v_user AND active AND role IN('owner','manager','warehouse'))
+ THEN RAISE EXCEPTION 'Label attachment denied' USING ERRCODE='42501'; END IF;
+ v_hash:=encode(digest(jsonb_build_object('session',p_session_id,'label',p_label_id)::text,'sha256'),'hex');
+ PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text||':'||p_key::text,0));
+ SELECT * INTO v_prior FROM ops_command_results WHERE workspace_id=p_workspace_id AND idempotency_key=p_key;
+ IF FOUND THEN
+   IF v_prior.actor_user_id<>v_user OR v_prior.operation<>'pack.label.attach' OR v_prior.payload_hash<>v_hash
+   THEN RAISE EXCEPTION 'Idempotency key conflict' USING ERRCODE='23505'; END IF;
+   RETURN v_prior.result;
+ END IF;
  SELECT * INTO v_session FROM ops_pack_sessions WHERE id=p_session_id AND workspace_id=p_workspace_id FOR UPDATE;
  IF NOT FOUND OR v_session.status='closed' OR v_session.actor_user_id<>v_user
     OR NOT EXISTS(SELECT 1 FROM ops_memberships WHERE workspace_id=p_workspace_id AND user_id=v_user AND active AND role IN('owner','manager','warehouse'))
@@ -130,11 +140,16 @@ BEGIN
  THEN RAISE EXCEPTION 'Label does not match this active order' USING ERRCODE='22023'; END IF;
  IF v_session.label_id IS NOT NULL THEN
    IF v_session.label_id<>p_label_id THEN RAISE EXCEPTION 'A different label is already attached' USING ERRCODE='23505'; END IF;
-   RETURN jsonb_build_object('sessionId',p_session_id,'shipmentId',v_session.shipment_id,'labelId',p_label_id,'status','ready');
+   v_result:=jsonb_build_object('sessionId',p_session_id,'shipmentId',v_session.shipment_id,'labelId',p_label_id,'status','ready');
+   INSERT INTO ops_command_results(workspace_id,idempotency_key,actor_user_id,operation,payload_hash,result)
+     VALUES(p_workspace_id,p_key,v_user,'pack.label.attach',v_hash,v_result);
+   RETURN v_result;
  END IF;
  UPDATE ops_pack_sessions SET label_id=p_label_id,status='ready' WHERE id=p_session_id;
  UPDATE ops_shipments SET label_id=p_label_id,status='ready' WHERE id=v_session.shipment_id;
  v_result:=jsonb_build_object('sessionId',p_session_id,'shipmentId',v_session.shipment_id,'labelId',p_label_id,'status','ready');
+ INSERT INTO ops_command_results(workspace_id,idempotency_key,actor_user_id,operation,payload_hash,result)
+   VALUES(p_workspace_id,p_key,v_user,'pack.label.attach',v_hash,v_result);
  INSERT INTO ops_audit_events(workspace_id,actor_user_id,action,aggregate_id,aggregate_version) VALUES(p_workspace_id,v_user,'pack.label.attach',p_session_id,1);
  RETURN v_result;
 END $$;

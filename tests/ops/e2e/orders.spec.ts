@@ -17,7 +17,7 @@ test("fixture manual sale scans a physical item before reservation", async ({
     updated_at: "2026-09-26T00:00:00Z",
   };
   const orders: Array<Record<string, unknown>> = [];
-  await page.setViewportSize({width:390,height:844});
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(
     (fixtureUser) =>
       localStorage.setItem(
@@ -113,5 +113,9 @@ test("fixture manual sale scans a physical item before reservation", async ({
   await expect(page.getByText("confirmed", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Reserve all items" }).click();
   await expect(page.getByText("reserved", { exact: true })).toBeVisible();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });

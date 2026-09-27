@@ -97,13 +97,11 @@ test("fixture CSV onboarding previews rows and reports a persisted apply result"
     });
   });
   await page.goto("/app/import");
-  await page
-    .getByLabel("CSV file")
-    .setInputFiles({
-      name: "stock.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from("SKU,Title\nA,Jacket\nB,Coat\n"),
-    });
+  await page.getByLabel("CSV file").setInputFiles({
+    name: "stock.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("SKU,Title\nA,Jacket\nB,Coat\n"),
+  });
   await page.getByRole("button", { name: "Save CSV" }).click();
   await expect(page.getByText(/2 rows saved/)).toBeVisible();
   await page.getByRole("button", { name: "Preview import" }).click();

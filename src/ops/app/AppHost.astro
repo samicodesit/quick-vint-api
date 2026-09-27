@@ -47,8 +47,18 @@ const enabled = import.meta.env.PUBLIC_OPS_ENABLED === "1";
   .ops-inventory form { max-width: 460px; padding: 20px; margin: 20px 0; background: white; border: 1px solid #dce3df; border-radius: 12px; }
   .ops-inventory input, .ops-inventory select { display: block; width: 100%; margin: 6px 0 16px; }
   .ops-inventory table { width: 100%; border-collapse: collapse; background: white; }
+  .ops-inventory-table { max-width: 100%; overflow-x: auto; }
   .ops-inventory th, .ops-inventory td { padding: 12px; border-bottom: 1px solid #dce3df; text-align: left; }
   .ops-inventory a { color: #17644c; }
+  .ops-today { max-width: 960px; }
+  .ops-today > section { margin: 16px 0; padding: 20px; border: 1px solid #dce3df; border-radius: 12px; background: white; }
+  .ops-today > section h2 { margin-top: 0; }
+  .ops-today li { margin: 10px 0; }
+  .ops-today a { color: #17644c; }
+  .ops-inventory-identity { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+  .ops-inventory-identity img, .ops-inventory-no-photo { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: #edf1ed; }
+  .ops-inventory-no-photo { display: grid; place-items: center; color: #56675f; font-size: 11px; text-align: center; }
+  .ops-inventory-identity small { display: block; margin-top: 4px; color: #56675f; }
   .ops-inventory dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px; }
   .ops-inventory dt { color: #61716a; }
   .ops-inventory dd { margin: 0; }

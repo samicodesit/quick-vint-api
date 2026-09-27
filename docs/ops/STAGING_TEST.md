@@ -4,7 +4,7 @@
 
 Open [the staging app](https://autolister-os-staging-git-ded8a3-ahmed-samis-projects-e6ef0336.vercel.app/app) on desktop Chrome. This is the feature branch Preview in a separate Vercel project, connected only to Supabase project `mchrnwwydjddqsdghqtl`.
 
-Select **Sign in** and enter the email address on your **AutoLister Staging Supabase organization** account. Open the link in the email on the same desktop browser. The staging project uses Supabase's built-in mail delivery, which only sends to organization team addresses and has a low rate limit. No password is needed for the web app. After sign-in, choose **Create workspace** if none is listed. Use a clearly named personal test workspace and test garments.
+Select **Sign in** and enter the owner email on the **AutoLister Staging Supabase organization**. Open the link in the email on the same desktop browser. A staging sign-in request to this address was accepted by the app; inbox delivery and completing the link remain your check. The staging project uses Supabase's built-in mail delivery, which only sends to organization team addresses and has a low rate limit. No password is needed for the web app. After sign-in, choose **Create workspace** if none is listed. Use a clearly named personal test workspace and test garments.
 
 If no email arrives, check spam once, wait for the rate limit, and report the exact on-screen error. Do not use a customer address. The phone pairing flow does not require a second email login.
 

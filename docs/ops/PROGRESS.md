@@ -91,3 +91,11 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks so far: Vinted contract unit 6/6 and PostgreSQL event persistence 1/1 passed; type check passed. The public documentation's example signature differs from an independently computed HMAC for its stated `foo,bar` token and body, so the unit test asserts the documented algorithm with a reproducible computed digest instead of treating that sample digest as proof. This discrepancy needs a sandbox request before enabling capabilities.
 - External gate: Vinted says the Pro API and portal are restricted to allowlisted Pro businesses. An allowlisted dev-mode account, separate dev access token, webhook signing key, account-specific slot evidence and live contract checks are unavailable here. No Vinted request or listing action was made. T11 manual orders can proceed independently.
 - Next: T11 exact manual order ingestion and atomic reservation.
+
+## T11: manual orders and reservation locally verified, provider ingress gated
+
+- Added immutable order-line snapshots, exact external order IDs, issue records and active item reservations. The manual order screen scans one physical item at a time and requires a human payment confirmation before release. Owner, manager and lister may create; warehouse staff may reserve confirmed orders. Revenue fields are withheld from non-financial roles at the gateway.
+- Provider snapshot ingestion uses a service-only function, a stable account/order identity, exact item references and an observed timestamp. Duplicate and older events do not duplicate lines or revenue; unknown provider lines create mapping issues and block reservation. Official polling and webhook-to-ingestion remain disabled until T10 account access is verified.
+- Checks: PostgreSQL order tests 5/5 passed, including two concurrent reservations of the same garment, bundle rollback, unpaid refusal, exact 64-bit ID and unmapped-line refusal. The 390-pixel manual-order browser fixture passed from scan through reservation with no horizontal overflow. This browser fixture is not a live Supabase Auth/PostgREST test.
+- External gate: no Vinted dev account or live Supabase Auth/PostgREST browser session was available. No real sale or payment action occurred.
+- Next: T12 persisted pick waves, worker claims and item/tote checks.

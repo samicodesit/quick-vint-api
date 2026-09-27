@@ -4,6 +4,7 @@ import { callOps } from "./gateway";
 import { Inventory } from "./Inventory";
 import { CaptureDesk, PhoneCapture } from "./features/capture/Capture";
 import { ImportStock } from "./features/imports/ImportStock";
+import { Orders } from "./features/orders/Orders";
 import {
   ListingQueue,
   ReviewListing,
@@ -280,6 +281,16 @@ function WorkspacePanel({
               )
             ) : current === "inventory" && selected ? (
               <Inventory
+                client={client}
+                workspaceId={selected}
+                role={
+                  workspaces.find(
+                    (workspace) => workspace.workspaceId === selected,
+                  )?.role ?? "warehouse"
+                }
+              />
+            ) : current === "orders" && selected ? (
+              <Orders
                 client={client}
                 workspaceId={selected}
                 role={

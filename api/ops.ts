@@ -90,6 +90,18 @@ import {
   acknowledgeHandoff,
   preparedListingPacket,
 } from "../utils/ops/listings/handoff";
+import {
+  manualOrderSchema,
+  orderDetailSchema,
+  orderListSchema,
+  reserveOrderSchema,
+} from "../src/ops/contracts/orders";
+import {
+  createManualOrder,
+  reserveOrder,
+  listOrders,
+  orderDetail,
+} from "../utils/ops/orders/manual";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -576,6 +588,48 @@ const operations: Record<string, Operation> = {
         meta!,
         token,
       );
+    },
+  },
+  "order.manual.create": {
+    kind: "command",
+    payload: manualOrderSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return createManualOrder(
+        actor,
+        manualOrderSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "order.reserve": {
+    kind: "command",
+    payload: reserveOrderSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return reserveOrder(
+        actor,
+        reserveOrderSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "order.list": {
+    kind: "query",
+    payload: orderListSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return listOrders(actor, orderListSchema.parse(payload));
+    },
+  },
+  "order.detail": {
+    kind: "query",
+    payload: orderDetailSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return orderDetail(actor, orderDetailSchema.parse(payload).orderId);
     },
   },
 };

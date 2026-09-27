@@ -43,6 +43,10 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "template.save",
     "handoff.packet",
     "handoff.ack",
+    "order.manual.create",
+    "order.reserve",
+    "order.list",
+    "order.detail",
   ]),
   manager: new Set([
     "session.read",
@@ -84,6 +88,10 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "template.save",
     "handoff.packet",
     "handoff.ack",
+    "order.manual.create",
+    "order.reserve",
+    "order.list",
+    "order.detail",
   ]),
   lister: new Set([
     "session.read",
@@ -114,6 +122,10 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "template.list",
     "handoff.packet",
     "handoff.ack",
+    "order.manual.create",
+    "order.reserve",
+    "order.list",
+    "order.detail",
   ]),
   warehouse: new Set([
     "session.read",
@@ -133,6 +145,9 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "media.list",
     "media.reorder",
     "media.retire",
+    "order.reserve",
+    "order.list",
+    "order.detail",
   ]),
 };
 

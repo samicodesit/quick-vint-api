@@ -5,14 +5,15 @@ import { Inventory } from "./Inventory";
 import { CaptureDesk, PhoneCapture } from "./features/capture/Capture";
 import { ImportStock } from "./features/imports/ImportStock";
 import { Orders } from "./features/orders/Orders";
+import { Pick } from "./features/pick/Pick";
 import {
   ListingQueue,
   ReviewListing,
   TemplateSettings,
 } from "./features/listings/Review";
 
-const desktop = ["Today", "Inventory", "Listings", "Orders"] as const;
-const paths = ["", "inventory", "listings", "orders"] as const;
+const desktop = ["Today", "Inventory", "Listings", "Orders", "Pick"] as const;
+const paths = ["", "inventory", "listings", "orders", "pick"] as const;
 
 export default function App({
   supabaseUrl,
@@ -299,6 +300,16 @@ function WorkspacePanel({
                   )?.role ?? "warehouse"
                 }
               />
+            ) : current === "pick" && selected ? (
+              workspaces.find((workspace) => workspace.workspaceId === selected)
+                ?.role === "lister" ? (
+                <p>
+                  Pick work is available to owners, managers and warehouse
+                  staff.
+                </p>
+              ) : (
+                <Pick client={client} workspaceId={selected} />
+              )
             ) : (
               <p>
                 Choose <a href="/app/import">Import existing stock</a> or{" "}

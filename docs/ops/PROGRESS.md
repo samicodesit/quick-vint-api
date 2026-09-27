@@ -99,3 +99,10 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: PostgreSQL order tests 5/5 passed, including two concurrent reservations of the same garment, bundle rollback, unpaid refusal, exact 64-bit ID and unmapped-line refusal. The 390-pixel manual-order browser fixture passed from scan through reservation with no horizontal overflow. This browser fixture is not a live Supabase Auth/PostgREST test.
 - External gate: no Vinted dev account or live Supabase Auth/PostgREST browser session was available. No real sale or payment action occurred.
 - Next: T12 persisted pick waves, worker claims and item/tote checks.
+
+## T12: pick waves and station locally verified
+
+- Added persisted single-order and batch pick waves, location-sorted tasks, distinct batch tote codes, five-minute worker claims, exact item/tote verification, missing-item exceptions and order-safe rereads. The phone-width pick station can reload a wave and continue the same valid claim. Reading the next task makes no stock mutation.
+- Checks: PostgreSQL pick tests 3/3 passed for wrong item/tote, one-time verification, cancellation, missing-item issue and reclaim after lease expiry. The 390-pixel browser fixture passed wave creation, claim, reload, scan and verification without horizontal overflow. Type check and lint passed. The browser uses labelled auth/API fixtures, not live Supabase.
+- External gate: real scanner hardware and multi-device Supabase Auth/PostgREST persistence remain unverified. No production operation was applied.
+- Next: T13 packing, labels and physical handover.

@@ -72,9 +72,7 @@ export function Orders({
     );
   }, [workspaceId]);
   useEffect(() => {
-    const id = window.location.pathname.match(
-      /^\/app\/orders\/([0-9a-f-]{36})$/i,
-    )?.[1];
+    const id = new URLSearchParams(window.location.search).get("orderId");
     if (!id) return;
     let active = true;
     void token()
@@ -323,7 +321,7 @@ export function Orders({
                     Reserve all items
                   </button>
                 )}
-                <a href={`/app/orders/${order.id}`}>View order</a>
+              <a href={`/app/orders?orderId=${order.id}`}>View order</a>
               </li>
             ))}
           </ul>

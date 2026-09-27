@@ -102,6 +102,21 @@ import {
   listOrders,
   orderDetail,
 } from "../utils/ops/orders/manual";
+import {
+  createPickWaveSchema,
+  claimPickTaskSchema,
+  verifyPickSchema,
+  missingPickSchema,
+  pickWaveDetailSchema,
+} from "../src/ops/contracts/pick";
+import {
+  createPickWave,
+  claimPickTask,
+  verifyPick,
+  markPickMissing,
+  listPickWaves,
+  pickWaveDetail,
+} from "../utils/ops/fulfillment/pick";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -630,6 +645,69 @@ const operations: Record<string, Operation> = {
     requiresMembership: true,
     async run({ actor, payload }) {
       return orderDetail(actor, orderDetailSchema.parse(payload).orderId);
+    },
+  },
+  "pick.wave.create": {
+    kind: "command",
+    payload: createPickWaveSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return createPickWave(
+        actor,
+        createPickWaveSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "pick.task.claim": {
+    kind: "command",
+    payload: claimPickTaskSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return claimPickTask(
+        actor,
+        claimPickTaskSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "pick.task.verify": {
+    kind: "command",
+    payload: verifyPickSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return verifyPick(actor, verifyPickSchema.parse(payload), meta!, token);
+    },
+  },
+  "pick.task.missing": {
+    kind: "command",
+    payload: missingPickSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return markPickMissing(
+        actor,
+        missingPickSchema.parse(payload),
+        meta!,
+        token,
+      );
+    },
+  },
+  "pick.wave.list": {
+    kind: "query",
+    payload: emptyPayload,
+    requiresMembership: true,
+    async run({ actor }) {
+      return listPickWaves(actor);
+    },
+  },
+  "pick.wave.detail": {
+    kind: "query",
+    payload: pickWaveDetailSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return pickWaveDetail(actor, pickWaveDetailSchema.parse(payload));
     },
   },
 };

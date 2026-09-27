@@ -47,6 +47,12 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "order.reserve",
     "order.list",
     "order.detail",
+    "pick.wave.create",
+    "pick.task.claim",
+    "pick.task.verify",
+    "pick.task.missing",
+    "pick.wave.list",
+    "pick.wave.detail",
   ]),
   manager: new Set([
     "session.read",
@@ -92,6 +98,12 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "order.reserve",
     "order.list",
     "order.detail",
+    "pick.wave.create",
+    "pick.task.claim",
+    "pick.task.verify",
+    "pick.task.missing",
+    "pick.wave.list",
+    "pick.wave.detail",
   ]),
   lister: new Set([
     "session.read",
@@ -148,6 +160,12 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "order.reserve",
     "order.list",
     "order.detail",
+    "pick.wave.create",
+    "pick.task.claim",
+    "pick.task.verify",
+    "pick.task.missing",
+    "pick.wave.list",
+    "pick.wave.detail",
   ]),
 };
 

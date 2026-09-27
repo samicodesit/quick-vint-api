@@ -6,6 +6,7 @@ import {
   orderListSchema,
   reserveOrderSchema,
 } from "../../../src/ops/contracts/orders";
+import { OpsError } from "../core/errors";
 import { check, userClient } from "../inventory/intake";
 
 function serviceClient() {
@@ -45,6 +46,8 @@ export async function reserveOrder(
   token: string,
 ) {
   const value = reserveOrderSchema.parse(input);
+  if (meta.expectedVersion === null)
+    throw new OpsError("VALIDATION", "Expected order version required");
   const { data, error } = await userClient(token).rpc("ops_reserve_order", {
     p_workspace_id: actor.workspaceId,
     p_order_id: value.orderId,

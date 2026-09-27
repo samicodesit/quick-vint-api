@@ -6,14 +6,22 @@ import { CaptureDesk, PhoneCapture } from "./features/capture/Capture";
 import { ImportStock } from "./features/imports/ImportStock";
 import { Orders } from "./features/orders/Orders";
 import { Pick } from "./features/pick/Pick";
+import { Pack } from "./features/pack/Pack";
 import {
   ListingQueue,
   ReviewListing,
   TemplateSettings,
 } from "./features/listings/Review";
 
-const desktop = ["Today", "Inventory", "Listings", "Orders", "Pick"] as const;
-const paths = ["", "inventory", "listings", "orders", "pick"] as const;
+const desktop = [
+  "Today",
+  "Inventory",
+  "Listings",
+  "Orders",
+  "Pick",
+  "Pack",
+] as const;
+const paths = ["", "inventory", "listings", "orders", "pick", "pack"] as const;
 
 export default function App({
   supabaseUrl,
@@ -309,6 +317,15 @@ function WorkspacePanel({
                 </p>
               ) : (
                 <Pick client={client} workspaceId={selected} />
+              )
+            ) : current === "pack" && selected ? (
+              workspaces.find((workspace) => workspace.workspaceId === selected)
+                ?.role === "lister" ? (
+                <p>
+                  Packing is available to owners, managers and warehouse staff.
+                </p>
+              ) : (
+                <Pack client={client} workspaceId={selected} />
               )
             ) : (
               <p>

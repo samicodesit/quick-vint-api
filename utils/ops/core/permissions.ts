@@ -53,6 +53,11 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "pick.task.missing",
     "pick.wave.list",
     "pick.wave.detail",
+    "pack.start",
+    "pack.scan",
+    "pack.label.attach",
+    "shipment.handover",
+    "pack.detail",
   ]),
   manager: new Set([
     "session.read",
@@ -104,6 +109,11 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "pick.task.missing",
     "pick.wave.list",
     "pick.wave.detail",
+    "pack.start",
+    "pack.scan",
+    "pack.label.attach",
+    "shipment.handover",
+    "pack.detail",
   ]),
   lister: new Set([
     "session.read",
@@ -166,6 +176,11 @@ const permissions: Record<Role, ReadonlySet<string>> = {
     "pick.task.missing",
     "pick.wave.list",
     "pick.wave.detail",
+    "pack.start",
+    "pack.scan",
+    "pack.label.attach",
+    "shipment.handover",
+    "pack.detail",
   ]),
 };
 

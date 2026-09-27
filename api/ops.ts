@@ -117,6 +117,20 @@ import {
   listPickWaves,
   pickWaveDetail,
 } from "../utils/ops/fulfillment/pick";
+import {
+  startPackSchema,
+  scanPackSchema,
+  attachLabelSchema,
+  handoverSchema,
+  packDetailSchema,
+} from "../src/ops/contracts/pack";
+import {
+  startPack,
+  scanPackItem,
+  attachLabel,
+  recordHandover,
+  packDetail,
+} from "../utils/ops/fulfillment/pack";
 
 const bootstrapPayload = z.object({ name: z.string().trim().min(1).max(120) });
 const emptyPayload = z.object({}).strict();
@@ -708,6 +722,46 @@ const operations: Record<string, Operation> = {
     requiresMembership: true,
     async run({ actor, payload }) {
       return pickWaveDetail(actor, pickWaveDetailSchema.parse(payload));
+    },
+  },
+  "pack.start": {
+    kind: "command",
+    payload: startPackSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return startPack(actor, startPackSchema.parse(payload), meta!, token);
+    },
+  },
+  "pack.scan": {
+    kind: "command",
+    payload: scanPackSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return scanPackItem(actor, scanPackSchema.parse(payload), meta!, token);
+    },
+  },
+  "pack.label.attach": {
+    kind: "command",
+    payload: attachLabelSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return attachLabel(actor, attachLabelSchema.parse(payload), meta!, token);
+    },
+  },
+  "shipment.handover": {
+    kind: "command",
+    payload: handoverSchema,
+    requiresMembership: true,
+    async run({ actor, payload, meta, token }) {
+      return recordHandover(actor, handoverSchema.parse(payload), meta!, token);
+    },
+  },
+  "pack.detail": {
+    kind: "query",
+    payload: packDetailSchema,
+    requiresMembership: true,
+    async run({ actor, payload }) {
+      return packDetail(actor, packDetailSchema.parse(payload));
     },
   },
 };

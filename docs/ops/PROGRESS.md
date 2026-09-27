@@ -106,3 +106,10 @@ External gates: no production database migration, live Vinted credential test, p
 - Checks: PostgreSQL pick tests 3/3 passed for wrong item/tote, one-time verification, cancellation, missing-item issue and reclaim after lease expiry. The 390-pixel browser fixture passed wave creation, claim, reload, scan and verification without horizontal overflow. Type check and lint passed. The browser uses labelled auth/API fixtures, not live Supabase.
 - External gate: real scanner hardware and multi-device Supabase Auth/PostgREST persistence remain unverified. No production operation was applied.
 - Next: T13 packing, labels and physical handover.
+
+## T13: packing and local dispatch code verified, physical print gate open
+
+- Added pack sessions, one scan per picked order line, order-bound private PDF labels, a private `ops-labels` bucket migration, tenant/role-checked upload and 60-second label links, and explicit shipment handover. Attaching or opening a label never dispatches. The handover transaction requires every line scanned and a matching label, then moves item custody to outbound and releases reservations. Existing labels can be reopened for reprint without a new revision.
+- Checks: PostgreSQL pack tests 2/2 passed for bundle completeness, duplicate scan, wrong-order label, repeated handover and cancellation before dispatch. A 390-pixel browser fixture passed the two-item scan, label upload/attach and handover path with no horizontal overflow. Type check and lint passed. The browser fixture does not verify live Supabase Storage.
+- External gates: physical print legibility and print-dialog cancellation require H01 device testing. Live private storage upload/download, provider label retrieval and a real carrier handover remain unverified. No shipping action or production migration occurred.
+- Next: T14 return receipt, inspection, quarantine and cancellation reconciliation.

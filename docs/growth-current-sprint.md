@@ -81,3 +81,11 @@ Append one row whenever the weekly focus changes or an experiment ends.
 - Do not position AutoLister AI as Vinted automation, botting, auto-like, auto-follow, buyer messaging, relisting, or account control software.
 - Keep "Vinted description generator" visible in high-intent acquisition copy.
 - Every experiment needs a hypothesis, channel, market, action, budget, date range, success metric, result, and decision.
+
+## 2026-09-30: Consistent social preview artwork
+
+- Found a remaining `banner.png` fallback in blog metadata. The September artwork update reused its existing image URL, allowing cached previews to retain earlier artwork.
+- All 117 pages with social metadata now share `social-card-sep2026.png?v=20260930` for Open Graph and Twitter. Removed page-specific image overrides, corrected Twitter tags to use `name`, and aligned alt text with the current artwork.
+- Reviewed the actual 1200x630 artwork: AutoLister branding, readable "From photos to listing drafts" headline, and a seller photographing clothes. Existing article hero images remain in article content.
+- Local build passed: 129 HTML pages, including 117 social-card pages. Parsed every generated social-card page and verified image URLs, dimensions, alt text, and Twitter attributes. No old banner remains in social metadata.
+- Production gate is required before push. After deployment, verify those same 117 URLs as Twitterbot and compare the served PNG dimensions and SHA256 with the repository asset. Native platform preview caches and signup/activation are untested by this metadata change.

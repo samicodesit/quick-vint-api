@@ -9,7 +9,6 @@ export interface Props {
   description?: string;
   canonical?: string | URL | null;
   ogUrl?: string;
-  ogImage?: string;
   ogType?: string;
   htmlLang?: string;
   currentLocale?: string;
@@ -25,7 +24,6 @@ const {
   description = "Create editable listing titles and descriptions from photos.",
   canonical,
   ogUrl = "https://autolister.app/",
-  ogImage = "https://autolister.app/social-card-sep2026.png",
   ogType = "website",
   htmlLang = "en",
   currentLocale,
@@ -35,6 +33,9 @@ const {
   localizedUrls,
   minimalChrome = false,
 } = Astro.props;
+
+const ogImage = "https://autolister.app/social-card-sep2026.png?v=20260930";
+const ogImageAlt = "AutoLister AI: From photos to listing drafts. A seller photographs clothes on a rail.";
 
 const resolvedLocale = normalizeSiteLocale(currentLocale || htmlLang);
 const navCopy = SITE_COPY[resolvedLocale].nav;
@@ -67,19 +68,15 @@ const chromeHref =
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
-    {ogImage === "https://autolister.app/social-card-sep2026.png" && (
-      <>
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="AutoLister AI: group photos, reuse seller notes and prepare drafts you review. Try 5 free generations after signup, no card required." />
-        <meta name="twitter:image:alt" content="AutoLister AI: group photos, reuse seller notes and prepare drafts you review. Try 5 free generations after signup, no card required." />
-      </>
-    )}
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={ogUrl} />
-    <meta property="twitter:title" content={title} />
-    <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={ogUrl} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
     <slot name="head" />
 
     <!-- Google tag (gtag.js) -->

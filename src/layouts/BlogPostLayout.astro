@@ -35,7 +35,7 @@ const canonicalUrl = new URL(getPostUrl(post), Astro.site || "https://autolister
 const readingTime = estimateReadingTime(post.body || "");
 const heroImage = post.data.heroImage
   ? new URL(post.data.heroImage, Astro.site || "https://autolister.app").toString()
-  : "https://autolister.app/banner.png";
+  : "https://autolister.app/social-card-sep2026.png?v=20260930";
 const categoryUrl = locale === "en"
   ? `/blog/category/${post.data.category}`
   : `/${locale}/blog/category/${post.data.category}`;
@@ -114,7 +114,6 @@ const faqSchema = post.data.faqItems?.length
   description={post.data.description}
   canonical={canonicalUrl}
   ogUrl={canonicalUrl}
-  ogImage={heroImage}
   ogType="article"
   htmlLang={locale}
   currentLocale={locale}

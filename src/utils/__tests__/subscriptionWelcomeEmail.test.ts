@@ -89,6 +89,12 @@ describe("subscription welcome email sender", () => {
       tier: "starter",
       stripeSubscriptionId: "sub_123",
       stripeCheckoutSessionId: "cs_123",
+      billing: {
+        amountMinor: 399,
+        currency: "eur",
+        nextRenewalAt: "2026-10-13T00:00:00.000Z",
+        statementDescriptor: "AUTOLISTER AI",
+      },
     });
 
     expect(result).toEqual({ status: "sent", resendEmailId: "email_123" });
@@ -109,8 +115,8 @@ describe("subscription welcome email sender", () => {
       expect.objectContaining({
         from: "AutoLister AI <updates@autolister.app>",
         to: ["seller@example.com"],
-        subject: "Welcome to Starter - your plan is active",
-        html: expect.stringContaining("Your Starter plan is active."),
+        subject: "Your AutoLister AI Starter plan is active",
+        html: expect.stringContaining("€3.99/month"),
       }),
       {
         idempotencyKey: "subscription-welcome/sub_123/starter_welcome_v1",

@@ -16,6 +16,11 @@ import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert
 import { logStripeBillingEvent } from "../../utils/billingEvents";
 import { sendSubscriptionWelcomeEmailOnce } from "../../utils/subscriptionWelcomeEmail";
 import {
+  hasCustomerFacingWelcomeBilling,
+  isSendableWelcomeSubscription,
+  resolveWelcomeBillingDetails,
+} from "../../utils/subscriptionWelcomeBilling";
+import {
   getInvoiceSubscriptionId,
   getPaidSubscriptionPeriod,
 } from "../../src/utils/subscriptionInvoice";
@@ -65,6 +70,8 @@ function getSubscriptionCurrentPeriodEnd(subscription: any): string | null {
     ? new Date(rawEnd * 1000).toISOString()
     : null;
 }
+
+export { getWelcomeBillingDetails } from "../../utils/subscriptionWelcomeBilling";
 
 function getStripeObjectId(value: unknown): string | null {
   if (typeof value === "string" && value) return value;
@@ -246,21 +253,41 @@ async function sendWelcomeForPaidSubscription(input: {
   status: string;
   stripeSubscriptionId: string;
   stripeCheckoutSessionId?: string | null;
+  subscription: Stripe.Subscription;
+  checkoutSession?: Stripe.Checkout.Session | null;
+  isLegacyPlan?: boolean | null;
+  customLimits?: { daily: number; monthly: number } | null;
+  isCustomPlan?: boolean;
 }) {
   if (
     input.tier === "free" ||
-    !["active", "trialing", "canceling"].includes(input.status)
+    input.status !== "active" ||
+    !isSendableWelcomeSubscription(input.subscription)
   ) {
     return;
   }
 
   try {
+    const billing = await resolveWelcomeBillingDetails({
+      stripe,
+      subscription: input.subscription,
+      status: "active",
+      checkoutSession: input.checkoutSession,
+    });
+    if (!hasCustomerFacingWelcomeBilling(billing)) {
+      return;
+    }
+
     await sendSubscriptionWelcomeEmailOnce({
       profileId: input.profileId,
       email: input.email,
       tier: input.tier,
       stripeSubscriptionId: input.stripeSubscriptionId,
       stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+      isLegacyPlan: input.isLegacyPlan,
+      billing,
+      limits: input.customLimits,
+      isCustomPlan: input.isCustomPlan,
     });
   } catch (welcomeError) {
     console.error(
@@ -451,14 +478,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const { error: updateError } = await updateQuery;
             if (updateError) throw updateError;
 
-            await sendWelcomeForPaidSubscription({
-              profileId: profileRow.id,
-              email,
-              tier,
-              status,
-              stripeSubscriptionId: subscription.id,
-              stripeCheckoutSessionId: session.id,
-            });
+            if (
+              session.payment_status === "paid" ||
+              session.payment_status === "no_payment_required"
+            ) {
+              await sendWelcomeForPaidSubscription({
+                profileId: profileRow.id,
+                email,
+                tier,
+                status,
+                stripeSubscriptionId: subscription.id,
+                stripeCheckoutSessionId: session.id,
+                subscription,
+                checkoutSession: session,
+                isLegacyPlan: keepLegacy,
+                customLimits: getCustomBusinessEntitlementForStripePriceId(
+                  priceId,
+                )
+                  ? (() => {
+                      const entitlement =
+                        getCustomBusinessEntitlementForStripePriceId(priceId)!;
+                      return {
+                        daily: entitlement.dailyLimit,
+                        monthly: entitlement.monthlyLimit,
+                      };
+                    })()
+                  : null,
+                isCustomPlan: Boolean(
+                  getCustomBusinessEntitlementForStripePriceId(priceId),
+                ),
+              });
+            }
 
             await ApiLogger.logRequest({
               userId: profileRow.id,
@@ -515,13 +565,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (profileLookupError) throw profileLookupError;
 
         // 2) Fallback: match by email if no customer_id found
-        let customerEmail: string | undefined;
         if (!profileRow) {
           const customer = await stripe.customers.retrieve(customerId);
           const custAny = customer as any;
           const email = custAny.email as string | undefined;
           if (email) {
-            customerEmail = email;
             const { data, error } = await supabase
               .from("profiles")
               .select("id,email")
@@ -587,16 +635,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const { error: updateError } = await updateQuery;
           if (updateError) throw updateError;
 
-          const email = (profileRow as any).email || customerEmail;
-          if (event.type === "customer.subscription.created" && email) {
-            await sendWelcomeForPaidSubscription({
-              profileId: profileRow.id,
-              email,
-              tier,
-              status,
-              stripeSubscriptionId: subAny.id,
-            });
-          }
+          // Checkout-created subscriptions can emit this event before
+          // checkout.session.completed. The invoice/Price currency can be
+          // different from the customer's Adaptive Pricing charge, so the
+          // Checkout event is the sole welcome-email trigger.
         }
         break;
       }

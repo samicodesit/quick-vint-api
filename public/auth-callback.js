@@ -5,6 +5,7 @@
   const ATTRIBUTION_CLAIM_TIMEOUT_MS = 1500;
   const FIRST_TOUCH_STORAGE_KEY = "autolister.first_touch.v1";
   const ATTRIBUTION_SOURCES = new Set([
+    "x",
     "tiktok",
     "instagram",
     "youtube",
@@ -25,6 +26,11 @@
     "unknown",
   ]);
   const ATTRIBUTION_REFERRERS = new Set([
+    "x.com",
+    "www.x.com",
+    "twitter.com",
+    "www.twitter.com",
+    "t.co",
     "tiktok.com",
     "www.tiktok.com",
     "vm.tiktok.com",

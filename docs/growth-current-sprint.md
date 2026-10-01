@@ -1,5 +1,13 @@
 # AutoLister AI Growth Current Sprint
 
+## X signup attribution and share-card refresh, October 1, 2026
+
+- User approved the production database update and deployment. Migration `2026-10-01_x_user_attributions.sql` was applied in Supabase project `jqloiovdwjaornnfvmyu`. A read-only constraint query confirms `x` is allowed and the constraint is validated. Existing rows and RLS remain intact; no fake user or attribution row was created.
+- X first-touch capture, website auth callback and backend sanitization now accept `x` with exact X, Twitter and t.co referrers. The existing Admin Acquisition Source cohorts table reports X claims, new signups, successful-generation activation and current paid status separately. Same-browser attribution remains a limitation; no real signup, install, generation or payment journey was exercised.
+- The live site already served the newer photo-based artwork, but native X composer checks of the original tagged homepage URL and a fresh UTM query both showed the older purple card and old alt text. This demonstrates a stale X card rather than the live site serving the old image.
+- New short share URL: https://autolister.app/x. It renders the existing homepage with a distinct social URL and adds default X UTMs before analytics. Explicit campaign/content values remain intact. The existing current artwork is copied unchanged to `social-card-oct2026.png` so the image also has a new URL. No social post was sent. Final native X preview verification follows deployment.
+- Release prepared from current production commit `cf51cf6` in an isolated checkout, preserving the production artwork and paid welcome-email changes. Existing local documentation and unfinished changes were not included in this release. Attribution review passed with no Critical or Important findings; final route review and guarded production push follow.
+
 This is the durable source of truth for current growth work. Chat is temporary; if Codex makes or changes a growth decision, update this file in the same change.
 
 ## Current Operating Goal

@@ -5,6 +5,7 @@ export const ATTRIBUTION_LOOKBACK_DAYS = 180;
 export const NEW_ACQUISITION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export const ATTRIBUTION_SOURCES = [
+  "x",
   "tiktok",
   "instagram",
   "youtube",
@@ -90,6 +91,11 @@ export type AttributionReport = {
 const SOURCE_SET = new Set<string>(ATTRIBUTION_SOURCES);
 const MEDIUM_SET = new Set<string>(ATTRIBUTION_MEDIA);
 const SAFE_REFERRER_HOSTS = new Set([
+  "x.com",
+  "www.x.com",
+  "twitter.com",
+  "www.twitter.com",
+  "t.co",
   "tiktok.com",
   "www.tiktok.com",
   "vm.tiktok.com",

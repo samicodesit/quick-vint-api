@@ -1,6 +1,7 @@
 export const FIRST_TOUCH_STORAGE_KEY = "autolister.first_touch.v1";
 
 const SOURCES = new Set([
+  "x",
   "tiktok",
   "instagram",
   "youtube",
@@ -21,6 +22,11 @@ const MEDIA = new Set([
   "unknown",
 ]);
 const REFERRER_SOURCES = {
+  "x.com": "x",
+  "www.x.com": "x",
+  "twitter.com": "x",
+  "www.twitter.com": "x",
+  "t.co": "x",
   "tiktok.com": "tiktok",
   "www.tiktok.com": "tiktok",
   "vm.tiktok.com": "tiktok",
@@ -74,6 +80,7 @@ function inferMedium(source) {
   if (source === "google") return "search";
   if (
     [
+      "x",
       "tiktok",
       "instagram",
       "youtube",

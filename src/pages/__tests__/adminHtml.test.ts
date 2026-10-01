@@ -419,6 +419,15 @@ function buildAdminHarness() {
           },
           cohorts: [
             {
+              source: "x",
+              campaign: "posts",
+              captured: 3,
+              newSignups: 2,
+              activated: 1,
+              nonNewClaims: 1,
+              activePaidProfiles: 0,
+            },
+            {
               source: "tiktok",
               campaign: "profile",
               captured: 2,
@@ -537,6 +546,8 @@ describe("admin HTML", () => {
       expect(content.innerHTML.length, view).toBeGreaterThan(1000);
       if (view === "acquisition") {
         expect(content.innerHTML).toContain("TikTok acquisition evidence");
+        expect(content.innerHTML).toContain("<strong>x</strong>");
+        expect(content.innerHTML).toContain("<td>posts</td>");
         expect(content.innerHTML).toContain("Non-new claims");
         expect(content.innerHTML).toContain("Currently active paid profiles");
         expect(content.innerHTML).toContain("Unknowns");

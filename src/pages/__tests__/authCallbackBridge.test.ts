@@ -159,10 +159,15 @@ describe("auth callback bridge", () => {
     expect(timers[0].delay).toBe(1000);
   });
 
-  it.each(["tiktok", "x"])(
+  it.each(["tiktok", "x", "newsletter", "unknown"])(
     "claims %s first touch without changing extension handoff data",
     async (source) => {
-      const referrerHost = source === "x" ? "t.co" : "www.tiktok.com";
+      const referrerHost =
+        source === "x"
+          ? "t.co"
+          : source === "tiktok"
+            ? "www.tiktok.com"
+            : "seller-forum.example";
       const removedKeys: string[] = [];
       const { messages, requests } = await runBridge(
         "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1",

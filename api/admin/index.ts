@@ -38,6 +38,8 @@ import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 import {
   buildAttributionReport,
   isNewAcquisition,
+  sanitizeAttributionSource,
+  sanitizeReferrerHost,
   type AttributionClaimRow,
   type AttributionGeneration,
   type AttributionProfile,
@@ -1101,19 +1103,32 @@ async function enrichAdminUsers(
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
 
-  const [{ data: recentLogs }, { data: activeRateLimits }] = await Promise.all([
-    supabase
-      .from("api_logs")
-      .select("user_id, user_email, ip_address, created_at")
-      .in("user_id", ids)
-      .order("created_at", { ascending: false })
-      .limit(Math.min(ids.length * 25, 1000)),
-    supabase
-      .from("rate_limits")
-      .select("user_id, window_type, count, expires_at")
-      .in("user_id", ids)
-      .or(`expires_at.gt.${nowIso},expires_at.is.null`),
-  ]);
+  const [{ data: recentLogs }, { data: activeRateLimits }, attributionResult] =
+    await Promise.all([
+      supabase
+        .from("api_logs")
+        .select("user_id, user_email, ip_address, created_at")
+        .in("user_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(Math.min(ids.length * 25, 1000)),
+      supabase
+        .from("rate_limits")
+        .select("user_id, window_type, count, expires_at")
+        .in("user_id", ids)
+        .or(`expires_at.gt.${nowIso},expires_at.is.null`),
+      fetchAttributionRowsByIds(
+        "user_attributions",
+        "user_id, source, referrer_host",
+        "user_id",
+        ids,
+      )
+        .then((result) => ({ rows: result.rows, available: true }))
+        .catch(() => ({ rows: [], available: false })),
+    ]);
+
+  const attributionByUser = new Map(
+    attributionResult.rows.map((row: any) => [row.user_id, row]),
+  );
 
   const lastActiveMap = new Map<string, string>();
   const lastIpMap = new Map<string, string>();
@@ -1189,6 +1204,15 @@ async function enrichAdminUsers(
 
     return {
       ...safeUser,
+      acquisition_source: sanitizeAttributionSource(
+        attributionByUser.get(user.id)?.source,
+      ),
+      acquisition_referrer_host: sanitizeReferrerHost(
+        attributionByUser.get(user.id)?.referrer_host,
+      ),
+      acquisition_status: attributionResult.available
+        ? "available"
+        : "unavailable",
       subscription_tier: tierKey,
       subscription_status: user.subscription_status || "unknown",
       email_can_contact: Boolean(

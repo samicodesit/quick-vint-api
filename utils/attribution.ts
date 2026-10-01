@@ -27,7 +27,8 @@ export const ATTRIBUTION_MEDIA = [
   "unknown",
 ] as const;
 
-export type AttributionSource = (typeof ATTRIBUTION_SOURCES)[number];
+// Known channel names and bounded campaign source slugs share the same field.
+export type AttributionSource = string;
 export type AttributionMedium = (typeof ATTRIBUTION_MEDIA)[number];
 
 export type Attribution = {
@@ -88,31 +89,7 @@ export type AttributionReport = {
   unobservableCrossDevice: true;
 };
 
-const SOURCE_SET = new Set<string>(ATTRIBUTION_SOURCES);
 const MEDIUM_SET = new Set<string>(ATTRIBUTION_MEDIA);
-const SAFE_REFERRER_HOSTS = new Set([
-  "x.com",
-  "www.x.com",
-  "twitter.com",
-  "www.twitter.com",
-  "t.co",
-  "tiktok.com",
-  "www.tiktok.com",
-  "vm.tiktok.com",
-  "instagram.com",
-  "www.instagram.com",
-  "youtube.com",
-  "www.youtube.com",
-  "youtu.be",
-  "facebook.com",
-  "www.facebook.com",
-  "linkedin.com",
-  "www.linkedin.com",
-  "reddit.com",
-  "www.reddit.com",
-  "google.com",
-  "www.google.com",
-]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -136,11 +113,23 @@ function sanitizeSlug(value: unknown) {
   return normalized || null;
 }
 
-function sanitizeReferrerHost(value: unknown) {
+export function sanitizeReferrerHost(value: unknown) {
   if (typeof value !== "string") return null;
   const host = value.trim().toLowerCase().replace(/\.$/, "");
-  if (SAFE_REFERRER_HOSTS.has(host)) return host;
+  if (
+    /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(
+      host,
+    ) &&
+    !/(^|\.)(autolister\.app|localhost|local|internal)$/.test(host)
+  )
+    return host;
   return null;
+}
+
+export function sanitizeAttributionSource(value: unknown) {
+  if (typeof value !== "string") return null;
+  const source = value.trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9._-]{0,79}$/.test(source) ? source : null;
 }
 
 export function sanitizeAttribution(
@@ -149,9 +138,9 @@ export function sanitizeAttribution(
 ): Attribution | null {
   if (!isRecord(value)) return null;
 
-  const source = typeof value.source === "string" ? value.source : "";
+  const source = sanitizeAttributionSource(value.source);
   const medium = typeof value.medium === "string" ? value.medium : "";
-  if (!SOURCE_SET.has(source) || !MEDIUM_SET.has(medium)) return null;
+  if (!source || !MEDIUM_SET.has(medium)) return null;
 
   const capturedAt = parseDate(value.capturedAt);
   if (!capturedAt) return null;

@@ -1,5 +1,12 @@
 # AutoLister AI Growth Current Sprint
 
+## Admin acquisition badges, October 1, 2026
+
+- Every mobile user card and desktop row now has a compact acquisition badge beside the email. Recognised channels have readable brand labels; unfamiliar valid campaign source names and external referring hostnames are retained and displayed. Missing evidence shows Unknown, with a tooltip distinguishing absent evidence from temporary read failure. Direct is shown only for explicit saved direct evidence, and referring-host evidence takes priority over a direct tag. No historical origins are invented.
+- Website first-touch capture, auth callback, claim sanitization and admin user enrichment preserve safe source slugs up to 80 characters and domain-only referrers. Full referrer URLs, paths and query strings are discarded. Internal, IP-address and malformed referrers are excluded. Existing first touches remain immutable; authenticated user ownership and admin access are unchanged.
+- Tests were observed failing before implementation, then passed. Full local verify:production passed lint, type-check, formatting, build (130 pages), 75 test files and 438 tests. Admin UI, endpoint joins, fallback read failure, custom sources, referrers and signup handoff have targeted coverage. No real signup, install, generation, payment, outreach or marketplace operation was performed.
+- Migration 2026-10-01_custom_attribution_sources.sql is prepared and must be applied before deployment. It broadens only the source metadata check to safe bounded slugs. Existing rows and RLS are unchanged. Independent code review passed with no Critical or Important findings. On the user's explicit Deploy instruction, the migration was applied using existing authenticated Supabase Management API access. A read-only verification confirms the safe-source check is validated and RLS remains enabled. Production push is now proceeding. Browser control continues to time out, so actual mobile/desktop visual verification remains unavailable.
+
 ## X signup attribution and share-card refresh, October 1, 2026
 
 - User approved the production database update and deployment. Migration `2026-10-01_x_user_attributions.sql` was applied in Supabase project `jqloiovdwjaornnfvmyu`. A read-only constraint query confirms `x` is allowed and the constraint is validated. Existing rows and RLS remain intact; no fake user or attribution row was created.

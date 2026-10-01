@@ -91,7 +91,7 @@ describe("attribution claim endpoint", () => {
     mocks.from.mockReturnValue({ insert: mocks.insert });
   });
 
-  it.each(["tiktok", "x"])(
+  it.each(["tiktok", "x", "newsletter", "unknown"])(
     "persists %s attribution for the bearer owner and ignores a client user id",
     async (source) => {
       const req = {

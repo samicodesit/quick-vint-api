@@ -7,6 +7,31 @@ import {
 const capturedAt = "2026-09-22T10:00:00.000Z";
 
 describe("attribution input sanitization", () => {
+  it.each(["x.com", "www.x.com", "twitter.com", "www.twitter.com", "t.co"])(
+    "accepts an X signup claim referred by %s",
+    (referrerHost) => {
+      expect(
+        sanitizeAttribution(
+          {
+            source: "x",
+            medium: "organic_social",
+            campaign: "posts",
+            capturedAt,
+            referrerHost,
+          },
+          { now: "2026-10-01T10:00:00.000Z" },
+        ),
+      ).toEqual({
+        source: "x",
+        medium: "organic_social",
+        campaign: "posts",
+        content: null,
+        capturedAt,
+        referrerHost,
+      });
+    },
+  );
+
   it("accepts a bounded TikTok attribution record", () => {
     expect(
       sanitizeAttribution({

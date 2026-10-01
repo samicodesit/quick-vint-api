@@ -91,36 +91,39 @@ describe("attribution claim endpoint", () => {
     mocks.from.mockReturnValue({ insert: mocks.insert });
   });
 
-  it("derives ownership from the bearer token and ignores a client user id", async () => {
-    const req = {
-      method: "POST",
-      headers: { authorization: "Bearer access-token" },
-      body: {
-        attribution: {
-          userId: "attacker-user",
-          source: "tiktok",
-          medium: "organic_social",
-          campaign: "profile",
-          capturedAt: new Date().toISOString(),
+  it.each(["tiktok", "x"])(
+    "persists %s attribution for the bearer owner and ignores a client user id",
+    async (source) => {
+      const req = {
+        method: "POST",
+        headers: { authorization: "Bearer access-token" },
+        body: {
+          attribution: {
+            userId: "attacker-user",
+            source,
+            medium: "organic_social",
+            campaign: "profile",
+            capturedAt: new Date().toISOString(),
+          },
         },
-      },
-      query: {},
-    } as any;
-    const res = createResponse();
+        query: {},
+      } as any;
+      const res = createResponse();
 
-    await handler(req, res as any);
+      await handler(req, res as any);
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ ok: true, alreadyAttributed: false });
-    expect(mocks.getUser).toHaveBeenCalledWith("access-token");
-    expect(mocks.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: "authenticated-user",
-        source: "tiktok",
-      }),
-    );
-    expect(mocks.insert.mock.calls[0][0].user_id).not.toBe("attacker-user");
-  });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual({ ok: true, alreadyAttributed: false });
+      expect(mocks.getUser).toHaveBeenCalledWith("access-token");
+      expect(mocks.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: "authenticated-user",
+          source,
+        }),
+      );
+      expect(mocks.insert.mock.calls[0][0].user_id).not.toBe("attacker-user");
+    },
+  );
 
   it("rejects unauthenticated claims before persistence", async () => {
     const req = {

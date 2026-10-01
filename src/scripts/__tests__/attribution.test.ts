@@ -11,6 +11,60 @@ function createStorage(initial: Record<string, string> = {}) {
 }
 
 describe("website first-touch attribution", () => {
+  it("keeps the X share link as first touch for later signup", () => {
+    const storage = createStorage();
+    const first = captureFirstTouch({
+      href: "https://autolister.app/?utm_source=x&utm_medium=organic_social&utm_campaign=posts",
+      referrer: "https://t.co/share",
+      storage,
+      now: "2026-10-01T10:00:00.000Z",
+    });
+
+    expect(first).toEqual({
+      source: "x",
+      medium: "organic_social",
+      campaign: "posts",
+      content: null,
+      capturedAt: "2026-10-01T10:00:00.000Z",
+      referrerHost: "t.co",
+    });
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/pricing",
+        storage,
+      }),
+    ).toEqual(first);
+    expect(readStoredAttribution(storage)).toEqual(first);
+  });
+
+  it.each(["x.com", "www.x.com", "twitter.com", "www.twitter.com", "t.co"])(
+    "recognizes %s referrals as X when UTMs are absent",
+    (host) => {
+      expect(
+        captureFirstTouch({
+          href: "https://autolister.app/",
+          referrer: `https://${host}/seller/status/123`,
+          storage: createStorage(),
+          now: "2026-10-01T10:00:00.000Z",
+        }),
+      ).toMatchObject({
+        source: "x",
+        medium: "organic_social",
+        referrerHost: host,
+      });
+    },
+  );
+
+  it("does not trust a referrer containing an X host in another domain", () => {
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/",
+        referrer: "https://x.com.evil.example/status/123",
+        storage: createStorage(),
+      }),
+    ).toBeNull();
+  });
+
   it("captures allowlisted UTM values and keeps only safe fields", () => {
     const storage = createStorage();
     const result = captureFirstTouch({

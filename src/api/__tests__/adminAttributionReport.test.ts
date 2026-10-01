@@ -69,98 +69,112 @@ describe("GET /api/admin?action=attribution-report", () => {
     vi.useRealTimers();
   });
 
-  it("returns separate TikTok signup, activation, non-new, and current-paid counts", async () => {
-    from.mockImplementation((table: string) => {
-      if (table === "user_attributions") {
+  it.each(["tiktok", "x"])(
+    "reports %s signup, activation, non-new, and current-paid counts",
+    async (source) => {
+      from.mockImplementation((table: string) => {
+        if (table === "user_attributions") {
+          return queryResult({
+            data: [
+              {
+                user_id: "new-user",
+                source,
+                medium: "organic_social",
+                campaign: "profile",
+                content: null,
+                captured_at: "2026-09-22T08:55:00.000Z",
+                claimed_at: "2026-09-22T09:05:00.000Z",
+              },
+              {
+                user_id: "existing-user",
+                source,
+                medium: "organic_social",
+                campaign: "profile",
+                content: null,
+                captured_at: "2026-09-22T08:55:00.000Z",
+                claimed_at: "2026-09-22T09:05:00.000Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "profiles") {
+          return queryResult({
+            data: [
+              {
+                id: "new-user",
+                created_at: "2026-09-22T09:00:00.000Z",
+                subscription_status: "active",
+                subscription_tier: "starter",
+              },
+              {
+                id: "existing-user",
+                created_at: "2026-09-01T09:00:00.000Z",
+                subscription_status: "free",
+                subscription_tier: "free",
+              },
+              {
+                id: "unknown-user",
+                created_at: "2026-09-22T10:00:00.000Z",
+                subscription_status: "free",
+                subscription_tier: "free",
+              },
+            ],
+            error: null,
+          });
+        }
         return queryResult({
           data: [
             {
               user_id: "new-user",
-              source: "tiktok",
-              medium: "organic_social",
-              campaign: "profile",
-              content: null,
-              captured_at: "2026-09-22T08:55:00.000Z",
-              claimed_at: "2026-09-22T09:05:00.000Z",
-            },
-            {
-              user_id: "existing-user",
-              source: "tiktok",
-              medium: "organic_social",
-              campaign: "profile",
-              content: null,
-              captured_at: "2026-09-22T08:55:00.000Z",
-              claimed_at: "2026-09-22T09:05:00.000Z",
+              endpoint: "/api/generate",
+              response_status: 200,
+              created_at: "2026-09-22T09:10:00.000Z",
             },
           ],
           error: null,
         });
-      }
-      if (table === "profiles") {
-        return queryResult({
-          data: [
-            {
-              id: "new-user",
-              created_at: "2026-09-22T09:00:00.000Z",
-              subscription_status: "active",
-              subscription_tier: "starter",
-            },
-            {
-              id: "existing-user",
-              created_at: "2026-09-01T09:00:00.000Z",
-              subscription_status: "free",
-              subscription_tier: "free",
-            },
-            {
-              id: "unknown-user",
-              created_at: "2026-09-22T10:00:00.000Z",
-              subscription_status: "free",
-              subscription_tier: "free",
-            },
-          ],
-          error: null,
-        });
-      }
-      return queryResult({
-        data: [
-          {
-            user_id: "new-user",
-            endpoint: "/api/generate",
-            response_status: 200,
-            created_at: "2026-09-22T09:10:00.000Z",
-          },
-        ],
-        error: null,
       });
-    });
 
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-09-22T12:00:00.000Z"));
-    const response = createResponse();
-    await handler(createRequest(), response as any);
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-22T12:00:00.000Z"));
+      const response = createResponse();
+      await handler(createRequest(), response as any);
 
-    expect(response.statusCode).toBe(200);
-    expect(response.body.available).toBe(true);
-    expect(response.body.tiktok).toMatchObject({
-      captured: 2,
-      newSignups: 1,
-      activated: 1,
-      nonNewClaims: 1,
-      activePaidProfiles: 1,
-    });
-    expect(response.body.tiktok.paid).toBeUndefined();
-    expect(response.body.tiktok.repeat).toBeUndefined();
-    expect(response.body.unknown).toEqual({
-      profiles: 1,
-      crossDeviceUnobservable: true,
-    });
-    expect(response.body.measurement).toMatchObject({
-      userLevel: "authenticated_client_claim",
-      platformVerified: false,
-      platformProof: "not_connected",
-    });
-    expect(JSON.stringify(response.body)).not.toContain("@example.com");
-  });
+      expect(response.statusCode).toBe(200);
+      expect(response.body.available).toBe(true);
+      expect(response.body.tiktok).toMatchObject({
+        captured: source === "tiktok" ? 2 : 0,
+        newSignups: source === "tiktok" ? 1 : 0,
+        activated: source === "tiktok" ? 1 : 0,
+        nonNewClaims: source === "tiktok" ? 1 : 0,
+        activePaidProfiles: source === "tiktok" ? 1 : 0,
+      });
+      expect(response.body.cohorts).toEqual([
+        expect.objectContaining({
+          source,
+          campaign: "profile",
+          captured: 2,
+          newSignups: 1,
+          activated: 1,
+          nonNewClaims: 1,
+          activePaidProfiles: 1,
+        }),
+      ]);
+      expect(response.body.tiktok.paid).toBeUndefined();
+      expect(response.body.tiktok.repeat).toBeUndefined();
+      expect(response.body.unknown).toEqual({
+        profiles: 1,
+        crossDeviceUnobservable: true,
+      });
+      expect(response.body.measurement).toMatchObject({
+        userLevel: "authenticated_client_claim",
+        platformVerified: false,
+        platformProof: "not_connected",
+      });
+      expect(JSON.stringify(response.body)).not.toContain("@example.com");
+    },
+  );
 
   it("returns unavailable when the attribution schema is not installed", async () => {
     from.mockReturnValue(

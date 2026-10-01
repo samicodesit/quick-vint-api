@@ -62,14 +62,14 @@ describe("attribution input sanitization", () => {
     ).toBeNull();
   });
 
-  it("drops untrusted referrers and caps campaign data", () => {
+  it("drops malformed referrers and caps campaign data", () => {
     const result = sanitizeAttribution({
       source: "tiktok",
       medium: "organic_social",
       campaign: "x".repeat(500),
       content: "short",
       capturedAt,
-      referrerHost: "evil.example",
+      referrerHost: "evil.example/path?email=secret",
     });
 
     expect(result).toMatchObject({
@@ -80,6 +80,27 @@ describe("attribution input sanitization", () => {
       referrerHost: null,
     });
   });
+
+  it.each([
+    ["newsletter", "email", null],
+    ["unknown", "referral", "seller-forum.example"],
+  ])(
+    "preserves unfamiliar source %s through server sanitization",
+    (source, medium, referrerHost) => {
+      expect(
+        sanitizeAttribution({ source, medium, referrerHost, capturedAt }),
+      ).toMatchObject({ source, medium, referrerHost });
+    },
+  );
+
+  it.each(["https://evil.example/?email=secret", "bad source", "x".repeat(81)])(
+    "rejects unsafe source %s",
+    (source) => {
+      expect(
+        sanitizeAttribution({ source, medium: "referral", capturedAt }),
+      ).toBeNull();
+    },
+  );
 
   it("rejects malformed or missing timestamps", () => {
     expect(

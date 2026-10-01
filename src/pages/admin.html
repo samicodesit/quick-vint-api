@@ -513,6 +513,23 @@
             gap: 0.35rem;
         }
 
+        .user-identity {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            overflow-wrap: anywhere;
+        }
+
+        .channel-badge {
+            flex-shrink: 0;
+            max-width: 16rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
         .plan-chip {
             text-transform: capitalize;
         }
@@ -4498,6 +4515,32 @@
             `;
         }
 
+        function renderAcquisitionBadge(u) {
+            const labels = { x: 'X', twitter: 'X', tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube', facebook: 'Facebook', linkedin: 'LinkedIn', reddit: 'Reddit', google: 'Google' };
+            const source = /^[a-z0-9][a-z0-9._-]{0,79}$/.test(u.acquisition_source || '') ? u.acquisition_source : null;
+            const rawHost = u.acquisition_referrer_host || '';
+            const host = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(rawHost)
+                && !/(^|\.)(autolister\.app|localhost|local|internal)$/.test(rawHost) ? rawHost : null;
+            let label = 'Unknown';
+            let title = u.acquisition_status === 'unavailable' ? 'Attribution could not be loaded. Refresh to retry.' : 'No reliable arrival source was recorded. This does not mean direct traffic.';
+            let known = false;
+            if (source && Object.prototype.hasOwnProperty.call(labels, source)) {
+                label = labels[source];
+                title = `Recorded first-touch channel: ${label}. Attribution is browser-reported.`;
+                known = true;
+            } else if (source && !['unknown', 'direct'].includes(source)) {
+                label = source;
+                title = `Tagged campaign source: ${source}. Attribution is browser-reported.`;
+            } else if (host) {
+                label = host;
+                title = `Recorded referring domain: ${host}. Attribution is browser-reported.`;
+            } else if (source === 'direct') {
+                label = 'Direct';
+                title = 'Recorded as direct traffic. The original site may have hidden its referrer.';
+            }
+            return `<span class="badge channel-badge ${known ? 'badge-info' : 'badge-neutral'}" aria-label="Acquisition channel: ${escapeAttribute(label)}" title="${escapeAttribute(title)}">${escapeHtml(label)}</span>`;
+        }
+
         function renderUserRow(u) {
             const email = escapeHtml(u.email || 'Unknown');
             const id = escapeHtml(u.id || '');
@@ -4507,7 +4550,7 @@
             return `
                 <tr>
                     <td>
-                        <div class="font-medium" style="color: var(--text-main); font-weight: 600;">${email}</div>
+                        <div class="font-medium user-identity" style="color: var(--text-main); font-weight: 600;"><span>${email}</span>${renderAcquisitionBadge(u)}</div>
                         <div class="text-sm text-muted" style="font-size: 0.75rem; font-family: monospace;">${id}</div>
                         ${ip ? `<div class="text-sm text-muted" style="font-size: 0.75rem;">${ip}</div>` : ''}
                         ${u.is_new_today ? '<span class="badge badge-success" style="margin-top: 0.35rem;">New today</span>' : ''}
@@ -4539,7 +4582,7 @@
                 <div class="mobile-card">
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Email</span>
-                        <span class="mobile-card-value" style="font-weight: 600; word-break: break-all;">${email}</span>
+                        <span class="mobile-card-value user-identity" style="font-weight: 600; word-break: break-all;"><span>${email}</span>${renderAcquisitionBadge(u)}</span>
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">User id</span>

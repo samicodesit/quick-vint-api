@@ -488,6 +488,8 @@ function buildAdminHarness() {
         type?: string,
       ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
+      renderUserRow: (user: Record<string, unknown>) => string;
+      renderUserMobileCard: (user: Record<string, unknown>) => string;
       openAiInstructions: (userId: string) => void;
       saveAiInstructions: (userId: string, clear?: boolean) => Promise<void>;
       renderLimitFollowupResult: (data: Record<string, unknown>) => void;
@@ -700,6 +702,64 @@ describe("admin HTML", () => {
     context.switchView("users");
     expect(context.window.location.pathname).toBe("/admin/users");
   });
+
+  it.each([
+    ["x", "X"],
+    ["tiktok", "TikTok"],
+    ["instagram", "Instagram"],
+    ["youtube", "YouTube"],
+    ["facebook", "Facebook"],
+    ["linkedin", "LinkedIn"],
+    ["reddit", "Reddit"],
+    ["google", "Google"],
+  ])(
+    "shows the saved %s channel on desktop and mobile users",
+    (source, label) => {
+      const { context } = buildAdminHarness();
+      const user = {
+        id: "user-channel",
+        email: "seller@example.com",
+        acquisition_source: source,
+      };
+      for (const render of [
+        context.renderUserRow,
+        context.renderUserMobileCard,
+      ]) {
+        const html = render(user);
+        expect(html).toContain(`aria-label="Acquisition channel: ${label}"`);
+        expect(html).toContain(`>${label}</span>`);
+      }
+    },
+  );
+
+  it.each([
+    [null, null, "Unknown"],
+    ["unknown", null, "Unknown"],
+    ["direct", null, "Direct"],
+    ["newsletter", null, "newsletter"],
+    ["unknown", "seller-forum.example", "seller-forum.example"],
+    ["<img src=x onerror=alert(1)>", null, "Unknown"],
+    [null, "evil.example/path?email=secret", "Unknown"],
+  ])(
+    "shows an honest fallback for source %s and referrer %s",
+    (source, host, label) => {
+      const { context } = buildAdminHarness();
+      const user = {
+        id: "unattributed",
+        acquisition_source: source,
+        acquisition_referrer_host: host,
+      };
+      for (const render of [
+        context.renderUserRow,
+        context.renderUserMobileCard,
+      ]) {
+        expect(render(user)).toContain(
+          `aria-label="Acquisition channel: ${label}"`,
+        );
+        expect(render(user)).not.toContain("onerror=");
+      }
+    },
+  );
 
   it("hides review request action after the one-time email was sent", () => {
     const { context } = buildAdminHarness();

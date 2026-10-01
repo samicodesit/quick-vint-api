@@ -62,8 +62,62 @@ describe("website first-touch attribution", () => {
         referrer: "https://x.com.evil.example/status/123",
         storage: createStorage(),
       }),
-    ).toBeNull();
+    ).toMatchObject({
+      source: "unknown",
+      medium: "referral",
+      referrerHost: "x.com.evil.example",
+    });
   });
+
+  it("keeps an unfamiliar tagged source for signup", () => {
+    const storage = createStorage();
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/?utm_source=newsletter&utm_medium=email",
+        storage,
+      }),
+    ).toMatchObject({ source: "newsletter", medium: "email" });
+    expect(readStoredAttribution(storage)).toMatchObject({
+      source: "newsletter",
+      medium: "email",
+    });
+  });
+
+  it("keeps only the hostname of unfamiliar external referrals", () => {
+    const storage = createStorage();
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/",
+        referrer: "https://seller-forum.example/private/path?email=secret",
+        storage,
+      }),
+    ).toMatchObject({
+      source: "unknown",
+      medium: "referral",
+      referrerHost: "seller-forum.example",
+    });
+    expect(JSON.stringify(readStoredAttribution(storage))).not.toContain(
+      "secret",
+    );
+  });
+
+  it.each([
+    "https://autolister.app/pricing",
+    "https://localhost:3000/",
+    "http://192.168.1.2/private",
+    "javascript:alert(1)",
+  ])(
+    "does not call internal or invalid referrals acquisition: %s",
+    (referrer) => {
+      expect(
+        captureFirstTouch({
+          href: "https://autolister.app/",
+          referrer,
+          storage: createStorage(),
+        }),
+      ).toBeNull();
+    },
+  );
 
   it("captures allowlisted UTM values and keeps only safe fields", () => {
     const storage = createStorage();

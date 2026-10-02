@@ -9,6 +9,7 @@ import {
   getInvoiceSubscriptionId,
   getPaidSubscriptionPeriod,
 } from "../../src/utils/subscriptionInvoice";
+import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const ACTIVE_LIKE_SUBSCRIPTION_STATUSES = new Set([
@@ -129,8 +130,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .limit(1000);
 
   if (error) {
-    console.error("Billing reconciliation profile query failed:", error);
-    return res.status(500).json({ ok: false, error: error.message });
+    console.error("Billing reconciliation profile query failed");
+    reportCriticalEndpointFailure({
+      endpoint: "/api/cron/billing-reconciliation",
+      status: 500,
+      details: { stage: "profile_query" },
+    });
+    return res.status(500).json({ ok: false, error: "Profile query failed" });
   }
 
   const profiles = ((data || []) as BillingProfile[]).filter(hasBillingRisk);
@@ -157,10 +163,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       continue;
     }
 
-    const snapshot = await getStripeSnapshot(
-      profile.stripe_customer_id,
-      profile.stripe_subscription_id,
-    );
+    let snapshot;
+    try {
+      snapshot = await getStripeSnapshot(
+        profile.stripe_customer_id,
+        profile.stripe_subscription_id,
+      );
+    } catch {
+      reportCriticalEndpointFailure({
+        endpoint: "/api/cron/billing-reconciliation",
+        status: 500,
+        userId: profile.id,
+        details: { stage: "stripe_snapshot" },
+      });
+      return res
+        .status(500)
+        .json({ ok: false, error: "Stripe reconciliation failed" });
+    }
 
     if (
       snapshot.latestPaidUsagePeriod &&
@@ -231,6 +250,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Vercel does not retry failed cron invocations. Preserve a non-2xx status so
   // partial billing repair failures remain visible to monitoring.
+  if (mismatches.length || usageResetErrors) {
+    const reasonCounts = mismatches.reduce<Record<string, number>>(
+      (counts, item) => {
+        for (const reason of item.reasons) {
+          counts[reason] = (counts[reason] || 0) + 1;
+        }
+        return counts;
+      },
+      {},
+    );
+    reportCriticalEndpointFailure({
+      endpoint: "/api/cron/billing-reconciliation",
+      status: usageResetErrors ? 500 : 409,
+      details: {
+        checked: profiles.length,
+        mismatches: mismatches.length,
+        usageResetErrors,
+        reasonCounts,
+        sampleUserIds: mismatches.slice(0, 5).map((item) => item.profile.id),
+      },
+    });
+  }
+
   return res.status(usageResetErrors ? 500 : 200).json({
     ok: usageResetErrors === 0,
     checked: profiles.length,

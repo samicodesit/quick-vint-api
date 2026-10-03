@@ -1,14 +1,17 @@
 # Incident tracking release
 
-Status: prepared locally on `incident-tracking-consolidation` in both repositories.
+Status: backend and website deployed on 3 October 2026. Production is on
+`aa2128daa73db553126f576c1a2e12a46315969d`. The additive migration was applied
+to AutoLister's `jqloiovdwjaornnfvmyu` project before deployment. Extension store
+submission remains a separate release step.
 Phone reporting no longer depends on owner registration. Missing registration and
 legacy sessions are accepted as unverified. Later reads of a trusted v2 session
 repair attribution in background, including earlier saved receipts and operations.
 The original evidence and immutable email snapshots retain their original identity
 labels. Conflicting owners cannot replace a registration. Repeated reads coalesce
 in flight and successful registrations are cached for one minute (200-entry cap).
-No production migration, deployment, email, generation, customer creation or live
-Vinted operation was performed during this implementation. Alan's reported
+The controlled rollout sent one synthetic internal alert. No generation,
+customer creation or live Vinted operation was performed. Alan's reported
 forced-refresh failure remains an unresolved diagnosis.
 
 Performance follow-up corrected two blocking diagnostic waits. Popup sign-in now
@@ -96,12 +99,10 @@ physical files; normal PostgreSQL vacuum/reuse still applies.
 
 ## Local verification
 
-- Frontend: 66 unit tests passed. The latest full browser run passed 176 cases,
-  skipped one existing reproduction and exposed a race in the restart test's
-  direct storage setup. After correcting that fixture, the restart case passed
-  five consecutive runs. All 177 distinct cases have passing evidence across
-  those runs. No live Vinted traffic was used. Exact final results are in
-  `docs/qa/incident-tracking/phone-enrichment-verification.json`.
+- Frontend: the final complete local suite passed all 66 unit tests and all 177
+  browser cases, with one explicitly opt-in incident reproduction skipped. The
+  earlier restart-fixture race was corrected and the case also passed five
+  consecutive targeted runs. No live Vinted traffic was used.
 - Frontend `npm run build:prod` passed. The isolated packaging check verified all
   five helpers and loaded the packaged MV3 worker offline. The validation ZIP is
   `quick-vint/dist/autolister-incident-validation-v1.4.6.zip`; it does not change
@@ -110,10 +111,10 @@ physical files; normal PostgreSQL vacuum/reuse still applies.
   partial acknowledgement, privacy, quota/expiry, notification retry, Sentry
   budgeting, IndexedDB restart and admin behavior. See the implementation ledger
   for the final count.
-- Backend `npm run verify:production` passed lint, type checking and build (130
-  pages), then stopped on formatting in the pre-existing, separately edited
-  `docs/growth-current-sprint.md` and `docs/tiktok-ad-creative-playbook.md`. Tests
-  were run separately. The entire production command is therefore not green.
+- The clean release checkout passed the full production gate, including lint,
+  type checking, formatting, build (130 pages), and all 487 tests. It excluded
+  unrelated working-tree changes. Both production pushes used
+  `npm run push:production` and moved `origin/main`.
 - Real multi-connection PostgreSQL load results are preserved in
   [incident-postgres-acceptance.json](incident-postgres-acceptance.json). Thirty-two
   concurrent copies produced one accepted event, 31 duplicates, one occurrence
@@ -133,7 +134,7 @@ physical files; normal PostgreSQL vacuum/reuse still applies.
   rendered at desktop/mobile widths and its sole anchor verified against the
   real `/admin/reports?incident=...` route. No alert was sent.
 
-## Coordinated rollout, approval required
+## Coordinated rollout procedure
 
 1. Inspect the live schema and take the normal migration recovery precautions.
    Apply `migrations/2026-10-03_incident_tracking.sql` first. It adds diagnostic
@@ -173,11 +174,37 @@ they retain/retry rather than silently discard events. Prefer the pause switch
 while correcting the compatible backend. Do not drop diagnostic tables as a
 routine rollback. Extension updates cannot be assumed to reach every user at once.
 
-## Remaining evidence gates
+## Production verification, 3 October 2026
 
-Production schema compatibility, actual inbox delivery, permitted Sentry delivery,
-deployed cron operation and deployed page latency await an approved deployment.
-The two unrelated formatting warnings also prevent claiming a completely green
-production verification command. No telemetry test establishes that Alan's
-original forced-refresh error is fixed. Any further live Vinted reproduction is
-separately opt-in, at human pace, through the established runner.
+- Vercel reported both release deployments READY for production. Database RLS
+  is enabled on all four diagnostic tables; anonymous ingestion RPC execution
+  is denied and service-role execution is allowed.
+- Scheduled sweeps ran without manual invocation. An unauthenticated sweep
+  request returned 401. Bounded diagnostic cleanup reported zero backlog.
+- A disposable expected-outcome event received a v2 acknowledgement, its retry
+  received a duplicate acknowledgement, and a legacy request returned 204.
+- The live Issues API took 496 ms initially and 440 ms on the next request with
+  an empty inbox; a later check took 829 ms. This is not a production measurement
+  at configured row caps.
+- Synthetic incident `fbbfd012-d9ea-4b1a-a2ac-b6a10af55f9a` reached the real
+  Gmail inbox at 14:24:10 UTC through Resend
+  (`01a10226-a63d-7693-92ad-2cf7606aea3d`). Its link opened the correct live detail
+  with the original exception stack. Sentry recorded it as NODE-5 in `sss-h2/node`.
+  The two occurrences are preparation plus the actual authenticated self-test;
+  they generated one notification.
+- Acknowledge, resolve and reopen actions returned 200. The synthetic issue was
+  finally resolved. At 14:30 UTC the scheduled sweep had run again, with one
+  email and one Sentry reservation, zero pending/failed notifications, and zero
+  cleanup backlog. Test-only records will expire under the normal retention.
+- Desktop/mobile inspection exposed overflow from long diagnostic values.
+  The wrapping fix is deployed and its revised preview had no horizontal
+  overflow. The test email itself used the earlier renderer: the attempted
+  pre-freeze returned no snapshot because freezing requires a claimed sending
+  notification. No duplicate correction email was sent. The delivered HTML and
+  real inbox receipt were read back rather than inferred from Resend acceptance.
+
+The extension package/store step remains pending. Scheduled hourly cleanup has
+not yet been observed after deployment, although its diagnostic RPC and local
+endpoint tests passed. No telemetry test establishes that Alan's original
+forced-refresh error is fixed. Further live Vinted reproduction is separately
+opt-in, at human pace, through the established runner.

@@ -781,6 +781,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     await ApiLogger.logRequest(logData);
     if (statusCode >= 500) {
       reportCriticalEndpointFailure({
+        error: err,
         endpoint: "/api/generate",
         status: statusCode,
         userId: user.id,

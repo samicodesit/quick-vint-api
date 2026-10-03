@@ -1,4 +1,6 @@
 import * as Sentry from "@sentry/node";
+import { supabase } from "./supabaseClient";
+import { sanitizeSentryEvent } from "./incidents/sentryPolicy";
 
 let didInitialize = false;
 
@@ -25,22 +27,21 @@ export function initSentry() {
     release: process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA,
     sendDefaultPii: false,
     maxBreadcrumbs: 20,
+    shutdownTimeout: 1500,
     tracesSampleRate: getSampleRate(process.env.SENTRY_TRACES_SAMPLE_RATE, 0),
     profilesSampleRate: 0,
-    beforeSend(event) {
+    async beforeSend(event) {
       if (event.level === "debug" || event.level === "info") return null;
-
-      // Keep request metadata useful without sending bodies, cookies, auth
-      // headers, or other noisy/sensitive data into Sentry.
-      if (event.request) {
-        event.request = {
-          method: event.request.method,
-          url: event.request.url,
-          query_string: event.request.query_string,
-        };
+      if (process.env.INCIDENT_PROCESSING_PAUSED === "true") return null;
+      try {
+        const { data, error } = await supabase
+          .rpc("incident_reserve_sentry")
+          .abortSignal(AbortSignal.timeout(1000));
+        if (error || data !== true) return null;
+        return sanitizeSentryEvent(event);
+      } catch {
+        return null;
       }
-
-      return event;
     },
   });
 

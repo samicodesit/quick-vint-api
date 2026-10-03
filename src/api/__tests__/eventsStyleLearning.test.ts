@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   suggest: vi.fn(),
   logRequests: vi.fn(),
+  rpc: vi.fn(),
 }));
 vi.mock("resend", () => ({ Resend: class {} }));
 vi.mock("../../../utils/aiStyleLearner", () => ({
@@ -18,7 +19,9 @@ vi.mock("../../../utils/apiLogger", () => ({
   ApiLogger: {
     extractRequestMetadata: () => ({}),
     logRequests: mocks.logRequests,
+    persistRequests: mocks.logRequests,
     logRequest: vi.fn(),
+    isInternalLogExcludedEmail: () => false,
   },
 }));
 vi.mock("../../../utils/supabaseClient", () => ({
@@ -29,6 +32,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
       }),
     },
     from: mocks.from,
+    rpc: mocks.rpc,
   },
 }));
 import handler from "../../../api/events/track";
@@ -63,12 +67,18 @@ async function editedListing() {
   };
   await handler(req, res as any);
   expect(res.statusCode).toBe(204);
-  expect(mocks.logRequests).toHaveBeenCalledOnce();
+  expect(mocks.rpc).toHaveBeenCalledWith(
+    "incident_ingest",
+    expect.objectContaining({
+      p_event: expect.objectContaining({ event: "generation_output_edited" }),
+    }),
+  );
 }
 
 describe("event endpoint style learning cost boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.rpc.mockResolvedValue({ data: { status: "accepted" }, error: null });
     mocks.profile = {
       email: "seller@example.com",
       subscription_status: "free",

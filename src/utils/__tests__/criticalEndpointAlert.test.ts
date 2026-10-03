@@ -1,101 +1,52 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { reportCriticalEndpointFailure } from "../../../utils/criticalEndpointAlert";
-import { getSentry } from "../../../utils/sentry";
+import { recordServerIncident } from "../../../utils/incidents/service";
 
-vi.mock("../../../utils/sentry", () => ({
-  getSentry: vi.fn(),
+vi.mock("../../../utils/incidents/service", () => ({
+  recordServerIncident: vi.fn(async () => "issue-1"),
+  continueIncidentWork: (work: Promise<unknown>) => {
+    void work.catch(() => {});
+  },
 }));
 
-describe("critical endpoint alerts", () => {
+describe("critical endpoint incident consolidation", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.mocked(getSentry).mockReset();
+    vi.mocked(recordServerIncident).mockClear();
   });
-
-  it("writes a structured critical endpoint marker with bounded details", () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    vi.mocked(getSentry).mockReturnValue(null);
-
+  it("preserves the original exception and strips private diagnostic context", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new TypeError("photo transfer failed");
     reportCriticalEndpointFailure({
-      endpoint: "/api/generate",
+      endpoint: "/api/phone-upload",
       status: 500,
-      userId: "user_123",
+      error,
       details: {
-        stage: "generation",
+        stage: "uploading",
+        sessionId: "private-session",
         error: "x".repeat(600),
       },
     });
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "CRITICAL_ENDPOINT_FAILURE",
+    expect(recordServerIncident).toHaveBeenCalledWith(
       expect.objectContaining({
-        endpoint: "/api/generate",
-        status: 500,
-        userId: "user_123",
-        details: {
-          stage: "generation",
-          error: `${"x".repeat(500)}...`,
-        },
+        event: "phone_upload_transfer_error",
+        error,
+        context: expect.objectContaining({
+          stage: "uploading",
+          error: "x".repeat(500),
+        }),
       }),
     );
-    expect(getSentry).toHaveBeenCalledOnce();
+    expect(JSON.stringify(log.mock.calls)).not.toContain("private-session");
   });
-
-  it("sends critical failures to Sentry with endpoint tags and bounded context", () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const scope = {
-      setLevel: vi.fn(),
-      setTag: vi.fn(),
-      setUser: vi.fn(),
-      setContext: vi.fn(),
-    };
-    const sentry = {
-      withScope: vi.fn((callback) => callback(scope)),
-      captureException: vi.fn(),
-    };
-    vi.mocked(getSentry).mockReturnValue(sentry as any);
-
-    reportCriticalEndpointFailure({
-      endpoint: "/api/stripe/create-checkout",
-      status: 500,
-      userId: "user_456",
-      details: {
-        tier: "pro",
-        error: "y".repeat(600),
-      },
-    });
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "CRITICAL_ENDPOINT_FAILURE",
-      expect.objectContaining({
-        endpoint: "/api/stripe/create-checkout",
+  it("does not throw when incident storage fails", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(recordServerIncident).mockRejectedValueOnce(new Error("offline"));
+    expect(() =>
+      reportCriticalEndpointFailure({
+        endpoint: "/api/stripe/webhook",
+        status: 500,
       }),
-    );
-    expect(sentry.withScope).toHaveBeenCalledOnce();
-    expect(scope.setLevel).toHaveBeenCalledWith("error");
-    expect(scope.setTag).toHaveBeenCalledWith("critical_endpoint", "true");
-    expect(scope.setTag).toHaveBeenCalledWith(
-      "endpoint",
-      "/api/stripe/create-checkout",
-    );
-    expect(scope.setTag).toHaveBeenCalledWith("status", "500");
-    expect(scope.setUser).toHaveBeenCalledWith({ id: "user_456" });
-    expect(scope.setContext).toHaveBeenCalledWith("critical_endpoint_failure", {
-      endpoint: "/api/stripe/create-checkout",
-      status: 500,
-      details: {
-        tier: "pro",
-        error: `${"y".repeat(500)}...`,
-      },
-    });
-    expect(sentry.captureException).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "Critical endpoint failure: /api/stripe/create-checkout",
-      }),
-    );
+    ).not.toThrow();
   });
 });

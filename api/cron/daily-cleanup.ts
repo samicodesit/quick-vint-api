@@ -19,6 +19,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const results = {
+    incidents: {
+      success: false,
+      deleted: 0,
+      backlog: 0,
+      error: null as string | null,
+    },
     rateLimits: { success: false, error: null as string | null },
     tempUploads: { success: false, deleted: 0, error: null as string | null },
     apiLogs: {
@@ -28,6 +34,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: null as string | null,
     },
   };
+
+  try {
+    const deadline = Date.now() + 10000;
+    let deleted = 0;
+    for (let batch = 0; batch < 30; batch++) {
+      const { data, error } = await supabase
+        .rpc("incident_cleanup", { p_limit: 1000 })
+        .abortSignal(AbortSignal.timeout(Math.max(100, deadline - Date.now())));
+      if (error) throw error;
+      deleted += data.deleted;
+      results.incidents = {
+        success: true,
+        deleted,
+        backlog: data.backlog,
+        error: null,
+      };
+      if (!data.backlog || Date.now() >= deadline) break;
+    }
+  } catch {
+    results.incidents.error = "Incident cleanup failed";
+  }
 
   // 1. Cleanup Rate Limits
   try {

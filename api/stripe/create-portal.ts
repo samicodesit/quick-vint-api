@@ -74,6 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: any) {
     console.error("❌ create-portal error:", err);
     reportCriticalEndpointFailure({
+      error: err,
       endpoint: "/api/stripe/create-portal",
       status: 500,
       details: {

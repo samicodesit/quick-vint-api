@@ -94,7 +94,7 @@ export class ApiLogger {
     return imageUrls.map((url) => this.sanitizeImageUrlForLog(url));
   }
 
-  private static isInternalLogExcludedEmail(email?: string) {
+  static isInternalLogExcludedEmail(email?: string) {
     return INTERNAL_LOG_EXCLUDED_EMAILS.has(
       String(email || "")
         .trim()

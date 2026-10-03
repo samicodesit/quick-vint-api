@@ -58,6 +58,12 @@ async function runBridge(
   const context = {
     console,
     URLSearchParams,
+    AutoListerWebsiteTelemetry: {
+      track: async (event: string, properties: Record<string, unknown>) => {
+        events.push({ event, ...properties });
+        return { queued: true };
+      },
+    },
     setTimeout(callback: () => void, delay = 0) {
       timers.push({ callback, delay });
       return timers.length;
@@ -99,7 +105,6 @@ async function runBridge(
       fetchOptions: { body?: string; headers?: Record<string, string> },
     ) => {
       requests.push({ url: _url, options: fetchOptions });
-      events.push(JSON.parse(String(fetchOptions.body || "{}")));
       if (options.fetch) return options.fetch(_url, fetchOptions);
       return { ok: true, status: 200 };
     },

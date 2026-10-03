@@ -121,6 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: any) {
     console.error("❌ create-credit-checkout error:", err);
     reportCriticalEndpointFailure({
+      error: err,
       endpoint: "/api/stripe/create-credit-checkout",
       status: 500,
       userId: alertContext.profileId,

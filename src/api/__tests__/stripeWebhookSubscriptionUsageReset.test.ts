@@ -1530,6 +1530,7 @@ describe("Stripe webhook subscription usage reset", () => {
 
     expect(res.statusCode).toBe(500);
     expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      error: expect.objectContaining({ message: "constraint failed" }),
       endpoint: "/api/stripe/webhook",
       status: 500,
       details: {

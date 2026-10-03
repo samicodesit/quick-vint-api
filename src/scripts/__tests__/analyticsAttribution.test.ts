@@ -13,6 +13,8 @@ async function storeDestination(page: string, href: string) {
   vm.runInNewContext(outputFiles[0].text, {
     URL,
     URLSearchParams,
+    addEventListener() {},
+    setInterval() {},
     window: { location: new URL(page), addEventListener() {} },
     document: {
       querySelectorAll: (selector: string) =>

@@ -31,6 +31,7 @@ module.exports = [
         __dirname: "readonly",
         // Node.js built-in globals (available in Node 18+)
         Buffer: "readonly",
+        AbortSignal: "readonly",
         setTimeout: "readonly",
         setInterval: "readonly",
         clearTimeout: "readonly",

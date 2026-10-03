@@ -1,0 +1,50 @@
+{
+  "database": "isolated PostgreSQL 12",
+  "concurrentRequests": 32,
+  "accepted": 1,
+  "duplicates": 31,
+  "distinctFloodRequests": 510,
+  "maxGroups": 500,
+  "reservedEmails": 20,
+  "overflowEmails": 1,
+  "concurrentSentryAttempts": 120,
+  "acceptedSentryAttempts": 100,
+  "fixture": {
+    "flows": 5000,
+    "groups": 500,
+    "budgets": [
+      {
+        "day": "2026-10-03",
+        "emails": 20,
+        "sentry": 100,
+        "sweep_at": null,
+        "cleanup_at": "2026-10-03T15:11:19.26571+02:00",
+        "expires_at": "2026-10-05T15:11:12.993853+02:00",
+        "suppressed": 492,
+        "client_dropped": 0,
+        "cleanup_backlog": 0,
+        "overflow_reserved": true
+      }
+    ],
+    "pending": 20,
+    "receipts": 25000,
+    "payloadBytes": 10679398,
+    "physicalBytes": 29351936,
+    "failedNotifications": 0
+  },
+  "warmPageMs": {
+    "min": 9.934197005350143,
+    "max": 12.31435801309999
+  },
+  "paginatedGroups": 500,
+  "cleanupBacklog": 0,
+  "phoneRegistrationRace": {
+    "concurrentOperations": 32,
+    "verifiedRetries": 32,
+    "occurrences": 1,
+    "emailReservations": 1,
+    "ownerRecovered": true
+  },
+  "freshFixturePhysicalBytes": 20340736,
+  "physicalAllocationNote": "fixture.physicalBytes is a second load on the same local database before vacuum; deleted rows free reusable space but do not immediately shrink files."
+}

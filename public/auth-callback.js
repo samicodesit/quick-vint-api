@@ -171,20 +171,11 @@
   }
 
   function track(event, context = {}) {
-    fetch(`${API_BASE}/api/events/track`, {
-      method: "POST",
-      keepalive: true,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event,
-        source: "web_auth_callback",
-        page: "auth_callback",
-        context: {
-          ...getUrlContext(),
-          ...context,
-        },
-      }),
-    }).catch(() => {});
+    void globalThis.AutoListerWebsiteTelemetry?.track(event, {
+      source: "web_auth_callback",
+      page: "auth_callback",
+      context: { ...getUrlContext(), ...context },
+    });
   }
 
   function getSessionFromUrl() {
@@ -299,6 +290,24 @@
         "error",
       );
       return;
+    }
+    // This claim only partitions the local queue. The collector verifies the
+    // bearer with Supabase before accepting identity. Credentials stay in memory.
+    try {
+      const claim = JSON.parse(
+        atob(
+          session.access_token
+            .split(".")[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/"),
+        ),
+      );
+      if (typeof claim.sub === "string")
+        globalThis.AutoListerWebsiteTelemetry?.setIdentityProvider(
+          async () => ({ id: claim.sub, token: session.access_token }),
+        );
+    } catch {
+      /* An invalid token must still reach the existing auth handler. */
     }
     clearAuthParamsFromUrl();
     // Claim in the website while the magic-link bearer is available. This is

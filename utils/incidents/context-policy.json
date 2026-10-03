@@ -42,6 +42,10 @@
     "phoneSessionKey"
   ],
   "numbers": [
+    "expectedTitleLength",
+    "actualTitleLength",
+    "expectedDescriptionLength",
+    "actualDescriptionLength",
     "photoCount",
     "expectedPhotoCount",
     "confirmedPhotoCount",
@@ -88,6 +92,11 @@
     "expectedCount"
   ],
   "booleans": [
+    "titleFieldPresent",
+    "descriptionFieldPresent",
+    "titleMatches",
+    "descriptionMatches",
+    "documentVisible",
     "online",
     "navigatorOnline",
     "hasCode",

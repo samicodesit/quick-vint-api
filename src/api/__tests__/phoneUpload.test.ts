@@ -22,6 +22,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
       from: vi.fn(() => ({
         list: listMock,
         upload: uploadMock,
+        update: uploadMock,
         createSignedUrl: createSignedUrlMock,
         createSignedUrls: createSignedUrlsMock,
         download: downloadMock,
@@ -190,6 +191,11 @@ describe("phone upload endpoint", () => {
           v: 2,
           ownerId,
           status: "open",
+          mode: "single",
+          source: "phone",
+          expectedCount: null,
+          createdAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 60000).toISOString(),
         }),
       ]),
@@ -474,7 +480,12 @@ describe("phone upload endpoint", () => {
         error: null,
       }),
     );
-    uploadMock.mockResolvedValueOnce({ error: new Error("already exists") });
+    uploadMock.mockResolvedValueOnce({
+      error: Object.assign(new Error("already exists"), {
+        status: 409,
+        statusCode: "ResourceAlreadyExists",
+      }),
+    });
     const module = await import("../../../api/phone-upload.js");
     const handler = (module as any).default;
     const res = createResponse();
@@ -527,7 +538,10 @@ describe("phone upload endpoint", () => {
     uploadMock.mockImplementation((path: string) =>
       Promise.resolve({
         error: path.endsWith("/_uploader.json")
-          ? new Error("already exists")
+          ? Object.assign(new Error("already exists"), {
+              status: 409,
+              statusCode: "ResourceAlreadyExists",
+            })
           : null,
       }),
     );
@@ -603,7 +617,10 @@ describe("phone upload endpoint", () => {
     uploadMock.mockImplementation((path: string) =>
       Promise.resolve({
         error: path.endsWith("/_uploader.json")
-          ? new Error("already exists")
+          ? Object.assign(new Error("already exists"), {
+              status: 409,
+              statusCode: "ResourceAlreadyExists",
+            })
           : null,
       }),
     );
@@ -663,7 +680,12 @@ describe("phone upload endpoint", () => {
         error: null,
       }),
     );
-    uploadMock.mockResolvedValueOnce({ error: new Error("already exists") });
+    uploadMock.mockResolvedValueOnce({
+      error: Object.assign(new Error("already exists"), {
+        status: 409,
+        statusCode: "ResourceAlreadyExists",
+      }),
+    });
     const module = await import("../../../api/phone-upload.js");
     const handler = (module as any).default;
     const res = createResponse();
@@ -1518,7 +1540,7 @@ describe("phone upload endpoint", () => {
       expect.any(Buffer),
       expect.objectContaining({
         contentType: "application/json",
-        upsert: true,
+        upsert: false,
       }),
     );
   });

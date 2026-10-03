@@ -15,6 +15,34 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it("keeps field comparison diagnostics without recording field contents", () => {
+    const context = {
+      titleFieldPresent: true,
+      descriptionFieldPresent: true,
+      titleMatches: true,
+      descriptionMatches: false,
+      expectedTitleLength: 17,
+      actualTitleLength: 17,
+      expectedDescriptionLength: 30,
+      actualDescriptionLength: 0,
+      documentVisible: true,
+      elapsedMs: 2500,
+    };
+    const result = normalizeIncidentEvent(
+      {
+        ...event,
+        event: "fields_apply_failed",
+        context: {
+          ...context,
+          actualTitle: "private title",
+          actualDescription: "private description",
+        },
+      },
+      now,
+    );
+    expect(result.value?.context).toMatchObject(context);
+    expect(JSON.stringify(result.value)).not.toContain("private");
+  });
   it("classifies explicit outcomes without guessing from suffixes", () => {
     expect(classifyEvent("generate_error").kind).toBe("incident");
     expect(classifyEvent("generate_limit_hit").kind).toBe("expected");

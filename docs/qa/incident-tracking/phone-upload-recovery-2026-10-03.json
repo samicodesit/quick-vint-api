@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-03",
+  "scope": "Combined phone-upload recovery and field-confirmation review. Inline execution and review.",
+  "implementation": {
+    "backendStorageErrors": "Explicit HTTP/provider-code classification; no false expiry for service errors; invalid markers fail closed as internal errors.",
+    "confirmation": "Immutable completion manifest with atomic create; identical repeats recover partial marker writes; changed count/orders remain conflicts.",
+    "cancellation": "Recheck before completion; update existing session objects instead of recreating deleted markers.",
+    "clientRecovery": "One shared helper; preparation and confirmation only; three transient attempts within 30 seconds; 10-second request limits; existing eight-call settling loop.",
+    "userState": "Photos retained; metadata-only confirmation retry; busy controls released; Retry-After gates manual retry.",
+    "fieldConfirmation": "Other thread fix retained and reviewed. Foreground observation uses timers; real field mismatch alerts retain booleans/lengths without field text; user edits remain untouched."
+  },
+  "healthyPhoneMeasurements": {
+    "fixture": "Two photos, 2ms simulated delay per storage call. Local measurements, not production latency.",
+    "baselineRef": "eb7e16e",
+    "result": {
+      "prepare": {
+        "baseline": {
+          "samples": 30,
+          "medianMs": 6.456,
+          "storageCalls": [3]
+        },
+        "current": {
+          "samples": 30,
+          "medianMs": 6.423,
+          "storageCalls": [3]
+        },
+        "addedBackoffMs": 0
+      },
+      "complete": {
+        "baseline": {
+          "samples": 30,
+          "medianMs": 12.838,
+          "storageCalls": [6]
+        },
+        "current": {
+          "samples": 30,
+          "medianMs": 12.865,
+          "storageCalls": [6]
+        },
+        "addedBackoffMs": 0
+      }
+    }
+  },
+  "healthyFieldMeasurements": {
+    "fixture": "Matching visible fields in isolated Chromium. No live marketplace or generation.",
+    "result": {
+      "0": {
+        "baseline": {
+          "samples": 8,
+          "medianMs": 16.6
+        },
+        "current": {
+          "samples": 8,
+          "medianMs": 0
+        }
+      },
+      "300": {
+        "baseline": {
+          "samples": 8,
+          "medianMs": 316.6
+        },
+        "current": {
+          "samples": 8,
+          "medianMs": 300.5
+        }
+      }
+    }
+  },
+  "verification": {
+    "backendProductionGate": "passed",
+    "backendTests": 515,
+    "frontendFullNpmTest": "passed",
+    "frontendFullBrowserTestsPassed": 187,
+    "frontendBrowserTestsSkipped": 1,
+    "skipReason": "Existing opt-in batch photo rejection fault-injection diagnostic",
+    "finalFrontendUnitTests": 80,
+    "finalPhonePageBrowserTests": 6,
+    "frontendProductionBuild": "passed",
+    "packagedExtension": {
+      "artifact": "/home/mests/projects/quick-vint/dist/autolister-incident-validation-v1.4.7.zip",
+      "version": "1.4.7",
+      "sha256": "0dbc2c31d35de7c94d716f54df1f0a9ed852866e71e856c3874eb77db0857e89",
+      "bytes": 436231,
+      "helpersVerified": 6,
+      "packagedWorkerLoaded": true,
+      "offline": true,
+      "releaseStatusChanged": false
+    },
+    "sharedHelperByteEquality": true,
+    "sharedHelperBytes": 4954,
+    "sharedHelperSha256": "36e95fd20d5b90fbe4ff527d3bd981dba205ffc9dbc238482df3deaef1c9ccd0"
+  },
+  "boundaries": {
+    "noPaidGenerationOrCreditChanges": true,
+    "noNewServiceDatabaseMigrationOrPermissions": true,
+    "noLiveVintedTest": true,
+    "productionChanged": false,
+    "storeSubmissionChanged": false,
+    "alanOriginalForcedRefreshDiagnosis": "unresolved",
+    "currentActualStoreStatus": "Could not verify. Browser request-header policy failed twice; local release metadata alone does not prove review state. Do not upload or replace 1.4.7."
+  },
+  "rollout": {
+    "status": "Awaiting production approval; next extension release remains held until actual 1.4.7 review state is verified",
+    "order": [
+      "Compatible backend and phone page",
+      "Extension after pending review resolves"
+    ],
+    "monitor": [
+      "False-expiry incidents",
+      "Confirmation failures",
+      "Retry exhaustion"
+    ],
+    "rollback": "Roll back the affected component if regressions appear"
+  },
+  "housekeeping": "Existing growth documents received whitespace-only formatting to unblock the required backend gate. Their content and all other thread changes are preserved."
+}

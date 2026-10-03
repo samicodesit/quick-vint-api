@@ -171,6 +171,9 @@ globalThis.AutoListerEventRegistry = {
     kind: "incident",
     severity: "transient",
   },
+  phone_upload_metadata_recovered: {
+    kind: "expected",
+  },
   checkout_failed: {
     kind: "incident",
     severity: "transient",
@@ -636,6 +639,10 @@ globalThis.AutoListerContextPolicy = {
     "phoneSessionKey",
   ],
   numbers: [
+    "expectedTitleLength",
+    "actualTitleLength",
+    "expectedDescriptionLength",
+    "actualDescriptionLength",
     "photoCount",
     "expectedPhotoCount",
     "confirmedPhotoCount",
@@ -682,6 +689,11 @@ globalThis.AutoListerContextPolicy = {
     "expectedCount",
   ],
   booleans: [
+    "titleFieldPresent",
+    "descriptionFieldPresent",
+    "titleMatches",
+    "descriptionMatches",
+    "documentVisible",
     "online",
     "navigatorOnline",
     "hasCode",

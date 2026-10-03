@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-03",
+  "incidentId": "04955ca6-ce67-4ced-8a6b-54ef8ad6e321",
+  "affectedRelease": "1.4.7",
+  "productionEvidence": {
+    "generationRequests": "HTTP 200 with complete generated titles and descriptions for the two sweater operations",
+    "continuedUse": "Description edits recorded for both operations, followed by further generations",
+    "publicationOfAffectedItems": "unconfirmed",
+    "observedAlertDelaysSeconds": [4, 22, 25],
+    "actualFailureCauseForHistoricalEvents": "unconfirmed because actual field comparisons and visibility were not captured",
+    "latestCheckedOccurrences": 3,
+    "latestCheckedOccurrenceAt": "2026-10-03T18:25:38.814Z",
+    "scheduledCanary": {
+      "occurredAt": "2026-10-03T16:43:01.461Z",
+      "release": "1.4.7",
+      "url": "https://www.vinted.nl/items/new",
+      "status": "passed",
+      "scope": "Selector presence and extension controls, not generated-field persistence"
+    }
+  },
+  "reproduction": {
+    "environment": "Deterministic Playwright fixture with the actual content script and telemetry flow",
+    "beforeFix": "Delaying animation-frame observations by three seconds emitted fields_apply_failed while both fields contained the intended text",
+    "afterFix": "Applied fields are confirmed without depending on animation frames or charging hidden-tab and suspended callback time against the observation budget",
+    "realHostReversion": "A simulated reverted description still emits fields_apply_failed with field comparison booleans and lengths",
+    "sellerEdits": "Preserved, with listing_review instead of a failure alert",
+    "privacy": "Diagnostic field contents remain excluded from the telemetry allowlist"
+  },
+  "verification": {
+    "frontendUnitTestsPassed": 68,
+    "frontendBrowserTestsPassed": 181,
+    "frontendBrowserTestsSkipped": 1,
+    "skipReason": "Existing opt-in batch photo rejection fault-injection diagnostic",
+    "frontendProductionBuild": "passed",
+    "backendTestsPassed": 489,
+    "backendLint": "passed",
+    "backendTypecheck": "passed",
+    "backendBuild": "passed",
+    "modifiedBackendFilesFormatting": "passed",
+    "backendFullReleaseGate": "blocked by existing formatting warnings in docs/growth-current-sprint.md and docs/tiktok-ad-creative-playbook.md"
+  },
+  "productionChanged": false,
+  "extensionReleased": false,
+  "liveVintedWorkflowRun": false
+}

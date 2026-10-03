@@ -170,6 +170,9 @@
     "kind": "incident",
     "severity": "transient"
   },
+  "phone_upload_metadata_recovered": {
+    "kind": "expected"
+  },
   "checkout_failed": {
     "kind": "incident",
     "severity": "transient"

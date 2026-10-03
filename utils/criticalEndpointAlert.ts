@@ -41,7 +41,7 @@ export function reportCriticalEndpointFailure(
         userId: failure.userId || undefined,
         context: {
           ...details,
-          errorCode: `${event}:${failure.status}`,
+          errorCode: details.errorCode || `${event}:${failure.status}`,
           stage: details.stage || failure.endpoint,
           statusCode: failure.status,
         },

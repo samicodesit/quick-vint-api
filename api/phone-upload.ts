@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Busboy from "busboy";
 import Cors from "cors";
@@ -5,11 +6,16 @@ import { registerPhoneEvidenceOwner } from "../utils/incidents/phone";
 import { continueIncidentWork } from "../utils/incidents/service";
 import { supabase } from "../utils/supabaseClient";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
+import {
+  classifyPhoneStorageError,
+  invalidPhoneMarker,
+} from "../utils/phoneUploadErrors";
 
 // Initialize CORS middleware
 const cors = Cors({
   methods: ["GET", "POST", "OPTIONS"],
   origin: true,
+  exposedHeaders: ["Retry-After"],
 });
 
 function runMiddleware(req: VercelRequest, res: VercelResponse, fn: Function) {
@@ -164,38 +170,103 @@ async function readV2Session(sessionId: string) {
   const { data, error } = await supabase.storage
     .from(UPLOAD_BUCKET)
     .download(`${sessionId}/${SESSION_MARKER}`);
-  if (error || !data) return null;
-  try {
-    const marker = JSON.parse(await data.text()) as V2SessionMarker;
-    if (
-      marker.v === 2 &&
-      typeof marker.ownerId === "string" &&
-      /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(
-        marker.ownerId,
-      )
-    ) {
-      // Reuse the trusted record already read for product work. No extra
-      // storage read or diagnostic network wait enters the response path.
-      continueIncidentWork(
-        registerPhoneEvidenceOwner(sessionId, marker.ownerId),
-      );
-    }
-    return marker;
-  } catch {
-    return null;
+  if (error) {
+    if (classifyPhoneStorageError(error).missing) return null;
+    throw error;
   }
+  if (!data) throw invalidPhoneMarker("Upload session response has no data");
+  const marker = await parseMarker(data);
+  if (
+    marker.v !== 2 ||
+    typeof marker.ownerId !== "string" ||
+    !marker.ownerId ||
+    !["single", "batch"].includes(marker.mode) ||
+    marker.source !== "phone" ||
+    !["open", "uploading", "complete", "cancelled", "expired"].includes(
+      marker.status,
+    ) ||
+    !Number.isFinite(Date.parse(marker.expiresAt)) ||
+    !Number.isFinite(Date.parse(marker.createdAt)) ||
+    !Number.isFinite(Date.parse(marker.lastActivityAt)) ||
+    (marker.expectedCount !== null &&
+      (!Number.isInteger(marker.expectedCount) ||
+        marker.expectedCount < 0 ||
+        marker.expectedCount > MAX_V2_UPLOAD_COUNT))
+  ) {
+    throw invalidPhoneMarker("Invalid upload session marker");
+  }
+  if (
+    marker.v === 2 &&
+    typeof marker.ownerId === "string" &&
+    /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(
+      marker.ownerId,
+    )
+  ) {
+    // Reuse the trusted record already read for product work. No extra
+    // storage read or diagnostic network wait enters the response path.
+    continueIncidentWork(registerPhoneEvidenceOwner(sessionId, marker.ownerId));
+  }
+  return marker as V2SessionMarker;
+}
+
+async function parseMarker(data: { text(): Promise<string> }) {
+  try {
+    const value = JSON.parse(await data.text());
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new Error();
+    return value;
+  } catch {
+    throw invalidPhoneMarker("Invalid upload marker JSON");
+  }
+}
+
+function sendServiceError(
+  res: VercelResponse,
+  error: any,
+  action: string,
+  sessionId?: string,
+) {
+  if (error?.phoneSessionGone)
+    return res.status(410).json({ success: false, v: 2, status: "expired" });
+  const failure = classifyPhoneStorageError(error);
+  reportCriticalEndpointFailure({
+    error,
+    endpoint: "/api/phone-upload",
+    status: failure.status,
+    details: {
+      stage: `phone_${action}`,
+      errorCode: failure.code,
+      retryable: failure.retryable,
+      errorName: error?.name,
+      ...(sessionId
+        ? {
+            phoneSessionKey: createHash("sha256")
+              .update(sessionId)
+              .digest("hex"),
+          }
+        : {}),
+    },
+  });
+  return res.status(failure.status).json({
+    error: "Could not access the upload service. Please try again.",
+    code: failure.code,
+    retryable: failure.retryable,
+  });
 }
 
 async function readV2Uploader(sessionId: string) {
   const { data, error } = await supabase.storage
     .from(UPLOAD_BUCKET)
     .download(`${sessionId}/${UPLOADER_MARKER}`);
-  if (error || !data) return null;
-  try {
-    return String(JSON.parse(await data.text())?.uploaderId || "");
-  } catch {
-    return null;
+  if (error) {
+    if (classifyPhoneStorageError(error).missing) return null;
+    throw error;
   }
+  if (!data) throw invalidPhoneMarker("Missing uploader marker data");
+  const marker = await parseMarker(data);
+  if (typeof marker.uploaderId !== "string" || !marker.uploaderId)
+    throw invalidPhoneMarker("Invalid uploader marker");
+  return marker.uploaderId;
 }
 
 async function acquireV2Uploader(sessionId: string, uploaderId: string) {
@@ -209,20 +280,26 @@ async function acquireV2Uploader(sessionId: string, uploaderId: string) {
       { contentType: "application/json", upsert: false },
     );
   if (!error) return true;
-
+  if (!classifyPhoneStorageError(error).conflict) throw error;
   const existingUploaderId = await readV2Uploader(sessionId);
   if (existingUploaderId) return existingUploaderId === uploaderId;
   throw error;
 }
 
 async function writeV2Session(sessionId: string, marker: V2SessionMarker) {
+  // PUT replaces an existing object. A late request cannot recreate a marker
+  // removed by cancellation or expiry, unlike POST with upsert enabled.
   const { error } = await supabase.storage
     .from(UPLOAD_BUCKET)
-    .upload(
+    .update(
       `${sessionId}/${SESSION_MARKER}`,
       Buffer.from(JSON.stringify(marker)),
-      { contentType: "application/json", upsert: true },
+      { contentType: "application/json" },
     );
+  if (error && classifyPhoneStorageError(error).missing)
+    throw Object.assign(new Error("Upload session no longer exists"), {
+      phoneSessionGone: true,
+    });
   if (error) throw error;
 }
 
@@ -356,32 +433,42 @@ async function createStoredFileResponses(
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  await runMiddleware(req, res, cors);
+  try {
+    await runMiddleware(req, res, cors);
 
-  if (req.method === "GET") {
-    if (req.query.action === "status" && req.query.v === "2") {
-      return handleV2Status(req, res);
+    if (req.method === "GET") {
+      if (req.query.action === "status" && req.query.v === "2") {
+        return await handleV2Status(req, res);
+      }
+      return await handleList(req, res);
+    } else if (req.method === "POST") {
+      // Check if it's a multipart request (upload) or JSON (complete/cleanup).
+      // JSON POST without an action is legacy cleanup behavior.
+      const contentType = req.headers["content-type"] || "";
+      const action =
+        typeof req.query.action === "string" ? req.query.action : "";
+      if (contentType.includes("multipart/form-data")) {
+        return await handleUpload(req, res);
+      } else if (action === "open" && req.query.v === "2") {
+        return await handleOpenV2(req, res);
+      } else if (action === "prepare") {
+        return await handlePrepare(req, res);
+      } else if (action === "complete") {
+        return await handleComplete(req, res);
+      } else if (!action || action === "cleanup") {
+        return await handleCleanup(req, res);
+      }
+      return res.status(400).json({ error: "Unknown action" });
+    } else {
+      return res.status(405).json({ error: "Method not allowed" });
     }
-    return handleList(req, res);
-  } else if (req.method === "POST") {
-    // Check if it's a multipart request (upload) or JSON (complete/cleanup).
-    // JSON POST without an action is legacy cleanup behavior.
-    const contentType = req.headers["content-type"] || "";
-    const action = typeof req.query.action === "string" ? req.query.action : "";
-    if (contentType.includes("multipart/form-data")) {
-      return handleUpload(req, res);
-    } else if (action === "open" && req.query.v === "2") {
-      return handleOpenV2(req, res);
-    } else if (action === "prepare") {
-      return handlePrepare(req, res);
-    } else if (action === "complete") {
-      return handleComplete(req, res);
-    } else if (!action || action === "cleanup") {
-      return handleCleanup(req, res);
-    }
-    return res.status(400).json({ error: "Unknown action" });
-  } else {
-    return res.status(405).json({ error: "Method not allowed" });
+  } catch (error) {
+    return sendServiceError(
+      res,
+      error,
+      String(req.query.action || (req.method === "GET" ? "list" : "upload")),
+      String(req.query.sessionId || ""),
+    );
   }
 }
 
@@ -454,7 +541,9 @@ async function handleOpenV2(req: VercelRequest, res: VercelResponse) {
       { contentType: "application/json", upsert: false },
     );
   if (error) {
-    return res.status(409).json({ error: "Upload session already exists" });
+    if (classifyPhoneStorageError(error).conflict)
+      return res.status(409).json({ error: "Upload session already exists" });
+    throw error;
   }
   // Keep the serverless task alive without holding the customer's response.
   continueIncidentWork(registerPhoneEvidenceOwner(sessionId, user.id));
@@ -560,19 +649,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
       complete,
     });
   } catch (error: any) {
-    console.error("List error:", error);
-    reportCriticalEndpointFailure({
-      error: error,
-      endpoint: "/api/phone-upload",
-      status: 500,
-      details: {
-        action: "list",
-        sessionId,
-        error: error?.message || String(error),
-        errorName: error?.name,
-      },
-    });
-    res.status(500).json({ error: error.message });
+    return sendServiceError(res, error, "list", sessionId);
   }
 }
 
@@ -734,20 +811,10 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
         files: uploadedFiles,
       });
     } catch (error: any) {
-      console.error("Upload error:", error);
-      reportCriticalEndpointFailure({
-        error: error,
-        endpoint: "/api/phone-upload",
-        status: 500,
-        details: {
-          action: "upload",
-          sessionId: sessionId || (req.query.sessionId as string) || null,
-          fileCount: fileUploads.length,
-          error: error?.message || String(error),
-          errorName: error?.name,
-        },
-      });
-      sendError(500, error.message);
+      if (!responseSent) {
+        responseSent = true;
+        sendServiceError(res, error, "upload", sessionId || requestedSessionId);
+      }
     }
   });
 
@@ -855,24 +922,69 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
 
     res.status(200).json({ success: true, expectedCount });
   } catch (error: any) {
-    console.error("Prepare error:", error);
-    reportCriticalEndpointFailure({
-      error: error,
-      endpoint: "/api/phone-upload",
-      status: 500,
-      details: {
-        action: "prepare",
-        sessionId,
-        expectedCount,
-        error: error?.message || String(error),
-        errorName: error?.name,
-      },
-    });
-    res.status(500).json({ error: error.message });
+    return sendServiceError(res, error, "prepare", sessionId);
   }
 }
 
 // --- Handler: Complete Batch Session (POST JSON) ---
+type CompletionManifest = {
+  complete: true;
+  completedAt: string;
+  count: number;
+  expectedCount: number | null;
+  files: { name: string; path: string; order: number }[];
+};
+
+async function readCompletion(sessionId: string): Promise<CompletionManifest> {
+  const { data, error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .download(`${sessionId}/${BATCH_COMPLETE_MARKER}`);
+  if (error) throw error;
+  if (!data) throw invalidPhoneMarker("Missing completion manifest");
+  const manifest = await parseMarker(data);
+  if (
+    manifest.complete !== true ||
+    !Number.isFinite(Date.parse(manifest.completedAt)) ||
+    !Number.isInteger(manifest.count) ||
+    !Array.isArray(manifest.files) ||
+    manifest.files.length !== manifest.count ||
+    manifest.files.some(
+      (file: any) =>
+        typeof file.name !== "string" ||
+        file.path !== `${sessionId}/${file.name}` ||
+        !Number.isInteger(file.order),
+    )
+  ) {
+    throw invalidPhoneMarker("Invalid completion manifest");
+  }
+  return manifest as CompletionManifest;
+}
+
+// The endpoint has bodyParser disabled for multipart. Read only bounded metadata
+// JSON here, never consume the upload stream in the general router.
+async function readCompletionBody(req: VercelRequest) {
+  if (req.body && typeof req.body === "object") return req.body;
+  if (
+    !req.headers["content-type"]?.includes("application/json") ||
+    typeof req[Symbol.asyncIterator] !== "function"
+  )
+    return {};
+  const chunks: Buffer[] = [];
+  let length = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.from(chunk);
+    length += buffer.length;
+    if (length > 8192) return { invalid: true };
+    chunks.push(buffer);
+  }
+  if (!length) return {};
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString());
+  } catch {
+    return { invalid: true };
+  }
+}
+
 async function handleComplete(req: VercelRequest, res: VercelResponse) {
   const sessionId = req.query.sessionId as string;
 
@@ -882,16 +994,33 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
 
   try {
     const expectedCount = parseExpectedCount(req.query.expectedCount);
-    const files = await listSessionFiles(sessionId);
-
-    const photoFiles = (files || []).filter(
-      (file) => !isSessionMarkerFile(file),
-    );
+    const body = await readCompletionBody(req);
+    const requestedOrders = body?.orders;
+    if (
+      !body ||
+      body.invalid ||
+      (body.expectedCount != null && body.expectedCount !== expectedCount) ||
+      (requestedOrders != null &&
+        (!Array.isArray(requestedOrders) ||
+          requestedOrders.length !== expectedCount ||
+          requestedOrders.some(
+            (order: any) => !Number.isInteger(order) || order < 0,
+          ) ||
+          new Set(requestedOrders).size !== requestedOrders.length))
+    ) {
+      return res.status(400).json({ error: "Invalid confirmation metadata" });
+    }
+    let marker: V2SessionMarker | null = null;
     if (req.query.v === "2") {
-      if (expectedCount === null) {
+      if (
+        !V2_SESSION_ID.test(sessionId) ||
+        expectedCount === null ||
+        expectedCount <= 0 ||
+        expectedCount > MAX_V2_UPLOAD_COUNT
+      ) {
         return res.status(400).json({ error: "Invalid expectedCount" });
       }
-      const marker = await expireV2SessionIfNeeded(
+      marker = await expireV2SessionIfNeeded(
         sessionId,
         await readV2Session(sessionId),
       );
@@ -907,9 +1036,8 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
         });
       }
       if (
-        marker.status === "complete" ||
-        (marker.expectedCount !== null &&
-          marker.expectedCount !== expectedCount)
+        marker.expectedCount !== null &&
+        marker.expectedCount !== expectedCount
       ) {
         return res.status(409).json({
           success: false,
@@ -919,6 +1047,10 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
           expectedCount: marker.expectedCount,
         });
       }
+    }
+    const files = await listSessionFiles(sessionId);
+    const photoFiles = files.filter((file) => !isSessionMarkerFile(file));
+    if (marker && expectedCount !== null) {
       if (photoFiles.length > expectedCount) {
         return res.status(409).json({
           success: false,
@@ -949,61 +1081,125 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
 
     const markerPath = `${sessionId}/${BATCH_COMPLETE_MARKER}`;
-    if (expectedCount !== null) {
-      const expectedMarkerPath = `${sessionId}/${EXPECTED_COUNT_MARKER_PREFIX}${expectedCount}.json`;
-      const { error: expectedMarkerError } = await supabase.storage
-        .from(UPLOAD_BUCKET)
-        .upload(
-          expectedMarkerPath,
-          Buffer.from(
-            JSON.stringify({
-              expectedCount,
-              updatedAt: new Date().toISOString(),
-            }),
-          ),
-          {
-            contentType: "application/json",
-            upsert: true,
-          },
-        );
+    const matches = (manifest: CompletionManifest) =>
+      manifest.expectedCount === expectedCount &&
+      manifest.count === manifestFiles.length &&
+      manifest.files.every(
+        (file, index) =>
+          file.name === manifestFiles[index]?.name &&
+          file.order === manifestFiles[index]?.order,
+      ) &&
+      (requestedOrders == null ||
+        requestedOrders.every(
+          (order: number, index: number) =>
+            order === manifest.files[index]?.order,
+        ));
+    if (
+      requestedOrders != null &&
+      !requestedOrders.every(
+        (order: number, index: number) => order === manifestFiles[index]?.order,
+      )
+    ) {
+      return res.status(409).json({
+        success: false,
+        complete: false,
+        error: "Photo orders changed",
+      });
+    }
+    let manifest: CompletionManifest = {
+      complete: true,
+      completedAt: new Date().toISOString(),
+      count: manifestFiles.length,
+      expectedCount,
+      files: manifestFiles,
+    };
+    const alreadySaved = files.some(isBatchMarkerFile);
+    if (alreadySaved) {
+      manifest = await readCompletion(sessionId);
+      if (!matches(manifest))
+        return res.status(409).json({
+          success: false,
+          complete: false,
+          error: "Confirmation does not match saved photos",
+        });
+    }
+    if (!alreadySaved) {
+      if (expectedCount !== null) {
+        const expectedMarkerPath = `${sessionId}/${EXPECTED_COUNT_MARKER_PREFIX}${expectedCount}.json`;
+        const { error: expectedMarkerError } = await supabase.storage
+          .from(UPLOAD_BUCKET)
+          .upload(
+            expectedMarkerPath,
+            Buffer.from(
+              JSON.stringify({
+                expectedCount,
+                updatedAt: new Date().toISOString(),
+              }),
+            ),
+            {
+              contentType: "application/json",
+              upsert: true,
+            },
+          );
 
-      if (expectedMarkerError) throw expectedMarkerError;
+        if (expectedMarkerError) throw expectedMarkerError;
+      }
+
+      const { error: markerError } = await supabase.storage
+        .from(UPLOAD_BUCKET)
+        .upload(markerPath, Buffer.from(JSON.stringify(manifest)), {
+          contentType: "application/json",
+          upsert: false,
+        });
+
+      if (markerError) {
+        if (!classifyPhoneStorageError(markerError).conflict) throw markerError;
+        // Concurrent identical requests share the first immutable manifest.
+        manifest = await readCompletion(sessionId);
+        if (!matches(manifest))
+          return res.status(409).json({
+            success: false,
+            complete: false,
+            error: "Confirmation does not match saved photos",
+          });
+      }
     }
 
-    const { error: markerError } = await supabase.storage
-      .from(UPLOAD_BUCKET)
-      .upload(
-        markerPath,
-        Buffer.from(
-          JSON.stringify({
-            complete: true,
-            completedAt: new Date().toISOString(),
-            count: manifestFiles.length,
-            expectedCount,
-            files: manifestFiles,
-          }),
-        ),
-        {
-          contentType: "application/json",
-          upsert: true,
-        },
-      );
-
-    if (markerError) throw markerError;
-
     if (req.query.v === "2") {
-      const sessionMarker = await readV2Session(sessionId);
-      if (!sessionMarker) {
-        throw new Error("Upload session marker disappeared");
+      const sessionMarker = await expireV2SessionIfNeeded(
+        sessionId,
+        await readV2Session(sessionId),
+      );
+      if (
+        !sessionMarker ||
+        sessionMarker.status === "cancelled" ||
+        sessionMarker.status === "expired"
+      ) {
+        return res.status(410).json({
+          success: false,
+          v: 2,
+          status: sessionMarker?.status || "expired",
+        });
       }
-      sessionMarker.status = "complete";
-      sessionMarker.expectedCount = expectedCount;
-      const completedAt = new Date();
-      sessionMarker.lastActivityAt = completedAt.toISOString();
-      sessionMarker.expiresAt = new Date(
-        completedAt.getTime() + V2_COMPLETED_RECOVERY_MS,
-      ).toISOString();
-      await writeV2Session(sessionId, sessionMarker);
+      if (
+        sessionMarker.expectedCount !== null &&
+        sessionMarker.expectedCount !== expectedCount
+      )
+        return res.status(409).json({
+          success: false,
+          complete: false,
+          error: "Photo count changed",
+        });
+      if (sessionMarker.status !== "complete") {
+        sessionMarker.status = "complete";
+        sessionMarker.expectedCount = expectedCount;
+        const completedAt = new Date(manifest.completedAt);
+        sessionMarker.lastActivityAt = completedAt.toISOString();
+        sessionMarker.expiresAt = new Date(
+          completedAt.getTime() + V2_COMPLETED_RECOVERY_MS,
+        ).toISOString();
+        await writeV2Session(sessionId, sessionMarker);
+      }
     }
 
     res.status(200).json({
@@ -1015,19 +1211,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
       files: manifestFiles,
     });
   } catch (error: any) {
-    console.error("Complete error:", error);
-    reportCriticalEndpointFailure({
-      error: error,
-      endpoint: "/api/phone-upload",
-      status: 500,
-      details: {
-        action: "complete",
-        sessionId,
-        error: error?.message || String(error),
-        errorName: error?.name,
-      },
-    });
-    res.status(500).json({ error: error.message });
+    return sendServiceError(res, error, "complete", sessionId);
   }
 }
 

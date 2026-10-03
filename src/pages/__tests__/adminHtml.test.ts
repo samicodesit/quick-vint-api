@@ -494,6 +494,7 @@ function buildAdminHarness() {
 
   return {
     context: context as typeof context & {
+      getInitialAdminView: () => string;
       loadView: (view: string) => Promise<void>;
       showLogDetails: (id: string) => Promise<void>;
       showLogImagePreview: (logId: string, index: number) => void;

@@ -16,10 +16,10 @@ export function renderIncidentEmail(payload: any) {
   const context = sanitizeContext(payload.example?.context, false);
   const link = `https://autolister.app/admin/reports?incident=${encodeURIComponent(payload.incidentId)}`;
   const subject = `AutoLister issue: ${redact(payload.event, 80).replace(/[\r\n]/g, " ")}`;
-  const body = `<p><strong>${escape(payload.event)}</strong></p>
+  const body = `<div style="overflow-wrap:anywhere;word-break:break-word"><p><strong>${escape(payload.event)}</strong></p>
     <p>Stage: ${escape(payload.stage)}<br>Severity: ${escape(payload.severity)}<br>Version: ${escape(payload.release)}<br>Market: ${escape(payload.market)}</p>
     <p>${escape(context.message || context.error || context.errorCode || "Open the issue for available evidence.")}</p>
-    <p><a href="${escape(link)}" style="color:#007782;text-decoration:underline">Open this issue in AutoLister</a></p>`;
+    <p><a href="${escape(link)}" style="color:#007782;text-decoration:underline">Open this issue in AutoLister</a></p></div>`;
   return {
     from: "AutoLister AI Alerts <alerts@autolister.app>",
     to: "samicodesit@gmail.com",

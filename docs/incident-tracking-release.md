@@ -1,7 +1,8 @@
 # Incident tracking release
 
-Status: backend and website deployed on 3 October 2026. Production is on
-`aa2128daa73db553126f576c1a2e12a46315969d`. The additive migration was applied
+Status: backend and website deployed on 3 October 2026, with implementation
+and alert wrapping through `aa2128daa73db553126f576c1a2e12a46315969d` and subsequent
+privacy and queue-concurrency follow-ups. The additive migration was applied
 to AutoLister's `jqloiovdwjaornnfvmyu` project before deployment. Extension store
 submission remains a separate release step.
 Phone reporting no longer depends on owner registration. Missing registration and
@@ -98,6 +99,15 @@ is not the same as the logical JSON limit. Deletes do not immediately shrink
 physical files; normal PostgreSQL vacuum/reuse still applies.
 
 ## Local verification
+
+The production push gate caught an additional queue overlap after an earlier full
+suite passed. A flush requested while another flush was reading an old account
+could be coalesced without rechecking the new identity, delaying delivery until an
+alarm. The shared transport now remembers concurrent flush requests and rechecks
+within its existing eight-batch bound. A deterministic regression failed before
+the fix and passed after it. A second regression confirms a newly queued critical
+event can deliver while an earlier failure retains its retry backoff. Ten
+consecutive real-browser restart cases passed. No product action is retried.
 
 - Frontend: the final complete local suite passed all 66 unit tests and all 177
   browser cases, with one explicitly opt-in incident reproduction skipped. The

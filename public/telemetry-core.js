@@ -6,6 +6,7 @@
   const RETRY_MS = [60000, 300000, 900000, 1800000];
   function createQueue({ storage, identity, send, now = Date.now }) {
     let flushing;
+    let flushRequested = false;
     function prune(state) {
       state.events ||= [];
       state.dropped ||= 0;
@@ -162,6 +163,12 @@
       }
     }
     function flush() {
+      if (flushing) {
+        // An auth/activity signal may arrive after the active flush read its
+        // identity or queue. Preserve it instead of silently joining stale work.
+        flushRequested = true;
+        return flushing;
+      }
       if (!flushing)
         flushing = (async () => {
           const combined = {
@@ -171,17 +178,20 @@
           };
           // Drain bounded batches, including a credential change at auth handoff.
           // Every iteration re-reads identity; failed entries retain their backoff.
-          for (let batch = 0; batch < 8; batch++) {
-            const result = await deliver();
-            combined.acknowledgedIds.push(...result.acknowledgedIds);
-            Object.assign(combined.reports, result.reports || {});
-            combined.delivered ||= result.delivered;
-            if (!result.delivered) break;
+          try {
+            for (let batch = 0; batch < 8; batch++) {
+              flushRequested = false;
+              const result = await deliver();
+              combined.acknowledgedIds.push(...result.acknowledgedIds);
+              Object.assign(combined.reports, result.reports || {});
+              combined.delivered ||= result.delivered;
+              if (!result.delivered && !flushRequested) break;
+            }
+            return combined;
+          } finally {
+            flushing = null;
           }
-          return combined;
-        })().finally(() => {
-          flushing = null;
-        });
+        })();
       return flushing;
     }
     return { enqueue, flush };

@@ -16,7 +16,7 @@
     value ? new Date(value).toLocaleString() : "Unknown";
   const uuid = /^[a-f\d-]{36}$/i;
   function summary(issue, includeButton = true) {
-    return `<article class="card" style="margin-bottom:12px;padding:16px">
+    return `<article class="card" style="margin-bottom:12px;padding:16px;overflow-wrap:anywhere">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>${escape(issue.event)}</strong><span>${escape(issue.severity)} · ${escape(issue.status)}</span></div>
       <p>${escape(issue.stage)} · ${escape(issue.release)} · ${escape(issue.market)} · ${Number(issue.occurrences) || 0} occurrences</p>
       <p>First: ${escape(date(issue.first_seen))}<br>Last: ${escape(date(issue.last_seen))}<br>Notification: ${escape(issue.notification_status)}</p>
@@ -51,7 +51,7 @@
     const data = await root.fetchAPI(`/api/admin?${params}`, { force: true });
     container.innerHTML = `<div class="view-brief"><h2>${filter.userId ? "Recent issues for this user" : filter.clientId ? "Recent issues for this browser" : "Issues"}</h2>
       <p>${data.processingPaused ? "Incident collection and alerts are paused. " : ""}Last 24 hours. ${filter.clientId ? "Browser correlation is unverified." : "Detected failures and explicit listing-tool reports."}</p>
-      <label>Status <select data-issue-status><option value="open">Open and acknowledged</option><option value="resolved">Resolved</option><option value="all">All</option></select></label>
+      <label>Status <select class="filter-input" data-issue-status><option value="open">Open and acknowledged</option><option value="resolved">Resolved</option><option value="all">All</option></select></label>
       <button class="btn-secondary" data-issue-refresh>Refresh</button>${!filter.userId && !filter.clientId ? healthView(data.health) : ""}</div>
       <div data-issue-list>${(data.issues || []).map((issue) => summary(issue)).join("") || '<p class="empty-state">No issues match this view.</p>'}</div>
       ${data.nextCursor ? '<button class="btn-secondary" data-issue-next>Next 50</button>' : ""}`;
@@ -90,7 +90,7 @@
       root.openModal(
         "Issue details",
         `<div id="issue-detail-content">${summary(issue, false)}
-        <div style="display:flex;gap:8px"><button class="btn-secondary" data-state="acknowledged">Acknowledge</button><button class="btn-secondary" data-state="resolved">Resolve</button><button class="btn-secondary" data-state="open">Reopen</button></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-secondary" data-state="acknowledged">Acknowledge</button><button class="btn-secondary" data-state="resolved">Resolve</button><button class="btn-secondary" data-state="open">Reopen</button></div>
         <p>${escape(issue.notification_error || "")}</p><h3>Evidence</h3>
         ${(issue.examples || []).map((example) => `<section class="card" style="padding:12px;margin:12px 0"><p>${escape(date(example.occurredAt))} · ${example.identityVerified ? "Verified identity" : example.trustedSource ? "Server context" : "Unverified correlation"} · ${escape(example.source)}</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${escape(JSON.stringify(example.context, null, 2))}</pre></section>`).join("") || "<p>Diagnostic evidence has expired.</p>"}
         <h3>Related operations</h3>${data.moreOperations ? "<p>Showing the 50 most recent operations. Use account logs for older activity.</p>" : ""}${(data.operations || []).map((operation) => `<section class="card" style="padding:12px;margin:12px 0"><p>${escape(operation.operation_id)}<br>${escape(operation.stage)} · ${escape(date(operation.updated_at))}</p><pre style="white-space:pre-wrap">${escape(JSON.stringify(operation.progress, null, 2))}</pre>${operation.user_id ? `<button class="btn-secondary" data-user-logs="${escape(operation.user_id)}">Account logs</button> <button class="btn-secondary" data-user-account="${escape(operation.user_id)}">Account</button>` : ""}</section>`).join("") || "<p>No linked operation.</p>"}</div>`,

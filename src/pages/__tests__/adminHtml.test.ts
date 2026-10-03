@@ -535,6 +535,20 @@ function buildAdminHarness() {
 }
 
 describe("admin HTML", () => {
+  it("defaults to Users while preserving explicit admin deep links", () => {
+    const { context } = buildAdminHarness();
+    context.window.location.pathname = "/admin";
+    context.window.location.hash = "";
+    expect(context.getInitialAdminView()).toBe("users");
+    context.window.location.pathname = "/admin/unknown";
+    expect(context.getInitialAdminView()).toBe("users");
+    context.window.location.pathname = "/admin/logs";
+    expect(context.getInitialAdminView()).toBe("logs");
+    context.window.location.pathname = "/admin";
+    context.window.location.hash = "#reports";
+    expect(context.getInitialAdminView()).toBe("reports");
+  });
+
   it("labels MRR as Stripe-backed in the costs view", async () => {
     const { context, content } = buildAdminHarness();
 

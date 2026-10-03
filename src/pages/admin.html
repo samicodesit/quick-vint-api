@@ -1957,6 +1957,40 @@
             color: #ffffff;
             border-color: #111827;
         }
+        @media (max-width: 768px) {
+            .mobile-bottom-nav {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                grid-auto-flow: row;
+                overflow-x: visible;
+                gap: 0.4rem;
+                padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+            }
+            .mobile-bottom-btn, .btn-primary, .btn-secondary, .mobile-menu-btn,
+            .modal-header button, .segment-btn { min-height: 44px; }
+            .modal-header button { min-width: 44px; }
+            .filter-input { min-height: 44px; font-size: 16px; min-width: 0; }
+            .users-brief { display: none; }
+            .users-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .users-toolbar input, .users-toolbar select:last-child { grid-column: 1 / -1; }
+            .segmented-control[aria-label="User segments"] {
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: 0.25rem;
+            }
+            .segmented-control[aria-label="User segments"] .segment-btn {
+                min-width: 0;
+                padding: 0.4rem 0.25rem;
+                white-space: normal;
+                font-size: 0.75rem;
+            }
+            .sidebar { visibility: hidden; }
+            .sidebar.mobile-open { visibility: visible; }
+            .modal-panel { width: calc(100% - 1rem); max-height: calc(100dvh - 2rem); min-width: 0; }
+            .modal-header { flex-shrink: 0; }
+            .modal-body { min-height: 0; min-width: 0; overscroll-behavior: contain; }
+            .modal-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+            .mobile-card, .modal-body { overflow-wrap: anywhere; }
+        }
     </style>
 </head>
 
@@ -2105,7 +2139,7 @@
         <main class="main-content">
             <header class="top-bar">
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu" aria-controls="sidebar" aria-expanded="false">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -2114,13 +2148,13 @@
                         </svg>
                     </button>
                     <div class="page-heading">
-                        <h2 id="pageTitle" class="page-title">Logs</h2>
-                        <div id="pageSubtitle" class="page-subtitle">Raw generation, system, and event logs for debugging user problems.</div>
+                        <h2 id="pageTitle" class="page-title">Users</h2>
+                        <div id="pageSubtitle" class="page-subtitle">Accounts, usage limits, review email eligibility, and support actions.</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span id="lastUpdated" class="text-sm text-muted" style="display: none;">Updated just now</span>
-                    <button onclick="openPreviewHub()" class="btn-secondary" style="width: auto; padding: 0.5rem 1rem;">
+                    <button onclick="openPreviewHub()" aria-label="Open previews" class="btn-secondary" style="width: auto; padding: 0.5rem 1rem;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" style="margin-right: 0.5rem;">
                             <rect x="3" y="3" width="7" height="7"></rect>
@@ -2130,7 +2164,7 @@
                         </svg>
                         <span class="hide-mobile">Previews</span>
                     </button>
-                    <button onclick="refreshData()" class="btn-primary" style="width: auto; padding: 0.5rem 1rem;">
+                    <button onclick="refreshData()" aria-label="Refresh current view" class="btn-primary" style="width: auto; padding: 0.5rem 1rem;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" style="margin-right: 0.5rem;">
                             <polyline points="23 4 23 10 17 10"></polyline>
@@ -2148,13 +2182,10 @@
         </main>
 
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-            <a class="mobile-bottom-btn" data-view="costs" href="/admin/costs" onclick="return handleAdminNav(event, 'costs')">Costs</a>
+            <a class="mobile-bottom-btn active" data-view="users" href="/admin/users" onclick="return handleAdminNav(event, 'users')">Users</a>
             <a class="mobile-bottom-btn" data-view="reports" href="/admin/reports" onclick="return handleAdminNav(event, 'reports')">Issues</a>
-            <a class="mobile-bottom-btn" data-view="acquisition" href="/admin/acquisition" onclick="return handleAdminNav(event, 'acquisition')">Acquisition</a>
-            <a class="mobile-bottom-btn active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">Logs</a>
-            <a class="mobile-bottom-btn" data-view="users" href="/admin/users" onclick="return handleAdminNav(event, 'users')">Users</a>
-            <a class="mobile-bottom-btn" data-view="emails" href="/admin/emails" onclick="return handleAdminNav(event, 'emails')">Emails</a>
-            <a class="mobile-bottom-btn" href="/ui-components">Previews</a>
+            <a class="mobile-bottom-btn" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">Logs</a>
+            <button class="mobile-bottom-btn" onclick="toggleMobileMenu()" aria-label="More admin pages" aria-controls="sidebar" aria-expanded="false">More</button>
         </nav>
     </div>
 
@@ -2163,10 +2194,10 @@
 
     <!-- Modal -->
     <div id="modalBackdrop" class="modal-backdrop">
-        <div class="modal-panel">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
             <div class="modal-header">
                 <h3 id="modalTitle" class="card-title">Details</h3>
-                <button onclick="closeModal()"
+                <button onclick="closeModal()" aria-label="Close details"
                     style="background: none; border: none; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
             <div id="modalBody" class="modal-body"></div>
@@ -2226,7 +2257,7 @@
             const hashView = window.location.hash.replace('#', '');
             if (ADMIN_VIEWS.includes(hashView)) return hashView;
 
-            return 'logs';
+            return 'users';
         }
 
         function getCurrentUrlSearchParams() {
@@ -2392,7 +2423,8 @@
         }
 
         function switchView(viewName, options = {}) {
-            if (!ADMIN_VIEWS.includes(viewName)) viewName = 'logs';
+            if (!ADMIN_VIEWS.includes(viewName)) viewName = 'users';
+            if (window.innerWidth <= 768) toggleMobileMenu(false);
             if (state.isTransitioning || state.currentView === viewName) return;
 
             state.currentView = viewName;
@@ -2402,11 +2434,6 @@
                 history.pushState(null, '', nextPath);
             } else if (options.replace && window.location.pathname !== nextPath) {
                 history.replaceState(null, '', nextPath);
-            }
-
-            // Close mobile menu if open
-            if (window.innerWidth <= 768) {
-                toggleMobileMenu(false);
             }
 
             updateNavigationState(viewName);
@@ -2420,7 +2447,7 @@
             });
 
             document.querySelectorAll('.mobile-bottom-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.view === viewName);
+                btn.classList.toggle('active', btn.dataset.view ? btn.dataset.view === viewName : !['users', 'reports', 'logs'].includes(viewName));
             });
 
             const routeMeta = getRouteMeta(viewName);
@@ -2466,7 +2493,7 @@
                     loading: 'Loading rendered page preview...'
                 }
             };
-            return routes[viewName] || routes.logs;
+            return routes[viewName] || routes.users;
         }
 
         window.addEventListener('popstate', () => {
@@ -2494,6 +2521,9 @@
             const overlay = document.getElementById('mobileOverlay');
 
             const nextState = forceState !== undefined ? forceState : !sidebar.classList.contains('mobile-open');
+            document.querySelectorAll('[aria-controls="sidebar"]').forEach(button => {
+                button.setAttribute('aria-expanded', String(nextState));
+            });
 
             if (nextState) {
                 sidebar.classList.add('mobile-open');
@@ -4109,7 +4139,7 @@
             ];
 
             const usersHtml = `
-                <div class="view-brief">
+                <div class="view-brief users-brief">
                     <div class="view-brief-top">
                         <div>
                             <div class="view-brief-title">Users are the account workbench</div>
@@ -4130,15 +4160,15 @@
                 </div>
 
                 <div class="users-toolbar">
-                    <input type="search" class="filter-input" placeholder="Search email or user id" value="${escapeAttribute(state.usersSearch)}" oninput="queueUsersSearch(this.value)">
-                    <select class="filter-input" onchange="setUsersFilter('usersTier', this.value)">
+                    <input type="search" class="filter-input" aria-label="Search users" placeholder="Search email or user id" value="${escapeAttribute(state.usersSearch)}" oninput="queueUsersSearch(this.value)">
+                    <select class="filter-input" aria-label="Plan tier" onchange="setUsersFilter('usersTier', this.value)">
                         ${renderOption('all', 'All tiers', state.usersTier)}
                         ${renderOption('free', 'Free', state.usersTier)}
                         ${renderOption('starter', 'Starter', state.usersTier)}
                         ${renderOption('pro', 'Pro', state.usersTier)}
                         ${renderOption('business', 'Business', state.usersTier)}
                     </select>
-                    <select class="filter-input" onchange="setUsersFilter('usersStatus', this.value)">
+                    <select class="filter-input" aria-label="Subscription status" onchange="setUsersFilter('usersStatus', this.value)">
                         ${renderOption('all', 'All statuses', state.usersStatus)}
                         ${renderOption('active', 'Active', state.usersStatus)}
                         ${renderOption('canceling', 'Canceling', state.usersStatus)}
@@ -4146,7 +4176,7 @@
                         ${renderOption('canceled', 'Canceled', state.usersStatus)}
                         ${renderOption('unknown', 'Unknown', state.usersStatus)}
                     </select>
-                    <select class="filter-input" onchange="setUsersFilter('usersSort', this.value)">
+                    <select class="filter-input" aria-label="Sort users" onchange="setUsersFilter('usersSort', this.value)">
                         ${renderOption('created_desc', 'Newest first', state.usersSort)}
                         ${renderOption('active_desc', 'Recently active', state.usersSort)}
                         ${renderOption('usage_desc', 'Highest usage', state.usersSort)}

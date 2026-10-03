@@ -1,6 +1,11 @@
+import { randomUUID } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
-import { Resend } from "resend";
+import {
+  continueIncidentWork,
+  captureAcceptedException,
+} from "../../utils/incidents/service";
+import { deliverPendingNotifications } from "../../utils/incidents/notifications";
 import { ApiLogger } from "../../utils/apiLogger";
 import { detectAndPauseDuplicateIpAccount } from "../../utils/duplicateIpAutoPause";
 import { supabase } from "../../utils/supabaseClient";
@@ -10,6 +15,8 @@ import {
 } from "../../utils/aiStyleLearning";
 import { suggestAiStyle } from "../../utils/aiStyleLearner";
 import { FREE_LIFETIME_LIMIT, getEffectiveTier } from "../../utils/tierConfig";
+import { ingestEnvelope } from "../../utils/incidents/ingestion";
+import { isRegisteredBusiness, redact } from "../../utils/incidents/contract";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
@@ -23,7 +30,10 @@ const allowedOrigins = rawOrigins
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
-    if (incomingOrigin === "https://autolister.app")
+    if (
+      incomingOrigin === "https://autolister.app" ||
+      incomingOrigin === "chrome-extension://mommklhpammnlojjobejddmidmdcalcl"
+    )
       return callback(null, true);
     if (allowedOrigins.includes(incomingOrigin)) return callback(null, true);
     if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
@@ -34,33 +44,6 @@ const cors = Cors({
 });
 
 const UNINSTALL_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-async function sendListingReportEmail(item: any, userEmail?: string) {
-  const context =
-    item.context && typeof item.context === "object" ? item.context : {};
-  const category = String(context.category || "other")
-    .replace(/[\r\n]/g, " ")
-    .slice(0, 80);
-  const result = await resend.emails.send({
-    from: "AutoLister AI Alerts <alerts@autolister.app>",
-    to: "samicodesit@gmail.com",
-    subject: `Listing report: ${category}`,
-    text: JSON.stringify(
-      {
-        ...context,
-        userEmail: userEmail || null,
-        plan: item.plan,
-        page: item.page,
-        extensionVersion: item.extensionVersion,
-      },
-      null,
-      2,
-    ),
-  });
-  if (result.error) throw new Error(result.error.message);
-}
-
 function editExample(item: any) {
   const context = item?.context || {};
   const fields = [
@@ -335,7 +318,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const body = parseBody(req.body) as Record<string, any>;
   const eventItems = normalizeEventItems(body);
-  if (!eventItems.length) {
+  if (!eventItems.length && body.schemaVersion !== 2) {
     return res.status(400).json({ error: "Missing event name" });
   }
 
@@ -353,83 +336,131 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     userEmail = user?.email;
   }
 
-  if (!userId) {
-    const publicIdentity = await resolvePublicUninstallUser(eventItems);
-    userId = publicIdentity.userId;
-    userEmail = publicIdentity.userEmail;
-  }
-
-  const hasUninstallOpenEvent = eventItems.some((item) =>
-    Boolean(getUninstallOpenFingerprint(item, userId)),
-  );
-  const recentUninstallOpenFingerprints = hasUninstallOpenEvent
-    ? await getRecentUninstallOpenFingerprints(userId)
-    : new Set<string>();
-  const currentBatchUninstallOpenFingerprints = new Set<string>();
-  const loggableEventItems = eventItems.filter((item) => {
-    const fingerprint = getUninstallOpenFingerprint(item, userId);
-    if (!fingerprint) return true;
-    if (
-      recentUninstallOpenFingerprints.has(fingerprint) ||
-      currentBatchUninstallOpenFingerprints.has(fingerprint)
-    ) {
-      return false;
-    }
-    currentBatchUninstallOpenFingerprints.add(fingerprint);
-    return true;
-  });
-
-  if (!loggableEventItems.length) {
-    return res.status(204).end();
-  }
-
-  const metadata = ApiLogger.extractRequestMetadata(req);
-  if (
-    userId &&
-    userEmail &&
-    metadata.ipAddress &&
-    loggableEventItems.some((item) =>
-      ["auth_success", "listing_tools_ready"].includes(item.event),
+  let loggableEventItems: any[] =
+    body.schemaVersion === 2 ? body.events : eventItems;
+  if (body.schemaVersion !== 2) {
+    const publicIdentity = !userId
+      ? await resolvePublicUninstallUser(eventItems)
+      : {};
+    const recent = eventItems.some(
+      (item) => item.event === "extension_uninstalled",
     )
-  ) {
-    try {
-      await detectAndPauseDuplicateIpAccount({
-        userId,
-        email: userEmail,
-        ipAddress: metadata.ipAddress,
-        source: "events_track",
-      });
-    } catch (error) {
-      console.error("Duplicate IP auto-pause check failed:", error);
-    }
+      ? await getRecentUninstallOpenFingerprints(
+          userId || publicIdentity.userId,
+        )
+      : new Set<string>();
+    const seen = new Set<string>();
+    loggableEventItems = eventItems
+      .filter((item) => {
+        const fingerprint = getUninstallOpenFingerprint(
+          item,
+          userId || publicIdentity.userId,
+        );
+        if (!fingerprint) return true;
+        if (recent.has(fingerprint) || seen.has(fingerprint)) return false;
+        seen.add(fingerprint);
+        return true;
+      })
+      .map((item) => ({
+        ...item,
+        id: randomUUID(),
+        occurredAt: new Date().toISOString(),
+      }));
+    if (!loggableEventItems.length) return res.status(204).end();
   }
-
-  await ApiLogger.logRequests(
-    loggableEventItems.map((item) => ({
-      ...metadata,
-      userId,
-      userEmail,
-      endpoint: `/event/${item.event}`,
-      responseStatus: 204,
-      fullRequestBody: item,
-    })),
+  const metadata = ApiLogger.extractRequestMetadata(req);
+  const result = await ingestEnvelope(
+    { schemaVersion: 2, events: loggableEventItems },
+    authenticatedUserId,
+    (raw, context) => {
+      const retained =
+        isRegisteredBusiness(raw.event) ||
+        [
+          "generate_request",
+          "generate_success",
+          "generate_limit_hit",
+          "auth_success",
+          "listing_tools_ready",
+        ].includes(raw.event);
+      if (!retained || ApiLogger.isInternalLogExcludedEmail(userEmail))
+        return null;
+      return {
+        user_email: userEmail,
+        endpoint: `/event/${raw.event}`,
+        request_method: metadata.requestMethod,
+        response_status: 204,
+        user_agent: metadata.userAgent,
+        origin: metadata.origin,
+        ip_address: metadata.ipAddress,
+        full_request_body: {
+          event: raw.event,
+          source: raw.source,
+          page: String(raw.page || "")
+            .split(/[?#]/)[0]
+            .slice(0, 250),
+          plan: raw.plan,
+          extensionVersion: redact(raw.extensionVersion, 80),
+          utm: Object.fromEntries(
+            [
+              "utm_source",
+              "utm_medium",
+              "utm_campaign",
+              "utm_content",
+              "utm_term",
+            ]
+              .filter((key) => typeof raw.utm?.[key] === "string")
+              .map((key) => [key, redact(raw.utm[key], 120)]),
+          ),
+          context,
+        },
+      };
+    },
+    async (raw) => {
+      const legacy = await resolvePublicUninstallUser(normalizeEventItems(raw));
+      return legacy.userId;
+    },
   );
-
-  for (const item of loggableEventItems) {
-    if (!authenticatedUserId || item.event !== "listing_report_submitted")
-      continue;
-    try {
-      await sendListingReportEmail(item, userEmail);
-    } catch (error) {
-      console.error("Failed to email listing report:", error);
+  const accepted = result.accepted || [];
+  if (authenticatedUserId) {
+    if (
+      userEmail &&
+      metadata.ipAddress &&
+      accepted.some((item) =>
+        ["auth_success", "listing_tools_ready"].includes(item.event),
+      )
+    ) {
+      try {
+        await detectAndPauseDuplicateIpAccount({
+          userId: authenticatedUserId,
+          email: userEmail,
+          ipAddress: metadata.ipAddress,
+          source: "events_track",
+        });
+      } catch {
+        /* Fail-open security enrichment. */
+      }
     }
-  }
-
-  if (userId) {
     await Promise.allSettled(
-      loggableEventItems.map((item) => maybeLearnAiStyle(userId!, item)),
+      accepted.map((item) => maybeLearnAiStyle(authenticatedUserId!, item)),
     );
   }
-
-  return res.status(204).end();
+  if (accepted.some((item) => result.body.reports[item.id])) {
+    continueIncidentWork(deliverPendingNotifications(5));
+    for (const item of accepted) {
+      const incidentId = result.body.reports[item.id];
+      if (!incidentId || !item.identityVerified || !item.context?.stack)
+        continue;
+      const exception = new Error(item.context.message || item.event);
+      exception.name = item.context.errorName || "ClientError";
+      exception.stack = item.context.stack;
+      continueIncidentWork(captureAcceptedException(exception, incidentId));
+    }
+  }
+  if (result.status === 503) res.setHeader("Retry-After", "60");
+  if (body.schemaVersion !== 2 && result.status === 200) {
+    if (result.body.rejections.length)
+      return res.status(503).json({ error: "Event acceptance incomplete" });
+    return res.status(204).end();
+  }
+  return res.status(result.status).json(result.body);
 }

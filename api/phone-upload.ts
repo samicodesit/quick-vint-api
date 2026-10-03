@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Busboy from "busboy";
 import Cors from "cors";
+import { registerPhoneEvidenceOwner } from "../utils/incidents/phone";
+import { continueIncidentWork } from "../utils/incidents/service";
 import { supabase } from "../utils/supabaseClient";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 
@@ -164,7 +166,21 @@ async function readV2Session(sessionId: string) {
     .download(`${sessionId}/${SESSION_MARKER}`);
   if (error || !data) return null;
   try {
-    return JSON.parse(await data.text()) as V2SessionMarker;
+    const marker = JSON.parse(await data.text()) as V2SessionMarker;
+    if (
+      marker.v === 2 &&
+      typeof marker.ownerId === "string" &&
+      /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(
+        marker.ownerId,
+      )
+    ) {
+      // Reuse the trusted record already read for product work. No extra
+      // storage read or diagnostic network wait enters the response path.
+      continueIncidentWork(
+        registerPhoneEvidenceOwner(sessionId, marker.ownerId),
+      );
+    }
+    return marker;
   } catch {
     return null;
   }
@@ -440,6 +456,8 @@ async function handleOpenV2(req: VercelRequest, res: VercelResponse) {
   if (error) {
     return res.status(409).json({ error: "Upload session already exists" });
   }
+  // Keep the serverless task alive without holding the customer's response.
+  continueIncidentWork(registerPhoneEvidenceOwner(sessionId, user.id));
   return res.status(201).json({
     success: true,
     v: 2,
@@ -544,6 +562,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("List error:", error);
     reportCriticalEndpointFailure({
+      error: error,
       endpoint: "/api/phone-upload",
       status: 500,
       details: {
@@ -717,6 +736,7 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
     } catch (error: any) {
       console.error("Upload error:", error);
       reportCriticalEndpointFailure({
+        error: error,
         endpoint: "/api/phone-upload",
         status: 500,
         details: {
@@ -837,6 +857,7 @@ async function handlePrepare(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("Prepare error:", error);
     reportCriticalEndpointFailure({
+      error: error,
       endpoint: "/api/phone-upload",
       status: 500,
       details: {
@@ -996,6 +1017,7 @@ async function handleComplete(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("Complete error:", error);
     reportCriticalEndpointFailure({
+      error: error,
       endpoint: "/api/phone-upload",
       status: 500,
       details: {

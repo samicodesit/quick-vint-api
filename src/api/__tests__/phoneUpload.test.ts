@@ -8,9 +8,16 @@ const createSignedUrlsMock = vi.fn();
 const downloadMock = vi.fn();
 const removeMock = vi.fn();
 const getUserMock = vi.fn();
+const rpcMock = vi.fn();
+const continueWorkMock = vi.fn();
+
+vi.mock("../../../utils/incidents/service", () => ({
+  continueIncidentWork: continueWorkMock,
+}));
 
 vi.mock("../../../utils/supabaseClient", () => ({
   supabase: {
+    rpc: rpcMock,
     storage: {
       from: vi.fn(() => ({
         list: listMock,
@@ -174,8 +181,108 @@ function mockV2Session(
 }
 
 describe("phone upload endpoint", () => {
+  it("repairs missing diagnostic ownership from a stored v2 marker without waiting", async () => {
+    const sessionId = "550e8400-e29b-41d4-a716-446655440099";
+    const ownerId = "123e4567-e89b-42d3-a456-426614174000";
+    downloadMock.mockResolvedValue({
+      data: new Blob([
+        JSON.stringify({
+          v: 2,
+          ownerId,
+          status: "open",
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        }),
+      ]),
+      error: null,
+    });
+    let finish!: (value: any) => void;
+    rpcMock.mockReturnValue({
+      abortSignal: () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    });
+    const module = await import("../../../api/phone-upload.js");
+    const res = createResponse();
+    await (module as any).default(
+      {
+        method: "GET",
+        headers: {},
+        query: { action: "status", v: "2", sessionId },
+      },
+      res,
+    );
+    expect(res.statusCode).toBe(200);
+    expect(rpcMock).toHaveBeenCalledWith(
+      "incident_register_phone",
+      expect.objectContaining({ p_user_id: ownerId }),
+    );
+    expect(continueWorkMock).toHaveBeenCalledWith(expect.any(Promise));
+    finish?.({ data: true, error: null });
+    await continueWorkMock.mock.calls.at(-1)?.[0];
+  });
   beforeEach(() => {
     vi.clearAllMocks();
+    rpcMock.mockReturnValue({
+      abortSignal: () => Promise.resolve({ error: null }),
+    });
+  });
+
+  it("returns an opened phone session before diagnostic owner registration completes", async () => {
+    let finish!: (value: unknown) => void;
+    const pending = new Promise((resolve) => {
+      finish = resolve;
+    });
+    rpcMock.mockReturnValue({ abortSignal: () => pending });
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+    uploadMock.mockResolvedValue({ error: null });
+    const module = await import("../../../api/phone-upload.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    let timeout: ReturnType<typeof setTimeout>;
+    try {
+      const request = handler(
+        {
+          method: "POST",
+          headers: {
+            authorization: "Bearer valid-token",
+            "content-type": "application/json",
+          },
+          query: {
+            action: "open",
+            v: "2",
+            mode: "single",
+            sessionId: "550e8400-e29b-41d4-a716-446655440000",
+          },
+        } as any,
+        res as any,
+      );
+      await Promise.race([
+        request,
+        new Promise((_, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error("Phone session waited for telemetry")),
+            100,
+          );
+        }),
+      ]);
+      expect(res.statusCode).toBe(201);
+      expect(continueWorkMock).toHaveBeenCalledWith(expect.any(Promise));
+      expect(rpcMock).toHaveBeenCalledWith(
+        "incident_register_phone",
+        expect.objectContaining({
+          p_user_id: "user-1",
+          p_key: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+      );
+    } finally {
+      clearTimeout(timeout!);
+      finish({ error: null });
+    }
+    await continueWorkMock.mock.calls[0]?.[0];
   });
 
   it("opens an authenticated v2 upload session in the existing storage bucket", async () => {

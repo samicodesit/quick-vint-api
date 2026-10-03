@@ -1,4 +1,5 @@
 {
+  "regions": ["fra1"],
   "rewrites": [
     {
       "source": "/admin/:view",
@@ -25,6 +26,10 @@
     {
       "path": "/api/cron/subscription-welcome-retry",
       "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/incident-sweep",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

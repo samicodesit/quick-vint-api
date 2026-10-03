@@ -9,8 +9,8 @@ import {
 } from "vitest";
 
 const USER_ID = "123e4567-e89b-42d3-a456-426614174000";
-const sendMock = vi.fn();
 const logRequestsMock = vi.fn();
+const rpcMock = vi.fn();
 const getUserMock = vi.fn();
 const maybeSingleMock = vi.fn();
 const profileQuery = {
@@ -19,10 +19,14 @@ const profileQuery = {
   maybeSingle: maybeSingleMock,
 };
 
-vi.mock("resend", () => ({
-  Resend: vi.fn(function () {
-    return { emails: { send: sendMock } };
-  }),
+vi.mock("../../../utils/incidents/notifications", () => ({
+  deliverPendingNotifications: vi.fn(async () => ({ sent: 0, failed: 0 })),
+}));
+vi.mock("../../../utils/incidents/service", () => ({
+  continueIncidentWork: (work: Promise<unknown>) => {
+    void work.catch(() => {});
+  },
+  captureAcceptedException: vi.fn(async () => {}),
 }));
 
 vi.mock("../../../utils/apiLogger", () => ({
@@ -30,6 +34,7 @@ vi.mock("../../../utils/apiLogger", () => ({
     extractRequestMetadata: vi.fn(() => ({})),
     logRequest: vi.fn(),
     logRequests: logRequestsMock,
+    isInternalLogExcludedEmail: () => false,
   },
 }));
 
@@ -41,6 +46,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
   supabase: {
     auth: { getUser: getUserMock },
     from: vi.fn(() => profileQuery),
+    rpc: rpcMock,
   },
 }));
 
@@ -134,7 +140,10 @@ describe("events tracking endpoint", () => {
     });
     maybeSingleMock.mockResolvedValue({ data: null, error: null });
     logRequestsMock.mockResolvedValue(undefined);
-    sendMock.mockResolvedValue({ data: { id: "email-1" }, error: null });
+    rpcMock.mockResolvedValue({
+      data: { status: "accepted", incidentId: "issue-1" },
+      error: null,
+    });
   });
 
   afterEach(() => vi.restoreAllMocks());
@@ -157,7 +166,7 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
-  it("emails each accepted listing report", async () => {
+  it("durably accepts authenticated listing reports", async () => {
     const response = await postEvent({
       event: "listing_report_submitted",
       source: "extension_content",
@@ -171,25 +180,85 @@ describe("events tracking endpoint", () => {
     });
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).toHaveBeenCalledOnce();
-    expect(sendMock).toHaveBeenCalledWith({
-      from: "AutoLister AI Alerts <alerts@autolister.app>",
-      to: "samicodesit@gmail.com",
-      subject: "Listing report: tool_bug",
-      text: expect.stringMatching(
-        /"message": "The generated title is empty"[\s\S]*"userEmail": "seller@example.com"[\s\S]*"plan": "pro"[\s\S]*"page": "https:\/\/www\.vinted\.nl\/items\/new"[\s\S]*"extensionVersion": "1\.3\.25"/,
-      ),
-    });
+    expect(rpcMock).toHaveBeenCalledWith(
+      "incident_ingest",
+      expect.objectContaining({
+        p_verified: true,
+        p_user_id: USER_ID,
+        p_event: expect.objectContaining({
+          event: "listing_report_submitted",
+          definition: expect.objectContaining({ kind: "report" }),
+        }),
+      }),
+    );
   });
 
-  it("does not email other tracking events", async () => {
+  it("keeps ordinary product events distinct from reports", async () => {
     const response = await postEvent({
       event: "listing_report_opened",
       context: { source: "listing_tools" },
     });
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(
+      rpcMock.mock.calls.every(
+        ([, args]) =>
+          args.p_event.event !== "listing_report_submitted" ||
+          args.p_verified === false,
+      ),
+    ).toBe(true);
+  });
+
+  it("returns a retryable error when legacy persistence fails", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: "database unavailable" },
+    });
+    const response = await postEvent({ event: "listing_tools_ready" });
+    expect(response.statusCode).toBe(503);
+    expect(response.headers["Retry-After"]).toBe("60");
+  });
+
+  it("returns per-event v2 acknowledgements and explicit rejections", async () => {
+    const id = "a423926a-35a6-4bf5-8027-8ab335c71110";
+    const response = await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id,
+          occurredAt: new Date().toISOString(),
+          event: "fields_apply_failed",
+          source: "extension_content",
+        },
+        { id: "bad", event: "fields_apply_failed" },
+      ],
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({
+      acknowledgedIds: [id],
+      duplicateIds: [],
+      rejections: [{ id: "bad", reason: "invalid_id" }],
+      reports: { [id]: "issue-1" },
+    });
+  });
+
+  it("does not acknowledge v2 events after a database failure", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: "db unavailable" },
+    });
+    const response = await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "a423926a-35a6-4bf5-8027-8ab335c71110",
+          occurredAt: new Date().toISOString(),
+          event: "fields_apply_failed",
+        },
+      ],
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.body).toMatchObject({ acknowledgedIds: [] });
   });
 
   it("does not let anonymous report events trigger email", async () => {
@@ -202,7 +271,13 @@ describe("events tracking endpoint", () => {
     );
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(
+      rpcMock.mock.calls.every(
+        ([, args]) =>
+          args.p_event.event !== "listing_report_submitted" ||
+          args.p_verified === false,
+      ),
+    ).toBe(true);
   });
 
   it("does not treat public uninstall attribution as report authentication", async () => {
@@ -230,25 +305,21 @@ describe("events tracking endpoint", () => {
     );
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(
+      rpcMock.mock.calls.every(
+        ([, args]) =>
+          args.p_event.event !== "listing_report_submitted" ||
+          args.p_verified === false,
+      ),
+    ).toBe(true);
   });
 
-  it("keeps an accepted report successful when Resend fails", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    sendMock.mockResolvedValue({
-      data: null,
-      error: { message: "Resend down" },
-    });
-
+  it("accepts a report independently of notification delivery", async () => {
     const response = await postEvent({
       event: "listing_report_submitted",
       context: { category: "other", message: "Something broke" },
     });
-
     expect(response.statusCode).toBe(204);
-    expect(errorSpy).toHaveBeenCalledWith(
-      "Failed to email listing report:",
-      expect.any(Error),
-    );
+    expect(rpcMock).toHaveBeenCalledOnce();
   });
 });

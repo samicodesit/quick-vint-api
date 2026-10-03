@@ -1957,6 +1957,40 @@
             color: #ffffff;
             border-color: #111827;
         }
+        @media (max-width: 768px) {
+            .mobile-bottom-nav {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                grid-auto-flow: row;
+                overflow-x: visible;
+                gap: 0.4rem;
+                padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+            }
+            .mobile-bottom-btn, .btn-primary, .btn-secondary, .mobile-menu-btn,
+            .modal-header button, .segment-btn { min-height: 44px; }
+            .modal-header button { min-width: 44px; }
+            .filter-input { min-height: 44px; font-size: 16px; min-width: 0; }
+            .users-brief { display: none; }
+            .users-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .users-toolbar input, .users-toolbar select:last-child { grid-column: 1 / -1; }
+            .segmented-control[aria-label="User segments"] {
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: 0.25rem;
+            }
+            .segmented-control[aria-label="User segments"] .segment-btn {
+                min-width: 0;
+                padding: 0.4rem 0.25rem;
+                white-space: normal;
+                font-size: 0.75rem;
+            }
+            .sidebar { visibility: hidden; }
+            .sidebar.mobile-open { visibility: visible; }
+            .modal-panel { width: calc(100% - 1rem); max-height: calc(100dvh - 2rem); min-width: 0; }
+            .modal-header { flex-shrink: 0; }
+            .modal-body { min-height: 0; min-width: 0; overscroll-behavior: contain; }
+            .modal-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+            .mobile-card, .modal-body { overflow-wrap: anywhere; }
+        }
     </style>
 </head>
 
@@ -2022,7 +2056,7 @@
                         <path d="M11.6 14.4 13 20H9.5L8.2 13.6"></path>
                     </svg>
                     <span class="nav-copy">
-                        <span class="nav-label">Reports</span>
+                        <span class="nav-label">Issues</span>
                         <span class="nav-meta">User feedback from listing tools</span>
                     </span>
                 </a>
@@ -2105,7 +2139,7 @@
         <main class="main-content">
             <header class="top-bar">
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu" aria-controls="sidebar" aria-expanded="false">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -2114,13 +2148,13 @@
                         </svg>
                     </button>
                     <div class="page-heading">
-                        <h2 id="pageTitle" class="page-title">Logs</h2>
-                        <div id="pageSubtitle" class="page-subtitle">Raw generation, system, and event logs for debugging user problems.</div>
+                        <h2 id="pageTitle" class="page-title">Users</h2>
+                        <div id="pageSubtitle" class="page-subtitle">Accounts, usage limits, review email eligibility, and support actions.</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span id="lastUpdated" class="text-sm text-muted" style="display: none;">Updated just now</span>
-                    <button onclick="openPreviewHub()" class="btn-secondary" style="width: auto; padding: 0.5rem 1rem;">
+                    <button onclick="openPreviewHub()" aria-label="Open previews" class="btn-secondary" style="width: auto; padding: 0.5rem 1rem;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" style="margin-right: 0.5rem;">
                             <rect x="3" y="3" width="7" height="7"></rect>
@@ -2130,7 +2164,7 @@
                         </svg>
                         <span class="hide-mobile">Previews</span>
                     </button>
-                    <button onclick="refreshData()" class="btn-primary" style="width: auto; padding: 0.5rem 1rem;">
+                    <button onclick="refreshData()" aria-label="Refresh current view" class="btn-primary" style="width: auto; padding: 0.5rem 1rem;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" style="margin-right: 0.5rem;">
                             <polyline points="23 4 23 10 17 10"></polyline>
@@ -2148,13 +2182,10 @@
         </main>
 
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-            <a class="mobile-bottom-btn" data-view="costs" href="/admin/costs" onclick="return handleAdminNav(event, 'costs')">Costs</a>
-            <a class="mobile-bottom-btn" data-view="reports" href="/admin/reports" onclick="return handleAdminNav(event, 'reports')">Reports</a>
-            <a class="mobile-bottom-btn" data-view="acquisition" href="/admin/acquisition" onclick="return handleAdminNav(event, 'acquisition')">Acquisition</a>
-            <a class="mobile-bottom-btn active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">Logs</a>
-            <a class="mobile-bottom-btn" data-view="users" href="/admin/users" onclick="return handleAdminNav(event, 'users')">Users</a>
-            <a class="mobile-bottom-btn" data-view="emails" href="/admin/emails" onclick="return handleAdminNav(event, 'emails')">Emails</a>
-            <a class="mobile-bottom-btn" href="/ui-components">Previews</a>
+            <a class="mobile-bottom-btn active" data-view="users" href="/admin/users" onclick="return handleAdminNav(event, 'users')">Users</a>
+            <a class="mobile-bottom-btn" data-view="reports" href="/admin/reports" onclick="return handleAdminNav(event, 'reports')">Issues</a>
+            <a class="mobile-bottom-btn" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">Logs</a>
+            <button class="mobile-bottom-btn" onclick="toggleMobileMenu()" aria-label="More admin pages" aria-controls="sidebar" aria-expanded="false">More</button>
         </nav>
     </div>
 
@@ -2163,10 +2194,10 @@
 
     <!-- Modal -->
     <div id="modalBackdrop" class="modal-backdrop">
-        <div class="modal-panel">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
             <div class="modal-header">
                 <h3 id="modalTitle" class="card-title">Details</h3>
-                <button onclick="closeModal()"
+                <button onclick="closeModal()" aria-label="Close details"
                     style="background: none; border: none; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
             <div id="modalBody" class="modal-body"></div>
@@ -2186,6 +2217,7 @@
         </div>
     </div>
 
+    <script src="/admin-issues.js"></script>
     <script>
         const ADMIN_VIEWS = ['costs', 'reports', 'acquisition', 'logs', 'users', 'emails', 'ui-pages'];
         // State Management
@@ -2225,7 +2257,7 @@
             const hashView = window.location.hash.replace('#', '');
             if (ADMIN_VIEWS.includes(hashView)) return hashView;
 
-            return 'logs';
+            return 'users';
         }
 
         function getCurrentUrlSearchParams() {
@@ -2391,7 +2423,8 @@
         }
 
         function switchView(viewName, options = {}) {
-            if (!ADMIN_VIEWS.includes(viewName)) viewName = 'logs';
+            if (!ADMIN_VIEWS.includes(viewName)) viewName = 'users';
+            if (window.innerWidth <= 768) toggleMobileMenu(false);
             if (state.isTransitioning || state.currentView === viewName) return;
 
             state.currentView = viewName;
@@ -2401,11 +2434,6 @@
                 history.pushState(null, '', nextPath);
             } else if (options.replace && window.location.pathname !== nextPath) {
                 history.replaceState(null, '', nextPath);
-            }
-
-            // Close mobile menu if open
-            if (window.innerWidth <= 768) {
-                toggleMobileMenu(false);
             }
 
             updateNavigationState(viewName);
@@ -2419,7 +2447,7 @@
             });
 
             document.querySelectorAll('.mobile-bottom-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.view === viewName);
+                btn.classList.toggle('active', btn.dataset.view ? btn.dataset.view === viewName : !['users', 'reports', 'logs'].includes(viewName));
             });
 
             const routeMeta = getRouteMeta(viewName);
@@ -2435,7 +2463,7 @@
                     loading: 'Loading token-based AI cost reporting...'
                 },
                 reports: {
-                    title: 'Reports',
+                    title: 'Issues',
                     subtitle: 'Feedback and complaints submitted from the Vinted listing tools.',
                     loading: 'Loading submitted reports...'
                 },
@@ -2465,7 +2493,7 @@
                     loading: 'Loading rendered page preview...'
                 }
             };
-            return routes[viewName] || routes.logs;
+            return routes[viewName] || routes.users;
         }
 
         window.addEventListener('popstate', () => {
@@ -2493,6 +2521,9 @@
             const overlay = document.getElementById('mobileOverlay');
 
             const nextState = forceState !== undefined ? forceState : !sidebar.classList.contains('mobile-open');
+            document.querySelectorAll('[aria-controls="sidebar"]').forEach(button => {
+                button.setAttribute('aria-expanded', String(nextState));
+            });
 
             if (nextState) {
                 sidebar.classList.add('mobile-open');
@@ -3298,7 +3329,7 @@
             return getLogKind(log) === 'Event' ? 'Anonymous event' : 'No user context';
         }
 
-        function renderLogJourneyAction(log, label = 'Journey') {
+        function renderLogJourneyAction(log, label = 'Issues') {
             const analyticsClientId = getLogAnalyticsClientId(log);
             if (log.user_id) {
                 return `<button class="btn-secondary" onclick="event.stopPropagation(); showUserJourney('${escapeAttribute(log.user_id)}', '${escapeAttribute(encodeURIComponent(log.user_email || ''))}')">${escapeHtml(label)}</button>`;
@@ -3866,129 +3897,8 @@
             }).join('');
         }
 
-        function getReportContextFromLog(log) {
-            const body = log.full_request_body || {};
-            return body.context || {};
-        }
-
-        function getReportCategoryLabel(category) {
-            const labels = {
-                result_quality: 'Generated result',
-                tool_bug: 'Tool bug',
-                billing_account: 'Billing or account',
-                idea: 'Idea or improvement',
-                other: 'Other'
-            };
-            return labels[category] || String(category || 'Other').replaceAll('_', ' ');
-        }
-
-        function renderReportRows(reports) {
-            if (!reports.length) {
-                return '<tr><td colspan="6" class="text-muted">No submitted reports yet.</td></tr>';
-            }
-
-            return reports.map(log => {
-                const context = getReportContextFromLog(log);
-                const message = context.message || '';
-                const category = getReportCategoryLabel(context.category);
-                const details = [
-                    context.titleValue ? `Title: ${context.titleValue}` : '',
-                    Number.isFinite(Number(context.visiblePhotoCount)) ? `${context.visiblePhotoCount} photos` : '',
-                    Number.isFinite(Number(context.descriptionLength)) ? `${context.descriptionLength} desc chars` : '',
-                    context.path || ''
-                ].filter(Boolean).join(' · ');
-
-                return `
-                    <tr onclick="showLogDetails('${escapeAttribute(log.id)}')">
-                        <td>${formatDateTime(log.created_at)}</td>
-                        <td><span class="badge badge-info">${escapeHtml(category)}</span></td>
-                        <td>${getLogActor(log)}</td>
-                        <td style="max-width: 420px; white-space: pre-wrap;">${escapeHtml(message)}</td>
-                        <td class="text-muted">${escapeHtml(details || 'No listing context')}</td>
-                        <td>
-                            <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
-                                ${renderLogJourneyAction(log)}
-                                <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${escapeAttribute(log.id)}')">View</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderReportMobileCards(reports) {
-            if (!reports.length) {
-                return '<div class="mobile-card"><div class="text-muted">No submitted reports yet.</div></div>';
-            }
-
-            return reports.map(log => {
-                const context = getReportContextFromLog(log);
-                const category = getReportCategoryLabel(context.category);
-                return `
-                    <div class="mobile-card" onclick="showLogDetails('${escapeAttribute(log.id)}')">
-                        <div class="mobile-card-header">
-                            <span>${escapeHtml(category)}</span>
-                            <span>${formatDateTime(log.created_at)}</span>
-                        </div>
-                        <div style="margin-top:0.5rem; white-space:pre-wrap;">${escapeHtml(context.message || '')}</div>
-                        <div style="margin-top:0.5rem; color:var(--text-muted); font-size:0.78rem;">${getLogActor(log)}</div>
-                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.75rem;">
-                            ${renderLogJourneyAction(log)}
-                            <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${escapeAttribute(log.id)}')">View</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
         async function renderReports(container) {
-            const params = new URLSearchParams({
-                action: 'view-logs',
-                log_type: 'events',
-                search: 'listing_report_submitted',
-                page: 1,
-                limit: 100
-            });
-            const data = await fetchAPI(`/api/admin?${params}`);
-            const reports = data.logs || [];
-
-            container.innerHTML = `
-                <div class="view-brief">
-                    <div class="view-brief-top">
-                        <div>
-                            <div class="view-brief-title">Reports from the listing tools</div>
-                            <div class="view-brief-copy">These are short feedback and complaint submissions from the report button beside Generate, Phone, and Batch.</div>
-                        </div>
-                        <div class="view-brief-actions">
-                            <button class="btn-secondary" onclick="openLogsForSearch('listing_report_submitted', 'events')">Open raw events</button>
-                            <button class="btn-secondary" onclick="renderReports(document.getElementById('contentArea'))">Refresh</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card log-table">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Category</th>
-                                    <th>User</th>
-                                    <th>Message</th>
-                                    <th>Listing context</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${renderReportRows(reports)}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mobile-cards">
-                        ${renderReportMobileCards(reports)}
-                    </div>
-                </div>
-            `;
+            await globalThis.AutoListerIssues.render(container);
         }
 
         async function renderLogs(container) {
@@ -4080,7 +3990,7 @@
                     <div class="view-brief-top">
                         <div>
                             <div class="view-brief-title">Logs are the forensic stream</div>
-                            <div class="view-brief-copy">${escapeHtml(logPurpose)} Search by email, user id, endpoint, or analytics client id, then jump to the linked journey or user from the row.${state.logsRelatedUserId || state.logsRelatedEmail ? ` Showing logs related to ${escapeHtml(state.logsRelatedEmail || state.logsRelatedUserId)} across account and correlated client activity.` : ''}</div>
+                            <div class="view-brief-copy">${escapeHtml(logPurpose)} Search by email, user id, endpoint, or analytics client id, then jump to the linked issues or user from the row.${state.logsRelatedUserId || state.logsRelatedEmail ? ` Showing logs related to ${escapeHtml(state.logsRelatedEmail || state.logsRelatedUserId)} across account and correlated client activity.` : ''}</div>
                         </div>
                         <div class="view-brief-actions">
                             <button class="btn-secondary" onclick="setLogsQuickFilter('generation', '')">Generation logs</button>
@@ -4192,6 +4102,15 @@
             showLogsRoute();
         }
 
+        function openAccountForIssue(userId) {
+            closeModal();
+            state.usersSearch = userId;
+            state.usersPage = 1;
+            state.usersSegment = 'all';
+            if (state.currentView === 'users') renderUsers(document.getElementById('contentArea'));
+            else switchView('users');
+        }
+
         async function renderUsers(container) {
             const todayRange = getLocalTodayRange();
             const params = new URLSearchParams({
@@ -4220,11 +4139,11 @@
             ];
 
             const usersHtml = `
-                <div class="view-brief">
+                <div class="view-brief users-brief">
                     <div class="view-brief-top">
                         <div>
                             <div class="view-brief-title">Users are the account workbench</div>
-                            <div class="view-brief-copy">Use this page to inspect real customer/account state: plan, usage pressure, latest activity, contact eligibility, review request, reset, pause, and the user journey. Open Logs only when the account needs forensic detail.</div>
+                            <div class="view-brief-copy">Use this page to inspect real customer/account state: plan, usage pressure, latest activity, contact eligibility, review request, reset, pause, and recent issues. Open Logs only when the account needs forensic detail.</div>
                         </div>
                         <div class="view-brief-actions">
                             <button class="btn-secondary" onclick="openUsersSegment('today')">New today</button>
@@ -4241,15 +4160,15 @@
                 </div>
 
                 <div class="users-toolbar">
-                    <input type="search" class="filter-input" placeholder="Search email or user id" value="${escapeAttribute(state.usersSearch)}" oninput="queueUsersSearch(this.value)">
-                    <select class="filter-input" onchange="setUsersFilter('usersTier', this.value)">
+                    <input type="search" class="filter-input" aria-label="Search users" placeholder="Search email or user id" value="${escapeAttribute(state.usersSearch)}" oninput="queueUsersSearch(this.value)">
+                    <select class="filter-input" aria-label="Plan tier" onchange="setUsersFilter('usersTier', this.value)">
                         ${renderOption('all', 'All tiers', state.usersTier)}
                         ${renderOption('free', 'Free', state.usersTier)}
                         ${renderOption('starter', 'Starter', state.usersTier)}
                         ${renderOption('pro', 'Pro', state.usersTier)}
                         ${renderOption('business', 'Business', state.usersTier)}
                     </select>
-                    <select class="filter-input" onchange="setUsersFilter('usersStatus', this.value)">
+                    <select class="filter-input" aria-label="Subscription status" onchange="setUsersFilter('usersStatus', this.value)">
                         ${renderOption('all', 'All statuses', state.usersStatus)}
                         ${renderOption('active', 'Active', state.usersStatus)}
                         ${renderOption('canceling', 'Canceling', state.usersStatus)}
@@ -4257,7 +4176,7 @@
                         ${renderOption('canceled', 'Canceled', state.usersStatus)}
                         ${renderOption('unknown', 'Unknown', state.usersStatus)}
                     </select>
-                    <select class="filter-input" onchange="setUsersFilter('usersSort', this.value)">
+                    <select class="filter-input" aria-label="Sort users" onchange="setUsersFilter('usersSort', this.value)">
                         ${renderOption('created_desc', 'Newest first', state.usersSort)}
                         ${renderOption('active_desc', 'Recently active', state.usersSort)}
                         ${renderOption('usage_desc', 'Highest usage', state.usersSort)}
@@ -4464,7 +4383,7 @@
             const disabledStyle = canSendReview ? '' : 'opacity: 0.55;';
             return `
                 <div style="display:flex; gap: 0.35rem; flex-wrap: wrap;">
-                    <button class="btn-secondary" onclick="showUserJourney('${userId}', '${encodedEmail}')">Journey</button>
+                    <button class="btn-secondary" onclick="showUserJourney('${userId}', '${encodedEmail}')">Issues</button>
                     <button class="btn-secondary" onclick="openLogsForUser('${userId}', '${encodedEmail}', 'all')">Logs</button>
                     <button class="btn-secondary" onclick="openCustomerUsagePage('${encodedEmail}')">Usage page</button>
                     ${reviewAlreadySent ? '' : `<button class="btn-secondary" style="${disabledStyle}" title="${escapeAttribute(reviewTitle)}" onclick="sendReviewRequest('${encodedEmail}', ${canSendReview ? 'true' : 'false'}, '${escapeAttribute(reviewTitle)}')">Review email</button>`}
@@ -4625,12 +4544,14 @@
         // --- Helpers ---
         async function fetchAPI(endpoint, options = {}) {
             const cacheKey = String(endpoint);
-            if (!options.force && state.inflightRequests[cacheKey]) {
+            if (!options.method && !options.force && state.inflightRequests[cacheKey]) {
                 return state.inflightRequests[cacheKey];
             }
 
             const request = fetch(endpoint, {
-                headers: { 'Authorization': `Bearer ${state.secret}` }
+                method: options.method || 'GET',
+                body: options.body,
+                headers: { 'Authorization': `Bearer ${state.secret}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}) }
             }).then(async res => {
                 if (!res.ok) {
                     const error = await res.json().catch(() => ({ error: res.statusText || 'Request failed' }));
@@ -4643,7 +4564,7 @@
                 delete state.inflightRequests[cacheKey];
             });
 
-            state.inflightRequests[cacheKey] = request;
+            if (!options.method) state.inflightRequests[cacheKey] = request;
             return request;
         }
 
@@ -4908,49 +4829,6 @@
             }
         }
 
-        function getJourneyEventTone(event) {
-            if (event.event === 'generate_success') return 'success';
-            if (event.event === 'generate_error' || event.event?.endsWith('_error') || event.response_status >= 400) return 'danger';
-            if (event.event?.endsWith('_retry') || event.event?.endsWith('_fallback')) return 'warning';
-            if (event.event === 'generate_limit_hit' || event.event === 'account_paused_shown' || event.event === 'auth_callback_exit' || event.event === 'generate_missing_photo' || event.event === 'generation_output_edited') return 'warning';
-            if (event.event === 'auth_success' || event.event === 'listing_tools_ready') return 'success';
-            return 'neutral';
-        }
-
-        function getJourneyBadgeClass(tone) {
-            if (tone === 'success') return 'badge-success';
-            if (tone === 'warning') return 'badge-warning';
-            if (tone === 'danger') return 'badge-danger';
-            return 'badge-neutral';
-        }
-
-        function getJourneyContextSummary(event) {
-            const context = event.context || {};
-            const parts = [];
-            if (event.source) parts.push(event.source);
-            if (event.page) parts.push(event.page);
-            if (context.reasonLabel) parts.push(context.reasonLabel);
-            if (context.photoCount !== undefined) parts.push(`${context.photoCount} photos`);
-            if (event.image_count) parts.push(`${event.image_count} images`);
-            if (context.analyticsClientId) parts.push(`cid ${String(context.analyticsClientId).slice(0, 8)}...`);
-            if (event.ip_address) parts.push(`ip ${event.ip_address}`);
-            return parts.length ? parts.join(' · ') : (event.origin || event.endpoint || '-');
-        }
-
-        function renderJourneySteps(steps) {
-            if (!steps?.length) return '';
-            return `
-                <div class="journey-steps">
-                    ${steps.map(step => `
-                        <span class="journey-step ${step.complete ? 'complete' : ''}">
-                            <span>${step.complete ? 'ok' : '-'}</span>
-                            ${escapeHtml(step.label)}
-                        </span>
-                    `).join('')}
-                </div>
-            `;
-        }
-
         function formatDurationMs(ms) {
             const duration = Number(ms || 0);
             if (!Number.isFinite(duration) || duration <= 0) return '';
@@ -4958,147 +4836,8 @@
             return `${Math.round(duration / 60000)}m`;
         }
 
-        function renderJourneyTextBlock(label, text) {
-            const value = String(text || '').trim();
-            return `
-                <div class="journey-quality-block">
-                    <div class="journey-quality-label">${escapeHtml(label)}</div>
-                    <div class="journey-quality-text">${escapeHtml(value || '(empty)')}</div>
-                </div>
-            `;
-        }
-
-        function renderJourneyEventDetail(event) {
-            if (event.event !== 'generation_output_edited') {
-                return event.generated_title
-                    ? `<div class="journey-event-meta" style="margin-top:0.45rem;"><strong>Generated:</strong> ${escapeHtml(event.generated_title)}</div>`
-                    : '';
-            }
-
-            const context = event.context || {};
-            const changedParts = [];
-            if (context.titleChanged) changedParts.push('title');
-            if (context.descriptionChanged) changedParts.push('description');
-            const changedLabel = changedParts.length ? changedParts.join(' + ') : 'output';
-            const delay = formatDurationMs(context.editDelayMs);
-
-            return `
-                <div class="journey-quality-signal">
-                    <div class="journey-quality-head">
-                        <span class="journey-quality-chip">Edited ${escapeHtml(changedLabel)}</span>
-                        ${delay ? `<span class="journey-event-meta" style="margin:0;">${escapeHtml(delay)} after generation</span>` : ''}
-                    </div>
-                    ${renderEditedOutputDiff(context)}
-                </div>
-            `;
-        }
-
-        function renderJourneyTimeline(events) {
-            if (!events?.length) {
-                return `<div class="empty-state">No journey events found in the selected window.</div>`;
-            }
-
-            return `
-                <div class="journey-timeline">
-                    ${events.map(event => {
-                        const tone = getJourneyEventTone(event);
-                        return `
-                            <div class="journey-event">
-                                <div class="journey-time">${escapeHtml(formatDateTime(event.created_at))}</div>
-                                <div class="journey-dot ${tone}"></div>
-                                <div class="journey-event-card">
-                                    <div class="journey-event-head">
-                                        <div>
-                                            <div class="journey-event-title">${escapeHtml(event.stage || friendlyEventName(event.event))}</div>
-                                            <div class="journey-event-meta">${escapeHtml(getJourneyContextSummary(event))}</div>
-                                        </div>
-                                        <span class="badge ${event.response_status >= 400 ? 'badge-danger' : 'badge-neutral'}">${escapeHtml(event.response_status || 'n/a')}</span>
-                                    </div>
-                                    ${renderJourneyEventDetail(event)}
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        }
-
-        function renderLinkedJourneyUsers(users) {
-            if (!users?.length) return '';
-            return `
-                <div class="journey-linked-users">
-                    <div class="journey-quality-label">Linked users from correlated logs</div>
-                    <div style="display:grid; gap:0.5rem; margin-top:0.45rem;">
-                        ${users.map(user => {
-                            const id = user.id || '';
-                            const email = user.email || 'Unknown email';
-                            const encodedEmail = encodeURIComponent(user.email || '');
-                            const tier = user.subscription_tier || 'free';
-                            const status = user.subscription_status || 'unknown';
-                            return `
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.65rem 0.75rem; border:1px solid var(--border-color); border-radius:var(--radius-md); background:#fff;">
-                                    <div style="min-width:0;">
-                                        <div style="font-weight:700; color:var(--text-main); overflow:hidden; text-overflow:ellipsis;">${escapeHtml(email)}</div>
-                                        <div class="journey-subtitle">${escapeHtml(id || 'No user id')} · ${Number(user.eventCount || 0)} correlated events · last ${escapeHtml(formatDateTime(user.lastSeenAt))}</div>
-                                        <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-top:0.35rem;">
-                                            <span class="badge badge-info">${escapeHtml(tier)}</span>
-                                            <span class="badge ${statusBadgeClass(status)}">${escapeHtml(status)}</span>
-                                        </div>
-                                    </div>
-                                    <div style="display:flex; gap:0.35rem; flex-wrap:wrap; justify-content:flex-end;">
-                                        ${id ? `<button class="btn-secondary" onclick="showUserJourney('${escapeAttribute(id)}', '${escapeAttribute(encodedEmail)}')">Open user</button>` : ''}
-                                        <button class="btn-secondary" onclick="openLogsForUser('${escapeAttribute(id)}', '${escapeAttribute(encodedEmail)}', 'all')">Logs</button>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
         async function showUserJourney(userId, encodedEmail) {
-            const email = decodeURIComponent(encodedEmail || '');
-            openModal('User Journey', '<div class="empty-state">Loading journey...</div>');
-
-            try {
-                const params = new URLSearchParams({
-                    action: 'user-journey',
-                    user_id: userId,
-                    days: '30'
-                });
-                if (email) params.set('email', email);
-
-                const data = await fetchAPI(`/api/admin?${params}`);
-                const profile = data.profile || {};
-                const summary = data.summary || {};
-                const clientIds = data.analyticsClientIds || [];
-                const linkedUsers = data.linkedUsers || [];
-                const content = `
-                    <div class="journey-shell">
-                        <div class="journey-summary">
-                            <div class="journey-summary-top">
-                                <div>
-                                    <div class="journey-title">${escapeHtml(profile.email || email || userId)}</div>
-                                    <div class="journey-subtitle">${escapeHtml(profile.id || userId || '-')}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <span class="badge ${getJourneyBadgeClass(summary.tone)}">${escapeHtml(summary.status || summary.dropoff || 'Unknown')}</span>
-                                    <div class="journey-subtitle">${Number(summary.eventCount || 0)} events · last ${summary.lastSeenAt ? escapeHtml(formatDateTime(summary.lastSeenAt)) : 'never'}</div>
-                                </div>
-                            </div>
-                            ${summary.lastStage ? `<div class="journey-subtitle">Last stage: ${escapeHtml(summary.lastStage)}</div>` : ''}
-                            ${renderJourneySteps(summary.steps || [])}
-                            ${clientIds.length ? `<div class="journey-subtitle">Correlation IDs: ${clientIds.map(id => `<code>${escapeHtml(id)}</code>`).join(' ')}</div>` : ''}
-                            ${renderLinkedJourneyUsers(linkedUsers)}
-                        </div>
-                        ${renderJourneyTimeline(data.events || [])}
-                    </div>
-                `;
-                openModal('User Journey', content);
-            } catch (e) {
-                openModal('User Journey', `<div class="empty-state">Could not load journey: ${escapeHtml(e.message || 'Unknown error')}</div>`);
-            }
+            await globalThis.AutoListerIssues.openUser(userId);
         }
 
         async function showLogDetails(id) {
@@ -5120,7 +4859,7 @@
             if (!log) return;
             const logKind = getLogKind(log);
             const analyticsClientId = getLogAnalyticsClientId(log);
-            const journeyAction = renderLogJourneyAction(log, log.user_id ? 'View user journey' : 'View correlated journey');
+            const journeyAction = renderLogJourneyAction(log, log.user_id ? 'View user issues' : 'View correlated issues');
             const logsActionSearch = log.user_id || analyticsClientId || log.user_email || '';
             const logsAction = logsActionSearch
                 ? `<button class="btn-secondary" onclick="openLogsForSearch('${escapeAttribute(logsActionSearch)}', 'all')">Open related logs</button>`
@@ -5240,45 +4979,7 @@
         }
 
         async function showClientJourney(analyticsClientId) {
-            if (!analyticsClientId) return;
-            openModal('Correlated Journey', '<div class="empty-state">Loading journey...</div>');
-
-            try {
-                const params = new URLSearchParams({
-                    action: 'user-journey',
-                    analytics_client_id: analyticsClientId,
-                    days: '30'
-                });
-                const data = await fetchAPI(`/api/admin?${params}`);
-                const profile = data.profile || {};
-                const summary = data.summary || {};
-                const linkedUsers = data.linkedUsers || [];
-                const content = `
-                    <div class="journey-shell">
-                        <div class="journey-summary">
-                            <div class="journey-summary-top">
-                                <div>
-                                    <div class="journey-title">Correlated journey</div>
-                                    <div class="journey-subtitle">client <code>${escapeHtml(analyticsClientId)}</code></div>
-                                    ${profile.email || profile.id ? `<div class="journey-subtitle">Likely user: ${escapeHtml(profile.email || profile.id)}</div>` : ''}
-                                    <button class="btn-secondary" style="margin-top:0.55rem;" onclick="openLogsForSearch('${escapeAttribute(analyticsClientId)}', 'events')">Open client event logs</button>
-                                </div>
-                                <div style="text-align:right;">
-                                    <span class="badge ${getJourneyBadgeClass(summary.tone)}">${escapeHtml(summary.status || summary.dropoff || 'Unknown')}</span>
-                                    <div class="journey-subtitle">${Number(summary.eventCount || 0)} events · last ${summary.lastSeenAt ? escapeHtml(formatDateTime(summary.lastSeenAt)) : 'never'}</div>
-                                </div>
-                            </div>
-                            ${summary.lastStage ? `<div class="journey-subtitle">Last stage: ${escapeHtml(summary.lastStage)}</div>` : ''}
-                            ${renderJourneySteps(summary.steps || [])}
-                            ${renderLinkedJourneyUsers(linkedUsers)}
-                        </div>
-                        ${renderJourneyTimeline(data.events || [])}
-                    </div>
-                `;
-                openModal('Correlated Journey', content);
-            } catch (e) {
-                openModal('Correlated Journey', `<div class="empty-state">Could not load journey: ${escapeHtml(e.message || 'Unknown error')}</div>`);
-            }
+            await globalThis.AutoListerIssues.openClient(analyticsClientId);
         }
 
         function openModal(title, contentHtml) {

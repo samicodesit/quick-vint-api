@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
 import Stripe from "stripe";
+import { handleIssues } from "../../utils/incidents/admin";
 import { supabase } from "../../utils/supabaseClient";
 import {
   FREE_LIFETIME_LIMIT,
@@ -87,6 +88,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+
+  if (
+    ["issues", "issue-detail", "issue-state", "issue-self-test"].includes(
+      action,
+    )
+  )
+    return handleIssues(req, res);
 
   if (req.method === "GET") {
     if (action === "auth-check") {

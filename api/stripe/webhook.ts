@@ -688,6 +688,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: any) {
     console.error("❌ Error handling Stripe webhook:", err);
     reportCriticalEndpointFailure({
+      error: err,
       endpoint: "/api/stripe/webhook",
       status: 500,
       details: {

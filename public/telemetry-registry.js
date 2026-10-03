@@ -1,0 +1,723 @@
+// Generated from quick-vint-api/utils/incidents/registry.json. Do not edit.
+globalThis.AutoListerEventRegistry = {
+  generate_request: {
+    kind: "checkpoint",
+    stage: "generation_requested",
+    running: true,
+  },
+  generate_success: {
+    kind: "checkpoint",
+    stage: "generation_received",
+    running: true,
+  },
+  generation_received: {
+    kind: "checkpoint",
+    stage: "generation_received",
+    running: true,
+  },
+  fields_applied: {
+    kind: "checkpoint",
+    stage: "fields_applied",
+    running: true,
+  },
+  photos_confirmed: {
+    kind: "checkpoint",
+    stage: "photos_confirmed",
+    running: false,
+  },
+  manual_upload_start: {
+    kind: "checkpoint",
+    stage: "uploading",
+    running: true,
+  },
+  phone_upload_transfer_start: {
+    kind: "checkpoint",
+    stage: "uploading",
+    running: true,
+  },
+  upload_progress: {
+    kind: "checkpoint",
+    stage: "uploading",
+    running: true,
+  },
+  phone_upload_start: {
+    kind: "checkpoint",
+    stage: "waiting_for_photos",
+    running: false,
+  },
+  phone_upload_resume: {
+    kind: "checkpoint",
+    stage: "waiting_for_photos",
+    running: false,
+  },
+  manual_upload_storage_ready: {
+    kind: "checkpoint",
+    stage: "photos_received",
+    running: false,
+  },
+  phone_upload_ready: {
+    kind: "checkpoint",
+    stage: "photos_received",
+    running: false,
+  },
+  batch_start: {
+    kind: "checkpoint",
+    stage: "batch_running",
+    running: true,
+  },
+  batch_resume: {
+    kind: "checkpoint",
+    stage: "batch_running",
+    running: true,
+  },
+  batch_resume_started: {
+    kind: "checkpoint",
+    stage: "batch_running",
+    running: true,
+  },
+  batch_review_prompt_shown: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  listing_review: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  auth_start: {
+    kind: "checkpoint",
+    stage: "authenticating",
+    running: true,
+  },
+  token_refresh_start: {
+    kind: "checkpoint",
+    stage: "authenticating",
+    running: true,
+  },
+  extension_handoff_start: {
+    kind: "checkpoint",
+    stage: "authenticating",
+    running: true,
+  },
+  auth_success: {
+    kind: "checkpoint",
+    stage: "authenticated",
+    running: false,
+  },
+  token_refresh_success: {
+    kind: "checkpoint",
+    stage: "authenticated",
+    running: false,
+  },
+  extension_handoff_success: {
+    kind: "checkpoint",
+    stage: "authenticated",
+    running: false,
+  },
+  generate_limit_hit: {
+    kind: "expected",
+    running: false,
+  },
+  generate_cancelled: {
+    kind: "expected",
+    running: false,
+  },
+  generate_missing_photo: {
+    kind: "expected",
+    running: false,
+  },
+  generate_blocked: {
+    kind: "expected",
+    running: false,
+  },
+  account_paused_shown: {
+    kind: "expected",
+    running: false,
+  },
+  phone_upload_blocked: {
+    kind: "expected",
+    running: false,
+  },
+  phone_session_expired: {
+    kind: "expected",
+    running: false,
+  },
+  batch_cancelled: {
+    kind: "expected",
+    running: false,
+  },
+  batch_start_blocked: {
+    kind: "expected",
+    running: false,
+  },
+  generate_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  manual_upload_storage_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  batch_computer_upload_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  phone_upload_download_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  phone_upload_transfer_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  checkout_failed: {
+    kind: "incident",
+    severity: "transient",
+  },
+  token_refresh_failed: {
+    kind: "incident",
+    severity: "transient",
+  },
+  auth_failed: {
+    kind: "incident",
+    severity: "transient",
+  },
+  extension_handoff_failed: {
+    kind: "incident",
+    severity: "transient",
+  },
+  phone_upload_inject_error: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  fields_apply_failed: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  host_photos_rejected: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  batch_failed: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  batch_resume_failed: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  wardrobe_rewrite_apply_failed: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  own_context_exception: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  webhook_failed: {
+    kind: "incident",
+    severity: "blocking",
+  },
+  operation_interrupted: {
+    kind: "incident",
+    severity: "warning",
+  },
+  operation_possibly_stalled: {
+    kind: "incident",
+    severity: "warning",
+  },
+  listing_report_submitted: {
+    kind: "report",
+    severity: "blocking",
+  },
+  auth_callback_opened: {
+    kind: "checkpoint",
+    stage: "authenticating",
+    running: true,
+  },
+  auth_link_landed: {
+    kind: "checkpoint",
+    stage: "authenticating",
+    running: true,
+  },
+  auth_extension_handoff_started: {
+    kind: "checkpoint",
+    stage: "authenticating",
+    running: true,
+  },
+  auth_extension_handoff_success: {
+    kind: "checkpoint",
+    stage: "authenticated",
+    running: false,
+  },
+  auth_link_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  auth_callback_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  auth_extension_handoff_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  signin_auth_tab_failed: {
+    kind: "incident",
+    severity: "transient",
+  },
+  signin_popup_failed: {
+    kind: "incident",
+    severity: "transient",
+  },
+  magic_link_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  magic_link_code_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  auth_link_missing_tokens: {
+    kind: "expected",
+    running: false,
+  },
+  auth_extension_callback_fallback: {
+    kind: "expected",
+    running: false,
+  },
+  phone_upload_empty_dng_selected: {
+    kind: "expected",
+    running: false,
+  },
+  phone_upload_dng_preview_used: {
+    kind: "expected",
+    running: false,
+  },
+  phone_upload_compression_fallback: {
+    kind: "expected",
+    running: false,
+  },
+  phone_upload_file_retry: {
+    kind: "expected",
+    running: false,
+  },
+  phone_upload_file_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  phone_upload_dng_preview_error: {
+    kind: "incident",
+    severity: "transient",
+  },
+  phone_upload_send_summary: {
+    kind: "checkpoint",
+    stage: "photos_received",
+    running: false,
+  },
+  batch_recovery_available: {
+    kind: "checkpoint",
+    stage: "interrupted",
+    running: false,
+  },
+  batch_item_started: {
+    kind: "checkpoint",
+    stage: "batch_running",
+    running: true,
+  },
+  batch_complete: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  batch_done: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  token_refresh_expired: {
+    kind: "expected",
+    stage: "authentication_required",
+    running: false,
+  },
+  batch_group_created: {
+    kind: "business",
+  },
+  batch_group_removed: {
+    kind: "business",
+  },
+  billing_portal_opened: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  billing_portal_signin_required: {
+    kind: "business",
+  },
+  billing_portal_start: {
+    kind: "checkpoint",
+    stage: "checkout_requested",
+    running: true,
+  },
+  billing_portal_verification_failed: {
+    kind: "incident",
+    severity: "transient",
+    stage: "checkout_requested",
+  },
+  checkout_opened: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  checkout_start: {
+    kind: "checkpoint",
+    stage: "checkout_requested",
+    running: true,
+  },
+  chrome_store_click: {
+    kind: "business",
+  },
+  credit_pack_click: {
+    kind: "business",
+  },
+  description_footer_cleared: {
+    kind: "business",
+  },
+  description_footer_include_changed: {
+    kind: "business",
+  },
+  description_footer_opened: {
+    kind: "business",
+  },
+  description_footer_saved: {
+    kind: "business",
+  },
+  description_length_changed: {
+    kind: "business",
+  },
+  emoji_remove_prompt_accepted: {
+    kind: "business",
+  },
+  emoji_remove_prompt_kept: {
+    kind: "business",
+  },
+  emoji_toggle_changed: {
+    kind: "business",
+  },
+  extension_uninstalled: {
+    kind: "business",
+  },
+  generate_click: {
+    kind: "business",
+  },
+  generate_payload_remote_fallback: {
+    kind: "expected",
+    running: false,
+  },
+  generate_retry_local_captured_images: {
+    kind: "expected",
+    running: false,
+  },
+  generation_offer_claimed: {
+    kind: "business",
+  },
+  generation_offer_dismissed: {
+    kind: "business",
+  },
+  generation_output_edited: {
+    kind: "business",
+  },
+  hashtags_toggle_changed: {
+    kind: "business",
+  },
+  limit_followup_coupon_copied: {
+    kind: "business",
+  },
+  limit_followup_offer_click: {
+    kind: "business",
+  },
+  limit_followup_offer_dismissed: {
+    kind: "business",
+  },
+  limit_followup_offer_feedback_click: {
+    kind: "business",
+  },
+  limit_followup_offer_loaded: {
+    kind: "business",
+  },
+  limit_followup_offer_shown: {
+    kind: "business",
+  },
+  limit_followup_rescue_check: {
+    kind: "business",
+  },
+  listing_report_opened: {
+    kind: "business",
+  },
+  listing_tools_ready: {
+    kind: "business",
+  },
+  magic_link_code_success: {
+    kind: "business",
+  },
+  manual_upload_compression_fallback: {
+    kind: "expected",
+    running: false,
+  },
+  manual_upload_storage_retry: {
+    kind: "expected",
+    running: false,
+  },
+  output_shape_toggle_changed: {
+    kind: "business",
+  },
+  paywall_action_click: {
+    kind: "business",
+  },
+  paywall_closed: {
+    kind: "business",
+  },
+  paywall_option_select: {
+    kind: "business",
+  },
+  paywall_shown: {
+    kind: "business",
+  },
+  paywall_suppressed: {
+    kind: "business",
+  },
+  phone_upload_choice_select: {
+    kind: "business",
+  },
+  phone_upload_generate_blocked: {
+    kind: "expected",
+    running: false,
+  },
+  phone_upload_generate_ready: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  pricing_install_required: {
+    kind: "business",
+  },
+  pricing_plan_click: {
+    kind: "business",
+  },
+  pricing_signin_required: {
+    kind: "business",
+  },
+  pricing_view_all_click: {
+    kind: "business",
+  },
+  signed_out_tools_ready: {
+    kind: "business",
+  },
+  signin_auth_tab_opened: {
+    kind: "business",
+  },
+  signin_cta_click: {
+    kind: "business",
+  },
+  signin_popup_opened: {
+    kind: "business",
+  },
+  uninstall_feedback_submitted: {
+    kind: "business",
+  },
+  uninstall_fidget_interaction_summary: {
+    kind: "business",
+  },
+  uninstall_offer_choose_click: {
+    kind: "business",
+  },
+  uninstall_offer_tier_selected: {
+    kind: "business",
+  },
+  uninstall_pricing_click: {
+    kind: "business",
+  },
+  uninstall_reinstall_cta_click: {
+    kind: "business",
+  },
+  welcome_paid_checkout_opened: {
+    kind: "business",
+  },
+  welcome_paid_continue_click: {
+    kind: "business",
+  },
+  batch_paused: {
+    kind: "incident",
+    stage: "batch_interrupted",
+    severity: "blocking",
+    running: false,
+  },
+  demo_video_open: {
+    kind: "business",
+  },
+  store_screenshot_open: {
+    kind: "business",
+  },
+  pricing_view: {
+    kind: "business",
+  },
+  support_guide_click: {
+    kind: "business",
+  },
+  batch_worker_waiting: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  batch_worker_progress: {
+    kind: "checkpoint",
+    stage: "batch_running",
+    running: true,
+  },
+  wardrobe_rewrite_progress: {
+    kind: "checkpoint",
+    stage: "rewriting",
+    running: true,
+  },
+  wardrobe_rewrite_done: {
+    kind: "checkpoint",
+    stage: "user_review",
+    running: false,
+  },
+  wardrobe_rewrite_failed: {
+    kind: "incident",
+    stage: "rewriting",
+    severity: "blocking",
+    running: false,
+  },
+};
+globalThis.AutoListerContextPolicy = {
+  strings: [
+    "errorCode",
+    "message",
+    "error",
+    "errorName",
+    "stage",
+    "lastConfirmedStage",
+    "generationAttemptId",
+    "operationId",
+    "batchId",
+    "analyticsClientId",
+    "browserFamily",
+    "browser",
+    "clientBrowser",
+    "clientPlatform",
+    "market",
+    "category",
+    "reason",
+    "mode",
+    "photoSource",
+    "status",
+    "extensionVersion",
+    "release",
+    "inputSource",
+    "generationMode",
+    "phase",
+    "descriptionApplyChoice",
+    "titleLanguageCode",
+    "descriptionLanguageCode",
+    "editSummaryReason",
+    "editSnapshotReason",
+    "changedFields",
+    "outputTrackingId",
+    "source",
+    "heroCopyVersion",
+    "reasonLabel",
+    "feedback",
+    "selectedTier",
+    "targetTier",
+    "checkoutKind",
+    "phoneSessionKey",
+  ],
+  numbers: [
+    "photoCount",
+    "expectedPhotoCount",
+    "confirmedPhotoCount",
+    "itemIndex",
+    "uploadedCount",
+    "completedCount",
+    "totalCount",
+    "loadedBytes",
+    "totalBytes",
+    "statusCode",
+    "durationMs",
+    "attempt",
+    "queueDropped",
+    "elapsedMs",
+    "requestBodyBytes",
+    "requestBodyImageCount",
+    "compressedImageBytes",
+    "recoveryAgeMs",
+    "total",
+    "current",
+    "editSequence",
+    "editSummarySequence",
+    "editEventCount",
+    "titleLengthDelta",
+    "descriptionLengthDelta",
+    "editDelayMs",
+    "msSincePreviousEditSnapshot",
+    "titleEditEventCount",
+    "descriptionEditEventCount",
+    "editStartedDelayMs",
+    "editDurationMs",
+    "editIdleMs",
+    "summaryLimit",
+    "readyCount",
+    "receivedCount",
+    "downloadedCount",
+    "capturedFileCount",
+    "pendingCount",
+    "attempts",
+    "visiblePhotoCount",
+    "descriptionLength",
+    "order",
+    "nextAttempt",
+    "expectedCount",
+  ],
+  booleans: [
+    "online",
+    "navigatorOnline",
+    "hasCode",
+    "hasAccessToken",
+    "hasRefreshToken",
+    "hasError",
+    "titleChanged",
+    "descriptionChanged",
+    "titleChangedSincePrevious",
+    "descriptionChangedSincePrevious",
+    "retryable",
+  ],
+  imageStrings: [
+    "sourceSelection",
+    "promptSource",
+    "sourceKind",
+    "capturedUploadSource",
+    "capturedUploadMatchStatus",
+    "vintedSourceSelection",
+    "vintedSourceKind",
+  ],
+  imageNumbers: [
+    "index",
+    "domNaturalWidth",
+    "domNaturalHeight",
+    "renderedWidth",
+    "renderedHeight",
+    "capturedUploadFileCount",
+    "vintedDomNaturalWidth",
+    "vintedDomNaturalHeight",
+    "vintedRenderedWidth",
+    "vintedRenderedHeight",
+  ],
+  imageBooleans: [
+    "capturedUploadAvailable",
+    "capturedUploadOrderTrusted",
+    "capturedUploadSetTrusted",
+  ],
+};

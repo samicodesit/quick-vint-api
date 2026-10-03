@@ -496,6 +496,7 @@ describe("create checkout", () => {
 
     expect(res.statusCode).toBe(500);
     expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      error: expect.objectContaining({ message: "Stripe unavailable" }),
       endpoint: "/api/stripe/create-checkout",
       status: 500,
       userId: "profile_123",

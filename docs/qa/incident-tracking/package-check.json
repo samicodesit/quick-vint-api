@@ -1,0 +1,10 @@
+{
+  "artifact": "/home/mests/projects/quick-vint/dist/autolister-incident-validation-v1.4.6.zip",
+  "version": "1.4.6",
+  "sha256": "bca0d56578aebdb1cb826de03c317b032f53ea3af0de1742ee00ee0718c0a5c0",
+  "bytes": 433513,
+  "helpersVerified": 5,
+  "packagedWorkerLoaded": true,
+  "offline": true,
+  "releaseStatusChanged": false
+}

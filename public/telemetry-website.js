@@ -144,21 +144,38 @@
   root.setInterval?.(() => {
     if (root.document?.visibilityState === "visible") void queue.flush();
   }, 60000);
-  const ownScript = (value) => {
+  const ownScript = (value, lineNumber) => {
+    // An empty filename resolves to this page, but proves no script ownership.
+    if (typeof value !== "string" || !value.trim()) return false;
     try {
       const url = new URL(value, root.location.href);
       return (
         url.origin === root.location.origin &&
-        /(?:\.js$|\/phone-upload$|\/uninstall$|\/auth\/callback$)/.test(
-          url.pathname,
-        )
+        (/\.js$/.test(url.pathname) ||
+          (Number.isFinite(lineNumber) &&
+            lineNumber > 0 &&
+            /^\/(?:phone-upload|uninstall|auth\/callback)$/.test(url.pathname)))
       );
     } catch {
       return false;
     }
   };
+  const ownStack = (stack) => {
+    const frames = String(stack || "").match(/https?:[^\s)]+/g) || [];
+    return frames.some((frame) => {
+      const position = frame.match(/:(\d+)(?::\d+)?$/);
+      return ownScript(
+        frame.replace(/:\d+(?::\d+)?$/, ""),
+        Number(position?.[1]),
+      );
+    });
+  };
   root.addEventListener?.("error", (event) => {
-    if (!ownScript(event.filename)) return;
+    if (
+      !ownScript(event.filename, event.lineno) &&
+      !ownStack(event.error?.stack)
+    )
+      return;
     void track("own_context_exception", {
       context: {
         errorName: event.error?.name,
@@ -168,10 +185,7 @@
     });
   });
   root.addEventListener?.("unhandledrejection", (event) => {
-    const frames =
-      String(event.reason?.stack || "").match(/https?:[^\s)]+/g) || [];
-    if (!frames.some((frame) => ownScript(frame.replace(/:\d+(?::\d+)?$/, ""))))
-      return;
+    if (!ownStack(event.reason?.stack)) return;
     void track("own_context_exception", {
       context: {
         errorName: event.reason?.name,

@@ -7,16 +7,23 @@ beforeAll(async () => {
   IDBFactory = (await import("fake-indexeddb")).IDBFactory;
 });
 
-function browser(indexedDB: any, send: (body: any) => any) {
+function browser(
+  indexedDB: any,
+  send: (body: any) => any,
+  listeners: Record<string, (event: any) => void> = {},
+) {
   const sandbox: any = {
     indexedDB,
     TextEncoder,
+    URL,
     AbortController,
     crypto: { randomUUID },
     location: new URL("https://autolister.app/phone-upload"),
     navigator: { userAgent: "Chrome" },
     document: { visibilityState: "visible" },
-    addEventListener() {},
+    addEventListener(name: string, listener: (event: any) => void) {
+      listeners[name] = listener;
+    },
     setInterval() {},
     setTimeout,
     clearTimeout,
@@ -31,6 +38,96 @@ function browser(indexedDB: any, send: (body: any) => any) {
     );
   return sandbox.AutoListerWebsiteTelemetry;
 }
+
+it.each([
+  ["error", { filename: "", message: "Script error." }, false],
+  ["error", { filename: null, message: "Script error." }, false],
+  ["error", { filename: "   ", message: "Script error." }, false],
+  [
+    "error",
+    { filename: "https://wallet.example/injected.js", lineno: 10 },
+    false,
+  ],
+  [
+    "error",
+    {
+      filename: "https://autolister.app/phone-upload",
+      lineno: 0,
+      error: { stack: "global code@https://autolister.app/phone-upload:0:0" },
+    },
+    false,
+  ],
+  [
+    "error",
+    { filename: "https://autolister.app/phone-upload", lineno: 450 },
+    true,
+  ],
+  [
+    "error",
+    { filename: "https://autolister.app/telemetry-client.js", lineno: 10 },
+    true,
+  ],
+  [
+    "error",
+    {
+      filename: "",
+      error: { stack: "run@https://autolister.app/telemetry-client.js:12:3" },
+    },
+    true,
+  ],
+  [
+    "unhandledrejection",
+    {
+      reason: { stack: "global code@https://autolister.app/phone-upload:0:0" },
+    },
+    false,
+  ],
+  [
+    "unhandledrejection",
+    { reason: { stack: "run@https://wallet.example/injected.js:12:3" } },
+    false,
+  ],
+  [
+    "unhandledrejection",
+    { reason: { stack: "run@https://autolister.app/phone-upload:450:3" } },
+    true,
+  ],
+  [
+    "unhandledrejection",
+    {
+      reason: {
+        stack: "at run (https://autolister.app/telemetry-client.js:12:3)",
+      },
+    },
+    true,
+  ],
+])(
+  "attributes %s exceptions only with owned script evidence (%j)",
+  async (name, event, owned) => {
+    const listeners: Record<string, (event: any) => void> = {};
+    const received: any[] = [];
+    const telemetry = browser(
+      new IDBFactory(),
+      async (body) => {
+        received.push(...body.events);
+        return {
+          status: 200,
+          headers: new Headers(),
+          json: async () => ({
+            acknowledgedIds: body.events.map((entry: any) => entry.id),
+          }),
+        };
+      },
+      listeners,
+    );
+    listeners[String(name)](event);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await telemetry.flush();
+    expect(received.map((entry) => entry.event)).toEqual(
+      owned ? ["own_context_exception"] : [],
+    );
+  },
+);
 
 it("keeps offline evidence across page recreation and confirms only server acceptance", async () => {
   const indexedDB = new IDBFactory();

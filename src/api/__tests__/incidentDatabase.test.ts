@@ -1,7 +1,9 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { createContext, runInContext } from "node:vm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { normalizeIncidentEvent } from "../../../utils/incidents/contract";
 
 let db: PGlite;
 beforeAll(async () => {
@@ -47,6 +49,64 @@ async function ingest(input: any) {
 }
 
 describe("atomic incident persistence", () => {
+  it("preserves real browser refresh diagnostics through sanitization and anonymous persistence", async () => {
+    const browser = createContext({ crypto: { randomUUID }, TextEncoder });
+    for (const file of [
+      "public/telemetry-registry.js",
+      "public/telemetry-client.js",
+    ])
+      runInContext(readFileSync(file, "utf8"), browser);
+    browser.AutoListerTelemetry.setAccount(null);
+    const prepared = browser.AutoListerTelemetry.prepare(
+      "token_refresh_failed",
+      {
+        operationId: "signed-out-refresh-evidence",
+        stage: "authenticating",
+        phase: "refresh_session",
+        code: "provider_unavailable",
+        status: 503,
+        attempts: 3,
+        elapsedMs: 6000,
+        errorName: "AuthRetryableFetchError",
+        message: "Gateway unavailable token=private-token",
+        stack:
+          "AuthRetryableFetchError: Gateway unavailable\n at refresh (https://private.example/path:1:2)",
+      },
+      "extension_background",
+    );
+    const normalized = normalizeIncidentEvent(prepared.event);
+    expect(normalized.error).toBeUndefined();
+    const write = () =>
+      db.query<any>("SELECT incident_ingest($1::jsonb,NULL,false) AS result", [
+        JSON.stringify(normalized.value),
+      ]);
+    const first = (await write()).rows[0].result;
+    expect(first.status).toBe("accepted");
+    expect((await write()).rows[0].result.status).toBe("duplicate");
+    const { rows } = await db.query<any>(
+      "SELECT stage,occurrences,examples FROM incident_groups WHERE id=$1",
+      [first.incidentId],
+    );
+    expect(rows[0].stage).toBe("authenticating");
+    expect(rows[0].occurrences).toBe(1);
+    expect(rows[0].examples[0].identityVerified).toBe(false);
+    expect(rows[0].examples[0].context).toMatchObject({
+      operationId: "signed-out-refresh-evidence",
+      phase: "refresh_session",
+      errorCode: "provider_unavailable",
+      statusCode: 503,
+      attempts: 3,
+      elapsedMs: 6000,
+      errorName: "AuthRetryableFetchError",
+    });
+    expect(rows[0].examples[0].context.stack).toContain(
+      "AuthRetryableFetchError",
+    );
+    expect(JSON.stringify(rows[0])).not.toMatch(
+      /private-token|private\.example/,
+    );
+  });
+
   it("handles registration winning the race with an anonymous write and lost acknowledgement", async () => {
     const key = "c".repeat(64),
       owner = "123e4567-e89b-42d3-a456-426614174000";
@@ -386,6 +446,45 @@ describe("atomic incident persistence", () => {
       rows.find((row) => row.operation_id === "user-wait").incident_id,
     ).toBeNull();
     expect(rows.every((row) => row.running === false)).toBe(true);
+  });
+
+  it("keeps background refresh expiry quiet after sign-out while detecting actual sign-in stalls", async () => {
+    const make = (name: string, operationId: string) => {
+      const normalized = normalizeIncidentEvent({
+        id: randomUUID(),
+        event: name,
+        occurredAt: new Date().toISOString(),
+        source: "extension_background",
+        extensionVersion: "1.4.8",
+        context: { operationId },
+      });
+      expect(normalized.error).toBeUndefined();
+      return normalized.value!;
+    };
+    await ingest(make("token_refresh_start", "expired-background-refresh"));
+    // The SDK clears the account before the expected expiry event is collected.
+    await db.query("SELECT incident_ingest($1::jsonb,NULL,false)", [
+      JSON.stringify(
+        make("token_refresh_expired", "expired-background-refresh"),
+      ),
+    ]);
+    await ingest(make("auth_start", "interactive-auth-stall"));
+    await db.exec(
+      "UPDATE incident_flows SET last_progress_at=now()-interval '6 minutes' WHERE operation_id IN ('expired-background-refresh','interactive-auth-stall')",
+    );
+    await db.query("SELECT incident_sweep(100)");
+    const { rows } = await db.query<any>(
+      "SELECT operation_id,incident_id,running FROM incident_flows WHERE operation_id IN ('expired-background-refresh','interactive-auth-stall')",
+    );
+    expect(
+      rows
+        .filter((row) => row.operation_id === "expired-background-refresh")
+        .every((row) => row.incident_id === null && !row.running),
+    ).toBe(true);
+    expect(
+      rows.find((row) => row.operation_id === "interactive-auth-stall")
+        .incident_id,
+    ).toBeTruthy();
   });
 
   it("does not reopen a resolved issue for an old offline event", async () => {

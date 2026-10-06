@@ -73,7 +73,15 @@ export function sanitizeContext(
       ? (input as Record<string, unknown>)
       : {};
   const output: Record<string, any> = {};
-  for (const [key, value] of Object.entries(source)) {
+  // Normalize legacy callers without broadening the persisted allowlist.
+  const canonical = {
+    ...source,
+    errorCode: source.errorCode || source.code,
+    statusCode:
+      source.statusCode ??
+      (typeof source.status === "number" ? source.status : undefined),
+  };
+  for (const [key, value] of Object.entries(canonical)) {
     if (stringKeys.has(key) && typeof value === "string")
       output[key] = redact(
         value,
@@ -153,7 +161,9 @@ export function normalizeIncidentEvent(
   let definition = classifyEvent(input.event);
   if (
     (input.event === "generate_error" &&
-      [401, 402].includes(Number(input.context?.status))) ||
+      [401, 402].includes(
+        Number(input.context?.statusCode ?? input.context?.status),
+      )) ||
     (["phone_upload_transfer_error", "phone_upload_file_error"].includes(
       input.event,
     ) &&

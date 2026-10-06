@@ -53,8 +53,16 @@
     return result;
   }
   function context(input, trace = false) {
+    // Older callers use provider code/status names. Normalize before allowlisting.
+    const source = {
+      ...input,
+      errorCode: input?.errorCode || input?.code,
+      statusCode:
+        input?.statusCode ??
+        (typeof input?.status === "number" ? input.status : undefined),
+    };
     const output = {};
-    for (const [key, value] of Object.entries(input || {})) {
+    for (const [key, value] of Object.entries(source)) {
       if (allowed.has(key) && typeof value === "string")
         output[key] = text(value);
       if (

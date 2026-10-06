@@ -15,6 +15,43 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it("retains legacy provider codes and numeric HTTP status as canonical diagnostics", () => {
+    const result = normalizeIncidentEvent(
+      {
+        ...event,
+        context: {
+          code: "provider_unavailable",
+          status: 503,
+          message: "Service unavailable",
+          phase: "refresh_session",
+          stage: "authenticating",
+          elapsedMs: 6000,
+          attempts: 3,
+        },
+      },
+      now,
+    );
+    expect(result.value?.context).toMatchObject({
+      errorCode: "provider_unavailable",
+      statusCode: 503,
+      phase: "refresh_session",
+      stage: "authenticating",
+      elapsedMs: 6000,
+      attempts: 3,
+    });
+    expect(result.value?.context.code).toBeUndefined();
+  });
+
+  it("keeps canonical authentication and credit-limit statuses quiet", () => {
+    for (const statusCode of [401, 402]) {
+      const result = normalizeIncidentEvent(
+        { ...event, context: { statusCode } },
+        now,
+      );
+      expect(result.value?.definition.kind).toBe("expected");
+    }
+  });
+
   it("keeps field comparison diagnostics without recording field contents", () => {
     const context = {
       titleFieldPresent: true,

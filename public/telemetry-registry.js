@@ -93,7 +93,7 @@ globalThis.AutoListerEventRegistry = {
   token_refresh_start: {
     kind: "checkpoint",
     stage: "authenticating",
-    running: true,
+    running: false,
   },
   extension_handoff_start: {
     kind: "checkpoint",

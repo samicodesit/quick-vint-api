@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-07",
+  "status": "implemented_and_verified_locally",
+  "request": "Repair automatic acquisition tracking without extra customer steps",
+  "deployment": {
+    "website": "not_deployed",
+    "extension": "not_uploaded_or_submitted",
+    "lastStoreUpload": "1.4.9",
+    "currentManifest": "1.4.9",
+    "pendingUploadedPackage": false,
+    "nextUploadVersion": "1.4.10"
+  },
+  "customerImpact": {
+    "newQuestions": 0,
+    "newScreens": 0,
+    "newClicks": 0,
+    "newTabs": 0,
+    "newPermissions": 0,
+    "oauthRedirectChanged": false,
+    "authAwaitsAttribution": false
+  },
+  "transport": {
+    "scope": "Existing first touch in the same browser profile",
+    "websiteOrigin": "https://autolister.app",
+    "storageKey": "autolister.first_touch.v1",
+    "allowedFields": [
+      "source",
+      "medium",
+      "campaign",
+      "content",
+      "capturedAt",
+      "referrerHost"
+    ],
+    "claimEndpoint": "/api/attribution/claim",
+    "serverOwnership": "Existing verified bearer-token user; insert-only attribution",
+    "extensionAccountBinding": "Source is bound to the first authenticated account before sending and remains bound through failure, sign-out and acknowledgement",
+    "maximumConcurrentExtensionClaims": 1,
+    "claimTimeoutMs": 5000,
+    "lookbackDays": 180,
+    "futureClockToleranceMinutes": 5,
+    "retryTriggers": [
+      "sign-in",
+      "session refresh",
+      "background startup",
+      "website source capture"
+    ]
+  },
+  "verification": {
+    "frontendFullSuite": {
+      "command": "npm test && npm run build:prod",
+      "exitCode": 0,
+      "unitPassedAtFullRun": 95,
+      "browserPassed": 189,
+      "browserSkipped": 1,
+      "skip": "Existing explicit incident-reproduction skip; not added by this repair"
+    },
+    "backendFullGate": {
+      "command": "npm run verify:production",
+      "exitCode": 0,
+      "checks": ["lint", "type-check", "build", "format-check", "test"],
+      "testFilesPassed": 86,
+      "testsPassed": 538
+    },
+    "regressionsObservedBeforeRepair": [
+      "Four extension source-transport unit regressions failed",
+      "Registered browser source bridge was absent",
+      "Website did not notify a late-loading bridge",
+      "Expired and future website records prevented fresh capture"
+    ],
+    "review": "Inline review under the user's no-delegation policy checked origin/frame validation, bounded payloads, insert-only API behavior, account changes, request concurrency and auth independence",
+    "safetyLeanReview": {
+      "status": "passed_locally",
+      "trims": [
+        "Removed duplicate session-storage claim trigger",
+        "Replaced the per-account request map with one in-flight flag",
+        "Combined source and auth storage reads",
+        "Removed the unused Astro navigation listener",
+        "Removed field truncation from the bridge; background and API enforce bounds"
+      ],
+      "fixedRisks": [
+        "Immediate 503 previously caused two sign-in attempts",
+        "Pending and acknowledged extension sources could be reused for another account",
+        "An invalid oversized source was truncated into a different valid-looking source",
+        "Acknowledgement comparison needed canonical values because Chrome storage reorders keys"
+      ],
+      "newRegressionEvidence": "Three new regressions failed before correction. Reordered-storage acknowledgement also failed in a real Chrome test and then in the updated unit harness. Targeted checks passed after correction.",
+      "firstFullRerun": {
+        "unitPassed": 95,
+        "browserPassed": 187,
+        "browserSkipped": 1,
+        "browserFailed": 2,
+        "failureEvidence": "Both traces show all functional assertions passing, then the existing 30-second test deadline expiring during context.close(). No assertion mismatch recorded.",
+        "isolatedRerun": "Both same tests passed without code changes or altered time limits: 4.4 seconds and 0.76 seconds."
+      },
+      "cleanFullRerun": "npm test && npm run build:prod exited 0: 95 unit tests and 189 browser tests passed, one existing explicit skip. Browser run completed in 5.9 minutes. Same test time limits and no source changes between reruns.",
+      "backendSecurityRecheck": "26 claim ownership, source validation and acquisition-report tests passed; backend runtime code is unchanged since its full 538-test production gate passed",
+      "scope": "Existing API, storage and auth flows; no new dependency, endpoint, database migration, polling loop, scheduled job or customer UI",
+      "packagingChecks": "Existing lib-directory inclusion, existing website host permission, and Store extension ID matching API CORS were inspected",
+      "authoritativeReferences": [
+        "https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts",
+        "https://developer.chrome.com/docs/extensions/reference/manifest/content-scripts"
+      ]
+    }
+  },
+  "remainingLimits": [
+    "Cross-browser, cross-profile and cross-device moves without a carried source remain unobservable",
+    "The unchanged website magic-link claim path has separate browser storage; extension account binding is not a global shared-browser attribution guarantee",
+    "Historical unknown paying-customer sources cannot be reconstructed by this repair",
+    "No physical Orion/iOS compatibility certification or Android guarantee",
+    "Google provider redirect and fresh public Store installation were not run live",
+    "Browser tests use simulated auth and API responses, with the real loaded extension and callback code",
+    "Activation and paid-entitlement report joins are separately covered by existing tests; no complete live signup-to-first-draft journey was performed",
+    "Paid entitlement in the existing report is not verified positive-invoice revenue"
+  ],
+  "externalActions": {
+    "productionCustomersCreated": 0,
+    "purchases": 0,
+    "liveMarketplaceFlows": 0,
+    "outreach": 0,
+    "spend": 0,
+    "productionDeployments": 0,
+    "storeSubmissions": 0
+  }
+}

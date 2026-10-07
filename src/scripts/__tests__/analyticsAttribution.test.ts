@@ -2,7 +2,11 @@ import vm from "node:vm";
 import { build } from "esbuild";
 import { expect, it } from "vitest";
 
-async function storeDestination(page: string, href: string) {
+async function storeDestination(
+  page: string,
+  href: string,
+  onReady?: (event: Event) => void,
+) {
   const { outputFiles } = await build({
     entryPoints: ["src/scripts/analytics.js"],
     bundle: true,
@@ -13,6 +17,7 @@ async function storeDestination(page: string, href: string) {
   vm.runInNewContext(outputFiles[0].text, {
     URL,
     URLSearchParams,
+    Event,
     addEventListener() {},
     setInterval() {},
     window: { location: new URL(page), addEventListener() {} },
@@ -20,10 +25,25 @@ async function storeDestination(page: string, href: string) {
       querySelectorAll: (selector: string) =>
         selector === "a[href]" ? [link] : [],
       addEventListener() {},
+      dispatchEvent(event: Event) {
+        onReady?.(event);
+      },
     },
   });
   return new URL(link.href);
 }
+
+it("notifies the installed extension bridge after first-touch capture without a customer action", async () => {
+  const ready: Event[] = [];
+  await storeDestination(
+    "https://autolister.app/?utm_source=tiktok",
+    "https://example.com/",
+    (event) => ready.push(event),
+  );
+  expect(ready.map((event) => event.type)).toContain(
+    "autolister:attribution-ready",
+  );
+});
 
 it("preserves paid acquisition tags when opening the store from a campaign landing page", async () => {
   const result = await storeDestination(

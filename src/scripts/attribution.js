@@ -144,7 +144,15 @@ export function captureFirstTouch({
   now = new Date().toISOString(),
 } = {}) {
   const existing = readStoredAttribution(storage);
-  if (existing) return existing;
+  const nowMs = Date.parse(now);
+  if (!Number.isFinite(nowMs)) return null;
+  if (existing) {
+    const age = nowMs - Date.parse(existing.capturedAt);
+    // Match the authenticated claim API's 180-day window and clock tolerance.
+    // A stale browser record must not prevent fresh acquisition forever.
+    if (age >= -5 * 60 * 1000 && age <= 180 * 24 * 60 * 60 * 1000)
+      return existing;
+  }
   if (!storage?.setItem) return null;
 
   let url;

@@ -11,6 +11,28 @@ function createStorage(initial: Record<string, string> = {}) {
 }
 
 describe("website first-touch attribution", () => {
+  it.each(["2026-01-01T10:00:00.000Z", "2026-10-07T11:00:00.000Z"])(
+    "replaces an expired or future first touch: %s",
+    (capturedAt) => {
+      const storage = createStorage();
+      captureFirstTouch({
+        href: "https://autolister.app/?utm_source=x",
+        storage,
+        now: capturedAt,
+      });
+      const fresh = captureFirstTouch({
+        href: "https://autolister.app/?utm_source=google&utm_medium=search",
+        storage,
+        now: "2026-10-07T10:00:00.000Z",
+      });
+      expect(fresh).toMatchObject({
+        source: "google",
+        capturedAt: "2026-10-07T10:00:00.000Z",
+      });
+      expect(readStoredAttribution(storage)).toEqual(fresh);
+    },
+  );
+
   it("keeps the X share link as first touch for later signup", () => {
     const storage = createStorage();
     const first = captureFirstTouch({

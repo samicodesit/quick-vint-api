@@ -13,6 +13,11 @@ const KNOWN_UTM_KEYS = [
 ];
 
 captureFirstTouch();
+// Wake the isolated extension bridge if site capture finished after its first
+// read. The event carries no data; the bridge reads only the first-touch key.
+if (typeof document.dispatchEvent === "function") {
+  document.dispatchEvent(new Event("autolister:attribution-ready"));
+}
 
 function getUtmParams() {
   const params = new URLSearchParams(window.location.search);

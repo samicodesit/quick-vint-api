@@ -7,6 +7,8 @@ import {
   it,
   vi,
 } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync } from "node:fs";
 
 const USER_ID = "123e4567-e89b-42d3-a456-426614174000";
 const logRequestsMock = vi.fn();
@@ -165,6 +167,125 @@ describe("events tracking endpoint", () => {
     );
     return response;
   }
+
+  it("saves legacy generation pairs without creating running watchdog flows", async () => {
+    const response = await postEvent({
+      events: [
+        {
+          event: "generate_request",
+          source: "extension_content",
+          extensionVersion: "1.4.6",
+          context: { generationAttemptId: "legacy-attempt", photoCount: 4 },
+        },
+        {
+          event: "generate_success",
+          source: "extension_content",
+          extensionVersion: "1.4.6",
+          context: { photoCount: 4 },
+        },
+      ],
+    });
+    expect(response.statusCode).toBe(204);
+    const writes = rpcMock.mock.calls
+      .filter(([name]) => name === "incident_ingest")
+      .map(([, args]) => args.p_event);
+    expect(writes).toHaveLength(2);
+    expect(writes.map((event) => event.definition)).toEqual([
+      { kind: "checkpoint", stage: "generation_requested", running: false },
+      { kind: "checkpoint", stage: "generation_received", running: false },
+    ]);
+    expect(writes[0].operationId).toBe("legacy-attempt");
+    expect(writes[1].operationId).toBeNull();
+    for (const event of writes) {
+      expect(event.context.photoCount).toBe(4);
+      expect(event.businessLog.endpoint).toBe(`/event/${event.event}`);
+    }
+  });
+
+  it("does not raise legacy generation stalls in the real database sweep", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; " +
+          "CREATE TABLE api_logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, user_email text, endpoint text, request_method text, response_status integer, user_agent text, origin text, ip_address text, full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (name, args) => {
+        expect(name).toBe("incident_ingest");
+        const result = await db.query<{ result: unknown }>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result, error: null };
+      });
+      const response = await postEvent({
+        events: [
+          {
+            event: "generate_request",
+            source: "extension_content",
+            context: { generationAttemptId: "legacy-request" },
+          },
+          { event: "generate_success", source: "extension_content" },
+        ],
+      });
+      expect(response.statusCode).toBe(204);
+      await db.exec(
+        "UPDATE incident_flows SET last_progress_at=now()-interval '6 minutes'; SELECT incident_sweep(100);",
+      );
+      expect((await db.query("SELECT * FROM incident_groups")).rows).toEqual(
+        [],
+      );
+      const flows = (await db.query("SELECT running FROM incident_flows")).rows;
+      expect(flows).toEqual([{ running: false }, { running: false }]);
+      expect((await db.query("SELECT id FROM api_logs")).rows).toHaveLength(2);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  });
+
+  it("keeps version 2 generation checkpoints running regardless of release label", async () => {
+    const events = ["generate_request", "generate_success"].map(
+      (event, index) => ({
+        id: `a423926a-35a6-4bf5-8027-8ab335c7111${index}`,
+        occurredAt: new Date().toISOString(),
+        event,
+        source: "extension_content",
+        extensionVersion: "1.4.6",
+        context: { generationAttemptId: "correlated-attempt", photoCount: 4 },
+      }),
+    );
+    const response = await postEvent({ schemaVersion: 2, events });
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({
+      acknowledgedIds: events.map((event) => event.id),
+    });
+    const writes = rpcMock.mock.calls
+      .filter(([name]) => name === "incident_ingest")
+      .map(([, args]) => args.p_event);
+    expect(writes).toHaveLength(2);
+    expect(writes.every((event) => event.definition.running)).toBe(true);
+    expect(
+      writes.every((event) => event.operationId === "correlated-attempt"),
+    ).toBe(true);
+  });
+
+  it("still records explicit legacy generation failures as incidents", async () => {
+    const response = await postEvent({
+      event: "generate_error",
+      source: "extension_content",
+      extensionVersion: "1.4.6",
+      context: { generationAttemptId: "failed-attempt", statusCode: 500 },
+    });
+    expect(response.statusCode).toBe(204);
+    const write = rpcMock.mock.calls.find(
+      ([name]) => name === "incident_ingest",
+    )![1].p_event;
+    expect(write.definition.kind).toBe("incident");
+    expect(write.operationId).toBe("failed-attempt");
+  });
 
   it("durably accepts authenticated listing reports", async () => {
     const response = await postEvent({

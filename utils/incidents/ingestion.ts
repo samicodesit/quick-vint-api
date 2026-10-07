@@ -51,6 +51,17 @@ export async function ingestEnvelope(
       });
       continue;
     }
+    // Legacy generation events lack a correlated fields/photos completion trail.
+    // Keep their evidence without treating those checkpoints as active work.
+    if (
+      body.schemaVersion !== 2 &&
+      ["generate_request", "generate_success"].includes(raw.event)
+    ) {
+      normalized.value.definition = {
+        ...normalized.value.definition,
+        running: false,
+      };
+    }
     // Account ownership is checked against the credential, never adopted from it.
     if (raw.accountId && raw.accountId !== userId) {
       result.rejections.push({ id: raw.id, reason: "identity_mismatch" });

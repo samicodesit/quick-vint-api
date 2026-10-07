@@ -370,7 +370,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const metadata = ApiLogger.extractRequestMetadata(req);
   const result = await ingestEnvelope(
-    { schemaVersion: 2, events: loggableEventItems },
+    {
+      schemaVersion: body.schemaVersion === 2 ? 2 : 1,
+      events: loggableEventItems,
+    },
     authenticatedUserId,
     (raw, context) => {
       const retained =

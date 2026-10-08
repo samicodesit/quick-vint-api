@@ -246,7 +246,7 @@ describe("events tracking endpoint", () => {
     }
   });
 
-  it("keeps version 2 generation checkpoints running regardless of release label", async () => {
+  it("watches version 2 generation requests but stops the timer after receipt regardless of release label", async () => {
     const events = ["generate_request", "generate_success"].map(
       (event, index) => ({
         id: `a423926a-35a6-4bf5-8027-8ab335c7111${index}`,
@@ -266,7 +266,10 @@ describe("events tracking endpoint", () => {
       .filter(([name]) => name === "incident_ingest")
       .map(([, args]) => args.p_event);
     expect(writes).toHaveLength(2);
-    expect(writes.every((event) => event.definition.running)).toBe(true);
+    expect(writes.map((event) => event.definition)).toEqual([
+      { kind: "checkpoint", stage: "generation_requested", running: true },
+      { kind: "checkpoint", stage: "generation_received", running: false },
+    ]);
     expect(
       writes.every((event) => event.operationId === "correlated-attempt"),
     ).toBe(true);

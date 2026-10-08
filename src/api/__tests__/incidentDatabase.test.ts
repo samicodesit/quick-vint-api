@@ -413,6 +413,63 @@ describe("atomic incident persistence", () => {
     expect(first.email.subject).toBe("original");
   });
 
+  it("does not flag received generation waiting for visible confirmation, while retaining real failures", async () => {
+    const make = (name: string, operationId: string) => {
+      const normalized = normalizeIncidentEvent({
+        id: randomUUID(),
+        event: name,
+        occurredAt: new Date().toISOString(),
+        source: "extension_content",
+        extensionVersion: "1.4.10",
+        context: { operationId, photoCount: 3 },
+      });
+      expect(normalized.error).toBeUndefined();
+      return normalized.value!;
+    };
+    for (const name of ["generate_success", "generation_received"]) {
+      await ingest(make("generate_request", `hidden-${name}`));
+      await ingest(make(name, `hidden-${name}`));
+    }
+    await ingest(make("generate_request", "pending-generation-response"));
+    await db.exec(
+      "UPDATE incident_flows SET last_progress_at=now()-interval '6 minutes' WHERE operation_id IN ('hidden-generate_success','hidden-generation_received','pending-generation-response')",
+    );
+    await db.query("SELECT incident_sweep(100)");
+    const { rows } = await db.query<any>(
+      "SELECT operation_id,stage,incident_id,running FROM incident_flows WHERE operation_id IN ('hidden-generate_success','hidden-generation_received','pending-generation-response')",
+    );
+    for (const operationId of [
+      "hidden-generate_success",
+      "hidden-generation_received",
+    ]) {
+      expect(
+        rows.find((row) => row.operation_id === operationId),
+      ).toMatchObject({
+        stage: "generation_received",
+        incident_id: null,
+        running: false,
+      });
+    }
+    expect(
+      rows.find((row) => row.operation_id === "pending-generation-response")
+        .incident_id,
+    ).toBeTruthy();
+    // A real field mismatch is still an explicit blocking incident.
+    const failure = await ingest(
+      make("fields_apply_failed", "hidden-generate_success"),
+    );
+    expect(failure.incidentId).toBeTruthy();
+    const group = await db.query<any>(
+      "SELECT event,severity,status FROM incident_groups WHERE id=$1",
+      [failure.incidentId],
+    );
+    expect(group.rows[0]).toEqual({
+      event: "fields_apply_failed",
+      severity: "blocking",
+      status: "open",
+    });
+  });
+
   it("flags machine work, but never user waiting, as possibly stalled", async () => {
     for (const [operationId, running] of [
       ["machine-stall", true],

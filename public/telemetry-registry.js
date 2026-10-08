@@ -8,12 +8,12 @@ globalThis.AutoListerEventRegistry = {
   generate_success: {
     kind: "checkpoint",
     stage: "generation_received",
-    running: true,
+    running: false,
   },
   generation_received: {
     kind: "checkpoint",
     stage: "generation_received",
-    running: true,
+    running: false,
   },
   fields_applied: {
     kind: "checkpoint",

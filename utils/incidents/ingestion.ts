@@ -52,10 +52,13 @@ export async function ingestEnvelope(
       continue;
     }
     // Legacy generation events lack a correlated fields/photos completion trail.
-    // Keep their evidence without treating those checkpoints as active work.
+    // Older pricing pages also omit the ID needed to match checkout completion.
+    // Keep this evidence without treating unfinishable checkpoints as active work.
     if (
-      body.schemaVersion !== 2 &&
-      ["generate_request", "generate_success"].includes(raw.event)
+      (body.schemaVersion !== 2 &&
+        ["generate_request", "generate_success"].includes(raw.event)) ||
+      (["checkout_start", "billing_portal_start"].includes(raw.event) &&
+        !normalized.value.operationId)
     ) {
       normalized.value.definition = {
         ...normalized.value.definition,

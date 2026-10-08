@@ -290,6 +290,112 @@ describe("events tracking endpoint", () => {
     expect(write.operationId).toBe("failed-attempt");
   });
 
+  it.each(["checkout_start", "billing_portal_start"])(
+    "retains uncorrelated %s evidence without creating a false running flow",
+    async (event) => {
+      const response = await postEvent(
+        {
+          schemaVersion: 2,
+          events: [
+            {
+              id: "c423926a-35a6-4bf5-8027-8ab335c71110",
+              occurredAt: new Date().toISOString(),
+              event,
+              source: "website",
+              context: {},
+            },
+          ],
+        },
+        false,
+      );
+      expect(response.statusCode).toBe(200);
+      const write = rpcMock.mock.calls.find(
+        ([name]) => name === "incident_ingest",
+      )![1].p_event;
+      expect(write.definition).toMatchObject({
+        kind: "checkpoint",
+        stage: "checkout_requested",
+        running: false,
+      });
+    },
+  );
+
+  it("ends correlated checkout flows in the real sweep while retaining genuine pending requests and failures", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, user_email text, endpoint text, request_method text, response_status integer, user_agent text, origin text, ip_address text, full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (name, args) => {
+        expect(name).toBe("incident_ingest");
+        const result = await db.query<{ result: unknown }>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result, error: null };
+      });
+      const pairs = [
+        ["checkout_start", null],
+        ["billing_portal_start", null],
+        ["checkout_start", "complete"],
+        ["checkout_opened", "complete"],
+        ["billing_portal_start", "portal"],
+        ["billing_portal_opened", "portal"],
+        ["checkout_start", "failed"],
+        ["checkout_failed", "failed"],
+        ["checkout_start", "pending"],
+      ];
+      const response = await postEvent(
+        {
+          schemaVersion: 2,
+          events: pairs.map(([event, operationId], index) => ({
+            id: `c423926a-35a6-4bf5-8027-8ab335c7111${index}`,
+            occurredAt: new Date(Date.now() + index).toISOString(),
+            event,
+            source: "website",
+            context: {
+              ...(operationId ? { operationId } : {}),
+              ...(event === "checkout_failed"
+                ? {
+                    stage: "checkout_requested",
+                    errorCode: "CHECKOUT_REQUEST_ERROR",
+                  }
+                : {}),
+            },
+          })),
+        },
+        false,
+      );
+      expect(response.statusCode).toBe(200);
+      await db.exec(
+        "UPDATE incident_flows SET last_progress_at=now()-interval '6 minutes'; SELECT incident_sweep(100);",
+      );
+      const groups = (
+        await db.query("SELECT event FROM incident_groups ORDER BY event")
+      ).rows;
+      expect(groups).toEqual([
+        { event: "checkout_failed" },
+        { event: "operation_possibly_stalled" },
+      ]);
+      const stalled = (
+        await db.query(
+          "SELECT examples->0->>'operationId' AS operation FROM incident_groups WHERE event='operation_possibly_stalled'",
+        )
+      ).rows;
+      expect(stalled).toEqual([{ operation: "pending" }]);
+      expect(
+        (await db.query("SELECT * FROM incident_flows WHERE running=true"))
+          .rows,
+      ).toEqual([]);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  });
+
   it("durably accepts authenticated listing reports", async () => {
     const response = await postEvent({
       event: "listing_report_submitted",

@@ -41,6 +41,12 @@
       Cleanup: ${escape(date(today.cleanup_at))}${cleanupLate ? " (overdue)" : ""} · Backlog: ${Number(today.cleanup_backlog || 0)}</p></details>`;
   }
   async function render(container, filter = {}) {
+    if (
+      !filter.userId &&
+      !filter.clientId &&
+      new URL(root.location.href).searchParams.get("source") === "customers"
+    )
+      return renderCustomerReports(container, filter.cursor);
     const params = new URLSearchParams({
       action: "issues",
       status: filter.status || "open",
@@ -51,6 +57,7 @@
     const data = await root.fetchAPI(`/api/admin?${params}`, { force: true });
     container.innerHTML = `<div class="view-brief"><h2>${filter.userId ? "Recent issues for this user" : filter.clientId ? "Recent issues for this browser" : "Issues"}</h2>
       <p>${data.processingPaused ? "Incident collection and alerts are paused. " : ""}Last 24 hours. ${filter.clientId ? "Browser correlation is unverified." : "Detected failures and explicit listing-tool reports."}</p>
+      ${!filter.userId && !filter.clientId ? '<p><a class="btn-secondary" href="/admin/reports?source=customers">Customer reports</a></p>' : ""}
       <label>Status <select class="filter-input" data-issue-status><option value="open">Open and acknowledged</option><option value="resolved">Resolved</option><option value="all">All</option></select></label>
       <button class="btn-secondary" data-issue-refresh>Refresh</button>${!filter.userId && !filter.clientId ? healthView(data.health) : ""}</div>
       <div data-issue-list>${(data.issues || []).map((issue) => summary(issue)).join("") || '<p class="empty-state">No issues match this view.</p>'}</div>
@@ -79,6 +86,56 @@
       if (incident && uuid.test(incident)) await detail(incident);
     }
   }
+  async function renderCustomerReports(container, cursor) {
+    const params = new URLSearchParams({ action: "customer-reports" });
+    if (cursor) params.set("cursor", cursor);
+    const data = await root.fetchAPI(`/api/admin?${params}`, { force: true });
+    container.innerHTML = `<div class="view-brief"><h2>Customer reports</h2>
+      <p>Feedback from the Report an issue button in the listing tools. Saved separately from temporary error evidence.</p>
+      <p><a class="btn-secondary" href="/admin/reports">Issues</a> <button class="btn-secondary" data-report-refresh>Refresh</button></p></div>
+      ${
+        (data.reports || [])
+          .map(
+            (
+              report,
+            ) => `<article class="card" style="margin-bottom:12px;padding:16px;overflow-wrap:anywhere">
+        <strong>${escape(String(report.category).replace(/_/g, " "))}</strong>
+        <p>${escape(date(report.createdAt))}<br>${escape(report.userEmail || (report.userId ? "Account linked" : "No verified account"))}<br>Version ${escape(report.extensionVersion)}${report.photoCount == null ? "" : ` · ${Number(report.photoCount)} photos`}</p>
+        <p style="white-space:pre-wrap">${escape(report.message)}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-secondary" data-report-id="${escape(report.id)}">View report</button>
+        ${report.userId && uuid.test(report.userId) ? `<button class="btn-secondary" data-report-account="${escape(report.userId)}">Account</button> <button class="btn-secondary" data-report-logs="${escape(report.userId)}">Account logs</button>` : ""}</div>
+      </article>`,
+          )
+          .join("") || '<p class="empty-state">No saved customer reports.</p>'
+      }
+      ${data.nextCursor ? '<button class="btn-secondary" data-report-next>Next 50</button>' : ""}`;
+    const reload = (next) =>
+      renderCustomerReports(container, next).catch((error) =>
+        root.openModal(
+          "Customer reports unavailable",
+          `<p>${escape(error.message)}</p>`,
+        ),
+      );
+    container
+      .querySelector("[data-report-refresh]")
+      .addEventListener("click", () => reload());
+    container
+      .querySelector("[data-report-next]")
+      ?.addEventListener("click", () => reload(data.nextCursor));
+    for (const button of container.querySelectorAll("[data-report-id]"))
+      button.addEventListener("click", () => {
+        if (uuid.test(button.dataset.reportId))
+          root.showLogDetails(button.dataset.reportId);
+      });
+    for (const button of container.querySelectorAll("[data-report-account]"))
+      button.addEventListener("click", () =>
+        root.openAccountForIssue(button.dataset.reportAccount),
+      );
+    for (const button of container.querySelectorAll("[data-report-logs]"))
+      button.addEventListener("click", () =>
+        root.openLogsForUser(button.dataset.reportLogs, "", "all"),
+      );
+  }
   async function detail(id) {
     try {
       if (!uuid.test(id)) return;
@@ -86,6 +143,8 @@
         `/api/admin?action=issue-detail&id=${encodeURIComponent(id)}`,
         { force: true },
       );
+      if (data.customerReportId && uuid.test(data.customerReportId))
+        return root.showLogDetails(data.customerReportId);
       const issue = data.issue;
       root.openModal(
         "Issue details",

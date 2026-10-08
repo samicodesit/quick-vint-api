@@ -90,9 +90,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (
-    ["issues", "issue-detail", "issue-state", "issue-self-test"].includes(
-      action,
-    )
+    [
+      "issues",
+      "issue-detail",
+      "issue-state",
+      "issue-self-test",
+      "customer-reports",
+    ].includes(action)
   )
     return handleIssues(req, res);
 

@@ -1,14 +1,18 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../supabaseClient";
 import { recordServerIncident } from "./service";
+import { sanitizeContext } from "./contract";
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 
 export async function handleIssues(req: VercelRequest, res: VercelResponse) {
   try {
     const action = req.query.action;
-    if (action === "issues" && req.method === "GET") {
-      let cursor: { time?: string; id?: string } = {};
+    let cursor: { time?: string; id?: string } = {};
+    if (
+      ["issues", "customer-reports"].includes(String(action)) &&
+      req.method === "GET"
+    ) {
       if (req.query.cursor) {
         try {
           cursor = JSON.parse(
@@ -21,10 +25,56 @@ export async function handleIssues(req: VercelRequest, res: VercelResponse) {
           !cursor.id ||
           !uuid.test(cursor.id) ||
           !cursor.time ||
+          !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(
+            cursor.time,
+          ) ||
           !Number.isFinite(Date.parse(cursor.time))
         )
           return res.status(400).json({ error: "Invalid cursor" });
+        // Retain PostgreSQL microseconds for stable pagination. Strict ISO
+        // validation above excludes filter syntax without truncating precision.
       }
+    }
+    if (action === "customer-reports" && req.method === "GET") {
+      let query = supabase
+        .from("api_logs")
+        .select("id,created_at,user_id,user_email,full_request_body")
+        .eq("endpoint", "/event/listing_report_submitted")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
+      if (cursor.time && cursor.id)
+        query = query.or(
+          `created_at.lt.${cursor.time},and(created_at.eq.${cursor.time},id.lt.${cursor.id})`,
+        );
+      const { data, error } = await query.limit(51);
+      if (error) throw error;
+      const reports = (data || []).slice(0, 50).map((row: any) => {
+        const body = row.full_request_body || {};
+        const context = sanitizeContext(body.context, false);
+        return {
+          id: row.id,
+          createdAt: row.created_at,
+          userId: row.user_id,
+          userEmail: row.user_email,
+          category: context.category || "other",
+          message: context.message || "",
+          extensionVersion: body.extensionVersion || "unknown",
+          photoCount: context.visiblePhotoCount,
+          identityVerified: body.identityVerified ?? Boolean(row.user_id),
+        };
+      });
+      const last = reports[reports.length - 1];
+      return res.status(200).json({
+        reports,
+        nextCursor:
+          (data || []).length > 50 && last
+            ? Buffer.from(
+                JSON.stringify({ time: last.createdAt, id: last.id }),
+              ).toString("base64url")
+            : null,
+      });
+    }
+    if (action === "issues" && req.method === "GET") {
       const userId =
         typeof req.query.user_id === "string" ? req.query.user_id : null;
       if (userId && !uuid.test(userId))
@@ -84,8 +134,20 @@ export async function handleIssues(req: VercelRequest, res: VercelResponse) {
       ]);
       if (issue.error || flows.error)
         throw new Error("Issue detail unavailable");
-      if (!issue.data)
+      if (!issue.data) {
+        // Report emails use incident links. Keep those useful after temporary
+        // incident evidence expires by opening the permanent support record.
+        const report = await supabase
+          .from("api_logs")
+          .select("id")
+          .eq("id", id)
+          .eq("endpoint", "/event/listing_report_submitted")
+          .maybeSingle();
+        if (report.error) throw report.error;
+        if (report.data)
+          return res.status(200).json({ customerReportId: report.data.id });
         return res.status(404).json({ error: "Issue expired or not found" });
+      }
       // The full email snapshot is retry state, not a detail-page payload.
       const { notification_payload: _payload, ...summary } = issue.data;
       if (Date.parse(summary.evidence_expires_at) <= Date.now())

@@ -317,6 +317,91 @@ describe("events tracking endpoint", () => {
     );
   });
 
+  it("acknowledges a report only after its permanent record commits, then deduplicates a lost reply", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE profiles(id uuid PRIMARY KEY,email text); CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      for (const migration of [
+        "2026-10-03_incident_tracking.sql",
+        "2026-10-08_customer_report_history.sql",
+      ])
+        await db.exec(readFileSync(`migrations/${migration}`, "utf8"));
+      rpcMock.mockImplementation(async (name, args) => {
+        expect(name).toBe("incident_ingest");
+        try {
+          const result = await db.query<any>(
+            "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+            [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+          );
+          return { data: result.rows[0].result };
+        } catch (error) {
+          return { error };
+        }
+      });
+      const id = "a423926a-35a6-4bf5-8027-8ab335c72222";
+      const body = {
+        schemaVersion: 2,
+        events: [
+          {
+            id,
+            occurredAt: new Date().toISOString(),
+            event: "listing_report_submitted",
+            source: "extension_content",
+            context: {
+              category: "tool_bug",
+              message: "My photos disappeared",
+              operationId: id,
+              userId: "forged",
+            },
+          },
+        ],
+      };
+      await db.exec(
+        "ALTER TABLE api_logs ADD CONSTRAINT reject_report CHECK(endpoint <> '/event/listing_report_submitted')",
+      );
+      const failed = await postEvent(body);
+      expect(failed.statusCode).toBe(503);
+      expect(failed.body).toMatchObject({
+        acknowledgedIds: [],
+        duplicateIds: [],
+      });
+      await db.exec("ALTER TABLE api_logs DROP CONSTRAINT reject_report");
+      const accepted = await postEvent(body);
+      expect(accepted.statusCode).toBe(200);
+      expect(accepted.body).toMatchObject({ acknowledgedIds: [id] });
+      const retried = await postEvent(body);
+      expect(retried.body).toMatchObject({
+        acknowledgedIds: [],
+        duplicateIds: [id],
+        reports: (accepted.body as any).reports,
+      });
+      expect(
+        (
+          await db.query<any>(
+            "SELECT user_id,full_request_body->'context' AS context FROM api_logs",
+          )
+        ).rows,
+      ).toEqual([
+        {
+          user_id: USER_ID,
+          context: {
+            category: "tool_bug",
+            message: "My photos disappeared",
+            operationId: id,
+          },
+        },
+      ]);
+      expect(
+        (await db.query<any>("SELECT occurrences FROM incident_groups")).rows,
+      ).toEqual([{ occurrences: 1 }]);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  });
+
   it("keeps ordinary product events distinct from reports", async () => {
     const response = await postEvent({
       event: "listing_report_opened",

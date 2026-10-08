@@ -12,10 +12,14 @@ beforeAll(async () => {
     "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated;",
   );
   await db.exec(
-    "CREATE TABLE api_logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, user_email text, endpoint text, request_method text, response_status integer, user_agent text, origin text, ip_address text, full_request_body jsonb);",
+    "CREATE TABLE api_logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, created_at timestamptz DEFAULT now(), user_id uuid, user_email text, endpoint text, request_method text, response_status integer, user_agent text, origin text, ip_address text, full_request_body jsonb);",
   );
   await db.exec(
     readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+  );
+  await db.exec("CREATE TABLE profiles(id uuid PRIMARY KEY,email text)");
+  await db.exec(
+    readFileSync("migrations/2026-10-08_customer_report_history.sql", "utf8"),
   );
 }, 30000);
 afterAll(async () => {
@@ -49,6 +53,103 @@ async function ingest(input: any) {
 }
 
 describe("atomic incident persistence", () => {
+  it("keeps a customer report after diagnostic cleanup and deduplicates delivery retries", async () => {
+    const normalized = normalizeIncidentEvent({
+      id: randomUUID(),
+      event: "listing_report_submitted",
+      occurredAt: new Date().toISOString(),
+      source: "extension_content",
+      extensionVersion: "1.4.10",
+      context: {
+        category: "tool_bug",
+        message: "Photos disappeared. token=private-token",
+        titleValue: "Private listing title",
+        breadcrumbs: [{ stage: "uploading" }],
+        visiblePhotoCount: 3,
+      },
+    });
+    const first = await ingest(normalized.value);
+    expect((await ingest(normalized.value)).status).toBe("duplicate");
+    const reports = await db.query<any>(
+      "SELECT id,user_id,endpoint,full_request_body FROM api_logs WHERE id=$1",
+      [first.incidentId],
+    );
+    expect(reports.rows).toHaveLength(1);
+    expect(reports.rows[0]).toMatchObject({
+      user_id: "123e4567-e89b-42d3-a456-426614174000",
+      endpoint: "/event/listing_report_submitted",
+      full_request_body: {
+        event: "listing_report_submitted",
+        context: {
+          category: "tool_bug",
+          visiblePhotoCount: 3,
+          message: "Photos disappeared. token=[redacted]",
+        },
+      },
+    });
+    expect(JSON.stringify(reports.rows)).not.toMatch(
+      /private-token|Private listing title|breadcrumbs/,
+    );
+    await db.query("SELECT incident_set_state($1,'resolved')", [
+      first.incidentId,
+    ]);
+    await db.query(
+      "UPDATE incident_groups SET expires_at=now()-interval '1 minute' WHERE id=$1",
+      [first.incidentId],
+    );
+    await db.query("SELECT incident_cleanup(500)");
+    expect(
+      (
+        await db.query("SELECT id FROM incident_groups WHERE id=$1", [
+          first.incidentId,
+        ])
+      ).rows,
+    ).toHaveLength(0);
+    expect(
+      (
+        await db.query("SELECT id FROM api_logs WHERE id=$1", [
+          first.incidentId,
+        ])
+      ).rows,
+    ).toHaveLength(1);
+  });
+
+  it("rolls back report acceptance if durable customer-report storage fails", async () => {
+    const input = normalizeIncidentEvent({
+      id: randomUUID(),
+      event: "listing_report_submitted",
+      occurredAt: new Date().toISOString(),
+      source: "extension_content",
+      context: { message: "A report that must not be lost" },
+    }).value!;
+    await db.exec(
+      "ALTER TABLE api_logs ADD CONSTRAINT reject_customer_report CHECK (endpoint <> '/event/listing_report_submitted') NOT VALID",
+    );
+    try {
+      await expect(ingest(input)).rejects.toThrow();
+      expect(
+        (
+          await db.query("SELECT id FROM incident_receipts WHERE id=$1", [
+            input.id,
+          ])
+        ).rows,
+      ).toHaveLength(0);
+      expect(
+        (
+          await db.query(
+            "SELECT id FROM incident_groups WHERE fingerprint=$1",
+            [input.fingerprint],
+          )
+        ).rows,
+      ).toHaveLength(0);
+    } finally {
+      await db.exec(
+        "ALTER TABLE api_logs DROP CONSTRAINT reject_customer_report",
+      );
+    }
+    expect((await ingest(input)).status).toBe("accepted");
+  });
+
   it("preserves real browser refresh diagnostics through sanitization and anonymous persistence", async () => {
     const browser = createContext({ crypto: { randomUUID }, TextEncoder });
     for (const file of [

@@ -415,6 +415,22 @@ function buildAdminHarness() {
           nextCursor: null,
           health: { groups: 0, flows: 0, receipts: 0, budgets: [] },
         };
+      if (url.includes("action=customer-reports"))
+        body = {
+          reports: [
+            {
+              id: "a423926a-35a6-4bf5-8027-8ab335c71110",
+              createdAt: "2026-09-01T10:00:00.000Z",
+              userId: "123e4567-e89b-42d3-a456-426614174000",
+              userEmail: "seller@example.test",
+              category: "tool_bug",
+              message: "Photos <script>unsafe()</script> disappeared",
+              extensionVersion: "1.3.25",
+              identityVerified: true,
+            },
+          ],
+          nextCursor: "next-page",
+        };
       if (url.includes("list-users")) body = users;
       if (url.includes("attribution-report")) {
         body = {
@@ -536,6 +552,31 @@ function buildAdminHarness() {
 }
 
 describe("admin HTML", () => {
+  it("provides a separate customer-report history with safe mobile-friendly cards", async () => {
+    const { context, content } = buildAdminHarness();
+    context.state.currentView = "reports";
+    await context.loadView("reports");
+    expect(content.innerHTML).toContain(
+      'href="/admin/reports?source=customers"',
+    );
+    context.location.href = "https://admin.test/admin/reports?source=customers";
+    await context.loadView("reports");
+    expect(content.innerHTML).toContain("Customer reports");
+    expect(content.innerHTML).toContain("seller@example.test");
+    expect(content.innerHTML).toContain(
+      "Photos &lt;script&gt;unsafe()&lt;/script&gt; disappeared",
+    );
+    expect(content.innerHTML).not.toContain("<script>unsafe()");
+    expect(content.innerHTML).toContain("Next 50");
+    expect(content.innerHTML).toContain(
+      'data-report-id="a423926a-35a6-4bf5-8027-8ab335c71110"',
+    );
+    expect(content.innerHTML).not.toContain("Last 24 hours");
+    expect(
+      context.fetchCalls.some((url) => url.includes("action=customer-reports")),
+    ).toBe(true);
+  });
+
   it("defaults to Users while preserving explicit admin deep links", () => {
     const { context } = buildAdminHarness();
     context.window.location.pathname = "/admin";

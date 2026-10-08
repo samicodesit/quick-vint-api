@@ -10,7 +10,9 @@ saves one small support record in `api_logs`, keyed by the incident ID. Only the
 note, category, authenticated account and minimal listing metadata are copied.
 Stacks, breadcrumbs, images and generated text remain excluded. This uses the
 existing support-log retention policy. Automatic diagnostics still expire after
-24 hours. A failed support-record write rolls back acceptance and can be retried.
+24 hours. Hourly API-log compaction excludes this report endpoint from both
+selection and updates, so it cannot erase support notes. A failed support-record
+write rolls back acceptance and can be retried.
 
 The migration also copies any retained report evidence at rollout. Feedback
 whose incident evidence was already deleted cannot be recovered from those

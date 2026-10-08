@@ -220,6 +220,9 @@ export class ApiLogger {
     ];
 
     const ids = new Set<string>();
+    // Customer feedback is support history, not disposable request evidence.
+    const compactableEndpoints =
+      "endpoint.is.null,endpoint.neq./event/listing_report_submitted";
     for (const field of heavyFields) {
       const remaining = safeBatchSize - ids.size;
       if (remaining <= 0) break;
@@ -227,6 +230,7 @@ export class ApiLogger {
       const { data: rows, error: selectError } = await supabase
         .from("api_logs")
         .select("id")
+        .or(compactableEndpoints)
         .lt("created_at", cutoffIso)
         .not(field, "is", null)
         .order("created_at", { ascending: true })
@@ -276,6 +280,7 @@ export class ApiLogger {
       const { error: updateError } = await supabase
         .from("api_logs")
         .update(heavyFieldClearPatch)
+        .or(compactableEndpoints)
         .in("id", chunk);
 
       if (updateError) {

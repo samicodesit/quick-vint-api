@@ -50,13 +50,15 @@
   },
   "uiRedesign": {
     "date": "2026-10-09",
-    "testRunStartedAt": "13:13:13 Europe/Amsterdam",
+    "testRunStartedAt": "13:47:19 Europe/Amsterdam",
     "productionGatePassed": true,
     "testFiles": 115,
     "tests": 815,
-    "browserChecksPassed": 24,
+    "browserChecksPassed": 25,
     "pageErrors": [],
     "progressiveDisclosureVerified": true,
+    "unstartedDraftReuseVerified": true,
+    "startedPhotosPreserved": true,
     "desktopAndPhoneScreenshotsInspected": true,
     "isolatedFixtures": true
   },

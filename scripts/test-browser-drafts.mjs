@@ -360,6 +360,15 @@ try {
   await page.locator("[data-draft-editor]:visible").waitFor();
   assert.equal(await page.locator("[data-draft-import]").isVisible(), false);
   assert.equal(await page.locator("[data-draft-editor]").isVisible(), true);
+  await click("new");
+  await page.waitForFunction(
+    () => !document.querySelector('[data-draft-action="new"]').disabled,
+  );
+  assert.equal(
+    drafts.length,
+    1,
+    "New draft reopens the existing unstarted item",
+  );
   uploadFailure = true;
   await page
     .locator('[data-draft-input="item"]')
@@ -371,6 +380,30 @@ try {
       false,
   );
   assert.equal(photos.length, 2);
+  const startedId = drafts[0].id;
+  await click("new");
+  await page.waitForFunction(
+    () => !document.querySelector('[data-draft-action="new"]').disabled,
+  );
+  assert.equal(
+    drafts.length,
+    2,
+    "An item with photos must not be reused or cleared",
+  );
+  assert.equal(
+    draftView(drafts.find((d) => d.id === startedId)).photos.length,
+    2,
+  );
+  assert.equal(
+    await page.locator('[data-draft-action="delete"]').isVisible(),
+    false,
+  );
+  await page.locator(".draft-item-menu > summary").click();
+  await click("delete");
+  await page.locator('[data-draft-delete-dialog] [value="confirm"]').click();
+  await page.locator("[data-draft-editor]").waitFor({ state: "hidden" });
+  await page.locator(".draft-item-open").first().click();
+  await page.locator("[data-draft-editor]:visible").waitFor();
   await click("generate");
   await page.waitForFunction(() =>
     document.querySelector("#draft-title").value.startsWith("Blue cotton"),
@@ -694,6 +727,7 @@ try {
         viewports: [360, 390, 768, 1440],
         checks: [
           "progressive disclosure and leaving bulk import for a new draft",
+          "repeated New draft reuses an unstarted item and preserves started work",
           "single upload",
           "immutable photo upload",
           "generation",

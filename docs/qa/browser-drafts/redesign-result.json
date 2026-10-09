@@ -4,6 +4,7 @@
   "viewports": [360, 390, 768, 1440],
   "checks": [
     "progressive disclosure and leaving bulk import for a new draft",
+    "repeated New draft reuses an unstarted item and preserves started work",
     "single upload",
     "immutable photo upload",
     "generation",

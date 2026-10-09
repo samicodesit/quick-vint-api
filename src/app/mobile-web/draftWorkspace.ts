@@ -270,13 +270,16 @@ export function mountDraftWorkspace(
       } else {
         const placeholder = document.createElement("span");
         placeholder.className = "draft-item-placeholder";
-        placeholder.textContent = "+";
+        placeholder.append(
+          find("[data-draft-upload-intro] svg").cloneNode(true),
+        );
         open.append(placeholder);
       }
       const text = document.createElement("span");
       const title = document.createElement("strong");
       title.textContent =
-        draft.title || (draft.photos.length ? "Untitled item" : "New draft");
+        draft.title ||
+        (draft.photos.length ? "Untitled item" : "Untitled draft");
       const detail = document.createElement("span");
       detail.className = "draft-item-detail";
       detail.dataset.state = queue.failed.has(draft.id)
@@ -302,7 +305,7 @@ export function mountDraftWorkspace(
                   ? "Ready to copy"
                   : draft.photos.length
                     ? `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Uploading"}`
-                    : "Add photos";
+                    : "No photos yet";
       text.append(title, detail);
       open.append(text);
       row.append(check, open);
@@ -495,6 +498,8 @@ export function mountDraftWorkspace(
     root.classList.toggle("has-editor", Boolean(draft));
     if (!draft) return;
     const preparation = find<HTMLDetailsElement>("[data-draft-preparation]");
+    if (preparationDraftId !== draft.id)
+      find<HTMLDetailsElement>(".draft-item-menu").open = false;
     if (
       preparationDraftId !== draft.id ||
       (!preparationHadOutput && Boolean(draft.description))
@@ -765,6 +770,21 @@ export function mountDraftWorkspace(
     if (tab !== "draft") {
       tab = "draft";
       await reload();
+    }
+    const unstarted =
+      !photoIds.length &&
+      library.drafts.find(
+        (draft) =>
+          !draft.title &&
+          !draft.description &&
+          !draft.photos.length &&
+          !busy(draft) &&
+          !uploads.some((upload) => upload.draftId === draft.id) &&
+          !recovery(draft),
+      );
+    if (unstarted) {
+      await openDraft(unstarted.id);
+      return unstarted;
     }
     const draft = await draftAction("create", {
       id: crypto.randomUUID(),

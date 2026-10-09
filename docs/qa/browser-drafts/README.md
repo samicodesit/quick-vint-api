@@ -4,7 +4,9 @@ October 9, 2026. Feature commit: `994ef65` on `codex/mobile-web-phase1`.
 
 ## Current UI review
 
-The user-requested redesign replaces the earlier form layout with a photo gallery, a focused editor, glass surfaces and progressive disclosure. The fresh full gate passed 115 files / 815 tests at 13:13:13 Europe/Amsterdam. The updated browser suite passed 24 checks with no page errors; [current result](redesign-result.json). It adds explicit disclosure/manual writing/deletion coverage and leaving bulk import for a new draft. Selected screenshots below were visually inspected; the full responsive capture matrix is `/tmp/autolister-drafts-redesign-browser` in this session.
+The user-requested redesign replaces the earlier form layout with a photo gallery, a focused editor and progressive disclosure. The final visual correction removes nested photo frames and the background wash, keeps one clean tile surface, and gives captions 16px desktop / 12px phone padding. Hover no longer adds a frame. The screenshots use existing prototype sample photos in a localhost fixture account. No customer data was used.
+
+The fresh full gate passed 115 files / 815 tests at 13:47:19 Europe/Amsterdam. The updated browser suite passed 25 checks with no page errors; [current result](redesign-result.json). It covers initial disclosure/manual writing/deletion, leaving bulk import for a new draft, reusing an unstarted draft on repeated New draft clicks, and preserving started work with photos. Selected screenshots below were visually inspected; the full responsive capture matrix is `/tmp/autolister-drafts-clean-browser` in this session.
 
 - Gallery: [desktop](redesign-gallery.png), [phone](redesign-gallery-phone.png).
 - Editor: [desktop](redesign-editor.png), [phone](redesign-editor-phone.png).

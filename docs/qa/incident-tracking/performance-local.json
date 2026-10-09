@@ -1,0 +1,44 @@
+{
+  "prepare": {
+    "routine": {
+      "samples": 50,
+      "medianMs": 0.025999999940395355,
+      "p95Ms": 0.03699999988079071,
+      "maxMs": 0.06399999991059303
+    },
+    "failure": {
+      "samples": 50,
+      "medianMs": 0.03599999994039536,
+      "p95Ms": 0.057999999970197676,
+      "maxMs": 0.08399999991059304
+    }
+  },
+  "normalQueuePersistence": {
+    "samples": 100,
+    "medianMs": 5.200000002980232,
+    "p95Ms": 9,
+    "maxMs": 9.900000005960464
+  },
+  "nearCountCapQueuePersistence": {
+    "samples": 30,
+    "medianMs": 21,
+    "p95Ms": 22.100000008940697,
+    "maxMs": 22.900000005960464
+  },
+  "seedQueueBytes": 207780,
+  "immediateTrackingWith1000msMockResponse": 1004.2000000029802,
+  "environment": {
+    "browser": "149.0.7827.55",
+    "offline": true,
+    "platform": "linux",
+    "liveVinted": false,
+    "liveBackend": false
+  },
+  "measurementStage": "Before auth and phone product-path wait fixes. Queue preparation and persistence metrics are unchanged.",
+  "fixVerification": {
+    "auth": "Send, resend and verified sign-in complete while telemetry promises remain unresolved; real popup browser regression passed.",
+    "phoneSession": "Endpoint returns 201 while diagnostic owner-registration RPC remains unresolved; continuation owns the pending task.",
+    "ownershipRace": "Evidence is accepted as unverified without waiting; later trusted v2 activity repairs account links. Legacy evidence remains explicitly unverified. Concurrent retries preserve one occurrence and one alert reservation.",
+    "productionLatencyMeasured": false
+  }
+}

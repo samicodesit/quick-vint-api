@@ -52,6 +52,13 @@ class StubElement {
   removeAttribute(name: string) {
     if (name === "src") this.src = "";
   }
+  addEventListener() {}
+  querySelector(selector: string) {
+    return new StubElement(selector);
+  }
+  querySelectorAll() {
+    return [];
+  }
 }
 
 function buildAdminHarness() {
@@ -345,6 +352,7 @@ function buildAdminHarness() {
     clearTimeout() {},
     Date,
     URLSearchParams,
+    URL,
     encodeURIComponent,
     localStorage: {
       getItem() {
@@ -375,7 +383,7 @@ function buildAdminHarness() {
         }
       },
     },
-    location: { reload() {} },
+    location: { href: "https://admin.test/admin/reports", reload() {} },
     window: {
       location: { hash: "", pathname: "/admin/logs", search: "" },
       innerWidth: 1200,
@@ -401,6 +409,28 @@ function buildAdminHarness() {
       fetchRequests.push({ url, options });
       let body: unknown = usage;
       if (url.includes("auth-check")) body = { ok: true };
+      if (url.includes("action=issues"))
+        body = {
+          issues: [],
+          nextCursor: null,
+          health: { groups: 0, flows: 0, receipts: 0, budgets: [] },
+        };
+      if (url.includes("action=customer-reports"))
+        body = {
+          reports: [
+            {
+              id: "a423926a-35a6-4bf5-8027-8ab335c71110",
+              createdAt: "2026-09-01T10:00:00.000Z",
+              userId: "123e4567-e89b-42d3-a456-426614174000",
+              userEmail: "seller@example.test",
+              category: "tool_bug",
+              message: "Photos <script>unsafe()</script> disappeared",
+              extensionVersion: "1.3.25",
+              identityVerified: true,
+            },
+          ],
+          nextCursor: "next-page",
+        };
       if (url.includes("list-users")) body = users;
       if (url.includes("attribution-report")) {
         body = {
@@ -418,6 +448,15 @@ function buildAdminHarness() {
             activePaidProfiles: 1,
           },
           cohorts: [
+            {
+              source: "x",
+              campaign: "posts",
+              captured: 3,
+              newSignups: 2,
+              activated: 1,
+              nonNewClaims: 1,
+              activePaidProfiles: 0,
+            },
             {
               source: "tiktok",
               campaign: "profile",
@@ -463,10 +502,15 @@ function buildAdminHarness() {
   windowMock.localStorage = context.localStorage;
 
   vm.createContext(context);
+  vm.runInContext(
+    readFileSync(join(process.cwd(), "public/admin-issues.js"), "utf8"),
+    context,
+  );
   vm.runInContext(script, context, { filename: "admin.html" });
 
   return {
     context: context as typeof context & {
+      getInitialAdminView: () => string;
       loadView: (view: string) => Promise<void>;
       showLogDetails: (id: string) => Promise<void>;
       showLogImagePreview: (logId: string, index: number) => void;
@@ -479,6 +523,8 @@ function buildAdminHarness() {
         type?: string,
       ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
+      renderUserRow: (user: Record<string, unknown>) => string;
+      renderUserMobileCard: (user: Record<string, unknown>) => string;
       openAiInstructions: (userId: string) => void;
       saveAiInstructions: (userId: string, clear?: boolean) => Promise<void>;
       renderLimitFollowupResult: (data: Record<string, unknown>) => void;
@@ -506,6 +552,45 @@ function buildAdminHarness() {
 }
 
 describe("admin HTML", () => {
+  it("provides a separate customer-report history with safe mobile-friendly cards", async () => {
+    const { context, content } = buildAdminHarness();
+    context.state.currentView = "reports";
+    await context.loadView("reports");
+    expect(content.innerHTML).toContain(
+      'href="/admin/reports?source=customers"',
+    );
+    context.location.href = "https://admin.test/admin/reports?source=customers";
+    await context.loadView("reports");
+    expect(content.innerHTML).toContain("Customer reports");
+    expect(content.innerHTML).toContain("seller@example.test");
+    expect(content.innerHTML).toContain(
+      "Photos &lt;script&gt;unsafe()&lt;/script&gt; disappeared",
+    );
+    expect(content.innerHTML).not.toContain("<script>unsafe()");
+    expect(content.innerHTML).toContain("Next 50");
+    expect(content.innerHTML).toContain(
+      'data-report-id="a423926a-35a6-4bf5-8027-8ab335c71110"',
+    );
+    expect(content.innerHTML).not.toContain("Last 24 hours");
+    expect(
+      context.fetchCalls.some((url) => url.includes("action=customer-reports")),
+    ).toBe(true);
+  });
+
+  it("defaults to Users while preserving explicit admin deep links", () => {
+    const { context } = buildAdminHarness();
+    context.window.location.pathname = "/admin";
+    context.window.location.hash = "";
+    expect(context.getInitialAdminView()).toBe("users");
+    context.window.location.pathname = "/admin/unknown";
+    expect(context.getInitialAdminView()).toBe("users");
+    context.window.location.pathname = "/admin/logs";
+    expect(context.getInitialAdminView()).toBe("logs");
+    context.window.location.pathname = "/admin";
+    context.window.location.hash = "#reports";
+    expect(context.getInitialAdminView()).toBe("reports");
+  });
+
   it("labels MRR as Stripe-backed in the costs view", async () => {
     const { context, content } = buildAdminHarness();
 
@@ -534,9 +619,13 @@ describe("admin HTML", () => {
       context.state.currentView = view;
       await context.loadView(view);
       expect(content.innerHTML, view).not.toContain("Error loading view");
-      expect(content.innerHTML.length, view).toBeGreaterThan(1000);
+      if (view === "reports")
+        expect(content.innerHTML).toContain("No issues match this view.");
+      else expect(content.innerHTML.length, view).toBeGreaterThan(1000);
       if (view === "acquisition") {
         expect(content.innerHTML).toContain("TikTok acquisition evidence");
+        expect(content.innerHTML).toContain("<strong>x</strong>");
+        expect(content.innerHTML).toContain("<td>posts</td>");
         expect(content.innerHTML).toContain("Non-new claims");
         expect(content.innerHTML).toContain("Currently active paid profiles");
         expect(content.innerHTML).toContain("Unknowns");
@@ -592,11 +681,10 @@ describe("admin HTML", () => {
       "user-1",
       encodeURIComponent("test@example.com"),
     );
-    expect(modalTitle.textContent).toBe("User Journey");
-    expect(modalBody.innerHTML).toContain("Edited title + description");
-    expect(modalBody.innerHTML).toContain("Grey Polka Dot Sweater -");
-    expect(modalBody.innerHTML).toContain("Grey polka dot sweater");
-    expect(modalBody.innerHTML).toContain("ip 203.0.113.24");
+    expect(modalTitle.textContent).toBe("Recent issues");
+    expect(
+      context.document.getElementById("user-recent-issues").innerHTML,
+    ).toContain("No issues match this view.");
   });
 
   it("links anonymous analytics clients to journeys and related logs", async () => {
@@ -615,19 +703,17 @@ describe("admin HTML", () => {
     expect(modalBody.innerHTML).toContain("Client ID: cid-anon-123");
     expect(modalBody.innerHTML).toContain("198.51.100.12");
     expect(modalBody.innerHTML).toContain("Likely user: test@example.com");
-    expect(modalBody.innerHTML).toContain("View correlated journey");
+    expect(modalBody.innerHTML).toContain("View correlated issues");
     expect(modalBody.innerHTML).toContain("Open related logs");
 
     await context.showClientJourney("cid-anon-123");
     expect(
-      context.fetchCalls.some((url) =>
-        url.includes("analytics_client_id=cid-anon-123"),
-      ),
+      context.fetchCalls.some((url) => url.includes("client_id=cid-anon-123")),
     ).toBe(true);
-    expect(modalTitle.textContent).toBe("Correlated Journey");
-    expect(modalBody.innerHTML).toContain("Likely user: test@example.com");
-    expect(modalBody.innerHTML).toContain("Linked users from correlated logs");
-    expect(modalBody.innerHTML).toContain("Open client event logs");
+    expect(modalTitle.textContent).toBe("Recent browser issues");
+    expect(
+      context.document.getElementById("user-recent-issues").innerHTML,
+    ).toContain("Browser correlation is unverified.");
 
     context.openLogsForSearch("cid-anon-123", "events");
     expect(context.state.logsType).toBe("events");
@@ -689,6 +775,64 @@ describe("admin HTML", () => {
     context.switchView("users");
     expect(context.window.location.pathname).toBe("/admin/users");
   });
+
+  it.each([
+    ["x", "X"],
+    ["tiktok", "TikTok"],
+    ["instagram", "Instagram"],
+    ["youtube", "YouTube"],
+    ["facebook", "Facebook"],
+    ["linkedin", "LinkedIn"],
+    ["reddit", "Reddit"],
+    ["google", "Google"],
+  ])(
+    "shows the saved %s channel on desktop and mobile users",
+    (source, label) => {
+      const { context } = buildAdminHarness();
+      const user = {
+        id: "user-channel",
+        email: "seller@example.com",
+        acquisition_source: source,
+      };
+      for (const render of [
+        context.renderUserRow,
+        context.renderUserMobileCard,
+      ]) {
+        const html = render(user);
+        expect(html).toContain(`aria-label="Acquisition channel: ${label}"`);
+        expect(html).toContain(`>${label}</span>`);
+      }
+    },
+  );
+
+  it.each([
+    [null, null, "Unknown"],
+    ["unknown", null, "Unknown"],
+    ["direct", null, "Direct"],
+    ["newsletter", null, "newsletter"],
+    ["unknown", "seller-forum.example", "seller-forum.example"],
+    ["<img src=x onerror=alert(1)>", null, "Unknown"],
+    [null, "evil.example/path?email=secret", "Unknown"],
+  ])(
+    "shows an honest fallback for source %s and referrer %s",
+    (source, host, label) => {
+      const { context } = buildAdminHarness();
+      const user = {
+        id: "unattributed",
+        acquisition_source: source,
+        acquisition_referrer_host: host,
+      };
+      for (const render of [
+        context.renderUserRow,
+        context.renderUserMobileCard,
+      ]) {
+        expect(render(user)).toContain(
+          `aria-label="Acquisition channel: ${label}"`,
+        );
+        expect(render(user)).not.toContain("onerror=");
+      }
+    },
+  );
 
   it("hides review request action after the one-time email was sent", () => {
     const { context } = buildAdminHarness();

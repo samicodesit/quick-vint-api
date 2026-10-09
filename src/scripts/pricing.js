@@ -521,17 +521,29 @@ async function handlePlanClick(planName) {
 }
 
 // Handle paid plan selection (upgrade/switch)
+function createCheckoutContext(checkoutKind, source = "pricing_page") {
+  return {
+    operationId: `checkout_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
+    checkoutKind,
+    source,
+  };
+}
+
 async function handlePaidPlanSelection(planName, options = {}) {
   const pendingWindow = options.sameWindow ? null : openExternalWindow();
   const offerToken =
     currentPricingOfferToken && currentPricingOffer?.targetTier === planName
       ? currentPricingOfferToken
       : null;
+  const checkoutContext = createCheckoutContext(
+    "subscription",
+    offerToken ? "pricing_offer" : "pricing_page",
+  );
 
   try {
     trackEvent("checkout_start", {
       plan: planName,
-      context: offerToken ? "pricing_offer" : "pricing_page",
+      context: checkoutContext,
     });
     const response = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
       method: "POST",
@@ -558,10 +570,19 @@ async function handlePaidPlanSelection(planName, options = {}) {
       );
       trackEvent("checkout_opened", {
         plan: planName,
-        context: offerToken ? "pricing_offer" : "pricing_page",
+        context: checkoutContext,
       });
       sendExternalWindowToUrl(pendingWindow, data.url);
     } else {
+      trackEvent("checkout_failed", {
+        plan: planName,
+        context: {
+          ...checkoutContext,
+          stage: "checkout_requested",
+          errorCode: "CHECKOUT_RESPONSE_ERROR",
+          statusCode: response.status,
+        },
+      });
       closeExternalWindow(pendingWindow);
       console.error("Checkout error:", data);
       showStatusMessage(
@@ -570,6 +591,16 @@ async function handlePaidPlanSelection(planName, options = {}) {
       );
     }
   } catch (error) {
+    trackEvent("checkout_failed", {
+      plan: planName,
+      context: {
+        ...checkoutContext,
+        stage: "checkout_requested",
+        errorCode: "CHECKOUT_REQUEST_ERROR",
+        errorName: error?.name,
+        message: error?.message,
+      },
+    });
     closeExternalWindow(pendingWindow);
     console.error("Checkout error:", error);
     showStatusMessage(
@@ -596,6 +627,7 @@ async function handleCreditPackClick() {
   if (textSpan) textSpan.textContent = "Loading...";
 
   let pendingWindow = null;
+  let checkoutContext = null;
 
   try {
     if (!hasExtension) {
@@ -623,6 +655,11 @@ async function handleCreditPackClick() {
     }
 
     pendingWindow = openExternalWindow();
+    checkoutContext = createCheckoutContext("credits");
+    trackEvent("checkout_start", {
+      plan: "credit_pack",
+      context: checkoutContext,
+    });
 
     const response = await fetch(
       `${API_BASE}/api/stripe/create-credit-checkout`,
@@ -645,10 +682,19 @@ async function handleCreditPackClick() {
       showStatusMessage("Opening secure Stripe Checkout.", "success");
       trackEvent("checkout_opened", {
         plan: "credit_pack",
-        context: "pricing_page",
+        context: checkoutContext,
       });
       sendExternalWindowToUrl(pendingWindow, data.url);
     } else {
+      trackEvent("checkout_failed", {
+        plan: "credit_pack",
+        context: {
+          ...checkoutContext,
+          stage: "checkout_requested",
+          errorCode: "CHECKOUT_RESPONSE_ERROR",
+          statusCode: response.status,
+        },
+      });
       closeExternalWindow(pendingWindow);
       console.error("Credit checkout error:", data);
       showStatusMessage(
@@ -657,6 +703,17 @@ async function handleCreditPackClick() {
       );
     }
   } catch (error) {
+    if (checkoutContext)
+      trackEvent("checkout_failed", {
+        plan: "credit_pack",
+        context: {
+          ...checkoutContext,
+          stage: "checkout_requested",
+          errorCode: "CHECKOUT_REQUEST_ERROR",
+          errorName: error?.name,
+          message: error?.message,
+        },
+      });
     closeExternalWindow(pendingWindow);
     console.error("Credit checkout error:", error);
     showStatusMessage(
@@ -672,9 +729,10 @@ async function handleCreditPackClick() {
 // Open customer portal for existing subscribers
 async function openCustomerPortal() {
   const pendingWindow = openExternalWindow();
+  const checkoutContext = createCheckoutContext("portal");
 
   try {
-    trackEvent("billing_portal_start", { context: "pricing_page" });
+    trackEvent("billing_portal_start", { context: checkoutContext });
     const response = await fetch(`${API_BASE}/api/stripe/create-portal`, {
       method: "POST",
       headers: {
@@ -687,8 +745,17 @@ async function openCustomerPortal() {
 
     if (response.ok && data.url) {
       showStatusMessage("Opening your Stripe customer portal.", "success");
+      trackEvent("billing_portal_opened", { context: checkoutContext });
       sendExternalWindowToUrl(pendingWindow, data.url);
     } else {
+      trackEvent("checkout_failed", {
+        context: {
+          ...checkoutContext,
+          stage: "checkout_requested",
+          errorCode: "CHECKOUT_RESPONSE_ERROR",
+          statusCode: response.status,
+        },
+      });
       closeExternalWindow(pendingWindow);
       console.error("Portal error:", data);
       showStatusMessage(
@@ -698,6 +765,15 @@ async function openCustomerPortal() {
       );
     }
   } catch (error) {
+    trackEvent("checkout_failed", {
+      context: {
+        ...checkoutContext,
+        stage: "checkout_requested",
+        errorCode: "CHECKOUT_REQUEST_ERROR",
+        errorName: error?.name,
+        message: error?.message,
+      },
+    });
     closeExternalWindow(pendingWindow);
     console.error("Portal error:", error);
     showStatusMessage(

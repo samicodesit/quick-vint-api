@@ -1,5 +1,20 @@
 # AutoLister AI Growth Current Sprint
 
+## Admin acquisition badges, October 1, 2026
+
+- Every mobile user card and desktop row now has a compact acquisition badge beside the email. Recognised channels have readable brand labels; unfamiliar valid campaign source names and external referring hostnames are retained and displayed. Missing evidence shows Unknown, with a tooltip distinguishing absent evidence from temporary read failure. Direct is shown only for explicit saved direct evidence, and referring-host evidence takes priority over a direct tag. No historical origins are invented.
+- Website first-touch capture, auth callback, claim sanitization and admin user enrichment preserve safe source slugs up to 80 characters and domain-only referrers. Full referrer URLs, paths and query strings are discarded. Internal, IP-address and malformed referrers are excluded. Existing first touches remain immutable; authenticated user ownership and admin access are unchanged.
+- Tests were observed failing before implementation, then passed. Full local verify:production passed lint, type-check, formatting, build (130 pages), 75 test files and 438 tests. Admin UI, endpoint joins, fallback read failure, custom sources, referrers and signup handoff have targeted coverage. No real signup, install, generation, payment, outreach or marketplace operation was performed.
+- Migration 2026-10-01_custom_attribution_sources.sql is prepared and must be applied before deployment. It broadens only the source metadata check to safe bounded slugs. Existing rows and RLS are unchanged. Independent code review passed with no Critical or Important findings. On the user's explicit Deploy instruction, the migration was applied using existing authenticated Supabase Management API access. A read-only verification confirms the safe-source check is validated and RLS remains enabled. Production push is now proceeding. Browser control continues to time out, so actual mobile/desktop visual verification remains unavailable.
+
+## X signup attribution and share-card refresh, October 1, 2026
+
+- User approved the production database update and deployment. Migration `2026-10-01_x_user_attributions.sql` was applied in Supabase project `jqloiovdwjaornnfvmyu`. A read-only constraint query confirms `x` is allowed and the constraint is validated. Existing rows and RLS remain intact; no fake user or attribution row was created.
+- X first-touch capture, website auth callback and backend sanitization now accept `x` with exact X, Twitter and t.co referrers. The existing Admin Acquisition Source cohorts table reports X claims, new signups, successful-generation activation and current paid status separately. Same-browser attribution remains a limitation; no real signup, install, generation or payment journey was exercised.
+- The live site already served the newer photo-based artwork, but native X composer checks of the original tagged homepage URL and a fresh UTM query both showed the older purple card and old alt text. This demonstrates a stale X card rather than the live site serving the old image.
+- New short share URL: https://autolister.app/x. It renders the existing homepage with a distinct social URL and adds default X UTMs before analytics. Explicit campaign/content values remain intact. The existing current artwork is copied unchanged to `social-card-oct2026.png` so the image also has a new URL. No social post was sent. Final native X preview verification follows deployment.
+- Release prepared from current production commit `cf51cf6` in an isolated checkout, preserving the production artwork and paid welcome-email changes. Existing local documentation and unfinished changes were not included in this release. Attribution review passed with no Critical or Important findings; final route review and guarded production push follow.
+
 This is the durable source of truth for current growth work. Chat is temporary; if Codex makes or changes a growth decision, update this file in the same change.
 
 ## Mobile web idempotency migration canary, September 24, 2026
@@ -88,3 +103,11 @@ Append one row whenever the weekly focus changes or an experiment ends.
 - Do not position AutoLister AI as Vinted automation, botting, auto-like, auto-follow, buyer messaging, relisting, or account control software.
 - Keep "Vinted description generator" visible in high-intent acquisition copy.
 - Every experiment needs a hypothesis, channel, market, action, budget, date range, success metric, result, and decision.
+
+## 2026-09-30: Consistent social preview artwork
+
+- Found a remaining `banner.png` fallback in blog metadata. The September artwork update reused its existing image URL, allowing cached previews to retain earlier artwork.
+- All 117 pages with social metadata now share `social-card-sep2026.png?v=20260930` for Open Graph and Twitter. Removed page-specific image overrides, corrected Twitter tags to use `name`, and aligned alt text with the current artwork.
+- Reviewed the actual 1200x630 artwork: AutoLister branding, readable "From photos to listing drafts" headline, and a seller photographing clothes. Existing article hero images remain in article content.
+- Local build passed: 129 HTML pages, including 117 social-card pages. Parsed every generated social-card page and verified image URLs, dimensions, alt text, and Twitter attributes. No old banner remains in social metadata.
+- Production gate is required before push. After deployment, verify those same 117 URLs as Twitterbot and compare the served PNG dimensions and SHA256 with the repository asset. Native platform preview caches and signup/activation are untested by this metadata change.

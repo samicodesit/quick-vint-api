@@ -1,9 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
 import Stripe from "stripe";
+import { handleIssues } from "../../utils/incidents/admin";
 import { supabase } from "../../utils/supabaseClient";
 import {
   FREE_LIFETIME_LIMIT,
+  TIER_CONFIGS,
   getEffectiveTier,
   getTierByStripePriceId,
   getTierConfigForProfile,
@@ -12,7 +14,9 @@ import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import {
   BRAND,
   TEMPLATES,
+  getPaidWelcomeTemplate,
   wrapEmailLayout,
+  wrapDirectReplyLayout,
   getTemplateIndex,
   wrapTemplateLayout,
 } from "../../utils/emailTemplates";
@@ -35,6 +39,8 @@ import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 import {
   buildAttributionReport,
   isNewAcquisition,
+  sanitizeAttributionSource,
+  sanitizeReferrerHost,
   type AttributionClaimRow,
   type AttributionGeneration,
   type AttributionProfile,
@@ -44,6 +50,28 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {})
   : null;
+
+function getPaidWelcomeSampleTemplate(templateKey: string) {
+  const tier =
+    templateKey === "starter_welcome_v1"
+      ? "starter"
+      : templateKey === "pro_welcome_v1"
+        ? "pro"
+        : templateKey === "business_welcome_v1"
+          ? "business"
+          : null;
+  if (!tier) return null;
+
+  return getPaidWelcomeTemplate(tier, {
+    billing: {
+      amountMinor: Math.round(TIER_CONFIGS[tier].monthlyPrice * 100),
+      currency: "eur",
+      nextRenewalAt: "2026-10-13T00:00:00.000Z",
+      statementDescriptor: BRAND.statementDescriptor,
+      sample: true,
+    },
+  });
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // --- AUTH with ADMIN_SECRET ---
@@ -60,6 +88,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+
+  if (
+    [
+      "issues",
+      "issue-detail",
+      "issue-state",
+      "issue-self-test",
+      "customer-reports",
+    ].includes(action)
+  )
+    return handleIssues(req, res);
 
   if (req.method === "GET") {
     if (action === "auth-check") {
@@ -1076,19 +1115,32 @@ async function enrichAdminUsers(
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
 
-  const [{ data: recentLogs }, { data: activeRateLimits }] = await Promise.all([
-    supabase
-      .from("api_logs")
-      .select("user_id, user_email, ip_address, created_at")
-      .in("user_id", ids)
-      .order("created_at", { ascending: false })
-      .limit(Math.min(ids.length * 25, 1000)),
-    supabase
-      .from("rate_limits")
-      .select("user_id, window_type, count, expires_at")
-      .in("user_id", ids)
-      .or(`expires_at.gt.${nowIso},expires_at.is.null`),
-  ]);
+  const [{ data: recentLogs }, { data: activeRateLimits }, attributionResult] =
+    await Promise.all([
+      supabase
+        .from("api_logs")
+        .select("user_id, user_email, ip_address, created_at")
+        .in("user_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(Math.min(ids.length * 25, 1000)),
+      supabase
+        .from("rate_limits")
+        .select("user_id, window_type, count, expires_at")
+        .in("user_id", ids)
+        .or(`expires_at.gt.${nowIso},expires_at.is.null`),
+      fetchAttributionRowsByIds(
+        "user_attributions",
+        "user_id, source, referrer_host",
+        "user_id",
+        ids,
+      )
+        .then((result) => ({ rows: result.rows, available: true }))
+        .catch(() => ({ rows: [], available: false })),
+    ]);
+
+  const attributionByUser = new Map(
+    attributionResult.rows.map((row: any) => [row.user_id, row]),
+  );
 
   const lastActiveMap = new Map<string, string>();
   const lastIpMap = new Map<string, string>();
@@ -1164,6 +1216,15 @@ async function enrichAdminUsers(
 
     return {
       ...safeUser,
+      acquisition_source: sanitizeAttributionSource(
+        attributionByUser.get(user.id)?.source,
+      ),
+      acquisition_referrer_host: sanitizeReferrerHost(
+        attributionByUser.get(user.id)?.referrer_host,
+      ),
+      acquisition_status: attributionResult.available
+        ? "available"
+        : "unavailable",
       subscription_tier: tierKey,
       subscription_status: user.subscription_status || "unknown",
       email_can_contact: Boolean(
@@ -3301,11 +3362,12 @@ async function handlePreviewTemplate(req: VercelRequest, res: VercelResponse) {
   }
 
   const template = TEMPLATES[key];
+  const previewTemplate = getPaidWelcomeSampleTemplate(key) || template;
   const demoUnsubUrl =
     "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
   const html = wrapTemplateLayout(
-    template,
-    renderEmailTemplateVariables(template.body, {
+    previewTemplate,
+    renderEmailTemplateVariables(previewTemplate.body, {
       email: "charlotte.lefevre.1807@hotmail.com",
       allowUnsignedFallback: isLocalRequest(req),
     }),
@@ -3360,11 +3422,20 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
     if (test_email) {
       const demoUnsubUrl =
         "https://autolister.app/api/unsubscribe?token=00000000-0000-0000-0000-000000000000";
-      const html = wrapEmailLayout(
-        renderEmailTemplateVariables(bodyHtml, { email: test_email }),
-        preheader,
-        demoUnsubUrl,
+      const testTemplate = template_key
+        ? getPaidWelcomeSampleTemplate(template_key)
+        : null;
+      const renderedBody = renderEmailTemplateVariables(
+        testTemplate?.body || bodyHtml,
+        {
+          email: test_email,
+        },
       );
+      const testPreheader = testTemplate?.preheader || preheader;
+      const html =
+        template_key && TEMPLATES[template_key]?.layout === "direct"
+          ? wrapDirectReplyLayout(renderedBody, testPreheader)
+          : wrapEmailLayout(renderedBody, testPreheader, demoUnsubUrl);
 
       await resend.emails.send({
         from: BRAND.from,

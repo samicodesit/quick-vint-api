@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-03",
+  "backendTestsPassed": 482,
+  "frontendUnitTestsPassed": 66,
+  "fullFrontendBrowserTestsPassed": 176,
+  "additionalAuthBrowserTestPassed": 1,
+  "preexistingSkippedBrowserTests": 1,
+  "backendLintTypecheckBuild": "passed",
+  "productionFormatGate": "Two unrelated growth document warnings remain",
+  "frontendProductionBuild": "passed",
+  "package": {
+    "artifact": "/home/mests/projects/quick-vint/dist/autolister-incident-validation-v1.4.6.zip",
+    "version": "1.4.6",
+    "sha256": "134fdda4195061a7e43a47411382f21d592775ad6c37677dc1244aa7959fd5fd",
+    "bytes": 433528,
+    "helpersVerified": 5,
+    "packagedWorkerLoaded": true,
+    "offline": true,
+    "releaseStatusChanged": false
+  },
+  "nonblockingRegressions": "Send/resend/verified sign-in and phone-session response complete with unresolved diagnostic work. Early phone evidence retries with verified ownership.",
+  "productionChanged": false
+}

@@ -2233,22 +2233,7 @@ const copy = {
 
       function trackEvent(event, context = {}, options = {}) {
         if (previewMode) return Promise.resolve();
-        const body = JSON.stringify(buildTrackingBody(event, context));
-
-        if (options.beacon && navigator.sendBeacon) {
-          const sent = navigator.sendBeacon(
-            "/api/events/track",
-            new Blob([body], { type: "application/json" }),
-          );
-          if (sent) return Promise.resolve();
-        }
-
-        return fetch("/api/events/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: true,
-        }).catch(() => {});
+        return globalThis.AutoListerWebsiteTelemetry.track(event, buildTrackingBody(event, context), Boolean(options.immediate));
       }
 
       function trackUninstallOpen() {
@@ -2286,21 +2271,10 @@ const copy = {
         }
 
         try {
-          const response = await fetch("/api/events/track", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(
-              buildTrackingBody("uninstall_feedback_submitted", {
-                reason,
-                reasonLabel,
-                offerCampaign: "uninstall_winback_offer_v1",
-              }),
-            ),
-            keepalive: true,
-          });
-          if (!response.ok) {
-            throw new Error(`Feedback failed: ${response.status}`);
-          }
+          const result = await trackEvent("uninstall_feedback_submitted", {
+            reason, reasonLabel, offerCampaign: "uninstall_winback_offer_v1"
+          }, { immediate: true });
+          if (!result?.accepted) throw new Error("Feedback has not been received yet");
           page.dataset.state = "submitted";
         } catch (feedbackError) {
           error.style.display = "block";

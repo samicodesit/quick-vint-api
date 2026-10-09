@@ -58,6 +58,12 @@ async function runBridge(
   const context = {
     console,
     URLSearchParams,
+    AutoListerWebsiteTelemetry: {
+      track: async (event: string, properties: Record<string, unknown>) => {
+        events.push({ event, ...properties });
+        return { queued: true };
+      },
+    },
     setTimeout(callback: () => void, delay = 0) {
       timers.push({ callback, delay });
       return timers.length;
@@ -99,7 +105,6 @@ async function runBridge(
       fetchOptions: { body?: string; headers?: Record<string, string> },
     ) => {
       requests.push({ url: _url, options: fetchOptions });
-      events.push(JSON.parse(String(fetchOptions.body || "{}")));
       if (options.fetch) return options.fetch(_url, fetchOptions);
       return { ok: true, status: 200 };
     },
@@ -159,66 +164,75 @@ describe("auth callback bridge", () => {
     expect(timers[0].delay).toBe(1000);
   });
 
-  it("claims first touch on the website without changing extension handoff data", async () => {
-    const removedKeys: string[] = [];
-    const { messages, requests } = await runBridge(
-      "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1",
-      { ok: true },
-      {
-        storage: {
-          getItem: (key) =>
-            key === "autolister.first_touch.v1"
-              ? JSON.stringify({
-                  source: "tiktok",
-                  medium: "organic_social",
-                  campaign: "profile-link",
-                  content: "comment-1",
-                  capturedAt: "2026-09-22T10:00:00.000Z",
-                  referrerHost: "www.tiktok.com",
-                  ignored: "secret",
-                })
-              : null,
-          removeItem: (key) => removedKeys.push(key),
-        },
-      },
-    );
-
-    expect(messages).toEqual([
-      {
-        extensionId: "mommklhpammnlojjobejddmidmdcalcl",
-        message: {
-          type: "AUTH_HANDOFF",
-          closeDelayMs: 3400,
-          session: {
-            access_token: "access-1",
-            expires_in: undefined,
-            refresh_token: "refresh-1",
-            token_type: "bearer",
+  it.each(["tiktok", "x", "newsletter", "unknown"])(
+    "claims %s first touch without changing extension handoff data",
+    async (source) => {
+      const referrerHost =
+        source === "x"
+          ? "t.co"
+          : source === "tiktok"
+            ? "www.tiktok.com"
+            : "seller-forum.example";
+      const removedKeys: string[] = [];
+      const { messages, requests } = await runBridge(
+        "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1",
+        { ok: true },
+        {
+          storage: {
+            getItem: (key) =>
+              key === "autolister.first_touch.v1"
+                ? JSON.stringify({
+                    source,
+                    medium: "organic_social",
+                    campaign: "profile-link",
+                    content: "comment-1",
+                    capturedAt: "2026-09-22T10:00:00.000Z",
+                    referrerHost,
+                    ignored: "secret",
+                  })
+                : null,
+            removeItem: (key) => removedKeys.push(key),
           },
         },
-      },
-    ]);
-    const claim = requests.find(({ url }) =>
-      url.endsWith("/api/attribution/claim"),
-    );
-    expect(claim).toBeDefined();
-    expect(claim?.options.headers).toEqual({
-      "Content-Type": "application/json",
-      Authorization: "Bearer access-1",
-    });
-    expect(JSON.parse(String(claim?.options.body))).toEqual({
-      attribution: {
-        source: "tiktok",
-        medium: "organic_social",
-        campaign: "profile-link",
-        content: "comment-1",
-        capturedAt: "2026-09-22T10:00:00.000Z",
-        referrerHost: "www.tiktok.com",
-      },
-    });
-    expect(removedKeys).toEqual(["autolister.first_touch.v1"]);
-    expect(JSON.stringify(messages[0])).not.toContain("secret");
-  });
+      );
+
+      expect(messages).toEqual([
+        {
+          extensionId: "mommklhpammnlojjobejddmidmdcalcl",
+          message: {
+            type: "AUTH_HANDOFF",
+            closeDelayMs: 3400,
+            session: {
+              access_token: "access-1",
+              expires_in: undefined,
+              refresh_token: "refresh-1",
+              token_type: "bearer",
+            },
+          },
+        },
+      ]);
+      const claim = requests.find(({ url }) =>
+        url.endsWith("/api/attribution/claim"),
+      );
+      expect(claim).toBeDefined();
+      expect(claim?.options.headers).toEqual({
+        "Content-Type": "application/json",
+        Authorization: "Bearer access-1",
+      });
+      expect(JSON.parse(String(claim?.options.body))).toEqual({
+        attribution: {
+          source,
+          medium: "organic_social",
+          campaign: "profile-link",
+          content: "comment-1",
+          capturedAt: "2026-09-22T10:00:00.000Z",
+          referrerHost,
+        },
+      });
+      expect(removedKeys).toEqual(["autolister.first_touch.v1"]);
+      expect(JSON.stringify(messages[0])).not.toContain("secret");
+    },
+  );
 
   it("keeps the auth handoff successful when the website claim fails", async () => {
     const { messages } = await runBridge(

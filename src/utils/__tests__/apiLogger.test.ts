@@ -232,7 +232,11 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     expect(fromCalls).toEqual(["api_logs", "api_logs"]);
     expect(selectCalls).toEqual(["id"]);
     expect(ltCalls[0]).toEqual(["created_at", "2026-06-27T06:00:00.000Z"]);
-    expect(orCalls).toEqual([]);
+    expect(orCalls).toEqual(
+      Array(2).fill(
+        "endpoint.is.null,endpoint.neq./event/listing_report_submitted",
+      ),
+    );
     expect(notCalls[0]).toEqual(["image_urls", "is", null]);
     expect(orderCalls[0]).toEqual(["created_at", { ascending: true }]);
     expect(limitCalls).toEqual([2]);
@@ -262,5 +266,73 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     expect(fromCalls).toEqual(Array(9).fill("api_logs"));
     expect(updateCalls).toHaveLength(0);
     expect(inCalls).toHaveLength(0);
+  });
+
+  it("preserves customer report notes while compacting ordinary logs", async () => {
+    const { supabase } = await import("../../../utils/supabaseClient.js");
+    const from = vi.mocked(supabase.from);
+    const original = from.getMockImplementation();
+    const rows = [
+      {
+        id: "report",
+        endpoint: "/event/listing_report_submitted",
+        full_request_body: { context: { message: "Please help" } },
+      },
+      {
+        id: "ordinary",
+        endpoint: "/api/generate",
+        full_request_body: { debug: true },
+      },
+      {
+        id: "legacy",
+        endpoint: null,
+        full_request_body: { debug: true },
+      },
+    ];
+    from.mockImplementation(() => {
+      let excluded = "";
+      let patch: any;
+      const builder: any = {
+        select: () => builder,
+        lt: () => builder,
+        not: () => builder,
+        order: () => builder,
+        or: (value: string) => {
+          expect(value).toBe(
+            "endpoint.is.null,endpoint.neq./event/listing_report_submitted",
+          );
+          excluded = "/event/listing_report_submitted";
+          return builder;
+        },
+        limit: async (n: number) => ({
+          data: rows
+            .filter((row) => row.endpoint !== excluded && row.full_request_body)
+            .slice(0, n),
+          error: null,
+        }),
+        update: (value: any) => {
+          patch = value;
+          return builder;
+        },
+        in: async (_: string, ids: string[]) => {
+          for (const row of rows)
+            if (ids.includes(row.id) && row.endpoint !== excluded)
+              Object.assign(row, patch);
+          return { error: null };
+        },
+      };
+      return builder;
+    });
+    try {
+      const { ApiLogger } = await import("../../../utils/apiLogger.js");
+      await ApiLogger.compactOldLogs({ cutoffHours: 6, batchSize: 2 });
+      expect(rows[0].full_request_body).toEqual({
+        context: { message: "Please help" },
+      });
+      expect(rows[1].full_request_body).toBeNull();
+      expect(rows[2].full_request_body).toBeNull();
+    } finally {
+      from.mockImplementation(original!);
+    }
   });
 });

@@ -7,10 +7,12 @@ import {
   it,
   vi,
 } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync } from "node:fs";
 
 const USER_ID = "123e4567-e89b-42d3-a456-426614174000";
-const sendMock = vi.fn();
 const logRequestsMock = vi.fn();
+const rpcMock = vi.fn();
 const getUserMock = vi.fn();
 const maybeSingleMock = vi.fn();
 const profileQuery = {
@@ -19,10 +21,14 @@ const profileQuery = {
   maybeSingle: maybeSingleMock,
 };
 
-vi.mock("resend", () => ({
-  Resend: vi.fn(function () {
-    return { emails: { send: sendMock } };
-  }),
+vi.mock("../../../utils/incidents/notifications", () => ({
+  deliverPendingNotifications: vi.fn(async () => ({ sent: 0, failed: 0 })),
+}));
+vi.mock("../../../utils/incidents/service", () => ({
+  continueIncidentWork: (work: Promise<unknown>) => {
+    void work.catch(() => {});
+  },
+  captureAcceptedException: vi.fn(async () => {}),
 }));
 
 vi.mock("../../../utils/apiLogger", () => ({
@@ -30,6 +36,7 @@ vi.mock("../../../utils/apiLogger", () => ({
     extractRequestMetadata: vi.fn(() => ({})),
     logRequest: vi.fn(),
     logRequests: logRequestsMock,
+    isInternalLogExcludedEmail: () => false,
   },
 }));
 
@@ -41,6 +48,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
   supabase: {
     auth: { getUser: getUserMock },
     from: vi.fn(() => profileQuery),
+    rpc: rpcMock,
   },
 }));
 
@@ -134,7 +142,10 @@ describe("events tracking endpoint", () => {
     });
     maybeSingleMock.mockResolvedValue({ data: null, error: null });
     logRequestsMock.mockResolvedValue(undefined);
-    sendMock.mockResolvedValue({ data: { id: "email-1" }, error: null });
+    rpcMock.mockResolvedValue({
+      data: { status: "accepted", incidentId: "issue-1" },
+      error: null,
+    });
   });
 
   afterEach(() => vi.restoreAllMocks());
@@ -157,7 +168,235 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
-  it("emails each accepted listing report", async () => {
+  it("saves legacy generation pairs without creating running watchdog flows", async () => {
+    const response = await postEvent({
+      events: [
+        {
+          event: "generate_request",
+          source: "extension_content",
+          extensionVersion: "1.4.6",
+          context: { generationAttemptId: "legacy-attempt", photoCount: 4 },
+        },
+        {
+          event: "generate_success",
+          source: "extension_content",
+          extensionVersion: "1.4.6",
+          context: { photoCount: 4 },
+        },
+      ],
+    });
+    expect(response.statusCode).toBe(204);
+    const writes = rpcMock.mock.calls
+      .filter(([name]) => name === "incident_ingest")
+      .map(([, args]) => args.p_event);
+    expect(writes).toHaveLength(2);
+    expect(writes.map((event) => event.definition)).toEqual([
+      { kind: "checkpoint", stage: "generation_requested", running: false },
+      { kind: "checkpoint", stage: "generation_received", running: false },
+    ]);
+    expect(writes[0].operationId).toBe("legacy-attempt");
+    expect(writes[1].operationId).toBeNull();
+    for (const event of writes) {
+      expect(event.context.photoCount).toBe(4);
+      expect(event.businessLog.endpoint).toBe(`/event/${event.event}`);
+    }
+  });
+
+  it("does not raise legacy generation stalls in the real database sweep", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; " +
+          "CREATE TABLE api_logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, user_email text, endpoint text, request_method text, response_status integer, user_agent text, origin text, ip_address text, full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (name, args) => {
+        expect(name).toBe("incident_ingest");
+        const result = await db.query<{ result: unknown }>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result, error: null };
+      });
+      const response = await postEvent({
+        events: [
+          {
+            event: "generate_request",
+            source: "extension_content",
+            context: { generationAttemptId: "legacy-request" },
+          },
+          { event: "generate_success", source: "extension_content" },
+        ],
+      });
+      expect(response.statusCode).toBe(204);
+      await db.exec(
+        "UPDATE incident_flows SET last_progress_at=now()-interval '6 minutes'; SELECT incident_sweep(100);",
+      );
+      expect((await db.query("SELECT * FROM incident_groups")).rows).toEqual(
+        [],
+      );
+      const flows = (await db.query("SELECT running FROM incident_flows")).rows;
+      expect(flows).toEqual([{ running: false }, { running: false }]);
+      expect((await db.query("SELECT id FROM api_logs")).rows).toHaveLength(2);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
+
+  it("watches version 2 generation requests but stops the timer after receipt regardless of release label", async () => {
+    const events = ["generate_request", "generate_success"].map(
+      (event, index) => ({
+        id: `a423926a-35a6-4bf5-8027-8ab335c7111${index}`,
+        occurredAt: new Date().toISOString(),
+        event,
+        source: "extension_content",
+        extensionVersion: "1.4.6",
+        context: { generationAttemptId: "correlated-attempt", photoCount: 4 },
+      }),
+    );
+    const response = await postEvent({ schemaVersion: 2, events });
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({
+      acknowledgedIds: events.map((event) => event.id),
+    });
+    const writes = rpcMock.mock.calls
+      .filter(([name]) => name === "incident_ingest")
+      .map(([, args]) => args.p_event);
+    expect(writes).toHaveLength(2);
+    expect(writes.map((event) => event.definition)).toEqual([
+      { kind: "checkpoint", stage: "generation_requested", running: true },
+      { kind: "checkpoint", stage: "generation_received", running: false },
+    ]);
+    expect(
+      writes.every((event) => event.operationId === "correlated-attempt"),
+    ).toBe(true);
+  });
+
+  it("still records explicit legacy generation failures as incidents", async () => {
+    const response = await postEvent({
+      event: "generate_error",
+      source: "extension_content",
+      extensionVersion: "1.4.6",
+      context: { generationAttemptId: "failed-attempt", statusCode: 500 },
+    });
+    expect(response.statusCode).toBe(204);
+    const write = rpcMock.mock.calls.find(
+      ([name]) => name === "incident_ingest",
+    )![1].p_event;
+    expect(write.definition.kind).toBe("incident");
+    expect(write.operationId).toBe("failed-attempt");
+  });
+
+  it.each(["checkout_start", "billing_portal_start"])(
+    "retains uncorrelated %s evidence without creating a false running flow",
+    async (event) => {
+      const response = await postEvent(
+        {
+          schemaVersion: 2,
+          events: [
+            {
+              id: "c423926a-35a6-4bf5-8027-8ab335c71110",
+              occurredAt: new Date().toISOString(),
+              event,
+              source: "website",
+              context: {},
+            },
+          ],
+        },
+        false,
+      );
+      expect(response.statusCode).toBe(200);
+      const write = rpcMock.mock.calls.find(
+        ([name]) => name === "incident_ingest",
+      )![1].p_event;
+      expect(write.definition).toMatchObject({
+        kind: "checkpoint",
+        stage: "checkout_requested",
+        running: false,
+      });
+    },
+  );
+
+  it("ends correlated checkout flows in the real sweep while retaining genuine pending requests and failures", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, user_email text, endpoint text, request_method text, response_status integer, user_agent text, origin text, ip_address text, full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (name, args) => {
+        expect(name).toBe("incident_ingest");
+        const result = await db.query<{ result: unknown }>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result, error: null };
+      });
+      const pairs = [
+        ["checkout_start", null],
+        ["billing_portal_start", null],
+        ["checkout_start", "complete"],
+        ["checkout_opened", "complete"],
+        ["billing_portal_start", "portal"],
+        ["billing_portal_opened", "portal"],
+        ["checkout_start", "failed"],
+        ["checkout_failed", "failed"],
+        ["checkout_start", "pending"],
+      ];
+      const response = await postEvent(
+        {
+          schemaVersion: 2,
+          events: pairs.map(([event, operationId], index) => ({
+            id: `c423926a-35a6-4bf5-8027-8ab335c7111${index}`,
+            occurredAt: new Date(Date.now() + index).toISOString(),
+            event,
+            source: "website",
+            context: {
+              ...(operationId ? { operationId } : {}),
+              ...(event === "checkout_failed"
+                ? {
+                    stage: "checkout_requested",
+                    errorCode: "CHECKOUT_REQUEST_ERROR",
+                  }
+                : {}),
+            },
+          })),
+        },
+        false,
+      );
+      expect(response.statusCode).toBe(200);
+      await db.exec(
+        "UPDATE incident_flows SET last_progress_at=now()-interval '6 minutes'; SELECT incident_sweep(100);",
+      );
+      const groups = (
+        await db.query("SELECT event FROM incident_groups ORDER BY event")
+      ).rows;
+      expect(groups).toEqual([
+        { event: "checkout_failed" },
+        { event: "operation_possibly_stalled" },
+      ]);
+      const stalled = (
+        await db.query(
+          "SELECT examples->0->>'operationId' AS operation FROM incident_groups WHERE event='operation_possibly_stalled'",
+        )
+      ).rows;
+      expect(stalled).toEqual([{ operation: "pending" }]);
+      expect(
+        (await db.query("SELECT * FROM incident_flows WHERE running=true"))
+          .rows,
+      ).toEqual([]);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  });
+
+  it("durably accepts authenticated listing reports", async () => {
     const response = await postEvent({
       event: "listing_report_submitted",
       source: "extension_content",
@@ -171,25 +410,170 @@ describe("events tracking endpoint", () => {
     });
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).toHaveBeenCalledOnce();
-    expect(sendMock).toHaveBeenCalledWith({
-      from: "AutoLister AI Alerts <alerts@autolister.app>",
-      to: "samicodesit@gmail.com",
-      subject: "Listing report: tool_bug",
-      text: expect.stringMatching(
-        /"message": "The generated title is empty"[\s\S]*"userEmail": "seller@example.com"[\s\S]*"plan": "pro"[\s\S]*"page": "https:\/\/www\.vinted\.nl\/items\/new"[\s\S]*"extensionVersion": "1\.3\.25"/,
-      ),
-    });
+    expect(rpcMock).toHaveBeenCalledWith(
+      "incident_ingest",
+      expect.objectContaining({
+        p_verified: true,
+        p_user_id: USER_ID,
+        p_event: expect.objectContaining({
+          event: "listing_report_submitted",
+          definition: expect.objectContaining({ kind: "report" }),
+        }),
+      }),
+    );
   });
 
-  it("does not email other tracking events", async () => {
+  it("acknowledges a report only after its permanent record commits, then deduplicates a lost reply", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE profiles(id uuid PRIMARY KEY,email text); CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      for (const migration of [
+        "2026-10-03_incident_tracking.sql",
+        "2026-10-08_customer_report_history.sql",
+      ])
+        await db.exec(readFileSync(`migrations/${migration}`, "utf8"));
+      rpcMock.mockImplementation(async (name, args) => {
+        expect(name).toBe("incident_ingest");
+        try {
+          const result = await db.query<any>(
+            "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+            [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+          );
+          return { data: result.rows[0].result };
+        } catch (error) {
+          return { error };
+        }
+      });
+      const id = "a423926a-35a6-4bf5-8027-8ab335c72222";
+      const body = {
+        schemaVersion: 2,
+        events: [
+          {
+            id,
+            occurredAt: new Date().toISOString(),
+            event: "listing_report_submitted",
+            source: "extension_content",
+            context: {
+              category: "tool_bug",
+              message: "My photos disappeared",
+              operationId: id,
+              userId: "forged",
+            },
+          },
+        ],
+      };
+      await db.exec(
+        "ALTER TABLE api_logs ADD CONSTRAINT reject_report CHECK(endpoint <> '/event/listing_report_submitted')",
+      );
+      const failed = await postEvent(body);
+      expect(failed.statusCode).toBe(503);
+      expect(failed.body).toMatchObject({
+        acknowledgedIds: [],
+        duplicateIds: [],
+      });
+      await db.exec("ALTER TABLE api_logs DROP CONSTRAINT reject_report");
+      const accepted = await postEvent(body);
+      expect(accepted.statusCode).toBe(200);
+      expect(accepted.body).toMatchObject({ acknowledgedIds: [id] });
+      const retried = await postEvent(body);
+      expect(retried.body).toMatchObject({
+        acknowledgedIds: [],
+        duplicateIds: [id],
+        reports: (accepted.body as any).reports,
+      });
+      expect(
+        (
+          await db.query<any>(
+            "SELECT user_id,full_request_body->'context' AS context FROM api_logs",
+          )
+        ).rows,
+      ).toEqual([
+        {
+          user_id: USER_ID,
+          context: {
+            category: "tool_bug",
+            message: "My photos disappeared",
+            operationId: id,
+          },
+        },
+      ]);
+      expect(
+        (await db.query<any>("SELECT occurrences FROM incident_groups")).rows,
+      ).toEqual([{ occurrences: 1 }]);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  });
+
+  it("keeps ordinary product events distinct from reports", async () => {
     const response = await postEvent({
       event: "listing_report_opened",
       context: { source: "listing_tools" },
     });
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(
+      rpcMock.mock.calls.every(
+        ([, args]) =>
+          args.p_event.event !== "listing_report_submitted" ||
+          args.p_verified === false,
+      ),
+    ).toBe(true);
+  });
+
+  it("returns a retryable error when legacy persistence fails", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: "database unavailable" },
+    });
+    const response = await postEvent({ event: "listing_tools_ready" });
+    expect(response.statusCode).toBe(503);
+    expect(response.headers["Retry-After"]).toBe("60");
+  });
+
+  it("returns per-event v2 acknowledgements and explicit rejections", async () => {
+    const id = "a423926a-35a6-4bf5-8027-8ab335c71110";
+    const response = await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id,
+          occurredAt: new Date().toISOString(),
+          event: "fields_apply_failed",
+          source: "extension_content",
+        },
+        { id: "bad", event: "fields_apply_failed" },
+      ],
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({
+      acknowledgedIds: [id],
+      duplicateIds: [],
+      rejections: [{ id: "bad", reason: "invalid_id" }],
+      reports: { [id]: "issue-1" },
+    });
+  });
+
+  it("does not acknowledge v2 events after a database failure", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: "db unavailable" },
+    });
+    const response = await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "a423926a-35a6-4bf5-8027-8ab335c71110",
+          occurredAt: new Date().toISOString(),
+          event: "fields_apply_failed",
+        },
+      ],
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.body).toMatchObject({ acknowledgedIds: [] });
   });
 
   it("does not let anonymous report events trigger email", async () => {
@@ -202,7 +586,13 @@ describe("events tracking endpoint", () => {
     );
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(
+      rpcMock.mock.calls.every(
+        ([, args]) =>
+          args.p_event.event !== "listing_report_submitted" ||
+          args.p_verified === false,
+      ),
+    ).toBe(true);
   });
 
   it("does not treat public uninstall attribution as report authentication", async () => {
@@ -230,25 +620,21 @@ describe("events tracking endpoint", () => {
     );
 
     expect(response.statusCode).toBe(204);
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(
+      rpcMock.mock.calls.every(
+        ([, args]) =>
+          args.p_event.event !== "listing_report_submitted" ||
+          args.p_verified === false,
+      ),
+    ).toBe(true);
   });
 
-  it("keeps an accepted report successful when Resend fails", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    sendMock.mockResolvedValue({
-      data: null,
-      error: { message: "Resend down" },
-    });
-
+  it("accepts a report independently of notification delivery", async () => {
     const response = await postEvent({
       event: "listing_report_submitted",
       context: { category: "other", message: "Something broke" },
     });
-
     expect(response.statusCode).toBe(204);
-    expect(errorSpy).toHaveBeenCalledWith(
-      "Failed to email listing report:",
-      expect.any(Error),
-    );
+    expect(rpcMock).toHaveBeenCalledOnce();
   });
 });

@@ -163,6 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     reportCriticalEndpointFailure({
+      error: error,
       endpoint: "/api/stripe/verify-session",
       status: 500,
       details: {

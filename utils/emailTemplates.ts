@@ -1,3 +1,5 @@
+import { LEGACY_TIER_CONFIGS, TIER_CONFIGS } from "./tierConfig";
+
 /**
  * Email layout & templates for campaigns.
  *
@@ -21,6 +23,29 @@ export interface EmailTemplate {
   body: string;
 }
 
+export type PaidWelcomeTier = "starter" | "pro" | "business";
+
+export type PaidWelcomeBilling = {
+  amountMinor?: number | null;
+  currency?: string | null;
+  nextRenewalAt?: string | null;
+  statementDescriptor?: string | null;
+  sample?: boolean;
+  source?: "checkout" | "invoice" | "price";
+};
+
+export type PaidWelcomeLimits = {
+  daily: number;
+  monthly: number;
+};
+
+export type PaidWelcomeOptions = {
+  billing?: PaidWelcomeBilling;
+  isLegacyPlan?: boolean | null;
+  limits?: PaidWelcomeLimits | null;
+  isCustomPlan?: boolean;
+};
+
 // ── Brand constants ──────────────────────────────────────────────────
 
 const BRAND = {
@@ -29,6 +54,11 @@ const BRAND = {
   url: "https://autolister.app",
   from: "AutoLister AI <updates@autolister.app>",
   supportEmail: "support@autolister.app",
+  billingPortalUrl:
+    process.env.STRIPE_BILLING_PORTAL_URL ||
+    "https://billing.stripe.com/p/login/eVqfZj3so5PE3lwcmdenS00",
+  statementDescriptor:
+    process.env.STRIPE_STATEMENT_DESCRIPTOR || "AUTOLISTER AI",
 } as const;
 
 export { BRAND };
@@ -139,19 +169,32 @@ export function wrapDirectReplyLayout(
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="color-scheme" content="light dark" />
   <title>${BRAND.name}</title>
+  <style type="text/css">
+    @media (prefers-color-scheme: dark) {
+      .autolister-direct-email { background-color: #202124 !important; }
+      .autolister-direct-shell { background-color: #202124 !important; }
+      .autolister-direct-card { background-color: #202124 !important; border-color: #3c4043 !important; }
+      .autolister-direct-brand, .autolister-direct-link { color: #c58af9 !important; }
+      .autolister-direct-heading, .autolister-direct-strong { color: #f1f3f4 !important; }
+      .autolister-direct-muted { color: #bdc1c6 !important; }
+      .autolister-direct-billing { background-color: #2b2d31 !important; border-color: #3c4043 !important; }
+      .autolister-direct-help { background-color: #202124 !important; border-color: #6f42a1 !important; }
+    }
+  </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f6f7fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+<body class="autolister-direct-email" style="margin: 0; padding: 0; background-color: #f6f7fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
   <div style="display: none; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
     ${preheader}
   </div>
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f6f7fb;">
+  <table class="autolister-direct-shell" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f6f7fb;">
     <tr>
       <td align="center" style="padding: 28px 16px;">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 620px; background-color: #ffffff; border: 1px solid #e9e7f5; border-radius: 12px; overflow: hidden;">
+        <table class="autolister-direct-card" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 620px; background-color: #ffffff; border: 1px solid #e9e7f5; border-radius: 12px; overflow: hidden;">
           <tr>
             <td style="padding: 26px 30px 18px 30px; border-bottom: 1px solid #f0eef9;">
-              <p style="margin: 0; font-size: 17px; font-weight: 700; color: ${BRAND.color};">${BRAND.name}</p>
+              <p class="autolister-direct-brand" style="margin: 0; font-size: 17px; font-weight: 700; color: ${BRAND.color};">${BRAND.name}</p>
             </td>
           </tr>
           <tr>
@@ -242,6 +285,153 @@ export const el = {
   divider: () =>
     `<hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />`,
 };
+
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character] || character,
+  );
+}
+
+function formatLimit(value: number): string {
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+function formatBillingAmount(billing?: PaidWelcomeBilling): string | null {
+  if (
+    !billing ||
+    !Number.isInteger(billing.amountMinor) ||
+    (billing.amountMinor as number) <= 0 ||
+    !billing.currency
+  ) {
+    return null;
+  }
+
+  const currency = billing.currency.toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) return null;
+
+  try {
+    const formatter = new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency,
+    });
+    const fractionDigits =
+      formatter.resolvedOptions().maximumFractionDigits ?? 2;
+    return formatter.format(
+      (billing.amountMinor as number) / 10 ** fractionDigits,
+    );
+  } catch {
+    return null;
+  }
+}
+
+function formatRenewalDate(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function renderPaidWelcomeBilling(billing?: PaidWelcomeBilling): string {
+  if (!billing) return "";
+
+  const amount = formatBillingAmount(billing);
+  const renewalDate = formatRenewalDate(billing.nextRenewalAt);
+  const descriptor = billing.statementDescriptor || BRAND.statementDescriptor;
+  const sampleSuffix = billing.sample ? " (SAMPLE)" : "";
+  const lines = [
+    amount ? `${amount}/month${sampleSuffix}` : null,
+    renewalDate ? `Next renewal: ${renewalDate}${sampleSuffix}` : null,
+    descriptor ? `On your card statement: ${escapeHtml(descriptor)}` : null,
+  ].filter((line): line is string => Boolean(line));
+
+  if (!lines.length) return "";
+
+  return `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0;">
+      <tr>
+        <td class="autolister-direct-billing" style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 18px;">
+          <p class="autolister-direct-strong" style="margin: 0 0 7px 0; font-size: 14px; line-height: 1.4; color: #111827; font-weight: 700;">Billing${billing.sample ? " (SAMPLE)" : ""}</p>
+          <p class="autolister-direct-muted" style="margin: 0; font-size: 14px; line-height: 1.65; color: #4b5563;">${lines.join("<br />")}</p>
+        </td>
+      </tr>
+    </table>`;
+}
+
+function renderPaidWelcomeHelp(tier: PaidWelcomeTier): string {
+  const copy =
+    tier === "business"
+      ? "Want listings to sound like your shop? Email me an example or the details you want included. Need higher limits? Tell me about how many listings you make."
+      : tier === "starter"
+        ? "Want AutoLister to sound more like your shop? Tell me the tone you use or the details you want it to look for. Need higher limits? Email support and I’ll share the upgrade options."
+        : "Want AutoLister to sound more like your shop? Tell me the tone you use or the details you want it to look for. Need more room? Email support and I’ll share the upgrade options.";
+  const subject =
+    tier === "business"
+      ? "AutoLister AI Business help"
+      : tier === "pro"
+        ? "AutoLister AI Pro style help"
+        : "AutoLister AI style help";
+
+  return `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0;">
+      <tr>
+        <td class="autolister-direct-help" style="background-color: #ffffff; border: 1px solid #e9d5ff; border-left: 3px solid ${BRAND.color}; border-radius: 6px; padding: 13px 15px;">
+          <p class="autolister-direct-strong" style="margin: 0 0 7px 0; font-size: 15px; line-height: 1.5; color: #111827; font-weight: 700;">I'm here to help.</p>
+          <p class="autolister-direct-muted" style="margin: 0 0 11px 0; font-size: 14px; line-height: 1.55; color: #4b5563;">${copy}</p>
+          <a class="autolister-direct-link" href="mailto:${BRAND.supportEmail}?subject=${encodeURIComponent(subject)}" style="color: ${BRAND.color}; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: underline;">Email support</a>
+        </td>
+      </tr>
+    </table>`;
+}
+
+export function getPaidWelcomeTemplate(
+  tier: PaidWelcomeTier,
+  options: PaidWelcomeOptions = {},
+): EmailTemplate {
+  const config = (options.isLegacyPlan ? LEGACY_TIER_CONFIGS : TIER_CONFIGS)[
+    tier
+  ];
+  const displayName = config.displayName;
+  const limits = options.limits || config.limits;
+  const capability =
+    tier === "starter"
+      ? "AI-generated titles and descriptions."
+      : "phone and batch upload.";
+  const limitsCopy =
+    options.isCustomPlan && !options.limits
+      ? "Your custom Business limits are active. Phone and batch upload included."
+      : `${formatLimit(limits.daily)} listings per day and ${formatLimit(limits.monthly)} per month. ${capability[0].toUpperCase()}${capability.slice(1, -1)} included.`;
+
+  return {
+    subject: `Your AutoLister AI ${displayName} plan is active`,
+    preheader: `Your ${displayName} plan is active. Manage your subscription or email support if you need help.`,
+    layout: "direct",
+    body: [
+      `
+      <h2 class="autolister-direct-heading" style="margin: 0 0 18px 0; font-size: 24px; line-height: 1.25; color: #111827; font-weight: 700; letter-spacing: -0.2px;">Your ${displayName} plan is active.</h2>`,
+      renderPaidWelcomeBilling(options.billing),
+      `<p class="autolister-direct-muted" style="margin: 0 0 22px 0; font-size: 15px; line-height: 1.65; color: #374151;">${limitsCopy}</p>`,
+      renderPaidWelcomeHelp(tier),
+      `<p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.5;"><a class="autolister-direct-link" href="${BRAND.billingPortalUrl}" style="color: ${BRAND.color}; text-decoration: underline; font-weight: 600;">Manage your subscription</a></p>`,
+      `<p class="autolister-direct-muted" style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.65; color: #444;">Thanks,<br />Sami<br />Founder, AutoLister AI</p>`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  };
+}
 
 // ── Templates ────────────────────────────────────────────────────────
 // Add new templates here. Reference by key from Postman: { "template_key": "product_update_v1" }
@@ -366,170 +556,11 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].join("\n"),
   },
 
-  starter_welcome_v1: {
-    subject: "Welcome to Starter - your plan is active",
-    preheader:
-      "Your Starter plan is active. Reply anytime if you need higher limits or want to ask about available discounts.",
-    body: [
-      el.p("Hi,"),
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 26px 0;">
-        <tr>
-          <td style="background-color: #111827; border-radius: 8px; padding: 26px 24px;">
-            <h2 style="margin: 0 0 10px 0; font-size: 26px; line-height: 1.2; color: #ffffff; font-weight: 750; letter-spacing: 0;">Your Starter plan is active.</h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.65; color: #d1d5db;">Welcome to AutoLister AI Starter.</p>
-          </td>
-        </tr>
-      </table>
-      `,
-      el.p(
-        "You do not need to change anything right now. If AutoLister AI already works the way you like, you are all set.",
-      ),
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 26px 0;">
-        <tr>
-          <td style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
-            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.4; color: #111827; font-weight: 700;">Your Starter plan includes</p>
-            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;"><strong style="color: #111827;">10 listings per day</strong> and <strong style="color: #111827;">75 listings per month</strong>.</td>
-              </tr>
-              <tr>
-                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">AI-generated titles and descriptions, plus priority support.</td>
-              </tr>
-              <tr>
-                <td valign="top" style="padding: 0; font-size: 15px; line-height: 1.55; color: #4b5563;">A simple paid plan for casual selling, with everything still editable before publishing.</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-      `,
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 4px 0 26px 0;">
-        <tr>
-          <td style="background-color: #ffffff; border: 1px solid #e9d5ff; border-left: 4px solid #764BA2; border-radius: 8px; padding: 18px 20px;">
-            <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.5; color: #111827; font-weight: 700;">I'm here to help.</p>
-            <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.65; color: #4b5563;">I can also help adjust the AI if you want it to fit your shop better. If you start needing more listings, reply and I can share a discount for upgrading.</p>
-            <a href="mailto:${BRAND.supportEmail}?subject=AutoLister%20AI%20higher%20limits" style="color: #764BA2; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: underline;">Ask about higher limits</a>
-          </td>
-        </tr>
-      </table>
-      `,
-      el.p("Thanks,<br />Sami<br />Founder AutoLister AI"),
-    ].join("\n"),
-  },
+  starter_welcome_v1: getPaidWelcomeTemplate("starter"),
 
-  pro_welcome_v1: {
-    subject: "Welcome to Pro - your plan is active",
-    preheader:
-      "Your Pro plan is active. Reply anytime if you want the AI adjusted to your style.",
-    body: [
-      el.p("Hi,"),
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 26px 0;">
-        <tr>
-          <td style="background-color: #111827; border-radius: 8px; padding: 26px 24px;">
-            <h2 style="margin: 0 0 10px 0; font-size: 26px; line-height: 1.2; color: #ffffff; font-weight: 750; letter-spacing: 0;">Your Pro plan is active.</h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.65; color: #d1d5db;">Welcome to AutoLister AI Pro.</p>
-          </td>
-        </tr>
-      </table>
-      `,
-      el.p(
-        "You do not need to change anything right now. If AutoLister AI already works the way you like, you are all set.",
-      ),
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 26px 0;">
-        <tr>
-          <td style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
-            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.4; color: #111827; font-weight: 700;">Your Pro plan includes</p>
-            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;"><strong style="color: #111827;">25 listings per day</strong> and <strong style="color: #111827;">250 listings per month</strong>.</td>
-              </tr>
-              <tr>
-                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">phone upload, batch upload, and reusable seller notes.</td>
-              </tr>
-              <tr>
-                <td valign="top" style="padding: 0; font-size: 15px; line-height: 1.55; color: #4b5563;">More room for regular selling, with everything still editable before publishing.</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-      `,
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 4px 0 26px 0;">
-        <tr>
-          <td style="background-color: #ffffff; border: 1px solid #e9d5ff; border-left: 4px solid #764BA2; border-radius: 8px; padding: 18px 20px;">
-            <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.5; color: #111827; font-weight: 700;">I'm here to help.</p>
-            <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.65; color: #4b5563;">If you want the AI to behave in a custom way, reply and tell me what you prefer. For example: specific details you always want mentioned, things the AI should pay attention to, or a style that fits your shop.</p>
-            <a href="mailto:${BRAND.supportEmail}?subject=AutoLister%20AI%20Pro%20style%20help" style="color: #764BA2; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: underline;">Reply with your preferred style</a>
-          </td>
-        </tr>
-      </table>
-      `,
-      el.p("Thanks,<br />Sami<br />Founder AutoLister AI"),
-    ].join("\n"),
-  },
+  pro_welcome_v1: getPaidWelcomeTemplate("pro"),
 
-  business_welcome_v1: {
-    subject: "Welcome to Business - your plan is active",
-    preheader:
-      "Your Business plan is active. Reply anytime if you want the AI adjusted to your style.",
-    body: [
-      el.p("Hi,"),
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 26px 0;">
-        <tr>
-          <td style="background-color: #111827; border-radius: 8px; padding: 26px 24px;">
-            <h2 style="margin: 0 0 10px 0; font-size: 26px; line-height: 1.2; color: #ffffff; font-weight: 750; letter-spacing: 0;">Your Business plan is active.</h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.65; color: #d1d5db;">Welcome to AutoLister AI Business.</p>
-          </td>
-        </tr>
-      </table>
-      `,
-      el.p(
-        "You do not need to change anything right now. If AutoLister AI already works the way you like, you are all set.",
-      ),
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 2px 0 26px 0;">
-        <tr>
-          <td style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
-            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.4; color: #111827; font-weight: 700;">Your Business plan includes</p>
-            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;"><strong style="color: #111827;">60 listings per day</strong> and <strong style="color: #111827;">600 listings per month</strong>.</td>
-              </tr>
-              <tr>
-                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">phone upload, batch upload, reusable seller notes, and dedicated support.</td>
-              </tr>
-              <tr>
-                <td valign="top" style="padding: 0 0 10px 0; font-size: 15px; line-height: 1.55; color: #4b5563;">Custom limits are also available if your shop needs more volume.</td>
-              </tr>
-              <tr>
-                <td valign="top" style="padding: 0; font-size: 15px; line-height: 1.55; color: #4b5563;">More room for high-volume selling, with everything still editable before publishing.</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-      `,
-      `
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 4px 0 26px 0;">
-        <tr>
-          <td style="background-color: #ffffff; border: 1px solid #e9d5ff; border-left: 4px solid #764BA2; border-radius: 8px; padding: 18px 20px;">
-            <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.5; color: #111827; font-weight: 700;">I'm here to help.</p>
-            <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.65; color: #4b5563;">If you want the AI to behave in a custom way, reply and tell me what you prefer. For example: specific details you always want mentioned, things the AI should pay attention to, or a style that fits your shop.</p>
-            <a href="mailto:${BRAND.supportEmail}?subject=AutoLister%20AI%20Business%20style%20help" style="color: #764BA2; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: underline;">Reply with your preferred style</a>
-          </td>
-        </tr>
-      </table>
-      `,
-      el.p("Thanks,<br />Sami<br />Founder AutoLister AI"),
-    ].join("\n"),
-  },
+  business_welcome_v1: getPaidWelcomeTemplate("business"),
 
   honest_review_request_v1: {
     subject: "Did AutoLister help with your Vinted listings?",

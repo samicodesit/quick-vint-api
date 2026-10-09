@@ -1,3 +1,7 @@
+import "../../public/telemetry-registry.js";
+import "../../public/telemetry-core.js";
+import "../../public/telemetry-client.js";
+import "../../public/telemetry-website.js";
 import { captureFirstTouch } from "./attribution.js";
 
 const KNOWN_UTM_KEYS = [
@@ -9,6 +13,11 @@ const KNOWN_UTM_KEYS = [
 ];
 
 captureFirstTouch();
+// Wake the isolated extension bridge if site capture finished after its first
+// read. The event carries no data; the bridge reads only the first-touch key.
+if (typeof document.dispatchEvent === "function") {
+  document.dispatchEvent(new Event("autolister:attribution-ready"));
+}
 
 function getUtmParams() {
   const params = new URLSearchParams(window.location.search);
@@ -17,39 +26,6 @@ function getUtmParams() {
     if (value) utm[key] = value;
     return utm;
   }, {});
-}
-
-const eventQueue = [];
-let eventFlushTimer = null;
-
-function sendEventPayload(events) {
-  const body = JSON.stringify({ events });
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(
-      "/api/events/track",
-      new Blob([body], { type: "application/json" }),
-    );
-    return;
-  }
-
-  fetch("/api/events/track", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {});
-}
-
-function flushTrackedEvents() {
-  if (eventFlushTimer) {
-    clearTimeout(eventFlushTimer);
-    eventFlushTimer = null;
-  }
-  if (!eventQueue.length) return;
-
-  try {
-    sendEventPayload(eventQueue.splice(0, eventQueue.length));
-  } catch {}
 }
 
 function trackEventUnsafe(event, properties) {
@@ -67,15 +43,7 @@ function trackEventUnsafe(event, properties) {
     window.gtag("event", event, payload);
   }
 
-  eventQueue.push(payload);
-  if (eventQueue.length >= 6) {
-    flushTrackedEvents();
-    return;
-  }
-
-  if (!eventFlushTimer) {
-    eventFlushTimer = setTimeout(flushTrackedEvents, 700);
-  }
+  void globalThis.AutoListerWebsiteTelemetry.track(event, payload);
 }
 
 export function trackEvent(event, properties = {}) {
@@ -142,4 +110,3 @@ function bindTrackedClicks() {
 
 bindTrackedClicks();
 document.addEventListener("astro:page-load", bindTrackedClicks);
-window.addEventListener("pagehide", flushTrackedEvents);

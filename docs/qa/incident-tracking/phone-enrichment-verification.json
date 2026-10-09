@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-03",
+  "backendTestsPassed": 487,
+  "backendTestFiles": 84,
+  "sqlTestsPassed": 17,
+  "frontendUnitTestsPassed": 66,
+  "fullBrowserRun": {
+    "passed": 176,
+    "preexistingSkipped": 1,
+    "failed": 1,
+    "failure": "Restart fixture raced direct storage writes against worker startup. Fixed fixture before acceptance."
+  },
+  "correctedRestartTestConsecutivePasses": 5,
+  "backendLintTypecheckBuild": "passed",
+  "frontendBuildAndPackage": "passed",
+  "formatGate": "Only the two unrelated growth documents still warn",
+  "phoneConcurrency": {
+    "concurrentOperations": 32,
+    "verifiedRetries": 32,
+    "occurrences": 1,
+    "emailReservations": 1,
+    "ownerRecovered": true
+  },
+  "productionChanged": false
+}

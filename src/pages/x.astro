@@ -1,0 +1,28 @@
+---
+import HomeLanding from "../components/HomeLanding.astro";
+import ListingGuideLinks from "../components/ListingGuideLinks.astro";
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { SITE_EXTRA_COPY, SITE_COPY } from "../i18n/site.js";
+
+const copy = SITE_COPY.en;
+const extra = SITE_EXTRA_COPY.en;
+---
+
+<SiteLayout
+  canonical="https://autolister.app/x"
+  ogUrl="https://autolister.app/x"
+  title={copy.home.seoTitle}
+  description={copy.home.seoDescription}
+  htmlLang="en"
+  currentLocale="en"
+  localeBasePath="/"
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, follow" />
+    <script is:inline src="/x-share-link.js"></script>
+    <link rel="preload" as="image" href="/video-poster.webp" type="image/webp" />
+  </Fragment>
+
+  <HomeLanding copy={copy.home} extra={extra.home} locale="en" />
+  <ListingGuideLinks locale="en" />
+</SiteLayout>

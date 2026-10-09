@@ -1,16 +1,5 @@
 export const FIRST_TOUCH_STORAGE_KEY = "autolister.first_touch.v1";
 
-const SOURCES = new Set([
-  "tiktok",
-  "instagram",
-  "youtube",
-  "facebook",
-  "linkedin",
-  "reddit",
-  "google",
-  "direct",
-  "unknown",
-]);
 const MEDIA = new Set([
   "organic_social",
   "paid_social",
@@ -21,6 +10,11 @@ const MEDIA = new Set([
   "unknown",
 ]);
 const REFERRER_SOURCES = {
+  "x.com": "x",
+  "www.x.com": "x",
+  "twitter.com": "x",
+  "www.twitter.com": "x",
+  "t.co": "x",
   "tiktok.com": "tiktok",
   "www.tiktok.com": "tiktok",
   "vm.tiktok.com": "tiktok",
@@ -61,19 +55,32 @@ function normalizeSlug(value) {
 function getReferrerHost(referrer) {
   if (typeof referrer !== "string" || !referrer.trim()) return null;
   try {
-    const host = new URL(referrer).hostname.toLowerCase().replace(/\.$/, "");
-    return Object.prototype.hasOwnProperty.call(REFERRER_SOURCES, host)
-      ? host
-      : null;
+    const url = new URL(referrer);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    return isPublicReferrerHost(host) ? host : null;
   } catch {
     return null;
   }
+}
+
+function isPublicReferrerHost(host) {
+  return (
+    /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(
+      host,
+    ) && !/(^|\.)(autolister\.app|localhost|local|internal)$/.test(host)
+  );
+}
+
+function isAttributionSource(source) {
+  return /^[a-z0-9][a-z0-9._-]{0,79}$/.test(source);
 }
 
 function inferMedium(source) {
   if (source === "google") return "search";
   if (
     [
+      "x",
       "tiktok",
       "instagram",
       "youtube",
@@ -97,7 +104,8 @@ function normalizeAttribution(value) {
     Number.isFinite(Date.parse(value.capturedAt))
       ? new Date(value.capturedAt).toISOString()
       : null;
-  if (!SOURCES.has(source) || !MEDIA.has(medium) || !capturedAt) return null;
+  if (!isAttributionSource(source) || !MEDIA.has(medium) || !capturedAt)
+    return null;
 
   const referrerHost = getReferrerHost(
     typeof value.referrerHost === "string"
@@ -136,7 +144,15 @@ export function captureFirstTouch({
   now = new Date().toISOString(),
 } = {}) {
   const existing = readStoredAttribution(storage);
-  if (existing) return existing;
+  const nowMs = Date.parse(now);
+  if (!Number.isFinite(nowMs)) return null;
+  if (existing) {
+    const age = nowMs - Date.parse(existing.capturedAt);
+    // Match the authenticated claim API's 180-day window and clock tolerance.
+    // A stale browser record must not prevent fresh acquisition forever.
+    if (age >= -5 * 60 * 1000 && age <= 180 * 24 * 60 * 60 * 1000)
+      return existing;
+  }
   if (!storage?.setItem) return null;
 
   let url;
@@ -146,20 +162,29 @@ export function captureFirstTouch({
     return null;
   }
 
-  const referrerHost = getReferrerHost(referrer);
-  const referrerSource = referrerHost ? REFERRER_SOURCES[referrerHost] : null;
+  const candidateHost = getReferrerHost(referrer);
+  const referrerHost = candidateHost === url.hostname ? null : candidateHost;
+  const referrerSource =
+    referrerHost &&
+    Object.prototype.hasOwnProperty.call(REFERRER_SOURCES, referrerHost)
+      ? REFERRER_SOURCES[referrerHost]
+      : null;
   const querySource = String(url.searchParams.get("utm_source") || "")
     .trim()
     .toLowerCase();
-  const source = SOURCES.has(querySource)
+  const source = isAttributionSource(querySource)
     ? querySource
-    : referrerSource || null;
+    : referrerSource || (referrerHost ? "unknown" : null);
   if (!source) return null;
 
   const queryMedium = String(url.searchParams.get("utm_medium") || "")
     .trim()
     .toLowerCase();
-  const medium = MEDIA.has(queryMedium) ? queryMedium : inferMedium(source);
+  const medium = MEDIA.has(queryMedium)
+    ? queryMedium
+    : source === "unknown" && referrerHost
+      ? "referral"
+      : inferMedium(source);
   const attribution = normalizeAttribution({
     source,
     medium,

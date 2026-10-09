@@ -22,6 +22,8 @@ Private photos use an authenticated same-origin binary endpoint. It checks owner
 
 Deleting a draft clears its title, description and pending output in the committed mutation. If immediate Storage removal fails, the deletion still succeeds and durable tombstones keep photo cleanup retryable; the UI does not report a false save failure for an already deleted item. SQL and service regressions cover these cases.
 
+A second review pass on October 9 fixed an upload-retry ownership check that could accept a photo whose owner had been removed. A real SQL regression failed before the correction and passed afterward. The fresh production gate passed **115 files / 815 tests**, including eleven PGlite cases, with its test run starting at 11:45:06 Europe/Amsterdam. The browser suite passed all 23 checks again with zero page errors. An additional interactive demo smoke checked editing, acknowledged save/reload, exact clipboard copy, real browser photo preparation/upload, bulk grouping, simulated generation, Done and deletion. Desktop and phone screenshots were inspected. The localhost preview returned HTTP 200 from Windows; it uses fixture accounts and simulated generation, with no customer data or charges. Logs and screenshots for this pass are in `/tmp/autolister-draft-review-pass.log` and `/tmp/autolister-draft-review-browser` in this session. The staging and physical-device limits below still apply.
+
 Browser command after a feature-enabled build and local preview:
 
 ```bash

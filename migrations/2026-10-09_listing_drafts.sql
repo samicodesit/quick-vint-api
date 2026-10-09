@@ -61,7 +61,7 @@ BEGIN
     IF actual_bytes IS NULL OR actual_bytes<1 OR actual_bytes>4194304 THEN RAISE EXCEPTION 'photo_size'; END IF;
     SELECT * INTO p FROM listing_draft_photos WHERE id=(p_input->>'photoId')::uuid;
     IF FOUND THEN
-      IF p.user_id<>p_user_id OR p.import_id<>(p_input->>'importId')::uuid OR p.bytes<>actual_bytes OR p.draft_id IS DISTINCT FROM (p_input->>'draftId')::uuid OR p.deleted_at IS NOT NULL THEN RAISE EXCEPTION 'photo_conflict'; END IF;
+      IF p.user_id IS DISTINCT FROM p_user_id OR p.import_id<>(p_input->>'importId')::uuid OR p.bytes<>actual_bytes OR p.draft_id IS DISTINCT FROM (p_input->>'draftId')::uuid OR p.deleted_at IS NOT NULL THEN RAISE EXCEPTION 'photo_conflict'; END IF;
       IF p.status='pending' THEN UPDATE listing_draft_photos SET grant_expires_at=now()+interval '2 hours' WHERE id=p.id RETURNING * INTO p; END IF;
       RETURN to_jsonb(p);
     END IF;

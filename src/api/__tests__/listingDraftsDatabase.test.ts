@@ -53,6 +53,18 @@ async function photo(draftId?: string) {
   return id;
 }
 describe("private persistent listing drafts", () => {
+  it("rejects retry grants for ownerless photos even when the metadata is known", async () => {
+    const photoId = randomUUID();
+    const importId = randomUUID();
+    const grant = { photoId, importId, bytes: 123 };
+    await mutate("grant", grant);
+    await db.query("UPDATE listing_draft_photos SET user_id=NULL WHERE id=$1", [
+      photoId,
+    ]);
+    await expect(mutate("grant", grant, other)).rejects.toThrow(
+      /photo_conflict/,
+    );
+  });
   it("fences abandoned uploads before cleanup and leaves renewed uploads untouched", async () => {
     const id = randomUUID();
     const importId = randomUUID();

@@ -6,7 +6,9 @@ const subscriptionsListMock = vi.fn();
 const invoicesListMock = vi.fn();
 const rpcMock = vi.fn();
 const profileFilterMock = vi.fn();
+const reportCriticalEndpointFailureMock = vi.fn();
 let profileStatus = "active";
+let profileQueryError: { message: string } | null = null;
 
 vi.mock("stripe", () => {
   function StripeMock(this: any) {
@@ -25,17 +27,19 @@ vi.mock("../../../utils/supabaseClient", () => ({
           select: vi.fn(() => query),
           or: profileFilterMock.mockImplementation(() => query),
           limit: vi.fn(async () => ({
-            data: [
-              {
-                id: "profile_123",
-                email: "seller@example.com",
-                subscription_status: profileStatus,
-                subscription_tier: "starter",
-                stripe_customer_id: "cus_123",
-                stripe_subscription_id: "sub_current",
-              },
-            ],
-            error: null,
+            data: profileQueryError
+              ? null
+              : [
+                  {
+                    id: "profile_123",
+                    email: "seller@example.com",
+                    subscription_status: profileStatus,
+                    subscription_tier: "starter",
+                    stripe_customer_id: "cus_123",
+                    stripe_subscription_id: "sub_current",
+                  },
+                ],
+            error: profileQueryError,
           })),
         };
         return query;
@@ -47,6 +51,10 @@ vi.mock("../../../utils/supabaseClient", () => ({
     }),
     rpc: rpcMock,
   },
+}));
+
+vi.mock("../../../utils/criticalEndpointAlert", () => ({
+  reportCriticalEndpointFailure: reportCriticalEndpointFailureMock,
 }));
 
 function createResponse() {
@@ -70,6 +78,7 @@ describe("billing reconciliation usage reset", () => {
     process.env.STRIPE_SECRET_KEY = "sk_test";
     process.env.CRON_SECRET = "cron_test";
     profileStatus = "active";
+    profileQueryError = null;
     vi.clearAllMocks();
     subscriptionsListMock.mockResolvedValue({
       data: [
@@ -138,6 +147,7 @@ describe("billing reconciliation usage reset", () => {
     expect(profileFilterMock).toHaveBeenCalledWith(
       "stripe_customer_id.not.is.null,subscription_tier.neq.free,subscription_status.in.(active,trialing,past_due,unpaid,canceling)",
     );
+    expect(reportCriticalEndpointFailureMock).not.toHaveBeenCalled();
   });
 
   it("does not replay an older paid invoice while the current renewal is past due", async () => {
@@ -261,6 +271,90 @@ describe("billing reconciliation usage reset", () => {
     expect(res.body).toMatchObject({
       ok: false,
       usageResetErrors: 1,
+    });
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledTimes(1);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      endpoint: "/api/cron/billing-reconciliation",
+      status: 500,
+      details: expect.objectContaining({
+        checked: 1,
+        mismatches: 0,
+        usageResetErrors: 1,
+      }),
+    });
+  });
+
+  it("sends one aggregated alert for billing drift", async () => {
+    subscriptionsListMock.mockResolvedValue({ data: [] });
+    invoicesListMock.mockResolvedValue({ data: [] });
+    const module = await import("../../../api/cron/billing-reconciliation.js");
+    const handler = module.default as unknown as Handler;
+    const res = createResponse();
+
+    await handler(
+      { headers: { authorization: "Bearer cron_test" } },
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledTimes(1);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      endpoint: "/api/cron/billing-reconciliation",
+      status: 409,
+      details: {
+        checked: 1,
+        mismatches: 1,
+        usageResetErrors: 0,
+        reasonCounts: {
+          paid_profile_without_active_stripe_subscription: 1,
+        },
+        sampleUserIds: ["profile_123"],
+      },
+    });
+  });
+
+  it("alerts and stops when Stripe reconciliation fails", async () => {
+    subscriptionsListMock.mockRejectedValue(new Error("stripe unavailable"));
+    const module = await import("../../../api/cron/billing-reconciliation.js");
+    const handler = module.default as unknown as Handler;
+    const res = createResponse();
+
+    await handler(
+      { headers: { authorization: "Bearer cron_test" } },
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(500);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledTimes(1);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      endpoint: "/api/cron/billing-reconciliation",
+      status: 500,
+      userId: "profile_123",
+      details: {
+        stage: "stripe_snapshot",
+      },
+    });
+  });
+
+  it("alerts when the profile query fails", async () => {
+    profileQueryError = { message: "database unavailable" };
+    const module = await import("../../../api/cron/billing-reconciliation.js");
+    const handler = module.default as unknown as Handler;
+    const res = createResponse();
+
+    await handler(
+      { headers: { authorization: "Bearer cron_test" } },
+      res as any,
+    );
+
+    expect(res.statusCode).toBe(500);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledTimes(1);
+    expect(reportCriticalEndpointFailureMock).toHaveBeenCalledWith({
+      endpoint: "/api/cron/billing-reconciliation",
+      status: 500,
+      details: {
+        stage: "profile_query",
+      },
     });
   });
 });

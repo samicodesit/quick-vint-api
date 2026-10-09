@@ -171,7 +171,7 @@ describe("events tracking endpoint", () => {
   it.each([false, true])(
     "durably retains drop evidence and deduplicates retries (internal account: %s)",
     async (internal) => {
-      const { ApiLogger } = await import("../../../utils/apiLogger");
+      const { ApiLogger } = await import("../../../utils/apiLogger.js");
       vi.spyOn(ApiLogger, "isInternalLogExcludedEmail").mockReturnValue(
         internal,
       );

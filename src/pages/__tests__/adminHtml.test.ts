@@ -523,6 +523,7 @@ function buildAdminHarness() {
         type?: string,
       ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
+      renderActivityFeed: (logs: Array<Record<string, unknown>>) => string;
       renderUserRow: (user: Record<string, unknown>) => string;
       renderUserMobileCard: (user: Record<string, unknown>) => string;
       openAiInstructions: (userId: string) => void;

@@ -356,6 +356,16 @@ try {
   await page.locator('[data-draft-delete-dialog] [value="confirm"]').click();
   await page.locator("[data-draft-editor]").waitFor({ state: "hidden" });
   await click("bulk");
+  assert.equal(await page.locator(".draft-heading h1").textContent(), "Bulk upload");
+  assert.equal(await page.locator('[data-draft-action="choose-bulk"]').isVisible(), true);
+  assert.equal(await page.locator('[data-draft-import-controls]').isVisible(), false);
+  assert.equal(await page.locator('[data-draft-import-footer]').isVisible(), false);
+  assert.equal(await page.locator('[data-draft-import-status]').isVisible(), false);
+  const chooser = page.waitForEvent("filechooser");
+  await click("choose-bulk");
+  await chooser;
+  await screenshots("bulk-empty");
+  await click("close-import");
   await click("new");
   await page.locator("[data-draft-editor]:visible").waitFor();
   assert.equal(await page.locator("[data-draft-import]").isVisible(), false);
@@ -508,6 +518,9 @@ try {
         .length === 3,
   );
   const checks = page.locator("[data-draft-pool] input");
+  assert.equal(await page.locator('[data-draft-action="choose-bulk"]').isVisible(), false);
+  assert.equal(await page.locator('[data-draft-import-controls]').isVisible(), true);
+  assert.equal(await page.locator('[data-draft-import-footer]').isVisible(), false);
   await checks.nth(0).check();
   await checks.nth(0).focus();
   await page.keyboard.press("Space");
@@ -521,12 +534,35 @@ try {
   );
   assert.equal(photos.filter((p) => p.draft_id === drafts[0].id).length, 2);
   await page.locator("[data-draft-pool] input").check();
-  await click("individual");
+  assert.equal(await page.locator('[data-draft-action="individual"]').isVisible(), false);
+  await click("group");
   await page.waitForFunction(
     () => document.querySelectorAll(".draft-item").length === 3,
   );
   assert.equal(drafts.length, 3);
   await screenshot("library", 1440);
+  await page.locator(".draft-item-open").first().click();
+  await page.locator("[data-draft-editor]:visible").waitFor();
+  assert.equal(await page.locator('[data-draft-action="done"]').textContent(), "Mark as listed");
+  assert.equal(await page.locator('[data-draft-copy-fields]').isVisible(), false);
+  await click("done");
+  await page.locator("[data-draft-editor]").waitFor({state: "hidden"});
+  await page.locator('[data-draft-tab="done"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-draft-heading]').textContent === "Listed" && document.querySelectorAll(".draft-item-open").length === 1);
+  assert.equal(await page.locator(".draft-heading h1").textContent(), "Listed");
+  assert.equal(await page.locator(".draft-item-detail").textContent(), "Listed");
+  await screenshots("listed");
+  await page.reload();
+  await page.locator(".draft-item-open").first().waitFor();
+  await page.locator('[data-draft-tab="done"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-draft-heading]').textContent === "Listed" && document.querySelectorAll(".draft-item-open").length === 1);
+  await page.locator(".draft-item-open").click();
+  await page.locator("[data-draft-editor]:visible").waitFor();
+  assert.equal(await page.locator('[data-draft-action="done"]').textContent(), "Move back to drafts");
+  await click("done");
+  await page.locator("[data-draft-editor]").waitFor({state: "hidden"});
+  await page.locator('[data-draft-tab="draft"]').click();
+  await page.waitForFunction(() => document.querySelectorAll(".draft-item-open").length === 3);
   await click("selection");
   await click("select-ready");
   await page.locator(".draft-item>input").last().uncheck();
@@ -717,6 +753,19 @@ try {
   );
   assert.equal(generationCalls, 6);
   await screenshots("partial-failure");
+  const countBeforeIndividual = drafts.length;
+  const ungroupedBeforeIndividual = photos.filter(p => !p.draft_id).length;
+  await click("bulk");
+  await page.locator('[data-draft-input="bulk"]').setInputFiles([file("one", "#6d957c"), file("two", "#7899ba")]);
+  await page.waitForFunction(count => document.querySelectorAll('[data-draft-pool] input:not(:disabled)').length === count, ungroupedBeforeIndividual + 2);
+  await page.locator('[data-draft-pool] input').nth(ungroupedBeforeIndividual).check();
+  await page.locator('[data-draft-pool] input').nth(ungroupedBeforeIndividual + 1).check();
+  await click("individual");
+  await waitForFixture(() => drafts.length === countBeforeIndividual + 2);
+  await page.waitForFunction(() => document.querySelectorAll('[data-draft-pool] input:checked').length === 0);
+  assert.equal(drafts.length, countBeforeIndividual + 2);
+  assert.equal(photos.filter(p => p.draft_id === drafts[0].id).length, 1);
+  assert.equal(photos.filter(p => p.draft_id === drafts[1].id).length, 1);
   assert.deepEqual(errors, []);
   await writeFile(
     `${output}/result.json`,
@@ -726,7 +775,8 @@ try {
         generationCalls,
         viewports: [360, 390, 768, 1440],
         checks: [
-          "progressive disclosure and leaving bulk import for a new draft",
+          "bulk upload starts with one working chooser and hides grouping controls until photos arrive",
+          "selection reveals grouping actions and hides the redundant single-photo alternative",
           "repeated New draft reuses an unstarted item and preserves started work",
           "single upload",
           "immutable photo upload",
@@ -739,11 +789,13 @@ try {
           "unsaved edits recovered after reload",
           "save conflict",
           "bulk grouping",
-          "individual items",
+          "single-photo item",
+          "one item per photo creates separate drafts for multiple selected photos",
+          "photo-only item moves to Listed, survives reload and restores to Drafts",
           "pause and resume",
           "minute reset checked before resume",
           "keyboard photo selection and safe deletion cancellation",
-          "done and restore",
+          "mark generated item as listed and restore",
           "cover, ungroup and move correction",
           "edits survive an in-flight photo refresh",
           "acknowledged edits survive reopening the same item",

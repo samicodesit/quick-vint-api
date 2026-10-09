@@ -4,6 +4,22 @@ October 9, 2026. Feature commit: `994ef65` on `codex/mobile-web-phase1`.
 
 ## Current UI review
 
+### Bulk upload and Listed follow-up
+
+The empty bulk view now has one photo-upload target. Grouping instructions, the photo grid and collapsed language/style settings appear after photos arrive. Creation actions appear after selection; the separate-item alternative appears only for multiple selected photos. Repeated photo-option captions became accessible overflow menus. The installed Inter Variable font and workspace ink color are applied explicitly. The heading and back control stay in view when opening bulk upload.
+
+Mark as listed is available before generation for items with photos, as well as for generated or written text. It moves the item into a separate Listed bucket, persists through reload, and has a Move back to drafts action. This changes the existing saved status; it does not publish to a marketplace.
+
+The final production gate passed **115 files / 815 tests** (test run began October 9 at 14:11:45 Europe/Amsterdam), plus lint, types, feature-enabled build and formatting. The final browser suite passed **28 checks**, with no page errors and no horizontal overflow at 360, 390, 768 and 1440 pixels; [result](bulk-result.json). It checks the native file chooser, empty/uploaded/selected stages, grouped and individual creation, and both photo-only and generated Listed/restore paths, alongside the existing save, conflict, recovery and batch journeys. The complete matrix is `/tmp/autolister-drafts-bulk-browser` in this session. Selected final screenshots below were visually inspected.
+
+- Empty upload: [desktop](bulk-empty-1440.png), [phone](bulk-empty-390.png).
+- Selected photos: [desktop](bulk-grouping-1440.png), [phone](bulk-grouping-390.png).
+- Listed bucket: [phone](listed-390.png).
+
+These captures use isolated fixture accounts and sample imagery. No customer or marketplace was used; real staged integrations and physical devices remain unverified.
+
+### Earlier gallery and editor review
+
 The user-requested redesign replaces the earlier form layout with a photo gallery, a focused editor and progressive disclosure. The final visual correction removes nested photo frames and the background wash, keeps one clean tile surface, and gives captions 16px desktop / 12px phone padding. Hover no longer adds a frame. The screenshots use existing prototype sample photos in a localhost fixture account. No customer data was used.
 
 The fresh full gate passed 115 files / 815 tests at 13:47:19 Europe/Amsterdam. The updated browser suite passed 25 checks with no page errors; [current result](redesign-result.json). It covers initial disclosure/manual writing/deletion, leaving bulk import for a new draft, reusing an unstarted draft on repeated New draft clicks, and preserving started work with photos. Selected screenshots below were visually inspected; the full responsive capture matrix is `/tmp/autolister-drafts-clean-browser` in this session.

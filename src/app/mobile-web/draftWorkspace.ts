@@ -230,7 +230,7 @@ export function mountDraftWorkspace(
       p.className = "draft-help";
       p.textContent =
         tab === "done"
-          ? "Items you mark as done will appear here."
+          ? "Items you mark as listed will appear here."
           : "No drafts yet. Add photos to prepare your first item.";
       items.append(p);
     }
@@ -282,30 +282,35 @@ export function mountDraftWorkspace(
         (draft.photos.length ? "Untitled item" : "Untitled draft");
       const detail = document.createElement("span");
       detail.className = "draft-item-detail";
-      detail.dataset.state = queue.failed.has(draft.id)
-        ? "error"
-        : busy(draft)
-          ? "working"
-          : draft.description
-            ? "ready"
-            : "draft";
+      detail.dataset.state =
+        draft.state === "done"
+          ? "ready"
+          : queue.failed.has(draft.id)
+            ? "error"
+            : busy(draft)
+              ? "working"
+              : draft.description
+                ? "ready"
+                : "draft";
       detail.textContent =
-        queue.active === draft.id
-          ? "Generating…"
-          : queue.remaining.includes(draft.id)
-            ? queue.paused || !queue.running
-              ? "Paused"
-              : "Waiting…"
-            : queue.failed.has(draft.id)
-              ? "Needs attention"
-              : draft.operation_state === "running" ||
-                  draft.operation_state === "pending"
-                ? "Check result"
-                : draft.description
-                  ? "Ready to copy"
-                  : draft.photos.length
-                    ? `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Uploading"}`
-                    : "No photos yet";
+        draft.state === "done"
+          ? "Listed"
+          : queue.active === draft.id
+            ? "Generating…"
+            : queue.remaining.includes(draft.id)
+              ? queue.paused || !queue.running
+                ? "Paused"
+                : "Waiting…"
+              : queue.failed.has(draft.id)
+                ? "Needs attention"
+                : draft.operation_state === "running" ||
+                    draft.operation_state === "pending"
+                  ? "Check result"
+                  : draft.description
+                    ? "Ready to copy"
+                    : draft.photos.length
+                      ? `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Uploading"}`
+                      : "No photos yet";
       text.append(title, detail);
       open.append(text);
       row.append(check, open);
@@ -379,12 +384,25 @@ export function mountDraftWorkspace(
     if (disposed) return;
     root.classList.toggle("has-import", bulk);
     hide("[data-draft-import]", !bulk);
+    find("[data-draft-heading]").textContent = bulk
+      ? "Bulk upload"
+      : tab === "done"
+        ? "Listed"
+        : "Drafts";
+    hide("[data-draft-library-actions]", bulk);
+    action("close-import").hidden = !bulk;
+    const hasPhotos = Boolean(
+      library.imports.length || uploads.some((p) => !p.draftId),
+    );
+    find("[data-draft-import]").classList.toggle("is-empty", !hasPhotos);
+    action("choose-bulk").hidden = hasPhotos;
+    hide("[data-draft-import-controls]", !hasPhotos);
     hide(
       "[data-draft-import-summary]",
       bulk || (!library.imports.length && !uploads.some((p) => !p.draftId)),
     );
     find("[data-draft-import-summary-copy]").textContent =
-      `${library.imports.filter((p) => p.status === "ready").length} ungrouped photos saved. These are not included when you generate drafts.`;
+      `${library.imports.filter((p) => p.status === "ready").length} photos waiting to be grouped`;
     const focused = (document.activeElement as HTMLInputElement | null)?.dataset
       .draftPhotoId;
     const pool = find("[data-draft-pool]");
@@ -395,7 +413,8 @@ export function mountDraftWorkspace(
       const menu = document.createElement("details");
       menu.className = "draft-photo-options";
       const summary = document.createElement("summary");
-      summary.textContent = "Photo options";
+      summary.textContent = "⋯";
+      summary.setAttribute("aria-label", "Photo options");
       menu.append(
         summary,
         button(
@@ -427,19 +446,23 @@ export function mountDraftWorkspace(
     renderPoolSelection();
   }
   function renderPoolSelection() {
-    action("group").textContent =
-      `Create item · ${chosenPhotos.size} photo${chosenPhotos.size === 1 ? "" : "s"}`;
+    hide("[data-draft-import-footer]", !chosenPhotos.size);
+    find("[data-draft-photo-count]").textContent =
+      `${chosenPhotos.size} selected`;
+    action("individual").hidden = chosenPhotos.size < 2;
     action("group").disabled =
       !chosenPhotos.size ||
       chosenPhotos.size > DRAFT_LIMITS.photos ||
       importing;
     action("individual").disabled = !chosenPhotos.size || importing;
-    find("[data-draft-import-status]").textContent =
+    const status =
       chosenPhotos.size > DRAFT_LIMITS.photos
         ? "Choose up to 10 photos for one item, or make each selected photo a separate item."
         : processing
           ? "Uploading photos… You can group the photos that are ready."
-          : `${library.imports.filter((p) => p.status === "ready").length} ungrouped photos saved`;
+          : "";
+    find("[data-draft-import-status]").textContent = status;
+    hide("[data-draft-import-status]", !status);
   }
   function uploadThumbnail(upload: Upload) {
     const wrap = document.createElement("div");
@@ -514,6 +537,11 @@ export function mountDraftWorkspace(
     hide("[data-draft-originals]", !hasPhotos);
     hide("[data-draft-editor] .draft-settings", !hasPhotos);
     hide("[data-draft-copy-fields]", !hasText && writingDraftId !== draft.id);
+    hide(
+      "[data-draft-editor-footer]",
+      !hasText && !hasPhotos && draft.state !== "done",
+    );
+    hide("[data-draft-publish-hint]", !hasText || draft.state === "done");
     action("write").hidden = hasText || writingDraftId === draft.id;
     find("[data-draft-editor]").classList.toggle(
       "is-empty",
@@ -579,7 +607,7 @@ export function mountDraftWorkspace(
       draft.photos.some((p) => p.status !== "ready");
     action("done").disabled = locked;
     action("done").textContent =
-      draft.state === "done" ? "Move back to drafts" : "Mark as done";
+      draft.state === "done" ? "Move back to drafts" : "Mark as listed";
     action("check").hidden = !(
       draft.operation_state === "running" || draft.operation_state === "pending"
     );
@@ -1123,6 +1151,8 @@ export function mountDraftWorkspace(
     tell("");
   }
   const handlers: Record<string, () => Promise<unknown> | void> = {
+    "choose-bulk": () =>
+      find<HTMLInputElement>('[data-draft-input="bulk"]').click(),
     new: () => newDraft(),
     write: () => {
       if (!selected) return;
@@ -1145,7 +1175,7 @@ export function mountDraftWorkspace(
       }
       bulk = true;
       renderPool();
-      find("[data-draft-import]").scrollIntoView({
+      root.scrollIntoView({
         block: "start",
         behavior: "smooth",
       });
@@ -1153,6 +1183,7 @@ export function mountDraftWorkspace(
     "close-import": () => {
       bulk = false;
       renderPool();
+      action("bulk").focus();
     },
     reload: () => reload(),
     more: () => reload(true),
@@ -1418,6 +1449,19 @@ export function mountDraftWorkspace(
       ["title", "description"].includes(el.dataset.draftField || "")
     ) {
       selected.edit({ [el.dataset.draftField!]: el.value });
+      const hasText = Boolean(
+        selected.value.title || selected.value.description,
+      );
+      hide(
+        "[data-draft-editor-footer]",
+        !hasText &&
+          !photoCount(selected.value) &&
+          selected.value.state !== "done",
+      );
+      hide(
+        "[data-draft-publish-hint]",
+        !hasText || selected.value.state === "done",
+      );
       if (el.dataset.draftField === "title")
         find("#draft-editor-title").textContent = el.value || "New draft";
       scheduleSave();

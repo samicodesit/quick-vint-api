@@ -8,6 +8,8 @@ body:has([data-drafts-enabled="true"]) {
   --mobile-brand-soft: #edf1ff;
   --mobile-border: #dde2ee;
   --mobile-success: #237052;
+  font-family: "Inter Variable", Inter, sans-serif;
+  color: var(--mobile-ink);
   background: #f6f8fb;
 }
 [data-drafts-enabled="true"] .mobile-app-heading,
@@ -740,26 +742,78 @@ body:has([data-drafts-enabled="true"]) {
 .draft-import {
   margin-bottom: 24px;
 }
-.draft-import .draft-section-heading {
-  margin-bottom: 20px;
+.draft-import.is-empty {
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
 }
-.draft-import .draft-section-heading > div {
-  flex: 1;
-  min-width: 0;
+.draft-workspace .draft-bulk-dropzone {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 320px;
+  padding: 40px 24px;
+  gap: 16px;
+  border: 1px dashed #bdc8dc;
+  border-radius: 16px;
+  background: #ffffffb8;
 }
-.draft-import > .draft-add {
-  margin-right: 16px;
+.draft-workspace .draft-bulk-dropzone:hover:not(:disabled) {
+  border-color: var(--mobile-brand);
+  background: #fff;
 }
-.draft-import > .draft-settings {
-  display: inline-block;
-  vertical-align: top;
-  margin: 0 0 12px;
+.draft-bulk-dropzone svg {
+  width: 48px;
+  height: 48px;
+  color: #7c8da9;
 }
-.draft-import > .draft-settings[open] {
-  display: block;
+.draft-bulk-dropzone strong {
+  font-size: 18px;
+  font-weight: 550;
 }
-.draft-import .draft-section-heading p {
-  margin-top: 6px;
+.draft-bulk-choose {
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--mobile-brand);
+  color: #fff;
+}
+.draft-bulk-limit {
+  font-size: 12px;
+  font-weight: 400;
+  color: #626b80;
+}
+.draft-import-toolbar,
+.draft-import-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.draft-import-toolbar p {
+  font-weight: 550;
+}
+.draft-import-controls .draft-settings {
+  margin: 8px 0 0;
+}
+.draft-import-controls .draft-settings > summary {
+  color: #626b80;
+  font-size: 12px;
+}
+.draft-import-footer {
+  padding-top: 16px;
+  border-top: 1px solid #e3e8f0;
+}
+.draft-import-footer > span {
+  white-space: nowrap;
+  font-size: 12px;
+  color: #626b80;
+}
+.draft-import-status {
+  margin-top: 12px !important;
 }
 .draft-photo-grid {
   display: grid;
@@ -773,8 +827,34 @@ body:has([data-drafts-enabled="true"]) {
 .draft-photo-grid .draft-photo > img {
   height: 150px;
 }
-.draft-import > .draft-help {
-  margin-top: 14px;
+.draft-photo-grid .draft-photo-select {
+  inset: 0;
+}
+.draft-photo-grid .draft-photo-options {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  border-radius: 8px;
+  background: #fffffff0;
+}
+.draft-photo-grid .draft-photo-options > summary {
+  width: 44px;
+  margin-left: auto;
+  padding: 8px;
+  list-style: none;
+  font-size: 20px;
+  line-height: 28px;
+}
+.draft-photo-grid .draft-photo-options > summary::-webkit-details-marker {
+  display: none;
+}
+.draft-photo-grid .draft-photo-options[open] {
+  width: 110px;
+  box-shadow: 0 4px 16px #2636581a;
+}
+.draft-photo-grid:empty {
+  display: none;
 }
 .draft-import-summary {
   display: flex;
@@ -934,7 +1014,7 @@ body:has([data-drafts-enabled="true"]) {
   .draft-workspace.has-editor .draft-library {
     display: none;
   }
-  .draft-workspace.has-editor .draft-heading {
+  .draft-workspace.has-editor:not(.has-import) .draft-heading {
     display: none;
   }
   .draft-editor {
@@ -977,9 +1057,24 @@ body:has([data-drafts-enabled="true"]) {
   .draft-import {
     padding: 18px;
   }
-  .draft-import .draft-section-heading {
-    align-items: flex-start;
+  .draft-import-toolbar {
+    gap: 12px;
+  }
+  .draft-import-toolbar p {
+    font-size: 13px;
+  }
+  .draft-import-toolbar .draft-add {
+    flex-shrink: 0;
+    padding-inline: 12px;
+  }
+  .draft-import-footer {
     flex-wrap: wrap;
+  }
+  .draft-import-footer .draft-actions {
+    width: 100%;
+  }
+  .draft-import-footer .draft-actions button {
+    flex: 1;
   }
   .draft-photo-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

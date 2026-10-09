@@ -62,6 +62,23 @@
     "desktopAndPhoneScreenshotsInspected": true,
     "isolatedFixtures": true
   },
+  "bulkUploadAndListed": {
+    "date": "2026-10-09",
+    "testRunStartedAt": "14:11:45 Europe/Amsterdam",
+    "productionGatePassed": true,
+    "testFiles": 115,
+    "tests": 815,
+    "browserChecksPassed": 28,
+    "pageErrors": [],
+    "widths": [360, 390, 768, 1440],
+    "nativePhotoChooserVerified": true,
+    "uploadAndSelectionDisclosureVerified": true,
+    "multipleSinglePhotoItemsVerified": true,
+    "photoOnlyListedReloadAndRestoreVerified": true,
+    "generatedListedAndRestoreVerified": true,
+    "desktopAndPhoneScreenshotsInspected": true,
+    "isolatedFixtures": true
+  },
   "unperformed": [
     "physical iOS Safari and Android Chrome",
     "actual staged Supabase Storage, PostgREST, auth and provider integration",

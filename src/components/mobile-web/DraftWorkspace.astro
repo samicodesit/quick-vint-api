@@ -5,8 +5,9 @@ import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
   <dialog class="draft-delete-dialog" data-draft-delete-dialog aria-labelledby="draft-delete-title" aria-describedby="draft-delete-copy"><form method="dialog"><h2 id="draft-delete-title">Delete permanently?</h2><p id="draft-delete-copy"></p><div class="draft-actions"><button type="submit" value="cancel" autofocus>Keep it</button><button type="submit" value="confirm" class="draft-danger">Delete permanently</button></div></form></dialog>
   <span class="draft-sr-only" data-draft-copy-status role="status" aria-live="polite"></span>
   <div class="draft-heading">
-    <h1>Drafts</h1>
-    <div class="draft-actions"><span class="draft-allowance" data-draft-allowance></span><button type="button" data-draft-action="bulk">Bulk upload</button><button type="button" class="draft-primary" data-draft-action="new">+ New draft</button></div>
+    <h1 data-draft-heading>Drafts</h1>
+    <div class="draft-actions" data-draft-library-actions><span class="draft-allowance" data-draft-allowance></span><button type="button" data-draft-action="bulk">Bulk upload</button><button type="button" class="draft-primary" data-draft-action="new">+ New draft</button></div>
+    <button type="button" class="draft-text-button" data-draft-action="close-import" hidden>← Back to drafts</button>
   </div>
   <p class="draft-notice" data-draft-message role="status" aria-live="polite" hidden></p>
   <button type="button" data-draft-action="reload" data-draft-retry hidden>Try again</button>
@@ -14,24 +15,28 @@ import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
     <div><strong data-draft-queue-title></strong><p data-draft-queue-copy></p></div>
     <button type="button" data-draft-action="pause">Pause after this item</button><button type="button" data-draft-action="resume" hidden>Continue remaining</button>
   </section>
-  <section class="draft-import" data-draft-import hidden aria-labelledby="draft-import-title">
-    <div class="draft-section-heading"><div><h2 id="draft-import-title">Group your photos</h2><p>Select the photos of one item, then create its draft.</p></div><button type="button" data-draft-action="close-import">Back to drafts</button></div>
-    <label class="draft-add">+ Add photos<input type="file" accept="image/*" multiple data-draft-input="bulk" /></label>
-    <details class="draft-settings"><summary>Settings for new items</summary><div class="draft-settings-grid">
+  <section class="draft-import" data-draft-import hidden aria-label="Bulk photo upload">
+    <button type="button" class="draft-bulk-dropzone" data-draft-action="choose-bulk" aria-label="Choose photos">
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="8" y="10" width="32" height="28" rx="5" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="20" r="3" stroke="currentColor" stroke-width="1.5"/><path d="m10 33 10-9 8 7 5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <strong>Add your photos</strong><span class="draft-bulk-choose">Choose photos</span><span class="draft-bulk-limit">Up to 100 photos · Drag &amp; drop supported</span>
+    </button>
+    <div class="draft-import-controls" data-draft-import-controls hidden>
+    <div class="draft-import-toolbar"><p>Select photos of the same item.</p><label class="draft-add">+ Add photos<input type="file" accept="image/*" multiple data-draft-input="bulk" /></label></div>
+    <details class="draft-settings"><summary>Language &amp; style</summary><div class="draft-settings-grid">
       <label>Title language<select data-draft-default="titleLanguageCode">{SUPPORTED_OUTPUT_LANGUAGES.map(language=><option value={language.code}>{language.label}</option>)}</select></label>
       <label>Description language<select data-draft-default="descriptionLanguageCode">{SUPPORTED_OUTPUT_LANGUAGES.map(language=><option value={language.code}>{language.label}</option>)}</select></label>
       <label>Length<select data-draft-default="descriptionLength"><option value="long">Detailed</option><option value="short">Short</option></select></label>
       <label class="draft-check"><input type="checkbox" data-draft-default="useBulletPoints" checked /> Bullet points</label>
-    </div><p class="draft-help">Applies to items you create next. You can change each item’s settings in its draft.</p></details>
-    <p data-draft-import-status role="status"></p>
+    </div></details>
+    </div>
+    <p class="draft-import-status" data-draft-import-status role="status" hidden></p>
     <div class="draft-photo-grid" data-draft-pool></div>
-    <div class="draft-actions"><button type="button" class="draft-primary" data-draft-action="group" disabled>Create item · 0 photos</button><button type="button" data-draft-action="individual" disabled>One item per photo</button></div>
-    <p class="draft-help">Up to 100 photos. Ungrouped photos stay saved here.</p>
+    <div class="draft-import-footer" data-draft-import-footer hidden><span data-draft-photo-count></span><div class="draft-actions"><button type="button" data-draft-action="individual" disabled>One item per photo</button><button type="button" class="draft-primary" data-draft-action="group" disabled>Create item</button></div></div>
   </section>
   <aside class="draft-import-summary" data-draft-import-summary hidden><p data-draft-import-summary-copy></p><button type="button" data-draft-action="bulk">Continue grouping</button></aside>
   <div class="draft-layout">
     <aside class="draft-library" aria-label="Saved items">
-      <div class="draft-library-toolbar"><div class="draft-tabs" aria-label="Item status"><button type="button" data-draft-tab="draft" aria-pressed="true">Drafts</button><button type="button" data-draft-tab="done" aria-pressed="false">Done</button></div><button type="button" class="draft-text-button" data-draft-action="selection" aria-pressed="false">Select</button></div>
+      <div class="draft-library-toolbar"><div class="draft-tabs" aria-label="Item status"><button type="button" data-draft-tab="draft" aria-pressed="true">Drafts</button><button type="button" data-draft-tab="done" aria-pressed="false">Listed</button></div><button type="button" class="draft-text-button" data-draft-action="selection" aria-pressed="false">Select</button></div>
       <div class="draft-batch-actions" data-draft-batch-actions hidden><button type="button" data-draft-action="select-ready">Select ready items</button><span data-draft-selected-count role="status" aria-live="polite"></span></div>
       <button type="button" class="draft-primary draft-batch-button" data-draft-action="generate-selected" hidden disabled>Generate selected items</button>
       <div class="draft-items" data-draft-items aria-busy="true"><p class="draft-help">Loading your drafts…</p></div>
@@ -65,8 +70,8 @@ import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
       <input id="draft-title" data-draft-field="title" type="text" maxlength="200" placeholder="Add a title" autocomplete="off" />
       <div class="draft-field-heading"><label for="draft-description">Description</label><button type="button" data-draft-action="copy-description">Copy description</button></div>
       <textarea id="draft-description" data-draft-field="description" maxlength="10000" rows="6" placeholder="Add a description"></textarea>
-      <div class="draft-editor-footer"><span class="draft-help">Copy, then publish on your marketplace.</span><button type="button" data-draft-action="done">Mark as done</button></div>
       </div>
+      <div class="draft-editor-footer" data-draft-editor-footer hidden><span class="draft-help" data-draft-publish-hint>Copy, then publish on your marketplace.</span><button type="button" data-draft-action="done">Mark as listed</button></div>
       <button type="button" data-draft-action="save" hidden>Retry save</button>
     </section>
     <div data-draft-editor-empty hidden></div>

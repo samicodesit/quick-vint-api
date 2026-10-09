@@ -385,11 +385,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           "auth_success",
           "listing_tools_ready",
         ].includes(raw.event);
-      if (!retained || ApiLogger.isInternalLogExcludedEmail(userEmail))
-        return null;
+      const dropCarrier = Number(context.queueDropped) > 0;
+      if (!retained && !dropCarrier) return null;
+      if (ApiLogger.isInternalLogExcludedEmail(userEmail)) {
+        if (!dropCarrier) return null;
+        // Keep aggregate transport health explainable without retaining this
+        // excluded account's product context, email, page, IP or user agent.
+        return {
+          endpoint: "/event/telemetry_queue_dropped",
+          request_method: "SYSTEM",
+          response_status: 204,
+          full_request_body: {
+            event: raw.event,
+            source: redact(raw.source, 80),
+            extensionVersion: redact(raw.extensionVersion, 80),
+            transportEventId: raw.id,
+            occurredAt: raw.occurredAt,
+            context: Object.fromEntries(
+              Object.entries(context).filter(
+                ([key]) =>
+                  key === "queueDropLastRejection" ||
+                  key.startsWith("queueDropped"),
+              ),
+            ),
+          },
+        };
+      }
       return {
         user_email: userEmail,
-        endpoint: `/event/${raw.event}`,
+        endpoint: retained
+          ? `/event/${raw.event}`
+          : "/event/telemetry_queue_dropped",
         request_method: metadata.requestMethod,
         response_status: 204,
         user_agent: metadata.userAgent,
@@ -415,6 +441,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .map((key) => [key, redact(raw.utm[key], 120)]),
           ),
           context,
+          ...(dropCarrier
+            ? { transportEventId: raw.id, occurredAt: raw.occurredAt }
+            : {}),
         },
       };
     },

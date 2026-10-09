@@ -7,18 +7,42 @@
   function createQueue({ storage, identity, send, now = Date.now }) {
     let flushing;
     let flushRequested = false;
+    function recordDrop(state, entry, reason, rejection) {
+      state.dropped++;
+      state.dropCounts ||= {};
+      const counts = state.dropCounts;
+      counts[reason] = (counts[reason] || 0) + 1;
+      if (entry.critical) counts.critical = (counts.critical || 0) + 1;
+      if (entry.event.event === "listing_report_submitted")
+        counts.customerReports = (counts.customerReports || 0) + 1;
+      if (rejection)
+        counts.lastRejection = /^[a-z_]{1,80}$/.test(rejection)
+          ? rejection
+          : "unknown_rejection";
+    }
     function prune(state) {
       state.events ||= [];
       state.dropped ||= 0;
-      const before = state.events.length;
-      state.events = state.events.filter(
-        (item) => now() - item.createdAt < 86400000,
-      );
-      state.dropped += before - state.events.length;
+      // An older tab can report/reset the shared total without knowing these
+      // counters. Discard stale classification instead of attributing it again.
+      const counts = state.dropCounts;
+      if (
+        counts &&
+        (counts.expired || 0) +
+          (counts.capacity || 0) +
+          (counts.rejected || 0) >
+          state.dropped
+      )
+        delete state.dropCounts;
+      state.events = state.events.filter((item) => {
+        if (now() - item.createdAt < 86400000) return true;
+        recordDrop(state, item, "expired");
+        return false;
+      });
       while (state.events.length > 200 || bytes(state) > 524288) {
         const routine = state.events.findIndex((item) => !item.critical);
-        state.events.splice(routine < 0 ? 0 : routine, 1);
-        state.dropped++;
+        const [entry] = state.events.splice(routine < 0 ? 0 : routine, 1);
+        recordDrop(state, entry, "capacity");
       }
     }
     async function enqueue(event, accountId, critical = false) {
@@ -66,11 +90,30 @@
           for (const entry of eligible) {
             if (entry.accountId !== owner) continue;
             if (state.dropped > 0 && !entry.event.context?.queueDropped) {
+              const counts = state.dropCounts || {};
               entry.event.context = {
                 ...entry.event.context,
                 queueDropped: state.dropped,
+                queueDroppedExpired: counts.expired || 0,
+                queueDroppedCapacity: counts.capacity || 0,
+                queueDroppedRejected: counts.rejected || 0,
+                // Older queues contain only the total. Zero known critical
+                // drops must not be mistaken for proof those records were routine.
+                queueDroppedUnclassified: Math.max(
+                  0,
+                  state.dropped -
+                    (counts.expired || 0) -
+                    (counts.capacity || 0) -
+                    (counts.rejected || 0),
+                ),
+                queueDroppedCritical: counts.critical || 0,
+                queueDroppedCustomerReports: counts.customerReports || 0,
+                ...(counts.lastRejection
+                  ? { queueDropLastRejection: counts.lastRejection }
+                  : {}),
               };
               state.dropped = 0;
+              delete state.dropCounts;
             }
 
             if (
@@ -122,7 +165,7 @@
             ...(payload.duplicateIds || []),
           ].filter((id) => ids.has(id)),
         );
-        const rejected = new Set(
+        const rejected = new Map(
           (payload.rejections || [])
             .filter(
               (item) =>
@@ -132,14 +175,19 @@
                   "report_capacity",
                 ].includes(item.reason),
             )
-            .map((item) => item.id),
+            .map((item) => [item.id, item.reason]),
         );
         await storage.transact((state) => {
           state.events = state.events.filter((entry) => {
             if (!ids.has(entry.event.id)) return true;
             if (confirmed.has(entry.event.id)) return false;
             if (rejected.has(entry.event.id)) {
-              state.dropped++;
+              recordDrop(
+                state,
+                entry,
+                "rejected",
+                rejected.get(entry.event.id),
+              );
               return false;
             }
             entry.nextAt =

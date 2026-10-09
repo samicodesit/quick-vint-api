@@ -168,6 +168,103 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
+  it.each([false, true])(
+    "durably retains drop evidence and deduplicates retries (internal account: %s)",
+    async (internal) => {
+      const { ApiLogger } = await import("../../../utils/apiLogger");
+      vi.spyOn(ApiLogger, "isInternalLogExcludedEmail").mockReturnValue(
+        internal,
+      );
+      const db = new PGlite();
+      try {
+        await db.exec(
+          "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+        );
+        await db.exec(
+          readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+        );
+        rpcMock.mockImplementation(async (name, args) => {
+          const result = await db.query<any>(
+            "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+            [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+          );
+          return { data: result.rows[0].result };
+        });
+        const id = "a423926a-35a6-4bf5-8027-8ab335c72223";
+        const occurredAt = new Date().toISOString();
+        const context = {
+          queueDropped: 57,
+          queueDroppedExpired: 50,
+          queueDroppedCapacity: 5,
+          queueDroppedRejected: 2,
+          queueDroppedCritical: 1,
+          queueDroppedCustomerReports: 1,
+          queueDropLastRejection: "expired",
+          authorization: "Bearer private",
+          photos: ["private-photo"],
+          message: "internal product detail",
+        };
+        const body = {
+          schemaVersion: 2,
+          events: [
+            {
+              id,
+              occurredAt,
+              event: "token_refresh_start",
+              source: "extension_background",
+              extensionVersion: "1.4.11",
+              context,
+            },
+          ],
+        };
+        expect((await postEvent(body)).body).toMatchObject({
+          acknowledgedIds: [id],
+        });
+        expect((await postEvent(body)).body).toMatchObject({
+          duplicateIds: [id],
+        });
+        const rows = (
+          await db.query<any>("SELECT endpoint,full_request_body FROM api_logs")
+        ).rows;
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+          endpoint: "/event/telemetry_queue_dropped",
+          full_request_body: {
+            event: "token_refresh_start",
+            occurredAt,
+            transportEventId: id,
+            extensionVersion: "1.4.11",
+            context: {
+              queueDropped: 57,
+              queueDroppedExpired: 50,
+              queueDroppedCapacity: 5,
+              queueDroppedRejected: 2,
+              queueDroppedCritical: 1,
+              queueDroppedCustomerReports: 1,
+              queueDropLastRejection: "expired",
+            },
+          },
+        });
+        expect(JSON.stringify(rows)).not.toMatch(/private/);
+        if (internal)
+          expect(JSON.stringify(rows)).not.toMatch(/internal product detail/);
+        expect(
+          (
+            await db.query<any>(
+              "SELECT client_dropped FROM incident_daily_budgets",
+            )
+          ).rows,
+        ).toEqual([{ client_dropped: 57 }]);
+        expect(
+          (await db.query<any>("SELECT id FROM incident_groups")).rows,
+        ).toHaveLength(0);
+      } finally {
+        rpcMock.mockReset();
+        await db.close();
+      }
+    },
+  );
+
   it("saves legacy generation pairs without creating running watchdog flows", async () => {
     const response = await postEvent({
       events: [

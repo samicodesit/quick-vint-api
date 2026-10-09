@@ -367,6 +367,7 @@ body:has([data-drafts-enabled="true"]) {
 }
 .draft-workspace.has-editor .draft-item-open {
   flex-direction: row;
+  justify-content: flex-start;
   align-items: center;
   gap: 10px;
 }

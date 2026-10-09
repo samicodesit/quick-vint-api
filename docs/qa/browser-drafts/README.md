@@ -10,6 +10,7 @@ The fresh full gate passed 115 files / 815 tests at 13:47:19 Europe/Amsterdam. T
 
 - Gallery: [desktop](redesign-gallery.png), [phone](redesign-gallery-phone.png).
 - Editor: [desktop](redesign-editor.png), [phone](redesign-editor-phone.png).
+- Follow-up sidebar correction: item buttons now align content to the left instead of centering each item according to its text width. The feature-enabled build passed; isolated Chromium confirmed identical thumbnail/text columns and 56px content heights at 768, 900 and 1440 pixels. The desktop editor screenshot above was updated and inspected. Physical devices were not used for this check.
 - Additional upload, grouping, save-error, conflict, quota, batch and partial-failure states were captured at four widths by the browser suite. These screenshots establish local fixture behavior; real device and staged integrations remain unverified.
 
 ## Original implementation evidence

@@ -16,6 +16,23 @@ const bindMobileGenerationReservation = vi.fn();
 const completeMobileGenerationIdempotency = vi.fn();
 const failMobileGenerationIdempotency = vi.fn();
 const markMobileGenerationCommitPending = vi.fn();
+const {
+  prepareDraftGeneration,
+  bindDraftGeneration,
+  storeDraftGeneration,
+  completeDraftGeneration,
+} = vi.hoisted(() => ({
+  prepareDraftGeneration: vi.fn(),
+  bindDraftGeneration: vi.fn(),
+  storeDraftGeneration: vi.fn(),
+  completeDraftGeneration: vi.fn(),
+}));
+vi.mock("../../../utils/draftGeneration", () => ({
+  prepareDraftGeneration,
+  bindDraftGeneration,
+  storeDraftGeneration,
+  completeDraftGeneration,
+}));
 
 vi.mock("openai", () => ({
   OpenAI: vi.fn(function OpenAI() {
@@ -147,6 +164,84 @@ const body = {
 };
 
 describe("mobile web generation idempotency", () => {
+  it("refunds instead of committing when the draft is deleted while the provider runs", async () => {
+    prepareDraftGeneration.mockResolvedValue({
+      body,
+      context: {
+        userId: "user-1",
+        draftId: requestId,
+        operationId: requestId,
+        hash: "b".repeat(64),
+      },
+    });
+    storeDraftGeneration.mockRejectedValue(
+      Object.assign(new Error("Deleted"), {
+        status: 404,
+        code: "draft_not_found",
+      }),
+    );
+    const module = await import("../../../api/generate.js");
+    const res = createResponse();
+    await (module as any).default(
+      {
+        method: "POST",
+        headers: mobileHeaders,
+        body: { draftId: requestId, inputVersion: 1 },
+      },
+      res,
+    );
+    expect(res.statusCode).toBe(400);
+    expect(refundGenerationReservation).toHaveBeenCalled();
+    expect(commitGenerationReservationVerified).not.toHaveBeenCalled();
+  });
+  it("saves draft output before committing usage and before reporting success", async () => {
+    const context = {
+      userId: "user-1",
+      draftId: requestId,
+      operationId: requestId,
+      hash: "b".repeat(64),
+    };
+    prepareDraftGeneration.mockResolvedValue({ body, context });
+    completeDraftGeneration.mockResolvedValue({ ok: true });
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    await handler(
+      {
+        method: "POST",
+        headers: mobileHeaders,
+        body: { draftId: requestId, inputVersion: 1 },
+      } as any,
+      res as any,
+    );
+    expect(res.statusCode).toBe(200);
+    expect(bindDraftGeneration).toHaveBeenCalled();
+    expect(storeDraftGeneration).toHaveBeenCalled();
+    expect(completeDraftGeneration).toHaveBeenCalled();
+    expect(storeDraftGeneration.mock.invocationCallOrder[0]).toBeLessThan(
+      commitGenerationReservationVerified.mock.invocationCallOrder[0],
+    );
+    expect(completeMobileGenerationIdempotency).not.toHaveBeenCalled();
+  });
+  it("returns a recovered draft without reserving usage or calling the provider", async () => {
+    prepareDraftGeneration.mockResolvedValue({
+      response: { title: "Recovered", description: "Saved result" },
+    });
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    await handler(
+      {
+        method: "POST",
+        headers: mobileHeaders,
+        body: { draftId: requestId, inputVersion: 1 },
+      } as any,
+      res as any,
+    );
+    expect(res.body.title).toBe("Recovered");
+    expect(createCompletion).not.toHaveBeenCalled();
+    expect(reserveAndBindMobileGenerationReservation).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.resetAllMocks();
     process.env.VERCEL_APP_OPENAI_API_KEY = "test-openai-key";

@@ -16,6 +16,7 @@ export interface MobileApiFetchOptions {
 export interface MobileWebRuntimeConfig {
   supabaseUrl: string;
   supabaseAnonKey: string;
+  draftsEnabled?: boolean;
 }
 
 declare global {

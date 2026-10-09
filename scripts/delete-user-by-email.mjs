@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { purgeListingDraftPhotos } from "./listing-draft-privacy.mjs";
 
 const ENV_FILES = [".env.local", ".env"];
 
@@ -198,6 +199,7 @@ if (!dryRun) {
 
 const authUser = await findAuthUserByEmail(supabase, email);
 if (authUser && !dryRun) {
+  await purgeListingDraftPhotos(supabase, authUser.id);
   const { error: authDeleteError } = await supabase.auth.admin.deleteUser(
     authUser.id,
   );
@@ -252,10 +254,8 @@ if (stripe && !dryRun) {
   }
 }
 
-const { data: remainingProfiles, error: remainingProfilesError } = await supabase
-  .from("profiles")
-  .select("id, email")
-  .ilike("email", email);
+const { data: remainingProfiles, error: remainingProfilesError } =
+  await supabase.from("profiles").select("id, email").ilike("email", email);
 if (remainingProfilesError) throw remainingProfilesError;
 
 const { count: remainingApiLogsByEmail, error: remainingApiLogsError } =

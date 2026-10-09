@@ -158,6 +158,7 @@ describe("authenticated mobile usage endpoint", () => {
         packCredits: 0,
       },
       remaining: {
+        generations: 5,
         freeLifetime: 5,
         daily: null,
         monthly: null,

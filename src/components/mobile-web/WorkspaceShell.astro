@@ -2,6 +2,7 @@
 import PhotoRail from "./PhotoRail.astro";
 import ListingControls from "./ListingControls.astro";
 import ListingResult from "./ListingResult.astro";
+import DraftWorkspace from "./DraftWorkspace.astro";
 
 interface Props {
   titleLanguageCode?: string;
@@ -111,6 +112,7 @@ const {
         <strong class="mobile-usage-unavailable" data-mobile-web="usage-headline" hidden></strong>
       </section>
 
+      <DraftWorkspace />
       <section class="mobile-upload-card" data-mobile-web="upload-card" aria-labelledby="mobile-upload-title">
         <div class="mobile-upload-card-heading">
           <div>

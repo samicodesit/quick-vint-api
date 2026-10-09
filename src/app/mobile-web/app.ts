@@ -1,3 +1,4 @@
+import { mountDraftWorkspace } from "./draftWorkspace";
 import {
   getBrowserSession,
   requestMagicLink,
@@ -847,6 +848,27 @@ export function mountMobileWebApp(
   let copiedDescription = false;
   let appOpenedTracked = false;
   let checkoutReturnHandled = false;
+  let draftWorkspace: ReturnType<typeof mountDraftWorkspace> | undefined;
+  const openDraftWorkspace = () => {
+    if (
+      draftWorkspace ||
+      !session ||
+      !window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.draftsEnabled
+    )
+      return;
+    const workspace = asElement<HTMLElement>(root, "[data-draft-workspace]");
+    if (!workspace) return;
+    shell.dataset.draftsEnabled = "true";
+    draftWorkspace = mountDraftWorkspace(workspace, {
+      userId: session.user.id,
+      onUsageChange: () => refreshUsage(),
+      defaultSettings: {
+        titleLanguageCode: language.titleLanguageCode,
+        descriptionLanguageCode: language.descriptionLanguageCode,
+        ...formatting,
+      },
+    });
+  };
   const checkoutReturnStatus = readCheckoutReturnStatus();
   const vintedDestination = getMobileVintedDestination();
 
@@ -877,6 +899,7 @@ export function mountMobileWebApp(
         : await loadUsage();
       if (disposed) return null;
       canGenerate = usage.canGenerate !== false;
+      draftWorkspace?.updateUsage(usage);
       renderMobileUsage(root, usage);
       setBillingControls(root, usage);
       if (usage.canGenerate === false) {
@@ -896,6 +919,8 @@ export function mountMobileWebApp(
         activeController?.abort();
         await cleanupServerSession("cancelled");
         clearPreviews();
+        draftWorkspace?.dispose(true);
+        draftWorkspace = undefined;
         showAuth(root);
       } else {
         clearMobileUsage(root);
@@ -1397,6 +1422,7 @@ export function mountMobileWebApp(
         void claimFirstTouchAfterAuth(session);
         void trackMobileEvent("auth_complete", { method: "email" });
         showApp(root);
+        openDraftWorkspace();
         void refreshUsage();
       })
       .catch((error) => {
@@ -1411,6 +1437,15 @@ export function mountMobileWebApp(
       });
   });
   bind(asElement(root, '[data-mobile-web="sign-out"]'), "click", () => {
+    if (
+      draftWorkspace?.hasUnsaved() &&
+      !window.confirm(
+        "Leave this workspace? Unsaved edits and unfinished uploads may be lost. Saved drafts will stay in your account.",
+      )
+    )
+      return;
+    draftWorkspace?.dispose(true);
+    draftWorkspace = undefined;
     cancellationRequested = true;
     activeController?.abort();
     void signOutBrowser().then(() => {
@@ -1521,6 +1556,7 @@ export function mountMobileWebApp(
       void claimFirstTouchAfterAuth(session);
       void trackMobileEvent("auth_complete", { method: "session" });
       showApp(root);
+      openDraftWorkspace();
       if (checkoutReturnStatus && !checkoutReturnHandled) {
         checkoutReturnHandled = true;
         void trackMobileEvent("checkout_return", {
@@ -1545,6 +1581,7 @@ export function mountMobileWebApp(
   const cleanup = (): void => {
     if (disposed) return;
     disposed = true;
+    draftWorkspace?.dispose();
     cancellationRequested = true;
     activeController?.abort();
     void cleanupServerSession("cancelled");

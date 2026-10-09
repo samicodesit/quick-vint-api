@@ -42,6 +42,7 @@ export interface UsageResponse {
     packCredits: number;
   };
   remaining: {
+    generations: number | null;
     freeLifetime: number | null;
     daily: number | null;
     monthly: number | null;
@@ -230,6 +231,7 @@ export function buildUsageResponse(
       packCredits,
     },
     remaining: {
+      generations: nonNegativeNumber(capacity.available),
       freeLifetime: remainingFreeLifetime,
       daily: remainingDaily,
       monthly: remainingMonthly,

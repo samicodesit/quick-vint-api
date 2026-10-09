@@ -71,6 +71,13 @@ import messagesFr from "../messages/fr.json";
 import messagesDe from "../messages/de.json";
 import messagesNl from "../messages/nl.json";
 import messagesPl from "../messages/pl.json";
+import {
+  prepareDraftGeneration,
+  bindDraftGeneration,
+  storeDraftGeneration,
+  completeDraftGeneration,
+  type DraftGenerationContext,
+} from "../utils/draftGeneration";
 
 const OPEN_AI_MAX_OUTPUT_TOKENS = 1000;
 const DEBUG_IMAGE_BUCKET = "temp-uploads";
@@ -530,6 +537,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .json({ error: "imageUrls must be a non-empty array of strings." });
   }
 
+  let draftContext: DraftGenerationContext | undefined;
+  if (
+    isMobileWebRequest &&
+    Object.prototype.hasOwnProperty.call(req.body, "draftId")
+  ) {
+    try {
+      const prepared = await prepareDraftGeneration(
+        user.id,
+        req.body,
+        mobileRequestId as string,
+      );
+      if (prepared.response) return res.status(200).json(prepared.response);
+      draftContext = prepared.context;
+      req.body = prepared.body;
+    } catch (error: any) {
+      return res.status(error.status || 503).json({
+        code: error.code || "draft_service_unavailable",
+        error: error.message || "Your draft could not be prepared. Try again.",
+      });
+    }
+  }
   const {
     imageUrls,
     languageCode,
@@ -683,7 +711,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const normalizedMobileRequest = normalizeMobileGenerationRequest(
       req.body as MobileGenerationRequestBody,
     );
-    mobileRequestHash = normalizedMobileRequest.hash;
+    mobileRequestHash = draftContext?.hash || normalizedMobileRequest.hash;
 
     let claim;
     try {
@@ -855,6 +883,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(503).json({
         error: "Could not reserve this generation request. Please try again.",
         code: "idempotency_bind_failed",
+      });
+    }
+  }
+  if (draftContext && generationReservationId) {
+    try {
+      await bindDraftGeneration(draftContext, generationReservationId);
+    } catch {
+      await RateLimiter.refundGenerationReservation(
+        generationReservationId,
+        "draft_binding_failed",
+      );
+      return res.status(503).json({
+        code: "draft_binding_failed",
+        error:
+          "Your draft could not be prepared. Check its status before trying again.",
       });
     }
   }
@@ -1070,6 +1113,35 @@ Reply only in JSON: {"title":"...","description":"..."}
         });
       }
 
+      if (draftContext) {
+        try {
+          await storeDraftGeneration(
+            draftContext,
+            generationReservationId as string,
+            responseValidation.response,
+          );
+        } catch (error: any) {
+          if (error.code !== "draft_not_found") throw error;
+          await RateLimiter.refundGenerationReservation(
+            generationReservationId,
+            "draft_deleted",
+          );
+          const body = {
+            error: "This draft was deleted while generation was running.",
+            code: "draft_deleted",
+          };
+          await failMobileGenerationIdempotency({
+            recordId: mobileIdempotencyRecordId,
+            attemptId: mobileIdempotencyAttemptId as string,
+            statusCode: 400,
+            body,
+            reservationId: generationReservationId,
+            retryable: false,
+            failureCode: "draft_deleted",
+          });
+          return res.status(400).json(body);
+        }
+      }
       mobileReservationCommitState = "uncertain";
       const commitPending = await markMobileGenerationCommitPending({
         recordId: mobileIdempotencyRecordId,
@@ -1147,12 +1219,14 @@ Reply only in JSON: {"title":"...","description":"..."}
         measurementAdvice,
         offers,
       };
-      const completed = await completeMobileGenerationIdempotency({
-        recordId: mobileIdempotencyRecordId,
-        attemptId: mobileIdempotencyAttemptId as string,
-        reservationId: generationReservationId,
-        response: responseBody,
-      });
+      const completed = draftContext
+        ? await completeDraftGeneration(draftContext)
+        : await completeMobileGenerationIdempotency({
+            recordId: mobileIdempotencyRecordId,
+            attemptId: mobileIdempotencyAttemptId as string,
+            reservationId: generationReservationId,
+            response: responseBody,
+          });
       if (!completed.ok) {
         await markMobileGenerationCommitPending({
           recordId: mobileIdempotencyRecordId,

@@ -3,6 +3,7 @@ import { supabase } from "../../utils/supabaseClient";
 import { RateLimiter } from "../../utils/rateLimiter";
 import { ApiLogger } from "../../utils/apiLogger";
 import { cleanupExpiredMobileGenerationIdempotency } from "../../utils/mobileGenerationIdempotency";
+import { cleanupDraftPhotos } from "../../utils/listingDrafts";
 
 const TEMP_UPLOAD_BUCKET = "temp-uploads";
 const TEMP_UPLOAD_MAX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -20,6 +21,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const results = {
+    listingDraftPhotos: {
+      success: false,
+      deleted: 0,
+      error: null as string | null,
+    },
     incidents: {
       success: false,
       deleted: 0,
@@ -247,6 +253,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  try {
+    results.listingDraftPhotos.deleted = await cleanupDraftPhotos();
+    results.listingDraftPhotos.success = true;
+  } catch {
+    results.listingDraftPhotos.error = "Draft photo cleanup failed";
+  }
   return res.status(200).json({
     message: "Daily cleanup job completed",
     results,

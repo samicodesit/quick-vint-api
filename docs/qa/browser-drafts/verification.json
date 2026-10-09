@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-09",
+  "featureCommit": "994ef65",
+  "branch": "codex/mobile-web-phase1",
+  "productionGate": {
+    "command": "npm run verify:production",
+    "featureEnabledBuild": true,
+    "passed": true,
+    "testFiles": 115,
+    "tests": 814,
+    "builtPages": 132,
+    "stages": ["lint", "type-check", "build", "format-check", "test"]
+  },
+  "database": {
+    "engine": "installed @electric-sql/pglite 0.5.8",
+    "actualMigrationExecuted": true,
+    "casesPassed": 10,
+    "multiConnectionConcurrencyVerified": false
+  },
+  "browser": {
+    "command": "node scripts/test-browser-drafts.mjs",
+    "isolatedFixtures": true,
+    "passed": true,
+    "checkCount": 23,
+    "pageErrors": [],
+    "widths": [360, 390, 768, 1440],
+    "stateCount": 8,
+    "screenshotsCapturedAndInspected": 32,
+    "horizontalOverflow": false
+  },
+  "review": {
+    "freshReviewerCount": 1,
+    "importantFindings": 3,
+    "findingsFixedAndRechecked": true,
+    "relatedSameItemNavigationRaceFixed": true
+  },
+  "unperformed": [
+    "physical iOS Safari and Android Chrome",
+    "actual staged Supabase Storage, PostgREST, auth and provider integration",
+    "multi-connection PostgreSQL race checks",
+    "deployed customer journey"
+  ],
+  "productionActions": {
+    "deployed": false,
+    "mainPushed": false,
+    "migrationsApplied": false,
+    "flagsChanged": false,
+    "customerMessagesSent": false
+  }
+}

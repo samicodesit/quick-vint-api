@@ -1,0 +1,24 @@
+# Browser draft QA evidence
+
+October 9, 2026. Feature commit: `994ef65` on `codex/mobile-web-phase1`.
+
+These are screenshots of the actual built application with isolated fixture accounts, photographs and intercepted provider/Storage responses. They establish local UI behavior, not a deployed customer journey or real-device support. No customer account or live marketplace was used.
+
+The final production gate passed all stages: ESLint, TypeScript, feature-enabled Astro build (132 pages), repository formatting and 115 files / 814 tests. The tests include ten real PGlite migration cases and endpoint/client regressions. The complete browser fixture suite passed all 23 listed checks with zero page errors; see [result.json](result.json).
+
+The browser captured and visually reviewed eight states at 360, 390, 768 and 1440 CSS pixels: empty, editor, grouping, active batch, save failure, conflict, quota and partial failure. No horizontal overflow was found. Screenshots settle animations before capture; keyboard focus is intentionally visible. Selected images are retained here; the full matrix remains at `/tmp/autolister-draft-final-browser` in the working session.
+
+| State                                               | Captured application                                                          |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Empty composer                                      | [Phone](empty-390.png)                                                        |
+| Saved editable draft                                | [Phone](editor-390.png), [tablet](editor-768.png), [desktop](editor-1440.png) |
+| Explicit photo grouping                             | [Phone](grouping-390.png)                                                     |
+| Sequential batch                                    | [Phone](batch-390.png)                                                        |
+| Failed save with retry                              | [Phone](save-error-390.png)                                                   |
+| Cross-device conflict with preserved edits          | [Phone](conflict-390.png)                                                     |
+| Quota stop with saved drafts                        | [Phone](quota-390.png)                                                        |
+| Partial failure with other completed items retained | [Phone](partial-failure-390.png)                                              |
+
+Fresh review found three important defects and drove regression-tested fixes: delayed refresh could discard edits; session recovery lacked its saved base version; expired-upload cleanup could delete a renewed completed photo. Follow-up review confirmed these fixes, including the related same-item navigation race. Draft deletion also clears its text immediately and acknowledges committed deletion when Storage cleanup needs a later retry.
+
+Unperformed release checks are listed in [the deployment handoff](../../browser-drafts-release.md): actual staging Supabase/Storage/provider/auth integration, multi-connection PostgreSQL concurrency and physical iOS/Android camera, HEIC, keyboard and clipboard behavior. Nothing was deployed, pushed to main or applied to production.

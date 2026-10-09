@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  />
+  <title>AutoLister — listing preparation storyboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #f7f8fa;
+      color: #172033;
+      font:
+        16px/1.5 Inter,
+        system-ui,
+        sans-serif;
+    }
+    h1,
+    h2,
+    h3 {
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      margin: 0 0 16px;
+    }
+    h1 {
+      font-size: 28px;
+    }
+    h2 {
+      font-size: 22px;
+    }
+    p {
+      margin: 8px 0;
+      color: #596579;
+    }
+    button,
+    summary,
+    input,
+    select {
+      font: inherit;
+    }
+    button,
+    summary {
+      cursor: pointer;
+      min-height: 44px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      background: #eef1f5;
+      padding: 12px 16px;
+      color: #172033;
+    }
+    .primary {
+      background: #3458df;
+      color: white;
+    }
+    .quiet {
+      background: transparent;
+      color: #596579;
+    }
+    header,
+    .bar,
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    header {
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e2e6ec;
+      margin-bottom: 24px;
+    }
+    .board {
+      max-width: 1280px;
+      margin: auto;
+    }
+    .scene {
+      padding: 24px;
+      background: white;
+      border-radius: 16px;
+      margin: 24px 0;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .tile img {
+      width: 100%;
+      aspect-ratio: 4/5;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+    .tile strong,
+    .tile small {
+      display: block;
+    }
+    .tile small {
+      font-size: 13px;
+      color: #596579;
+    }
+    .tabs {
+      display: flex;
+      gap: 24px;
+      font-size: 24px;
+      font-weight: 650;
+    }
+    .tabs span {
+      color: #596579;
+    }
+    .empty {
+      padding: 48px 16px;
+      text-align: center;
+    }
+    .drop {
+      display: grid;
+      place-content: center;
+      gap: 12px;
+      border: 1px dashed #aab5c5;
+      border-radius: 12px;
+      min-height: 230px;
+      text-align: center;
+      background: #f7f8fa;
+    }
+    .review,
+    .group {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 32px;
+    }
+    .cover {
+      width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+      background: #f7f8fa;
+      border-radius: 12px;
+    }
+    .strip {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .strip img {
+      width: 72px;
+      height: 86px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .field {
+      padding: 12px 0 24px;
+      white-space: pre-wrap;
+    }
+    .bar strong {
+      font-size: 13px;
+      color: #596579;
+    }
+    .group .gallery {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .group .tile {
+      position: relative;
+    }
+    .group input {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 22px;
+      height: 22px;
+    }
+    .grouped {
+      padding: 16px;
+      background: #f7f8fa;
+      border-radius: 12px;
+      margin: 16px 0;
+    }
+    .grouped img {
+      width: 88px;
+      height: 106px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .menu {
+      position: relative;
+    }
+    .menu[open] > div {
+      position: absolute;
+      right: 0;
+      background: white;
+      box-shadow: 0 8px 32px #17203322;
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 1;
+      width: 280px;
+    }
+    .menu label {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    select,
+    input {
+      border: 1px solid #bac4d1;
+      border-radius: 8px;
+      padding: 12px;
+      width: 100%;
+      min-height: 44px;
+    }
+    .notice {
+      padding: 16px;
+      border-radius: 10px;
+      background: #fff0f0;
+      color: #b33d41;
+      margin: 16px 0;
+    }
+    .neutral {
+      background: #f0f3f8;
+      color: #596579;
+    }
+    .auth {
+      max-width: 390px;
+      margin: auto;
+    }
+    .auth button {
+      width: 100%;
+      margin: 12px 0;
+    }
+    .error-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .caption {
+      font-size: 13px;
+    }
+    .progress {
+      background: #eef2ff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+    }
+    .help {
+      font-size: 13px;
+    }
+    .end {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+    .phone-only {
+      display: none;
+    }
+    @media (max-width: 767px) {
+      body {
+        padding: 16px;
+      }
+      .scene {
+        padding: 16px;
+      }
+      .gallery {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .review,
+      .group,
+      .error-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .cover {
+        height: 190px;
+      }
+      .phone-only {
+        display: inline;
+      }
+      .actions {
+        flex-wrap: wrap;
+      }
+      .tabs {
+        font-size: 22px;
+      }
+      .group .gallery {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .end {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 12px 0;
+      }
+      .menu[open] > div {
+        position: fixed;
+        inset: auto 8px 8px;
+        width: auto;
+        max-height: 75vh;
+        overflow: auto;
+      }
+      .strip img {
+        width: 56px;
+        height: 68px;
+      }
+    }
+  </style>
+  <style>
+    .end {
+      position: static;
+    }
+    .field {
+      margin-top: 0;
+    }
+  </style>
+  <main class="board">
+    <h1>AutoLister · prepare and copy</h1>
+    <p class="caption">
+      Design target · open at phone and desktop widths. Sample photos are design
+      fixtures, not customer evidence.
+    </p>
+    <section class="scene">
+      <header>
+        <strong>AutoLister</strong>
+        <details class="menu">
+          <summary>Account</summary>
+          <div>
+            <strong>Pro plan</strong>
+            <p>48 generations available</p>
+            <button>Manage plan</button><button class="quiet">Sign out</button>
+          </div>
+        </details>
+      </header>
+      <div class="actions">
+        <div class="tabs">Drafts <span>Listed</span></div>
+        <div>
+          <button class="quiet">Add several</button>
+          <button class="primary">Add item</button>
+        </div>
+      </div>
+      <div class="gallery">
+        <div class="tile">
+          <img src="sample-front.png" alt="Dress front" /><strong
+            >Black button-front wrap dress</strong
+          ><small>Ready to copy</small>
+        </div>
+        <div class="tile">
+          <img src="sample-detail.png" alt="Dress detail" /><strong
+            >Untitled item</strong
+          ><small>2 photos · Ready to generate</small>
+        </div>
+      </div>
+      <p class="help">
+        3 photos waiting to be grouped ·
+        <button class="quiet">Continue grouping</button>
+      </p>
+    </section>
+    <section class="scene">
+      <header><strong>AutoLister</strong><span>Account</span></header>
+      <div class="tabs">Drafts <span>Listed</span></div>
+      <div class="empty">
+        <h2>Prepare your first item</h2>
+        <button class="primary">Add item</button>
+      </div>
+    </section>
+    <section class="scene">
+      <header>
+        <button class="quiet">Back to drafts</button>
+        <h2>Add item</h2>
+      </header>
+      <div class="review">
+        <div>
+          <div class="drop">
+            <h3>Add photos</h3>
+            <button>Choose photos</button
+            ><span class="help">Up to 10 photos</span>
+          </div>
+          <div class="actions">
+            <button class="phone-only">Take photo</button
+            ><button class="quiet">Write it myself</button>
+          </div>
+        </div>
+        <div>
+          <h3>After choosing photos</h3>
+          <img class="cover" src="sample-front.png" alt="Selected dress" />
+          <div class="strip">
+            <img src="sample-front.png" alt="Front" /><img
+              src="sample-detail.png"
+              alt="Detail"
+            />
+          </div>
+          <div class="end"><button class="primary">Generate</button></div>
+          <p class="help">Uses 1 generation</p>
+        </div>
+      </div>
+    </section>
+    <section class="scene">
+      <header>
+        <button class="quiet">Back to drafts</button>
+        <h2>Group photos</h2>
+      </header>
+      <div class="group">
+        <div>
+          <h3>Ungrouped photos</h3>
+          <p>Select photos of the same item.</p>
+          <div class="gallery">
+            <div class="tile">
+              <img src="sample-front.png" alt="Front" /><input
+                type="checkbox"
+                checked
+                aria-label="Select front"
+              />
+            </div>
+            <div class="tile">
+              <img src="sample-detail.png" alt="Detail" /><input
+                type="checkbox"
+                checked
+                aria-label="Select detail"
+              />
+            </div>
+            <div class="tile">
+              <img src="sample-front.png" alt="Another item" /><input
+                type="checkbox"
+                aria-label="Select another item"
+              />
+            </div>
+          </div>
+          <div class="end">
+            <button class="quiet">One item per photo</button
+            ><button class="primary">Create draft</button>
+          </div>
+        </div>
+        <div>
+          <h3>Created drafts</h3>
+          <div class="grouped">
+            <img src="sample-front.png" alt="Created cover" />
+            <strong>2 photos · Ready to generate</strong>
+            <p><button>Review draft</button></p>
+          </div>
+          <button class="primary">Generate ready drafts</button>
+        </div>
+      </div>
+    </section>
+    <section class="scene">
+      <header>
+        <button class="quiet">Back to drafts</button>
+        <div>1 / 3 <button class="quiet">Next</button></div>
+      </header>
+      <div class="progress actions">
+        <span>1 of 3 ready</span><button class="quiet">Pause</button>
+      </div>
+      <div class="review">
+        <div>
+          <img class="cover" src="sample-front.png" alt="Dress cover" />
+          <div class="strip">
+            <img src="sample-front.png" alt="Front" /><img
+              src="sample-detail.png"
+              alt="Detail"
+            />
+          </div>
+          <details class="menu">
+            <summary>Photo options</summary>
+            <div>
+              <button>Use as cover</button><button>Save photo (JPEG)</button
+              ><button>Move to item</button><button>Ungroup</button>
+              <p class="help">
+                Use your originals when original quality matters.
+              </p>
+            </div>
+          </details>
+        </div>
+        <div>
+          <div class="actions">
+            <button class="quiet">Edit</button>
+            <details class="menu">
+              <summary>Language &amp; style</summary>
+              <div>
+                <label
+                  >Title language<select>
+                    <option>English</option>
+                  </select></label
+                ><label
+                  >Description language<select>
+                    <option>English</option>
+                  </select></label
+                ><label
+                  >Length<select>
+                    <option>Detailed</option>
+                    <option>Short</option>
+                  </select></label
+                ><button>Regenerate · 1 generation</button>
+              </div>
+            </details>
+          </div>
+          <div class="bar">
+            <strong>Title</strong><button class="quiet">Copy title</button>
+          </div>
+          <h2 class="field">Black button-front wrap dress</h2>
+          <div class="bar">
+            <strong>Description</strong
+            ><button class="quiet">Copy description</button>
+          </div>
+          <div class="field">
+            Black wrap dress with a button front and short sleeves. Check the
+            photos for the print and details.
+          </div>
+          <p class="help">
+            Copy the text and add your photos on your marketplace.
+          </p>
+          <div class="end"><button class="primary">Mark as listed</button></div>
+        </div>
+      </div>
+    </section>
+    <section class="scene">
+      <h2>Recovery stays with the affected work</h2>
+      <div class="error-grid">
+        <div>
+          <div class="notice">
+            Your changes could not be saved.
+            <p><button>Retry save</button></p>
+          </div>
+          <div class="notice">
+            This draft changed on another device. Your edits are still here.
+            <p>
+              <button>Load saved version</button> <button>Keep my edits</button>
+            </p>
+          </div>
+          <div class="notice neutral">
+            Generation result is still being saved.
+            <p><button>Check saved result</button></p>
+          </div>
+        </div>
+        <div>
+          <div class="notice neutral">
+            2 ready · 1 needs attention
+            <p>Completed drafts remain available.</p>
+            <button>Review failed item</button>
+          </div>
+          <div class="notice">
+            Generation allowance reached. Your drafts are saved.
+            <p><button>Manage plan</button></p>
+          </div>
+          <div class="notice">
+            <img src="sample-front.png" alt="Item being deleted" width="56" />
+            Delete this item and its 2 photos?
+            <p><button>Keep it</button> <button>Delete permanently</button></p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="scene">
+      <div class="error-grid">
+        <div class="auth">
+          <h2>Sign in</h2>
+          <button>Continue with Google</button>
+          <p>or use email</p>
+          <label
+            >Email address<input
+              type="email"
+              placeholder="you@example.com" /></label
+          ><button class="primary">Continue</button>
+        </div>
+        <div class="auth">
+          <h2>Check your email</h2>
+          <p>Code sent to seller@example.com</p>
+          <label
+            >6-digit code<input
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              placeholder="000000" /></label
+          ><button class="quiet">Change email</button>
+          <p class="notice neutral">Email sent.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</html>

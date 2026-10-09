@@ -1,4 +1,5 @@
 ---
+import { UserRound, ChevronDown, Camera, Images, Play, X } from "@lucide/astro";
 import PhotoRail from "./PhotoRail.astro";
 import ListingControls from "./ListingControls.astro";
 import ListingResult from "./ListingResult.astro";
@@ -25,65 +26,20 @@ const {
         data-mobile-web="profile-menu-trigger"
         aria-controls="mobile-profile-menu"
         aria-expanded="false"
-        aria-haspopup="menu"
         aria-label="Account menu"
       >
-        <span class="mobile-profile-avatar" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="8" r="3.25" fill="currentColor" />
-            <path d="M5.75 19.25c.55-3.2 2.56-4.8 6.25-4.8s5.7 1.6 6.25 4.8" fill="currentColor" />
-          </svg>
-        </span>
-        <svg class="mobile-profile-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="m7 9 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <span class="mobile-profile-avatar" aria-hidden="true"><UserRound size={20} /></span>
+        <ChevronDown class="mobile-profile-chevron" size={18} aria-hidden="true" />
       </button>
       <div
         id="mobile-profile-menu"
         class="mobile-profile-menu"
         data-mobile-web="profile-menu"
-        role="menu"
+        role="region"
+        aria-label="Account"
         hidden
       >
-        <button type="button" class="mobile-profile-menu-item" data-mobile-web="upgrade" data-tier="starter" hidden role="menuitem">Upgrade</button>
-        <button type="button" class="mobile-profile-menu-item" data-mobile-web="manage-billing" hidden role="menuitem">Manage plan</button>
-        <button type="button" class="mobile-profile-menu-item" data-mobile-web="sign-out" hidden role="menuitem">Sign out</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="mobile-workspace-main">
-    <section class="mobile-auth-card" data-mobile-web="auth-card" aria-labelledby="mobile-auth-title" hidden>
-      <p class="mobile-eyebrow">AutoLister AI</p>
-      <h1 id="mobile-auth-title">Create your next listing in seconds</h1>
-      <p class="mobile-auth-copy">Sign in to turn your item photos into a ready-to-copy title and description.</p>
-      <button type="button" class="mobile-google-button" data-mobile-web="google-sign-in">
-        <span class="mobile-google-mark" aria-hidden="true">G</span>
-        Continue with Google
-      </button>
-      <div class="mobile-auth-divider" aria-hidden="true"><span>or use email</span></div>
-      <form data-mobile-web="email-form" class="mobile-email-form">
-        <label for="mobile-email">Email address</label>
-        <input id="mobile-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com" />
-        <button type="submit" class="mobile-primary-button">Send sign-in email</button>
-      </form>
-      <form data-mobile-web="otp-form" class="mobile-otp-form" hidden>
-        <label for="mobile-otp">Enter the 6-digit code from your email</label>
-        <input id="mobile-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="mobile-otp-help" />
-        <p id="mobile-otp-help" class="mobile-field-help">The same email also includes a secure sign-in link.</p>
-        <button type="button" class="mobile-text-button" data-mobile-web="change-email">Use a different email</button>
-      </form>
-      <p class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
-    </section>
-
-    <section class="mobile-app-view" data-mobile-web="app-view" hidden aria-labelledby="mobile-app-title">
-      <div class="mobile-app-heading">
-        <div>
-          <p class="mobile-eyebrow">New listing</p>
-          <h1 id="mobile-app-title">What are you selling?</h1>
-        </div>
-      </div>
-
+        <p data-mobile-web="account-status" class="mobile-form-status" data-tone="error" role="status"></p><button type="button" class="mobile-account-close" data-mobile-web="close-account" aria-label="Close account"><X size={20} aria-hidden="true" /></button><strong class="mobile-account-plan" data-mobile-web="account-plan">Your account</strong>
       <section class="mobile-usage-card" data-mobile-web="usage" aria-label="Usage" aria-live="polite" hidden>
         <div class="mobile-usage-grid">
           <div class="mobile-usage-cell" data-mobile-web="usage-paid">
@@ -111,6 +67,43 @@ const {
         </div>
         <strong class="mobile-usage-unavailable" data-mobile-web="usage-headline" hidden></strong>
       </section>
+        <button type="button" class="mobile-profile-menu-item" data-mobile-web="upgrade" data-tier="starter" hidden>Upgrade</button>
+        <button type="button" class="mobile-profile-menu-item" data-mobile-web="manage-billing" hidden>Manage plan</button>
+        <button type="button" class="mobile-profile-menu-item" data-mobile-web="sign-out" hidden>Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mobile-workspace-main">
+    <section class="mobile-auth-card" data-mobile-web="auth-card" aria-labelledby="mobile-auth-title" hidden>
+      <h1 id="mobile-auth-title">Sign in</h1>
+      <div data-mobile-web="auth-choices">
+        <button type="button" class="mobile-google-button" data-mobile-web="google-sign-in"><img class="mobile-google-mark" src="/app/google-g.png" width="20" height="20" alt="" />Continue with Google</button>
+        <div class="mobile-auth-divider" aria-hidden="true"><span>or use email</span></div>
+        <form data-mobile-web="email-form" class="mobile-email-form">
+          <label for="mobile-email">Email address</label>
+          <input id="mobile-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com" />
+          <button type="submit" class="mobile-primary-button">Continue</button>
+        </form>
+      </div>
+      <form data-mobile-web="otp-form" class="mobile-otp-form" hidden>
+        <p class="mobile-field-help">Code sent to <strong data-mobile-web="auth-email"></strong></p><label for="mobile-otp">6-digit code</label>
+        <input id="mobile-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="mobile-otp-help" />
+        <p id="mobile-otp-help" class="mobile-field-help">The same email also includes a secure sign-in link.</p>
+        <button type="button" class="mobile-text-button" data-mobile-web="change-email">Change email</button>
+      </form>
+      <p class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="mobile-app-view" data-mobile-web="app-view" hidden aria-labelledby="mobile-app-title">
+      <div class="mobile-app-heading">
+        <div>
+          <p class="mobile-eyebrow">New listing</p>
+          <h1 id="mobile-app-title">What are you selling?</h1>
+        </div>
+      </div>
+
+
 
       <DraftWorkspace />
       <section class="mobile-upload-card" data-mobile-web="upload-card" aria-labelledby="mobile-upload-title">
@@ -125,19 +118,12 @@ const {
         <div class="mobile-photo-actions">
           <label class="mobile-photo-action">
             <input type="file" accept="image/*" capture="environment" data-mobile-web="camera-input" />
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M5.25 8.25h2.1l1.4-2h6.5l1.4 2h2.1c.83 0 1.5.67 1.5 1.5v8.5c0 .83-.67 1.5-1.5 1.5h-13.5c-.83 0-1.5-.67-1.5-1.5v-8.5c0-.83.67-1.5 1.5-1.5Z" fill="currentColor" />
-              <circle cx="12" cy="14" r="3.15" fill="var(--mobile-brand)" />
-            </svg>
+            <Camera size={20} aria-hidden="true" />
             Take photo
           </label>
           <label class="mobile-photo-action">
             <input type="file" accept="image/*" multiple data-mobile-web="gallery-input" />
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="4.25" y="4.75" width="15.5" height="14.5" rx="2" stroke="currentColor" stroke-width="2" />
-              <circle cx="9" cy="9.5" r="1.5" fill="currentColor" />
-              <path d="m6.75 16 3.3-3.4 2.35 2.35 1.6-1.65 3.25 2.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <Images size={20} aria-hidden="true" />
             Choose from gallery
           </label>
         </div>
@@ -161,9 +147,7 @@ const {
         </div>
         <p class="mobile-generation-status" data-mobile-web="generation-status" role="status"></p>
         <button type="button" class="mobile-primary-button mobile-generate-button" data-mobile-web="generate" disabled>
-          <svg class="mobile-generate-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="m12 3 1.45 6.1L19 12l-5.55 2.9L12 21l-1.45-6.1L5 12l5.55-2.9L12 3Z" fill="currentColor" />
-          </svg>
+          <Play size={20} aria-hidden="true" />
           <span class="mobile-generate-button-label">Generate listing</span>
         </button>
         <p class="mobile-generation-helper" data-mobile-web="generation-helper">Add at least one photo to continue</p>

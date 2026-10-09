@@ -104,6 +104,13 @@ Append one row whenever the weekly focus changes or an experiment ends.
 - Keep "Vinted description generator" visible in high-intent acquisition copy.
 - Every experiment needs a hypothesis, channel, market, action, budget, date range, success metric, result, and decision.
 
+## 2026-10-09: Listing preparation app QA
+
+- Implemented the accepted `/app` design on isolated `codex/mobile-web-phase1`: photo-first home, separate Add item/Add several, persistent grouping, readable review/copy, manual Listed/restore, and compact auth/account/settings. API contracts and persisted draft/done states are unchanged; this redesign adds no migration.
+- Final gate passes lint, types, feature-enabled build (132 pages), formatting and 817 tests. Local intercepted Chromium passes 44 journey checks plus six review regressions, with zero page errors. Actual layouts and menus inspected at 360, 390, 768 and 1440px; keyboard/focus, selected touch targets, palette contrast and CSS zoom checks pass. [Evidence and captures](qa/browser-drafts/redesign-progress.md).
+- The local final link is `http://127.0.0.1:4331/app/`, using fixture auth/provider/storage/billing responses. It covers upload, generation, review, exact clipboard copy/fallback, Listed, account error handling, quota/pause/failure and unsaved/conflict recovery. It does not verify live signup, OAuth, billing or first value on a deployed destination.
+- Unresolved release checks: physical iOS/Android camera/gallery/HEIC/orientation/keyboard/clipboard; real staging auth/Storage/provider/Stripe integration and PostgreSQL concurrency. These block deployment until checked. No publishing, outreach, spend or production changes occurred. Activation/conversion remains unmeasured; no growth outcome is claimed.
+
 ## 2026-09-30: Consistent social preview artwork
 
 - Found a remaining `banner.png` fallback in blog metadata. The September artwork update reused its existing image URL, allowing cached previews to retain earlier artwork.

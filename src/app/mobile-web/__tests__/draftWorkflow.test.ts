@@ -55,6 +55,24 @@ it("keeps failed edits dirty for recovery and blocks accidental overwrite", asyn
   expect(autosave.dirty).toBe(true);
   expect(autosave.value.title).toBe("Keep me");
 });
+it("retains the confirmed state until a Listed save succeeds", async () => {
+  let fail = true;
+  const autosave = new DraftAutosave(
+    { ...draft, state: "draft" },
+    async (input) => {
+      if (fail) throw new Error("Unavailable");
+      return { ...draft, ...input, version: 2 };
+    },
+    () => {},
+  );
+  autosave.edit({ state: "done" });
+  await expect(autosave.flush()).rejects.toThrow("Unavailable");
+  expect(autosave.savedState).toBe("draft");
+  expect(autosave.value.state).toBe("done");
+  fail = false;
+  await autosave.flush();
+  expect(autosave.savedState).toBe("done");
+});
 it("restores the original saved version so another device's newer edits require a conflict choice", async () => {
   let attemptedVersion = 0;
   const autosave = new DraftAutosave(

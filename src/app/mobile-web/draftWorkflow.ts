@@ -58,6 +58,9 @@ export class DraftAutosave {
   get savedVersion() {
     return this.saved.version;
   }
+  get savedState() {
+    return this.saved.state;
+  }
   restore(edits: Edits, baseVersion: number) {
     this.saved = { ...this.saved, version: baseVersion };
     this.edit(edits);

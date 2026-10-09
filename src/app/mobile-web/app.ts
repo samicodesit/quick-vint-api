@@ -120,6 +120,20 @@ function setHidden(root: ParentNode, selector: string, hidden: boolean): void {
   if (element) element.hidden = hidden;
 }
 
+export function renderMobileAuthStep(
+  root: ParentNode,
+  email: string | null,
+): void {
+  setHidden(root, '[data-mobile-web="auth-choices"]', email !== null);
+  setHidden(root, '[data-mobile-web="otp-form"]', email === null);
+  text(
+    root,
+    "#mobile-auth-title",
+    email === null ? "Sign in" : "Check your email",
+  );
+  text(root, '[data-mobile-web="auth-email"]', email || "");
+}
+
 export type MobileLanguageKind = "title" | "description";
 
 export function closeMobileLanguageMenus(root: ParentNode): void {
@@ -406,6 +420,11 @@ function setUsageProgress(
 
 export function renderMobileUsage(root: ParentNode, usage: MobileUsage): void {
   const summary = getMobileUsageSummary(usage);
+  text(
+    root,
+    '[data-mobile-web="account-plan"]',
+    `${usage.plan?.tier || "Free"} plan`,
+  );
   setHidden(root, '[data-mobile-web="usage-headline"]', true);
   text(
     root,
@@ -775,6 +794,7 @@ function updateFormattingControls(
 
 function showAuth(root: ParentNode): void {
   closeMobileProfileMenu(root);
+  renderMobileAuthStep(root, null);
   setHidden(root, '[data-mobile-web="auth-card"]', false);
   setHidden(root, '[data-mobile-web="app-view"]', true);
   setHidden(root, '[data-mobile-web="state-card"]', true);
@@ -919,7 +939,7 @@ export function mountMobileWebApp(
         activeController?.abort();
         await cleanupServerSession("cancelled");
         clearPreviews();
-        draftWorkspace?.dispose(true);
+        draftWorkspace?.dispose();
         draftWorkspace = undefined;
         showAuth(root);
       } else {
@@ -1310,6 +1330,20 @@ export function mountMobileWebApp(
     '[data-mobile-web="profile-menu-trigger"]',
   );
   bind(profileMenuTrigger, "click", () => toggleMobileProfileMenu(root));
+  bind(asElement(root, '[data-mobile-web="close-account"]'), "click", () => {
+    closeMobileProfileMenu(root);
+    profileMenuTrigger?.focus();
+  });
+  bind(document, "keydown", (event) => {
+    if (
+      (event as KeyboardEvent).key === "Escape" &&
+      asElement<HTMLElement>(root, '[data-mobile-web="profile-menu"]')
+        ?.hidden === false
+    ) {
+      closeMobileProfileMenu(root);
+      profileMenuTrigger?.focus();
+    }
+  });
   if (typeof document !== "undefined" && profileMenuRoot) {
     bind(document, "click", (event) => {
       if (!profileMenuRoot.contains(event.target as Node))
@@ -1328,7 +1362,9 @@ export function mountMobileWebApp(
         if (!disposed)
           text(
             root,
-            '[data-mobile-web="generation-status"]',
+            shell.dataset.draftsEnabled === "true"
+              ? '[data-mobile-web="account-status"]'
+              : '[data-mobile-web="generation-status"]',
             "Could not open checkout. Please try again.",
           );
       })
@@ -1349,7 +1385,9 @@ export function mountMobileWebApp(
           if (!disposed)
             text(
               root,
-              '[data-mobile-web="generation-status"]',
+              shell.dataset.draftsEnabled === "true"
+                ? '[data-mobile-web="account-status"]'
+                : '[data-mobile-web="generation-status"]',
               "Could not open billing. Please try again.",
             );
         })
@@ -1362,16 +1400,20 @@ export function mountMobileWebApp(
     asElement(root, '[data-mobile-web="google-sign-in"]'),
     "click",
     () =>
-      void signInWithGoogle().catch((error) =>
+      void signInWithGoogle().catch(() =>
         disposed
           ? undefined
-          : text(
-              root,
-              '[data-mobile-web="auth-status"]',
-              error instanceof Error ? error.message : "Google sign-in failed.",
-            ),
+          : authStatus("Could not open Google sign-in. Try again.", true),
       ),
   );
+  const authStatus = (message: string, error = false) => {
+    text(root, '[data-mobile-web="auth-status"]', message);
+    const status = asElement<HTMLElement>(
+      root,
+      '[data-mobile-web="auth-status"]',
+    );
+    if (status) status.dataset.tone = error ? "error" : "neutral";
+  };
   bind(
     asElement<HTMLFormElement>(root, '[data-mobile-web="email-form"]'),
     "submit",
@@ -1380,39 +1422,43 @@ export function mountMobileWebApp(
       const form = event.currentTarget as HTMLFormElement;
       const email =
         (new FormData(form).get("email") as string | null)?.trim() ?? "";
+      const submit = form.querySelector<HTMLButtonElement>(
+        'button[type="submit"]',
+      );
+      if (submit) submit.disabled = true;
+      authStatus("");
       void requestMagicLink(email)
         .then(() => {
           if (disposed) return;
-          form.hidden = true;
-          setHidden(root, '[data-mobile-web="otp-form"]', false);
-          text(
-            root,
-            '[data-mobile-web="auth-status"]',
-            "Check your email for a sign-in link and 6-digit code.",
-          );
+          renderMobileAuthStep(root, email);
+          const input = asElement<HTMLInputElement>(root, "#mobile-otp");
+          if (input) input.value = "";
+          authStatus("Email sent.");
           asElement<HTMLInputElement>(root, "#mobile-otp")?.focus();
         })
-        .catch((error) => {
+        .catch(() => {
           if (disposed) return;
-          text(
-            root,
-            '[data-mobile-web="auth-status"]',
-            error instanceof Error
-              ? error.message
-              : "We could not send the sign-in email.",
-          );
+          authStatus("Could not send a code. Try again.", true);
+        })
+        .finally(() => {
+          if (submit && !disposed) submit.disabled = false;
         });
     },
   );
   bind(asElement(root, '[data-mobile-web="change-email"]'), "click", () => {
-    setHidden(root, '[data-mobile-web="otp-form"]', true);
-    setHidden(root, '[data-mobile-web="email-form"]', false);
-    text(root, '[data-mobile-web="auth-status"]', "");
+    renderMobileAuthStep(root, null);
+    authStatus("");
+    const input = asElement<HTMLInputElement>(root, "#mobile-otp");
+    if (input) input.value = "";
+    asElement<HTMLInputElement>(root, "#mobile-email")?.focus();
   });
   bind(asElement<HTMLInputElement>(root, "#mobile-otp"), "input", (event) => {
     const input = event.currentTarget as HTMLInputElement;
     input.value = input.value.replace(/\D/g, "").slice(0, 6);
     if (input.value.length !== 6) return;
+    if (input.disabled) return;
+    input.disabled = true;
+    authStatus("Checking code…");
     const email =
       asElement<HTMLInputElement>(root, "#mobile-email")?.value ?? "";
     void verifyEmailOtp(email, input.value)
@@ -1425,15 +1471,15 @@ export function mountMobileWebApp(
         openDraftWorkspace();
         void refreshUsage();
       })
-      .catch((error) => {
+      .catch(() => {
         if (disposed) return;
-        text(
-          root,
-          '[data-mobile-web="auth-status"]',
-          error instanceof Error
-            ? error.message
-            : "That code could not be verified.",
+        authStatus(
+          "That code could not be verified. Try again or request a new code.",
+          true,
         );
+      })
+      .finally(() => {
+        if (!disposed) input.disabled = false;
       });
   });
   bind(asElement(root, '[data-mobile-web="sign-out"]'), "click", () => {
@@ -1444,17 +1490,33 @@ export function mountMobileWebApp(
       )
     )
       return;
-    draftWorkspace?.dispose(true);
-    draftWorkspace = undefined;
-    cancellationRequested = true;
-    activeController?.abort();
-    void signOutBrowser().then(() => {
-      if (disposed) return;
-      session = null;
-      void cleanupServerSession("cancelled");
-      clearPreviews();
-      showAuth(root);
-    });
+    const button = asElement<HTMLButtonElement>(
+      root,
+      '[data-mobile-web="sign-out"]',
+    );
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    const status = asElement(root, '[data-mobile-web="account-status"]');
+    if (status) status.textContent = "";
+    void signOutBrowser()
+      .then(() => {
+        if (disposed) return;
+        draftWorkspace?.dispose(true);
+        draftWorkspace = undefined;
+        cancellationRequested = true;
+        activeController?.abort();
+        session = null;
+        void cleanupServerSession("cancelled");
+        clearPreviews();
+        showAuth(root);
+      })
+      .catch(() => {
+        if (!disposed && status)
+          status.textContent = "Could not sign out. Try again.";
+      })
+      .finally(() => {
+        if (!disposed) button.disabled = false;
+      });
   });
   bind(asElement(root, '[data-mobile-web="state-action"]'), "click", () =>
     showAuth(root),

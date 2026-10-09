@@ -1,8 +1,23 @@
 # Browser draft QA evidence
 
-October 9, 2026. Feature commit: `994ef65` on `codex/mobile-web-phase1`.
+October 9, 2026. Feature branch: `codex/mobile-web-phase1`.
 
-## Current UI review
+## Listing preparation redesign
+
+The accepted plan is implemented as add item → generate → review/copy → manually Listed. The [storyboard](storyboard.html) preceded the markup change. Photos stay visible, review text is readable until Edit, grouping retains created groups, and authentication/account/settings use compact contextual controls. No database migration or API contract change was introduced by this redesign.
+
+The final production gate passes lint, types, the feature-enabled build (132 pages), formatting and **115 files / 817 tests**. The [final browser result](listing-preparation/result.json) records **44 checks**, no page errors and no overflow at 360, 390, 768 and 1440px. Six additional review regressions pass: Listed retry, delayed detail after Back/closing grouping, later-page batch review, library scroll restoration and failed sign-out. Keyboard controls, focus return, 44px phone targets, palette contrast and 200% CSS zoom were checked. [Detailed evidence and limits](redesign-progress.md).
+
+- Home: [phone](listing-preparation/home-empty-390.png), [populated desktop](listing-preparation/library-1440.png).
+- Preparation and grouping: [phone composer](listing-preparation/empty-390.png), [desktop grouping](listing-preparation/grouping-1440.png), [created groups on phone](listing-preparation/grouped-390.png).
+- Review: [phone](listing-preparation/editor-390.png), [desktop](listing-preparation/editor-1440.png).
+- Contextual controls: [settings sheet](listing-preparation/settings-390.png), [desktop settings](listing-preparation/settings-1440.png), [account sheet](listing-preparation/account-390.png).
+- Authentication: [sign-in](listing-preparation/auth-390.png), [code entry](listing-preparation/otp-390.png), [code failure](listing-preparation/otp-error-390.png).
+- Recovery: [save failure](listing-preparation/save-error-390.png), [cross-device conflict](listing-preparation/conflict-390.png).
+
+Captures use sample product photographs and isolated fixture accounts. The full matrix is `/tmp/autolister-redesign-final-browser` for this session. Physical phones, staging integrations, live auth/billing and real browser zoom remain unverified; nothing was deployed.
+
+## Earlier UI review
 
 ### Bulk upload and Listed follow-up
 

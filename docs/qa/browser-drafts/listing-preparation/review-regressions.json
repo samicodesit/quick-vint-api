@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "cases": [
+    "listed-retry",
+    "navigation",
+    "grouping-navigation",
+    "pages",
+    "scroll",
+    "signout"
+  ],
+  "fixture": "isolated localhost Chromium, intercepted services",
+  "pageErrors": []
+}

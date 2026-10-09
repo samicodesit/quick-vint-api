@@ -57,9 +57,17 @@ export function mountDraftWorkspace(
   let loading = false;
   let libraryLoad = 0;
   let selectionIntent = 0;
+  let libraryPages = 1;
   let importing = false;
   let processing = false;
   let bulk = false;
+  let composing = false;
+  let editingDraftId: string | undefined;
+  let reviewIds: string[] = [];
+  let groupIds: string[] = [];
+  let openedFromGrouping = false;
+  let restoringHistory = false;
+  let railSignature = "";
   let conflict = false;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let scrollY = 0;
@@ -69,7 +77,6 @@ export function mountDraftWorkspace(
     ...(options.defaultSettings || DEFAULT_DRAFT_SETTINGS),
   };
   let preparationDraftId: string | undefined;
-  let preparationHadOutput = false;
   let selectionMode = false;
   let writingDraftId: string | undefined;
   const chosen = new Set<string>();
@@ -77,19 +84,93 @@ export function mountDraftWorkspace(
   const uploads: Upload[] = [];
   const attempts = new Map<string, DraftAttempt>();
   const listeners: Array<() => void> = [];
+  const activeActions = new Set<string>();
+  const beginNavigation = () => {
+    restoringHistory = false;
+    return ++selectionIntent;
+  };
   const key = (id: string) => `autolister:draft:${options.userId}:${id}`;
   const queueKey = `autolister:draft-queue:${options.userId}`;
+  const groupsKey = `autolister:draft-groups:${options.userId}`;
+  try {
+    const ids = JSON.parse(sessionStorage.getItem(groupsKey) || "[]");
+    if (Array.isArray(ids)) groupIds = ids.filter(validDraftId).slice(0, 100);
+  } catch {}
+  const icon = (name: string) =>
+    find<HTMLTemplateElement>(
+      `[data-draft-icon="${name}"]`,
+    ).content.firstElementChild!.cloneNode(true);
+  const label = (name: string, value: string) => {
+    const el = action(name);
+    const span = el.querySelector("[data-draft-label]");
+    if (span) span.textContent = value;
+    else el.textContent = value;
+  };
+  const preserveFocus = (container: HTMLElement) => {
+    const focused = document.activeElement as HTMLElement | null;
+    const focusKey = container.contains(focused)
+      ? focused?.dataset.focusKey
+      : undefined;
+    const openPhotos = Array.from(
+      container.querySelectorAll<HTMLDetailsElement>("details[open]"),
+    ).map((el) => el.dataset.photoOptions);
+    return () => {
+      for (const id of openPhotos)
+        if (id) {
+          const menu = container.querySelector<HTMLDetailsElement>(
+            `[data-photo-options="${id}"]`,
+          );
+          if (menu) menu.open = true;
+        }
+      if (focusKey)
+        container
+          .querySelector<HTMLElement>(`[data-focus-key="${focusKey}"]`)
+          ?.focus({ preventScroll: true });
+    };
+  };
+  function rememberView(push = false) {
+    if (disposed || restoringHistory) return;
+    history[push ? "pushState" : "replaceState"](
+      {
+        ...history.state,
+        draftWorkspace: {
+          owner: options.userId,
+          draftId: selected?.value.id,
+          composing,
+          bulk,
+          tab,
+          scrollY,
+          reviewIds,
+          openedFromGrouping,
+          libraryPages,
+        },
+      },
+      "",
+      location.href,
+    );
+  }
+  function rememberGroups() {
+    try {
+      sessionStorage.setItem(groupsKey, JSON.stringify(groupIds));
+    } catch {}
+  }
   const tell = (message: string, error = false) => {
     if (disposed) return;
+    if (conflict && error) message = "";
     const el = find("[data-draft-message]");
     el.textContent = message;
     el.hidden = !message;
     el.classList.toggle("is-error", error);
   };
-  async function confirmDelete(message: string) {
+  async function confirmDelete(message: string, photo?: DraftPhoto) {
     const dialog = find<HTMLDialogElement>("[data-draft-delete-dialog]");
     if (dialog.open) return false;
     find("#draft-delete-copy").textContent = message;
+    const cover = find<HTMLImageElement>("[data-draft-delete-cover]");
+    const url = photo?.url || selected?.value.photos.find((p) => p.url)?.url;
+    cover.hidden = !url;
+    if (url) cover.src = url;
+    else cover.removeAttribute("src");
     dialog.returnValue = "cancel";
     const closed = new Promise<boolean>((resolve) =>
       dialog.addEventListener(
@@ -109,7 +190,7 @@ export function mountDraftWorkspace(
       return null;
     }
   };
-  const remember = () => {
+  const remember = (saved = false) => {
     if (!selected) return;
     try {
       const d = selected.value;
@@ -124,7 +205,7 @@ export function mountDraftWorkspace(
             state: d.state,
           }),
         );
-      else sessionStorage.removeItem(key(d.id));
+      else if (saved) sessionStorage.removeItem(key(d.id));
     } catch {
       /* beforeunload still protects edits if storage is unavailable. */
     }
@@ -182,12 +263,14 @@ export function mountDraftWorkspace(
         : status === "saved"
           ? "Saved"
           : "Not saved";
-    action("save").hidden = status !== "error";
+    action("save").hidden = status !== "error" || conflict;
     find("[data-draft-save-status]").dataset.status = status;
     if (status === "saved" && selected) {
       remember();
       upsert(selected.value);
       renderLibrary();
+      renderEditor();
+      tell("");
     }
   };
   const makeAutosave = (draft: Draft) => {
@@ -217,21 +300,37 @@ export function mountDraftWorkspace(
       throw new Error(
         "Choose which version of this draft to keep before continuing.",
       );
-    await selected?.flush();
-    remember();
+    const snapshot = selected;
+    const hadEdits = snapshot?.dirty;
+    await snapshot?.flush();
+    if (selected === snapshot) remember(Boolean(hadEdits));
   }
   function renderLibrary() {
     if (disposed) return;
     const items = find("[data-draft-items]");
+    const restoreFocus = preserveFocus(items);
     items.replaceChildren();
     items.setAttribute("aria-busy", String(loading));
     if (!library.drafts.length) {
-      const p = document.createElement("p");
-      p.className = "draft-help";
-      p.textContent =
+      const p = document.createElement("div");
+      p.className = "draft-empty";
+      p.append(icon("images"));
+      const heading = document.createElement("h2");
+      heading.textContent =
         tab === "done"
           ? "Items you mark as listed will appear here."
-          : "No drafts yet. Add photos to prepare your first item.";
+          : loading
+            ? "Loading your drafts…"
+            : "Prepare your first item";
+      p.append(heading);
+      if (tab === "draft" && !loading)
+        p.append(
+          button(
+            "Add item",
+            () => run(async () => handlers.new()),
+            "draft-primary",
+          ),
+        );
       items.append(p);
     }
     for (const [index, draft] of library.drafts.entries()) {
@@ -245,6 +344,7 @@ export function mountDraftWorkspace(
       check.type = "checkbox";
       check.hidden = !selectionMode;
       check.checked = chosen.has(draft.id);
+      check.dataset.focusKey = `select-${draft.id}`;
       check.disabled = !ready || queue.running;
       check.setAttribute(
         "aria-label",
@@ -256,6 +356,7 @@ export function mountDraftWorkspace(
       });
       const open = button("", () => run(() => openDraft(draft.id)));
       open.className = "draft-item-open";
+      open.dataset.focusKey = `open-${draft.id}`;
       open.setAttribute(
         "aria-current",
         selected?.value.id === draft.id ? "true" : "false",
@@ -270,9 +371,7 @@ export function mountDraftWorkspace(
       } else {
         const placeholder = document.createElement("span");
         placeholder.className = "draft-item-placeholder";
-        placeholder.append(
-          find("[data-draft-upload-intro] svg").cloneNode(true),
-        );
+        placeholder.append(icon("images"));
         open.append(placeholder);
       }
       const text = document.createElement("span");
@@ -323,10 +422,11 @@ export function mountDraftWorkspace(
         el.setAttribute("aria-pressed", String(el.dataset.draftTab === tab)),
       );
     renderSelection();
+    restoreFocus();
   }
   function renderSelection() {
     root.classList.toggle("is-selecting", selectionMode);
-    action("selection").textContent = selectionMode ? "Cancel" : "Select";
+    label("selection", selectionMode ? "Cancel" : "Select");
     action("selection").setAttribute("aria-pressed", String(selectionMode));
     action("selection").hidden = tab === "done" || !library.drafts.length;
     hide("[data-draft-batch-actions]", !selectionMode);
@@ -334,14 +434,19 @@ export function mountDraftWorkspace(
     find("[data-draft-selected-count]").textContent = chosen.size
       ? `${chosen.size} selected`
       : "";
-    action("generate-selected").textContent = chosen.size
-      ? `Generate ${chosen.size} item${chosen.size === 1 ? "" : "s"} · ${chosen.size} generation${chosen.size === 1 ? "" : "s"}`
-      : "Generate selected items";
+    const runSize = Math.min(
+      chosen.size,
+      DRAFT_LIMITS.batch,
+      allowance ?? DRAFT_LIMITS.batch,
+    );
+    label(
+      "generate-selected",
+      chosen.size
+        ? `Generate ${runSize} of ${chosen.size} · ${runSize} generation${runSize === 1 ? "" : "s"}`
+        : "Generate selected items",
+    );
     action("generate-selected").disabled =
-      !chosen.size ||
-      chosen.size > DRAFT_LIMITS.batch ||
-      queue.running ||
-      processing;
+      !chosen.size || queue.running || processing;
     action("select-ready").disabled = queue.running;
   }
   function thumbnail(photo: DraftPhoto, selectable: boolean) {
@@ -364,6 +469,7 @@ export function mountDraftWorkspace(
       check.type = "checkbox";
       check.checked = chosenPhotos.has(photo.id);
       check.dataset.draftPhotoId = photo.id;
+      check.dataset.focusKey = `photo-${photo.id}`;
       check.disabled = photo.status !== "ready";
       check.setAttribute(
         "aria-label",
@@ -380,32 +486,89 @@ export function mountDraftWorkspace(
     }
     return wrap;
   }
+  function renderGroups() {
+    const groups = groupIds
+      .map((id) => library.drafts.find((d) => d.id === id))
+      .filter((d): d is Draft => Boolean(d));
+    hide("[data-draft-groups]", !groups.length);
+    find("[data-draft-import]").classList.toggle(
+      "has-groups",
+      Boolean(groups.length),
+    );
+    const container = find("[data-draft-created-groups]");
+    const restoreFocus = preserveFocus(container);
+    container.replaceChildren();
+    for (const draft of groups) {
+      const card = button("", () => run(() => openDraft(draft.id)));
+      card.className = "draft-group-card";
+      card.dataset.focusKey = `group-${draft.id}`;
+      if (draft.photos[0]?.url) {
+        const img = document.createElement("img");
+        img.src = draft.photos[0].url;
+        img.alt = "";
+        card.append(img);
+      }
+      const text = document.createElement("span");
+      const title = document.createElement("strong");
+      title.textContent =
+        draft.title ||
+        `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"}`;
+      const status = document.createElement("small");
+      status.textContent = busy(draft)
+        ? "Preparing…"
+        : draft.description
+          ? "Ready to copy"
+          : "Review draft";
+      text.append(title, status);
+      card.append(text);
+      container.append(card);
+    }
+    action("generate-groups").disabled =
+      queue.running ||
+      !groups.some(
+        (d) =>
+          d.photos.length &&
+          !busy(d) &&
+          !d.description &&
+          d.photos.every((p) => p.status === "ready"),
+      );
+    restoreFocus();
+  }
   function renderPool() {
     if (disposed) return;
     root.classList.toggle("has-import", bulk);
     hide("[data-draft-import]", !bulk);
     find("[data-draft-heading]").textContent = bulk
-      ? "Bulk upload"
+      ? library.imports.length || groupIds.length
+        ? "Group photos"
+        : "Add several"
       : tab === "done"
         ? "Listed"
         : "Drafts";
+    find("[data-draft-heading]").classList.toggle("draft-sr-only", !bulk);
+    find(".draft-heading").hidden = !bulk;
     hide("[data-draft-library-actions]", bulk);
     action("close-import").hidden = !bulk;
     const hasPhotos = Boolean(
       library.imports.length || uploads.some((p) => !p.draftId),
     );
     find("[data-draft-import]").classList.toggle("is-empty", !hasPhotos);
-    action("choose-bulk").hidden = hasPhotos;
-    hide("[data-draft-import-controls]", !hasPhotos);
+    action("choose-bulk").hidden = hasPhotos || groupIds.length > 0;
+    hide("[data-draft-import-controls]", !hasPhotos && !groupIds.length);
     hide(
       "[data-draft-import-summary]",
-      bulk || (!library.imports.length && !uploads.some((p) => !p.draftId)),
+      bulk ||
+        Boolean(selected) ||
+        composing ||
+        tab === "done" ||
+        (!library.imports.length && !uploads.some((p) => !p.draftId)),
     );
     find("[data-draft-import-summary-copy]").textContent =
       `${library.imports.filter((p) => p.status === "ready").length} photos waiting to be grouped`;
     const focused = (document.activeElement as HTMLInputElement | null)?.dataset
       .draftPhotoId;
     const pool = find("[data-draft-pool]");
+    const restoreFocus = preserveFocus(pool);
     pool.replaceChildren();
     for (const photo of library.imports) {
       if (uploads.some((p) => p.id === photo.id)) continue;
@@ -413,10 +576,23 @@ export function mountDraftWorkspace(
       const menu = document.createElement("details");
       menu.className = "draft-photo-options";
       const summary = document.createElement("summary");
-      summary.textContent = "⋯";
+      summary.append(icon("more"));
+      summary.dataset.focusKey = `options-${photo.id}`;
       summary.setAttribute("aria-label", "Photo options");
-      menu.append(
-        summary,
+      menu.dataset.draftPopover = "";
+      menu.dataset.photoOptions = photo.id;
+      const panel = document.createElement("div");
+      panel.className = "draft-popover-panel";
+      menu.append(summary, panel);
+      panel.append(
+        button(
+          "Close",
+          () => {
+            menu.open = false;
+            summary.focus();
+          },
+          "draft-close",
+        ),
         button(
           "Delete",
           () =>
@@ -424,6 +600,7 @@ export function mountDraftWorkspace(
               if (
                 !(await confirmDelete(
                   "Permanently delete this saved photo? This cannot be undone.",
+                  photo,
                 ))
               )
                 return;
@@ -444,6 +621,8 @@ export function mountDraftWorkspace(
         .querySelector<HTMLInputElement>(`[data-draft-photo-id="${focused}"]`)
         ?.focus({ preventScroll: true });
     renderPoolSelection();
+    restoreFocus();
+    renderGroups();
   }
   function renderPoolSelection() {
     hide("[data-draft-import-footer]", !chosenPhotos.size);
@@ -516,26 +695,76 @@ export function mountDraftWorkspace(
   function renderEditor() {
     if (disposed) return;
     const draft = selected?.value;
-    hide("[data-draft-editor]", !draft);
-    hide("[data-draft-editor-empty]", Boolean(draft));
-    root.classList.toggle("has-editor", Boolean(draft));
-    if (!draft) return;
-    const preparation = find<HTMLDetailsElement>("[data-draft-preparation]");
-    if (preparationDraftId !== draft.id)
-      find<HTMLDetailsElement>(".draft-item-menu").open = false;
-    if (
-      preparationDraftId !== draft.id ||
-      (!preparationHadOutput && Boolean(draft.description))
-    )
-      preparation.open = !draft.description;
+    hide("[data-draft-editor]", !draft && !composing);
+    hide("[data-draft-editor-empty]", true);
+    root.classList.toggle("has-editor", Boolean(draft) || composing);
+    root.dataset.view = bulk
+      ? "grouping"
+      : draft?.title || draft?.description
+        ? "review"
+        : composing || draft
+          ? "preparation"
+          : "library";
+    if (!draft) {
+      if (composing) {
+        find("#draft-editor-title").textContent = "Add item";
+        find("#draft-editor-title").classList.remove("draft-sr-only");
+        find("[data-draft-editor]").classList.add("is-empty");
+        find("[data-draft-editor]").classList.remove("has-text");
+        find("[data-draft-save-status]").textContent = "";
+        find("[data-draft-item-photos]").replaceChildren();
+        railSignature = "";
+        hide("[data-draft-upload-intro]", false);
+        hide("[data-draft-editor-cover]", true);
+        hide("[data-draft-upload-actions]", false);
+        action("write").hidden = false;
+        for (const selector of [
+          "[data-draft-copy-fields]",
+          "[data-draft-generation-actions]",
+          "[data-draft-editor-footer]",
+          "[data-draft-editor-settings]",
+          "[data-draft-originals]",
+          "[data-draft-conflict]",
+          "[data-draft-recovery]",
+          "[data-draft-operation-status]",
+          ".draft-item-menu",
+          "[data-draft-position]",
+        ])
+          hide(selector, true);
+        for (const name of ["previous", "next", "check", "edit", "save"])
+          action(name).hidden = true;
+        root
+          .querySelectorAll<HTMLInputElement>(
+            '[data-draft-input="item"],[data-draft-input="camera"]',
+          )
+          .forEach((el) => {
+            el.disabled = false;
+          });
+      }
+      return;
+    }
+    if (preparationDraftId !== draft.id) {
+      root
+        .querySelectorAll<HTMLDetailsElement>("[data-draft-popover]")
+        .forEach((el) => {
+          el.open = false;
+        });
+      railSignature = "";
+    }
     preparationDraftId = draft.id;
-    preparationHadOutput = Boolean(draft.description);
     const hasText = Boolean(draft.title || draft.description);
     const hasPhotos = Boolean(photoCount(draft));
+    const editing = editingDraftId === draft.id || writingDraftId === draft.id;
+    find("[data-draft-editor]").classList.toggle("is-editing", editing);
+    find("[data-draft-editor]").classList.toggle("has-text", hasText);
     hide("[data-draft-upload-intro]", hasPhotos);
-    hide("[data-draft-generation-actions]", !hasPhotos);
+    hide(
+      "[data-draft-generation-actions]",
+      !hasPhotos || hasText || draft.state === "done",
+    );
+    hide("[data-draft-upload-actions]", hasText || draft.state === "done");
     hide("[data-draft-originals]", !hasPhotos);
-    hide("[data-draft-editor] .draft-settings", !hasPhotos);
+    hide("[data-draft-editor-settings]", !hasPhotos);
     hide("[data-draft-copy-fields]", !hasText && writingDraftId !== draft.id);
     hide(
       "[data-draft-editor-footer]",
@@ -543,6 +772,9 @@ export function mountDraftWorkspace(
     );
     hide("[data-draft-publish-hint]", !hasText || draft.state === "done");
     action("write").hidden = hasText || writingDraftId === draft.id;
+    action("edit").hidden = !hasText && writingDraftId !== draft.id;
+    label("edit", editing ? "Done editing" : "Edit");
+    hide(".draft-item-menu", false);
     find("[data-draft-editor]").classList.toggle(
       "is-empty",
       !hasPhotos && !hasText,
@@ -556,22 +788,37 @@ export function mountDraftWorkspace(
     find("[data-draft-settings-summary]").textContent =
       `${language || draft.settings.descriptionLanguageCode} · ${draft.settings.descriptionLength === "short" ? "Short" : "Detailed"}`;
     const locked = busy(draft);
-    const index = library.drafts.findIndex((d) => d.id === draft.id);
-    find("#draft-editor-title").textContent = draft.title || "New draft";
+    const order = reviewOrder();
+    const index = order.indexOf(draft.id);
+    find("#draft-editor-title").textContent = hasText
+      ? "Review and copy"
+      : draft.state === "done"
+        ? "Listed item"
+        : "Prepare item";
+    find("#draft-editor-title").classList.toggle("draft-sr-only", hasText);
     const cover = find<HTMLImageElement>("[data-draft-editor-cover]");
-    const coverUrl = draft.photos.find((p) => p.url)?.url;
+    const coverUrl =
+      draft.photos.find((p) => p.url)?.url ||
+      uploads.find((p) => p.draftId === draft.id && p.preview)?.preview;
     cover.hidden = !coverUrl;
     if (coverUrl) cover.src = coverUrl;
     else cover.removeAttribute("src");
     find("[data-draft-position]").textContent =
-      index >= 0 ? `${index + 1} / ${library.drafts.length}` : "";
+      index >= 0 ? `${index + 1} / ${order.length}` : "";
+    hide("[data-draft-position]", order.length < 2);
+    action("previous").hidden = order.length < 2;
+    action("next").hidden = order.length < 2;
     action("previous").disabled = index <= 0;
-    action("next").disabled = index < 0 || index >= library.drafts.length - 1;
+    action("next").disabled = index < 0 || index >= order.length - 1;
     for (const name of ["title", "description"] as const) {
       const el = find<HTMLInputElement | HTMLTextAreaElement>(
         `[data-draft-field="${name}"]`,
       );
       if (el.value !== draft[name]) el.value = draft[name];
+      el.hidden = !editing;
+      const readable = find(`[data-draft-read="${name}"]`);
+      readable.textContent = draft[name];
+      readable.hidden = editing;
       el.disabled = locked;
       action(`copy-${name}`).disabled = !draft[name];
     }
@@ -597,17 +844,18 @@ export function mountDraftWorkspace(
         el.disabled =
           generating(draft) || photoCount(draft) >= DRAFT_LIMITS.photos;
       });
-    action("generate").textContent =
-      draft.title || draft.description
-        ? "Regenerate listing"
-        : "Generate listing";
+    label("generate", "Generate");
     action("generate").disabled =
       locked ||
       !draft.photos.length ||
       draft.photos.some((p) => p.status !== "ready");
+    action("regenerate").disabled = action("generate").disabled;
+    action("regenerate").hidden = !hasText || draft.state === "done";
     action("done").disabled = locked;
-    action("done").textContent =
-      draft.state === "done" ? "Move back to drafts" : "Mark as listed";
+    label(
+      "done",
+      selected?.savedState === "done" ? "Move to drafts" : "Mark as listed",
+    );
     action("check").hidden = !(
       draft.operation_state === "running" || draft.operation_state === "pending"
     );
@@ -617,18 +865,53 @@ export function mountDraftWorkspace(
       draft.operation_state === "pending"
         ? "Your generation is still being saved. Check its result before trying again."
         : "");
+    hide(
+      "[data-draft-operation-status]",
+      !find("[data-draft-operation-status]").textContent,
+    );
     find("[data-draft-generate-help]").textContent = locked
       ? "You can review another draft while this item is being prepared."
       : "";
     hide("[data-draft-generate-help]", !locked);
     hide("[data-draft-conflict]", !conflict);
     const rail = find("[data-draft-item-photos]");
+    const signature = JSON.stringify([
+      draft.id,
+      draft.photos,
+      locked,
+      uploads
+        .filter((p) => p.draftId === draft.id)
+        .map((p) => [p.id, p.state, p.preview, p.error]),
+      library.drafts.map((d) => [d.id, d.title, d.photos.length, busy(d)]),
+    ]);
+    if (railSignature === signature) return;
+    railSignature = signature;
+    const restoreFocus = preserveFocus(rail);
     rail.replaceChildren();
     for (const photo of draft.photos) {
       if (uploads.some((p) => p.id === photo.id)) continue;
       const wrap = thumbnail(photo, false);
       const controls = document.createElement("div");
       controls.className = "draft-photo-controls";
+      if (photo.url) {
+        controls.append(
+          button("Save photo (JPEG)", () =>
+            run(async () => {
+              const response = await fetch(photo.url!);
+              if (!response.ok)
+                throw new Error(
+                  "This photo link expired. Reopen the item and try again.",
+                );
+              const url = URL.createObjectURL(await response.blob());
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `autolister-${photo.position + 1}.jpg`;
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }),
+          ),
+        );
+      }
       if (!locked) {
         if (photo.position > 0 && photo.status === "ready")
           controls.append(
@@ -701,15 +984,46 @@ export function mountDraftWorkspace(
         const menu = document.createElement("details");
         menu.className = "draft-photo-options";
         const summary = document.createElement("summary");
-        summary.textContent =
-          photo.position === 0 ? "Cover · Options" : "Photo options";
-        menu.append(summary, controls);
+        summary.append(icon("more"));
+        summary.setAttribute(
+          "aria-label",
+          `Photo ${photo.position + 1} options`,
+        );
+        summary.dataset.focusKey = `options-${photo.id}`;
+        menu.dataset.photoOptions = photo.id;
+        menu.dataset.draftPopover = "";
+        const panel = document.createElement("div");
+        panel.className = "draft-popover-panel";
+        panel.append(
+          button(
+            "Close",
+            () => {
+              menu.open = false;
+              summary.focus();
+            },
+            "draft-close",
+          ),
+          controls,
+        );
+        controls
+          .querySelectorAll<HTMLElement>("button,select")
+          .forEach((el, i) => {
+            el.dataset.focusKey = `control-${photo.id}-${i}`;
+          });
+        menu.append(summary, panel);
+        if (photo.position === 0) {
+          const label = document.createElement("small");
+          label.className = "draft-cover-label";
+          label.textContent = "Cover";
+          wrap.append(label);
+        }
         wrap.append(menu);
       }
       rail.append(wrap);
     }
     for (const upload of uploads.filter((p) => p.draftId === draft.id))
       rail.append(uploadThumbnail(upload));
+    restoreFocus();
   }
   async function reloadSelected() {
     if (!selected || disposed) return;
@@ -741,6 +1055,15 @@ export function mountDraftWorkspace(
         tab,
         more ? library.nextCursor || undefined : undefined,
       );
+      if (!more) {
+        for (let page = 1; page < libraryPages && data.nextCursor; page++) {
+          const next = await listDrafts(requestedTab, data.nextCursor);
+          if (disposed || request !== libraryLoad || requestedTab !== tab)
+            return;
+          data.drafts.push(...next.drafts);
+          data.nextCursor = next.nextCursor;
+        }
+      } else libraryPages++;
       if (disposed || request !== libraryLoad || requestedTab !== tab) return;
       library = {
         ...data,
@@ -758,7 +1081,26 @@ export function mountDraftWorkspace(
       for (const id of chosenPhotos)
         if (!library.imports.some((p) => p.id === id && p.status === "ready"))
           chosenPhotos.delete(id);
-      tell("");
+      if (groupIds.length && tab === "draft") {
+        for (const id of groupIds.filter(
+          (id) => !library.drafts.some((d) => d.id === id),
+        )) {
+          try {
+            const group = await draftAction("detail", { draftId: id });
+            if (disposed || request !== libraryLoad || requestedTab !== tab)
+              return;
+            if (group.state === "draft") upsert(group);
+            else {
+              groupIds = groupIds.filter((groupId) => groupId !== id);
+              rememberGroups();
+            }
+          } catch (error) {
+            if ((error as { status?: number }).status !== 404) throw error;
+            groupIds = groupIds.filter((groupId) => groupId !== id);
+            rememberGroups();
+          }
+        }
+      }
     } catch (error) {
       action("reload").hidden = false;
       throw error;
@@ -768,21 +1110,34 @@ export function mountDraftWorkspace(
       renderPool();
     }
   }
-  async function openDraft(id: string, focus = true) {
-    const intent = ++selectionIntent;
+  async function openDraft(
+    id: string,
+    focus = true,
+    push = true,
+    intent = beginNavigation(),
+  ) {
+    if (!selected && !restoringHistory) {
+      scrollY = window.scrollY;
+      rememberView();
+    }
     await flush();
+    if (disposed || intent !== selectionIntent) return;
     let draft = await draftAction("detail", { draftId: id });
     if (disposed || intent !== selectionIntent) return;
     if (selected?.dirty) await flush();
     if (disposed || intent !== selectionIntent) return;
     if (selected?.value.id === id && selected.value.version > draft.version)
       draft = selected.value;
-    if (!selected) scrollY = window.scrollY;
+    if (bulk) openedFromGrouping = true;
+    bulk = false;
+    composing = false;
     selected = makeAutosave(draft);
     conflict = false;
     upsert(draft);
     renderEditor();
     renderLibrary();
+    renderPool();
+    rememberView(push);
     hide("[data-draft-recovery]", !recovery(draft));
     if (focus) {
       find("#draft-editor-title").tabIndex = -1;
@@ -792,12 +1147,16 @@ export function mountDraftWorkspace(
     }
   }
   async function newDraft(photoIds: string[] = []) {
+    const intent = beginNavigation();
     await flush();
+    if (disposed || intent !== selectionIntent) return;
     bulk = false;
+    composing = false;
     renderPool();
     if (tab !== "draft") {
       tab = "draft";
       await reload();
+      if (disposed || intent !== selectionIntent) return;
     }
     const unstarted =
       !photoIds.length &&
@@ -811,7 +1170,7 @@ export function mountDraftWorkspace(
           !recovery(draft),
       );
     if (unstarted) {
-      await openDraft(unstarted.id);
+      await openDraft(unstarted.id, true, false, intent);
       return unstarted;
     }
     const draft = await draftAction("create", {
@@ -820,8 +1179,9 @@ export function mountDraftWorkspace(
       photoIds,
     });
     upsert(draft);
+    if (disposed || intent !== selectionIntent) return draft;
     chosenPhotos.clear();
-    await openDraft(draft.id);
+    await openDraft(draft.id, true, false, intent);
     await reload();
     return draft;
   }
@@ -846,12 +1206,12 @@ export function mountDraftWorkspace(
           : "Choose up to 10 photos for one item.",
       );
     await flush();
-    if (!bulkInput && !selected) await newDraft();
-    const draftId = bulkInput ? undefined : selected!.value.id;
+    const draft = bulkInput ? undefined : selected?.value || (await newDraft());
+    if (!bulkInput && !draft) return;
+    const draftId = draft?.id;
     if (
       draftId &&
-      (generating(selected!.value) ||
-        photoCount(selected!.value) + files.length > 10)
+      (generating(draft!) || photoCount(draft!) + files.length > 10)
     )
       throw new Error(
         "One item can have up to 10 photos. Wait for uploads or choose fewer photos.",
@@ -863,6 +1223,7 @@ export function mountDraftWorkspace(
         importId,
         draftId,
         file,
+        preview: URL.createObjectURL(file),
         state: "waiting",
       });
     if (bulkInput) bulk = true;
@@ -885,7 +1246,10 @@ export function mountDraftWorkspace(
           if (!upload.prepared) {
             const prepared = await prepareMobileImage(upload.file);
             upload.prepared = prepared.file;
+            if (upload.preview) URL.revokeObjectURL(upload.preview);
             upload.preview = prepared.previewUrl;
+            renderPool();
+            renderEditor();
           }
           if (disposed) break;
           await uploadDraftPhoto(upload.prepared, {
@@ -1019,23 +1383,27 @@ export function mountDraftWorkspace(
       "[data-draft-queue]",
       !queue.running && !queue.remaining.length && !queue.failed.size,
     );
-    const attempted = queue.completed.length + queue.failed.size;
     find("[data-draft-queue-title]").textContent = queue.running
-      ? `${queue.paused ? "Pausing after this item" : "Preparing your drafts"} · ${attempted} / ${generationCount}`
+      ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
       : queue.remaining.length
-        ? `Paused · ${attempted} / ${generationCount}`
+        ? `Paused · ${queue.completed.length} of ${generationCount} ready`
         : `${queue.completed.length} ready${queue.failed.size ? ` · ${queue.failed.size} need attention` : ""}`;
     find("[data-draft-queue-copy]").textContent = queue.running
-      ? "Keep this tab open. Each result saves automatically."
+      ? ""
       : queue.remaining.length
         ? `${queue.remaining.length} items left. Completed drafts are saved.`
         : queue.failed.size
           ? "Open an item marked ‘Needs attention’ to check or retry it."
           : "";
+    hide(
+      "[data-draft-queue-copy]",
+      !find("[data-draft-queue-copy]").textContent,
+    );
     action("pause").hidden = !queue.running || queue.paused;
     action("resume").hidden = queue.running || !queue.remaining.length;
     renderLibrary();
     renderEditor();
+    if (bulk) renderGroups();
   }
   try {
     const saved = JSON.parse(sessionStorage.getItem(queueKey) || "null");
@@ -1085,14 +1453,16 @@ export function mountDraftWorkspace(
       )
     )
       return;
-    if (!ids.length || ids.length > 20)
-      throw new Error("Select between 1 and 20 items to generate.");
+    if (!ids.length) throw new Error("Select at least one item to generate.");
     const usage = await options.onUsageChange();
-    const available = draftGenerationAllowance(usage);
+    const available = Math.min(
+      DRAFT_LIMITS.batch,
+      draftGenerationAllowance(usage),
+    );
     if (ids.length > available) {
       if (
         !window.confirm(
-          `You selected ${ids.length} items and have ${available} generations available. Generate the first ${available} and leave the others saved for later?`,
+          `Generate the first ${available} of ${ids.length} selected items? This run uses ${available} generations (up to 20 per run). The remaining items stay saved.`,
         )
       )
         return;
@@ -1109,6 +1479,8 @@ export function mountDraftWorkspace(
     )
       return;
     generationCount = ids.length;
+    reviewIds = [...ids];
+    rememberView();
     attempts.clear();
     chosen.clear();
     tell("");
@@ -1151,14 +1523,48 @@ export function mountDraftWorkspace(
     tell("");
   }
   const handlers: Record<string, () => Promise<unknown> | void> = {
+    "choose-item": () =>
+      find<HTMLInputElement>('[data-draft-input="item"]').click(),
+    "choose-camera": () =>
+      find<HTMLInputElement>('[data-draft-input="camera"]').click(),
     "choose-bulk": () =>
       find<HTMLInputElement>('[data-draft-input="bulk"]').click(),
-    new: () => newDraft(),
-    write: () => {
+    new: async () => {
+      const intent = beginNavigation();
+      await flush();
+      if (disposed || intent !== selectionIntent) return;
+      if (!selected) scrollY = window.scrollY;
+      rememberView();
+      selected = null;
+      bulk = false;
+      composing = true;
+      openedFromGrouping = false;
+      conflict = false;
+      tell("");
+      renderEditor();
+      renderPool();
+      rememberView(true);
+      find("#draft-editor-title").tabIndex = -1;
+      find("#draft-editor-title").focus();
+    },
+    write: async () => {
+      if (!selected) await newDraft();
       if (!selected) return;
-      writingDraftId = selected.value.id;
+      writingDraftId = selected!.value.id;
       renderEditor();
       find<HTMLInputElement>("#draft-title").focus();
+    },
+    edit: async () => {
+      if (!selected) return;
+      const editing =
+        editingDraftId === selected.value.id ||
+        writingDraftId === selected.value.id;
+      if (editing) await flush();
+      writingDraftId = undefined;
+      editingDraftId = editing ? undefined : selected.value.id;
+      renderEditor();
+      if (!editing) find<HTMLInputElement>("#draft-title").focus();
+      else action("edit").focus();
     },
     selection: () => {
       selectionMode = !selectionMode;
@@ -1166,41 +1572,54 @@ export function mountDraftWorkspace(
       renderLibrary();
     },
     bulk: async () => {
+      const intent = beginNavigation();
       await flush();
+      if (disposed || intent !== selectionIntent) return;
+      if (!selected) scrollY = window.scrollY;
+      rememberView();
       selected = null;
+      composing = false;
+      openedFromGrouping = false;
       renderEditor();
       if (tab !== "draft") {
         tab = "draft";
         await reload();
+        if (disposed || intent !== selectionIntent) return;
       }
       bulk = true;
       renderPool();
+      rememberView(true);
       root.scrollIntoView({
         block: "start",
         behavior: "smooth",
       });
     },
     "close-import": () => {
+      beginNavigation();
       bulk = false;
       renderPool();
+      rememberView();
       action("bulk").focus();
     },
-    reload: () => reload(),
+    reload: async () => {
+      await reload();
+      tell("");
+    },
     more: () => reload(true),
     group: async () => {
       await flush();
       importing = true;
       renderPool();
       try {
-        await draftAction("create", {
+        const created = await draftAction("create", {
           id: crypto.randomUUID(),
           settings: defaultSettings,
           photoIds: [...chosenPhotos],
         });
+        groupIds.push(created.id);
+        rememberGroups();
         chosenPhotos.clear();
         await reload();
-        if (!library.imports.length && !uploads.some((p) => !p.draftId))
-          bulk = false;
       } finally {
         importing = false;
         renderPool();
@@ -1218,36 +1637,47 @@ export function mountDraftWorkspace(
       renderPool();
       try {
         for (const id of [...chosenPhotos]) {
-          await draftAction("create", {
+          const created = await draftAction("create", {
             id: crypto.randomUUID(),
             settings: defaultSettings,
             photoIds: [id],
           });
+          groupIds.push(created.id);
+          rememberGroups();
           chosenPhotos.delete(id);
         }
       } finally {
         importing = false;
         await reload();
-        if (!library.imports.length && !uploads.some((p) => !p.draftId))
-          bulk = false;
         renderPool();
       }
     },
     back: async () => {
-      selectionIntent++;
+      const intent = beginNavigation();
       await flush();
+      if (disposed || intent !== selectionIntent) return;
       selected = null;
+      composing = false;
+      bulk = openedFromGrouping;
+      openedFromGrouping = false;
+      tell("");
       renderEditor();
       renderLibrary();
+      renderPool();
+      rememberView();
       window.scrollTo({ top: scrollY });
     },
     previous: () => navigate(-1),
     next: () => navigate(1),
-    save: () => flush(),
+    save: () =>
+      selected && selected.value.state !== selected.savedState
+        ? handlers.done()
+        : flush(),
     "load-saved": () => resolveConflict(false),
     "keep-edits": () => resolveConflict(true),
     restore: async () => {
       if (!selected) return;
+      editingDraftId = selected.value.id;
       const saved = recovery(selected.value);
       if (!saved) return;
       const baseVersion =
@@ -1285,20 +1715,33 @@ export function mountDraftWorkspace(
     "select-ready": () => {
       selectionMode = true;
       chosen.clear();
-      for (const d of library.drafts
-        .filter(
-          (d) =>
-            d.photos.length &&
-            d.photos.every((p) => p.status === "ready") &&
-            !busy(d),
-        )
-        .slice(0, 20))
+      for (const d of library.drafts.filter(
+        (d) =>
+          d.photos.length &&
+          d.photos.every((p) => p.status === "ready") &&
+          !busy(d),
+      ))
         chosen.add(d.id);
       renderLibrary();
     },
     "generate-selected": () => startGeneration([...chosen]),
     generate: () =>
       selected ? startGeneration([selected.value.id]) : undefined,
+    regenerate: () =>
+      selected ? startGeneration([selected.value.id]) : undefined,
+    "generate-groups": () =>
+      startGeneration(
+        groupIds.filter((id) => {
+          const d = library.drafts.find((d) => d.id === id);
+          return (
+            d &&
+            !d.description &&
+            d.photos.length &&
+            d.photos.every((p) => p.status === "ready") &&
+            !busy(d)
+          );
+        }),
+      ),
     pause: () => queue.pause(),
     resume: async () => {
       await flush();
@@ -1326,14 +1769,48 @@ export function mountDraftWorkspace(
     },
     done: async () => {
       if (!selected) return;
-      selected.edit({
-        state: selected.value.state === "done" ? "draft" : "done",
-      });
+      const intent = beginNavigation();
+      const snapshot = selected;
+      const target = selected.savedState === "done" ? "draft" : "done";
+      const order = reviewOrder();
+      const candidates =
+        target === "done"
+          ? order.slice(order.indexOf(selected.value.id) + 1)
+          : [];
+      selected.edit({ state: target });
       remember();
       await flush();
+      if (disposed || intent !== selectionIntent || selected !== snapshot)
+        return;
+      if (target === "done")
+        reviewIds = reviewIds.filter((id) => id !== snapshot.value.id);
       selected = null;
       await reload();
+      if (disposed || intent !== selectionIntent) return;
       renderEditor();
+      openedFromGrouping = false;
+      for (const id of candidates) {
+        let draft = library.drafts.find((d) => d.id === id);
+        if (!draft) {
+          try {
+            draft = await draftAction("detail", { draftId: id });
+          } catch (error) {
+            if ((error as { status?: number }).status !== 404) throw error;
+          }
+        }
+        if (disposed || intent !== selectionIntent) return;
+        if (
+          draft?.state === "draft" &&
+          (draft.title || draft.description) &&
+          !busy(draft)
+        ) {
+          await openDraft(id, true, false, intent);
+          return;
+        }
+      }
+      renderPool();
+      rememberView();
+      window.scrollTo({ top: scrollY });
     },
     delete: async () => {
       if (!selected) return;
@@ -1353,17 +1830,24 @@ export function mountDraftWorkspace(
         sessionStorage.removeItem(key(d.id));
       } catch {}
       selected = null;
+      groupIds = groupIds.filter((id) => id !== d.id);
+      rememberGroups();
       await reload();
       renderEditor();
+      rememberView();
     },
     "copy-title": () => copy("title"),
     "copy-description": () => copy("description"),
   };
+  function reviewOrder() {
+    const ids = library.drafts.map((d) => d.id);
+    return selected && reviewIds.includes(selected.value.id) ? reviewIds : ids;
+  }
   async function navigate(delta: number) {
     if (!selected) return;
-    const index = library.drafts.findIndex((d) => d.id === selected!.value.id);
-    const next = library.drafts[index + delta];
-    if (next) await openDraft(next.id);
+    const order = reviewOrder();
+    const next = order[order.indexOf(selected.value.id) + delta];
+    if (next) await openDraft(next, true, false);
   }
   async function copy(field: "title" | "description") {
     const el = find<HTMLInputElement | HTMLTextAreaElement>(
@@ -1371,13 +1855,23 @@ export function mountDraftWorkspace(
     );
     if (await copyListingField(field, el.value)) {
       void trackMobileEvent("copy", { field, target: "draft_workspace" });
-      action(`copy-${field}`).textContent = "Copied";
+      label(`copy-${field}`, "Copied");
+      action(`copy-${field}`).querySelector("svg")!.replaceWith(icon("check"));
       find("[data-draft-copy-status]").textContent =
         `${field === "title" ? "Title" : "Description"} copied.`;
       setTimeout(() => {
-        if (!disposed) action(`copy-${field}`).textContent = `Copy ${field}`;
+        if (!disposed) {
+          label(`copy-${field}`, `Copy ${field}`);
+          action(`copy-${field}`)
+            .querySelector("svg")!
+            .replaceWith(icon("copy"));
+        }
       }, 1800);
     } else {
+      if (selected) {
+        editingDraftId = selected.value.id;
+        renderEditor();
+      }
       el.focus();
       el.select();
       tell(
@@ -1387,17 +1881,29 @@ export function mountDraftWorkspace(
     }
   }
   bind(root, "click", (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-draft-close]")) {
+      const details = target.closest<HTMLDetailsElement>("details");
+      if (details) {
+        details.open = false;
+        details.querySelector("summary")?.focus();
+      }
+      return;
+    }
     const el = (event.target as HTMLElement).closest<HTMLButtonElement>(
       "[data-draft-action]",
     );
-    if (!el || el.disabled) return;
-    const handler = handlers[el.dataset.draftAction!];
+    const name = el?.dataset.draftAction;
+    if (!el || el.disabled || !name || activeActions.has(name)) return;
+    const handler = handlers[name];
     if (handler)
       run(async () => {
+        activeActions.add(name);
         el.disabled = true;
         try {
           await handler();
         } finally {
+          activeActions.delete(name);
           if (!disposed) {
             el.disabled = false;
             renderSelection();
@@ -1462,8 +1968,6 @@ export function mountDraftWorkspace(
         "[data-draft-publish-hint]",
         !hasText || selected.value.state === "done",
       );
-      if (el.dataset.draftField === "title")
-        find("#draft-editor-title").textContent = el.value || "New draft";
       scheduleSave();
       action(`copy-${el.dataset.draftField}`).disabled = !el.value;
     }
@@ -1485,14 +1989,21 @@ export function mountDraftWorkspace(
   root.querySelectorAll<HTMLButtonElement>("[data-draft-tab]").forEach((el) =>
     bind(el, "click", () =>
       run(async () => {
+        const intent = beginNavigation();
         await flush();
+        if (disposed || intent !== selectionIntent) return;
         tab = el.dataset.draftTab as "draft" | "done";
-        selectionIntent++;
+        libraryPages = 1;
         chosen.clear();
         selectionMode = false;
         selected = null;
+        composing = false;
+        bulk = false;
+        openedFromGrouping = false;
         await reload();
+        if (disposed || intent !== selectionIntent) return;
         renderEditor();
+        rememberView();
       }),
     ),
   );
@@ -1510,7 +2021,7 @@ export function mountDraftWorkspace(
     event.preventDefault();
     root.classList.remove("is-dragging");
     const files = Array.from((event as DragEvent).dataTransfer?.files || []);
-    run(() => addFiles(files, bulk || !selected));
+    run(() => addFiles(files, bulk || (!selected && !composing)));
   });
   const hasUnsaved = () =>
     Boolean(
@@ -1526,6 +2037,81 @@ export function mountDraftWorkspace(
   bind(document, "visibilitychange", () => {
     if (document.hidden && selected?.dirty) run(() => flush());
   });
+  bind(document, "keydown", (event) => {
+    if ((event as KeyboardEvent).key !== "Escape") return;
+    root
+      .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+      .forEach((el) => {
+        el.open = false;
+        el.querySelector("summary")?.focus();
+      });
+  });
+  bind(document, "click", (event) => {
+    root
+      .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+      .forEach((el) => {
+        if (!el.contains(event.target as Node)) el.open = false;
+      });
+  });
+  async function restoreView(state: unknown) {
+    const intent = beginNavigation();
+    const value = state as {
+      owner?: string;
+      draftId?: string;
+      composing?: boolean;
+      bulk?: boolean;
+      tab?: string;
+      scrollY?: number;
+      reviewIds?: string[];
+      openedFromGrouping?: boolean;
+      libraryPages?: number;
+    } | null;
+    if (value?.owner !== options.userId) {
+      rememberView();
+      return;
+    }
+    restoringHistory = true;
+    try {
+      await flush();
+      if (disposed || intent !== selectionIntent) return;
+      selected = null;
+      composing = value.composing === true;
+      bulk = value.bulk === true;
+      tab = value.tab === "done" ? "done" : "draft";
+      libraryPages =
+        Number.isSafeInteger(value.libraryPages) && value.libraryPages! > 0
+          ? value.libraryPages!
+          : 1;
+      scrollY = typeof value.scrollY === "number" ? value.scrollY : 0;
+      reviewIds = Array.isArray(value.reviewIds)
+        ? value.reviewIds.filter(validDraftId).slice(0, 20)
+        : [];
+      openedFromGrouping = value.openedFromGrouping === true;
+      await reload();
+      if (disposed || intent !== selectionIntent) return;
+      if (value.draftId && validDraftId(value.draftId)) {
+        try {
+          await openDraft(value.draftId, false, false, intent);
+        } catch (error) {
+          if ((error as { status?: number }).status !== 404) throw error;
+          selected = null;
+          composing = false;
+        }
+      }
+      if (disposed || intent !== selectionIntent) return;
+      renderEditor();
+      renderPool();
+      if (!selected && !composing && !bulk) window.scrollTo({ top: scrollY });
+    } finally {
+      if (intent === selectionIntent) {
+        restoringHistory = false;
+        rememberView();
+      }
+    }
+  }
+  bind(window, "popstate", () =>
+    run(() => restoreView(history.state?.draftWorkspace)),
+  );
   renderEditor();
   renderLibrary();
   renderPool();
@@ -1540,14 +2126,12 @@ export function mountDraftWorkspace(
     defaultSettings.useBulletPoints;
   root.hidden = false;
   run(async () => {
-    await reload();
-    if (
-      !disposed &&
-      !library.drafts.length &&
-      tab === "draft" &&
-      !library.imports.length
-    )
-      await newDraft();
+    const state = history.state?.draftWorkspace;
+    if (state?.owner === options.userId) await restoreView(state);
+    else {
+      await reload();
+      rememberView();
+    }
   });
   return {
     updateUsage(usage: MobileUsage) {
@@ -1558,6 +2142,7 @@ export function mountDraftWorkspace(
         allowance === null
           ? ""
           : `${allowance} generation${allowance === 1 ? "" : "s"} left`;
+      renderSelection();
     },
     hasUnsaved,
     flush,
@@ -1584,11 +2169,13 @@ export function mountDraftWorkspace(
         "[data-draft-items]",
         "[data-draft-pool]",
         "[data-draft-item-photos]",
+        "[data-draft-created-groups]",
       ])
         find(selector).replaceChildren();
       if (clearRecovery)
         try {
           sessionStorage.removeItem(queueKey);
+          sessionStorage.removeItem(groupsKey);
           for (let i = sessionStorage.length - 1; i >= 0; i--) {
             const name = sessionStorage.key(i);
             if (name?.startsWith(`autolister:draft:${options.userId}:`))

@@ -4,6 +4,29 @@ import * as mobileWebApp from "../app.js";
 
 const stylesheet = readFileSync("src/styles/mobile-web-app.css", "utf8");
 
+it("code entry shows its destination and hides the sign-in choices until Change email", () => {
+  const elements = new Map<string, FakeElement>();
+  for (const key of ["auth-choices", "otp-form", "auth-email", "auth-status"])
+    elements.set(`[data-mobile-web="${key}"]`, new FakeElement());
+  elements.set("#mobile-auth-title", new FakeElement());
+  const root = {
+    querySelector: (key: string) => elements.get(key) || null,
+  } as unknown as ParentNode;
+  mobileWebApp.renderMobileAuthStep(root, "seller@example.test");
+  expect(elements.get('[data-mobile-web="auth-choices"]')!.hidden).toBe(true);
+  expect(elements.get('[data-mobile-web="otp-form"]')!.hidden).toBe(false);
+  expect(elements.get('[data-mobile-web="auth-email"]')!.textContent).toBe(
+    "seller@example.test",
+  );
+  expect(elements.get("#mobile-auth-title")!.textContent).toBe(
+    "Check your email",
+  );
+  mobileWebApp.renderMobileAuthStep(root, null);
+  expect(elements.get('[data-mobile-web="auth-choices"]')!.hidden).toBe(false);
+  expect(elements.get('[data-mobile-web="otp-form"]')!.hidden).toBe(true);
+  expect(elements.get('[data-mobile-web="auth-email"]')!.textContent).toBe("");
+});
+
 import {
   canReuseMobileGenerationUpload,
   getMobileUsageSummary,

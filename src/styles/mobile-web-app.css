@@ -1,23 +1,24 @@
 :root {
-  --mobile-bg: #fbfbfe;
+  --mobile-bg: #f7f8fa;
   --mobile-surface: #ffffff;
   --mobile-surface-soft: #f8f8ff;
-  --mobile-ink: #10165d;
-  --mobile-muted: #777795;
-  --mobile-subtle: #9999b4;
+  --mobile-ink: #172033;
+  --mobile-muted: #596579;
+  --mobile-subtle: #596579;
   --mobile-border: #e6e6f0;
   --mobile-border-strong: #d9d9e8;
-  --mobile-brand: #3048e8;
+  --mobile-brand: #3458df;
   --mobile-brand-strong: #2639c8;
   --mobile-brand-soft: #eff0ff;
-  --mobile-danger: #b3465f;
-  --mobile-success: #21805b;
+  --mobile-danger: #b33d41;
+  --mobile-success: #237052;
   --mobile-shadow: 0 3px 14px rgba(34, 38, 94, 0.045);
   --mobile-radius-lg: 18px;
   --mobile-control-height: 48px;
   --mobile-panel-fade: var(--mobile-bg);
   color-scheme: light;
   font-family:
+    "Inter Variable",
     Inter,
     ui-sans-serif,
     system-ui,
@@ -402,8 +403,107 @@ textarea:focus-visible {
 
 .mobile-form-status {
   min-height: 20px;
-  color: var(--mobile-danger);
+  color: var(--mobile-muted);
   font-size: 13px;
+}
+
+.mobile-form-status[data-tone="error"] {
+  color: var(--mobile-danger);
+}
+
+.mobile-auth-card {
+  max-width: 440px;
+  border: 0;
+  padding: 32px;
+  box-shadow: none;
+}
+.mobile-auth-card h1 {
+  font-family: "Inter Tight Variable", Inter, sans-serif;
+  font-size: 28px;
+  margin-bottom: 24px;
+}
+.mobile-auth-card input {
+  font-size: 16px;
+}
+.mobile-auth-card label {
+  font-size: 13px;
+  font-weight: 550;
+}
+.mobile-auth-card .mobile-google-button {
+  color: #1f1f1f;
+  background: white;
+  border: 1px solid #747775;
+}
+.mobile-auth-card .mobile-google-button:hover {
+  background: #f7f8fa;
+}
+.mobile-google-mark {
+  object-fit: contain;
+  border-radius: 0;
+}
+.mobile-auth-card .mobile-form-status {
+  margin-top: 16px;
+}
+.mobile-profile-avatar {
+  width: 36px;
+  height: 36px;
+  background: white;
+  color: var(--mobile-muted);
+}
+.mobile-profile-menu {
+  width: 300px;
+  padding: 16px;
+}
+.mobile-account-plan {
+  display: block;
+  margin: 0 0 16px;
+  text-transform: capitalize;
+  font-size: 16px;
+}
+[data-mobile-web="account-status"]:empty {
+  display: none;
+}
+.mobile-account-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  background: transparent;
+  color: var(--mobile-muted);
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.mobile-profile-menu .mobile-usage-card {
+  display: block;
+  padding: 0 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mobile-profile-menu .mobile-usage-grid {
+  gap: 12px;
+}
+.mobile-profile-menu .mobile-usage-cell {
+  padding: 0;
+}
+.mobile-profile-menu .mobile-profile-menu-item {
+  min-height: 44px;
+  font-size: 14px;
+}
+@media (max-width: 767px) {
+  .mobile-profile-menu {
+    position: fixed;
+    top: auto;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    max-height: 80dvh;
+    overflow-y: auto;
+  }
 }
 
 .mobile-app-view {

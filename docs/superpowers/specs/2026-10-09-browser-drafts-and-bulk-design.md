@@ -1,6 +1,6 @@
 # Browser drafts and bulk preparation
 
-Status: proposed extension to the September 23 mobile-web design, awaiting written-spec review.
+Status: approved by the user on October 9; implementation authorized through the deployment boundary, with deployment itself excluded.
 
 ## Purpose and agreed scope
 

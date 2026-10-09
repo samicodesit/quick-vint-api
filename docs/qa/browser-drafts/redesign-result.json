@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "generationCalls": 6,
+  "viewports": [360, 390, 768, 1440],
+  "checks": [
+    "progressive disclosure and leaving bulk import for a new draft",
+    "single upload",
+    "immutable photo upload",
+    "generation",
+    "autosave",
+    "exact copy",
+    "clipboard fallback",
+    "reload",
+    "save failure",
+    "unsaved edits recovered after reload",
+    "save conflict",
+    "bulk grouping",
+    "individual items",
+    "pause and resume",
+    "minute reset checked before resume",
+    "keyboard photo selection and safe deletion cancellation",
+    "done and restore",
+    "cover, ungroup and move correction",
+    "edits survive an in-flight photo refresh",
+    "acknowledged edits survive reopening the same item",
+    "accepted generation recovered after reload without redispatch",
+    "partial provider failure leaves other items ready",
+    "quota stop",
+    "horizontal overflow"
+  ],
+  "pageErrors": []
+}

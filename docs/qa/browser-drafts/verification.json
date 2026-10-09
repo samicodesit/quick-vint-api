@@ -48,6 +48,18 @@
     "windowsLocalhostHttpStatus": 200,
     "generationSimulated": true
   },
+  "uiRedesign": {
+    "date": "2026-10-09",
+    "testRunStartedAt": "13:13:13 Europe/Amsterdam",
+    "productionGatePassed": true,
+    "testFiles": 115,
+    "tests": 815,
+    "browserChecksPassed": 24,
+    "pageErrors": [],
+    "progressiveDisclosureVerified": true,
+    "desktopAndPhoneScreenshotsInspected": true,
+    "isolatedFixtures": true
+  },
   "unperformed": [
     "physical iOS Safari and Android Chrome",
     "actual staged Supabase Storage, PostgREST, auth and provider integration",

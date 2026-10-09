@@ -23,6 +23,7 @@ import { prepareMobileImage } from "./imagePreparation";
 import { copyListingField } from "./billing";
 import type { MobileUsage } from "./generationClient";
 import { trackMobileEvent } from "./analytics";
+import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
 
 interface Upload {
   id: string;
@@ -69,6 +70,8 @@ export function mountDraftWorkspace(
   };
   let preparationDraftId: string | undefined;
   let preparationHadOutput = false;
+  let selectionMode = false;
+  let writingDraftId: string | undefined;
   const chosen = new Set<string>();
   const chosenPhotos = new Set<string>();
   const uploads: Upload[] = [];
@@ -240,6 +243,7 @@ export function mountDraftWorkspace(
         !busy(draft);
       const check = document.createElement("input");
       check.type = "checkbox";
+      check.hidden = !selectionMode;
       check.checked = chosen.has(draft.id);
       check.disabled = !ready || queue.running;
       check.setAttribute(
@@ -271,9 +275,17 @@ export function mountDraftWorkspace(
       }
       const text = document.createElement("span");
       const title = document.createElement("strong");
-      title.textContent = draft.title || `Item ${index + 1}`;
+      title.textContent =
+        draft.title || (draft.photos.length ? "Untitled item" : "New draft");
       const detail = document.createElement("span");
       detail.className = "draft-item-detail";
+      detail.dataset.state = queue.failed.has(draft.id)
+        ? "error"
+        : busy(draft)
+          ? "working"
+          : draft.description
+            ? "ready"
+            : "draft";
       detail.textContent =
         queue.active === draft.id
           ? "Generating…"
@@ -288,7 +300,9 @@ export function mountDraftWorkspace(
                 ? "Check result"
                 : draft.description
                   ? "Ready to copy"
-                  : `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Add photos"}`;
+                  : draft.photos.length
+                    ? `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Uploading"}`
+                    : "Add photos";
       text.append(title, detail);
       open.append(text);
       row.append(check, open);
@@ -303,6 +317,12 @@ export function mountDraftWorkspace(
     renderSelection();
   }
   function renderSelection() {
+    root.classList.toggle("is-selecting", selectionMode);
+    action("selection").textContent = selectionMode ? "Cancel" : "Select";
+    action("selection").setAttribute("aria-pressed", String(selectionMode));
+    action("selection").hidden = tab === "done" || !library.drafts.length;
+    hide("[data-draft-batch-actions]", !selectionMode);
+    action("generate-selected").hidden = !chosen.size;
     find("[data-draft-selected-count]").textContent = chosen.size
       ? `${chosen.size} selected`
       : "";
@@ -354,6 +374,7 @@ export function mountDraftWorkspace(
   }
   function renderPool() {
     if (disposed) return;
+    root.classList.toggle("has-import", bulk);
     hide("[data-draft-import]", !bulk);
     hide(
       "[data-draft-import-summary]",
@@ -368,7 +389,12 @@ export function mountDraftWorkspace(
     for (const photo of library.imports) {
       if (uploads.some((p) => p.id === photo.id)) continue;
       const wrap = thumbnail(photo, true);
-      wrap.append(
+      const menu = document.createElement("details");
+      menu.className = "draft-photo-options";
+      const summary = document.createElement("summary");
+      summary.textContent = "Photo options";
+      menu.append(
+        summary,
         button(
           "Delete",
           () =>
@@ -386,6 +412,7 @@ export function mountDraftWorkspace(
           "draft-photo-delete",
         ),
       );
+      wrap.append(menu);
       pool.append(wrap);
     }
     for (const upload of uploads.filter((p) => !p.draftId))
@@ -475,9 +502,26 @@ export function mountDraftWorkspace(
       preparation.open = !draft.description;
     preparationDraftId = draft.id;
     preparationHadOutput = Boolean(draft.description);
-    find("[data-draft-preparation-label]").textContent = draft.description
-      ? `Edit photos or regenerate · ${draft.photos.length} photos`
-      : "Photos & generation settings";
+    const hasText = Boolean(draft.title || draft.description);
+    const hasPhotos = Boolean(photoCount(draft));
+    hide("[data-draft-upload-intro]", hasPhotos);
+    hide("[data-draft-generation-actions]", !hasPhotos);
+    hide("[data-draft-originals]", !hasPhotos);
+    hide("[data-draft-editor] .draft-settings", !hasPhotos);
+    hide("[data-draft-copy-fields]", !hasText && writingDraftId !== draft.id);
+    action("write").hidden = hasText || writingDraftId === draft.id;
+    find("[data-draft-editor]").classList.toggle(
+      "is-empty",
+      !hasPhotos && !hasText,
+    );
+    find("[data-draft-preparation-label]").textContent = draft.photos.length
+      ? `Photos · ${draft.photos.length}`
+      : "Photos";
+    const language = SUPPORTED_OUTPUT_LANGUAGES.find(
+      (language) => language.code === draft.settings.descriptionLanguageCode,
+    )?.label;
+    find("[data-draft-settings-summary]").textContent =
+      `${language || draft.settings.descriptionLanguageCode} · ${draft.settings.descriptionLength === "short" ? "Short" : "Detailed"}`;
     const locked = busy(draft);
     const index = library.drafts.findIndex((d) => d.id === draft.id);
     find("#draft-editor-title").textContent = draft.title || "New draft";
@@ -522,8 +566,8 @@ export function mountDraftWorkspace(
       });
     action("generate").textContent =
       draft.title || draft.description
-        ? "Regenerate · 1 generation"
-        : "Generate title & description · 1 generation";
+        ? "Regenerate listing"
+        : "Generate listing";
     action("generate").disabled =
       locked ||
       !draft.photos.length ||
@@ -542,9 +586,8 @@ export function mountDraftWorkspace(
         : "");
     find("[data-draft-generate-help]").textContent = locked
       ? "You can review another draft while this item is being prepared."
-      : draft.photos.length
-        ? "Your result is saved here automatically. Review the details before publishing."
-        : "Add at least one photo to get started.";
+      : "";
+    hide("[data-draft-generate-help]", !locked);
     hide("[data-draft-conflict]", !conflict);
     const rail = find("[data-draft-item-photos]");
     rail.replaceChildren();
@@ -717,6 +760,8 @@ export function mountDraftWorkspace(
   }
   async function newDraft(photoIds: string[] = []) {
     await flush();
+    bulk = false;
+    renderPool();
     if (tab !== "draft") {
       tab = "draft";
       await reload();
@@ -922,7 +967,10 @@ export function mountDraftWorkspace(
         );
       else sessionStorage.removeItem(queueKey);
     } catch {}
-    hide("[data-draft-queue]", !generationCount);
+    hide(
+      "[data-draft-queue]",
+      !queue.running && !queue.remaining.length && !queue.failed.size,
+    );
     const attempted = queue.completed.length + queue.failed.size;
     find("[data-draft-queue-title]").textContent = queue.running
       ? `${queue.paused ? "Pausing after this item" : "Preparing your drafts"} · ${attempted} / ${generationCount}`
@@ -930,12 +978,12 @@ export function mountDraftWorkspace(
         ? `Paused · ${attempted} / ${generationCount}`
         : `${queue.completed.length} ready${queue.failed.size ? ` · ${queue.failed.size} need attention` : ""}`;
     find("[data-draft-queue-copy]").textContent = queue.running
-      ? "Keep this tab open while generation runs. Completed drafts are saved and ready to review."
+      ? "Keep this tab open. Each result saves automatically."
       : queue.remaining.length
         ? `${queue.remaining.length} items left. Completed drafts are saved.`
         : queue.failed.size
           ? "Open an item marked ‘Needs attention’ to check or retry it."
-          : "Your drafts are saved. Review, edit and copy them whenever you’re ready.";
+          : "";
     action("pause").hidden = !queue.running || queue.paused;
     action("resume").hidden = queue.running || !queue.remaining.length;
     renderLibrary();
@@ -1056,6 +1104,17 @@ export function mountDraftWorkspace(
   }
   const handlers: Record<string, () => Promise<unknown> | void> = {
     new: () => newDraft(),
+    write: () => {
+      if (!selected) return;
+      writingDraftId = selected.value.id;
+      renderEditor();
+      find<HTMLInputElement>("#draft-title").focus();
+    },
+    selection: () => {
+      selectionMode = !selectionMode;
+      if (!selectionMode) chosen.clear();
+      renderLibrary();
+    },
     bulk: async () => {
       await flush();
       selected = null;
@@ -1173,6 +1232,7 @@ export function mountDraftWorkspace(
       hide("[data-draft-recovery]", true);
     },
     "select-ready": () => {
+      selectionMode = true;
       chosen.clear();
       for (const d of library.drafts
         .filter(
@@ -1317,6 +1377,7 @@ export function mountDraftWorkspace(
               : el.value,
         },
       });
+      renderEditor();
       scheduleSave();
     }
     if (el.dataset.draftDefault) {
@@ -1364,6 +1425,7 @@ export function mountDraftWorkspace(
         tab = el.dataset.draftTab as "draft" | "done";
         selectionIntent++;
         chosen.clear();
+        selectionMode = false;
         selected = null;
         await reload();
         renderEditor();
@@ -1430,8 +1492,8 @@ export function mountDraftWorkspace(
         typeof value === "number" && Number.isFinite(value) ? value : null;
       find("[data-draft-allowance]").textContent =
         allowance === null
-          ? "Your allowance will be checked before generating."
-          : `${allowance} generation${allowance === 1 ? "" : "s"} available · each successful draft uses 1.`;
+          ? ""
+          : `${allowance} generation${allowance === 1 ? "" : "s"} left`;
     },
     hasUnsaved,
     flush,

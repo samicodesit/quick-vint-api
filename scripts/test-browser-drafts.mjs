@@ -293,8 +293,14 @@ const page = await context.newPage();
 page.setDefaultTimeout(15000);
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("dialog", (dialog) => dialog.accept());
-const click = (name) =>
-  page.locator(`[data-draft-action="${name}"]:visible`).first().click();
+const click = async (name) => {
+  if (
+    name === "select-ready" &&
+    !(await page.locator("[data-draft-batch-actions]").isVisible())
+  )
+    await page.locator('[data-draft-action="selection"]').click();
+  await page.locator(`[data-draft-action="${name}"]:visible`).first().click();
+};
 async function waitForFixture(condition) {
   const deadline = Date.now() + 15000;
   while (!condition() && Date.now() < deadline)
@@ -329,7 +335,31 @@ async function screenshots(name) {
 try {
   await page.goto(`${base}/app/`);
   await page.locator("[data-draft-editor]:visible").waitFor();
+  assert.equal(await page.locator(".draft-heading h1").textContent(), "Drafts");
+  assert.equal(
+    await page.locator("[data-draft-copy-fields]").isVisible(),
+    false,
+  );
+  assert.equal(
+    await page.locator('[data-draft-action="generate"]').isVisible(),
+    false,
+  );
+  assert.equal(
+    await page.locator('[data-draft-action="delete"]').isVisible(),
+    false,
+  );
   await screenshots("empty");
+  await click("write");
+  assert.equal(await page.locator("#draft-title").isVisible(), true);
+  await page.locator(".draft-item-menu > summary").click();
+  await click("delete");
+  await page.locator('[data-draft-delete-dialog] [value="confirm"]').click();
+  await page.locator("[data-draft-editor]").waitFor({ state: "hidden" });
+  await click("bulk");
+  await click("new");
+  await page.locator("[data-draft-editor]:visible").waitFor();
+  assert.equal(await page.locator("[data-draft-import]").isVisible(), false);
+  assert.equal(await page.locator("[data-draft-editor]").isVisible(), true);
   uploadFailure = true;
   await page
     .locator('[data-draft-input="item"]')
@@ -464,6 +494,7 @@ try {
   );
   assert.equal(drafts.length, 3);
   await screenshot("library", 1440);
+  await click("selection");
   await click("select-ready");
   await page.locator(".draft-item>input").last().uncheck();
   holdGeneration = true;
@@ -514,6 +545,7 @@ try {
   assert.equal(generationCalls, 3);
   await screenshots("quota");
   quota = false;
+  await page.locator(".draft-item-menu > summary").click();
   await click("delete");
   await page.locator("[data-draft-delete-dialog][open]").waitFor();
   assert.equal(
@@ -661,6 +693,7 @@ try {
         generationCalls,
         viewports: [360, 390, 768, 1440],
         checks: [
+          "progressive disclosure and leaving bulk import for a new draft",
           "single upload",
           "immutable photo upload",
           "generation",

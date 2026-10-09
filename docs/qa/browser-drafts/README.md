@@ -2,6 +2,16 @@
 
 October 9, 2026. Feature commit: `994ef65` on `codex/mobile-web-phase1`.
 
+## Current UI review
+
+The user-requested redesign replaces the earlier form layout with a photo gallery, a focused editor, glass surfaces and progressive disclosure. The fresh full gate passed 115 files / 815 tests at 13:13:13 Europe/Amsterdam. The updated browser suite passed 24 checks with no page errors; [current result](redesign-result.json). It adds explicit disclosure/manual writing/deletion coverage and leaving bulk import for a new draft. Selected screenshots below were visually inspected; the full responsive capture matrix is `/tmp/autolister-drafts-redesign-browser` in this session.
+
+- Gallery: [desktop](redesign-gallery.png), [phone](redesign-gallery-phone.png).
+- Editor: [desktop](redesign-editor.png), [phone](redesign-editor-phone.png).
+- Additional upload, grouping, save-error, conflict, quota, batch and partial-failure states were captured at four widths by the browser suite. These screenshots establish local fixture behavior; real device and staged integrations remain unverified.
+
+## Original implementation evidence
+
 These are screenshots of the actual built application with isolated fixture accounts, photographs and intercepted provider/Storage responses. They establish local UI behavior, not a deployed customer journey or real-device support. No customer account or live marketplace was used.
 
 The final production gate passed all stages: ESLint, TypeScript, feature-enabled Astro build (132 pages), repository formatting and 115 files / 814 tests. The tests include ten real PGlite migration cases and endpoint/client regressions. The complete browser fixture suite passed all 23 listed checks with zero page errors; see [result.json](result.json).

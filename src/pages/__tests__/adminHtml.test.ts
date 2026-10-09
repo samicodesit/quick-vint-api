@@ -552,6 +552,41 @@ function buildAdminHarness() {
 }
 
 describe("admin HTML", () => {
+  it("collapses consecutive delivery diagnostics while preserving every raw record and product event", () => {
+    const { context } = buildAdminHarness();
+    const rows = Array.from({ length: 12 }, (_, index) => ({
+      id: `drop-${index}`,
+      endpoint: "/event/telemetry_queue_dropped",
+      user_id: "user-1",
+      user_email: "seller@example.com",
+      response_status: 204,
+      created_at: "2026-10-09T21:17:00Z",
+    }));
+    const html = context.renderActivityFeed([
+      ...rows,
+      {
+        id: "product-1",
+        endpoint: "/event/generate_error",
+        user_id: "user-1",
+        response_status: 500,
+      },
+      {
+        ...rows[0],
+        id: "other-account",
+        user_id: "user-2",
+        user_email: "other@example.com",
+      },
+    ]);
+    expect(html).toContain('<details class="telemetry-drop-group">');
+    expect(html).toContain("12 diagnostic records on this page");
+    expect(html).toContain("Dropped telemetry is not a listing result");
+    for (const row of rows)
+      expect(html).toContain(`showLogDetails('${row.id}')`);
+    expect(html).toContain("showLogDetails('product-1')");
+    expect(html).toContain("showLogDetails('other-account')");
+    expect(html).toContain("Recorded");
+    expect(html).not.toContain('activity-status success">204');
+  });
   it("provides a separate customer-report history with safe mobile-friendly cards", async () => {
     const { context, content } = buildAdminHarness();
     context.state.currentView = "reports";

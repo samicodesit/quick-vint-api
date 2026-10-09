@@ -57,3 +57,34 @@ Diagnostic logs remain subject to normal compaction; checkpoint compact
 findings before expiry. New reason evidence requires the updated website asset
 or extension package. Older clients remain compatible but cannot supply causes
 they never measured. Do not fabricate reasons for the historical 57 records.
+
+## Repeated diagnostic rows on 2026-10-09
+
+The screenshot window (21:00 to 21:30 UTC) initially contained 65 retained
+diagnostic rows with 65 distinct transport IDs. All were `token_refresh_start`
+carriers from extension 1.4.10, each reporting one discarded record. Their
+occurrence times ranged from 18:39:59 to 21:04:28 UTC; receipt times were later.
+These are delayed records, not 65 failed listings or duplicate retries of one ID.
+This client predates the reason counters. The actual discarded event types and
+reasons remain unavailable. Later receipts continued arriving during review.
+
+The correlated retained trail contained 88 distinct refresh operations with
+only an authenticating checkpoint and no retained completion. This does not
+prove that 88 refresh requests failed, that a listing failed, or why the live
+network request stalled. It materially strengthens the need to bound auth I/O.
+Local tests of the packaged SDK and extension worker reproduced a pending auth
+request and verified that the correction aborts it after 20 seconds, retains
+the stored session on a transient error, records the restoration failure and
+does not make three further refresh calls after that error. Ordinary auth
+responses, caller cancellation and confirmed invalid-token sign-out are covered.
+
+The admin All logs view groups consecutive diagnostic rows for the same known
+actor on the current page. Expand the group for every original record. Product
+events and different actors remain separate. The badge says Recorded rather
+than presenting the stored 204 convention as a successful customer action.
+Group sizes count diagnostic rows, not discarded events or affected users.
+The API uses an exact filtered count for pagination: a planned count of one
+previously disabled Next despite a full page of actual records.
+
+Do not close a customer incident solely because the admin view is readable or
+the extension was published. Verify the client update and subsequent evidence.

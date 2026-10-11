@@ -1,0 +1,39 @@
+{
+  "checkedAt": "2026-10-11T22:49:45.691Z",
+  "origin": "https://quick-vint-api-git-codex-m-09f8c8-ahmed-samis-projects-e6ef0336.vercel.app",
+  "results": [
+    {
+      "width": 360,
+      "httpStatus": 200,
+      "horizontalOverflow": false,
+      "signInAboveFold": true,
+      "pageErrors": [],
+      "fontStatus": "loaded"
+    },
+    {
+      "width": 390,
+      "httpStatus": 200,
+      "horizontalOverflow": false,
+      "signInAboveFold": true,
+      "pageErrors": [],
+      "fontStatus": "loaded"
+    },
+    {
+      "width": 768,
+      "httpStatus": 200,
+      "horizontalOverflow": false,
+      "signInAboveFold": true,
+      "pageErrors": [],
+      "fontStatus": "loaded"
+    },
+    {
+      "width": 1440,
+      "httpStatus": 200,
+      "horizontalOverflow": false,
+      "signInAboveFold": true,
+      "pageErrors": [],
+      "fontStatus": "loaded"
+    }
+  ],
+  "scope": "Real deployed sign-in page, installed desktop Chrome at responsive widths. No customer login, email, generation or physical phone test."
+}

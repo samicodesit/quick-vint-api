@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-11T22:36:48.687Z",
+  "checkedAt": "2026-10-11T22:50:16.053Z",
   "project": {
     "id": "prj_0QUxoXo1l1GA95t55hSKCQBJ5v6n",
     "name": "quick-vint-api",
@@ -10,6 +10,11 @@
     "password": false
   },
   "environmentVariableNames": [
+    "VERCEL_APP_ALLOWED_ORIGINS",
+    "PUBLIC_MOBILE_WEB_APP_ENABLED",
+    "PUBLIC_LISTING_DRAFTS_ENABLED",
+    "MOBILE_WEB_APP_ENABLED",
+    "LISTING_DRAFTS_ENABLED",
     "DOM_CANARY_SECRET",
     "R2_ENDPOINT",
     "R2_BUCKET",
@@ -72,7 +77,32 @@
     "RESEND_API_KEY",
     "STRIPE_CREDIT_PACK_PRICE_ID"
   ],
-  "flags": [],
+  "flags": [
+    {
+      "key": "PUBLIC_MOBILE_WEB_APP_ENABLED",
+      "targets": ["preview"],
+      "branch": "codex/mobile-web-phase1",
+      "enabled": true
+    },
+    {
+      "key": "PUBLIC_LISTING_DRAFTS_ENABLED",
+      "targets": ["preview"],
+      "branch": "codex/mobile-web-phase1",
+      "enabled": true
+    },
+    {
+      "key": "MOBILE_WEB_APP_ENABLED",
+      "targets": ["preview"],
+      "branch": "codex/mobile-web-phase1",
+      "enabled": true
+    },
+    {
+      "key": "LISTING_DRAFTS_ENABLED",
+      "targets": ["preview"],
+      "branch": "codex/mobile-web-phase1",
+      "enabled": false
+    }
+  ],
   "databaseCredentialVariables": [],
   "schema": {
     "tables": [

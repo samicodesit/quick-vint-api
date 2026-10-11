@@ -1,0 +1,60 @@
+{
+  "checkedAt": "2026-10-11T22:50:16Z",
+  "production": {
+    "commit": "7d9088030c6c9d89c7cb59cf274dc3694c314394",
+    "deploymentId": "dpl_6LhtdfTJBCFJ9PNguz6oDGRcyQ8K",
+    "state": "READY",
+    "productionPushGate": {
+      "files": 121,
+      "tests": 864,
+      "result": "passed",
+      "browserIntegrationEnabled": true
+    },
+    "ci": "https://github.com/samicodesit/quick-vint-api/actions/runs/38181600328",
+    "ciResult": "success",
+    "appHttpStatus": 200,
+    "appEnabled": false,
+    "mobileUsageHttpStatus": 404,
+    "extensionPreflightHttpStatus": 200,
+    "extensionPreflightAllowsRetryHeaders": true,
+    "sharedRetrySqlMatchesTestedMigration": true,
+    "permissionsUnchanged": true
+  },
+  "privateBeta": {
+    "deploymentId": "dpl_6kroWcrUZRVagQEQNZYvBTmkWszE",
+    "state": "READY",
+    "url": "https://quick-vint-api-git-codex-m-09f8c8-ahmed-samis-projects-e6ef0336.vercel.app/app",
+    "publicRequestHttpStatus": 302,
+    "existingAutomationAuthenticatedAppHttpStatus": 200,
+    "protection": "all_except_custom_domains",
+    "appEnabled": true,
+    "localDraftsEnabled": true,
+    "cloudDraftsHttpStatus": 404,
+    "usageWithoutCustomerAuthenticationHttpStatus": 401,
+    "sameOriginPreflightHttpStatus": 200,
+    "exactSignInCallbacksConfigured": true,
+    "newAuthenticationCredentialCreated": false,
+    "responsiveLandingEvidence": "private-beta-landing.json",
+    "physicalDeviceChecks": "not yet completed",
+    "customerGenerationOrPaymentPerformed": false
+  },
+  "extension": {
+    "sourceCommit": "2370589",
+    "version": "1.4.14",
+    "productionPushGate": "passed",
+    "storeReleaseRun": "https://github.com/samicodesit/quick-vint-frontend/actions/runs/38181793913",
+    "storeReleaseStatus": "PENDING_REVIEW",
+    "uploadState": "SUCCEEDED",
+    "releaseStateCommit": "7430fc6",
+    "exactUploadedPackageSha256": "105569c96071bbe80953181ba2c51c238c3fe5d2bd21e1f3e7cd1540a3037661",
+    "ciTests": {
+      "unitPassed": 107,
+      "browserPassed": 187,
+      "browserSkipped": 16
+    },
+    "localFullGateBrowserTests": { "passed": 202, "skipped": 1 },
+    "exactUploadedPackageGenerationBrowserTests": { "passed": 20, "failed": 0 },
+    "manifestPermissionsMatchSource": true,
+    "publicVersionAtSubmission": "1.4.13"
+  }
+}

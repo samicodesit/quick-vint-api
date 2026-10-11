@@ -47,14 +47,27 @@ Vercel hourly endpoint; this project has no database cron table.
 
 ## Private web beta
 
+The approved backend is now live on production `main`, commit `7d90880`.
+Its required production push gate passed 864 tests, including the browser/HTTP
+integration tests, lint, types, build and formatting. GitHub CI also passed:
+https://github.com/samicodesit/quick-vint-api/actions/runs/38181600328
+
+The first CI attempt found Astro build-tool advisories through the new icon
+component dependency. `@lucide/astro` is used only by static `.astro` templates,
+so it belongs with the existing Astro build dependencies. Moving it there kept
+all package versions unchanged and restored the existing production dependency
+boundary. The production audit now passes with zero high/critical findings;
+one low and four moderate findings remain. This does not claim that all build
+tool advisories are patched.
+
 Vercel access is working after normal refresh of the existing Windows CLI login.
 The matched project is `quick-vint-api`, with production branch `main`.
 Existing preview SSO protection is `all_except_custom_domains`. Keep the beta
 on the protected preview hostname and preserve this protection. No new app
 allowlist, database service, credential or publicly accessible beta is required.
 
-The four app/draft feature flags are absent from the current project environment.
-Prepare the following only for the selected preview deployment/branch:
+The following app/draft flags are now configured only for preview branch
+`codex/mobile-web-phase1`. No production flag is enabled:
 
 ```text
 PUBLIC_MOBILE_WEB_APP_ENABLED=true
@@ -63,9 +76,30 @@ MOBILE_WEB_APP_ENABLED=true
 LISTING_DRAFTS_ENABLED=false
 ```
 
-Reuse its existing Supabase URL/anon key and server provider credentials.
-Never deploy fixture keys. Confirm the exact preview HTTPS origin in existing
-app CORS and Supabase redirect configuration before inviting beta users.
+The private preview is ready at:
+https://quick-vint-api-git-codex-m-09f8c8-ahmed-samis-projects-e6ef0336.vercel.app/app
+
+It reuses the existing Supabase URL/anon key and provider credentials. The exact
+branch origin was added to its branch-only CORS setting, preserving all existing
+origins. Supabase permits only its two exact callback URL forms; the existing
+site URL and redirects remain intact. No fixture key was deployed.
+
+The project normally cancels preview builds to save resources. The explicit Git
+preview deployment overrides that build skip for this deployment only; the
+project setting remains unchanged. Preview protection remains enabled. The
+existing automation authentication was used for QA, without creating another
+token or changing access rules.
+
+Live preview HTTP checks verified unauthenticated access redirects to Vercel
+login, authenticated app load returns 200, same-origin API preflight passes,
+the usage API requires user authentication, and the cloud drafts endpoint stays
+disabled. Production app and mobile usage checks still return disabled behavior.
+
+Installed desktop Chrome loaded the actual deployed sign-in page at 360, 390,
+768 and 1440 pixels. All four passed: no horizontal overflow, controls above the
+fold, loaded fonts and no page exceptions. Evidence:
+`qa/browser-drafts/private-beta-landing.json` and
+`qa/browser-drafts/private-beta-sign-in-390.png`.
 Keep current limits and cleanup. Keep production app flags off while checking
 real phone camera/library, HEIC, IndexedDB, keyboard, copy and scrolling.
 This preparation does not claim those physical-device checks are complete.
@@ -86,11 +120,13 @@ assertions remain unchanged; no product timeout was modified.
 
 The release state confirmed store upload `1.4.13`, with no pending upload.
 Candidate `1.4.14` was bumped through the release script and packaged at
-`quick-vint/dist/autolister-ai-v1.4.14.zip`. The pending version lock is `1.4.14`.
-The uploaded-version marker remains `1.4.13`.
+`quick-vint/dist/autolister-ai-v1.4.14.zip`. The uploaded-version marker is now
+`1.4.14`, following successful upload. Its local pending lock was cleared only
+after that success.
 
-The source is saved on `codex/extension-retry-1.4.14`, commit `2370589`, separate
-from production `main`. Package SHA-256:
+The source is saved on `codex/extension-retry-1.4.14`, commit `2370589`, and has
+now been deliberately fast-forwarded and pushed to frontend `main` through its
+full production gate. The local preparation ZIP had SHA-256:
 
 ```text
 d87ea06fd4509ffaafa0ad2e8bd9fc3f4cd1facf728f53f382ca44c09c312e5d
@@ -105,19 +141,53 @@ identity tests. ZIP contents use the existing explicit release allowlist.
 GitHub workflow `chrome-web-store-release.yml` and its
 `CHROME_WEB_STORE_SERVICE_ACCOUNT_JSON` secret are available. Use that existing
 workflow after the compatible backend SQL/API has been deployed and verified.
-Do not run `release:mark-uploaded` or submit this held package early. Normal
-workflow submission builds from the verified source on `main`; preserve the
-version/pending-state rules and avoid duplicate packages.
+Store status independently confirmed published version `1.4.13` before release.
+The approved existing workflow succeeded with `upload-and-submit` and
+`bump_patch=false`, preserving the already-tested `1.4.14` version. It repeated
+the full unit and browser suites in CI before upload:
+https://github.com/samicodesit/quick-vint-frontend/actions/runs/38181793913
+
+Google returned upload `SUCCEEDED` and publish `PENDING_REVIEW` at
+2026-10-11 22:54 UTC. The public version was still `1.4.13` at submission.
+This is submission for review, not proof that Google has published the update.
+The workflow committed release state as `7430fc6`, and local `main` was updated.
+
+CI passed 107 unit tests and 187 browser tests. Its 16 existing CI skips include
+15 coordinated checks that need the separate backend checkout, plus the disabled
+incident reproduction. The local full gate had that backend checkout and passed
+202 browser tests with only the disabled reproduction skipped.
+
+The exact uploaded CI package was downloaded from that run and its actual
+minified code passed 18 generation-flow browser tests plus two auth/truncated
+reply cases, including the processed
+original JPEG assertion. Its SHA-256 is:
+
+```text
+105569c96071bbe80953181ba2c51c238c3fe5d2bd21e1f3e7cd1540a3037661
+```
+
+The initial invocation incorrectly supplied the content file instead of the
+package directory to the test runner. It failed with `ENOTDIR` before loading
+product code. Correcting the runner argument produced the passing result above;
+no product change or weaker assertion was needed. The canonical local ZIP now
+contains the exact uploaded artifact; its duplicate download and extracted copy
+were removed after verification. Manifest version, permissions and host
+permissions match the release source.
 
 ## Activation and rollback
 
-1. Verify deployed database definitions/grants and apply the tested additive
-   `2026-10-11_shared_generation_retry_protection.sql` migration if needed.
-2. Deploy the compatible backend through `npm run push:production` on `main`.
-   Existing extensions without the new request header retain their old path.
-3. Verify the private beta and real device journey, then enable it for the
+1. Complete: deployed database definitions/grants verified and the tested
+   additive shared retry migration applied.
+2. Complete: compatible backend deployed through `npm run push:production` on
+   `main`. Existing extensions without the new header retain their old path.
+3. Remaining: verify the private beta's real device journey, then enable it for the
    intended audience without changing current quotas or storage cleanup.
-4. Submit the separately verified extension through the existing workflow.
+4. Complete: verified extension submitted through the existing workflow. Google
+   review is pending.
+
+The backend push used the clean checkout at
+`/home/mests/projects/autolister/.worktrees/backend-production-release-20261012`
+on `main`, preserving unrelated local edits in the primary backend checkout.
 
 Rollback the web beta by disabling its preview/build flags. Preserve local
 drafts and the additive retry schema. Do not drop tables, reset usage, erase

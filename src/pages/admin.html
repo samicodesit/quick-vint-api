@@ -3797,6 +3797,7 @@
 
         function getActivityIcon(log, eventName) {
             const kind = getLogKind(log);
+            if (eventName === 'telemetry_queue_dropped') return { symbol: 'DROP', className: 'warning' };
             if (log.response_status >= 400 || eventName === 'generate_error' || eventName.endsWith('_error')) return { symbol: 'ERR', className: 'danger' };
             if (eventName.endsWith('_retry') || eventName.endsWith('_fallback')) return { symbol: 'WARN', className: 'warning' };
             if (eventName === 'generate_cancelled') return { symbol: 'CXL', className: 'warning' };
@@ -3814,6 +3815,7 @@
         }
 
         function getActivitySummary(log) {
+            if (log.endpoint === '/event/telemetry_queue_dropped') return 'Telemetry delivery diagnostic';
             const kind = getLogKind(log);
             if (kind === 'Event') {
                 const eventName = (log.endpoint || '').replace('/event/', '');
@@ -3826,6 +3828,7 @@
         }
 
         function getActivityDetail(log) {
+            if (log.endpoint === '/event/telemetry_queue_dropped') return 'Discarded telemetry records. Open this record for available cause and client evidence.';
             const kind = getLogKind(log);
             if (kind === 'Event') return getLogContext(log);
             if (kind === 'Generation') {
@@ -3836,7 +3839,34 @@
         }
 
         function renderActivityFeed(logs) {
+            const output = [];
+            const actorKey = log => log.user_id ? `user:${log.user_id}` : log.user_email ? `email:${log.user_email}` : getLogAnalyticsClientId(log) ? `client:${getLogAnalyticsClientId(log)}` : null;
+            for (let index = 0; index < logs.length;) {
+                const first = logs[index];
+                const key = actorKey(first);
+                let end = index + 1;
+                if (first.endpoint === '/event/telemetry_queue_dropped' && key) {
+                    while (end < logs.length && logs[end].endpoint === first.endpoint && actorKey(logs[end]) === key) end++;
+                }
+                const records = logs.slice(index, end);
+                if (records.length > 1) {
+                    output.push(`<details class="telemetry-drop-group">
+                        <summary style="padding:1rem; cursor:pointer; background:var(--bg-secondary); border-radius:0.75rem;">
+                            <strong>Telemetry delivery diagnostics</strong> · ${records.length} diagnostic records on this page
+                            <div class="activity-meta">${getLogActor(first)} · Received ${escapeHtml(formatDateTime(records[records.length - 1].created_at))} to ${escapeHtml(formatDateTime(first.created_at))}</div>
+                            <div class="text-muted">Dropped telemetry is not a listing result. Expand to inspect every retained record.</div>
+                        </summary>
+                        ${renderActivityRows(records)}
+                    </details>`);
+                } else output.push(renderActivityRows(records));
+                index = end;
+            }
+            return output.join('');
+        }
+
+        function renderActivityRows(logs) {
             return logs.map(log => {
+                const dropDiagnostic = log.endpoint === '/event/telemetry_queue_dropped';
                 const eventName = typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')
                     ? log.endpoint.replace('/event/', '')
                     : '';
@@ -3845,7 +3875,7 @@
                 const thumb = images.length
                     ? `<img src="${escapeAttribute(images[0])}" alt="Item preview" loading="lazy">`
                     : (getLogKind(log) === 'Generation' ? 'No image' : '');
-                const statusClass = log.response_status >= 400
+                const statusClass = dropDiagnostic ? 'warning' : log.response_status >= 400
                     ? 'danger'
                     : (log.response_status ? 'success' : 'neutral');
 
@@ -3859,7 +3889,7 @@
                             <div class="activity-meta">${getLogActor(log)} · ${escapeHtml(getActivityDetail(log))}${log.ip_address ? ` · ${renderLogIp(log)}` : ''}</div>
                         </div>
                         <div class="activity-side">
-                            <span class="activity-status ${statusClass}">${escapeHtml(log.response_status || 'n/a')}</span>
+                            <span class="activity-status ${statusClass}">${escapeHtml(dropDiagnostic ? 'Recorded' : log.response_status || 'n/a')}</span>
                             ${renderLogJourneyAction(log)}
                             <button class="btn-secondary" onclick="event.stopPropagation(); showLogDetails('${escapeAttribute(log.id)}')">View</button>
                         </div>

@@ -1056,6 +1056,7 @@
                         item.failed = true;
                         item.uploading = false;
                         renderBatchProgress();
+                        trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_NETWORK_ERROR', statusCode: 0, message: 'Upload error' });
                         reject(new Error('Upload error'));
                     };
 

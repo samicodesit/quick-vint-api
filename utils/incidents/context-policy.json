@@ -39,7 +39,8 @@
     "selectedTier",
     "targetTier",
     "checkoutKind",
-    "phoneSessionKey"
+    "phoneSessionKey",
+    "queueDropLastRejection"
   ],
   "numbers": [
     "expectedTitleLength",
@@ -59,6 +60,12 @@
     "durationMs",
     "attempt",
     "queueDropped",
+    "queueDroppedExpired",
+    "queueDroppedCapacity",
+    "queueDroppedRejected",
+    "queueDroppedCritical",
+    "queueDroppedCustomerReports",
+    "queueDroppedUnclassified",
     "elapsedMs",
     "requestBodyBytes",
     "requestBodyImageCount",

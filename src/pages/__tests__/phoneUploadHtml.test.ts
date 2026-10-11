@@ -8,6 +8,55 @@ const html = readFileSync(
 );
 
 describe("phone upload page v2 contract", () => {
+  it("terminates the exact failed transfer before retrying a network error", () => {
+    const handler = html.match(
+      /xhr\.onerror = \(\) => \{([\s\S]*?)\n                    \};/,
+    )?.[1];
+    expect(handler).toBeTruthy();
+    const events: Array<{ event: string; context: Record<string, unknown> }> =
+      [];
+    const xhr = {};
+    const state = { activeRequests: new Set([xhr]) };
+    const item = { failed: false, uploading: true };
+    let rejected: Error | undefined;
+    new Function(
+      "state",
+      "xhr",
+      "ui",
+      "item",
+      "renderBatchProgress",
+      "reject",
+      "trackUploadEvent",
+      "telemetryAttemptId",
+      handler!,
+    )(
+      state,
+      xhr,
+      null,
+      item,
+      () => {},
+      (error: Error) => {
+        rejected = error;
+      },
+      (event: string, context: Record<string, unknown>) =>
+        events.push({ event, context }),
+      "transfer-attempt-1",
+    );
+    expect(events).toEqual([
+      {
+        event: "phone_upload_transfer_error",
+        context: {
+          operationId: "transfer-attempt-1",
+          errorCode: "UPLOAD_NETWORK_ERROR",
+          statusCode: 0,
+          message: "Upload error",
+        },
+      },
+    ]);
+    expect(rejected?.message).toBe("Upload error");
+    expect(item).toEqual({ failed: true, uploading: false });
+    expect(state.activeRequests.size).toBe(0);
+  });
   it("keeps the primary action fixed and respects reduced motion", () => {
     expect(html).toContain('class="phone-upload-action-bar"');
     expect(html).toMatch(

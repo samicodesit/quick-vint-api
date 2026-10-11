@@ -1,0 +1,12 @@
+Entry polish regression passed
+Settings layout regression passed
+Review regression passed: full-settings
+Presentation polish regression passed
+Review regression passed: ui-redesign
+Review regression passed: listed-retry
+Review regression passed: navigation
+Review regression passed: grouping-navigation
+Review regression passed: pages
+Review regression passed: scroll
+Review regression passed: signout
+Browser draft journeys passed. Evidence: /tmp/autolister-entry-polish/full

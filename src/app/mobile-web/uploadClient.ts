@@ -13,6 +13,7 @@ export interface MobileUploadSession {
   sessionId: string;
   uploaderId: string;
   accessToken: string;
+  userId?: string;
 }
 
 export interface UploadedMobilePhoto {
@@ -134,7 +135,20 @@ async function request(
       } catch {
         refreshed = null;
       }
-      if (refreshed?.access_token) {
+      if (
+        refreshed?.access_token &&
+        session.userId &&
+        refreshed.user.id !== session.userId
+      )
+        throw new MobileUploadError(
+          "account_changed",
+          "Sign in to the same account to continue this item.",
+          401,
+        );
+      if (
+        refreshed?.access_token &&
+        (!session.userId || refreshed.user.id === session.userId)
+      ) {
         session.accessToken = refreshed.access_token;
         ensureNotAborted(signal);
         return request(session, url, init, signal, false, rejectStatuses);
@@ -155,6 +169,54 @@ async function request(
     );
   }
   return body;
+}
+
+/** Sends already prepared local JPEGs without decoding or recompressing them. */
+export async function uploadPreparedPhotos(
+  session: MobileUploadSession,
+  files: File[],
+  signal: AbortSignal,
+): Promise<string[]> {
+  if (!files.length)
+    throw new MobileUploadError("no_photos", "Choose at least one photo.");
+  const prepared = files.map((file) => ({
+    file,
+    previewUrl: "",
+    sourceType: "image/jpeg",
+    recoveredOrientation: true,
+  }));
+  try {
+    await openSingleUpload(session, signal);
+    await prepareUpload(session, files.length, signal);
+    let next = 0;
+    let failure: unknown;
+    await Promise.all(
+      Array.from({ length: Math.min(MAX_WORKERS, files.length) }, async () => {
+        while (failure === undefined && next < files.length) {
+          const order = next++;
+          try {
+            await uploadOne(
+              session,
+              prepared[order],
+              order,
+              files.length,
+              signal,
+            );
+          } catch (error) {
+            failure = error;
+          }
+        }
+      }),
+    );
+    if (failure !== undefined) throw failure;
+    await completeUpload(session, files.length, signal);
+    return (
+      await fetchSignedPhotos(session, files.length, prepared, signal)
+    ).map((photo) => photo.url);
+  } catch (error) {
+    await cleanupUploadSession(session, "cancelled").catch(() => undefined);
+    throw error;
+  }
 }
 
 async function requestWithRetry(

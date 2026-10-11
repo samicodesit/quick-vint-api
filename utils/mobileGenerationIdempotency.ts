@@ -342,6 +342,7 @@ async function callMutation(
 
 export async function claimMobileGenerationIdempotency(input: {
   userId: string;
+  client?: "mobile_web" | "extension";
   requestId: string;
   requestHash: string;
 }): Promise<IdempotencyClaim> {
@@ -349,7 +350,7 @@ export async function claimMobileGenerationIdempotency(input: {
     "claim_mobile_generation_idempotency",
     {
       p_user_id: input.userId,
-      p_client: MOBILE_CLIENT,
+      p_client: input.client ?? MOBILE_CLIENT,
       p_request_id: input.requestId,
       p_request_hash: input.requestHash,
     },
@@ -376,6 +377,7 @@ export async function bindMobileGenerationReservation(input: {
 export async function reserveAndBindMobileGenerationReservation(
   input: {
     userId: string;
+    client?: "mobile_web" | "extension";
     recordId: string;
     attemptId: string;
     requestId: string;
@@ -389,7 +391,7 @@ export async function reserveAndBindMobileGenerationReservation(
         p_user_id: input.userId,
         p_record_id: input.recordId,
         p_attempt_id: input.attemptId,
-        p_client: MOBILE_CLIENT,
+        p_client: input.client ?? MOBILE_CLIENT,
         p_request_id: input.requestId,
         p_request_hash: input.requestHash,
         p_pricing_limits_mode: input.pricingLimitsMode,

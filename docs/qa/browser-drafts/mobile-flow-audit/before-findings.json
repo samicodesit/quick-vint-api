@@ -1,0 +1,17 @@
+{
+  "findings": [
+    "Copy title outside 360 x 640",
+    "Listing title outside 360 x 640",
+    "Copy description outside 360 x 640",
+    "Copy title outside 390 x 640",
+    "Listing title outside 390 x 640",
+    "Copy description outside 390 x 640",
+    "Single generate outside 390 x 640",
+    "Single generation moves navigation",
+    "Batch generate outside 360 x 640",
+    "Batch generate outside 390 x 640",
+    "Batch pause outside 390 x 640",
+    "Batch resume outside 390 x 640"
+  ],
+  "pageErrors": []
+}

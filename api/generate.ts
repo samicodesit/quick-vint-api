@@ -57,6 +57,7 @@ import type {
   StoredResponseValidation,
 } from "../utils/mobileGenerationTypes";
 import {
+  bindMobileGenerationReservation,
   claimMobileGenerationIdempotency,
   completeMobileGenerationIdempotency,
   failMobileGenerationIdempotency,
@@ -265,6 +266,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const mobileRequestId = Array.isArray(requestIdHeader)
     ? requestIdHeader[0]
     : requestIdHeader;
+  // Older extensions stay on their existing path. New clients opt in with
+  // a request ID; mobile and extension use the same fenced result store.
+  const idempotencyClient = isMobileWebRequest
+    ? "mobile_web"
+    : client === "extension" && requestIdHeader !== undefined
+      ? "extension"
+      : null;
+  const hasRetryProtection = idempotencyClient !== null;
   const pricingLimitsMode = getPricingLimitsModeForClient({
     client,
     extensionVersion,
@@ -370,7 +379,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   logData.userId = user.id;
   logData.userEmail = user.email;
 
-  if (isMobileWebRequest && !isValidMobileRequestId(mobileRequestId)) {
+  if (hasRetryProtection && !isValidMobileRequestId(mobileRequestId)) {
     logData.responseStatus = 400;
     logData.processingDurationMs = Date.now() - startTime;
     logData.flaggedReason = "Invalid mobile request id";
@@ -707,7 +716,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let mobileIdempotencyRecordId: string | null = null;
   let mobileIdempotencyAttemptId: string | null = null;
   let mobileRequestHash: string | null = null;
-  if (isMobileWebRequest) {
+  if (hasRetryProtection) {
     const normalizedMobileRequest = normalizeMobileGenerationRequest(
       req.body as MobileGenerationRequestBody,
     );
@@ -717,6 +726,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       claim = await claimMobileGenerationIdempotency({
         userId: user.id,
+        ...(idempotencyClient === "extension"
+          ? { client: idempotencyClient }
+          : {}),
         requestId: mobileRequestId as string,
         requestHash: mobileRequestHash,
       });
@@ -784,30 +796,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     mobileIdempotencyAttemptId = claim.attemptId;
   }
 
-  const rateLimitResult = isMobileWebRequest
-    ? await reserveAndBindMobileGenerationReservation({
-        userId: user.id,
-        recordId: mobileIdempotencyRecordId as string,
-        attemptId: mobileIdempotencyAttemptId as string,
-        requestId: mobileRequestId as string,
-        requestHash: mobileRequestHash as string,
-        ...getGenerationReservationParams(userProfile, pricingLimitsMode),
-      })
-    : isEmojiRetryRequest
-      ? await RateLimiter.reserveEmojiRetry(
-          user.id,
-          userProfile,
-          pricingLimitsMode,
-        )
-      : await RateLimiter.reserveGenerationRequest(
-          user.id,
-          userProfile,
-          pricingLimitsMode,
-        );
+  const rateLimitResult =
+    hasRetryProtection && !isEmojiRetryRequest
+      ? await reserveAndBindMobileGenerationReservation({
+          userId: user.id,
+          ...(idempotencyClient === "extension"
+            ? { client: idempotencyClient }
+            : {}),
+          recordId: mobileIdempotencyRecordId as string,
+          attemptId: mobileIdempotencyAttemptId as string,
+          requestId: mobileRequestId as string,
+          requestHash: mobileRequestHash as string,
+          ...getGenerationReservationParams(userProfile, pricingLimitsMode),
+        })
+      : isEmojiRetryRequest
+        ? await RateLimiter.reserveEmojiRetry(
+            user.id,
+            userProfile,
+            pricingLimitsMode,
+          )
+        : await RateLimiter.reserveGenerationRequest(
+            user.id,
+            userProfile,
+            pricingLimitsMode,
+          );
 
   if (!rateLimitResult.allowed) {
     if (
-      isMobileWebRequest &&
+      hasRetryProtection &&
       rateLimitResult.code === "idempotency_bind_failed"
     ) {
       const failureBody = {
@@ -863,7 +879,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   generationReservationId = rateLimitResult.reservationId ?? null;
-  if (isMobileWebRequest) {
+  if (hasRetryProtection && isEmojiRetryRequest && generationReservationId) {
+    // Keep the existing free retry entitlement. Its unique reservation is
+    // fenced before AI runs, rather than charging it as a normal generation.
+    const bound = await bindMobileGenerationReservation({
+      recordId: mobileIdempotencyRecordId as string,
+      attemptId: mobileIdempotencyAttemptId as string,
+      reservationId: generationReservationId,
+    });
+    if (!bound.ok) {
+      await RateLimiter.refundGenerationReservation(
+        generationReservationId,
+        "idempotency_bind_failed",
+      );
+      await failMobileGenerationIdempotency({
+        recordId: mobileIdempotencyRecordId as string,
+        attemptId: mobileIdempotencyAttemptId as string,
+        statusCode: 503,
+        body: {
+          error: "Could not reserve this generation request. Please try again.",
+          code: "idempotency_bind_failed",
+        },
+        reservationId: generationReservationId,
+        retryable: false,
+        failureCode: "idempotency_bind_failed",
+      });
+      return res.status(503).json({
+        error: "Could not reserve this generation request. Please try again.",
+        code: "idempotency_bind_failed",
+      });
+    }
+  }
+  if (hasRetryProtection) {
     if (!generationReservationId) {
       await failMobileGenerationIdempotency({
         recordId: mobileIdempotencyRecordId as string,
@@ -1303,7 +1350,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     logData.flaggedReason = `OpenAI generation error: ${safeProviderError}`;
     logData.openaiRateLimitInfo = extractOpenAIRateLimitHeaders(err.headers);
     if (
-      !isMobileWebRequest ||
+      !hasRetryProtection ||
       mobileReservationCommitState === "not_attempted"
     ) {
       await RateLimiter.refundGenerationReservation(

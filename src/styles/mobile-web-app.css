@@ -1,25 +1,35 @@
 :root {
-  --mobile-bg: #f7f8fa;
+  --mobile-bg: #faf9f6;
   --mobile-surface: #ffffff;
-  --mobile-surface-soft: #f8f8ff;
-  --mobile-ink: #172033;
-  --mobile-muted: #596579;
-  --mobile-subtle: #596579;
-  --mobile-border: #e6e6f0;
-  --mobile-border-strong: #d9d9e8;
+  --mobile-surface-soft: #f1f0ec;
+  --mobile-ink: #252923;
+  --mobile-muted: #686b65;
+  --mobile-subtle: #686b65;
+  --mobile-border: #e1e2db;
+  --mobile-border-strong: #b9bdb3;
   --mobile-brand: #3458df;
   --mobile-brand-strong: #2639c8;
-  --mobile-brand-soft: #eff0ff;
+  --mobile-brand-soft: #eef2ff;
   --mobile-danger: #b33d41;
   --mobile-success: #237052;
-  --mobile-shadow: 0 3px 14px rgba(34, 38, 94, 0.045);
-  --mobile-radius-lg: 18px;
-  --mobile-control-height: 48px;
+  --mobile-shadow: 0 12px 32px rgba(24, 32, 42, 0.1);
+  --mobile-radius-lg: 12px;
+  --mobile-control-height: 44px;
+  --app-space-1: 4px;
+  --app-space-2: 8px;
+  --app-space-3: 12px;
+  --app-space-4: 16px;
+  --app-space-6: 24px;
+  --app-space-8: 32px;
+  --app-space-12: 48px;
+  --app-radius-control: 8px;
+  --app-radius-panel: 12px;
+  --app-radius-sheet: 16px;
+  --app-display-font: "Newsreader Variable", Georgia, serif;
   --mobile-panel-fade: var(--mobile-bg);
   color-scheme: light;
   font-family:
-    "Inter Variable",
-    Inter,
+    "Geist Variable",
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -41,7 +51,13 @@ body {
   background: var(--mobile-bg);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -73,7 +89,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(79, 70, 229, 0.28);
+  outline: 2px solid var(--mobile-brand);
   outline-offset: 2px;
 }
 
@@ -84,8 +100,9 @@ textarea:focus-visible {
 .mobile-workspace-shell {
   display: flex;
   flex-direction: column;
+  flex: 1;
   width: min(100%, 1120px);
-  min-height: 100dvh;
+  min-height: 0;
   margin: 0 auto;
   padding: max(20px, env(safe-area-inset-top)) 16px
     max(20px, env(safe-area-inset-bottom));
@@ -418,7 +435,7 @@ textarea:focus-visible {
   box-shadow: none;
 }
 .mobile-auth-card h1 {
-  font-family: "Inter Tight Variable", Inter, sans-serif;
+  font-family: inherit;
   font-size: 28px;
   margin-bottom: 24px;
 }
@@ -443,6 +460,20 @@ textarea:focus-visible {
 }
 .mobile-auth-card .mobile-form-status {
   margin-top: 16px;
+}
+.mobile-auth-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.mobile-auth-actions .mobile-text-button {
+  font-size: 14px;
+  font-weight: 550;
+}
+.mobile-auth-actions .mobile-text-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 .mobile-profile-avatar {
   width: 36px;
@@ -568,7 +599,7 @@ textarea:focus-visible {
 }
 
 .mobile-usage-cell + .mobile-usage-cell {
-  border-left: 1px solid #dedeea;
+  border-left: 0;
 }
 
 .mobile-usage-card[data-tier="free"] .mobile-usage-free {

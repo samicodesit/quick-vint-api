@@ -7,3 +7,5 @@ node_modules/
 .astro/
 venv/
 .superpowers/
+# Preserve the extension's vendored QR generator unchanged.
+public/app/vendor/qrcode.min.js

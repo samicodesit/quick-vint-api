@@ -1,0 +1,851 @@
+
+> quick-vint-api@1.0.0 verify:production
+> npm run lint && npm run type-check && npm run build && npm run format-check && npm test
+
+
+> quick-vint-api@1.0.0 lint
+> eslint "api/**/*.ts" "utils/**/*.{ts,js}"
+
+
+> quick-vint-api@1.0.0 type-check
+> tsc --noEmit
+
+
+> quick-vint-api@1.0.0 build
+> astro build
+
+23:43:01 [content] Syncing content
+23:43:01 [content] Synced content
+23:43:01 [types] Generated 485ms
+23:43:01 [build] output: "static"
+23:43:01 [build] mode: "static"
+23:43:01 [build] directory: /home/mests/projects/autolister/.worktrees/mobile-web-phase1/dist/
+23:43:01 [build] Collecting build info...
+23:43:01 [build] ✓ Completed in 546ms.
+23:43:01 [build] Building static entrypoints...
+23:43:06 [vite] ✓ built in 5.35s
+23:43:06 [build] ✓ Completed in 5.40s.
+
+ building client (vite) 
+23:43:06 [vite] transforming...
+23:43:07 [vite] ✓ 95 modules transformed.
+23:43:07 [vite] rendering chunks...
+23:43:07 [vite] computing gzip size...
+23:43:07 [vite] dist/_astro/pricing.astro_astro_type_script_index_0_lang.E0aIqHJB.js           0.21 kB │ gzip:  0.16 kB
+23:43:07 [vite] dist/_astro/callback.astro_astro_type_script_index_0_lang.W32UU8Er.js          0.39 kB │ gzip:  0.27 kB
+23:43:07 [vite] dist/_astro/installPlanIntent.WOhyACOY.js                                      0.76 kB │ gzip:  0.45 kB
+23:43:07 [vite] dist/_astro/vintedRedirect.D4PqMIsO.js                                         1.58 kB │ gzip:  0.79 kB
+23:43:07 [vite] dist/_astro/_lang_.astro_astro_type_script_index_0_lang.BBK3_I-V.js            3.06 kB │ gzip:  1.38 kB
+23:43:07 [vite] dist/_astro/attribution.BrQZ64qk.js                                            3.07 kB │ gzip:  1.21 kB
+23:43:07 [vite] dist/_astro/uninstall.astro_astro_type_script_index_0_lang.BIydfmAK.js         3.28 kB │ gzip:  1.39 kB
+23:43:07 [vite] dist/_astro/customer-usage.astro_astro_type_script_index_0_lang.CqsmxttD.js    6.02 kB │ gzip:  1.78 kB
+23:43:07 [vite] dist/_astro/atropos.DZR9lnpr.js                                                6.82 kB │ gzip:  2.56 kB
+23:43:07 [vite] dist/_astro/pricing.astro_astro_type_script_index_0_lang.CwPUWKLM.js          13.91 kB │ gzip:  4.78 kB
+23:43:07 [vite] dist/_astro/SiteLayout.astro_astro_type_script_index_0_lang.BEseN4ZA.js       23.86 kB │ gzip:  7.25 kB
+23:43:07 [vite] dist/_astro/index.astro_astro_type_script_index_0_lang.wLiVDDEd.js           101.03 kB │ gzip: 31.22 kB
+23:43:07 [vite] dist/_astro/Release140Page.astro_astro_type_script_index_0_lang.CaiL_3k8.js  126.83 kB │ gzip: 50.03 kB
+23:43:07 [vite] dist/_astro/auth.qur9odTQ.js                                                 206.81 kB │ gzip: 54.06 kB
+23:43:07 [vite] ✓ built in 961ms
+
+ generating static routes 
+23:43:07 ▶ src/pages/admin.html
+23:43:07   └─ /admin/index.html (+6ms) 
+23:43:07 ▶ src/pages/app/auth/callback.astro
+23:43:07   └─ /app/auth/callback/index.html (+3ms) 
+23:43:07 ▶ src/pages/app/index.astro
+23:43:07   └─ /app/index.html (+23ms) 
+23:43:07 ▶ src/pages/auth/callback.html
+23:43:07   └─ /auth/callback/index.html (+2ms) 
+23:43:07 ▶ src/pages/blog/category/[category].astro
+23:43:07   ├─ /blog/category/selling-tips/index.html (+13ms) 
+23:43:07   ├─ /blog/category/marketplace-guide/index.html (+5ms) 
+23:43:07   ├─ /blog/category/tool-comparison/index.html (+3ms) 
+23:43:07   ├─ /blog/category/pricing-strategy/index.html (+3ms) 
+23:43:07   └─ /blog/category/success-stories/index.html (+10ms) 
+23:43:07 λ src/pages/blog/rss.xml.ts
+23:43:07   └─ /blog/rss.xml (+5ms) 
+23:43:07 ▶ src/pages/blog/[slug].astro
+23:43:07   ├─ /blog/batch-generate-vinted-listings/index.html (+13ms) 
+23:43:07   ├─ /blog/fastest-way-to-sell-many-items-at-once/index.html (+7ms) 
+23:43:07   ├─ /blog/how-to-sell-on-vinted/index.html (+7ms) 
+23:43:07   ├─ /blog/how-to-write-vinted-descriptions-that-sell/index.html (+8ms) 
+23:43:07   ├─ /blog/vinted-photos-that-sell/index.html (+7ms) 
+23:43:07   ├─ /blog/what-is-vinted-how-it-works/index.html (+9ms) 
+23:43:07   └─ /blog/why-are-my-vinted-items-not-selling/index.html (+7ms) 
+23:43:07 ▶ src/pages/blog/index.astro
+23:43:07   └─ /blog/index.html (+3ms) 
+23:43:07 ▶ src/pages/cancel.html
+23:43:07   └─ /cancel/index.html (+1ms) 
+23:43:07 ▶ src/pages/customer-usage.astro
+23:43:07   └─ /customer-usage/index.html (+1ms) 
+23:43:07 ▶ src/pages/email-templates.astro
+23:43:07   └─ /email-templates/index.html (+1ms) 
+23:43:07 ▶ src/pages/phone-upload.html
+23:43:07   └─ /phone-upload/index.html (+2ms) 
+23:43:07 ▶ src/pages/pricing.astro
+23:43:07   └─ /pricing/index.html (+3ms) 
+23:43:07 ▶ src/pages/privacy.astro
+23:43:07   └─ /privacy/index.html (+1ms) 
+23:43:07 ▶ src/pages/success.html
+23:43:07   └─ /success/index.html (+1ms) 
+23:43:07 ▶ src/pages/support.astro
+23:43:07   └─ /support/index.html (+1ms) 
+23:43:07 ▶ src/pages/terms.astro
+23:43:07   └─ /terms/index.html (+1ms) 
+23:43:07 ▶ src/pages/tiktok.astro
+23:43:07   └─ /tiktok/index.html (+1ms) 
+23:43:07 ▶ src/pages/ui-components/content-components.astro
+23:43:07   └─ /ui-components/content-components/index.html (+1ms) 
+23:43:07 λ src/pages/ui-components/content-runtime-review.js.ts
+23:43:07   └─ /ui-components/content-runtime-review.js (+61ms) 
+23:43:07 λ src/pages/ui-components/content.js.ts
+23:43:07   └─ /ui-components/content.js (+67ms) 
+23:43:07 λ src/pages/ui-components/icons/icon48.png.ts
+23:43:07   └─ /ui-components/icons/icon48.png (+14ms) 
+23:43:07 λ src/pages/ui-components/images/quickvint-upload-multiple.jpg.ts
+23:43:07   └─ /ui-components/images/quickvint-upload-multiple.jpg (+29ms) 
+23:43:08 λ src/pages/ui-components/images/quickvint-upload-single.jpg.ts
+23:43:08   └─ /ui-components/images/quickvint-upload-single.jpg (+19ms) 
+23:43:08 λ src/pages/ui-components/language-defaults.js.ts
+23:43:08   └─ /ui-components/language-defaults.js (+7ms) 
+23:43:08 ▶ src/pages/ui-components.astro
+23:43:08   └─ /ui-components/index.html (+1ms) 
+23:43:08 ▶ src/pages/uninstall.astro
+23:43:08   └─ /uninstall/index.html (+2ms) 
+23:43:08 ▶ src/pages/unsubscribe.astro
+23:43:08   └─ /unsubscribe/index.html (+1ms) 
+23:43:08 ▶ src/pages/updates/1-4-0/[lang].astro
+23:43:08   ├─ /updates/1-4-0/en/index.html (+2ms) 
+23:43:08   ├─ /updates/1-4-0/fr/index.html (+3ms) 
+23:43:08   ├─ /updates/1-4-0/de/index.html (+1ms) 
+23:43:08   ├─ /updates/1-4-0/nl/index.html (+1ms) 
+23:43:08   ├─ /updates/1-4-0/pl/index.html (+1ms) 
+23:43:08   ├─ /updates/1-4-0/es/index.html (+1ms) 
+23:43:08   ├─ /updates/1-4-0/it/index.html (+1ms) 
+23:43:08   └─ /updates/1-4-0/pt/index.html (+1ms) 
+23:43:08 ▶ src/pages/updates/1-4-0.astro
+23:43:08   └─ /updates/1-4-0/index.html (+1ms) 
+23:43:08 ▶ src/pages/updates/latest.astro
+23:43:08   └─ /updates/latest/index.html (+1ms) 
+23:43:08 ▶ src/pages/vinted-chatgpt-guide.astro
+23:43:08   └─ /vinted-chatgpt-guide/index.html (+2ms) 
+23:43:08 ▶ src/pages/vinted-description-generator.astro
+23:43:08   └─ /vinted-description-generator/index.html (+1ms) 
+23:43:08 ▶ src/pages/vinted-description-template.astro
+23:43:08   └─ /vinted-description-template/index.html (+2ms) 
+23:43:08 ▶ src/pages/vinted-extension-iphone-orion.astro
+23:43:08   └─ /vinted-extension-iphone-orion/index.html (+2ms) 
+23:43:08 ▶ src/pages/vinted-listing-checklist.astro
+23:43:08   └─ /vinted-listing-checklist/index.html (+2ms) 
+23:43:08 ▶ src/pages/vinted-photo-to-listing.astro
+23:43:08   └─ /vinted-photo-to-listing/index.html (+1ms) 
+23:43:08 ▶ src/pages/welcome/[lang].astro
+23:43:08   ├─ /welcome/en/index.html (+2ms) 
+23:43:08   ├─ /welcome/fr/index.html (+1ms) 
+23:43:08   ├─ /welcome/de/index.html (+1ms) 
+23:43:08   ├─ /welcome/nl/index.html (+1ms) 
+23:43:08   ├─ /welcome/pl/index.html (+1ms) 
+23:43:08   ├─ /welcome/es/index.html (+1ms) 
+23:43:08   ├─ /welcome/it/index.html (+1ms) 
+23:43:08   └─ /welcome/pt/index.html (+1ms) 
+23:43:08 ▶ src/pages/welcome.astro
+23:43:08   └─ /welcome/index.html (+1ms) 
+23:43:08 ▶ src/pages/x.astro
+23:43:08   └─ /x/index.html (+2ms) 
+23:43:08 ▶ src/pages/[lang]/blog/category/[category].astro
+23:43:08   ├─ /fr/blog/category/selling-tips/index.html (+4ms) 
+23:43:08   ├─ /fr/blog/category/marketplace-guide/index.html (+2ms) 
+23:43:08   ├─ /fr/blog/category/tool-comparison/index.html (+3ms) 
+23:43:08   ├─ /fr/blog/category/pricing-strategy/index.html (+2ms) 
+23:43:08   ├─ /fr/blog/category/success-stories/index.html (+2ms) 
+23:43:08   ├─ /de/blog/category/selling-tips/index.html (+4ms) 
+23:43:08   ├─ /de/blog/category/marketplace-guide/index.html (+2ms) 
+23:43:08   ├─ /de/blog/category/tool-comparison/index.html (+2ms) 
+23:43:08   ├─ /de/blog/category/pricing-strategy/index.html (+2ms) 
+23:43:08   ├─ /de/blog/category/success-stories/index.html (+2ms) 
+23:43:08   ├─ /nl/blog/category/selling-tips/index.html (+5ms) 
+23:43:08   ├─ /nl/blog/category/marketplace-guide/index.html (+4ms) 
+23:43:08   ├─ /nl/blog/category/tool-comparison/index.html (+2ms) 
+23:43:08   ├─ /nl/blog/category/pricing-strategy/index.html (+2ms) 
+23:43:08   └─ /nl/blog/category/success-stories/index.html (+2ms) 
+23:43:08 λ src/pages/[lang]/blog/rss.xml.ts
+23:43:08   ├─ /fr/blog/rss.xml (+3ms) 
+23:43:08   ├─ /de/blog/rss.xml (+2ms) 
+23:43:08   └─ /nl/blog/rss.xml (+2ms) 
+23:43:08 ▶ src/pages/[lang]/blog/[slug].astro
+23:43:08   ├─ /de/blog/auf-vinted-verkaufen/index.html (+6ms) 
+23:43:08   ├─ /de/blog/vinted-beschreibungen-die-verkaufen/index.html (+9ms) 
+23:43:08   ├─ /de/blog/viele-artikel-auf-vinted-schnell-verkaufen/index.html (+7ms) 
+23:43:08   ├─ /de/blog/vinted-angebote-im-batch-erstellen/index.html (+6ms) 
+23:43:08   ├─ /de/blog/vinted-fotos-die-verkaufen/index.html (+6ms) 
+23:43:08   ├─ /de/blog/was-ist-vinted-wie-funktioniert-es/index.html (+7ms) 
+23:43:08   ├─ /de/blog/warum-verkaufen-sich-meine-vinted-artikel-nicht/index.html (+8ms) 
+23:43:08   ├─ /fr/blog/generer-annonces-vinted-en-lot/index.html (+8ms) 
+23:43:08   ├─ /fr/blog/comment-vendre-sur-vinted/index.html (+7ms) 
+23:43:08   ├─ /fr/blog/how-to-write-vinted-descriptions-that-sell/index.html (+7ms) 
+23:43:08   ├─ /fr/blog/vendre-plusieurs-articles-vinted-rapidement/index.html (+8ms) 
+23:43:08   ├─ /fr/blog/vinted-photos-that-sell/index.html (+9ms) 
+23:43:08   ├─ /fr/blog/quest-ce-que-vinted-comment-ca-marche/index.html (+6ms) 
+23:43:08   ├─ /fr/blog/pourquoi-mes-articles-vinted-ne-se-vendent-pas/index.html (+6ms) 
+23:43:08   ├─ /nl/blog/verkopen-op-vinted/index.html (+6ms) 
+23:43:08   ├─ /nl/blog/snel-veel-items-op-vinted-verkopen/index.html (+6ms) 
+23:43:08   ├─ /nl/blog/vinted-advertenties-in-batches-genereren/index.html (+6ms) 
+23:43:08   ├─ /nl/blog/vinted-beschrijvingen-die-verkopen/index.html (+8ms) 
+23:43:08   ├─ /nl/blog/vinted-fotos-die-verkopen/index.html (+6ms) 
+23:43:08   ├─ /nl/blog/wat-is-vinted-hoe-werkt-het/index.html (+6ms) 
+23:43:08   └─ /nl/blog/waarom-verkopen-mijn-vinted-items-niet/index.html (+7ms) 
+23:43:08 ▶ src/pages/[lang]/blog/index.astro
+23:43:08   ├─ /fr/blog/index.html (+4ms) 
+23:43:08   ├─ /de/blog/index.html (+4ms) 
+23:43:08   └─ /nl/blog/index.html (+3ms) 
+23:43:08 ▶ src/pages/[lang]/pricing.astro
+23:43:08   ├─ /fr/pricing/index.html (+2ms) 
+23:43:08   ├─ /de/pricing/index.html (+2ms) 
+23:43:08   ├─ /nl/pricing/index.html (+2ms) 
+23:43:08   ├─ /pl/pricing/index.html (+3ms) 
+23:43:08   ├─ /es/pricing/index.html (+2ms) 
+23:43:08   ├─ /it/pricing/index.html (+2ms) 
+23:43:08   └─ /pt/pricing/index.html (+2ms) 
+23:43:08 ▶ src/pages/[lang]/vinted-description-template.astro
+23:43:08   ├─ /fr/vinted-description-template/index.html (+1ms) 
+23:43:08   ├─ /de/vinted-description-template/index.html (+1ms) 
+23:43:08   ├─ /nl/vinted-description-template/index.html (+1ms) 
+23:43:08   ├─ /pl/vinted-description-template/index.html (+1ms) 
+23:43:08   ├─ /es/vinted-description-template/index.html (+1ms) 
+23:43:08   ├─ /it/vinted-description-template/index.html (+1ms) 
+23:43:08   └─ /pt/vinted-description-template/index.html (+1ms) 
+23:43:08 ▶ src/pages/[lang]/vinted-listing-checklist.astro
+23:43:08   ├─ /fr/vinted-listing-checklist/index.html (+1ms) 
+23:43:08   ├─ /de/vinted-listing-checklist/index.html (+1ms) 
+23:43:08   ├─ /nl/vinted-listing-checklist/index.html (+1ms) 
+23:43:08   ├─ /pl/vinted-listing-checklist/index.html (+2ms) 
+23:43:08   ├─ /es/vinted-listing-checklist/index.html (+2ms) 
+23:43:08   ├─ /it/vinted-listing-checklist/index.html (+2ms) 
+23:43:08   └─ /pt/vinted-listing-checklist/index.html (+4ms) 
+23:43:08 ▶ src/pages/[lang]/vinted-photo-to-listing.astro
+23:43:08   ├─ /fr/vinted-photo-to-listing/index.html (+2ms) 
+23:43:08   ├─ /de/vinted-photo-to-listing/index.html (+1ms) 
+23:43:08   ├─ /nl/vinted-photo-to-listing/index.html (+1ms) 
+23:43:08   ├─ /pl/vinted-photo-to-listing/index.html (+1ms) 
+23:43:08   ├─ /es/vinted-photo-to-listing/index.html (+1ms) 
+23:43:08   ├─ /it/vinted-photo-to-listing/index.html (+1ms) 
+23:43:08   └─ /pt/vinted-photo-to-listing/index.html (+1ms) 
+23:43:08 ▶ src/pages/[lang]/index.astro
+23:43:08   ├─ /fr/index.html (+1ms) 
+23:43:08   ├─ /de/index.html (+1ms) 
+23:43:08   ├─ /nl/index.html (+1ms) 
+23:43:08   ├─ /pl/index.html (+1ms) 
+23:43:08   ├─ /es/index.html (+1ms) 
+23:43:08   ├─ /it/index.html (+1ms) 
+23:43:08   └─ /pt/index.html (+1ms) 
+23:43:08 ▶ src/pages/index.astro
+23:43:08   └─ /index.html (+1ms) 
+23:43:08 ✓ Completed in 833ms.
+
+23:43:08 [@astrojs/sitemap] `sitemap-index.xml` created at `dist`
+23:43:08 [build] 132 page(s) built in 7.82s
+23:43:08 [build] Complete!
+
+> quick-vint-api@1.0.0 format-check
+> prettier --check "**/*.{ts,js,json,md}"
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> quick-vint-api@1.0.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.5 [39m[90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1[39m
+
+ [32m✓[39m src/pages/__tests__/adminHtml.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 177[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/billingAnalytics.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 178[2mms[22m[39m
+[90mstderr[2m | src/utils/__tests__/subscriptionWelcomeEmail.test.ts[2m > [22m[2msubscription welcome email sender[2m > [22m[2mmarks the claim failed when Resend rejects the send
+[22m[39mFailed to send subscription welcome email: Resend down
+
+ [32m✓[39m src/utils/__tests__/subscriptionWelcomeEmail.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 220[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/userUsageEndpoint.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 291[2mms[22m[39m
+[90mstderr[2m | src/api/__tests__/phoneUpload.test.ts[2m > [22m[2mphone upload endpoint[2m > [22m[2mreports cleanup failure instead of pretending it succeeded
+[22m[39mCleanup error: Error: storage unavailable
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/phoneUpload.test.ts:1418:43
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:302:11
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:26
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2323:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2272:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2955:64
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not reset monthly usage from checkout completion
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not reset monthly usage from checkout completion
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not send a welcome email for an unpaid async checkout
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not send a welcome email for an unpaid async checkout
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not welcome a subscription already set to cancel at period end
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not welcome a subscription already set to cancel at period end
+[22m[39m⏳ Handling checkout.session.completed
+
+ [32m✓[39m src/api/__tests__/phoneUpload.test.ts [2m([22m[2m46 tests[22m[2m)[22m[33m 340[2mms[22m[39m
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2maccepts subscription checkout when no profile matches the email
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2maccepts subscription checkout when no profile matches the email
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mpreserves legacy limits when subscription checkout is re-delivered
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mpreserves legacy limits when subscription checkout is re-delivered
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2monly replaces a missing stored subscription for the same customer (cus_123)
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2monly replaces a missing stored subscription for the same customer (cus_123)
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2monly replaces a missing stored subscription for the same customer (cus_other)
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2monly replaces a missing stored subscription for the same customer (cus_other)
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mignores a delayed checkout for a replaced subscription
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mignores a delayed checkout for a replaced subscription
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not reset monthly usage for routine same-subscription updates
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.updated
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdoes not reset monthly usage for routine same-subscription updates
+[22m[39m⏳ Handling customer.subscription.updated
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mignores an update for a replaced subscription
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.updated
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mignores an update for a replaced subscription
+[22m[39m⏳ Handling customer.subscription.updated
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2muses live Stripe state instead of a stale same-subscription snapshot
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.updated
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2muses live Stripe state instead of a stale same-subscription snapshot
+[22m[39m⏳ Handling customer.subscription.updated
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mfails closed when authenticated email billing lookup is ambiguous
+[22m[39m❌ create-checkout error: Error: Ambiguous Stripe billing records for this account.
+    at findManageableBillingByEmailStrict [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mutils/stripeBillingPortal.ts:156:11[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at Module.handler [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mapi/stripe/create-checkout.ts:227:34[90m)[39m
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/mobileCheckout.test.ts:336:5
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mfails closed on a transient authenticated email billing lookup
+[22m[39m❌ create-checkout error: Error: Stripe timeout
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/mobileCheckout.test.ts:347:44
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:302:11
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:26
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2323:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2272:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2955:64
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mreturns 500 when a profile lookup fails so Stripe retries
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.updated
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mreturns 500 when a profile lookup fails so Stripe retries
+[22m[39m⏳ Handling customer.subscription.updated
+
+[90mstderr[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mreturns 500 when a profile lookup fails so Stripe retries
+[22m[39m❌ Error handling Stripe webhook: { code: [32m'XX000'[39m, message: [32m'database unavailable'[39m }
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mguards deletion against a replaced subscription
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.deleted
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mguards deletion against a replaced subscription
+[22m[39m⏳ Handling customer.subscription.deleted
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mlinks an email-matched profile without sending before Checkout completes
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.created
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mlinks an email-matched profile without sending before Checkout completes
+[22m[39m⏳ Handling customer.subscription.created
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdefers the early subscription event until customer-facing billing exists
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.created
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mdefers the early subscription event until customer-facing billing exists
+[22m[39m⏳ Handling customer.subscription.created
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mwaits for Checkout currency when an earlier invoice has another currency
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.created
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mwaits for Checkout currency when an earlier invoice has another currency
+[22m[39m⏳ Handling customer.subscription.created
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mwaits for Checkout currency when an earlier invoice has another currency
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mwaits for Checkout currency when an earlier invoice has another currency
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mactivates custom Business limits from a subscription-level period end
+[22m[39m✅ Stripe webhook signature OK. Event: customer.subscription.updated
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mactivates custom Business limits from a subscription-level period end
+[22m[39m⏳ Handling customer.subscription.updated
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mfails closed on a transient checkout customer lookup error
+[22m[39m❌ create-checkout error: Error: Stripe timeout
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/mobileCheckout.test.ts:507:48
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:302:11
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:26
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2323:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2272:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2955:64
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mresets usage through the atomic RPC for a newly paid monthly period from invoice.paid
+[22m[39m✅ Stripe webhook signature OK. Event: invoice.paid
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mresets usage through the atomic RPC for a newly paid monthly period from invoice.paid
+[22m[39m⏳ Handling invoice.paid
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mrecovers from a confirmed missing checkout customer: resource_missing
+[22m[39mStored mobile customer not found, will create new: { code: [32m'resource_missing'[39m }
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mresets usage through the atomic RPC for a newly paid monthly period from invoice.payment_succeeded
+[22m[39m✅ Stripe webhook signature OK. Event: invoice.payment_succeeded
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mresets usage through the atomic RPC for a newly paid monthly period from invoice.payment_succeeded
+[22m[39m⏳ Handling invoice.payment_succeeded
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mguards a paid-invoice profile update against a replaced subscription
+[22m[39m✅ Stripe webhook signature OK. Event: invoice.paid
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mguards a paid-invoice profile update against a replaced subscription
+[22m[39m⏳ Handling invoice.paid
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mignores a delayed paid invoice from an older subscription period
+[22m[39m✅ Stripe webhook signature OK. Event: invoice.paid
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mignores a delayed paid invoice from an older subscription period
+[22m[39m⏳ Handling invoice.paid
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2muses a stable replacement key for a resource-missing stored customer
+[22m[39mStored mobile customer not found, will create new: { code: [32m'resource_missing'[39m }
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2madopts a paid replacement when the stored subscription is inactive
+[22m[39m✅ Stripe webhook signature OK. Event: invoice.paid
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2madopts a paid replacement when the stored subscription is inactive
+[22m[39m⏳ Handling invoice.paid
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mnever resets usage when a renewal payment fails
+[22m[39m✅ Stripe webhook signature OK. Event: invoice.payment_failed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mclears account pause after a successful credit pack purchase
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mclears account pause after a successful credit pack purchase
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mfails closed on a transient portal customer lookup error
+[22m[39m❌ create-portal error: Error: Stripe timeout
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/mobileCheckout.test.ts:731:48
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:302:11
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:26
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2323:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2272:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2955:64
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mlogs a critical failure when webhook processing fails
+[22m[39m✅ Stripe webhook signature OK. Event: checkout.session.completed
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mdoes not create checkout when linking a new customer fails
+[22m[39mError saving new mobile stripe_customer_id: { message: [32m'database unavailable'[39m }
+❌ create-checkout error: Error: Could not save the Stripe customer for this account.
+    at handler [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mapi/stripe/create-checkout.ts:318:17[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/mobileCheckout.test.ts:787:5
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:20
+
+[90mstdout[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mlogs a critical failure when webhook processing fails
+[22m[39m⏳ Handling checkout.session.completed
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mretries an initial no-customer profile with the same idempotency key
+[22m[39mError saving new mobile stripe_customer_id: { message: [32m'database unavailable'[39m }
+❌ create-checkout error: Error: Could not save the Stripe customer for this account.
+    at handler [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mapi/stripe/create-checkout.ts:318:17[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/mobileCheckout.test.ts:820:5
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mreuses one replacement key across persistence retries
+[22m[39mStored mobile customer not found, will create new: { code: [32m'resource_missing'[39m }
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mreuses one replacement key across persistence retries
+[22m[39mError saving new mobile stripe_customer_id: { message: [32m'database unavailable'[39m }
+❌ create-checkout error: Error: Could not save the Stripe customer for this account.
+    at handler [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mapi/stripe/create-checkout.ts:318:17[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/mobileCheckout.test.ts:865:5
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:20
+
+[90mstderr[2m | src/api/__tests__/mobileCheckout.test.ts[2m > [22m[2mbearer-owned mobile Stripe billing[2m > [22m[2mreuses one replacement key across persistence retries
+[22m[39mStored mobile customer not found, will create new: { code: [32m'resource_missing'[39m }
+
+[90mstderr[2m | src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts[2m > [22m[2mStripe webhook subscription usage reset[2m > [22m[2mlogs a critical failure when webhook processing fails
+[22m[39m❌ Error handling Stripe webhook: Error: constraint failed
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts:1522:14
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:302:11
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:26
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2323:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2272:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2955:64
+
+ [32m✓[39m src/api/__tests__/stripeWebhookSubscriptionUsageReset.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 443[2mms[22m[39m
+     [33m[2m✓[22m[39m does not reset monthly usage from checkout completion [33m 366[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/mobileCheckout.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 395[2mms[22m[39m
+     [33m[2m✓[22m[39m returns the disabled response before mobile billing ownership lookup [33m 324[2mms[22m[39m
+ [32m✓[39m src/scripts/__tests__/telemetryWebsite.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 523[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/uploadClient.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 351[2mms[22m[39m
+ [32m✓[39m src/scripts/__tests__/analyticsAttribution.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mrefunds instead of committing when the draft is deleted while the provider runs
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2msaves draft output before committing usage and before reporting success
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstderr[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mclaim_is_atomic_and_replays_bounded_failure
+[22m[39mGeneration error: timeout
+
+[90mstderr[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mclaim_is_atomic_and_replays_bounded_failure
+[22m[39mGeneration error: timeout
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mkeeps extension generation enabled when the mobile flag is disabled
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mdoes not claim before deterministic validation or for extension requests
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mdoes not persist success when reservation commit is uncertain
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2matomically reserves and binds before starting model work
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstderr[2m | src/utils/__tests__/rateLimiter.entitlements.test.ts[2m > [22m[2mRateLimiter entitlement decisions[2m > [22m[2mreturns null minute capacity when the limiter read fails
+[22m[39mError fetching rate limit: { code: [32m'database_unavailable'[39m, message: [32m'timeout'[39m }
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mpersists commit-pending before committing the reservation
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mdoes not commit when commit-pending persistence fails
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstderr[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mpreserves provider 403 as a bounded non-retryable mobile failure
+[22m[39mGeneration error: provider forbidden rate limit
+
+[90mstderr[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2msanitizes provider URLs and token-shaped secrets before API logging
+[22m[39mGeneration error: provider failed at [redacted-url] [redacted-bearer] [redacted-jwt] [redacted-token] [redacted-token] refresh-[redacted-token] [redacted-token] [redacted-token]
+
+[90mstderr[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mkeeps extension provider 403 behavior unchanged
+[22m[39mGeneration error: provider forbidden
+
+[90mstderr[2m | src/utils/__tests__/rateLimiter.entitlements.test.ts[2m > [22m[2mRateLimiter entitlement decisions[2m > [22m[2mfails closed when generation reservation cannot be made
+[22m[39mGeneration reservation failed: { message: [32m'function missing'[39m }
+
+[90mstdout[2m | src/api/__tests__/generateMobileWeb.test.ts[2m > [22m[2mmobile web generation idempotency[2m > [22m[2mdoes not reserve again while a prior commit-pending attempt is unresolved
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+ [32m✓[39m src/api/__tests__/generateMobileWeb.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 759[2mms[22m[39m
+     [33m[2m✓[22m[39m refunds instead of committing when the draft is deleted while the provider runs [33m 689[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/magicLinkEndpoint.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 113[2mms[22m[39m
+[90mstderr[2m | src/utils/__tests__/rateLimiter.entitlements.test.ts[2m > [22m[2mRateLimiter entitlement decisions[2m > [22m[2mreserves one free no-emoji retry without consuming listing quota
+[22m[39mError updating global stats: Error: Unexpected Supabase .single() call for "daily_stats"
+    at popSingle [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/utils/__tests__/rateLimiter.entitlements.test.ts:25:11[90m)[39m
+    at Object.<anonymous> [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/utils/__tests__/rateLimiter.entitlements.test.ts:54:31[90m)[39m
+    at Object.Mock [as single] [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+spy@4.1.5/node_modules/[4m@vitest[24m/spy/dist/index.js:332:34[90m)[39m
+    at Function.updateGlobalStats [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mutils/rateLimiter.ts:377:10[90m)[39m
+    at Function.reserveEmojiRetry [90m(/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mutils/rateLimiter.ts:809:18[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/utils/__tests__/rateLimiter.entitlements.test.ts:977:20
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:20
+
+ [32m✓[39m src/utils/__tests__/rateLimiter.entitlements.test.ts [2m([22m[2m32 tests[22m[2m)[22m[32m 140[2mms[22m[39m
+ [32m✓[39m src/scripts/__tests__/sendSupportReplyScript.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 154[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/auth.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 165[2mms[22m[39m
+[90mstdout[2m | src/api/__tests__/generateRemoteImages.test.ts[2m > [22m[2m/api/generate remote image handling[2m > [22m[2mallows scoped knowledge enrichment without account instructions
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstdout[2m | src/api/__tests__/generateRemoteImages.test.ts[2m > [22m[2m/api/generate remote image handling[2m > [22m[2mlets account instructions override defaults without overriding request settings
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstdout[2m | src/api/__tests__/generateRemoteImages.test.ts[2m > [22m[2m/api/generate remote image handling[2m > [22m[2mconverts remote signed image URLs before sending images to OpenAI
+[22m[39m🔄 OpenAI Rate Limit Status: {
+  limitRequests: [1mnull[22m,
+  limitTokens: [1mnull[22m,
+  remainingRequests: [1mnull[22m,
+  remainingTokens: [1mnull[22m,
+  resetRequests: [1mnull[22m,
+  resetTokens: [1mnull[22m
+}
+
+[90mstderr[2m | src/api/__tests__/generateRemoteImages.test.ts[2m > [22m[2m/api/generate remote image handling[2m > [22m[2mrefunds the generation reservation and returns a simple message when OpenAI rejects images
+[22m[39mGeneration error: Invalid image URL. Expected a base64-encoded data URL.
+
+ [32m✓[39m src/utils/__tests__/sentryBudget.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 140[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/generateRemoteImages.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 903[2mms[22m[39m
+     [33m[2m✓[22m[39m rejects missing auth before reserving generation or calling OpenAI [33m 842[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/listingGuides.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 91[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/dailyCleanup.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 146[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/customerUsagePaymentRequired.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 171[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/billingReconciliationUsageReset.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 155[2mms[22m[39m
+[90mstderr[2m | src/api/__tests__/createCheckoutExistingSubscriber.test.ts[2m > [22m[2mcreate checkout[2m > [22m[2mlogs a critical failure when subscription checkout creation fails
+[22m[39m❌ create-checkout error: Error: Stripe unavailable
+    at [90m/home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39msrc/api/__tests__/createCheckoutExistingSubscriber.test.ts:480:42
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:302:11
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:26
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2323:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2272:10[90m)[39m
+    at [90mfile:///home/mests/projects/autolister/.worktrees/mobile-web-phase1/[39mnode_modules/[4m.pnpm[24m/@vitest+runner@4.1.5/node_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:2955:64
+
+[90mstderr[2m | src/api/__tests__/subscriptionWelcomeRetry.test.ts[2m > [22m[2msubscription welcome retry[2m > [22m[2mcontinues retrying other rows when Stripe deleted a subscription or checkout session
+[22m[39mSubscription welcome retry row failed: {
+  email: [32m'deleted-subscription@example.com'[39m,
+  stripeSubscriptionId: [32m'sub_deleted'[39m,
+  error: { code: [32m'resource_missing'[39m }
+}
+
+[90mstderr[2m | src/api/__tests__/subscriptionWelcomeRetry.test.ts[2m > [22m[2msubscription welcome retry[2m > [22m[2mcontinues retrying other rows when Stripe deleted a subscription or checkout session
+[22m[39mSubscription welcome retry row failed: {
+  email: [32m'deleted-session@example.com'[39m,
+  stripeSubscriptionId: [32m'sub_session_deleted'[39m,
+  error: { code: [32m'resource_missing'[39m }
+}
+
+ [32m✓[39m src/api/__tests__/createCheckoutExistingSubscriber.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 114[2mms[22m[39m
+[90mstderr[2m | src/utils/__tests__/mobileGenerationIdempotency.test.ts[2m > [22m[2mmobile generation idempotency[2m > [22m[2mreports a stale attempt without pretending a reservation was made
+[22m[39mMobile atomic generation reservation failed: mobile_generation_attempt_stale
+
+[90mstderr[2m | src/utils/__tests__/mobileGenerationIdempotency.test.ts[2m > [22m[2mmobile generation idempotency[2m > [22m[2mreports an atomic reservation RPC failure without a reservation id
+[22m[39mMobile atomic generation reservation failed: function is unavailable
+
+ [32m✓[39m src/scripts/__tests__/welcomeCheckout.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 163[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/subscriptionWelcomeRetry.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 119[2mms[22m[39m
+ [32m✓[39m src/scripts/__tests__/pricingCheckoutTracking.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 116[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/resetCountsLegacy.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 111[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/mobileGenerationIdempotency.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 126[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/dngPreview.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 133[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/limitFollowupOfferEndpoint.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 134[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/listingDraftService.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/domCanary.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32m✓[39m src/scripts/__tests__/pricingFocus.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 91[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/generationOffers.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/openaiImageUrls.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/billingEvents.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 58[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/listingDraftPrivacy.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/domCanaryHeartbeat.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 134[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/generationClient.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/app.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 118[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/openaiRateLimitHeaders.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 58[2mms[22m[39m
+ [32m✓[39m src/i18n/__tests__/site.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 172[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/pricingDisplay.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 100[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/mobileWeb.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m src/scripts/__tests__/attribution.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 47[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/draftWorkflow.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/config.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/phoneUploadRecovery.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 141[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/apiLogger.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 105[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/authCallbackBridge.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 126[2mms[22m[39m
+[90mstderr[2m | src/api/__tests__/publicStats.test.ts[2m > [22m[2mpublic stats endpoint[2m > [22m[2mreturns 503 when stats cannot be loaded
+[22m[39mFailed to load public stats { message: [32m'db down'[39m }
+
+ [32m✓[39m src/api/__tests__/publicStats.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 112[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/incidentNotifications.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/draftContracts.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/incidentContract.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/uninstallPage.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/generationOfferClaimEndpoint.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 279[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/mobileWebCors.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 3818[2mms[22m[39m
+     [33m[2m✓[22m[39m allows the mobile headers on the generate preflight [33m 873[2mms[22m[39m
+     [33m[2m✓[22m[39m preserves the phone-upload preflight contract [33m 2887[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/language.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/authAbuseGuard.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/incidentAdmin.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/draftGeneration.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/duplicateIpAutoPause.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/incidentIdentity.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/attributionClaim.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/releaseContract.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/phoneEvidence.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/emailTemplates.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/eventsStyleLearning.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/pricingOfferToken.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/attribution.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/subscriptionInvoice.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/criticalEndpointAlert.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/draftPhotoEndpoint.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/limitFollowupEligibility.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/tierConfig.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/customerUsagePage.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/customerUsageToken.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/phoneUploadHtml.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/draftClient.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/descriptionFooter.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m src/i18n/__tests__/routing.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/aiStyleLearning.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/i18n/__tests__/homeTierProof.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/draftsEndpoint.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/blog.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/xShareLink.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/mobileWebRoute.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/adminAttributionReport.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m src/pages/__tests__/sitemap.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/subscriptionUsageReset.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/installPlanIntent.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/i18n/__tests__/welcome.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/vintedRedirect.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/phoneUploadErrors.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/aiStyleLearner.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/openaiModelExperiment.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/mobileWebConfig.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/adminUserChannels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/pricingPlanAction.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/attributionReport.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m src/components/__tests__/HomeLandingPerformance.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/sentryPolicy.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/accountPause.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/subscriptionStatus.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/listingDraftsDatabase.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 5511[2mms[22m[39m
+ [32m✓[39m src/i18n/__tests__/blog.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/components/__tests__/HomeLandingCopy.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/generateDebugImages.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/openaiListingOutput.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/components/mobile-web/__tests__/PhotoRail.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/app/mobile-web/__tests__/draftSettings.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/billingMigrationSafety.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/incidentDatabase.test.ts [2m([22m[2m22 tests[22m[2m)[22m[33m 5539[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/adminAiInstructions.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/stripeWelcomeBilling.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/adminRevenueSummary.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/api/__tests__/eventsTrack.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 9173[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps uninstall user identity from the uninstall page payload [33m 466[2mms[22m[39m
+     [33m[2m✓[22m[39m does not raise legacy generation stalls in the real database sweep [33m 5217[2mms[22m[39m
+     [33m[2m✓[22m[39m ends correlated checkout flows in the real sweep while retaining genuine pending requests and failures [33m 1742[2mms[22m[39m
+     [33m[2m✓[22m[39m acknowledges a report only after its permanent record commits, then deduplicates a lost reply [33m 1717[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m116 passed[39m[22m[90m (116)[39m
+[2m      Tests [22m [1m[32m828 passed[39m[22m[90m (828)[39m
+[2m   Start at [22m 23:43:16
+[2m   Duration [22m 9.81s[2m (transform 15.62s, setup 0ms, import 25.50s, tests 34.11s, environment 28ms)[22m
+

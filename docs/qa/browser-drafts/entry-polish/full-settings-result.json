@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "generatedSettings": [
+    {
+      "id": "b5575c34-11e6-47e9-8530-ef1e8599912f",
+      "settings": {
+        "titleLanguageCode": "fr",
+        "descriptionLanguageCode": "nl",
+        "descriptionLength": "short",
+        "useBulletPoints": false,
+        "tone": "enthusiastic",
+        "useHashtags": true,
+        "useEmojis": true,
+        "includeSellerNote": false,
+        "descriptionFooterText": "Smoke-free home. Happy to bundle items."
+      }
+    },
+    {
+      "id": "d62ebd52-433a-48c1-afbb-f9183244b096",
+      "settings": {
+        "titleLanguageCode": "en",
+        "descriptionLanguageCode": "en",
+        "descriptionLength": "long",
+        "useBulletPoints": true,
+        "tone": "friendly",
+        "useHashtags": false,
+        "useEmojis": false,
+        "includeSellerNote": false,
+        "descriptionFooterText": ""
+      }
+    },
+    {
+      "id": "57597d97-7df1-40d6-86f8-e148d5085d99",
+      "settings": {
+        "titleLanguageCode": "en",
+        "descriptionLanguageCode": "en",
+        "descriptionLength": "short",
+        "useBulletPoints": true,
+        "tone": "standard",
+        "useHashtags": true,
+        "useEmojis": false,
+        "includeSellerNote": false,
+        "descriptionFooterText": ""
+      }
+    }
+  ],
+  "viewports": [360, 390, 768, 1440],
+  "checks": [
+    "all writing options persisted",
+    "separate languages",
+    "defaults apply immediately",
+    "excluded note survives reload",
+    "existing text retained",
+    "batch inheritance preserves custom settings",
+    "sequential mixed settings generation",
+    "pause and resume",
+    "invalid seller note blocks generation",
+    "plan access keeps saved options and permits turning them off",
+    "batch settings save failure can be retried without losing custom choices",
+    "overflow and menu positioning"
+  ],
+  "errors": []
+}

@@ -206,6 +206,45 @@ describe("mobile web API transport", () => {
     setBrowser();
   });
 
+  it("refuses a changed account before sending private generation inputs", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { fetchMobileJson } = await import("../api.js");
+    await expect(
+      fetchMobileJson(
+        "/api/generate",
+        { method: "POST" },
+        { expectedUserId: "another-user" },
+      ),
+    ).rejects.toMatchObject({ code: "account_changed" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not replay a private request under a different refreshed account", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response("{}", { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+    mocks.auth.refreshSession.mockResolvedValueOnce({
+      data: {
+        session: {
+          ...mocks.session,
+          user: { ...mocks.session.user, id: "another-user" },
+        },
+      },
+      error: null,
+    });
+    const { fetchMobileJson } = await import("../api.js");
+    await expect(
+      fetchMobileJson(
+        "/api/generate",
+        { method: "POST" },
+        { expectedUserId: "user-1" },
+      ),
+    ).rejects.toMatchObject({ code: "account_changed" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("sends bearer authentication and parses a JSON response", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ remaining: 5 }), {

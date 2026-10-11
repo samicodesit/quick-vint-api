@@ -1,0 +1,697 @@
+{
+  "checkedAt": "2026-10-11T22:10:00.450Z",
+  "project": {
+    "id": "prj_0QUxoXo1l1GA95t55hSKCQBJ5v6n",
+    "name": "quick-vint-api",
+    "productionBranch": "main"
+  },
+  "previewProtection": {
+    "sso": "all_except_custom_domains",
+    "password": false
+  },
+  "environmentVariableNames": [
+    "DOM_CANARY_SECRET",
+    "R2_ENDPOINT",
+    "R2_BUCKET",
+    "R2_SECRET_ACCESS_KEY",
+    "R2_ACCESS_KEY_ID",
+    "R2_ACCOUNT_ID",
+    "CUSTOM_BUSINESS_MONTHLY_PRICE_EUR",
+    "CUSTOM_BUSINESS_MONTHLY_LIMIT",
+    "CUSTOM_BUSINESS_DAILY_LIMIT",
+    "STRIPE_CUSTOM_BUSINESS_PRICE_IDS",
+    "SENTRY_DSN",
+    "OPENAI_API_KEY",
+    "VERCEL_APP_ALLOWED_ORIGINS",
+    "VERCEL_APP_OPENAI_API_KEY",
+    "VERCEL_APP_SUPABASE_ANON_KEY",
+    "VERCEL_APP_SUPABASE_URL",
+    "VERCEL_APP_SITE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_CANCEL_URL",
+    "STRIPE_SUCCESS_URL",
+    "STRIPE_PORTAL_RETURN_URL",
+    "CRON_SECRET",
+    "ADMIN_SECRET",
+    "DEV_BYPASS_KEY",
+    "RESEND_API_KEY",
+    "OPENAI_API_KEY",
+    "VERCEL_APP_ALLOWED_ORIGINS",
+    "VERCEL_APP_OPENAI_API_KEY",
+    "VERCEL_APP_SUPABASE_ANON_KEY",
+    "VERCEL_APP_SUPABASE_URL",
+    "VERCEL_APP_SITE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_CANCEL_URL",
+    "STRIPE_SUCCESS_URL",
+    "STRIPE_PORTAL_RETURN_URL",
+    "CRON_SECRET",
+    "ADMIN_SECRET",
+    "DEV_BYPASS_KEY",
+    "RESEND_API_KEY",
+    "STRIPE_CREDIT_PACK_PRICE_ID",
+    "OPENAI_API_KEY",
+    "VERCEL_APP_ALLOWED_ORIGINS",
+    "VERCEL_APP_OPENAI_API_KEY",
+    "VERCEL_APP_SUPABASE_ANON_KEY",
+    "VERCEL_APP_SUPABASE_URL",
+    "VERCEL_APP_SITE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_CANCEL_URL",
+    "STRIPE_SUCCESS_URL",
+    "STRIPE_PORTAL_RETURN_URL",
+    "CRON_SECRET",
+    "ADMIN_SECRET",
+    "DEV_BYPASS_KEY",
+    "RESEND_API_KEY",
+    "STRIPE_CREDIT_PACK_PRICE_ID"
+  ],
+  "flags": [],
+  "databaseCredentialVariables": [],
+  "schema": {
+    "tables": [
+      {
+        "name": "profiles",
+        "present": true
+      },
+      {
+        "name": "generation_reservations",
+        "present": true
+      },
+      {
+        "name": "mobile_generation_idempotency",
+        "present": true
+      }
+    ],
+    "functions": [
+      {
+        "name": "reserve_generation_request_for_current_status",
+        "present": true,
+        "parameters": [
+          "p_burst_limit",
+          "p_daily_limit",
+          "p_effective_tier",
+          "p_free_lifetime_limit",
+          "p_has_unlimited_daily",
+          "p_monthly_limit",
+          "p_pricing_limits_mode",
+          "p_user_id"
+        ]
+      },
+      {
+        "name": "claim_mobile_generation_idempotency",
+        "present": true,
+        "parameters": [
+          "p_client",
+          "p_request_hash",
+          "p_request_id",
+          "p_user_id"
+        ]
+      },
+      {
+        "name": "reserve_and_bind_mobile_generation_reservation",
+        "present": true,
+        "parameters": [
+          "p_attempt_id",
+          "p_burst_limit",
+          "p_client",
+          "p_daily_limit",
+          "p_effective_tier",
+          "p_free_lifetime_limit",
+          "p_has_unlimited_daily",
+          "p_monthly_limit",
+          "p_pricing_limits_mode",
+          "p_record_id",
+          "p_request_hash",
+          "p_request_id",
+          "p_user_id"
+        ]
+      },
+      {
+        "name": "bind_mobile_generation_reservation",
+        "present": true,
+        "parameters": ["p_attempt_id", "p_record_id", "p_reservation_id"]
+      },
+      {
+        "name": "mark_mobile_generation_commit_pending",
+        "present": true,
+        "parameters": [
+          "p_attempt_id",
+          "p_expires_at",
+          "p_record_id",
+          "p_reservation_id",
+          "p_response_json"
+        ]
+      },
+      {
+        "name": "complete_mobile_generation_idempotency",
+        "present": true,
+        "parameters": [
+          "p_attempt_id",
+          "p_expires_at",
+          "p_record_id",
+          "p_reservation_id",
+          "p_response_json",
+          "p_response_status"
+        ]
+      },
+      {
+        "name": "cleanup_expired_mobile_generation_idempotency",
+        "present": true,
+        "parameters": []
+      }
+    ]
+  },
+  "profileColumns": [
+    {
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "name": "email",
+      "type": "text"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "subscription_status",
+      "type": "text"
+    },
+    {
+      "name": "api_calls_this_month",
+      "type": "integer"
+    },
+    {
+      "name": "last_api_call_reset",
+      "type": "date"
+    },
+    {
+      "name": "stripe_subscription_id",
+      "type": "text"
+    },
+    {
+      "name": "subscription_tier",
+      "type": "text"
+    },
+    {
+      "name": "current_period_end",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "stripe_customer_id",
+      "type": "text"
+    },
+    {
+      "name": "overage_used_today",
+      "type": "integer"
+    },
+    {
+      "name": "role",
+      "type": "character varying"
+    },
+    {
+      "name": "account_status",
+      "type": "character varying"
+    },
+    {
+      "name": "blocked_reason",
+      "type": "text"
+    },
+    {
+      "name": "blocked_by",
+      "type": "uuid"
+    },
+    {
+      "name": "blocked_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "custom_daily_limit",
+      "type": "integer"
+    },
+    {
+      "name": "custom_limit_reason",
+      "type": "text"
+    },
+    {
+      "name": "custom_limit_expires_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "email_subscribed",
+      "type": "boolean"
+    },
+    {
+      "name": "unsubscribe_token",
+      "type": "uuid"
+    },
+    {
+      "name": "subscription_credits",
+      "type": "integer"
+    },
+    {
+      "name": "pack_credits",
+      "type": "integer"
+    },
+    {
+      "name": "rollover_credits",
+      "type": "integer"
+    },
+    {
+      "name": "credits_cycle_end",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "is_legacy_plan",
+      "type": "boolean"
+    },
+    {
+      "name": "free_drip_weeks_delivered",
+      "type": "integer"
+    },
+    {
+      "name": "free_drip_started_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "phone_uploads_this_month",
+      "type": "integer"
+    },
+    {
+      "name": "last_phone_upload_reset",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "payment_grace_started_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "rollover_frozen_until",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "pending_tier",
+      "type": "text"
+    },
+    {
+      "name": "payment_day5_email_sent",
+      "type": "boolean"
+    },
+    {
+      "name": "free_lifetime_generations_used",
+      "type": "integer"
+    },
+    {
+      "name": "legacy_limits_granted_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "legacy_limits_reason",
+      "type": "text"
+    },
+    {
+      "name": "abuse_reason",
+      "type": "text"
+    },
+    {
+      "name": "abuse_notes",
+      "type": "text"
+    },
+    {
+      "name": "paused_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "paused_by",
+      "type": "text"
+    },
+    {
+      "name": "custom_monthly_limit",
+      "type": "integer"
+    },
+    {
+      "name": "review_request_sent_at",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "ai_instructions",
+      "type": "text"
+    },
+    {
+      "name": "ai_style_learning_state",
+      "type": "jsonb"
+    },
+    {
+      "name": "ai_style_suggestion",
+      "type": "text"
+    },
+    {
+      "name": "ai_style_suggestion_reason",
+      "type": "text"
+    },
+    {
+      "name": "last_usage_period_end",
+      "type": "timestamp with time zone"
+    },
+    {
+      "name": "last_usage_reset_invoice_id",
+      "type": "text"
+    }
+  ],
+  "baselineColumns": {
+    "profiles": [
+      {
+        "name": "id",
+        "type": "uuid"
+      },
+      {
+        "name": "email",
+        "type": "text"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "subscription_status",
+        "type": "text"
+      },
+      {
+        "name": "api_calls_this_month",
+        "type": "integer"
+      },
+      {
+        "name": "last_api_call_reset",
+        "type": "date"
+      },
+      {
+        "name": "stripe_subscription_id",
+        "type": "text"
+      },
+      {
+        "name": "subscription_tier",
+        "type": "text"
+      },
+      {
+        "name": "current_period_end",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "stripe_customer_id",
+        "type": "text"
+      },
+      {
+        "name": "overage_used_today",
+        "type": "integer"
+      },
+      {
+        "name": "role",
+        "type": "character varying"
+      },
+      {
+        "name": "account_status",
+        "type": "character varying"
+      },
+      {
+        "name": "blocked_reason",
+        "type": "text"
+      },
+      {
+        "name": "blocked_by",
+        "type": "uuid"
+      },
+      {
+        "name": "blocked_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "custom_daily_limit",
+        "type": "integer"
+      },
+      {
+        "name": "custom_limit_reason",
+        "type": "text"
+      },
+      {
+        "name": "custom_limit_expires_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "email_subscribed",
+        "type": "boolean"
+      },
+      {
+        "name": "unsubscribe_token",
+        "type": "uuid"
+      },
+      {
+        "name": "subscription_credits",
+        "type": "integer"
+      },
+      {
+        "name": "pack_credits",
+        "type": "integer"
+      },
+      {
+        "name": "rollover_credits",
+        "type": "integer"
+      },
+      {
+        "name": "credits_cycle_end",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "is_legacy_plan",
+        "type": "boolean"
+      },
+      {
+        "name": "free_drip_weeks_delivered",
+        "type": "integer"
+      },
+      {
+        "name": "free_drip_started_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "phone_uploads_this_month",
+        "type": "integer"
+      },
+      {
+        "name": "last_phone_upload_reset",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "payment_grace_started_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "rollover_frozen_until",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "pending_tier",
+        "type": "text"
+      },
+      {
+        "name": "payment_day5_email_sent",
+        "type": "boolean"
+      },
+      {
+        "name": "free_lifetime_generations_used",
+        "type": "integer"
+      },
+      {
+        "name": "legacy_limits_granted_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "legacy_limits_reason",
+        "type": "text"
+      },
+      {
+        "name": "abuse_reason",
+        "type": "text"
+      },
+      {
+        "name": "abuse_notes",
+        "type": "text"
+      },
+      {
+        "name": "paused_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "paused_by",
+        "type": "text"
+      },
+      {
+        "name": "custom_monthly_limit",
+        "type": "integer"
+      },
+      {
+        "name": "review_request_sent_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "ai_instructions",
+        "type": "text"
+      },
+      {
+        "name": "ai_style_learning_state",
+        "type": "jsonb"
+      },
+      {
+        "name": "ai_style_suggestion",
+        "type": "text"
+      },
+      {
+        "name": "ai_style_suggestion_reason",
+        "type": "text"
+      },
+      {
+        "name": "last_usage_period_end",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "last_usage_reset_invoice_id",
+        "type": "text"
+      }
+    ],
+    "rate_limits": [
+      {
+        "name": "id",
+        "type": "integer"
+      },
+      {
+        "name": "key",
+        "type": "text"
+      },
+      {
+        "name": "user_id",
+        "type": "uuid"
+      },
+      {
+        "name": "count",
+        "type": "integer"
+      },
+      {
+        "name": "window_type",
+        "type": "text"
+      },
+      {
+        "name": "expires_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp with time zone"
+      }
+    ],
+    "daily_stats": [
+      {
+        "name": "id",
+        "type": "integer"
+      },
+      {
+        "name": "date",
+        "type": "text"
+      },
+      {
+        "name": "total_api_calls",
+        "type": "integer"
+      },
+      {
+        "name": "estimated_cost",
+        "type": "numeric"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp with time zone"
+      }
+    ],
+    "system_settings": [
+      {
+        "name": "id",
+        "type": "integer"
+      },
+      {
+        "name": "key",
+        "type": "text"
+      },
+      {
+        "name": "value",
+        "type": "text"
+      },
+      {
+        "name": "reason",
+        "type": "text"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp with time zone"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp with time zone"
+      }
+    ],
+    "credit_ledger": [
+      {
+        "name": "id",
+        "type": "uuid"
+      },
+      {
+        "name": "user_id",
+        "type": "uuid"
+      },
+      {
+        "name": "stripe_session_id",
+        "type": "text"
+      },
+      {
+        "name": "type",
+        "type": "text"
+      },
+      {
+        "name": "delta",
+        "type": "integer"
+      },
+      {
+        "name": "balance_after",
+        "type": "integer"
+      },
+      {
+        "name": "metadata",
+        "type": "jsonb"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp with time zone"
+      }
+    ]
+  },
+  "catalogReadFunctions": [],
+  "prerequisitesPresent": true,
+  "extensionCompatibilityProbe": {
+    "allowed": false,
+    "code": "idempotency_bind_failed",
+    "clientAcceptedBeforeMissingProfile": false
+  },
+  "limitations": "OpenAPI proves exposed objects and signatures only. Function bodies, grants and extension client constraints require database catalog verification before release."
+}

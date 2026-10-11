@@ -1,0 +1,35 @@
+{
+  "selects": [
+    {
+      "width": 390,
+      "idle": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "typing": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "dropdownOpen": {
+        "milliseconds": 7.099999964237213,
+        "expanded": "true"
+      }
+    },
+    {
+      "width": 1440,
+      "idle": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "typing": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "dropdownOpen": {
+        "milliseconds": 2.799999952316284,
+        "expanded": "true"
+      }
+    }
+  ],
+  "hiddenLibraryRebuilds": 74
+}

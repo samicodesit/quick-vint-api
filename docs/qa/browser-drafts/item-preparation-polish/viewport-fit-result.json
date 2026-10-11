@@ -1,0 +1,230 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "state": "empty-library",
+      "viewportWidth": 360,
+      "viewport": 640,
+      "page": 640,
+      "width": 360,
+      "pageWidth": 345
+    },
+    {
+      "state": "empty-library",
+      "viewportWidth": 390,
+      "viewport": 640,
+      "page": 640,
+      "width": 390,
+      "pageWidth": 375
+    },
+    {
+      "state": "empty-library",
+      "viewportWidth": 768,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 768,
+      "pageWidth": 753
+    },
+    {
+      "state": "empty-library",
+      "viewportWidth": 1440,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 1440,
+      "pageWidth": 1425
+    },
+    {
+      "state": "single-entry",
+      "viewportWidth": 360,
+      "viewport": 640,
+      "page": 640,
+      "width": 360,
+      "pageWidth": 345
+    },
+    {
+      "state": "single-entry",
+      "viewportWidth": 390,
+      "viewport": 640,
+      "page": 640,
+      "width": 390,
+      "pageWidth": 375
+    },
+    {
+      "state": "single-entry",
+      "viewportWidth": 768,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 768,
+      "pageWidth": 753
+    },
+    {
+      "state": "single-entry",
+      "viewportWidth": 1440,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 1440,
+      "pageWidth": 1425
+    },
+    {
+      "state": "batch-entry",
+      "viewportWidth": 360,
+      "viewport": 640,
+      "page": 640,
+      "width": 360,
+      "pageWidth": 345
+    },
+    {
+      "state": "batch-entry",
+      "viewportWidth": 390,
+      "viewport": 640,
+      "page": 640,
+      "width": 390,
+      "pageWidth": 375
+    },
+    {
+      "state": "batch-entry",
+      "viewportWidth": 768,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 768,
+      "pageWidth": 753
+    },
+    {
+      "state": "batch-entry",
+      "viewportWidth": 1440,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 1440,
+      "pageWidth": 1425
+    },
+    {
+      "state": "manual-entry",
+      "viewportWidth": 360,
+      "viewport": 640,
+      "page": 640,
+      "width": 360,
+      "pageWidth": 345
+    },
+    {
+      "state": "manual-entry",
+      "viewportWidth": 390,
+      "viewport": 640,
+      "page": 640,
+      "width": 390,
+      "pageWidth": 375
+    },
+    {
+      "state": "manual-entry",
+      "viewportWidth": 768,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 768,
+      "pageWidth": 753
+    },
+    {
+      "state": "manual-entry",
+      "viewportWidth": 1440,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 1440,
+      "pageWidth": 1425
+    },
+    {
+      "state": "one-photo-preparation",
+      "viewportWidth": 360,
+      "viewport": 640,
+      "page": 640,
+      "width": 360,
+      "pageWidth": 345
+    },
+    {
+      "state": "one-photo-preparation",
+      "viewportWidth": 390,
+      "viewport": 640,
+      "page": 640,
+      "width": 390,
+      "pageWidth": 375
+    },
+    {
+      "state": "one-photo-preparation",
+      "viewportWidth": 768,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 768,
+      "pageWidth": 753
+    },
+    {
+      "state": "one-photo-preparation",
+      "viewportWidth": 1440,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 1440,
+      "pageWidth": 1425
+    },
+    {
+      "state": "empty-listed",
+      "viewportWidth": 360,
+      "viewport": 640,
+      "page": 640,
+      "width": 360,
+      "pageWidth": 345
+    },
+    {
+      "state": "empty-listed",
+      "viewportWidth": 390,
+      "viewport": 640,
+      "page": 640,
+      "width": 390,
+      "pageWidth": 375
+    },
+    {
+      "state": "empty-listed",
+      "viewportWidth": 768,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 768,
+      "pageWidth": 753
+    },
+    {
+      "state": "empty-listed",
+      "viewportWidth": 1440,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 1440,
+      "pageWidth": 1425
+    },
+    {
+      "state": "sign-in",
+      "viewportWidth": 360,
+      "viewport": 640,
+      "page": 640,
+      "width": 360,
+      "pageWidth": 345
+    },
+    {
+      "state": "sign-in",
+      "viewportWidth": 390,
+      "viewport": 640,
+      "page": 640,
+      "width": 390,
+      "pageWidth": 375
+    },
+    {
+      "state": "sign-in",
+      "viewportWidth": 768,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 768,
+      "pageWidth": 753
+    },
+    {
+      "state": "sign-in",
+      "viewportWidth": 1440,
+      "viewport": 1000,
+      "page": 1000,
+      "width": 1440,
+      "pageWidth": 1425
+    }
+  ],
+  "pageErrors": []
+}

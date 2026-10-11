@@ -1,5 +1,5 @@
 ---
-import { UserRound, ChevronDown, Camera, Images, Play, X } from "@lucide/astro";
+import { UserRound, ChevronDown, Camera, Images, Play, X, Settings2, Coins } from "@lucide/astro";
 import PhotoRail from "./PhotoRail.astro";
 import ListingControls from "./ListingControls.astro";
 import ListingResult from "./ListingResult.astro";
@@ -20,6 +20,7 @@ const {
   <header class="mobile-workspace-header">
     <a class="mobile-workspace-brand" href="/" aria-label="AutoLister home">AutoLister</a>
     <div class="mobile-workspace-header-actions" data-mobile-web="profile-menu-root" hidden>
+      <button type="button" class="mobile-header-settings" data-draft-global-trigger aria-label="Listing settings" aria-haspopup="dialog" aria-controls="draft-global-dialog" aria-expanded="false" hidden><Settings2 size={18} aria-hidden="true" /><span>Listing settings</span></button>
       <button
         type="button"
         class="mobile-profile-menu-trigger"
@@ -43,14 +44,14 @@ const {
       <section class="mobile-usage-card" data-mobile-web="usage" aria-label="Usage" aria-live="polite" hidden>
         <div class="mobile-usage-grid">
           <div class="mobile-usage-cell" data-mobile-web="usage-paid">
-            <span class="mobile-usage-label">Day</span>
+            <span class="mobile-usage-label">Today</span>
             <strong data-mobile-web="usage-daily-value"></strong>
             <span class="mobile-usage-track" data-mobile-web="usage-daily-track" aria-hidden="true">
               <span data-mobile-web="usage-daily-progress"></span>
             </span>
           </div>
           <div class="mobile-usage-cell" data-mobile-web="usage-paid">
-            <span class="mobile-usage-label">Month</span>
+            <span class="mobile-usage-label">This month</span>
             <strong data-mobile-web="usage-monthly-value"></strong>
             <span class="mobile-usage-track" data-mobile-web="usage-monthly-track" aria-hidden="true">
               <span data-mobile-web="usage-monthly-progress"></span>
@@ -60,8 +61,8 @@ const {
             <span class="mobile-usage-label">Free</span>
             <strong data-mobile-web="usage-free-value"></strong>
           </div>
-          <div class="mobile-usage-cell" data-mobile-web="usage-credits">
-            <span class="mobile-usage-label">Extra</span>
+          <div class="mobile-usage-cell mobile-extra-credits" data-mobile-web="usage-credits">
+            <span class="mobile-usage-label"><Coins size={18} aria-hidden="true" />Extra credits</span>
             <strong data-mobile-web="usage-credits-value">0</strong>
           </div>
         </div>
@@ -90,7 +91,10 @@ const {
         <p class="mobile-field-help">Code sent to <strong data-mobile-web="auth-email"></strong></p><label for="mobile-otp">6-digit code</label>
         <input id="mobile-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="mobile-otp-help" />
         <p id="mobile-otp-help" class="mobile-field-help">The same email also includes a secure sign-in link.</p>
-        <button type="button" class="mobile-text-button" data-mobile-web="change-email">Change email</button>
+        <div class="mobile-auth-actions">
+          <button type="button" class="mobile-text-button" data-mobile-web="resend-code">Resend code</button>
+          <button type="button" class="mobile-text-button" data-mobile-web="change-email">Change email</button>
+        </div>
       </form>
       <p class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
     </section>

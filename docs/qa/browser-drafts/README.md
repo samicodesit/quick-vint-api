@@ -2,6 +2,56 @@
 
 October 9, 2026. Feature branch: `codex/mobile-web-phase1`.
 
+## Current MVP storage
+
+October 11: [browser-local storage acceptance and launch limits](local-storage.md).
+Drafts and prepared JPEGs now stay in account-scoped browser storage. Existing
+temporary uploads, generation limits and cleanup are reused. Earlier cloud
+draft-table and permanent-bucket requirements below are historical.
+
+## Current rendering and overlay performance
+
+October 11 follow-up: [opening, dismissal and startup correction](performance-overlays.md#opening-dismissal-and-startup-correction). Frame-level checks catch the delayed Add new fade, coordinated backdrop dismissal, preserved header/logo and wrong-screen startup flashes. These supersede the earlier motion timings.
+
+October 11: [measured rendering reductions and overlay QA](performance-overlays.md). Idle clicks and note edits cause zero dropdown mutations. Editing retains the photo grid and defers the hidden library. Repeated opening/closing, scope changes, keyboard controls and rapid account reopening are covered by regression checks.
+
+## Current preparation and review polish
+
+October 11: [item preparation, direct editing and fixed action QA](item-preparation-polish.md). This pass covers ten-photo grids, exact deletion previews, one photo-source button, a stable generation spinner, lean review/header spacing, long editable descriptions and matching compact mobile action bars without helper text. The follow-up prevents unnecessary scrolling on seven short screens at four widths, including the preview banner. Earlier preparation/review layouts below are historical.
+
+## Current mobile flow pass
+
+October 11: [mobile flow audit and corrections](mobile-flow-audit.md). Short 360/390px phone checks now cover visible review controls, pinned single/batch generation and progress, save retry, unobstructed photo recovery and sign-in code recovery. Four-width visual evidence, the complete journey, twelve regression cases and the production gate are recorded with device limits. Earlier records below are historical.
+
+## Current entry, settings and selection polish
+
+October 11: [current QA and coverage limits](entry-polish.md). This pass covers compact photo entry, stable manual writing, animated settings/account surfaces, smooth settings scope changes, batch settings without navigation, one-button batch removal, whole-card selection and confirmed bulk deletion. The full journey and eleven regression cases pass. The production gate passes 116 files / 828 tests. Earlier sections retain historical results.
+
+## Current layout stability and control polish
+
+See [current QA and limits](presentation-polish.md). Global settings is now in the header. Photo controls and caption padding are corrected, language names have self-hosted flag artwork, and fixed Create item actions remain visible. Four-width geometry checks cover tabs, selection, hover, first grouping and batch progress. The full browser journey and ten regression cases pass. The production gate passes 116 files / 828 tests. Earlier sections below retain historical results.
+
+## Current Seller Studio redesign
+
+The earlier settings/toolbar acceptance was incorrect and has been withdrawn. See [settings repair QA](settings-repair.md) for the user-reported defects, corrected global defaults/dialog behavior, and focused regression evidence. The results below describe the preceding iteration.
+
+The approved editorial direction is implemented with full writing settings, saved defaults, per-item batch overrides and automatic generation after grouping. Useful Lucide icons replace repetitive action text; failure and constraint guidance remains visible. The latest coverage and limits are in [the implementation ledger](seller-studio-progress.md) and [root design QA](../../../design-qa.md).
+
+Final production gate: lint, types, feature-enabled 132-page build, formatting and **116 files / 828 tests passed**. The full draft browser suite and all eight acceptance/regression cases pass. Source reference captures also pass.
+
+Final local evidence: [overview](seller-studio/seller-studio-overview.png), [source comparison](seller-studio/source-review-comparison.png), [phone settings](seller-studio/reference-review-390.png), [mixed batch](seller-studio/studio-batch-ready-390.png), [queue](seller-studio/studio-batch-running-390.png), [coverage](seller-studio/capture-coverage.json). The older sections below retain historical results.
+
+## Current calm seller workspace
+
+The user-approved UI redesign uses Geist, a shared neutral/blue system, compact library navigation, a composed entry view, explicit grouping completion and a focused review workspace. Mobile account/settings/photo sheets have focus containment, inert backgrounds and cleanup after photo corrections. Desktop photo menus stay within the viewport.
+
+The production gate passes 115 files / 817 tests. The full deterministic browser journey, the redesign acceptance case and six existing review regressions pass. Fresh evidence covers 360, 390, 768 and 1440 CSS pixels, including loading, upload/generation progress, auth, retry, recovery, conflict and quota. [Acceptance and limits](ui-redesign-progress.md), [browser result](ui-redesign/result.json), [redesign result](ui-redesign/redesign-result.json).
+
+- Entry: [desktop](ui-redesign/empty-1440.png), [phone](ui-redesign/empty-390.png).
+- Review: [desktop](ui-redesign/editor-1440.png), [phone](ui-redesign/editor-390.png).
+- Grouping completion: [desktop](ui-redesign/redesign-grouping-complete-1440.png), [phone](ui-redesign/redesign-grouping-complete-390.png).
+- Settings: [phone](ui-redesign/redesign-settings-390.png). Photo options: [tablet](ui-redesign/redesign-photo-options-768.png).
+
 ## Listing preparation redesign
 
 The accepted plan is implemented as add item → generate → review/copy → manually Listed. The [storyboard](storyboard.html) preceded the markup change. Photos stay visible, review text is readable until Edit, grouping retains created groups, and authentication/account/settings use compact contextual controls. No database migration or API contract change was introduced by this redesign.

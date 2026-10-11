@@ -1,0 +1,36 @@
+{
+  "selects": [
+    {
+      "width": 390,
+      "idle": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "typing": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "dropdownOpen": {
+        "milliseconds": 6.699999988079071,
+        "expanded": "true"
+      }
+    },
+    {
+      "width": 1440,
+      "idle": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "typing": {
+        "mutations": 0,
+        "artworkReplacements": 0
+      },
+      "dropdownOpen": {
+        "milliseconds": 3.199999988079071,
+        "expanded": "true"
+      }
+    }
+  ],
+  "hiddenLibraryRebuilds": 0,
+  "photoRebuilds": 0
+}

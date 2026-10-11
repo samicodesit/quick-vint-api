@@ -1,0 +1,30 @@
+{
+  "checks": [
+    "Ten photos fit the mobile photo grid",
+    "Generation stays in place and saves its result locally",
+    "Long descriptions scroll naturally with a stable bottom action",
+    "Reload preserves text and ten local JPEGs without downloading cloud drafts",
+    "Offline edits save durably in the browser",
+    "Photo deletion previews the selected JPEG and releases its local blob",
+    "Whole-card selection and Cancel behave consistently",
+    "Grouping and sequential batch generation use local drafts",
+    "Existing generation limits prevent new generation requests",
+    "Dropdowns and account sheet open and close cleanly at 360px",
+    "Dropdowns and account sheet open and close cleanly at 390px",
+    "Dropdowns and account sheet open and close cleanly at 768px",
+    "Dropdowns and account sheet open and close cleanly at 1440px",
+    "A lost response recovers via a read-only lookup without another generation",
+    "Listed status remains local and survives returning to the library",
+    "Bulk deletion removes only selected items and their local photos"
+  ],
+  "generations": 5,
+  "uploadCount": 14,
+  "noCloudDraftRequests": true,
+  "errors": [],
+  "panelBefore": {
+    "x": -7.5,
+    "y": 786,
+    "width": 390,
+    "height": 58
+  }
+}

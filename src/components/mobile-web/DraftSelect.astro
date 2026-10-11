@@ -1,0 +1,27 @@
+---
+import { ChevronDown, Check, Gauge, MessageCircle, BriefcaseBusiness, Sparkles } from "@lucide/astro";
+import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
+const { scope, attribute, name, label, kind = "language" } = Astro.props;
+const id = `${scope}-${name}`;
+const tones = [
+  {code:"standard",label:"Standard",Icon:Gauge},
+  {code:"friendly",label:"Friendly",Icon:MessageCircle},
+  {code:"professional",label:"Pro",Icon:BriefcaseBusiness},
+  {code:"enthusiastic",label:"Enthusiastic",Icon:Sparkles},
+];
+const choices = kind === "language" ? SUPPORTED_OUTPUT_LANGUAGES.map(value=>({...value,Icon:null})) : tones.map(value=>({...value,flagCountryCode:null}));
+const first = choices[0];
+---
+<div class="draft-select" data-draft-select={name} {...(kind === "language" ? {"data-draft-language":""} : {})}>
+  <span id={`${id}-label`} class="draft-control-label">{label}</span>
+  <select class="draft-select-native" {...{[attribute]:name}} aria-label={label} aria-hidden="true" tabindex="-1">
+    {choices.map(choice => <option value={choice.code}>{choice.label}</option>)}
+  </select>
+  <button type="button" class="draft-select-trigger" data-draft-select-trigger {...(kind === "language" ? {"data-draft-language-trigger":""} : {})} aria-haspopup="listbox" aria-expanded="false" aria-controls={`${id}-options`} aria-labelledby={`${id}-label ${id}-value`}>
+    <span data-draft-select-art>{first.flagCountryCode ? <img src={`/app/flags/${first.flagCountryCode}.svg`} width="22" height="22" alt="" data-draft-language-flag /> : first.Icon && <first.Icon size={18} aria-hidden="true" />}</span>
+    <span id={`${id}-value`} data-draft-select-label {...(kind === "language" ? {"data-draft-language-label":""} : {})}>{first.label}</span><ChevronDown size={16} aria-hidden="true" />
+  </button>
+  <div id={`${id}-options`} class="draft-select-options" data-draft-select-options role="listbox" aria-labelledby={`${id}-label`} hidden>
+    {choices.map(choice => <button type="button" role="option" aria-selected={choice.code === first.code} tabindex="-1" data-draft-select-option={choice.code}><span data-draft-select-art>{choice.flagCountryCode ? <img src={`/app/flags/${choice.flagCountryCode}.svg`} width="22" height="22" alt="" /> : choice.Icon && <choice.Icon size={18} aria-hidden="true" />}</span><span>{choice.label}</span><Check size={16} aria-hidden="true" /></button>)}
+  </div>
+</div>

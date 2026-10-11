@@ -1,0 +1,1070 @@
+[
+  {
+    "state": "redesign-account",
+    "cssWidth": 360,
+    "pixels": [360, 1146],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-account-360.png"
+  },
+  {
+    "state": "redesign-grouping-complete",
+    "cssWidth": 360,
+    "pixels": [360, 1146],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-grouping-complete-360.png"
+  },
+  {
+    "state": "redesign-long-content",
+    "cssWidth": 360,
+    "pixels": [360, 1544],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-long-content-360.png"
+  },
+  {
+    "state": "redesign-photo-options",
+    "cssWidth": 360,
+    "pixels": [360, 1544],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-photo-options-360.png"
+  },
+  {
+    "state": "redesign-review",
+    "cssWidth": 360,
+    "pixels": [360, 1544],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-review-360.png"
+  },
+  {
+    "state": "redesign-settings",
+    "cssWidth": 360,
+    "pixels": [360, 1544],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-settings-360.png"
+  },
+  {
+    "state": "account",
+    "cssWidth": 360,
+    "pixels": [360, 1305],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-360.png"
+  },
+  {
+    "state": "account-error",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-error-360.png"
+  },
+  {
+    "state": "auth",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/auth-360.png"
+  },
+  {
+    "state": "batch",
+    "cssWidth": 360,
+    "pixels": [360, 1278],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/batch-360.png"
+  },
+  {
+    "state": "bulk-empty",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/bulk-empty-360.png"
+  },
+  {
+    "state": "conflict",
+    "cssWidth": 360,
+    "pixels": [360, 1638],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/conflict-360.png"
+  },
+  {
+    "state": "delete-confirmation",
+    "cssWidth": 360,
+    "pixels": [360, 1317],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/delete-confirmation-360.png"
+  },
+  {
+    "state": "editor",
+    "cssWidth": 360,
+    "pixels": [360, 1305],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/editor-360.png"
+  },
+  {
+    "state": "empty",
+    "cssWidth": 360,
+    "pixels": [360, 890],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/empty-360.png"
+  },
+  {
+    "state": "generation-progress",
+    "cssWidth": 360,
+    "pixels": [360, 1311],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/generation-progress-360.png"
+  },
+  {
+    "state": "grouped",
+    "cssWidth": 360,
+    "pixels": [360, 1033],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouped-360.png"
+  },
+  {
+    "state": "grouping",
+    "cssWidth": 360,
+    "pixels": [360, 1087],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouping-360.png"
+  },
+  {
+    "state": "home-empty",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/home-empty-360.png"
+  },
+  {
+    "state": "library",
+    "cssWidth": 360,
+    "pixels": [360, 956],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-360.png"
+  },
+  {
+    "state": "library-error",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-error-360.png"
+  },
+  {
+    "state": "library-loading",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-loading-360.png"
+  },
+  {
+    "state": "listed",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/listed-360.png"
+  },
+  {
+    "state": "otp",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-360.png"
+  },
+  {
+    "state": "otp-error",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-error-360.png"
+  },
+  {
+    "state": "partial-failure",
+    "cssWidth": 360,
+    "pixels": [360, 1371],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/partial-failure-360.png"
+  },
+  {
+    "state": "photo-decode-error",
+    "cssWidth": 360,
+    "pixels": [360, 1293],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-decode-error-360.png"
+  },
+  {
+    "state": "photo-preparation",
+    "cssWidth": 360,
+    "pixels": [360, 1069],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-preparation-360.png"
+  },
+  {
+    "state": "quota",
+    "cssWidth": 360,
+    "pixels": [360, 1379],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/quota-360.png"
+  },
+  {
+    "state": "recovery",
+    "cssWidth": 360,
+    "pixels": [360, 1458],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/recovery-360.png"
+  },
+  {
+    "state": "save-error",
+    "cssWidth": 360,
+    "pixels": [360, 1610],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/save-error-360.png"
+  },
+  {
+    "state": "settings",
+    "cssWidth": 360,
+    "pixels": [360, 1305],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/settings-360.png"
+  },
+  {
+    "state": "upload-error",
+    "cssWidth": 360,
+    "pixels": [360, 1246],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-error-360.png"
+  },
+  {
+    "state": "upload-progress",
+    "cssWidth": 360,
+    "pixels": [360, 1285],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-progress-360.png"
+  },
+  {
+    "state": "studio-batch-complete",
+    "cssWidth": 360,
+    "pixels": [360, 1105],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-complete-360.png"
+  },
+  {
+    "state": "studio-batch-paused",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-paused-360.png"
+  },
+  {
+    "state": "studio-batch-ready",
+    "cssWidth": 360,
+    "pixels": [360, 1128],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-ready-360.png"
+  },
+  {
+    "state": "studio-batch-running",
+    "cssWidth": 360,
+    "pixels": [360, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-running-360.png"
+  },
+  {
+    "state": "studio-batch-settings-error",
+    "cssWidth": 360,
+    "pixels": [360, 1223],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-settings-error-360.png"
+  },
+  {
+    "state": "studio-full-settings",
+    "cssWidth": 360,
+    "pixels": [360, 1254],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-full-settings-360.png"
+  },
+  {
+    "state": "studio-note-invalid",
+    "cssWidth": 360,
+    "pixels": [360, 1405],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-note-invalid-360.png"
+  },
+  {
+    "state": "studio-plan-access",
+    "cssWidth": 360,
+    "pixels": [360, 1306],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-plan-access-360.png"
+  },
+  {
+    "state": "studio-review",
+    "cssWidth": 360,
+    "pixels": [360, 1331],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-review-360.png"
+  },
+  {
+    "state": "studio-single-ready",
+    "cssWidth": 360,
+    "pixels": [360, 1169],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-single-ready-360.png"
+  },
+  {
+    "state": "redesign-account",
+    "cssWidth": 390,
+    "pixels": [390, 1082],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-account-390.png"
+  },
+  {
+    "state": "redesign-grouping-complete",
+    "cssWidth": 390,
+    "pixels": [390, 1082],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-grouping-complete-390.png"
+  },
+  {
+    "state": "redesign-keyboard-reduced-motion",
+    "cssWidth": 390,
+    "pixels": [390, 1473],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-keyboard-reduced-motion-390.png"
+  },
+  {
+    "state": "redesign-long-content",
+    "cssWidth": 390,
+    "pixels": [390, 1473],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-long-content-390.png"
+  },
+  {
+    "state": "redesign-photo-options",
+    "cssWidth": 390,
+    "pixels": [390, 1473],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-photo-options-390.png"
+  },
+  {
+    "state": "redesign-review",
+    "cssWidth": 390,
+    "pixels": [390, 1473],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-review-390.png"
+  },
+  {
+    "state": "redesign-settings",
+    "cssWidth": 390,
+    "pixels": [390, 1473],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-settings-390.png"
+  },
+  {
+    "state": "account",
+    "cssWidth": 390,
+    "pixels": [390, 1286],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-390.png"
+  },
+  {
+    "state": "account-error",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-error-390.png"
+  },
+  {
+    "state": "auth",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/auth-390.png"
+  },
+  {
+    "state": "batch",
+    "cssWidth": 390,
+    "pixels": [390, 1316],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/batch-390.png"
+  },
+  {
+    "state": "bulk-empty",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/bulk-empty-390.png"
+  },
+  {
+    "state": "conflict",
+    "cssWidth": 390,
+    "pixels": [390, 1619],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/conflict-390.png"
+  },
+  {
+    "state": "delete-confirmation",
+    "cssWidth": 390,
+    "pixels": [390, 1317],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/delete-confirmation-390.png"
+  },
+  {
+    "state": "editor",
+    "cssWidth": 390,
+    "pixels": [390, 1286],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/editor-390.png"
+  },
+  {
+    "state": "empty",
+    "cssWidth": 390,
+    "pixels": [390, 890],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/empty-390.png"
+  },
+  {
+    "state": "generation-progress",
+    "cssWidth": 390,
+    "pixels": [390, 1311],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/generation-progress-390.png"
+  },
+  {
+    "state": "grouped",
+    "cssWidth": 390,
+    "pixels": [390, 1012],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouped-390.png"
+  },
+  {
+    "state": "grouping",
+    "cssWidth": 390,
+    "pixels": [390, 1087],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouping-390.png"
+  },
+  {
+    "state": "home-empty",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/home-empty-390.png"
+  },
+  {
+    "state": "library",
+    "cssWidth": 390,
+    "pixels": [390, 976],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-390.png"
+  },
+  {
+    "state": "library-error",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-error-390.png"
+  },
+  {
+    "state": "library-loading",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-loading-390.png"
+  },
+  {
+    "state": "listed",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/listed-390.png"
+  },
+  {
+    "state": "otp",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-390.png"
+  },
+  {
+    "state": "otp-error",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-error-390.png"
+  },
+  {
+    "state": "partial-failure",
+    "cssWidth": 390,
+    "pixels": [390, 1409],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/partial-failure-390.png"
+  },
+  {
+    "state": "photo-decode-error",
+    "cssWidth": 390,
+    "pixels": [390, 1273],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-decode-error-390.png"
+  },
+  {
+    "state": "photo-preparation",
+    "cssWidth": 390,
+    "pixels": [390, 1069],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-preparation-390.png"
+  },
+  {
+    "state": "quota",
+    "cssWidth": 390,
+    "pixels": [390, 1360],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/quota-390.png"
+  },
+  {
+    "state": "recovery",
+    "cssWidth": 390,
+    "pixels": [390, 1411],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/recovery-390.png"
+  },
+  {
+    "state": "save-error",
+    "cssWidth": 390,
+    "pixels": [390, 1570],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/save-error-390.png"
+  },
+  {
+    "state": "settings",
+    "cssWidth": 390,
+    "pixels": [390, 1286],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/settings-390.png"
+  },
+  {
+    "state": "upload-error",
+    "cssWidth": 390,
+    "pixels": [390, 1246],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-error-390.png"
+  },
+  {
+    "state": "upload-progress",
+    "cssWidth": 390,
+    "pixels": [390, 1285],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-progress-390.png"
+  },
+  {
+    "state": "studio-batch-complete",
+    "cssWidth": 390,
+    "pixels": [390, 1063],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-complete-390.png"
+  },
+  {
+    "state": "studio-batch-paused",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-paused-390.png"
+  },
+  {
+    "state": "studio-batch-ready",
+    "cssWidth": 390,
+    "pixels": [390, 1107],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-ready-390.png"
+  },
+  {
+    "state": "studio-batch-running",
+    "cssWidth": 390,
+    "pixels": [390, 844],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-running-390.png"
+  },
+  {
+    "state": "studio-batch-settings-error",
+    "cssWidth": 390,
+    "pixels": [390, 1202],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-settings-error-390.png"
+  },
+  {
+    "state": "studio-full-settings",
+    "cssWidth": 390,
+    "pixels": [390, 1217],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-full-settings-390.png"
+  },
+  {
+    "state": "studio-note-invalid",
+    "cssWidth": 390,
+    "pixels": [390, 1386],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-note-invalid-390.png"
+  },
+  {
+    "state": "studio-plan-access",
+    "cssWidth": 390,
+    "pixels": [390, 1235],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-plan-access-390.png"
+  },
+  {
+    "state": "studio-review",
+    "cssWidth": 390,
+    "pixels": [390, 1312],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-review-390.png"
+  },
+  {
+    "state": "studio-single-ready",
+    "cssWidth": 390,
+    "pixels": [390, 1069],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-single-ready-390.png"
+  },
+  {
+    "state": "redesign-account",
+    "cssWidth": 768,
+    "pixels": [768, 1070],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-account-768.png"
+  },
+  {
+    "state": "redesign-grouping-complete",
+    "cssWidth": 768,
+    "pixels": [768, 1070],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-grouping-complete-768.png"
+  },
+  {
+    "state": "redesign-long-content",
+    "cssWidth": 768,
+    "pixels": [768, 1144],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-long-content-768.png"
+  },
+  {
+    "state": "redesign-photo-options",
+    "cssWidth": 768,
+    "pixels": [768, 1144],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-photo-options-768.png"
+  },
+  {
+    "state": "redesign-review",
+    "cssWidth": 768,
+    "pixels": [768, 1144],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-review-768.png"
+  },
+  {
+    "state": "redesign-settings",
+    "cssWidth": 768,
+    "pixels": [768, 1144],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-settings-768.png"
+  },
+  {
+    "state": "account",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-768.png"
+  },
+  {
+    "state": "account-error",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-error-768.png"
+  },
+  {
+    "state": "auth",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/auth-768.png"
+  },
+  {
+    "state": "batch",
+    "cssWidth": 768,
+    "pixels": [768, 1037],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/batch-768.png"
+  },
+  {
+    "state": "bulk-empty",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/bulk-empty-768.png"
+  },
+  {
+    "state": "conflict",
+    "cssWidth": 768,
+    "pixels": [768, 1269],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/conflict-768.png"
+  },
+  {
+    "state": "delete-confirmation",
+    "cssWidth": 768,
+    "pixels": [768, 1285],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/delete-confirmation-768.png"
+  },
+  {
+    "state": "editor",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/editor-768.png"
+  },
+  {
+    "state": "empty",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/empty-768.png"
+  },
+  {
+    "state": "generation-progress",
+    "cssWidth": 768,
+    "pixels": [768, 1262],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/generation-progress-768.png"
+  },
+  {
+    "state": "grouped",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouped-768.png"
+  },
+  {
+    "state": "grouping",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouping-768.png"
+  },
+  {
+    "state": "home-empty",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/home-empty-768.png"
+  },
+  {
+    "state": "library",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-768.png"
+  },
+  {
+    "state": "library-error",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-error-768.png"
+  },
+  {
+    "state": "library-loading",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-loading-768.png"
+  },
+  {
+    "state": "listed",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/listed-768.png"
+  },
+  {
+    "state": "otp",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-768.png"
+  },
+  {
+    "state": "otp-error",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-error-768.png"
+  },
+  {
+    "state": "partial-failure",
+    "cssWidth": 768,
+    "pixels": [768, 1130],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/partial-failure-768.png"
+  },
+  {
+    "state": "photo-decode-error",
+    "cssWidth": 768,
+    "pixels": [768, 1298],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-decode-error-768.png"
+  },
+  {
+    "state": "photo-preparation",
+    "cssWidth": 768,
+    "pixels": [768, 1074],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-preparation-768.png"
+  },
+  {
+    "state": "quota",
+    "cssWidth": 768,
+    "pixels": [768, 1005],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/quota-768.png"
+  },
+  {
+    "state": "recovery",
+    "cssWidth": 768,
+    "pixels": [768, 1077],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/recovery-768.png"
+  },
+  {
+    "state": "save-error",
+    "cssWidth": 768,
+    "pixels": [768, 1241],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/save-error-768.png"
+  },
+  {
+    "state": "settings",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/settings-768.png"
+  },
+  {
+    "state": "upload-error",
+    "cssWidth": 768,
+    "pixels": [768, 1265],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-error-768.png"
+  },
+  {
+    "state": "upload-progress",
+    "cssWidth": 768,
+    "pixels": [768, 1455],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-progress-768.png"
+  },
+  {
+    "state": "studio-batch-complete",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-complete-768.png"
+  },
+  {
+    "state": "studio-batch-paused",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-paused-768.png"
+  },
+  {
+    "state": "studio-batch-ready",
+    "cssWidth": 768,
+    "pixels": [768, 1027],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-ready-768.png"
+  },
+  {
+    "state": "studio-batch-running",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-running-768.png"
+  },
+  {
+    "state": "studio-batch-settings-error",
+    "cssWidth": 768,
+    "pixels": [768, 1101],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-settings-error-768.png"
+  },
+  {
+    "state": "studio-full-settings",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-full-settings-768.png"
+  },
+  {
+    "state": "studio-note-invalid",
+    "cssWidth": 768,
+    "pixels": [768, 1031],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-note-invalid-768.png"
+  },
+  {
+    "state": "studio-plan-access",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-plan-access-768.png"
+  },
+  {
+    "state": "studio-review",
+    "cssWidth": 768,
+    "pixels": [768, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-review-768.png"
+  },
+  {
+    "state": "studio-single-ready",
+    "cssWidth": 768,
+    "pixels": [768, 1074],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-single-ready-768.png"
+  },
+  {
+    "state": "redesign-account",
+    "cssWidth": 1440,
+    "pixels": [1440, 1003],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-account-1440.png"
+  },
+  {
+    "state": "redesign-grouping-complete",
+    "cssWidth": 1440,
+    "pixels": [1440, 1003],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-grouping-complete-1440.png"
+  },
+  {
+    "state": "redesign-long-content",
+    "cssWidth": 1440,
+    "pixels": [1440, 1136],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-long-content-1440.png"
+  },
+  {
+    "state": "redesign-photo-options",
+    "cssWidth": 1440,
+    "pixels": [1440, 1136],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-photo-options-1440.png"
+  },
+  {
+    "state": "redesign-review",
+    "cssWidth": 1440,
+    "pixels": [1440, 1136],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-review-1440.png"
+  },
+  {
+    "state": "redesign-settings",
+    "cssWidth": 1440,
+    "pixels": [1440, 1401],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-accessibility/redesign-settings-1440.png"
+  },
+  {
+    "state": "account",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-1440.png"
+  },
+  {
+    "state": "account-error",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/account-error-1440.png"
+  },
+  {
+    "state": "auth",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/auth-1440.png"
+  },
+  {
+    "state": "batch",
+    "cssWidth": 1440,
+    "pixels": [1440, 1085],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/batch-1440.png"
+  },
+  {
+    "state": "bulk-empty",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/bulk-empty-1440.png"
+  },
+  {
+    "state": "conflict",
+    "cssWidth": 1440,
+    "pixels": [1440, 1261],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/conflict-1440.png"
+  },
+  {
+    "state": "delete-confirmation",
+    "cssWidth": 1440,
+    "pixels": [1440, 1285],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/delete-confirmation-1440.png"
+  },
+  {
+    "state": "editor",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/editor-1440.png"
+  },
+  {
+    "state": "editor-zoom-200",
+    "cssWidth": 1440,
+    "pixels": [1440, 2000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/editor-zoom-200-1440.png"
+  },
+  {
+    "state": "empty",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/empty-1440.png"
+  },
+  {
+    "state": "generation-progress",
+    "cssWidth": 1440,
+    "pixels": [1440, 1262],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/generation-progress-1440.png"
+  },
+  {
+    "state": "grouped",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouped-1440.png"
+  },
+  {
+    "state": "grouping",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/grouping-1440.png"
+  },
+  {
+    "state": "home-empty",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/home-empty-1440.png"
+  },
+  {
+    "state": "library",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-1440.png"
+  },
+  {
+    "state": "library-error",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-error-1440.png"
+  },
+  {
+    "state": "library-loading",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/library-loading-1440.png"
+  },
+  {
+    "state": "listed",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/listed-1440.png"
+  },
+  {
+    "state": "otp",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-1440.png"
+  },
+  {
+    "state": "otp-error",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/otp-error-1440.png"
+  },
+  {
+    "state": "partial-failure",
+    "cssWidth": 1440,
+    "pixels": [1440, 1178],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/partial-failure-1440.png"
+  },
+  {
+    "state": "photo-decode-error",
+    "cssWidth": 1440,
+    "pixels": [1440, 1298],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-decode-error-1440.png"
+  },
+  {
+    "state": "photo-preparation",
+    "cssWidth": 1440,
+    "pixels": [1440, 1074],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/photo-preparation-1440.png"
+  },
+  {
+    "state": "quota",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/quota-1440.png"
+  },
+  {
+    "state": "recovery",
+    "cssWidth": 1440,
+    "pixels": [1440, 1069],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/recovery-1440.png"
+  },
+  {
+    "state": "save-error",
+    "cssWidth": 1440,
+    "pixels": [1440, 1233],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/save-error-1440.png"
+  },
+  {
+    "state": "settings",
+    "cssWidth": 1440,
+    "pixels": [1440, 1401],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/settings-1440.png"
+  },
+  {
+    "state": "upload-error",
+    "cssWidth": 1440,
+    "pixels": [1440, 1265],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-error-1440.png"
+  },
+  {
+    "state": "upload-progress",
+    "cssWidth": 1440,
+    "pixels": [1440, 1265],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-qa/upload-progress-1440.png"
+  },
+  {
+    "state": "studio-batch-complete",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-complete-1440.png"
+  },
+  {
+    "state": "studio-batch-paused",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-paused-1440.png"
+  },
+  {
+    "state": "studio-batch-ready",
+    "cssWidth": 1440,
+    "pixels": [1440, 1027],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-ready-1440.png"
+  },
+  {
+    "state": "studio-batch-running",
+    "cssWidth": 1440,
+    "pixels": [1440, 1000],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-running-1440.png"
+  },
+  {
+    "state": "studio-batch-settings-error",
+    "cssWidth": 1440,
+    "pixels": [1440, 1080],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-batch-settings-error-1440.png"
+  },
+  {
+    "state": "studio-full-settings",
+    "cssWidth": 1440,
+    "pixels": [1440, 1452],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-full-settings-1440.png"
+  },
+  {
+    "state": "studio-note-invalid",
+    "cssWidth": 1440,
+    "pixels": [1440, 1501],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-note-invalid-1440.png"
+  },
+  {
+    "state": "studio-plan-access",
+    "cssWidth": 1440,
+    "pixels": [1440, 1452],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-plan-access-1440.png"
+  },
+  {
+    "state": "studio-review",
+    "cssWidth": 1440,
+    "pixels": [1440, 1401],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-review-1440.png"
+  },
+  {
+    "state": "studio-single-ready",
+    "cssWidth": 1440,
+    "pixels": [1440, 1074],
+    "path": "responsive-qa-evidence.zip!/autolister-studio-settings/studio-single-ready-1440.png"
+  }
+]

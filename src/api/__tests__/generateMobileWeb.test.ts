@@ -337,6 +337,117 @@ describe("mobile web generation idempotency", () => {
     return response;
   }
 
+  const extensionHeaders = {
+    authorization: "Bearer token",
+    "x-autolister-client": "extension",
+    "x-autolister-extension-version": "1.3.17",
+    "x-autolister-request-id": requestId,
+  };
+
+  it("replays an extension result with mobile disabled without another AI call or credit", async () => {
+    process.env.MOBILE_WEB_APP_ENABLED = "false";
+    claimMobileGenerationIdempotency.mockResolvedValue({
+      kind: "succeeded",
+      statusCode: 200,
+      response: { title: "Recovered", description: "Saved extension result" },
+    });
+    const res = await invoke(extensionHeaders);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.title).toBe("Recovered");
+    expect(claimMobileGenerationIdempotency).toHaveBeenCalledWith(
+      expect.objectContaining({ client: "extension", requestId }),
+    );
+    expect(createCompletion).not.toHaveBeenCalled();
+    expect(reserveGenerationRequest).not.toHaveBeenCalled();
+    expect(reserveAndBindMobileGenerationReservation).not.toHaveBeenCalled();
+  });
+
+  it("uses the shared atomic reservation and durable result for new extension requests", async () => {
+    const res = await invoke(extensionHeaders);
+    expect(res.statusCode).toBe(200);
+    expect(reserveAndBindMobileGenerationReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ client: "extension", requestId }),
+    );
+    expect(reserveGenerationRequest).not.toHaveBeenCalled();
+    expect(markMobileGenerationCommitPending).toHaveBeenCalled();
+    expect(commitGenerationReservationVerified).toHaveBeenCalled();
+    expect(completeMobileGenerationIdempotency).toHaveBeenCalled();
+  });
+
+  it("rejects malformed extension operation IDs before spending capacity", async () => {
+    const res = await invoke({
+      ...extensionHeaders,
+      "x-autolister-request-id": "bad",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(createCompletion).not.toHaveBeenCalled();
+    expect(reserveGenerationRequest).not.toHaveBeenCalled();
+  });
+
+  it("preserves the extension's special free emoji retry entitlement", async () => {
+    profileSingle.mockResolvedValue({
+      data: {
+        subscription_tier: "free",
+        subscription_status: "free",
+        last_api_call_reset: "2026-10-11",
+      },
+      error: null,
+    });
+    reserveEmojiRetry.mockResolvedValue({
+      allowed: true,
+      reservationId: "emoji-reservation",
+    });
+    const res = await invoke(extensionHeaders, {
+      ...body,
+      emojiRetry: true,
+    } as typeof body);
+    expect(res.statusCode).toBe(200);
+    expect(reserveEmojiRetry).toHaveBeenCalled();
+    expect(reserveAndBindMobileGenerationReservation).not.toHaveBeenCalled();
+    expect(bindMobileGenerationReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationId: "emoji-reservation" }),
+    );
+  });
+
+  it("refunds a special emoji reservation when binding fails and never calls AI", async () => {
+    profileSingle.mockResolvedValue({
+      data: {
+        subscription_tier: "free",
+        subscription_status: "free",
+        last_api_call_reset: "2026-10-11",
+      },
+      error: null,
+    });
+    reserveEmojiRetry.mockResolvedValue({
+      allowed: true,
+      reservationId: "emoji-reservation",
+    });
+    bindMobileGenerationReservation.mockResolvedValue({
+      ok: false,
+      code: "transition_rejected",
+    });
+    const res = await invoke(extensionHeaders, {
+      ...body,
+      emojiRetry: true,
+    } as typeof body);
+    expect(res.statusCode).toBe(503);
+    expect(refundGenerationReservation).toHaveBeenCalledWith(
+      "emoji-reservation",
+      "idempotency_bind_failed",
+    );
+    expect(createCompletion).not.toHaveBeenCalled();
+  });
+
+  it("does not refund an extension result after its usage commit becomes uncertain", async () => {
+    commitGenerationReservationVerified.mockRejectedValue(
+      new Error("Lost commit response"),
+    );
+    const res = await invoke(extensionHeaders);
+    expect(res.statusCode).toBe(500);
+    expect(markMobileGenerationCommitPending).toHaveBeenCalled();
+    expect(refundGenerationReservation).not.toHaveBeenCalled();
+  });
+
   it("claim_is_atomic_and_replays_bounded_failure", async () => {
     createCompletion.mockReturnValue({
       withResponse: vi.fn().mockRejectedValue(new Error("timeout")),

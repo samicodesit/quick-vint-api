@@ -1,4 +1,5 @@
 import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
+import { validateDescriptionFooterText } from "../../../utils/descriptionFooter";
 
 export const DRAFT_LIMITS = {
   photos: 10,
@@ -13,7 +14,13 @@ export interface DraftSettings {
   descriptionLanguageCode: string;
   descriptionLength: "long" | "short";
   useBulletPoints: boolean;
+  tone?: "standard" | "friendly" | "professional" | "enthusiastic";
+  useHashtags?: boolean;
+  useEmojis?: boolean;
+  includeSellerNote?: boolean;
+  descriptionFooterText?: string;
 }
+export type ResolvedDraftSettings = Required<DraftSettings>;
 export interface DraftPhoto {
   id: string;
   import_id: string;
@@ -42,12 +49,24 @@ export interface DraftLibrary {
   imports: DraftPhoto[];
   nextCursor: string | null;
 }
-export const DEFAULT_DRAFT_SETTINGS: DraftSettings = {
+export const DEFAULT_DRAFT_SETTINGS: ResolvedDraftSettings = {
   titleLanguageCode: "en",
   descriptionLanguageCode: "en",
   descriptionLength: "long",
   useBulletPoints: true,
+  tone: "standard",
+  useHashtags: false,
+  useEmojis: false,
+  includeSellerNote: false,
+  descriptionFooterText: "",
 };
+export function normalizeDraftSettings(value: unknown): ResolvedDraftSettings {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("Choose valid listing settings.");
+  const settings = { ...DEFAULT_DRAFT_SETTINGS, ...value };
+  validateDraftSettings(settings);
+  return settings;
+}
 export function validDraftId(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -69,9 +88,20 @@ export function validateDraftSettings(
     ) ||
     !["long", "short"].includes(v.descriptionLength) ||
     typeof v.useBulletPoints !== "boolean" ||
+    (v.tone !== undefined &&
+      !["standard", "friendly", "professional", "enthusiastic"].includes(
+        v.tone,
+      )) ||
+    ["useHashtags", "useEmojis", "includeSellerNote"].some(
+      (key) =>
+        v[key as keyof DraftSettings] !== undefined &&
+        typeof v[key as keyof DraftSettings] !== "boolean",
+    ) ||
     Object.keys(v).some((k) => !Object.keys(DEFAULT_DRAFT_SETTINGS).includes(k))
   )
     throw new Error("Choose valid languages and description style.");
+  const note = validateDescriptionFooterText(v.descriptionFooterText);
+  if (!note.ok) throw new Error(note.error);
 }
 export function validateDraftAction(
   action: string,

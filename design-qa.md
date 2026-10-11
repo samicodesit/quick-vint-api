@@ -1,4 +1,82 @@
-# Mobile web Phase 1 design QA
+# Seller Studio design QA, October 9, 2026
+
+Latest first-frame correction: [opening, dismissal and startup QA](docs/qa/browser-drafts/performance-overlays.md#opening-dismissal-and-startup-correction). Small menus open immediately, sheets fade with their backdrops, header content remains visible, and saved flows restore without flashing the library. These frame checks supersede the earlier settled-only motion acceptance.
+
+Latest rendering/overlay acceptance: [performance and overlay QA](docs/qa/browser-drafts/performance-overlays.md). It records measured DOM reductions, deferred hidden rendering, stable photo menus, responsive modal focus and repeated close/reopen cleanup.
+
+Latest preparation/review acceptance: [item preparation polish](docs/qa/browser-drafts/item-preparation-polish.md), including directly editable fields, ten-photo handling, exact deletion thumbnails, stable generation and identical compact mobile action bars. This supersedes the earlier preparation/review layout below.
+
+Latest October 11 acceptance: [mobile flow audit](docs/qa/browser-drafts/mobile-flow-audit.md), including short-phone fold visibility, pinned preparation/progress actions, save and photo recovery, sign-in recovery and the full flow walkthrough. Earlier records below are historical.
+
+Current October 11 correction: [entry, settings and selection QA](docs/qa/browser-drafts/entry-polish.md). It covers compact and stable entry/manual flows, animated dialogs and scope switching, usable account counters, contextual batch settings, batch removal and confirmed bulk deletion. Earlier records below are historical.
+
+Current correction: [layout stability and control polish QA](docs/qa/browser-drafts/presentation-polish.md). It covers header settings, consistent language flag artwork, photo-control proportions, normal/hover caption padding, fixed Create item actions, scrollbar width, selection and batch-progress geometry. The following settings repair record is retained as history.
+
+The earlier visual acceptance below is withdrawn. The user exposed an unusably short settings panel in the empty composer, shifting Drafts/Listed actions, and a missing global settings entry. The earlier checks covered populated review settings but did not assert empty-composer panel geometry or toolbar stability across tab transitions. Passing those tests did not justify the blanket visual acceptance.
+
+The correction uses the same `redesign-existing-projects` checklist and approved direction 1 typography, palette and photo hierarchy. Settings now use a viewport-contained dialog, with a persistent global Listing settings entry and separate item overrides. This replaces the earlier third-column/anchored settings presentation. Current correction evidence is recorded in [settings repair QA](docs/qa/browser-drafts/settings-repair.md).
+
+## Earlier review, superseded for settings and toolbar
+
+## Source and normalized comparisons
+
+Source: `C:/Users/Sami/.codex/visualizations/2026/10/09/01a121c6-6c0a-71e3-98f8-d487c680bf74/autolister-design-concepts/direction-1-full-workflow.png`, 1448 x 1086 pixels. This generated board labels its conceptual frames 1440 x 1024 and 390 x 844; those labels are not reliable capture-density metadata. Desktop app crop: `(47, 82, 742, 606)`, 695 x 524 pixels. Mobile settings crop: `(436, 640, 675, 1068)`, 239 x 428 pixels.
+
+Implementation: `http://localhost:4340/app/`, with the same build captured using isolated deterministic fixtures on port 4331. [Desktop reference](docs/qa/browser-drafts/seller-studio/reference-review-1440.png) has a 1440 x 1000 CSS viewport, deviceScaleFactor 1 and 1440 x 1401 full-page pixels. [Phone reference](docs/qa/browser-drafts/seller-studio/reference-review-390.png) has a 390 x 844 CSS viewport, deviceScaleFactor 1 and 390 x 1447 full-page pixels. These captures show English, Long, Bullet points, Standard, hashtags on, emojis off, note included and the same 39-character note. The real garment photograph and description match the source subject. One fixture photo replaces the source's four conceptual photos; photo-count handling is covered separately.
+
+Combined inputs were opened and judged after the last visual fix:
+
+- [Full desktop comparison](docs/qa/browser-drafts/seller-studio/source-review-comparison.png): source app crop and complete rendered page, each fit to 800 pixels wide. Different full-page heights are retained rather than stretched.
+- [Focused settings comparison](docs/qa/browser-drafts/seller-studio/source-settings-focused.png): source crop `(511,125,729,592)` beside runtime `(950,255,1280,1292)`, each fit to 430 pixels wide.
+- [Mobile comparison](docs/qa/browser-drafts/seller-studio/source-mobile-comparison.png): source settings crop beside the first 844 CSS pixels of the 390-pixel runtime capture, both 390 pixels wide.
+
+These compare layout and product hierarchy, not pixel identity. The source's tiny generated controls are replaced by actual 44-pixel targets and legible inputs. Desktop settings occupy normal document flow. Mobile settings scroll internally with a fixed heading, close control and Done. The source's extra blue outlines, duplicate tone-option helper and long copy labels were simplified following the user's instruction to remove low-value text and use useful icons. Drafts/Listed navigation appears in the library; review uses a contextual back label. These are accepted implementation and accessibility differences.
+
+## Findings and correction history
+
+All actionable findings below were corrected and rechecked:
+
+1. P1, complete settings: the earlier implementation exposed only languages, length and format, and forced generation extras off. Shared controls now include tone, hashtags, emojis, independently included seller note and account-scoped device defaults. Contract and generation tests verify backwards-compatible old drafts and exact provider payloads.
+2. P1, note correction: changing an invalid note validated the old invalid value first, preventing correction. The input path now replaces the note before validating. Browser regression checks invalid generation blocking and successful correction.
+3. P2, desktop composition: expanded settings overlaid the page/footer. They now occupy the third grid column, with footer below the full workspace. The full desktop comparison confirms no collision.
+4. P2, phone action order: pre-generation photos and grouping completion pushed the primary action too far down. Photos are compact before generation and completed grouping places item rows and Generate before secondary completion actions. Phone single-ready and batch-ready captures confirm the order.
+5. P2, mobile errors: invalid notes and failed batch-setting saves had feedback below a clipped area or behind an inert sheet. Errors now appear inside the settings body; invalid Done is disabled. Post-fix [note error](docs/qa/browser-drafts/seller-studio/studio-note-invalid-390.png) and [batch save error](docs/qa/browser-drafts/seller-studio/studio-batch-settings-error-390.png) show visible guidance.
+6. P2, tablet settings: an anchored settings panel extended below the viewport. Its height is now bounded to available space, with internal scrolling and a persistent Done control. Final 768-pixel reference and state matrix show the bounded panel.
+
+The earlier claim that no P0, P1 or P2 visual findings remained was disproved by the user's empty-settings and tab-transition screenshots. Use the correction record above for current acceptance. Physical-device and live-service coverage limits below remain unverified.
+
+## Required surface review
+
+| Surface            | Evidence and acceptance                                                                                                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typography         | Self-hosted Geist body and Newsreader display headings, preserved wordmark, clear title/body/support hierarchy. Long descriptions wrap without horizontal overflow.                                       |
+| Layout and spacing | Shared gutters and spacing, 4/3/2 library columns, left-aligned headings, bounded photos, visible copy actions, consistent row alignment. Settings use internal scroll where necessary.                   |
+| Colors             | Warm neutral canvas, white working surfaces, one restrained blue accent, semantic error/save status colors. Browser check confirms text palette contrast of at least 4.5:1 on white.                      |
+| Images             | Real clothing fixtures, deliberate contained review crop, cropped library/pool tiles, no unrelated demo imagery. Decode/upload errors have recovery actions.                                              |
+| Copy and icons     | Short action labels, settings icons on batch rows, copy icons beside fields, waiting/running/error/ready queue cues. Icon-only controls retain accessible names. Constraint and failure guidance remains. |
+| Interaction        | Keyboard selection, focus containment, Escape and focus restoration, 44-pixel phone primary/copy controls, autosave acknowledgement, reduced motion, pause/resume and navigation recovery.                |
+
+## Coverage and limits
+
+The full browser journey, full-settings case, UI accessibility case and six existing review regressions pass. The capture matrix covers 46 named states across 360, 390, 768 and 1440 CSS pixels (178 captures, including 200% CSS zoom). All 16 contact boards were visually reviewed; the final settings fixes were recaptured at every width. [Coverage record](docs/qa/browser-drafts/seller-studio/capture-coverage.json), [journey assertions](docs/qa/browser-drafts/seller-studio/result.json), [settings assertions](docs/qa/browser-drafts/seller-studio/full-settings-result.json), [accessibility assertions](docs/qa/browser-drafts/seller-studio/redesign-result.json).
+
+[Desktop entry before/after](docs/qa/browser-drafts/seller-studio/before-after-entry-desktop.png) uses matching 1440 x 1000 CSS viewports from the preceding iteration and Seller Studio. [Phone entry before/after](docs/qa/browser-drafts/seller-studio/before-after-entry-mobile.png) uses matching 390 x 844 CSS viewports, with full-page content heights 844 and 890 pixels. Both show empty single-item preparation. They are labelled before/after, not as source fidelity comparisons.
+
+The full raw captures are preserved in `C:/Users/Sami/.codex/visualizations/2026/10/09/01a121c6-6c0a-71e3-98f8-d487c680bf74/autolister-seller-studio/responsive-qa-evidence.zip`. Coverage paths name members of that archive, not disposable temporary files.
+
+Covered: sign-in and code states, empty/loading/list retry, populated library and Listed, single upload/preparation/generation, grouping and completion, all writing options, included/excluded note, per-item overrides, batch inheritance, queue pause/resume, provider failure, quota, save retry, conflicts, reload recovery, menus/sheets, long content, reduced motion and CSS zoom. Generation/auth/billing are deterministic fixtures. Provider-generated copy quality and live entitlement behavior are not established by fixture screenshots.
+
+Unverified: physical iOS/Android devices, native camera/HEIC picker behavior, real browser 200% zoom (CSS zoom was checked), OS virtual keyboards, live auth delivery, billing, production generation and live marketplaces. No deployment or publishing occurred.
+
+Release gate is recorded in [the implementation ledger](docs/qa/browser-drafts/seller-studio-progress.md).
+
+The implementation checklist is complete for the local scope: complete settings, single/batch flows, useful icons and concise copy, responsive surfaces, failure recovery, visual comparison and the production gate. The explicit integration/device coverage limits remain recorded above.
+
+Final result: passed
+
+---
+
+# Historical Mobile web Phase 1 design QA
 
 ## Comparison evidence
 

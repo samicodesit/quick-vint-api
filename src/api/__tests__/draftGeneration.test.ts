@@ -108,6 +108,82 @@ it("never dispatches the provider a second time for an existing operation", asyn
   expect(result.response).toEqual({ title: "Saved", description: "Result" });
   expect(photos).not.toHaveBeenCalled();
 });
+
+it("uses each item's full saved settings and excludes a retained note when switched off", async () => {
+  const settings = {
+    ...row.settings,
+    tone: "enthusiastic",
+    useEmojis: true,
+    useHashtags: true,
+    descriptionFooterText: "Happy to bundle.",
+    includeSellerNote: true,
+  };
+  mutate.mockResolvedValue({ ...row, settings });
+  const included = await prepareDraftGeneration(
+    id,
+    { draftId: id, inputVersion: 2, generationMode: "batch" },
+    op,
+  );
+  expect(included.body).toMatchObject({
+    tone: "enthusiastic",
+    useEmojis: true,
+    useHashtags: true,
+    descriptionFooterText: "Happy to bundle.",
+    generationMode: "batch",
+  });
+  expect(included.body).not.toHaveProperty("includeSellerNote");
+  mutate.mockResolvedValue({
+    ...row,
+    settings: { ...settings, includeSellerNote: false },
+  });
+  const excluded = await prepareDraftGeneration(
+    id,
+    { draftId: id, inputVersion: 2 },
+    op,
+  );
+  expect(excluded.body?.descriptionFooterText).toBe("");
+  expect(excluded.context?.hash).not.toBe(included.context?.hash);
+  expect(settings.descriptionFooterText).toBe("Happy to bundle.");
+});
+
+it.each([
+  "tone",
+  "useEmojis",
+  "useHashtags",
+  "descriptionFooterText",
+  "includeSellerNote",
+])("includes %s in the generation fingerprint", async (key) => {
+  const settings = {
+    ...row.settings,
+    tone: "standard",
+    useEmojis: false,
+    useHashtags: false,
+    descriptionFooterText: "Saved note.",
+    includeSellerNote: false,
+  };
+  mutate.mockResolvedValue({ ...row, settings });
+  const before = await prepareDraftGeneration(
+    id,
+    { draftId: id, inputVersion: 2 },
+    op,
+  );
+  const changed = {
+    ...settings,
+    [key]:
+      key === "tone"
+        ? "professional"
+        : key === "descriptionFooterText"
+          ? "Another note."
+          : true,
+  };
+  mutate.mockResolvedValue({ ...row, settings: changed });
+  const after = await prepareDraftGeneration(
+    id,
+    { draftId: id, inputVersion: 2 },
+    op,
+  );
+  expect(after.context?.hash).not.toBe(before.context?.hash);
+});
 it("keeps uncertain commits recoverable and only completes after verified quota commit", async () => {
   owned.mockResolvedValue({
     ...row,

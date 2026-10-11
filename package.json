@@ -21,6 +21,7 @@
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format-check": "prettier --check \"**/*.{ts,js,json,md}\"",
     "test": "vitest run",
+    "test:generation:browser": "RUN_GENERATION_BROWSER_TESTS=1 vitest run src/api/__tests__/generationBrowser.integration.test.ts",
     "test:mobile-idempotency:postgres": "bash scripts/test-mobile-generation-idempotency-postgres.sh",
     "test:watch": "vitest"
   },
@@ -32,8 +33,10 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/inter-tight": "^5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
     "@lucide/astro": "^1.54.0",
     "@sentry/node": "^10.63.0",
     "@supabase/supabase-js": "2.105.0",

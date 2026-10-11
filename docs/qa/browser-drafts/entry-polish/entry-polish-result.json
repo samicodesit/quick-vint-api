@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "widths": [360, 390, 768, 1440],
+  "phoneRequests": 48,
+  "extraCredits": 17,
+  "generatedSettings": [
+    {
+      "id": "934249c2-5aa7-4fcd-adf6-e4ca981cd932",
+      "settings": {
+        "titleLanguageCode": "en",
+        "descriptionLanguageCode": "en",
+        "descriptionLength": "long",
+        "useBulletPoints": true,
+        "tone": "friendly",
+        "useHashtags": false,
+        "useEmojis": false,
+        "includeSellerNote": false,
+        "descriptionFooterText": ""
+      }
+    },
+    {
+      "id": "af0b7024-331e-4e85-a516-68dd1d32bcb4",
+      "settings": {
+        "titleLanguageCode": "en",
+        "descriptionLanguageCode": "en",
+        "descriptionLength": "long",
+        "useBulletPoints": true,
+        "tone": "friendly",
+        "useHashtags": false,
+        "useEmojis": false,
+        "includeSellerNote": false,
+        "descriptionFooterText": ""
+      }
+    }
+  ]
+}

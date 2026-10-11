@@ -1,6 +1,10 @@
 ---
-import "@fontsource-variable/inter";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/newsreader";
 import "@fontsource-variable/inter-tight";
+import bodyFont from "@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url";
+import headingFont from "@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2?url";
+import brandFont from "@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2?url";
 import "../../styles/mobile-web-app.css";
 import "../../styles/listing-drafts.css";
 import WorkspaceShell from "../../components/mobile-web/WorkspaceShell.astro";
@@ -40,6 +44,9 @@ const contentSecurityPolicy = [
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="Content-Security-Policy" content={contentSecurityPolicy} />
     <title>AutoLister AI</title>
+    <link rel="preload" href={bodyFont} as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href={headingFont} as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href={brandFont} as="font" type="font/woff2" crossorigin="anonymous" />
   </head>
   <body>
     {

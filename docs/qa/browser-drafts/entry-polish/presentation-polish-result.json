@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "widths": [360, 390, 768, 1440],
+  "checks": [
+    "header settings",
+    "stable page scrollbar and Drafts/Listed toolbar",
+    "stable library selection",
+    "caption padding",
+    "stable card hover and caption padding",
+    "rendered flags and keyboard language selection",
+    "stable photo selection",
+    "stable photo width after first group",
+    "fixed Create item action",
+    "grouping before generation",
+    "reduced motion"
+  ],
+  "errors": []
+}

@@ -1,0 +1,22 @@
+﻿{
+  "checkedAt": "2026-10-11T22:08:17.9621989Z",
+  "database": "isolated native PostgreSQL 12",
+  "baseline": "column names/types from production OpenAPI metadata, local constraints/defaults",
+  "reservationFunctions": "actual repository production migrations, no reservation stubs",
+  "oldClientRejected": true,
+  "sharedClientAccepted": true,
+  "acceptance": {
+    "duplicateDebit": false,
+    "expiredCleanup": true,
+    "serviceOnlyGrants": true,
+    "accountClientIsolation": true,
+    "planLifetimePackRefunds": true,
+    "negativeControlTwoDebits": true,
+    "quotaPaymentBudgetChecks": true,
+    "actualReservationFunctions": true
+  },
+  "concurrentClaimConnections": 2,
+  "concurrentReservationConnections": 8,
+  "concurrentDebits": 1,
+  "limitation": "Production function bodies and deployed grants still require database catalog access."
+}

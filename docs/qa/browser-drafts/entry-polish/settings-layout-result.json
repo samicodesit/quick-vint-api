@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "checks": [
+    "stable Drafts/Listed toolbar at four widths",
+    "usable empty settings dialog at short viewport heights",
+    "globally accessible defaults",
+    "defaults survive reload",
+    "existing item overrides preserved",
+    "stable review geometry",
+    "global note validation",
+    "desktop modal focus wrapping and Escape restoration",
+    "global note reachable by internal scrolling on mobile",
+    "effective viewport at 200% zoom"
+  ],
+  "errors": []
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "width": 390,
+    "idle": {
+      "mutations": 360,
+      "artworkReplacements": 0
+    },
+    "typing": {
+      "mutations": 144,
+      "artworkReplacements": 9
+    },
+    "dropdownOpen": {
+      "milliseconds": 7.199999988079071,
+      "expanded": "true"
+    }
+  },
+  {
+    "width": 1440,
+    "idle": {
+      "mutations": 360,
+      "artworkReplacements": 0
+    },
+    "typing": {
+      "mutations": 144,
+      "artworkReplacements": 9
+    },
+    "dropdownOpen": {
+      "milliseconds": 3.899999976158142,
+      "expanded": "true"
+    }
+  }
+]

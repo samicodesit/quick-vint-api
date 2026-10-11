@@ -11,6 +11,7 @@ export interface MobileApiErrorShape {
 
 export interface MobileApiFetchOptions {
   retryOn401?: boolean;
+  expectedUserId?: string;
 }
 
 export interface MobileWebRuntimeConfig {

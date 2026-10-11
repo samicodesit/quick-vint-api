@@ -1,0 +1,20 @@
+---
+import { Images, Smartphone, Copy, RotateCcw } from "@lucide/astro";
+const { mode = "single" } = Astro.props;
+---
+<div class="draft-photo-entry" {...(mode === "single" ? {"data-draft-upload-intro":""} : {"data-draft-bulk-entry":""})}>
+  <section class="draft-phone-entry" data-phone-upload={mode} aria-label="Upload from your phone">
+    <span class="draft-entry-icon"><Smartphone size={24} aria-hidden="true" /></span>
+    <h3>Use your phone</h3>
+    <div class="draft-phone-qr" data-phone-qr aria-busy="true"><span class="draft-qr-placeholder" aria-hidden="true"></span></div>
+    <p class="draft-help" data-phone-status role="status">Preparing QR code…</p>
+    <button type="button" class="draft-text-button" data-phone-copy hidden><Copy size={16} aria-hidden="true" />Copy link</button>
+    <button type="button" class="draft-text-button" data-phone-retry hidden><RotateCcw size={16} aria-hidden="true" />Try again</button>
+  </section>
+  <button type="button" class="draft-dropzone" data-draft-action={mode === "single" ? "choose-item" : "choose-bulk"} aria-label="Choose photos">
+    <span class="draft-entry-icon"><Images size={28} aria-hidden="true" /></span>
+    <strong>Choose photos</strong>
+    <span class="draft-desktop-picker-copy">From this device</span>
+    <span class="draft-mobile-picker-copy">Take a photo or choose from your library</span>
+  </button>
+</div>

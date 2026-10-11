@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient";
 import {
   DRAFT_LIMITS,
   validDraftId,
+  normalizeDraftSettings,
   type Draft,
   type DraftPhoto,
 } from "../src/app/mobile-web/draftContracts";
@@ -158,7 +159,7 @@ export function publicDraft(row: any, photos: DraftPhoto[] = []): Draft {
     id: row.id,
     title: row.title,
     description: row.description,
-    settings: row.settings,
+    settings: normalizeDraftSettings(row.settings),
     state: row.state,
     version: row.version,
     input_version: row.input_version,

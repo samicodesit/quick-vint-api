@@ -7,6 +7,12 @@ export interface MobileGenerationInput {
   descriptionLanguageCode: string;
   descriptionLength: DescriptionLength;
   useBulletPoints: boolean;
+  tone?: "standard" | "friendly" | "professional" | "enthusiastic";
+  useEmojis?: boolean;
+  useHashtags?: boolean;
+  descriptionFooterText?: string;
+  generationMode?: "manual" | "batch";
+  expectedUserId?: string;
   requestId?: string;
   signal?: AbortSignal;
 }
@@ -90,7 +96,15 @@ export async function generateListing(
     descriptionLanguageCode: input.descriptionLanguageCode,
     descriptionLength: input.descriptionLength,
     useBulletPoints: input.useBulletPoints,
-    generationMode: "manual" as const,
+    generationMode: input.generationMode || "manual",
+    ...(input.tone !== undefined ? { tone: input.tone } : {}),
+    ...(input.useEmojis !== undefined ? { useEmojis: input.useEmojis } : {}),
+    ...(input.useHashtags !== undefined
+      ? { useHashtags: input.useHashtags }
+      : {}),
+    ...(input.descriptionFooterText !== undefined
+      ? { descriptionFooterText: input.descriptionFooterText }
+      : {}),
   };
 
   const response = await fetchMobileJson<unknown>(
@@ -105,7 +119,10 @@ export async function generateListing(
       body: JSON.stringify(body),
       signal: input.signal,
     },
-    { retryOn401: true },
+    {
+      retryOn401: true,
+      ...(input.expectedUserId ? { expectedUserId: input.expectedUserId } : {}),
+    },
   );
 
   return parseGenerationResponse(response);

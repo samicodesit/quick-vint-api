@@ -1,4 +1,6 @@
 import { mountDraftWorkspace } from "./draftWorkspace";
+import { activateMobileSheet } from "./sheet";
+import { animateSurface } from "./surfaceMotion";
 import {
   getBrowserSession,
   requestMagicLink,
@@ -173,6 +175,8 @@ export function toggleMobileLanguageMenu(
   trigger.setAttribute("aria-expanded", "true");
 }
 
+const accountSheets = new WeakMap<HTMLElement, () => void>();
+const closingAccounts = new WeakMap<HTMLElement, object>();
 export function toggleMobileProfileMenu(root: ParentNode): void {
   const menu = asElement<HTMLElement>(root, '[data-mobile-web="profile-menu"]');
   const trigger = asElement<HTMLButtonElement>(
@@ -180,19 +184,59 @@ export function toggleMobileProfileMenu(root: ParentNode): void {
     '[data-mobile-web="profile-menu-trigger"]',
   );
   if (!menu || !trigger) return;
-  const nextOpen = menu.hidden;
+  if (closingAccounts.has(menu)) {
+    closingAccounts.delete(menu);
+    trigger.setAttribute("aria-expanded", "true");
+    animateSurface(menu, "enter");
+    return;
+  }
+  if (!menu.hidden) {
+    closeMobileProfileMenu(root);
+    return;
+  }
+  const nextOpen = true;
+  accountSheets.get(menu)?.();
+  accountSheets.delete(menu);
   menu.hidden = !nextOpen;
   trigger.setAttribute("aria-expanded", String(nextOpen));
+  if (nextOpen)
+    accountSheets.set(
+      menu,
+      activateMobileSheet(menu, () => {
+        closeMobileProfileMenu(root);
+        trigger.focus();
+      }),
+    );
+  if (!menu.classList?.contains("is-mobile-sheet"))
+    animateSurface(menu, "enter");
 }
 
-function closeMobileProfileMenu(root: ParentNode): void {
+function closeMobileProfileMenu(root: ParentNode, animated = true): void {
   const menu = asElement<HTMLElement>(root, '[data-mobile-web="profile-menu"]');
   const trigger = asElement<HTMLButtonElement>(
     root,
     '[data-mobile-web="profile-menu-trigger"]',
   );
-  if (menu) menu.hidden = true;
-  trigger?.setAttribute("aria-expanded", "false");
+  if (menu) {
+    if (menu.hidden || (animated && closingAccounts.has(menu))) return;
+    const token = {};
+    closingAccounts.set(menu, token);
+    const finish = () => {
+      if (closingAccounts.get(menu) !== token) return;
+      accountSheets.get(menu)?.();
+      accountSheets.delete(menu);
+      menu.hidden = true;
+      closingAccounts.delete(menu);
+      trigger?.setAttribute("aria-expanded", "false");
+      trigger?.focus?.({ preventScroll: true });
+    };
+    if (!animated)
+      menu.getAnimations?.().forEach((animation) => animation.cancel());
+    const motion = animated ? animateSurface(menu, "exit") : null;
+    if (motion) {
+      void motion.then(finish);
+    } else finish();
+  }
 }
 
 type CheckoutReturnStatus = "success" | "cancel" | "manage";
@@ -793,7 +837,7 @@ function updateFormattingControls(
 }
 
 function showAuth(root: ParentNode): void {
-  closeMobileProfileMenu(root);
+  closeMobileProfileMenu(root, false);
   renderMobileAuthStep(root, null);
   setHidden(root, '[data-mobile-web="auth-card"]', false);
   setHidden(root, '[data-mobile-web="app-view"]', true);
@@ -806,7 +850,7 @@ function showAuth(root: ParentNode): void {
 }
 
 function showApp(root: ParentNode): void {
-  closeMobileProfileMenu(root);
+  closeMobileProfileMenu(root, false);
   setHidden(root, '[data-mobile-web="auth-card"]', true);
   setHidden(root, '[data-mobile-web="app-view"]', false);
   setHidden(root, '[data-mobile-web="state-card"]', true);
@@ -821,7 +865,7 @@ function showState(
   copy: string,
   action?: string,
 ): void {
-  closeMobileProfileMenu(root);
+  closeMobileProfileMenu(root, false);
   setHidden(root, '[data-mobile-web="auth-card"]', true);
   setHidden(root, '[data-mobile-web="app-view"]', true);
   setHidden(root, '[data-mobile-web="state-card"]', false);
@@ -864,6 +908,7 @@ export function mountMobileWebApp(
   let formatting = safeFormattingPreferences();
   let state: MobileGenerationState = { status: "idle" };
   const listeners: Array<() => void> = [];
+  listeners.push(() => closeMobileProfileMenu(root, false));
   let copiedTitle = false;
   let copiedDescription = false;
   let appOpenedTracked = false;
@@ -1414,6 +1459,16 @@ export function mountMobileWebApp(
     );
     if (status) status.dataset.tone = error ? "error" : "neutral";
   };
+  const resendCode = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="resend-code"]',
+  );
+  bind(resendCode, "click", () => {
+    asElement<HTMLFormElement>(
+      root,
+      '[data-mobile-web="email-form"]',
+    )?.requestSubmit();
+  });
   bind(
     asElement<HTMLFormElement>(root, '[data-mobile-web="email-form"]'),
     "submit",
@@ -1426,6 +1481,7 @@ export function mountMobileWebApp(
         'button[type="submit"]',
       );
       if (submit) submit.disabled = true;
+      if (resendCode) resendCode.disabled = true;
       authStatus("");
       void requestMagicLink(email)
         .then(() => {
@@ -1442,6 +1498,7 @@ export function mountMobileWebApp(
         })
         .finally(() => {
           if (submit && !disposed) submit.disabled = false;
+          if (resendCode && !disposed) resendCode.disabled = false;
         });
     },
   );
@@ -1458,6 +1515,7 @@ export function mountMobileWebApp(
     if (input.value.length !== 6) return;
     if (input.disabled) return;
     input.disabled = true;
+    if (resendCode) resendCode.disabled = true;
     authStatus("Checking code…");
     const email =
       asElement<HTMLInputElement>(root, "#mobile-email")?.value ?? "";
@@ -1480,13 +1538,14 @@ export function mountMobileWebApp(
       })
       .finally(() => {
         if (!disposed) input.disabled = false;
+        if (resendCode && !disposed) resendCode.disabled = false;
       });
   });
   bind(asElement(root, '[data-mobile-web="sign-out"]'), "click", () => {
     if (
       draftWorkspace?.hasUnsaved() &&
       !window.confirm(
-        "Leave this workspace? Unsaved edits and unfinished uploads may be lost. Saved drafts will stay in your account.",
+        "Leave this workspace? Unsaved edits and unfinished photos may be lost. Saved drafts will stay in this browser.",
       )
     )
       return;

@@ -1,10 +1,4 @@
-import {
-  draftAction,
-  executeDraftAttempt,
-  type DraftAttempt,
-  listDrafts,
-  uploadDraftPhoto,
-} from "./draftClient";
+import { createDraftClient, type DraftAttempt } from "./draftClient";
 import {
   DEFAULT_DRAFT_SETTINGS,
   DRAFT_LIMITS,
@@ -13,7 +7,17 @@ import {
   type DraftPhoto,
   type DraftSettings,
   validDraftId,
+  normalizeDraftSettings,
+  validateDraftSettings,
 } from "./draftContracts";
+import {
+  batchInheritingItems,
+  sameSettings,
+  settingsExtras,
+  settingsLanguages,
+  settingInputValue,
+  syncSettingsControls,
+} from "./draftSettings";
 import {
   DraftAutosave,
   DraftQueue,
@@ -23,7 +27,10 @@ import { prepareMobileImage } from "./imagePreparation";
 import { copyListingField } from "./billing";
 import type { MobileUsage } from "./generationClient";
 import { trackMobileEvent } from "./analytics";
-import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
+import { activateMobileSheet } from "./sheet";
+import { mountDraftSelects } from "./draftSelect";
+import { animateSurface } from "./surfaceMotion";
+import { mountPhoneEntry } from "./phoneEntry";
 
 interface Upload {
   id: string;
@@ -43,6 +50,9 @@ export function mountDraftWorkspace(
     defaultSettings?: DraftSettings;
   },
 ) {
+  const client = createDraftClient(options.userId);
+  const { draftAction, executeDraftAttempt, listDrafts, uploadDraftPhoto } =
+    client;
   const find = <T extends HTMLElement = HTMLElement>(selector: string) =>
     root.querySelector<T>(selector)!;
   const action = (name: string) =>
@@ -53,8 +63,11 @@ export function mountDraftWorkspace(
   let library: DraftLibrary = { drafts: [], imports: [], nextCursor: null };
   let tab: "draft" | "done" = "draft";
   let selected: DraftAutosave | null = null;
+  let batchSettingsItem: DraftAutosave | null = null;
   let disposed = false;
-  let loading = false;
+  let loading = true;
+  let initializing = true;
+  let initialMotionFrame = 0;
   let libraryLoad = 0;
   let selectionIntent = 0;
   let libraryPages = 1;
@@ -62,20 +75,50 @@ export function mountDraftWorkspace(
   let processing = false;
   let bulk = false;
   let composing = false;
-  let editingDraftId: string | undefined;
   let reviewIds: string[] = [];
   let groupIds: string[] = [];
   let openedFromGrouping = false;
   let restoringHistory = false;
   let railSignature = "";
+  const nativePhotoPicker =
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  root.dataset.nativePhotoPicker = String(nativePhotoPicker);
   let conflict = false;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let scrollY = 0;
   let generationCount = 0;
+  let startingGenerationId: string | null = null;
   let allowance: number | null = null;
-  let defaultSettings = {
-    ...(options.defaultSettings || DEFAULT_DRAFT_SETTINGS),
+  const defaultsKey = `autolister:listing-defaults:${options.userId}`;
+  let defaultSettings = normalizeDraftSettings(
+    options.defaultSettings || DEFAULT_DRAFT_SETTINGS,
+  );
+  try {
+    const saved = localStorage.getItem(defaultsKey);
+    if (saved) defaultSettings = normalizeDraftSettings(JSON.parse(saved));
+  } catch {}
+  const batchSettingsKey = `autolister:batch-settings:${options.userId}`;
+  const loadDefaults = () => {
+    try {
+      return normalizeDraftSettings(
+        JSON.parse(localStorage.getItem(defaultsKey) || "null"),
+      );
+    } catch {
+      return normalizeDraftSettings(
+        options.defaultSettings || DEFAULT_DRAFT_SETTINGS,
+      );
+    }
   };
+  let newItemSettings = loadDefaults();
+  let globalSettings = loadDefaults();
+  try {
+    const saved = sessionStorage.getItem(batchSettingsKey);
+    if (saved) defaultSettings = normalizeDraftSettings(JSON.parse(saved));
+    else
+      sessionStorage.setItem(batchSettingsKey, JSON.stringify(defaultSettings));
+  } catch {}
+  let settingsAccess = { tone: true, extras: true };
   let preparationDraftId: string | undefined;
   let selectionMode = false;
   let writingDraftId: string | undefined;
@@ -84,6 +127,330 @@ export function mountDraftWorkspace(
   const uploads: Upload[] = [];
   const attempts = new Map<string, DraftAttempt>();
   const listeners: Array<() => void> = [];
+  let descriptionSizeKey = "";
+  const resizeDescription = () => {
+    const field = find<HTMLTextAreaElement>("#draft-description");
+    if (!field.offsetParent) return;
+    const key = `${field.clientWidth}:${field.value}`;
+    if (key === descriptionSizeKey) return;
+    descriptionSizeKey = key;
+    field.style.height = "auto";
+    field.style.height = `${Math.max(120, field.scrollHeight + 2)}px`;
+  };
+  let photoViewportFrame = 0;
+  const schedulePhotoViewport = () => {
+    cancelAnimationFrame(photoViewportFrame);
+    photoViewportFrame = requestAnimationFrame(() => {
+      resizeDescription();
+      const rail = find("[data-draft-item-photos]");
+      if (
+        !find("[data-draft-editor]").classList.contains("is-preparing") ||
+        !window.matchMedia("(max-width: 767px) and (min-height: 540px)").matches
+      ) {
+        rail.style.removeProperty("--draft-photo-viewport-height");
+        return;
+      }
+      const footer = find("[data-draft-generation-actions]");
+      const height = Math.max(
+        96,
+        (window.visualViewport?.height || window.innerHeight) -
+          rail.getBoundingClientRect().top -
+          footer.getBoundingClientRect().height -
+          8,
+      );
+      const value = `${Math.floor(height)}px`;
+      if (
+        rail.style.getPropertyValue("--draft-photo-viewport-height") !== value
+      )
+        rail.style.setProperty("--draft-photo-viewport-height", value);
+    });
+  };
+  const photoViewportObserver = new ResizeObserver(schedulePhotoViewport);
+  photoViewportObserver.observe(root);
+  window.addEventListener("resize", schedulePhotoViewport);
+  window.visualViewport?.addEventListener("resize", schedulePhotoViewport);
+  listeners.push(() => {
+    cancelAnimationFrame(photoViewportFrame);
+    photoViewportObserver.disconnect();
+    window.removeEventListener("resize", schedulePhotoViewport);
+    window.visualViewport?.removeEventListener("resize", schedulePhotoViewport);
+  });
+  const phoneEntry = mountPhoneEntry(root, addFiles);
+  const updatePhoneEntry = () =>
+    phoneEntry.update(
+      bulk && !library.imports.length && !groupIds.length && !uploads.length
+        ? "batch"
+        : !bulk &&
+            (composing ||
+              (selected &&
+                !photoCount(selected.value) &&
+                !selected.value.title &&
+                !selected.value.description &&
+                writingDraftId !== selected.value.id))
+          ? "single"
+          : null,
+    );
+  listeners.push(() => phoneEntry.dispose());
+  listeners.push(mountDraftSelects(root));
+  const globalTrigger = root
+    .closest('[data-mobile-web="workspace"]')
+    ?.querySelector<HTMLButtonElement>("[data-draft-global-trigger]");
+  const globalDetails = find<HTMLDetailsElement>(
+    "[data-draft-global-settings]",
+  );
+  const restorePopoverFocus = (details: HTMLDetailsElement) => {
+    if (batchSettingsItem && details.classList.contains("draft-settings")) {
+      root
+        .querySelector<HTMLButtonElement>(
+          `[data-focus-key="group-settings-${batchSettingsItem.value.id}"]`,
+        )
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    (details.classList.contains("draft-settings")
+      ? globalTrigger
+      : details.querySelector<HTMLElement>("summary")
+    )?.focus({ preventScroll: true });
+  };
+  if (globalTrigger) {
+    globalTrigger.hidden = false;
+    const openGlobal = () => {
+      const details =
+        batchSettingsItem || selected
+          ? find<HTMLDetailsElement>("[data-draft-editor-settings]")
+          : bulk &&
+              (library.imports.length || groupIds.length || uploads.length)
+            ? find<HTMLDetailsElement>(".draft-batch-settings")
+            : globalDetails;
+      openPopover(details);
+    };
+    globalTrigger.addEventListener("click", openGlobal);
+    listeners.push(() => {
+      globalTrigger.removeEventListener("click", openGlobal);
+      globalTrigger.hidden = true;
+      globalTrigger.setAttribute("aria-expanded", "false");
+    });
+  }
+  let previousView = "";
+  const queuePanel = find("[data-draft-queue]");
+  const queueAnchor = document.createComment("Batch progress home");
+  queuePanel.before(queueAnchor);
+  listeners.push(() => {
+    queueAnchor.after(queuePanel);
+    queueAnchor.remove();
+  });
+  const stateMotion = new MutationObserver(() => {
+    const view = root.classList.contains("has-import")
+      ? "grouping"
+      : root.dataset.view || "library";
+    const next = `${view}:${tab}:${selected?.value.id || ""}`;
+    if (next === previousView) return;
+    previousView = next;
+    if (initializing) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const selector =
+      view === "library"
+        ? ".draft-library-title, .draft-item-open"
+        : view === "grouping"
+          ? ".draft-heading, .draft-mode, [data-draft-pool] > .draft-photo > img"
+          : "#draft-editor-title, .draft-preparation > img, .draft-text-panel";
+    root.querySelectorAll<HTMLElement>(selector).forEach((el) => {
+      if (!el.getClientRects().length) return;
+      el.getAnimations().forEach((animation) => animation.cancel());
+      el.animate(
+        el.classList.contains("draft-text-panel")
+          ? [{ opacity: 0.35 }, { opacity: 1 }]
+          : [
+              { opacity: 0.35, translate: "0 6px" },
+              { opacity: 1, translate: "0 0" },
+            ],
+        { duration: 220, easing: "cubic-bezier(.2,0,0,1)" },
+      );
+    });
+  });
+  stateMotion.observe(root, {
+    attributes: true,
+    attributeFilter: ["class", "data-view"],
+  });
+  listeners.push(() => {
+    stateMotion.disconnect();
+    cancelAnimationFrame(initialMotionFrame);
+  });
+  const sheets = new Map<HTMLDetailsElement, () => void>();
+  const closingPopovers = new Set<HTMLDetailsElement>();
+  const closingTokens = new WeakMap<HTMLDetailsElement, object>();
+  const closePopover = (
+    details: HTMLDetailsElement,
+    animated = true,
+    restoreFocus = true,
+  ) => {
+    if (details.classList.contains("draft-add-menu")) animated = false;
+    if (!details.open || (animated && closingPopovers.has(details))) return;
+    if (!animated) {
+      details
+        .querySelector(".draft-popover-panel")
+        ?.getAnimations()
+        .forEach((animation) => animation.cancel());
+      closingPopovers.delete(details);
+    }
+    if (
+      restoreFocus &&
+      batchSettingsItem?.dirty &&
+      details.classList.contains("draft-settings")
+    ) {
+      closingPopovers.add(details);
+      void flush()
+        .then(() => {
+          closingPopovers.delete(details);
+          closePopover(details, animated, restoreFocus);
+        })
+        .catch((error) => {
+          closingPopovers.delete(details);
+          const status = find("[data-draft-item-save-status]");
+          status.hidden = false;
+          status.textContent =
+            error instanceof Error
+              ? error.message
+              : "Could not save settings. Try again.";
+          action("retry-item-settings").hidden = false;
+        });
+      return;
+    }
+    const token = {};
+    closingTokens.set(details, token);
+    const finish = () => {
+      if (closingTokens.get(details) !== token) return;
+      closingTokens.delete(details);
+      sheets.get(details)?.();
+      sheets.delete(details);
+      details.open = false;
+      closingPopovers.delete(details);
+      if (details.classList.contains("draft-settings"))
+        globalTrigger?.setAttribute("aria-expanded", "false");
+      if (restoreFocus) restorePopoverFocus(details);
+      if (restoreFocus && details.classList.contains("draft-settings"))
+        batchSettingsItem = null;
+    };
+    const panel = details.querySelector<HTMLElement>(".draft-popover-panel");
+    const motion = animated && panel ? animateSurface(panel, "exit") : null;
+    if (motion) {
+      closingPopovers.add(details);
+      void motion.then(finish);
+    } else finish();
+  };
+  const closeContainedPopovers = (container: HTMLElement) => {
+    container
+      .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+      .forEach((details) => closePopover(details, false));
+  };
+  const positionPhotoPopover = (details: HTMLDetailsElement) => {
+    const panel = details.querySelector<HTMLElement>(".draft-popover-panel");
+    if (!details.classList.contains("draft-photo-options")) return;
+    details.dataset.align = "start";
+    if (panel && panel.getBoundingClientRect().right > window.innerWidth - 16)
+      details.dataset.align = "end";
+  };
+  const handledPopoverToggles = new WeakSet<HTMLDetailsElement>();
+  const togglePopover = (event: Event, animate = true) => {
+    const details = event.target;
+    if (
+      !(details instanceof HTMLDetailsElement) ||
+      !details.hasAttribute("data-draft-popover")
+    )
+      return;
+    if (handledPopoverToggles.has(details)) {
+      handledPopoverToggles.delete(details);
+      return;
+    }
+    const wasSheet = details.querySelector(".is-mobile-sheet") !== null;
+    sheets.get(details)?.();
+    sheets.delete(details);
+    if (!details.open) {
+      if (details.classList.contains("draft-settings"))
+        globalTrigger?.setAttribute(
+          "aria-expanded",
+          String(Boolean(root.querySelector(".draft-settings[open]"))),
+        );
+      if (wasSheet) restorePopoverFocus(details);
+      return;
+    }
+    if (details.hasAttribute("data-draft-global-settings")) {
+      globalTrigger?.setAttribute("aria-expanded", "true");
+      globalSettings = loadDefaults();
+      renderGlobalSettings();
+      hide("[data-draft-global-save-status]", true);
+      label("save-global-defaults", "Save defaults");
+    }
+    root
+      .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+      .forEach((other) => {
+        if (other !== details) closePopover(other, false);
+      });
+    const panel = details.querySelector<HTMLElement>(".draft-popover-panel");
+    if (!panel) return;
+    if (details.classList.contains("draft-settings")) {
+      globalTrigger?.setAttribute("aria-expanded", "true");
+      globalTrigger?.setAttribute("aria-controls", panel.id);
+      panel
+        .querySelectorAll<HTMLElement>('[data-draft-action="settings-item"]')
+        .forEach((button) => (button.hidden = !selected && !batchSettingsItem));
+      panel
+        .querySelectorAll<HTMLElement>('[data-draft-action="settings-batch"]')
+        .forEach((button) => (button.hidden = !bulk));
+      panel
+        .querySelector(".draft-settings-scope")
+        ?.classList.toggle(
+          "is-single-scope",
+          !selected && !batchSettingsItem && !bulk,
+        );
+    }
+    if (details.classList.contains("draft-add-menu")) return;
+    const summary = details.querySelector("summary");
+    const name =
+      panel.querySelector("h3")?.textContent?.trim() ||
+      summary?.getAttribute("aria-label") ||
+      summary?.textContent?.trim() ||
+      "Photo options";
+    panel.setAttribute("aria-label", name);
+    if (!panel.querySelector("h3")) {
+      const heading = document.createElement("h3");
+      heading.textContent = name;
+      panel.prepend(heading);
+    }
+    positionPhotoPopover(details);
+    sheets.set(
+      details,
+      activateMobileSheet(
+        panel,
+        () => closePopover(details),
+        details.classList.contains("draft-settings"),
+        animate,
+      ),
+    );
+  };
+  function openPopover(details: HTMLDetailsElement, animate = true) {
+    if (details.open) return;
+    details.open = true;
+    // Native toggle is queued. Set up motion and containment before the first paint.
+    togglePopover({ target: details } as unknown as Event, animate);
+    handledPopoverToggles.add(details);
+  }
+  root.addEventListener("toggle", togglePopover, true);
+  const positionOpenPopovers = () =>
+    root
+      .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+      .forEach(positionPhotoPopover);
+  window.addEventListener("resize", positionOpenPopovers);
+  listeners.push(() => {
+    root.removeEventListener("toggle", togglePopover, true);
+    window.removeEventListener("resize", positionOpenPopovers);
+    sheets.forEach((cleanup, details) => {
+      closingTokens.delete(details);
+      closingPopovers.delete(details);
+      cleanup();
+    });
+    sheets.clear();
+  });
   const activeActions = new Set<string>();
   const beginNavigation = () => {
     restoringHistory = false;
@@ -120,7 +487,7 @@ export function mountDraftWorkspace(
           const menu = container.querySelector<HTMLDetailsElement>(
             `[data-photo-options="${id}"]`,
           );
-          if (menu) menu.open = true;
+          if (menu) openPopover(menu);
         }
       if (focusKey)
         container
@@ -165,9 +532,15 @@ export function mountDraftWorkspace(
   async function confirmDelete(message: string, photo?: DraftPhoto) {
     const dialog = find<HTMLDialogElement>("[data-draft-delete-dialog]");
     if (dialog.open) return false;
+    root
+      .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+      .forEach((details) => closePopover(details, false));
     find("#draft-delete-copy").textContent = message;
     const cover = find<HTMLImageElement>("[data-draft-delete-cover]");
-    const url = photo?.url || selected?.value.photos.find((p) => p.url)?.url;
+    const url = photo
+      ? photo.url
+      : selected?.value.photos.find((p) => p.url)?.url;
+    cover.alt = photo ? "Photo to delete" : "Item to delete";
     cover.hidden = !url;
     if (url) cover.src = url;
     else cover.removeAttribute("src");
@@ -300,14 +673,32 @@ export function mountDraftWorkspace(
       throw new Error(
         "Choose which version of this draft to keep before continuing.",
       );
-    const snapshot = selected;
+    const snapshot = batchSettingsItem || selected;
+    if (snapshot?.dirty) validateDraftSettings(snapshot.value.settings);
     const hadEdits = snapshot?.dirty;
     await snapshot?.flush();
     if (selected === snapshot) remember(Boolean(hadEdits));
   }
   function renderLibrary() {
     if (disposed) return;
+    find(".draft-library-title").textContent =
+      tab === "done" ? "Listed items" : "Your drafts";
     const items = find("[data-draft-items]");
+    items.setAttribute("aria-busy", String(loading));
+    const selectedId = selected?.value.id;
+    // The library is hidden in these views. Back navigation renders the latest data.
+    if (selected || composing || bulk) {
+      renderSelection();
+      return;
+    }
+    if (loading && items.children.length) {
+      root
+        .querySelectorAll<HTMLButtonElement>("[data-draft-tab]")
+        .forEach((el) =>
+          el.setAttribute("aria-pressed", String(el.dataset.draftTab === tab)),
+        );
+      return;
+    }
     const restoreFocus = preserveFocus(items);
     items.replaceChildren();
     items.setAttribute("aria-busy", String(loading));
@@ -316,14 +707,15 @@ export function mountDraftWorkspace(
       p.className = "draft-empty";
       p.append(icon("images"));
       const heading = document.createElement("h2");
-      heading.textContent =
-        tab === "done"
-          ? "Items you mark as listed will appear here."
-          : loading
-            ? "Loading your drafts…"
+      heading.textContent = loading
+        ? "Loading your drafts…"
+        : !action("reload").hidden
+          ? "Drafts unavailable"
+          : tab === "done"
+            ? "Items you mark as listed will appear here."
             : "Prepare your first item";
       p.append(heading);
-      if (tab === "draft" && !loading)
+      if (tab === "draft" && !loading && action("reload").hidden)
         p.append(
           button(
             "Add item",
@@ -335,7 +727,7 @@ export function mountDraftWorkspace(
     }
     for (const [index, draft] of library.drafts.entries()) {
       const row = document.createElement("div");
-      row.className = `draft-item${selected?.value.id === draft.id ? " is-selected" : ""}`;
+      row.className = `draft-item${selectedId === draft.id ? " is-selected" : ""}`;
       const ready =
         draft.photos.length > 0 &&
         draft.photos.every((p) => p.status === "ready") &&
@@ -345,21 +737,24 @@ export function mountDraftWorkspace(
       check.hidden = !selectionMode;
       check.checked = chosen.has(draft.id);
       check.dataset.focusKey = `select-${draft.id}`;
-      check.disabled = !ready || queue.running;
+      check.disabled = busy(draft) || queue.running;
       check.setAttribute(
         "aria-label",
-        `Select ${draft.title || `item ${index + 1}`} for generation`,
+        `Select ${draft.title || `item ${index + 1}`}`,
       );
       check.addEventListener("change", () => {
         check.checked ? chosen.add(draft.id) : chosen.delete(draft.id);
         renderSelection();
       });
-      const open = button("", () => run(() => openDraft(draft.id)));
+      const open = button("", () => {
+        if (selectionMode) check.click();
+        else run(() => openDraft(draft.id));
+      });
       open.className = "draft-item-open";
       open.dataset.focusKey = `open-${draft.id}`;
       open.setAttribute(
         "aria-current",
-        selected?.value.id === draft.id ? "true" : "false",
+        selectedId === draft.id ? "true" : "false",
       );
       const cover = draft.photos.find((p) => p.url);
       if (cover?.url) {
@@ -430,24 +825,50 @@ export function mountDraftWorkspace(
     action("selection").setAttribute("aria-pressed", String(selectionMode));
     action("selection").hidden = tab === "done" || !library.drafts.length;
     hide("[data-draft-batch-actions]", !selectionMode);
-    action("generate-selected").hidden = !chosen.size;
+    const eligible = [...chosen].filter((id) => {
+      const d = library.drafts.find((d) => d.id === id);
+      return (
+        d &&
+        d.photos.length &&
+        d.photos.every((p) => p.status === "ready") &&
+        !busy(d)
+      );
+    });
+    action("delete-selected").hidden = !chosen.size;
+    action("delete-selected").disabled = queue.running || processing;
+    root
+      .querySelectorAll<HTMLInputElement>(".draft-item > input")
+      .forEach((check) => {
+        const open =
+          check.parentElement?.querySelector<HTMLButtonElement>(
+            ".draft-item-open",
+          );
+        if (open) {
+          open.disabled = selectionMode && check.disabled;
+          if (selectionMode)
+            open.setAttribute("aria-pressed", String(check.checked));
+          else open.removeAttribute("aria-pressed");
+        }
+      });
     find("[data-draft-selected-count]").textContent = chosen.size
       ? `${chosen.size} selected`
       : "";
     const runSize = Math.min(
-      chosen.size,
+      eligible.length,
       DRAFT_LIMITS.batch,
       allowance ?? DRAFT_LIMITS.batch,
     );
+    action("generate-selected").hidden = !eligible.length;
     label(
       "generate-selected",
       chosen.size
-        ? `Generate ${runSize} of ${chosen.size} · ${runSize} generation${runSize === 1 ? "" : "s"}`
-        : "Generate selected items",
+        ? `Generate ${runSize} draft${runSize === 1 ? "" : "s"}`
+        : "Generate drafts",
     );
     action("generate-selected").disabled =
-      !chosen.size || queue.running || processing;
+      !eligible.length || queue.running || processing;
     action("select-ready").disabled = queue.running;
+    action("select-ready").hidden = chosen.size > 0;
   }
   function thumbnail(photo: DraftPhoto, selectable: boolean) {
     const wrap = document.createElement("div");
@@ -486,11 +907,102 @@ export function mountDraftWorkspace(
     }
     return wrap;
   }
+  function renderDefaults() {
+    syncSettingsControls(
+      root,
+      "default",
+      defaultSettings,
+      processing,
+      settingsAccess,
+    );
+    find("[data-draft-default-summary]").textContent =
+      `${defaultSettings.descriptionLength === "short" ? "Short" : "Long"} · ${defaultSettings.useBulletPoints ? "Bullets" : "Paragraphs"}`;
+  }
+  function renderGlobalSettings() {
+    syncSettingsControls(root, "global", globalSettings, false, settingsAccess);
+  }
+  function persistDefaults(settings: DraftSettings) {
+    validateDraftSettings(settings);
+    localStorage.setItem(defaultsKey, JSON.stringify(settings));
+    globalSettings = normalizeDraftSettings(settings);
+    if (composing) newItemSettings = globalSettings;
+    if (
+      !groupIds.length &&
+      !library.imports.length &&
+      !uploads.some((p) => !p.draftId)
+    ) {
+      defaultSettings = globalSettings;
+      try {
+        sessionStorage.setItem(
+          batchSettingsKey,
+          JSON.stringify(defaultSettings),
+        );
+      } catch {
+        // Persistent defaults are already saved, even if session storage is unavailable.
+      }
+      renderDefaults();
+    }
+    renderGlobalSettings();
+    renderEditor();
+  }
+  async function changeBatchSettings(next: DraftSettings) {
+    validateDraftSettings(next);
+    const previous = defaultSettings;
+    const inherited = batchInheritingItems(
+      library.drafts,
+      groupIds,
+      defaultSettings,
+    );
+    defaultSettings = normalizeDraftSettings(next);
+    processing = true;
+    const saveStatus = find("[data-draft-batch-save-status]");
+    saveStatus.hidden = false;
+    saveStatus.classList.remove("draft-settings-error");
+    saveStatus.textContent = "Saving…";
+    renderPool();
+    try {
+      for (const draft of inherited) {
+        const saved = await draftAction("save", {
+          draftId: draft.id,
+          expectedVersion: draft.version,
+          settings: defaultSettings,
+        });
+        upsert(saved);
+      }
+      try {
+        sessionStorage.setItem(
+          batchSettingsKey,
+          JSON.stringify(defaultSettings),
+        );
+      } catch {}
+      saveStatus.textContent = "Saved";
+      tell("");
+    } catch {
+      defaultSettings = previous;
+      saveStatus.classList.add("draft-settings-error");
+      saveStatus.textContent = "Not saved. Change this setting again to retry.";
+      saveStatus.scrollIntoView({ block: "nearest" });
+      throw new Error(
+        "Batch settings could not be saved for every item. Change this setting again to retry. Each item's last saved choices are safe.",
+      );
+    } finally {
+      processing = false;
+      renderPool();
+    }
+  }
   function renderGroups() {
     const groups = groupIds
       .map((id) => library.drafts.find((d) => d.id === id))
       .filter((d): d is Draft => Boolean(d));
-    hide("[data-draft-groups]", !groups.length);
+    hide(
+      "[data-draft-groups]",
+      !groups.length &&
+        !library.imports.length &&
+        !uploads.some((photo) => !photo.draftId),
+    );
+    find("[data-draft-groups] h2").textContent = groups.length
+      ? `Items (${groups.length})`
+      : "Your items";
     find("[data-draft-import]").classList.toggle(
       "has-groups",
       Boolean(groups.length),
@@ -499,6 +1011,8 @@ export function mountDraftWorkspace(
     const restoreFocus = preserveFocus(container);
     container.replaceChildren();
     for (const draft of groups) {
+      const row = document.createElement("article");
+      row.className = "draft-group-row";
       const card = button("", () => run(() => openDraft(draft.id)));
       card.className = "draft-group-card";
       card.dataset.focusKey = `group-${draft.id}`;
@@ -510,38 +1024,145 @@ export function mountDraftWorkspace(
       }
       const text = document.createElement("span");
       const title = document.createElement("strong");
-      title.textContent =
-        draft.title ||
-        `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"}`;
+      title.textContent = draft.title || `Item ${groups.indexOf(draft) + 1}`;
       const status = document.createElement("small");
-      status.textContent = busy(draft)
-        ? "Preparing…"
-        : draft.description
-          ? "Ready to copy"
-          : "Review draft";
+      status.textContent = queue.failed.has(draft.id)
+        ? "Needs attention"
+        : queue.remaining.includes(draft.id)
+          ? queue.paused
+            ? "Paused"
+            : "Waiting"
+          : busy(draft)
+            ? "Preparing…"
+            : draft.description
+              ? "Ready to copy"
+              : `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${sameSettings(draft.settings, defaultSettings) ? "Uses batch settings" : "Custom settings"}`;
       text.append(title, status);
       card.append(text);
-      container.append(card);
-    }
-    action("generate-groups").disabled =
-      queue.running ||
-      !groups.some(
-        (d) =>
-          d.photos.length &&
-          !busy(d) &&
-          !d.description &&
-          d.photos.every((p) => p.status === "ready"),
+      const settings = button("", () =>
+        run(async () => {
+          const current = await draftAction("detail", { draftId: draft.id });
+          batchSettingsItem = new DraftAutosave(
+            current,
+            (input) => draftAction("save", input),
+            (status) => {
+              if (disposed || !batchSettingsItem) return;
+              const message = find("[data-draft-item-save-status]");
+              message.hidden = false;
+              message.textContent =
+                status === "saving"
+                  ? "Saving…"
+                  : status === "saved"
+                    ? "Saved"
+                    : "Could not save settings. Try again.";
+              action("retry-item-settings").hidden = status !== "error";
+              if (status === "saved") {
+                upsert(batchSettingsItem.value);
+                renderGroups();
+              }
+            },
+          );
+          renderEditor();
+          find<HTMLDetailsElement>("[data-draft-editor-settings]").hidden =
+            false;
+          openPopover(find<HTMLDetailsElement>("[data-draft-editor-settings]"));
+        }),
       );
+      settings.append(icon("settings"));
+      settings.dataset.focusKey = `group-settings-${draft.id}`;
+      settings.title = "Listing settings";
+      settings.className = "draft-text-button draft-group-settings";
+      settings.setAttribute("aria-label", `Settings for ${title.textContent}`);
+      settings.disabled = busy(draft);
+      const remove = button(
+        "",
+        () =>
+          run(async () => {
+            remove.disabled = true;
+            try {
+              const empty = await draftAction("group", {
+                draftId: draft.id,
+                expectedVersion: draft.version,
+                photoIds: [],
+                sourceVersions: {},
+              });
+              groupIds = groupIds.filter((id) => id !== draft.id);
+              rememberGroups();
+              if (!empty.title && !empty.description)
+                await draftAction("delete", {
+                  draftId: empty.id,
+                  expectedVersion: empty.version,
+                });
+              await reload();
+              renderPool();
+            } catch (error) {
+              await reload();
+              renderPool();
+              throw error;
+            }
+          }),
+        "draft-text-button draft-group-remove",
+      );
+      remove.append(icon("remove"));
+      remove.setAttribute(
+        "aria-label",
+        `Remove ${title.textContent} from batch`,
+      );
+      remove.title = "Remove item. Return photos to the pool.";
+      remove.disabled = busy(draft);
+      remove.style.visibility = draft.description ? "hidden" : "visible";
+      remove.disabled ||= Boolean(draft.description);
+      row.append(remove, card, settings);
+      container.append(row);
+    }
+    const eligibleCount = groups.filter(
+      (d) =>
+        d.photos.length &&
+        !busy(d) &&
+        !d.description &&
+        d.photos.every((p) => p.status === "ready"),
+    ).length;
+    const eligible = eligibleCount > 0;
+    find("[data-draft-grouping-complete] p").textContent = queue.running
+      ? "Drafts are being prepared."
+      : queue.remaining.length
+        ? "Resume to finish preparing your drafts."
+        : eligible
+          ? "Ready to generate."
+          : "Your drafts are saved and ready to review.";
+    action("generate-groups").disabled =
+      queue.running || processing || !eligible;
+    label(
+      "generate-groups",
+      `Generate ${eligibleCount} draft${eligibleCount === 1 ? "" : "s"}`,
+    );
+    find("[data-draft-batch-cost]").textContent = eligibleCount
+      ? `Uses ${eligibleCount} generation${eligibleCount === 1 ? "" : "s"}${library.imports.length ? `. ${library.imports.length} unassigned photos stay saved.` : ""}`
+      : "";
+    action("generate-groups").hidden = !eligible && !queue.running;
+    const status = !groups.length
+      ? "Group photos to create an item."
+      : groups.every((d) => Boolean(d.description))
+        ? "All drafts are ready to review and copy."
+        : "Open an item to review its photos and finish preparing it.";
+    find("[data-draft-groups-status]").textContent = status;
+    hide("[data-draft-groups-status]", eligible || queue.running);
     restoreFocus();
   }
   function renderPool() {
     if (disposed) return;
+    updatePhoneEntry();
+    renderDefaults();
+    if (bulk) find("[data-draft-group-generation]").append(queuePanel);
+    else if (selected || composing)
+      find("[data-draft-generation-actions]").append(queuePanel);
+    else if (queuePanel.parentElement !== root) queueAnchor.after(queuePanel);
     root.classList.toggle("has-import", bulk);
     hide("[data-draft-import]", !bulk);
     find("[data-draft-heading]").textContent = bulk
       ? library.imports.length || groupIds.length
-        ? "Group photos"
-        : "Add several"
+        ? "Prepare several items"
+        : "Add several items"
       : tab === "done"
         ? "Listed"
         : "Drafts";
@@ -552,9 +1173,21 @@ export function mountDraftWorkspace(
     const hasPhotos = Boolean(
       library.imports.length || uploads.some((p) => !p.draftId),
     );
-    find("[data-draft-import]").classList.toggle("is-empty", !hasPhotos);
-    action("choose-bulk").hidden = hasPhotos || groupIds.length > 0;
-    hide("[data-draft-import-controls]", !hasPhotos && !groupIds.length);
+    hide("[data-draft-import] > .draft-mode", hasPhotos || groupIds.length > 0);
+    const complete = !hasPhotos && groupIds.length > 0;
+    if (bulk && complete)
+      find("[data-draft-heading]").textContent = "Your batch";
+    find("[data-draft-import]").classList.toggle("is-complete", complete);
+    find("[data-draft-import]").classList.toggle(
+      "is-empty",
+      !hasPhotos && !complete,
+    );
+    hide("[data-draft-grouping-complete]", !complete);
+    find("[data-draft-grouping-instruction]").textContent = complete
+      ? "All photos grouped. Generate each item automatically."
+      : "Select photos of the same item.";
+    hide("[data-draft-bulk-entry]", hasPhotos || groupIds.length > 0);
+    hide("[data-draft-import-controls]", !hasPhotos);
     hide(
       "[data-draft-import-summary]",
       bulk ||
@@ -569,6 +1202,7 @@ export function mountDraftWorkspace(
       .draftPhotoId;
     const pool = find("[data-draft-pool]");
     const restoreFocus = preserveFocus(pool);
+    closeContainedPopovers(pool);
     pool.replaceChildren();
     for (const photo of library.imports) {
       if (uploads.some((p) => p.id === photo.id)) continue;
@@ -585,21 +1219,14 @@ export function mountDraftWorkspace(
       panel.className = "draft-popover-panel";
       menu.append(summary, panel);
       panel.append(
-        button(
-          "Close",
-          () => {
-            menu.open = false;
-            summary.focus();
-          },
-          "draft-close",
-        ),
+        button("Close", () => closePopover(menu), "draft-close"),
         button(
           "Delete",
           () =>
             run(async () => {
               if (
                 !(await confirmDelete(
-                  "Permanently delete this saved photo? This cannot be undone.",
+                  "Delete this saved photo? This cannot be undone.",
                   photo,
                 ))
               )
@@ -627,13 +1254,15 @@ export function mountDraftWorkspace(
   function renderPoolSelection() {
     hide("[data-draft-import-footer]", !chosenPhotos.size);
     find("[data-draft-photo-count]").textContent =
-      `${chosenPhotos.size} selected`;
+      `${chosenPhotos.size} photo${chosenPhotos.size === 1 ? "" : "s"} selected`;
     action("individual").hidden = chosenPhotos.size < 2;
     action("group").disabled =
       !chosenPhotos.size ||
       chosenPhotos.size > DRAFT_LIMITS.photos ||
-      importing;
-    action("individual").disabled = !chosenPhotos.size || importing;
+      importing ||
+      processing;
+    action("individual").disabled =
+      !chosenPhotos.size || importing || processing;
     const status =
       chosenPhotos.size > DRAFT_LIMITS.photos
         ? "Choose up to 10 photos for one item, or make each selected photo a separate item."
@@ -646,10 +1275,12 @@ export function mountDraftWorkspace(
   function uploadThumbnail(upload: Upload) {
     const wrap = document.createElement("div");
     wrap.className = "draft-photo draft-upload";
+    wrap.dataset.state = upload.state;
     if (upload.preview) {
       const img = document.createElement("img");
       img.src = upload.preview;
       img.alt = "Photo being uploaded";
+      img.addEventListener("error", () => img.remove(), { once: true });
       wrap.append(img);
     }
     const text = document.createElement("span");
@@ -694,7 +1325,26 @@ export function mountDraftWorkspace(
   }
   function renderEditor() {
     if (disposed) return;
+    schedulePhotoViewport();
+    if (batchSettingsItem) {
+      const draft = batchSettingsItem.value;
+      syncSettingsControls(
+        root,
+        "field",
+        draft.settings,
+        busy(draft),
+        settingsAccess,
+      );
+      find("[data-draft-settings-context]").textContent =
+        `This item · ${draft.title || `Item ${groupIds.indexOf(draft.id) + 1}`}`;
+      find("[data-draft-settings-summary]").textContent = "";
+      hide("[data-draft-regenerate-notice]", true);
+      action("regenerate").hidden = true;
+      return;
+    }
+    updatePhoneEntry();
     const draft = selected?.value;
+    label("back", openedFromGrouping ? "Back to grouping" : "Back to drafts");
     hide("[data-draft-editor]", !draft && !composing);
     hide("[data-draft-editor-empty]", true);
     root.classList.toggle("has-editor", Boolean(draft) || composing);
@@ -706,24 +1356,26 @@ export function mountDraftWorkspace(
           ? "preparation"
           : "library";
     if (!draft) {
+      find("[data-draft-editor]").classList.remove("is-preparing");
       if (composing) {
         find("#draft-editor-title").textContent = "Add item";
         find("#draft-editor-title").classList.remove("draft-sr-only");
         find("[data-draft-editor]").classList.add("is-empty");
         find("[data-draft-editor]").classList.remove("has-text");
+        find("[data-draft-editor]").classList.remove("is-manual");
         find("[data-draft-save-status]").textContent = "";
+        closeContainedPopovers(find("[data-draft-item-photos]"));
         find("[data-draft-item-photos]").replaceChildren();
         railSignature = "";
         hide("[data-draft-upload-intro]", false);
         hide("[data-draft-editor-cover]", true);
-        hide("[data-draft-upload-actions]", false);
+        hide("[data-draft-upload-actions]", true);
+        hide("[data-draft-entry-help]", true);
         action("write").hidden = false;
         for (const selector of [
           "[data-draft-copy-fields]",
           "[data-draft-generation-actions]",
           "[data-draft-editor-footer]",
-          "[data-draft-editor-settings]",
-          "[data-draft-originals]",
           "[data-draft-conflict]",
           "[data-draft-recovery]",
           "[data-draft-operation-status]",
@@ -731,7 +1383,23 @@ export function mountDraftWorkspace(
           "[data-draft-position]",
         ])
           hide(selector, true);
-        for (const name of ["previous", "next", "check", "edit", "save"])
+        hide("[data-draft-editor-settings]", true);
+        syncSettingsControls(
+          root,
+          "field",
+          newItemSettings,
+          false,
+          settingsAccess,
+        );
+        find("[data-draft-editor-summary]").textContent =
+          `${newItemSettings.descriptionLength === "short" ? "Short" : "Long"} · ${newItemSettings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
+        find("[data-draft-settings-summary]").textContent =
+          `${settingsLanguages(newItemSettings)}\n${settingsExtras(newItemSettings)}`;
+        find("[data-draft-settings-context]").textContent = "For this new item";
+        hide("[data-draft-regenerate-notice]", true);
+        action("regenerate").hidden = true;
+        hide(".draft-entry-mode", false);
+        for (const name of ["previous", "next", "check", "save"])
           action(name).hidden = true;
         root
           .querySelectorAll<HTMLInputElement>(
@@ -745,57 +1413,79 @@ export function mountDraftWorkspace(
     }
     if (preparationDraftId !== draft.id) {
       root
-        .querySelectorAll<HTMLDetailsElement>("[data-draft-popover]")
-        .forEach((el) => {
-          el.open = false;
-        });
+        .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+        .forEach((details) => closePopover(details, false));
       railSignature = "";
     }
     preparationDraftId = draft.id;
     const hasText = Boolean(draft.title || draft.description);
     const hasPhotos = Boolean(photoCount(draft));
-    const editing = editingDraftId === draft.id || writingDraftId === draft.id;
+    find("[data-draft-editor]").classList.toggle(
+      "is-preparing",
+      hasPhotos &&
+        !hasText &&
+        writingDraftId !== draft.id &&
+        draft.state !== "done",
+    );
+    hide("[data-draft-entry-help]", true);
+    const editing = hasText || writingDraftId === draft.id;
+    find("[data-draft-editor]").classList.toggle(
+      "is-manual",
+      !hasPhotos && (hasText || writingDraftId === draft.id),
+    );
     find("[data-draft-editor]").classList.toggle("is-editing", editing);
     find("[data-draft-editor]").classList.toggle("has-text", hasText);
-    hide("[data-draft-upload-intro]", hasPhotos);
+    hide(
+      "[data-draft-upload-intro]",
+      hasPhotos || hasText || writingDraftId === draft.id,
+    );
     hide(
       "[data-draft-generation-actions]",
+      (!hasPhotos || hasText || draft.state === "done") && queuePanel.hidden,
+    );
+    hide(
+      "[data-draft-upload-actions]",
       !hasPhotos || hasText || draft.state === "done",
     );
-    hide("[data-draft-upload-actions]", hasText || draft.state === "done");
-    hide("[data-draft-originals]", !hasPhotos);
-    hide("[data-draft-editor-settings]", !hasPhotos);
-    hide("[data-draft-copy-fields]", !hasText && writingDraftId !== draft.id);
+    hide("[data-draft-editor-settings]", false);
     hide(
-      "[data-draft-editor-footer]",
-      !hasText && !hasPhotos && draft.state !== "done",
+      ".draft-entry-mode",
+      hasPhotos ||
+        hasText ||
+        writingDraftId === draft.id ||
+        draft.state === "done",
     );
-    hide("[data-draft-publish-hint]", !hasText || draft.state === "done");
-    action("write").hidden = hasText || writingDraftId === draft.id;
-    action("edit").hidden = !hasText && writingDraftId !== draft.id;
-    label("edit", editing ? "Done editing" : "Edit");
+    hide("[data-draft-regenerate-notice]", !hasText);
+    hide("[data-draft-copy-fields]", !hasText && writingDraftId !== draft.id);
+    hide("[data-draft-editor-footer]", !hasText && draft.state !== "done");
+    action("write").hidden =
+      hasText || hasPhotos || writingDraftId === draft.id;
     hide(".draft-item-menu", false);
     find("[data-draft-editor]").classList.toggle(
       "is-empty",
-      !hasPhotos && !hasText,
+      !hasPhotos && !hasText && writingDraftId !== draft.id,
     );
     find("[data-draft-preparation-label]").textContent = draft.photos.length
       ? `Photos · ${draft.photos.length}`
       : "Photos";
-    const language = SUPPORTED_OUTPUT_LANGUAGES.find(
-      (language) => language.code === draft.settings.descriptionLanguageCode,
-    )?.label;
     find("[data-draft-settings-summary]").textContent =
-      `${language || draft.settings.descriptionLanguageCode} · ${draft.settings.descriptionLength === "short" ? "Short" : "Detailed"}`;
+      `${settingsLanguages(draft.settings)}\n${settingsExtras(draft.settings)}`;
+    find("[data-draft-editor-summary]").textContent =
+      `${draft.settings.descriptionLength === "short" ? "Short" : "Long"} · ${draft.settings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
+    find("[data-draft-settings-context]").textContent =
+      `This item${draft.title ? ` · ${draft.title}` : ""}`;
     const locked = busy(draft);
     const order = reviewOrder();
     const index = order.indexOf(draft.id);
-    find("#draft-editor-title").textContent = hasText
-      ? "Review and copy"
-      : draft.state === "done"
-        ? "Listed item"
-        : "Prepare item";
-    find("#draft-editor-title").classList.toggle("draft-sr-only", hasText);
+    find("#draft-editor-title").textContent =
+      writingDraftId === draft.id
+        ? "Write item"
+        : hasText
+          ? "Review and copy"
+          : draft.state === "done"
+            ? "Listed item"
+            : "Prepare item";
+    find("#draft-editor-title").classList.remove("draft-sr-only");
     const cover = find<HTMLImageElement>("[data-draft-editor-cover]");
     const coverUrl =
       draft.photos.find((p) => p.url)?.url ||
@@ -808,6 +1498,7 @@ export function mountDraftWorkspace(
     hide("[data-draft-position]", order.length < 2);
     action("previous").hidden = order.length < 2;
     action("next").hidden = order.length < 2;
+    action("next").setAttribute("aria-label", "Next");
     action("previous").disabled = index <= 0;
     action("next").disabled = index < 0 || index >= order.length - 1;
     for (const name of ["title", "description"] as const) {
@@ -816,26 +1507,16 @@ export function mountDraftWorkspace(
       );
       if (el.value !== draft[name]) el.value = draft[name];
       el.hidden = !editing;
+      if (name === "description" && !el.hidden) {
+        resizeDescription();
+      }
       const readable = find(`[data-draft-read="${name}"]`);
       readable.textContent = draft[name];
       readable.hidden = editing;
       el.disabled = locked;
       action(`copy-${name}`).disabled = !draft[name];
     }
-    for (const name of [
-      "titleLanguageCode",
-      "descriptionLanguageCode",
-      "descriptionLength",
-    ] as const) {
-      const el = find<HTMLSelectElement>(`[data-draft-field="${name}"]`);
-      el.value = draft.settings[name];
-      el.disabled = locked;
-    }
-    const bullet = find<HTMLInputElement>(
-      '[data-draft-field="useBulletPoints"]',
-    );
-    bullet.checked = draft.settings.useBulletPoints;
-    bullet.disabled = locked;
+    syncSettingsControls(root, "field", draft.settings, locked, settingsAccess);
     root
       .querySelectorAll<HTMLInputElement>(
         '[data-draft-input="item"], [data-draft-input="camera"]',
@@ -844,11 +1525,33 @@ export function mountDraftWorkspace(
         el.disabled =
           generating(draft) || photoCount(draft) >= DRAFT_LIMITS.photos;
       });
-    label("generate", "Generate");
+    const photoSource = find<HTMLElement>(".draft-photo-source > summary");
+    const cannotAddPhotos =
+      generating(draft) || photoCount(draft) >= DRAFT_LIMITS.photos;
+    photoSource.setAttribute("aria-disabled", String(cannotAddPhotos));
+    photoSource.title = cannotAddPhotos
+      ? "Remove a photo to add another"
+      : "Add photos";
+    const singleGenerating =
+      startingGenerationId === draft.id || generating(draft);
+    label("generate", singleGenerating ? "Generating…" : "Generate draft");
+    action("generate").setAttribute("aria-busy", String(singleGenerating));
+    find("[data-draft-generate-play]").toggleAttribute(
+      "hidden",
+      singleGenerating,
+    );
+    find("[data-draft-generate-loader]").toggleAttribute(
+      "hidden",
+      !singleGenerating,
+    );
     action("generate").disabled =
+      singleGenerating ||
+      processing ||
       locked ||
       !draft.photos.length ||
-      draft.photos.some((p) => p.status !== "ready");
+      draft.photos.some((p) => p.status !== "ready") ||
+      !find<HTMLTextAreaElement>('[data-draft-field="descriptionFooterText"]')
+        .validity.valid;
     action("regenerate").disabled = action("generate").disabled;
     action("regenerate").hidden = !hasText || draft.state === "done";
     action("done").disabled = locked;
@@ -872,9 +1575,12 @@ export function mountDraftWorkspace(
     find("[data-draft-generate-help]").textContent = locked
       ? "You can review another draft while this item is being prepared."
       : "";
-    hide("[data-draft-generate-help]", !locked);
+    hide("[data-draft-generate-help]", true);
     hide("[data-draft-conflict]", !conflict);
     const rail = find("[data-draft-item-photos]");
+    const targets = library.drafts.filter(
+      (d) => d.id !== draft.id && !busy(d) && d.photos.length < 10,
+    );
     const signature = JSON.stringify([
       draft.id,
       draft.photos,
@@ -882,11 +1588,15 @@ export function mountDraftWorkspace(
       uploads
         .filter((p) => p.draftId === draft.id)
         .map((p) => [p.id, p.state, p.preview, p.error]),
-      library.drafts.map((d) => [d.id, d.title, d.photos.length, busy(d)]),
+      targets.map((d) => [d.id, d.title]),
     ]);
     if (railSignature === signature) return;
+    const photoScroll = railSignature
+      ? { top: rail.scrollTop, left: rail.scrollLeft }
+      : { top: 0, left: 0 };
     railSignature = signature;
     const restoreFocus = preserveFocus(rail);
+    closeContainedPopovers(rail);
     rail.replaceChildren();
     for (const photo of draft.photos) {
       if (uploads.some((p) => p.id === photo.id)) continue;
@@ -911,6 +1621,11 @@ export function mountDraftWorkspace(
             }),
           ),
         );
+        const help = document.createElement("p");
+        help.className = "draft-photo-download-help";
+        help.textContent =
+          "Prepared JPEG. Keep your originals for full quality.";
+        controls.append(help);
       }
       if (!locked) {
         if (photo.position > 0 && photo.status === "ready")
@@ -940,7 +1655,8 @@ export function mountDraftWorkspace(
             run(async () => {
               if (
                 !(await confirmDelete(
-                  `Permanently delete photo ${photo.position + 1} from “${draft.title || "Untitled item"}”? Your other photos and text will stay saved.`,
+                  `Delete photo ${photo.position + 1}? Your other photos and text will stay saved.`,
+                  photo,
                 ))
               )
                 return;
@@ -950,9 +1666,6 @@ export function mountDraftWorkspace(
               await reload();
             }),
           ),
-        );
-        const targets = library.drafts.filter(
-          (d) => d.id !== draft.id && !busy(d) && d.photos.length < 10,
         );
         if (targets.length) {
           const move = document.createElement("select");
@@ -995,14 +1708,7 @@ export function mountDraftWorkspace(
         const panel = document.createElement("div");
         panel.className = "draft-popover-panel";
         panel.append(
-          button(
-            "Close",
-            () => {
-              menu.open = false;
-              summary.focus();
-            },
-            "draft-close",
-          ),
+          button("Close", () => closePopover(menu), "draft-close"),
           controls,
         );
         controls
@@ -1011,12 +1717,6 @@ export function mountDraftWorkspace(
             el.dataset.focusKey = `control-${photo.id}-${i}`;
           });
         menu.append(summary, panel);
-        if (photo.position === 0) {
-          const label = document.createElement("small");
-          label.className = "draft-cover-label";
-          label.textContent = "Cover";
-          wrap.append(label);
-        }
         wrap.append(menu);
       }
       rail.append(wrap);
@@ -1024,6 +1724,8 @@ export function mountDraftWorkspace(
     for (const upload of uploads.filter((p) => p.draftId === draft.id))
       rail.append(uploadThumbnail(upload));
     restoreFocus();
+    rail.scrollTop = photoScroll.top;
+    rail.scrollLeft = photoScroll.left;
   }
   async function reloadSelected() {
     if (!selected || disposed) return;
@@ -1147,6 +1849,7 @@ export function mountDraftWorkspace(
     }
   }
   async function newDraft(photoIds: string[] = []) {
+    validateDraftSettings(newItemSettings);
     const intent = beginNavigation();
     await flush();
     if (disposed || intent !== selectionIntent) return;
@@ -1175,7 +1878,7 @@ export function mountDraftWorkspace(
     }
     const draft = await draftAction("create", {
       id: crypto.randomUUID(),
-      settings: defaultSettings,
+      settings: newItemSettings,
       photoIds,
     });
     upsert(draft);
@@ -1363,6 +2066,7 @@ export function mountDraftWorkspace(
   }, renderQueue);
   function renderQueue() {
     if (disposed) return;
+    if (bulk) find("[data-draft-heading]").textContent = "Your batch";
     try {
       if (queue.running || queue.remaining.length || queue.failed.size)
         sessionStorage.setItem(
@@ -1381,7 +2085,14 @@ export function mountDraftWorkspace(
     } catch {}
     hide(
       "[data-draft-queue]",
-      !queue.running && !queue.remaining.length && !queue.failed.size,
+      (generationCount === 1 &&
+        !selected?.value.title &&
+        !selected?.value.description &&
+        queue.running &&
+        Boolean(selected) &&
+        (selected?.value.id === queue.active ||
+          startingGenerationId === selected?.value.id)) ||
+        (!queue.running && !queue.remaining.length && !queue.failed.size),
     );
     find("[data-draft-queue-title]").textContent = queue.running
       ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
@@ -1389,7 +2100,7 @@ export function mountDraftWorkspace(
         ? `Paused · ${queue.completed.length} of ${generationCount} ready`
         : `${queue.completed.length} ready${queue.failed.size ? ` · ${queue.failed.size} need attention` : ""}`;
     find("[data-draft-queue-copy]").textContent = queue.running
-      ? ""
+      ? "Keep this tab open. Ready drafts are saved."
       : queue.remaining.length
         ? `${queue.remaining.length} items left. Completed drafts are saved.`
         : queue.failed.size
@@ -1401,6 +2112,64 @@ export function mountDraftWorkspace(
     );
     action("pause").hidden = !queue.running || queue.paused;
     action("resume").hidden = queue.running || !queue.remaining.length;
+    const rows = find("[data-draft-queue-items]");
+    rows.replaceChildren();
+    const ids = [
+      ...new Set([
+        ...queue.completed,
+        ...(queue.active ? [queue.active] : []),
+        ...queue.remaining,
+        ...queue.failed.keys(),
+      ]),
+    ];
+    for (const id of ids) {
+      const draft = library.drafts.find((d) => d.id === id);
+      const row = document.createElement("div");
+      row.className = "draft-queue-row";
+      const cover = document.createElement("img");
+      cover.alt = "";
+      cover.className = "draft-queue-cover";
+      const url = draft?.photos.find((p) => p.url)?.url;
+      if (url) cover.src = url;
+      else cover.hidden = true;
+      const name = document.createElement("span");
+      name.textContent = draft?.title || `Item ${ids.indexOf(id) + 1}`;
+      const status = document.createElement("span");
+      status.className = "draft-queue-item-status";
+      status.textContent = queue.failed.has(id)
+        ? "Needs attention"
+        : queue.completed.includes(id)
+          ? "Ready"
+          : queue.active === id
+            ? "Generating"
+            : "Waiting";
+      status.prepend(
+        icon(
+          queue.failed.has(id)
+            ? "warning"
+            : queue.completed.includes(id)
+              ? "check"
+              : queue.active === id
+                ? "loading"
+                : "waiting",
+        ),
+      );
+      row.dataset.status = status.textContent.toLowerCase().replace(/ /g, "-");
+      row.append(cover, name, status);
+      if (queue.completed.includes(id) || queue.failed.has(id)) {
+        const review = button(
+          queue.failed.has(id) ? "Open" : "Review",
+          () => openDraft(id),
+          "draft-text-button",
+        );
+        review.setAttribute(
+          "aria-label",
+          `${review.textContent} ${name.textContent}`,
+        );
+        row.append(review);
+      }
+      rows.append(row);
+    }
     renderLibrary();
     renderEditor();
     if (bulk) renderGroups();
@@ -1445,6 +2214,18 @@ export function mountDraftWorkspace(
     }
   } catch {}
   async function startGeneration(ids: string[]) {
+    if (processing)
+      throw new Error("Wait for your settings and photos to finish saving.");
+    if (bulk)
+      validateDraftSettings({
+        ...defaultSettings,
+        descriptionFooterText: find<HTMLTextAreaElement>(
+          '[data-draft-default="descriptionFooterText"]',
+        ).value,
+      });
+    root
+      .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+      .forEach((details) => closePopover(details, false));
     await flush();
     if (
       queue.remaining.length &&
@@ -1455,6 +2236,22 @@ export function mountDraftWorkspace(
       return;
     if (!ids.length) throw new Error("Select at least one item to generate.");
     const usage = await options.onUsageChange();
+    for (const id of ids) {
+      const settings = normalizeDraftSettings(
+        library.drafts.find((d) => d.id === id)?.settings,
+      );
+      if (!settingsAccess.tone && settings.tone !== "standard")
+        throw new Error(
+          "Choose Standard tone for this plan, or switch to Pro or Business.",
+        );
+      if (
+        !settingsAccess.extras &&
+        (settings.useEmojis || settings.includeSellerNote)
+      )
+        throw new Error(
+          "Turn off emojis and seller note inclusion for this plan. Your note will stay saved.",
+        );
+    }
     const available = Math.min(
       DRAFT_LIMITS.batch,
       draftGenerationAllowance(usage),
@@ -1522,13 +2319,36 @@ export function mountDraftWorkspace(
     renderLibrary();
     tell("");
   }
+  function openSettingsScope(selector: string) {
+    root
+      .querySelectorAll<HTMLDetailsElement>(".draft-settings[open]")
+      .forEach((details) => closePopover(details, false, false));
+    const details = find<HTMLDetailsElement>(selector);
+    details.hidden = false;
+    openPopover(details, false);
+    details
+      .querySelector<HTMLButtonElement>(
+        '.draft-settings-scope [aria-pressed="true"]',
+      )
+      ?.focus({ preventScroll: true });
+  }
   const handlers: Record<string, () => Promise<unknown> | void> = {
+    "settings-item": () => {
+      if (selected || batchSettingsItem)
+        openSettingsScope("[data-draft-editor-settings]");
+    },
+    "settings-batch": () => {
+      if (bulk) openSettingsScope(".draft-batch-settings");
+    },
+    "settings-defaults": () =>
+      openSettingsScope("[data-draft-global-settings]"),
     "choose-item": () =>
       find<HTMLInputElement>('[data-draft-input="item"]').click(),
     "choose-camera": () =>
       find<HTMLInputElement>('[data-draft-input="camera"]').click(),
     "choose-bulk": () =>
       find<HTMLInputElement>('[data-draft-input="bulk"]').click(),
+    "add-bulk-photos": () => handlers["choose-bulk"](),
     new: async () => {
       const intent = beginNavigation();
       await flush();
@@ -1536,6 +2356,8 @@ export function mountDraftWorkspace(
       if (!selected) scrollY = window.scrollY;
       rememberView();
       selected = null;
+      writingDraftId = undefined;
+      newItemSettings = loadDefaults();
       bulk = false;
       composing = true;
       openedFromGrouping = false;
@@ -1553,18 +2375,6 @@ export function mountDraftWorkspace(
       writingDraftId = selected!.value.id;
       renderEditor();
       find<HTMLInputElement>("#draft-title").focus();
-    },
-    edit: async () => {
-      if (!selected) return;
-      const editing =
-        editingDraftId === selected.value.id ||
-        writingDraftId === selected.value.id;
-      if (editing) await flush();
-      writingDraftId = undefined;
-      editingDraftId = editing ? undefined : selected.value.id;
-      renderEditor();
-      if (!editing) find<HTMLInputElement>("#draft-title").focus();
-      else action("edit").focus();
     },
     selection: () => {
       selectionMode = !selectionMode;
@@ -1591,12 +2401,15 @@ export function mountDraftWorkspace(
       rememberView(true);
       root.scrollIntoView({
         block: "start",
-        behavior: "smooth",
+        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
       });
     },
     "close-import": () => {
       beginNavigation();
       bulk = false;
+      renderLibrary();
       renderPool();
       rememberView();
       action("bulk").focus();
@@ -1607,6 +2420,12 @@ export function mountDraftWorkspace(
     },
     more: () => reload(true),
     group: async () => {
+      validateDraftSettings({
+        ...defaultSettings,
+        descriptionFooterText: find<HTMLTextAreaElement>(
+          '[data-draft-default="descriptionFooterText"]',
+        ).value,
+      });
       await flush();
       importing = true;
       renderPool();
@@ -1626,6 +2445,12 @@ export function mountDraftWorkspace(
       }
     },
     individual: async () => {
+      validateDraftSettings({
+        ...defaultSettings,
+        descriptionFooterText: find<HTMLTextAreaElement>(
+          '[data-draft-default="descriptionFooterText"]',
+        ).value,
+      });
       if (
         !window.confirm(
           `Create ${chosenPhotos.size} separate items, one photo per item?`,
@@ -1677,7 +2502,6 @@ export function mountDraftWorkspace(
     "keep-edits": () => resolveConflict(true),
     restore: async () => {
       if (!selected) return;
-      editingDraftId = selected.value.id;
       const saved = recovery(selected.value);
       if (!saved) return;
       const baseVersion =
@@ -1724,11 +2548,86 @@ export function mountDraftWorkspace(
         chosen.add(d.id);
       renderLibrary();
     },
-    "generate-selected": () => startGeneration([...chosen]),
-    generate: () =>
-      selected ? startGeneration([selected.value.id]) : undefined,
+    "generate-selected": () =>
+      startGeneration(
+        [...chosen].filter((id) => {
+          const d = library.drafts.find((d) => d.id === id);
+          return (
+            d &&
+            d.photos.length &&
+            d.photos.every((p) => p.status === "ready") &&
+            !busy(d)
+          );
+        }),
+      ),
+    "delete-selected": async () => {
+      const items = library.drafts.filter((d) => chosen.has(d.id));
+      if (
+        !items.length ||
+        !(await confirmDelete(
+          `Delete ${items.length} item${items.length === 1 ? "" : "s"} and their ${items.reduce((count, d) => count + d.photos.length, 0)} photos? This cannot be undone.`,
+        ))
+      )
+        return;
+      try {
+        for (const draft of items) {
+          await draftAction("delete", {
+            draftId: draft.id,
+            expectedVersion: draft.version,
+          });
+          chosen.delete(draft.id);
+          groupIds = groupIds.filter((id) => id !== draft.id);
+          reviewIds = reviewIds.filter((id) => id !== draft.id);
+          try {
+            sessionStorage.removeItem(key(draft.id));
+          } catch {}
+        }
+      } finally {
+        rememberGroups();
+        await reload();
+        renderPool();
+      }
+    },
+    generate: async () => {
+      if (!selected || startingGenerationId) return;
+      startingGenerationId = selected.value.id;
+      renderEditor();
+      try {
+        await startGeneration([startingGenerationId]);
+      } finally {
+        startingGenerationId = null;
+        renderEditor();
+      }
+    },
     regenerate: () =>
       selected ? startGeneration([selected.value.id]) : undefined,
+    "save-defaults": async () => {
+      const settings = normalizeDraftSettings(
+        batchSettingsItem?.value.settings ||
+          selected?.value.settings ||
+          newItemSettings,
+      );
+      validateDraftSettings(settings);
+      persistDefaults(settings);
+      const status = find("[data-draft-default-save-status]");
+      status.hidden = false;
+      status.textContent =
+        "Saved for new items on this device. Existing items keep their settings.";
+    },
+    "retry-item-settings": () => flush(),
+    "save-global-defaults": async () => {
+      const status = find("[data-draft-global-save-status]");
+      status.hidden = false;
+      try {
+        persistDefaults(normalizeDraftSettings(globalSettings));
+        status.classList.remove("draft-settings-error");
+        status.textContent = "Defaults saved";
+        label("save-global-defaults", "Defaults saved");
+      } catch {
+        status.classList.add("draft-settings-error");
+        status.textContent = "Could not save defaults. Try again.";
+      }
+    },
     "generate-groups": () =>
       startGeneration(
         groupIds.filter((id) => {
@@ -1765,6 +2664,10 @@ export function mountDraftWorkspace(
       queue.failed.delete(d.id);
       renderEditor();
       renderLibrary();
+      if (d.operation_state === "failed")
+        tell(
+          "No saved result is available for that attempt. Check your usage before generating again.",
+        );
       await options.onUsageChange();
     },
     done: async () => {
@@ -1816,7 +2719,7 @@ export function mountDraftWorkspace(
       if (!selected) return;
       if (
         !(await confirmDelete(
-          `Permanently delete “${selected.value.title || "Untitled item"}” and its ${selected.value.photos.length} photos? This cannot be undone.`,
+          `Delete “${selected.value.title || "Untitled item"}” and its ${selected.value.photos.length} photos? This cannot be undone.`,
         ))
       )
         return;
@@ -1861,7 +2764,7 @@ export function mountDraftWorkspace(
         `${field === "title" ? "Title" : "Description"} copied.`;
       setTimeout(() => {
         if (!disposed) {
-          label(`copy-${field}`, `Copy ${field}`);
+          label(`copy-${field}`, "Copy");
           action(`copy-${field}`)
             .querySelector("svg")!
             .replaceWith(icon("copy"));
@@ -1869,25 +2772,46 @@ export function mountDraftWorkspace(
       }, 1800);
     } else {
       if (selected) {
-        editingDraftId = selected.value.id;
         renderEditor();
       }
       el.focus();
       el.select();
       tell(
-        `Copy was blocked by your browser. The ${field} is selected — use Copy from your browser or keyboard.`,
+        `Copy was blocked. The ${field} is selected. Use your browser or keyboard to copy it.`,
         true,
       );
     }
   }
   bind(root, "click", (event) => {
     const target = event.target as HTMLElement;
+    const summary = target.closest("summary");
+    const owner = summary?.parentElement;
+    if (owner?.classList.contains("draft-photo-source")) {
+      if (summary?.getAttribute("aria-disabled") === "true") {
+        event.preventDefault();
+        return;
+      }
+      if (
+        nativePhotoPicker ||
+        window.matchMedia("(min-width: 768px)").matches
+      ) {
+        event.preventDefault();
+        handlers["choose-item"]();
+        return;
+      }
+    }
+    if (
+      owner instanceof HTMLDetailsElement &&
+      owner.hasAttribute("data-draft-popover")
+    ) {
+      event.preventDefault();
+      if (owner.open) closePopover(owner);
+      else openPopover(owner);
+      return;
+    }
     if (target.closest("[data-draft-close]")) {
       const details = target.closest<HTMLDetailsElement>("details");
-      if (details) {
-        details.open = false;
-        details.querySelector("summary")?.focus();
-      }
+      if (details) closePopover(details);
       return;
     }
     const el = (event.target as HTMLElement).closest<HTMLButtonElement>(
@@ -1895,7 +2819,20 @@ export function mountDraftWorkspace(
     );
     const name = el?.dataset.draftAction;
     if (!el || el.disabled || !name || activeActions.has(name)) return;
+    if (name.startsWith("settings-")) event.stopPropagation();
+    if (
+      name.startsWith("settings-") &&
+      el.getAttribute("aria-pressed") === "true"
+    )
+      return;
+    if (
+      el.closest(".draft-mode") &&
+      ((name === "new" && !bulk) || (name === "bulk" && bulk))
+    )
+      return;
     const handler = handlers[name];
+    const addMenu = el.closest<HTMLDetailsElement>(".draft-add-menu");
+    if (addMenu) closePopover(addMenu, false);
     if (handler)
       run(async () => {
         activeActions.add(name);
@@ -1912,8 +2849,21 @@ export function mountDraftWorkspace(
       });
   });
   bind(root, "change", (event) => {
-    const el = event.target as HTMLInputElement | HTMLSelectElement;
+    const el = event.target as
+      | HTMLInputElement
+      | HTMLSelectElement
+      | HTMLTextAreaElement;
     if (el.matches("[data-draft-tab]")) return;
+    if (el.hasAttribute("data-draft-global")) {
+      globalSettings = {
+        ...globalSettings,
+        [el.getAttribute("data-draft-global")!]: settingInputValue(el),
+      };
+      hide("[data-draft-global-save-status]", true);
+      label("save-global-defaults", "Save defaults");
+      renderGlobalSettings();
+      return;
+    }
     if (el instanceof HTMLInputElement && el.dataset.draftInput) {
       const files = Array.from(el.files || []);
       el.value = "";
@@ -1921,35 +2871,67 @@ export function mountDraftWorkspace(
     }
     if (
       el.dataset.draftField &&
-      !["title", "description"].includes(el.dataset.draftField) &&
-      selected
+      !["title", "description"].includes(el.dataset.draftField)
     ) {
       const name = el.dataset.draftField;
-      selected.edit({
-        settings: {
-          ...selected.value.settings,
-          [name]:
-            name === "useBulletPoints"
-              ? (el as HTMLInputElement).checked
-              : el.value,
-        },
-      });
+      if (el instanceof HTMLInputElement && el.type === "radio" && !el.checked)
+        return;
+      const settings = {
+        ...DEFAULT_DRAFT_SETTINGS,
+        ...(batchSettingsItem?.value.settings ||
+          selected?.value.settings ||
+          newItemSettings),
+        [name]: settingInputValue(el),
+      };
+      if (batchSettingsItem) batchSettingsItem.edit({ settings });
+      else if (selected) selected.edit({ settings });
+      else newItemSettings = settings;
+      hide("[data-draft-default-save-status]", true);
       renderEditor();
-      scheduleSave();
+      if (selected || batchSettingsItem) scheduleSave();
     }
     if (el.dataset.draftDefault) {
       const name = el.dataset.draftDefault;
-      defaultSettings = {
-        ...defaultSettings,
-        [name]:
-          name === "useBulletPoints"
-            ? (el as HTMLInputElement).checked
-            : el.value,
-      };
+      if (el instanceof HTMLInputElement && el.type === "radio" && !el.checked)
+        return;
+      const settings = { ...defaultSettings, [name]: settingInputValue(el) };
+      run(() => changeBatchSettings(settings));
     }
   });
   bind(root, "input", (event) => {
     const el = event.target as HTMLInputElement;
+    if (el.getAttribute("data-draft-global") === "descriptionFooterText") {
+      globalSettings = { ...globalSettings, descriptionFooterText: el.value };
+      hide("[data-draft-global-save-status]", true);
+      label("save-global-defaults", "Save defaults");
+      renderGlobalSettings();
+      return;
+    }
+    if (el.dataset.draftField === "descriptionFooterText") {
+      const settings = {
+        ...DEFAULT_DRAFT_SETTINGS,
+        ...(batchSettingsItem?.value.settings ||
+          selected?.value.settings ||
+          newItemSettings),
+        descriptionFooterText: el.value,
+      };
+      if (batchSettingsItem) batchSettingsItem.edit({ settings });
+      else if (selected) selected.edit({ settings });
+      else newItemSettings = settings;
+      renderEditor();
+      if (selected || batchSettingsItem) scheduleSave();
+      return;
+    }
+    if (el.dataset.draftDefault === "descriptionFooterText") {
+      syncSettingsControls(
+        root,
+        "default",
+        { ...defaultSettings, descriptionFooterText: el.value },
+        false,
+        settingsAccess,
+      );
+      return;
+    }
     if (
       selected &&
       ["title", "description"].includes(el.dataset.draftField || "")
@@ -1960,20 +2942,17 @@ export function mountDraftWorkspace(
       );
       hide(
         "[data-draft-editor-footer]",
-        !hasText &&
-          !photoCount(selected.value) &&
-          selected.value.state !== "done",
+        !hasText && selected.value.state !== "done",
       );
-      hide(
-        "[data-draft-publish-hint]",
-        !hasText || selected.value.state === "done",
-      );
+      if (el instanceof HTMLTextAreaElement) {
+        resizeDescription();
+      }
       scheduleSave();
       action(`copy-${el.dataset.draftField}`).disabled = !el.value;
     }
   });
   function scheduleSave() {
-    remember();
+    if (!batchSettingsItem) remember();
     find("[data-draft-save-status]").textContent = "Unsaved edits";
     find("[data-draft-save-status]").dataset.status = "pending";
     clearTimeout(saveTimer);
@@ -1982,7 +2961,7 @@ export function mountDraftWorkspace(
   bind(root, "focusout", (event) => {
     if (
       (event.target as HTMLElement).matches("[data-draft-field]") &&
-      selected?.dirty
+      (selected?.dirty || batchSettingsItem?.dirty)
     )
       run(() => flush());
   });
@@ -2025,7 +3004,11 @@ export function mountDraftWorkspace(
   });
   const hasUnsaved = () =>
     Boolean(
-      selected?.dirty || processing || queue.running || queue.remaining.length,
+      selected?.dirty ||
+      batchSettingsItem?.dirty ||
+      processing ||
+      queue.running ||
+      queue.remaining.length,
     );
   bind(window, "beforeunload", (event) => {
     if (hasUnsaved()) {
@@ -2042,15 +3025,16 @@ export function mountDraftWorkspace(
     root
       .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
       .forEach((el) => {
-        el.open = false;
-        el.querySelector("summary")?.focus();
+        closePopover(el);
       });
   });
   bind(document, "click", (event) => {
+    if ((event.target as HTMLElement).closest("[data-draft-global-trigger]"))
+      return;
     root
       .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
       .forEach((el) => {
-        if (!el.contains(event.target as Node)) el.open = false;
+        if (!el.contains(event.target as Node)) closePopover(el);
       });
   });
   async function restoreView(state: unknown) {
@@ -2096,6 +3080,7 @@ export function mountDraftWorkspace(
           if ((error as { status?: number }).status !== 404) throw error;
           selected = null;
           composing = false;
+          openedFromGrouping = false;
         }
       }
       if (disposed || intent !== selectionIntent) return;
@@ -2115,26 +3100,38 @@ export function mountDraftWorkspace(
   renderEditor();
   renderLibrary();
   renderPool();
-  for (const name of [
-    "titleLanguageCode",
-    "descriptionLanguageCode",
-    "descriptionLength",
-  ] as const)
-    find<HTMLSelectElement>(`[data-draft-default="${name}"]`).value =
-      defaultSettings[name];
-  find<HTMLInputElement>('[data-draft-default="useBulletPoints"]').checked =
-    defaultSettings.useBulletPoints;
-  root.hidden = false;
+  renderDefaults();
+  renderGlobalSettings();
+  const initialView = history.state?.draftWorkspace;
+  // Restore the requested screen before exposing it, rather than flashing the library.
+  root.hidden = initialView?.owner === options.userId;
   run(async () => {
-    const state = history.state?.draftWorkspace;
-    if (state?.owner === options.userId) await restoreView(state);
-    else {
-      await reload();
-      rememberView();
+    try {
+      if (initialView?.owner === options.userId) await restoreView(initialView);
+      else {
+        await reload();
+        rememberView();
+      }
+    } finally {
+      if (!disposed) {
+        root.hidden = false;
+        schedulePhotoViewport();
+        initialMotionFrame = requestAnimationFrame(() => {
+          initializing = false;
+        });
+      }
     }
   });
   return {
     updateUsage(usage: MobileUsage) {
+      const tier = usage.plan?.tier || "free";
+      const active =
+        !usage.plan?.status ||
+        ["active", "trialing"].includes(usage.plan.status);
+      settingsAccess = {
+        tone: active && ["pro", "business"].includes(tier),
+        extras: !active || tier !== "basic",
+      };
       const value = usage.remaining?.generations;
       allowance =
         typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -2143,6 +3140,9 @@ export function mountDraftWorkspace(
           ? ""
           : `${allowance} generation${allowance === 1 ? "" : "s"} left`;
       renderSelection();
+      renderEditor();
+      renderDefaults();
+      renderGlobalSettings();
     },
     hasUnsaved,
     flush,
@@ -2151,6 +3151,7 @@ export function mountDraftWorkspace(
       const dialog = find<HTMLDialogElement>("[data-draft-delete-dialog]");
       if (dialog.open) dialog.close("cancel");
       disposed = true;
+      client.dispose();
       queue.pause();
       clearTimeout(saveTimer);
       listeners.forEach((remove) => remove());
@@ -2176,6 +3177,7 @@ export function mountDraftWorkspace(
         try {
           sessionStorage.removeItem(queueKey);
           sessionStorage.removeItem(groupsKey);
+          sessionStorage.removeItem(batchSettingsKey);
           for (let i = sessionStorage.length - 1; i >= 0; i--) {
             const name = sessionStorage.key(i);
             if (name?.startsWith(`autolister:draft:${options.userId}:`))

@@ -119,6 +119,13 @@ export async function fetchMobileJson<T = unknown>(
   let didRefresh = false;
 
   const request = async () => {
+    if (options.expectedUserId && session?.user.id !== options.expectedUserId)
+      throw new MobileApiError({
+        status: 401,
+        code: "account_changed",
+        message: "Sign in to the same account to continue this item.",
+        retryable: false,
+      });
     const headers = getHeaderRecord(init.headers);
     if (session?.access_token)
       headers.Authorization = `Bearer ${session.access_token}`;

@@ -10,7 +10,10 @@ import {
   mutateDraft,
   ownedDraft,
 } from "./listingDrafts";
-import { validDraftId } from "../src/app/mobile-web/draftContracts";
+import {
+  validDraftId,
+  normalizeDraftSettings,
+} from "../src/app/mobile-web/draftContracts";
 import type { MobileGenerationResponse } from "./mobileGenerationTypes";
 
 export interface DraftGenerationContext {
@@ -142,13 +145,14 @@ export async function prepareDraftGeneration(
     )
     .digest("hex");
   await mutateDraft(userId, "fingerprint", { draftId, operationId, hash });
+  const { includeSellerNote, descriptionFooterText, ...settings } =
+    normalizeDraftSettings(row.settings);
   return {
     context: { userId, draftId, operationId, hash },
     body: {
-      ...row.settings,
+      ...settings,
       imageUrls: data.map((p) => p.signedUrl),
-      useEmojis: false,
-      useHashtags: false,
+      descriptionFooterText: includeSellerNote ? descriptionFooterText : "",
       generationMode: input.generationMode === "batch" ? "batch" : "manual",
     },
   };

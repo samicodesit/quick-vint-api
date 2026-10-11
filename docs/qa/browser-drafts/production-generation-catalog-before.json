@@ -1,0 +1,222 @@
+{
+  "checkedAt": "2026-10-11T22:36:36.331Z",
+  "catalog": {
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nBEGIN\n  IF p_reservation_id IS NULL THEN\n    RETURN false;\n  END IF;\n\n  UPDATE public.mobile_generation_idempotency AS i\n  SET\n    reservation_id = p_reservation_id,\n    updated_at = timezone('utc', now())\n  WHERE i.id = p_record_id\n    AND i.attempt_id = p_attempt_id\n    AND i.status = 'in_progress'\n    AND NOT i.commit_pending\n    AND (i.reservation_id IS NULL OR i.reservation_id = p_reservation_id)\n    AND EXISTS (\n      SELECT 1\n      FROM public.generation_reservations AS r\n      WHERE r.id = p_reservation_id\n        AND r.user_id = i.user_id\n        AND r.status = 'pending'\n    );\n\n  RETURN FOUND;\nEND;\n",
+        "name": "bind_mobile_generation_reservation",
+        "config": ["search_path=public"],
+        "arguments": "p_record_id uuid, p_attempt_id uuid, p_reservation_id uuid",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nDECLARE\n  inserted_id uuid;\n  inserted_attempt_id uuid;\n  reset_attempt_id uuid;\n  reservation_status text;\n  reservation_found boolean := false;\n  existing_row public.mobile_generation_idempotency%ROWTYPE;\n  now_utc timestamptz := timezone('utc', now());\nBEGIN\n  INSERT INTO public.mobile_generation_idempotency (\n    user_id,\n    client,\n    request_id,\n    request_hash,\n    status,\n    retryable,\n    commit_pending,\n    expires_at\n  )\n  VALUES (\n    p_user_id,\n    p_client,\n    p_request_id,\n    p_request_hash,\n    'in_progress',\n    false,\n    false,\n    now_utc + interval '15 minutes'\n  )\n  ON CONFLICT (user_id, client, request_id) DO NOTHING\n  RETURNING id, attempt_id INTO inserted_id, inserted_attempt_id;\n\n  IF inserted_id IS NOT NULL THEN\n    RETURN jsonb_build_object(\n      'kind', 'new',\n      'recordId', inserted_id,\n      'attemptId', inserted_attempt_id\n    );\n  END IF;\n\n  SELECT *\n  INTO existing_row\n  FROM public.mobile_generation_idempotency\n  WHERE user_id = p_user_id\n    AND client = p_client\n    AND request_id = p_request_id\n  FOR UPDATE;\n\n  IF NOT FOUND OR existing_row.request_hash <> p_request_hash THEN\n    RETURN jsonb_build_object('kind', 'conflict');\n  END IF;\n\n  IF existing_row.status = 'succeeded' THEN\n    RETURN jsonb_build_object(\n      'kind', 'succeeded',\n      'response', COALESCE(existing_row.response_json, '{}'::jsonb),\n      'statusCode', COALESCE(existing_row.response_status, 200)\n    );\n  END IF;\n\n  IF existing_row.reservation_id IS NOT NULL THEN\n    SELECT true, status::text\n    INTO reservation_found, reservation_status\n    FROM public.generation_reservations\n    WHERE id = existing_row.reservation_id;\n    IF NOT FOUND THEN\n      reservation_found := false;\n      reservation_status := NULL;\n    END IF;\n  END IF;\n\n  IF existing_row.commit_pending\n    AND reservation_status = 'pending'\n    AND existing_row.expires_at <= now_utc\n  THEN\n    PERFORM public.refund_generation_reservation(\n      existing_row.reservation_id,\n      'idempotency_expired'\n    );\n    SELECT status::text\n    INTO reservation_status\n    FROM public.generation_reservations\n    WHERE id = existing_row.reservation_id;\n  END IF;\n\n  IF existing_row.commit_pending THEN\n    IF reservation_status = 'committed'\n      AND existing_row.response_json IS NOT NULL\n      AND public.mobile_generation_json_is_safe(existing_row.response_json)\n    THEN\n      UPDATE public.mobile_generation_idempotency\n      SET\n        status = 'succeeded',\n        retryable = false,\n        commit_pending = false,\n        response_status = 200,\n        expires_at = now_utc + interval '15 minutes',\n        updated_at = now_utc\n      WHERE id = existing_row.id\n        AND attempt_id = existing_row.attempt_id;\n\n      RETURN jsonb_build_object(\n        'kind', 'succeeded',\n        'response', existing_row.response_json,\n        'statusCode', 200\n      );\n    END IF;\n\n    IF reservation_status = 'refunded' OR NOT reservation_found THEN\n      IF existing_row.expires_at <= now_utc THEN\n        UPDATE public.mobile_generation_idempotency\n        SET\n          status = 'in_progress',\n          retryable = false,\n          commit_pending = false,\n          attempt_id = gen_random_uuid(),\n          reservation_id = NULL,\n          response_json = NULL,\n          response_status = NULL,\n          failure_code = NULL,\n          expires_at = now_utc + interval '15 minutes',\n          updated_at = now_utc\n        WHERE id = existing_row.id\n        RETURNING attempt_id INTO reset_attempt_id;\n\n        RETURN jsonb_build_object(\n          'kind', 'new',\n          'recordId', existing_row.id,\n          'attemptId', reset_attempt_id\n        );\n      END IF;\n    END IF;\n\n    IF reservation_status = 'pending'\n      AND existing_row.response_json IS NOT NULL\n      AND public.mobile_generation_json_is_safe(existing_row.response_json)\n    THEN\n      RETURN jsonb_build_object(\n        'kind', 'commit_pending',\n        'recordId', existing_row.id,\n        'attemptId', existing_row.attempt_id,\n        'reservationId', existing_row.reservation_id,\n        'response', existing_row.response_json\n      );\n    END IF;\n  END IF;\n\n  IF existing_row.expires_at <= now_utc THEN\n    IF reservation_status = 'pending' THEN\n      PERFORM public.refund_generation_reservation(\n        existing_row.reservation_id,\n        'idempotency_expired'\n      );\n      SELECT status::text\n      INTO reservation_status\n      FROM public.generation_reservations\n      WHERE id = existing_row.reservation_id;\n    END IF;\n\n    IF reservation_status IS NULL OR reservation_status = 'refunded' THEN\n      UPDATE public.mobile_generation_idempotency\n      SET\n        status = 'in_progress',\n        retryable = false,\n        commit_pending = false,\n        attempt_id = gen_random_uuid(),\n        reservation_id = NULL,\n        response_json = NULL,\n        response_status = NULL,\n        failure_code = NULL,\n        expires_at = now_utc + interval '15 minutes',\n        updated_at = now_utc\n      WHERE id = existing_row.id\n      RETURNING attempt_id INTO reset_attempt_id;\n\n      RETURN jsonb_build_object(\n        'kind', 'new',\n        'recordId', existing_row.id,\n        'attemptId', reset_attempt_id\n      );\n    END IF;\n\n    IF reservation_status = 'committed' THEN\n      IF existing_row.response_json IS NOT NULL\n        AND public.mobile_generation_json_is_safe(existing_row.response_json)\n      THEN\n        UPDATE public.mobile_generation_idempotency\n        SET\n          status = 'succeeded',\n          retryable = false,\n          commit_pending = false,\n          response_status = 200,\n          expires_at = now_utc + interval '15 minutes',\n          updated_at = now_utc\n        WHERE id = existing_row.id\n          AND attempt_id = existing_row.attempt_id;\n\n        RETURN jsonb_build_object(\n          'kind', 'succeeded',\n          'response', existing_row.response_json,\n          'statusCode', 200\n        );\n      ELSE\n        UPDATE public.mobile_generation_idempotency\n        SET\n          status = 'failed',\n          retryable = false,\n          commit_pending = false,\n          response_json = jsonb_build_object(\n            'error', 'Generation completed but its response could not be recovered.',\n            'code', 'generation_response_unavailable'\n          ),\n          response_status = 500,\n          failure_code = 'generation_response_unavailable',\n          expires_at = now_utc + interval '15 minutes',\n          updated_at = now_utc\n        WHERE id = existing_row.id\n          AND attempt_id = existing_row.attempt_id;\n\n        RETURN jsonb_build_object(\n          'kind', 'failed',\n          'statusCode', 500,\n          'body', jsonb_build_object(\n            'error', 'Generation completed but its response could not be recovered.',\n            'code', 'generation_response_unavailable'\n          ),\n          'retryable', false\n        );\n      END IF;\n    END IF;\n  END IF;\n\n  IF existing_row.status = 'failed' THEN\n    RETURN jsonb_build_object(\n      'kind', 'failed',\n      'statusCode', COALESCE(existing_row.response_status, 500),\n      'body', COALESCE(existing_row.response_json, jsonb_build_object(\n        'error', 'Generation failed. Please try again.'\n      )),\n      'retryable', existing_row.retryable\n    );\n  END IF;\n\n  RETURN jsonb_build_object(\n    'kind', 'in_progress',\n    'requestId', existing_row.request_id,\n    'attemptId', existing_row.attempt_id,\n    'commitPending', existing_row.commit_pending\n  );\nEND;\n",
+        "name": "claim_mobile_generation_idempotency",
+        "config": ["search_path=public"],
+        "arguments": "p_user_id uuid, p_client text, p_request_id uuid, p_request_hash text",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nDECLARE\n  deleted_count integer := 0;\n  stale_row record;\n  reservation_status text;\nBEGIN\n  FOR stale_row IN\n    SELECT id, reservation_id, status, commit_pending, response_json\n    FROM public.mobile_generation_idempotency\n    WHERE expires_at < now() - interval '1 day'\n    FOR UPDATE SKIP LOCKED\n  LOOP\n    reservation_status := NULL;\n    IF stale_row.reservation_id IS NOT NULL THEN\n      SELECT status::text\n      INTO reservation_status\n      FROM public.generation_reservations\n      WHERE id = stale_row.reservation_id\n      FOR UPDATE;\n\n      IF reservation_status = 'pending' THEN\n        PERFORM public.refund_generation_reservation(\n          stale_row.reservation_id,\n          'idempotency_expired'\n        );\n        SELECT status::text\n        INTO reservation_status\n        FROM public.generation_reservations\n        WHERE id = stale_row.reservation_id;\n      END IF;\n\n      IF reservation_status = 'committed'\n        AND stale_row.status = 'in_progress'\n      THEN\n        IF stale_row.response_json IS NOT NULL\n          AND public.mobile_generation_json_is_safe(stale_row.response_json)\n        THEN\n          UPDATE public.mobile_generation_idempotency\n          SET\n            status = 'succeeded',\n            retryable = false,\n            commit_pending = false,\n            response_status = 200,\n            expires_at = timezone('utc', now()) + interval '15 minutes',\n            updated_at = timezone('utc', now())\n          WHERE id = stale_row.id;\n        ELSE\n          UPDATE public.mobile_generation_idempotency\n          SET\n            status = 'failed',\n            retryable = false,\n            commit_pending = false,\n            response_json = jsonb_build_object(\n              'error', 'Generation completed but its response could not be recovered.',\n              'code', 'generation_response_unavailable'\n            ),\n            response_status = 500,\n            failure_code = 'generation_response_unavailable',\n            expires_at = timezone('utc', now()) + interval '15 minutes',\n            updated_at = timezone('utc', now())\n          WHERE id = stale_row.id;\n        END IF;\n        CONTINUE;\n      END IF;\n    END IF;\n\n    IF stale_row.status IN ('succeeded', 'failed') THEN\n      DELETE FROM public.mobile_generation_idempotency\n      WHERE id = stale_row.id;\n      deleted_count := deleted_count + 1;\n      CONTINUE;\n    END IF;\n\n    IF stale_row.reservation_id IS NOT NULL\n      AND reservation_status IS DISTINCT FROM 'refunded'\n      AND reservation_status IS NOT NULL\n    THEN\n      CONTINUE;\n    END IF;\n\n    DELETE FROM public.mobile_generation_idempotency\n    WHERE id = stale_row.id;\n    deleted_count := deleted_count + 1;\n  END LOOP;\n  RETURN deleted_count;\nEND;\n",
+        "name": "cleanup_expired_mobile_generation_idempotency",
+        "config": ["search_path=public"],
+        "arguments": "",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nBEGIN\n  IF NOT public.mobile_generation_json_is_safe(p_response_json) THEN\n    RETURN false;\n  END IF;\n\n  UPDATE public.mobile_generation_idempotency\n  SET\n    status = 'succeeded',\n    retryable = false,\n    commit_pending = false,\n    reservation_id = COALESCE(p_reservation_id, reservation_id),\n    response_json = p_response_json,\n    response_status = p_response_status,\n    failure_code = NULL,\n    expires_at = COALESCE(p_expires_at, timezone('utc', now()) + interval '15 minutes'),\n    updated_at = timezone('utc', now())\n  WHERE id = p_record_id\n    AND attempt_id = p_attempt_id\n    AND status = 'in_progress'\n    AND p_reservation_id IS NOT NULL\n    AND (reservation_id IS NULL OR reservation_id = p_reservation_id)\n    AND EXISTS (\n      SELECT 1\n      FROM public.generation_reservations AS r\n      WHERE r.id = p_reservation_id\n        AND r.user_id = (\n          SELECT i.user_id\n          FROM public.mobile_generation_idempotency AS i\n          WHERE i.id = p_record_id\n            AND i.attempt_id = p_attempt_id\n        )\n        AND r.status = 'committed'\n    );\n\n  RETURN FOUND;\nEND;\n",
+        "name": "complete_mobile_generation_idempotency",
+        "config": ["search_path=public"],
+        "arguments": "p_record_id uuid, p_attempt_id uuid, p_response_json jsonb, p_response_status integer, p_reservation_id uuid, p_expires_at timestamp with time zone",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nBEGIN\n  IF NOT public.mobile_generation_json_is_safe(p_body) THEN\n    RETURN false;\n  END IF;\n\n  UPDATE public.mobile_generation_idempotency\n  SET\n    status = 'failed',\n    retryable = COALESCE(p_retryable, false),\n    commit_pending = false,\n    reservation_id = COALESCE(p_reservation_id, reservation_id),\n    response_json = p_body,\n    response_status = p_status_code,\n    failure_code = p_failure_code,\n    expires_at = COALESCE(\n      p_expires_at,\n      timezone('utc', now()) + CASE\n        WHEN COALESCE(p_retryable, false) THEN interval '2 minutes'\n        ELSE interval '15 minutes'\n      END\n    ),\n    updated_at = timezone('utc', now())\n  WHERE id = p_record_id\n    AND attempt_id = p_attempt_id\n    AND status = 'in_progress'\n    AND NOT commit_pending\n    AND (p_reservation_id IS NULL OR reservation_id IS NULL OR reservation_id = p_reservation_id)\n    AND (\n      p_reservation_id IS NULL\n      OR EXISTS (\n        SELECT 1\n        FROM public.generation_reservations AS r\n        WHERE r.id = p_reservation_id\n          AND r.user_id = (\n            SELECT i.user_id\n            FROM public.mobile_generation_idempotency AS i\n            WHERE i.id = p_record_id\n              AND i.attempt_id = p_attempt_id\n          )\n      )\n    );\n\n  RETURN FOUND;\nEND;\n",
+        "name": "fail_mobile_generation_idempotency",
+        "config": ["search_path=public"],
+        "arguments": "p_record_id uuid, p_attempt_id uuid, p_status_code integer, p_body jsonb, p_failure_code text, p_retryable boolean, p_reservation_id uuid, p_expires_at timestamp with time zone",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\n  SELECT status::text\n  FROM public.generation_reservations\n  WHERE id = p_reservation_id;\n",
+        "name": "get_generation_reservation_status",
+        "config": ["search_path=public"],
+        "arguments": "p_reservation_id uuid",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nBEGIN\n  IF p_reservation_id IS NULL\n    OR p_response_json IS NULL\n    OR NOT public.mobile_generation_json_is_safe(p_response_json)\n    OR octet_length(convert_to(p_response_json::text, 'UTF8')) > 32768\n  THEN\n    RETURN false;\n  END IF;\n\n  UPDATE public.mobile_generation_idempotency\n  SET\n    status = 'in_progress',\n    commit_pending = true,\n    reservation_id = p_reservation_id,\n    response_json = p_response_json,\n    response_status = 200,\n    retryable = false,\n    expires_at = COALESCE(p_expires_at, timezone('utc', now()) + interval '2 minutes'),\n    updated_at = timezone('utc', now())\n  WHERE id = p_record_id\n    AND attempt_id = p_attempt_id\n    AND status = 'in_progress'\n    AND (reservation_id IS NULL OR reservation_id = p_reservation_id)\n    AND EXISTS (\n      SELECT 1\n      FROM public.generation_reservations AS r\n      WHERE r.id = p_reservation_id\n        AND r.user_id = (\n          SELECT i.user_id\n          FROM public.mobile_generation_idempotency AS i\n          WHERE i.id = p_record_id\n        )\n        AND r.status = 'pending'\n    );\n\n  RETURN FOUND;\nEND;\n",
+        "name": "mark_mobile_generation_commit_pending",
+        "config": ["search_path=public"],
+        "arguments": "p_record_id uuid, p_attempt_id uuid, p_reservation_id uuid, p_response_json jsonb, p_expires_at timestamp with time zone",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nDECLARE\n  child jsonb;\n  key_text text;\n  text_value text;\nBEGIN\n  IF p_value IS NULL OR jsonb_typeof(p_value) IN ('null', 'boolean', 'number') THEN\n    RETURN true;\n  END IF;\n\n  IF jsonb_typeof(p_value) = 'string' THEN\n    text_value := p_value #>> '{}';\n    RETURN NOT (\n      text_value ~* 'https?://'\n      OR text_value ~* '(^|[[:space:]])//[[:alnum:]][^[:space:]]*'\n      OR text_value ~* 'data:[^[:space:]]+'\n      OR text_value ~* 'base64[[:space:]]*[,=:]'\n      OR text_value ~* '(^|[?&[:space:]])(token|signature|sig|access_token|authorization|expires|x-amz-[a-z-]+)[[:space:]]*='\n      OR text_value ~* '(^|[[:space:]])bearer[[:space:]]+[A-Za-z0-9._~+/=-]{16,}([[:space:]]|$)'\n      OR text_value ~* '(^|[[:space:]])[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}([[:space:]]|$)'\n      OR text_value ~* '(^|[[:space:]])[A-Za-z0-9+/]{128,}={0,2}([[:space:]]|$)'\n      OR text_value ~* '(^|[[:space:]])(sk|pk|rk|tok|token|secret|key)[-_: =][A-Za-z0-9._~-]{16,}([[:space:]]|$)'\n    );\n  END IF;\n\n  IF jsonb_typeof(p_value) = 'array' THEN\n    FOR child IN SELECT value FROM jsonb_array_elements(p_value) LOOP\n      IF NOT public.mobile_generation_json_is_safe(child) THEN\n        RETURN false;\n      END IF;\n    END LOOP;\n    RETURN true;\n  END IF;\n\n  IF jsonb_typeof(p_value) = 'object' THEN\n    FOR key_text, child IN SELECT key, value FROM jsonb_each(p_value) LOOP\n      IF key_text ~* '(url|token|secret|signature|authorization)'\n        OR NOT public.mobile_generation_json_is_safe(to_jsonb(key_text))\n        OR NOT public.mobile_generation_json_is_safe(child)\n      THEN\n        RETURN false;\n      END IF;\n    END LOOP;\n  END IF;\n\n  RETURN true;\nEND;\n",
+        "name": "mobile_generation_json_is_safe",
+        "config": ["search_path=pg_catalog, public"],
+        "arguments": "p_value jsonb",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nDECLARE\n  idempotency_row public.mobile_generation_idempotency%ROWTYPE;\n  reservation_outcome jsonb;\n  bound_reservation_id uuid;\nBEGIN\n  IF p_client IS DISTINCT FROM 'mobile_web'\n    OR p_request_id IS NULL\n    OR p_request_hash IS NULL\n    OR p_request_hash !~ '^[0-9a-f]{64}$'\n  THEN\n    RETURN jsonb_build_object(\n      'allowed', false,\n      'code', 'idempotency_bind_failed',\n      'error', 'This generation request is no longer active.'\n    );\n  END IF;\n\n  IF NOT EXISTS (\n    SELECT 1\n    FROM public.profiles AS p\n    WHERE p.id = p_user_id\n  ) THEN\n    RETURN jsonb_build_object(\n      'allowed', false,\n      'code', 'service_unavailable',\n      'limitScope', 'service',\n      'error', 'Could not retrieve profile.'\n    );\n  END IF;\n\n  SELECT *\n  INTO idempotency_row\n  FROM public.mobile_generation_idempotency AS i\n  WHERE i.id = p_record_id\n    AND i.attempt_id = p_attempt_id\n    AND i.user_id = p_user_id\n    AND i.client = p_client\n    AND i.request_id = p_request_id\n    AND i.request_hash = p_request_hash\n    AND i.status = 'in_progress'\n    AND NOT i.commit_pending\n    AND i.reservation_id IS NULL\n  FOR UPDATE;\n\n  IF NOT FOUND THEN\n    RETURN jsonb_build_object(\n      'allowed', false,\n      'code', 'idempotency_bind_failed',\n      'error', 'This generation request is no longer active.'\n    );\n  END IF;\n\n  reservation_outcome := public.reserve_generation_request_for_current_status(\n    p_user_id,\n    p_pricing_limits_mode,\n    p_effective_tier,\n    p_monthly_limit,\n    p_daily_limit,\n    p_burst_limit,\n    p_free_lifetime_limit,\n    p_has_unlimited_daily\n  );\n\n  IF COALESCE((reservation_outcome->>'allowed')::boolean, false) IS NOT TRUE THEN\n    RETURN reservation_outcome;\n  END IF;\n\n  bound_reservation_id := NULLIF(\n    COALESCE(\n      reservation_outcome->>'reservationId',\n      reservation_outcome->>'reservation_id'\n    ),\n    ''\n  )::uuid;\n\n  IF bound_reservation_id IS NULL THEN\n    RAISE EXCEPTION USING\n      ERRCODE = 'P0001',\n      MESSAGE = 'mobile_generation_reservation_missing';\n  END IF;\n\n  UPDATE public.mobile_generation_idempotency AS i\n  SET\n    reservation_id = bound_reservation_id,\n    updated_at = timezone('utc', now())\n  WHERE i.id = p_record_id\n    AND i.attempt_id = p_attempt_id\n    AND i.user_id = p_user_id\n    AND i.client = 'mobile_web'\n    AND i.request_id = p_request_id\n    AND i.request_hash = p_request_hash\n    AND i.status = 'in_progress'\n    AND NOT i.commit_pending\n    AND i.reservation_id IS NULL\n    AND EXISTS (\n      SELECT 1\n      FROM public.generation_reservations AS r\n      WHERE r.id = bound_reservation_id\n        AND r.user_id = i.user_id\n        AND r.status = 'pending'\n    );\n\n  IF NOT FOUND THEN\n    -- Raising here aborts the RPC transaction, including the new reservation.\n    RAISE EXCEPTION USING\n      ERRCODE = 'P0001',\n      MESSAGE = 'mobile_generation_attempt_stale';\n  END IF;\n\n  RETURN reservation_outcome;\nEND;\n",
+        "name": "reserve_and_bind_mobile_generation_reservation",
+        "config": ["search_path=public"],
+        "arguments": "p_user_id uuid, p_record_id uuid, p_attempt_id uuid, p_client text, p_request_id uuid, p_request_hash text, p_pricing_limits_mode text, p_effective_tier text, p_monthly_limit integer, p_daily_limit integer, p_burst_limit integer, p_free_lifetime_limit integer, p_has_unlimited_daily boolean",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body": "\nDECLARE\n  profile_status text;\n  profile_tier text;\nBEGIN\n  SELECT subscription_status, subscription_tier\n  INTO profile_status, profile_tier\n  FROM profiles\n  WHERE id = p_user_id\n  FOR UPDATE;\n\n  IF profile_status IN ('past_due', 'unpaid') THEN\n    RETURN jsonb_build_object(\n      'allowed', false,\n      'code', 'payment_required',\n      'currentTier', COALESCE(profile_tier, p_effective_tier),\n      'error', 'Payment for your subscription is overdue. Update your payment method to continue.'\n    );\n  END IF;\n\n  RETURN reserve_generation_request(\n    p_user_id,\n    p_pricing_limits_mode,\n    p_effective_tier,\n    p_monthly_limit,\n    p_daily_limit,\n    p_burst_limit,\n    p_free_lifetime_limit,\n    p_has_unlimited_daily\n  );\nEND;\n",
+        "name": "reserve_generation_request_for_current_status",
+        "config": ["search_path=public"],
+        "arguments": "p_user_id uuid, p_pricing_limits_mode text, p_effective_tier text, p_monthly_limit integer, p_daily_limit integer, p_burst_limit integer, p_free_lifetime_limit integer, p_has_unlimited_daily boolean",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      }
+    ],
+    "constraints": [
+      {
+        "name": "mobile_generation_idempotency_client_check",
+        "definition": "CHECK ((client = 'mobile_web'::text))"
+      },
+      {
+        "name": "mobile_generation_idempotency_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "name": "mobile_generation_idempotency_request_hash_check",
+        "definition": "CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text))"
+      },
+      {
+        "name": "mobile_generation_idempotency_reservation_id_fkey",
+        "definition": "FOREIGN KEY (reservation_id) REFERENCES generation_reservations(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "mobile_generation_idempotency_response_size",
+        "definition": "CHECK (((response_json IS NULL) OR (octet_length(convert_to((response_json)::text, 'UTF8'::name)) <= 32768)))"
+      },
+      {
+        "name": "mobile_generation_idempotency_response_status_check",
+        "definition": "CHECK (((response_status IS NULL) OR (response_status = ANY (ARRAY[200, 400, 403, 429, 500, 503, 504]))))"
+      },
+      {
+        "name": "mobile_generation_idempotency_safe_response",
+        "definition": "CHECK (((response_json IS NULL) OR mobile_generation_json_is_safe(response_json)))"
+      },
+      {
+        "name": "mobile_generation_idempotency_status_check",
+        "definition": "CHECK ((status = ANY (ARRAY['in_progress'::text, 'succeeded'::text, 'failed'::text])))"
+      },
+      {
+        "name": "mobile_generation_idempotency_user_id_fkey",
+        "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      }
+    ],
+    "tableSecurity": {
+      "acl": "{postgres=arwdDxt/postgres,service_role=arwdDxt/postgres}",
+      "rls": true
+    },
+    "databaseCronPresent": false
+  },
+  "checks": [
+    {
+      "name": "bind_mobile_generation_reservation",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "claim_mobile_generation_idempotency",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "cleanup_expired_mobile_generation_idempotency",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "complete_mobile_generation_idempotency",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "fail_mobile_generation_idempotency",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "get_generation_reservation_status",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "mark_mobile_generation_commit_pending",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "mobile_generation_json_is_safe",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "reserve_and_bind_mobile_generation_reservation",
+      "matchesSeptember": true,
+      "matchesOctober": false,
+      "serviceOnly": true
+    },
+    {
+      "name": "reserve_generation_request_for_current_status",
+      "matchesSeptember": false,
+      "matchesOctober": false,
+      "serviceOnly": true
+    }
+  ]
+}

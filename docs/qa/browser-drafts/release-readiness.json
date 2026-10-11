@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-11T22:10:00.450Z",
+  "checkedAt": "2026-10-11T22:36:48.687Z",
   "project": {
     "id": "prj_0QUxoXo1l1GA95t55hSKCQBJ5v6n",
     "name": "quick-vint-api",
@@ -690,8 +690,8 @@
   "prerequisitesPresent": true,
   "extensionCompatibilityProbe": {
     "allowed": false,
-    "code": "idempotency_bind_failed",
-    "clientAcceptedBeforeMissingProfile": false
+    "code": "service_unavailable",
+    "clientAcceptedBeforeMissingProfile": true
   },
   "limitations": "OpenAPI proves exposed objects and signatures only. Function bodies, grants and extension client constraints require database catalog verification before release."
 }

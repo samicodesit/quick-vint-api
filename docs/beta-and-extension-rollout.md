@@ -1,8 +1,9 @@
 # Prepared web beta and separate extension rollout
 
 October 12, 2026. Preparation is authorized. Activation is conditional on the
-release gates below. No production database mutation, customer generation,
-payment, customer contact or store submission has occurred.
+release gates below. The approved shared retry migration is now applied and
+verified in production. No customer generation, payment, customer contact or
+store submission has occurred.
 
 ## Database acceptance
 
@@ -13,10 +14,10 @@ permanent draft-photo bucket is a prerequisite.
 
 The extension compatibility probe supplies a NULL user ID, which cannot match
 the profile primary key. It creates no claim, reservation or customer debit.
-Production currently returns `idempotency_bind_failed`, matching the old
-mobile-only binder. The shared migration changes that probe to the expected
-missing-profile rejection. Do not submit the extension until the new deployed
-function and client constraint have been verified.
+Production now returns the expected missing-profile rejection for the extension
+client. Catalog inspection confirms the binder matches the October migration,
+the CHECK permits both clients, and the existing service-only grants and RLS
+remain unchanged. The other retry function bodies still match September.
 
 The native acceptance runner loaded the actual June reservation/commit/refund,
 August paid entitlement/payment suspension, September retry and October shared
@@ -34,13 +35,15 @@ negative control produced two debits.
 
 Evidence: [readiness metadata](qa/browser-drafts/release-readiness.json) and
 [native acceptance](qa/browser-drafts/native-postgres-acceptance.json).
-Production function bodies, grants and CHECK constraints still need catalog
-verification before applying the additive shared migration.
+Catalog evidence is saved in `production-generation-catalog-before.json` and
+`production-generation-catalog.json` beside those reports. The migration ran
+transactionally with a two-second lock timeout, a fifteen-second statement
+timeout and a guard against a changed live function body.
 
-The existing Vercel environment has no Supabase management token or database
-connection URL. Database catalog access/application is therefore a separate
-remaining dependency, despite working Vercel access. Do not substitute service
-role REST access for arbitrary SQL administration.
+The existing Supabase CLI login provided management access. No new token,
+credential, service or database connection was created. The browser session
+required sign-in, but the CLI login worked. Cleanup runs through the existing
+Vercel hourly endpoint; this project has no database cron table.
 
 ## Private web beta
 

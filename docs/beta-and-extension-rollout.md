@@ -37,6 +37,11 @@ Evidence: [readiness metadata](qa/browser-drafts/release-readiness.json) and
 Production function bodies, grants and CHECK constraints still need catalog
 verification before applying the additive shared migration.
 
+The existing Vercel environment has no Supabase management token or database
+connection URL. Database catalog access/application is therefore a separate
+remaining dependency, despite working Vercel access. Do not substitute service
+role REST access for arbitrary SQL administration.
+
 ## Private web beta
 
 Vercel access is working after normal refresh of the existing Windows CLI login.
@@ -66,12 +71,27 @@ Integrate current production `main` into the beta candidate before staging.
 Use existing Git deployment and preview protection. Enable production only after
 the complete journey and database prerequisites are verified.
 
+The candidate now includes the five latest production commits, preserving their
+telemetry, phone-upload and admin fixes. Its complete production gate passed
+864 tests, lint, TypeScript, build and formatting after integration. One new
+telemetry database test required the existing 15-second fixture budget used by
+neighboring database tests. Instrumentation measured 6.98 seconds in cold embedded
+PostgreSQL setup before endpoint assertions under full-suite load. All functional
+assertions remain unchanged; no product timeout was modified.
+
 ## Separate extension package
 
 The release state confirmed store upload `1.4.13`, with no pending upload.
 Candidate `1.4.14` was bumped through the release script and packaged at
 `quick-vint/dist/autolister-ai-v1.4.14.zip`. The pending version lock is `1.4.14`.
 The uploaded-version marker remains `1.4.13`.
+
+The source is saved on `codex/extension-retry-1.4.14`, commit `2370589`, separate
+from production `main`. Package SHA-256:
+
+```text
+d87ea06fd4509ffaafa0ad2e8bd9fc3f4cd1facf728f53f382ca44c09c312e5d
+```
 
 The full source production gate passed 107 Node tests and 202 browser tests
 (one existing disabled reproduction), then built the production bundle. The
@@ -100,3 +120,19 @@ Rollback the web beta by disabling its preview/build flags. Preserve local
 drafts and the additive retry schema. Do not drop tables, reset usage, erase
 customer data or change storage permissions. A submitted extension rollback
 requires a compatible higher version through the normal store process.
+
+## Temporary QA cleanup
+
+All native test servers are shut down. Automatic approval review rejected
+deletion of the three task-owned Windows test clusters with “blocked by policy”.
+The stopped folders remain under `%TEMP%`:
+
+```text
+autolister-generation-postgres-b053caabadba4f589eb99b264c2617aa
+autolister-generation-postgres-356c141073584250b4e922359a2ee6f9
+autolister-generation-postgres-a7e083d51ace44d1a07889317bfc8030
+```
+
+Their source runner and SQL are preserved in `scripts/`, and the necessary
+acceptance report is saved above. These folders contain only isolated synthetic
+test data; they are not application infrastructure or customer storage.

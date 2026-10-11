@@ -263,6 +263,9 @@ describe("events tracking endpoint", () => {
         await db.close();
       }
     },
+    // Includes cold embedded PostgreSQL startup under the full suite's load,
+    // matching the bounded fixture budget of the other database tests below.
+    15000,
   );
 
   it("saves legacy generation pairs without creating running watchdog flows", async () => {

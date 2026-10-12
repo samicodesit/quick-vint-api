@@ -60,11 +60,16 @@
   background: var(--mobile-surface-soft);
 }
 .photo-editor button:focus-visible,
-.photo-editor input:focus-visible,
 .photo-editor select:focus-visible,
 .photo-editor cropper-selection:focus-visible {
   outline: 2px solid var(--mobile-brand);
   outline-offset: 2px;
+}
+.photo-editor input[type="range"]:focus-visible {
+  outline: none;
+}
+.photo-editor label:has(input[type="range"]:focus-visible) {
+  color: var(--mobile-brand);
 }
 .photo-editor button:disabled {
   opacity: 0.5;

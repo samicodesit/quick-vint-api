@@ -2,7 +2,7 @@
 import type { SiteCopy, SiteExtraHomeCopy } from "../i18n/site.js";
 import { normalizeSiteLocale } from "../i18n/site.js";
 import { WEB_ENTRY_COPY } from "../i18n/webEntry";
-import { Images, Smartphone } from "@lucide/astro";
+import { Images, Laptop, Smartphone } from "@lucide/astro";
 
 interface Props {
   copy: SiteCopy["home"];
@@ -189,7 +189,7 @@ const subtitleParts =
             <p class="home-entry-device-label"><Smartphone size={14} aria-hidden="true" />{entry.devices}</p>
           </div>
           <div class="home-entry-route">
-          <p class="home-entry-desktop-label">{entry.desktop}</p>
+          <p class="home-entry-desktop-label"><Laptop size={15} aria-hidden="true" />{entry.desktop}</p>
           <a
             href={chromeHref}
             target="_blank"
@@ -270,15 +270,15 @@ const subtitleParts =
           </div>
         </div>
 
-        <div
-          class="home-hero-mobile-proof lg:hidden grid w-full grid-cols-1 gap-2 text-left"
+        <ul
+          class="home-hero-mobile-proof lg:hidden grid w-full grid-cols-1 gap-2 text-left list-none"
           aria-label="AutoLister highlights"
         >
-          <div
-            class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-bold leading-tight text-slate-800 shadow-sm"
+          <li
+            class="flex items-start gap-2 text-sm font-medium leading-snug text-slate-700"
           >
             <svg
-              class="h-4 w-4 shrink-0 text-brand-600"
+              class="mt-0.5 h-4 w-4 shrink-0 text-brand-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -288,12 +288,12 @@ const subtitleParts =
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
             </svg>
             <span>{extra.heroBullet3}</span>
-          </div>
-          <div
-            class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-bold leading-tight text-slate-800 shadow-sm"
+          </li>
+          <li
+            class="flex items-start gap-2 text-sm font-medium leading-snug text-slate-700"
           >
             <svg
-              class="h-4 w-4 shrink-0 text-brand-600"
+              class="mt-0.5 h-4 w-4 shrink-0 text-brand-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -303,8 +303,8 @@ const subtitleParts =
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
             </svg>
             <span>{extra.heroBullet1}</span>
-          </div>
-        </div>
+          </li>
+        </ul>
 
         <div
           class="home-hero-testimonial mt-6 hidden lg:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
@@ -1316,7 +1316,7 @@ const subtitleParts =
     html[data-home-entry-variant="b"] .home-entry-web { min-height: 52px; font-size: 16px; }
     html[data-home-entry-variant="b"] .home-entry-note { font-size: 13px; line-height: 1.5; color: #526176; }
     html[data-home-entry-variant="b"] .home-entry-device-label { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 4px; color: #526176; font-size: 12px; }
-    html[data-home-entry-variant="b"] .home-entry-desktop-label { display: block; margin-bottom: 7px; color: #526176; font-size: 12px; }
+    html[data-home-entry-variant="b"] .home-entry-desktop-label { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 7px; color: #526176; font-size: 12px; }
   }
 
   @media (max-width: 1023px) {

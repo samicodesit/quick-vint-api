@@ -1713,6 +1713,7 @@ textarea:focus-visible {
 .mobile-paywall-option-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 .mobile-paywall-option-copy small {
   font-size: 12px;
@@ -1735,7 +1736,9 @@ textarea:focus-visible {
 }
 .mobile-paywall-option-copy .mobile-paywall-badge {
   justify-self: start;
-  width: max-content;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 3px 6px;
   border-radius: 5px;
   font-size: 11px;

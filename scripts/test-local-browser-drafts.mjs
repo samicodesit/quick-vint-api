@@ -567,6 +567,16 @@ try {
       ),
       true,
     );
+    const badge = await dialog.locator(".mobile-paywall-badge").boundingBox();
+    const side = await dialog
+      .locator(".mobile-paywall-option")
+      .filter({ has: page.locator(".mobile-paywall-badge") })
+      .locator(".mobile-paywall-option-side")
+      .boundingBox();
+    assert(
+      badge.x + badge.width + 5 <= side.x,
+      "Plan badges do not collide with prices or limits on narrow phones",
+    );
     await page.screenshot({ path: `${output}/paused-paywall-${width}.png` });
   }
   await page.getByRole("button", { name: "Close paid options" }).click();

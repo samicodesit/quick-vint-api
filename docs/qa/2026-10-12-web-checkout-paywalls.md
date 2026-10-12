@@ -15,3 +15,5 @@ One-time web credit purchases reuse the existing mobile checkout endpoint, custo
 - Full production verification passed 892 tests before the final propagation regression. The guarded production push runs the final complete gate again. An initial run caught unnecessary dialog allocation at startup, corrected by lazy mounting. A concurrent cold phone-upload import exceeded the pre-existing five-second test timeout; the targeted rerun and subsequent full gate passed without relaxing that test.
 
 Live Stripe opening and cancellation will be checked after the READY deployment. No payment, new account or live customer generation is part of this verification. Physical iOS/Android payment completion remains untested.
+
+The 320px visual inspection identified a badge collision with the plan limits. A bounding-box assertion reproduced it. Constraining the badge to its available column makes it wrap cleanly; the complete 18-step browser suite passes with the collision check at 320px, 360px and 390px.

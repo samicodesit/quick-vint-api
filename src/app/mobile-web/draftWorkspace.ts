@@ -8,6 +8,7 @@ import {
   type DraftSettings,
   validDraftId,
   normalizeDraftSettings,
+  permittedDraftSettings,
   validateDraftSettings,
 } from "./draftContracts";
 import {
@@ -91,9 +92,13 @@ export function mountDraftWorkspace(
   let startingGenerationId: string | null = null;
   let allowance: number | null = null;
   const defaultsKey = `autolister:listing-defaults:${options.userId}`;
-  let defaultSettings = normalizeDraftSettings(
-    options.defaultSettings || DEFAULT_DRAFT_SETTINGS,
-  );
+  const freshDefaults = {
+    ...DEFAULT_DRAFT_SETTINGS,
+    ...options.defaultSettings,
+    useHashtags: true,
+    useEmojis: true,
+  };
+  let defaultSettings = normalizeDraftSettings(freshDefaults);
   try {
     const saved = localStorage.getItem(defaultsKey);
     if (saved) defaultSettings = normalizeDraftSettings(JSON.parse(saved));
@@ -105,9 +110,7 @@ export function mountDraftWorkspace(
         JSON.parse(localStorage.getItem(defaultsKey) || "null"),
       );
     } catch {
-      return normalizeDraftSettings(
-        options.defaultSettings || DEFAULT_DRAFT_SETTINGS,
-      );
+      return normalizeDraftSettings(freshDefaults);
     }
   };
   let newItemSettings = loadDefaults();
@@ -214,6 +217,13 @@ export function mountDraftWorkspace(
   };
   if (globalTrigger) {
     globalTrigger.hidden = false;
+    const discoveryKey = `autolister:settings-opened:${options.userId}`;
+    try {
+      if (!localStorage.getItem(discoveryKey))
+        globalTrigger.dataset.settingsUnseen = "true";
+    } catch {
+      globalTrigger.dataset.settingsUnseen = "true";
+    }
     const openGlobal = () => {
       const details =
         batchSettingsItem || selected
@@ -223,11 +233,16 @@ export function mountDraftWorkspace(
             ? find<HTMLDetailsElement>(".draft-batch-settings")
             : globalDetails;
       openPopover(details);
+      delete globalTrigger.dataset.settingsUnseen;
+      try {
+        localStorage.setItem(discoveryKey, "true");
+      } catch {}
     };
     globalTrigger.addEventListener("click", openGlobal);
     listeners.push(() => {
       globalTrigger.removeEventListener("click", openGlobal);
       globalTrigger.hidden = true;
+      delete globalTrigger.dataset.settingsUnseen;
       globalTrigger.setAttribute("aria-expanded", "false");
     });
   }
@@ -1394,7 +1409,7 @@ export function mountDraftWorkspace(
         find("[data-draft-editor-summary]").textContent =
           `${newItemSettings.descriptionLength === "short" ? "Short" : "Long"} · ${newItemSettings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
         find("[data-draft-settings-summary]").textContent =
-          `${settingsLanguages(newItemSettings)}\n${settingsExtras(newItemSettings)}`;
+          `${settingsLanguages(newItemSettings)}\n${settingsExtras(permittedDraftSettings(newItemSettings, settingsAccess))}`;
         find("[data-draft-settings-context]").textContent = "For this new item";
         hide("[data-draft-regenerate-notice]", true);
         action("regenerate").hidden = true;
@@ -1469,7 +1484,7 @@ export function mountDraftWorkspace(
       ? `Photos · ${draft.photos.length}`
       : "Photos";
     find("[data-draft-settings-summary]").textContent =
-      `${settingsLanguages(draft.settings)}\n${settingsExtras(draft.settings)}`;
+      `${settingsLanguages(draft.settings)}\n${settingsExtras(permittedDraftSettings(draft.settings, settingsAccess))}`;
     find("[data-draft-editor-summary]").textContent =
       `${draft.settings.descriptionLength === "short" ? "Short" : "Long"} · ${draft.settings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
     find("[data-draft-settings-context]").textContent =
@@ -2015,7 +2030,12 @@ export function mountDraftWorkspace(
         renderQueue();
       }
       try {
-        await executeDraftAttempt(current, attempt, generationCount > 1);
+        await executeDraftAttempt(
+          current,
+          attempt,
+          generationCount > 1,
+          settingsAccess,
+        );
         void trackMobileEvent("generation_success", {
           target: "draft_workspace",
           imageCount: current.photos.length,
@@ -2236,22 +2256,6 @@ export function mountDraftWorkspace(
       return;
     if (!ids.length) throw new Error("Select at least one item to generate.");
     const usage = await options.onUsageChange();
-    for (const id of ids) {
-      const settings = normalizeDraftSettings(
-        library.drafts.find((d) => d.id === id)?.settings,
-      );
-      if (!settingsAccess.tone && settings.tone !== "standard")
-        throw new Error(
-          "Choose Standard tone for this plan, or switch to Pro or Business.",
-        );
-      if (
-        !settingsAccess.extras &&
-        (settings.useEmojis || settings.includeSellerNote)
-      )
-        throw new Error(
-          "Turn off emojis and seller note inclusion for this plan. Your note will stay saved.",
-        );
-    }
     const available = Math.min(
       DRAFT_LIMITS.batch,
       draftGenerationAllowance(usage),

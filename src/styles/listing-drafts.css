@@ -65,6 +65,18 @@
   background: var(--mobile-surface-soft);
   color: var(--mobile-ink);
 }
+.mobile-header-settings[data-settings-unseen] {
+  color: var(--mobile-brand);
+  background: #3458df12;
+  box-shadow: inset 0 0 0 1px #3458df45;
+  animation: settings-discovery 900ms ease-in-out 3;
+}
+@keyframes settings-discovery {
+  50% {
+    background: #3458df30;
+    box-shadow: inset 0 0 0 1px #3458df90, 0 0 0 3px #3458df15;
+  }
+}
 .mobile-header-settings:focus-visible {
   outline: 2px solid var(--mobile-brand);
   outline-offset: 2px;
@@ -934,11 +946,11 @@ html:has([data-drafts-enabled="true"]) {
   font-size: 15px;
   background: transparent;
 }
-.draft-select-options button > svg {
+.draft-select-options .draft-select-check {
   margin-left: auto;
   opacity: 0;
 }
-.draft-select-options [aria-selected="true"] > svg {
+.draft-select-options [aria-selected="true"] > .draft-select-check {
   opacity: 1;
 }
 .draft-workspace .draft-select-options [aria-selected="true"] {
@@ -1008,12 +1020,31 @@ html:has([data-drafts-enabled="true"]) {
   gap: 4px;
 }
 .draft-settings-grid .draft-switch {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
   min-height: 44px;
   font-size: 14px;
   cursor: pointer;
+}
+.draft-setting-lock {
+  display: inline-flex;
+  align-items: center;
+  color: var(--mobile-muted);
+}
+.draft-setting-lock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+}
+.draft-setting-lock:focus-visible {
+  outline: none;
+}
+.draft-setting-lock:focus-visible::after {
+  outline: 2px solid var(--mobile-brand);
+  outline-offset: 2px;
 }
 .draft-switch input {
   appearance: none;
@@ -1695,11 +1726,8 @@ html:has([data-drafts-enabled="true"]) {
     margin-bottom: 16px;
   }
   .mobile-header-settings {
-    width: 44px;
-    padding: 12px;
-  }
-  .mobile-header-settings > span {
-    display: none;
+    padding: 10px 8px;
+    gap: 6px;
   }
   .draft-item-open > span:last-child {
     padding: 12px;
@@ -2161,6 +2189,7 @@ html:has([data-drafts-enabled="true"]) {
 }
 @media (prefers-reduced-motion: reduce) {
   .mobile-header-settings {
+    animation: none !important;
     transition: none !important;
   }
   .draft-workspace * {

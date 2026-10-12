@@ -21,6 +21,10 @@ export interface DraftSettings {
   descriptionFooterText?: string;
 }
 export type ResolvedDraftSettings = Required<DraftSettings>;
+export interface DraftSettingsAccess {
+  tone: boolean;
+  extras: boolean;
+}
 export interface DraftPhoto {
   id: string;
   import_id: string;
@@ -65,6 +69,20 @@ export function normalizeDraftSettings(value: unknown): ResolvedDraftSettings {
     throw new Error("Choose valid listing settings.");
   const settings = { ...DEFAULT_DRAFT_SETTINGS, ...value };
   validateDraftSettings(settings);
+  return settings;
+}
+// Keep stored preferences intact when a plan changes. Only a new generation's
+// input and the visible controls use the currently permitted settings.
+export function permittedDraftSettings(
+  value: DraftSettings,
+  access: DraftSettingsAccess,
+): ResolvedDraftSettings {
+  const settings = normalizeDraftSettings(value);
+  if (!access.tone) settings.tone = "standard";
+  if (!access.extras) {
+    settings.useEmojis = false;
+    settings.includeSellerNote = false;
+  }
   return settings;
 }
 export function validDraftId(value: unknown): value is string {

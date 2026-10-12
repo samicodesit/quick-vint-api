@@ -1,5 +1,5 @@
 ---
-import { ChevronDown, Check, Gauge, MessageCircle, BriefcaseBusiness, Sparkles } from "@lucide/astro";
+import { ChevronDown, Check, Gauge, MessageCircle, BriefcaseBusiness, Sparkles, LockKeyhole } from "@lucide/astro";
 import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
 const { scope, attribute, name, label, kind = "language" } = Astro.props;
 const id = `${scope}-${name}`;
@@ -22,6 +22,6 @@ const first = choices[0];
     <span id={`${id}-value`} data-draft-select-label {...(kind === "language" ? {"data-draft-language-label":""} : {})}>{first.label}</span><ChevronDown size={16} aria-hidden="true" />
   </button>
   <div id={`${id}-options`} class="draft-select-options" data-draft-select-options role="listbox" aria-labelledby={`${id}-label`} hidden>
-    {choices.map(choice => <button type="button" role="option" aria-selected={choice.code === first.code} tabindex="-1" data-draft-select-option={choice.code}><span data-draft-select-art>{choice.flagCountryCode ? <img src={`/app/flags/${choice.flagCountryCode}.svg`} width="22" height="22" alt="" /> : choice.Icon && <choice.Icon size={18} aria-hidden="true" />}</span><span>{choice.label}</span><Check size={16} aria-hidden="true" /></button>)}
+    {choices.map(choice => <button type="button" role="option" aria-selected={choice.code === first.code} tabindex="-1" data-draft-select-option={choice.code}><span data-draft-select-art>{choice.flagCountryCode ? <img src={`/app/flags/${choice.flagCountryCode}.svg`} width="22" height="22" alt="" /> : choice.Icon && <choice.Icon size={18} aria-hidden="true" />}</span><span>{choice.label}</span>{kind === "tone" && choice.code !== "standard" && <span data-draft-plan-lock hidden><LockKeyhole size={14} aria-hidden="true" /></span>}<Check class="draft-select-check" size={16} aria-hidden="true" /></button>)}
   </div>
 </div>

@@ -1,6 +1,6 @@
 ---
 import DraftSelect from "./DraftSelect.astro";
-import { List, AlignLeft, Hash, Smile, StickyNote } from "@lucide/astro";
+import { List, AlignLeft, Hash, Smile, StickyNote, LockKeyhole } from "@lucide/astro";
 const { scope = "item" } = Astro.props;
 const attribute = scope === "global" ? "data-draft-global" : scope === "batch" ? "data-draft-default" : "data-draft-field";
 const field = (name: string) => ({ [attribute]: name });
@@ -21,9 +21,8 @@ const field = (name: string) => ({ [attribute]: name });
   <DraftSelect scope={scope} attribute={attribute} name="tone" label="Description tone" kind="tone" />
   <div class="draft-switches">
     <label class="draft-switch"><span><Hash size={16} aria-hidden="true" />Hashtags</span><input type="checkbox" role="switch" {...field("useHashtags")} /></label>
-    <label class="draft-switch"><span><Smile size={16} aria-hidden="true" />Emojis</span><input type="checkbox" role="switch" {...field("useEmojis")} /></label>
-    <label class="draft-switch"><span><StickyNote size={16} aria-hidden="true" />Include seller note</span><input type="checkbox" role="switch" {...field("includeSellerNote")} /></label>
+    <label class="draft-switch"><span><Smile size={16} aria-hidden="true" />Emojis<a class="draft-setting-lock" data-draft-plan-lock href="https://autolister.app/pricing" target="_blank" rel="noopener noreferrer" aria-label="Emojis: locked, view plans" hidden><LockKeyhole size={14} aria-hidden="true" /></a></span><input type="checkbox" role="switch" aria-label="Emojis" {...field("useEmojis")} /></label>
+    <label class="draft-switch"><span><StickyNote size={16} aria-hidden="true" />Include seller note<a class="draft-setting-lock" data-draft-plan-lock href="https://autolister.app/pricing" target="_blank" rel="noopener noreferrer" aria-label="Include seller note: locked, view plans" hidden><LockKeyhole size={14} aria-hidden="true" /></a></span><input type="checkbox" role="switch" aria-label="Include seller note" {...field("includeSellerNote")} /></label>
   </div>
   <label class="draft-note-field">Seller note<p id={`${scope}-note-error`} class="draft-settings-error" data-draft-settings-error role="status" hidden></p><textarea aria-label="Seller note" {...field("descriptionFooterText")} maxlength="240" rows="3" placeholder="Smoke-free home. Happy to bundle items." aria-describedby={`${scope}-note-help ${scope}-note-error`}></textarea><span class="draft-note-meta"><small id={`${scope}-note-help`}>Saved when excluded. No links or contact details.</small><small data-draft-note-count>0/240</small></span></label>
-  <p class="draft-help" data-draft-settings-access hidden></p>
 </div>

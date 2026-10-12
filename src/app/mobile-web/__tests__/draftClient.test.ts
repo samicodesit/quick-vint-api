@@ -87,7 +87,10 @@ it("recovers a lost response after reload using a read-only request, without cal
     result: { title: "Recovered", description: "Saved result" },
   });
   const current = await client.draftAction("detail", { draftId: draft.id });
-  await client.executeDraftAttempt(current, attempt, false);
+  await client.executeDraftAttempt(current, attempt, false, {
+    tone: false,
+    extras: false,
+  });
   expect(mocks.api.mock.calls[1][0]).toBe(
     `/api/generation-result?requestId=${attempt.operationId}`,
   );

@@ -1,0 +1,17 @@
+{
+  "scope": "Private web beta settings discovery, fresh defaults and exact plan locks",
+  "approvedBehavior": {
+    "discovery": "Three finite pulses, then persistent highlight until the header Settings button is opened. Per account and browser. Reduced motion uses a static highlight.",
+    "freshDefaults": "Hashtags and permitted emojis on; long description, bullets and Standard tone; seller note excluded.",
+    "lockedOptions": "Locks next to each unavailable tone, emoji switch and seller note inclusion. Activation opens pricing in a separate tab without changing the draft or starting checkout.",
+    "savedChoices": "Existing defaults and drafts retain their choices. Plan restrictions affect displayed controls and new generation inputs, not stored preferences or uncertain retry inputs."
+  },
+  "verification": {
+    "redTest": "The focused rendered-browser test first failed because a new account had no Settings discovery cue.",
+    "focusedBrowser": "5 scenarios passed: global/item/batch defaults and generation payloads; Basic locks and keyboard pricing navigation; saved opt-outs and reduced motion; account isolation and downgrade/upgrade preferences; Free extras and responsive widths.",
+    "existingBrowserJourney": "16 checks passed, including ten local photos, long descriptions, stable Generate/Mark as listed actions, batch generation, local reload and offline persistence, exact deletion preview, selection, limits, dropdowns, account sheet and lost-response recovery.",
+    "releaseGate": "Lint, TypeScript, Astro build, formatting and all 864 tests in 121 files passed with RUN_GENERATION_BROWSER_TESTS=1. The real browser/HTTP retry integration tests ran.",
+    "visual": "Inspected Settings highlight and locked tone dropdown screenshots at 360px. No horizontal overflow at 360, 390, 768 or 1440px. Header bounds remain identical after discovery clears.",
+    "limitations": "External auth, usage, upload and generation services are fixtures in the UI tests. No customer generation or checkout was executed. Physical iOS/Android camera, keyboard and storage behavior was not reverified for this change."
+  }
+}

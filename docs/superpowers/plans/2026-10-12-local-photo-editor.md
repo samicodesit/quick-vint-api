@@ -10,4 +10,6 @@
 - [x] Implement the small local store/client edit interface, preserving existing account ownership, draft text, photo order and generation fencing.
 - [x] Add failing rendered browser checks for lazy loading, correct selected photo, full-size JPEG output, Cropper pointer/touch interaction, rotation, reset/cancel, reload/generation using edited bytes and fast repeated dismissal.
 - [x] Implement the editor module and scoped styling; integrate it through the existing menu. Keep expensive work and dependency import out of first load.
-- [ ] Run actual browser QA at 320/390/768/1440px and inspect phone/desktop screenshots; measure the built lazy chunk. Run the full required production gate, preserve concurrent production changes, guarded push and READY/live acceptance if checks pass.
+- [x] Run actual browser QA at 320/390/768/1440px and inspect phone/desktop screenshots; measure the built lazy chunk. Run the full required production gate, preserve concurrent production changes, guarded push and READY/live acceptance if checks pass.
+
+Acceptance: production commit `cc66fe5`, full gate passed 955 tests in 129 files, guarded `main -> main` push. Vercel deployment `EYNpybch2pMmfigDhZch2e31HxaW` reached READY. The actual deployed `/app/` passed all 23 Chromium journey checks with auth/API/provider/billing intercepted. See [QA evidence and limits](../../qa/local-photo-editor-20261012.md).

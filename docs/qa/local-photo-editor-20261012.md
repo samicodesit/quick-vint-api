@@ -11,6 +11,12 @@ Approved scope: free crop, rotate, straighten, Reset and Save through each draft
 - Four added IndexedDB regression tests pass alongside the ten existing tests. They cover atomic edit/restore, first-original preservation, stale concurrent tabs, busy/moved/deleted/other-account rejection, input version updates, storage-cap rollback and refreshed object URLs across connections. Metadata transactions read only the selected blob for edits.
 - Browser request tracing confirms editor/Cropper assets are absent before opening Edit photo. Transformations are visual only until Save; JPEG encoding runs once on Save. Closing removes the dialog and Cropper elements and disconnects its observer/listeners.
 
+## Release acceptance
+
+- Production gate passed lint, types, build, formatting and 955 tests in 129 files, including enabled real HTTP/browser/idempotency integration tests. Guarded push moved `origin/main` from `11fabb1` to `cc66fe5`. Vercel deployment `EYNpybch2pMmfigDhZch2e31HxaW` reached READY on October 12 at 23:08:56 GMT+2.
+- The actual [deployed app](https://autolister.app/app/) passed the same 23 Chromium checks with its deployed HTML/CSS/JavaScript and fonts, while all auth/API/provider/billing calls were intercepted. No real customer account, purchase or marketplace listing was created. Live phone and desktop captures were inspected.
+- Built editor JavaScript is 53,113 bytes, 15.97KB gzip, loaded through a dynamic import only when requested. The initial browser request trace contains no editor/Cropper assets. Production assets returned HTTP 200.
+
 ## Limits
 
 This is controlled browser QA with fixture auth and intercepted API/provider/billing responses, not a real purchase or live marketplace listing. Physical iOS/Android gestures, large camera files, native downloads and low-memory behavior remain untested. The preserved original is the app's existing prepared JPEG, not the full camera file. Original backup bytes count against the existing local storage cap. There is no cloud backup or new database table.

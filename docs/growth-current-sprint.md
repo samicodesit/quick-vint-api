@@ -1,5 +1,12 @@
 # AutoLister AI Growth Current Sprint
 
+## Draft model Fast pilot, October 12, 2026
+
+- Owner approved shipping a stable 50% account pilot of GPT-6.1 Sol Fast, including existing and new accounts, while continuing to investigate larger-photo costs. The control remains GPT-5.4. High-detail photos, low reasoning, strict JSON, 1,000 output tokens and explicit caching without breakpoints preserve the audited configuration and unchanged prompt text.
+- Photo-volume evidence matters: the controlled audit averaged 4.3 photos and capped every listing at five. The broader October production check covered 472 priced baseline calls with mean 5.79 photos; 80 calls had six to eight and 98 had more than eight. Larger-set Sol pricing is an open question, not a verified saving. The existing production bill already includes larger uploads.
+- The first review is after 50 successful real pilot drafts, including failures, unique sellers, photo-count coverage, costs, actual service tiers, cache writes and timings. The scheduled read-only follow-up stays quiet until meaningful risk or review readiness. It cannot generate drafts, edit prompts, publish or expand the rollout automatically. No additional paid release-test generations were run.
+- Rollback and acceptance details: [draft-model-fast-pilot.md](draft-model-fast-pilot.md). Release checks and deployment verification are recorded after the guarded production push.
+
 ## Admin acquisition badges, October 1, 2026
 
 - Every mobile user card and desktop row now has a compact acquisition badge beside the email. Recognised channels have readable brand labels; unfamiliar valid campaign source names and external referring hostnames are retained and displayed. Missing evidence shows Unknown, with a tooltip distinguishing absent evidence from temporary read failure. Direct is shown only for explicit saved direct evidence, and referring-host evidence takes priority over a direct tag. No historical origins are invented.

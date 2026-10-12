@@ -1,18 +1,58 @@
+import { createHash } from "node:crypto";
+
 export type OpenAIImageDetail = "low" | "high" | "auto";
 
 export type OpenAIModelPricing = {
   inputPerMillion: number;
   cachedInputPerMillion: number;
   outputPerMillion: number;
+  cacheWritePerMillion?: number;
 };
 
 export const DEFAULT_OPENAI_MODEL = "gpt-5.4";
 export const DEFAULT_OPENAI_IMAGE_DETAIL: OpenAIImageDetail = "low";
 
+export function selectDraftModel(
+  userId: string,
+  email?: string,
+  configuredPercentage = process.env.OPENAI_DRAFT_PILOT_PERCENT ?? "50",
+) {
+  const rawPercentage = Number(configuredPercentage);
+  const percentage = Number.isFinite(rawPercentage)
+    ? Math.max(0, Math.min(100, rawPercentage))
+    : 0;
+  const internalTest =
+    email?.toLowerCase() === "samicodesit+ai-style-test@gmail.com";
+  const bucket = userId
+    ? createHash("sha256")
+        .update(`draft-sol-fast-v1:${userId}`)
+        .digest()
+        .readUInt32BE(0) % 10000
+    : 10000;
+  const pilot = !internalTest && bucket < percentage * 100;
+  return {
+    arm: pilot ? "pilot" : "control",
+    percentage,
+    model: internalTest
+      ? "gpt-5.4-mini"
+      : pilot
+        ? "gpt-6.1-sol"
+        : DEFAULT_OPENAI_MODEL,
+    imageDetail: pilot ? ("high" as const) : DEFAULT_OPENAI_IMAGE_DETAIL,
+    experiment: "draft-sol-fast-v1",
+  };
+}
+
 export const OPENAI_MODEL_PRICING_USD_PER_MILLION: Record<
   string,
   OpenAIModelPricing
 > = {
+  "gpt-6.1-sol": {
+    inputPerMillion: 2,
+    cachedInputPerMillion: 0.1,
+    cacheWritePerMillion: 2.5,
+    outputPerMillion: 10,
+  },
   "gpt-4o": {
     inputPerMillion: 2.5,
     cachedInputPerMillion: 1.25,
@@ -70,12 +110,16 @@ export function estimateOpenAICostUsd({
   promptTokens = 0,
   completionTokens = 0,
   cachedTokens = 0,
+  cacheWriteTokens = 0,
+  serviceTier,
   totalTokens,
 }: {
   model?: string | null;
   promptTokens?: number | null;
   completionTokens?: number | null;
   cachedTokens?: number | null;
+  cacheWriteTokens?: number | null;
+  serviceTier?: string | null;
   totalTokens?: number | null;
 }) {
   const normalizedModel =
@@ -88,6 +132,14 @@ export function estimateOpenAICostUsd({
   if (!pricing) {
     return null;
   }
+  // Sol's returned service tier is required. Never silently underprice Fast,
+  // including after old request metadata has been compacted.
+  if (
+    normalizedModel === "gpt-6.1-sol" &&
+    !["fast", "default"].includes(serviceTier || "")
+  )
+    return null;
+  const multiplier = serviceTier === "fast" ? 2 : 1;
 
   const safePromptTokens = Math.max(0, Number(promptTokens || 0));
   const safeCompletionTokens = Math.max(0, Number(completionTokens || 0));
@@ -95,16 +147,28 @@ export function estimateOpenAICostUsd({
     safePromptTokens,
     Math.max(0, Number(cachedTokens || 0)),
   );
-  const uncachedInputTokens = Math.max(0, safePromptTokens - safeCachedTokens);
+  const safeCacheWriteTokens = Math.min(
+    safePromptTokens - safeCachedTokens,
+    Math.max(0, Number(cacheWriteTokens || 0)),
+  );
+  const uncachedInputTokens = Math.max(
+    0,
+    safePromptTokens - safeCachedTokens - safeCacheWriteTokens,
+  );
 
   if (!safePromptTokens && !safeCompletionTokens && totalTokens) {
-    return (Number(totalTokens) * pricing.inputPerMillion) / 1_000_000;
+    return (
+      (Number(totalTokens) * pricing.inputPerMillion * multiplier) / 1_000_000
+    );
   }
 
   return (
-    (uncachedInputTokens * pricing.inputPerMillion +
+    ((uncachedInputTokens * pricing.inputPerMillion +
       safeCachedTokens * pricing.cachedInputPerMillion +
-      safeCompletionTokens * pricing.outputPerMillion) /
+      safeCacheWriteTokens *
+        (pricing.cacheWritePerMillion ?? pricing.inputPerMillion) +
+      safeCompletionTokens * pricing.outputPerMillion) *
+      multiplier) /
     1_000_000
   );
 }

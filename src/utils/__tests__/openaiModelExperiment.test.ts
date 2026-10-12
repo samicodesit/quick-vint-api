@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as modelConfig from "../../../utils/openaiModelExperiment";
 import {
   DEFAULT_OPENAI_MODEL,
   estimateOpenAICostUsd,
@@ -8,6 +9,46 @@ import {
 } from "../../../utils/openaiModelExperiment";
 
 describe("openaiModelExperiment", () => {
+  it("keeps assignment stable across existing and new accounts and supports rollback", () => {
+    const select = (modelConfig as any).selectDraftModel;
+    expect(typeof select).toBe("function");
+    const pilotIds = Array.from(
+      { length: 1000 },
+      (_, i) => `account-${i}`,
+    ).filter((id) => select(id, "seller@example.com", "50").arm === "pilot");
+    expect(pilotIds.length).toBeGreaterThan(450);
+    expect(pilotIds.length).toBeLessThan(550);
+    expect(select(pilotIds[0], "seller@example.com", "50")).toEqual(
+      select(pilotIds[0], "changed@example.com", "50"),
+    );
+    expect(select(pilotIds[0], "seller@example.com", "0").model).toBe(
+      "gpt-5.4",
+    );
+    expect(select(pilotIds[0], "seller@example.com", "broken").model).toBe(
+      "gpt-5.4",
+    );
+    expect(
+      select(pilotIds[0], "samicodesit+ai-style-test@gmail.com", "100").model,
+    ).toBe("gpt-5.4-mini");
+    expect(select("", "seller@example.com", "100").arm).toBe("control");
+  });
+
+  it("prices actual Sol processing tiers and cache writes without charging writes twice", () => {
+    const base = {
+      model: "gpt-6.1-sol",
+      promptTokens: 1000,
+      completionTokens: 200,
+      cachedTokens: 100,
+      cacheWriteTokens: 200,
+    };
+    expect(
+      estimateOpenAICostUsd({ ...base, serviceTier: "fast" } as any),
+    ).toBeCloseTo(0.00782, 8);
+    expect(
+      estimateOpenAICostUsd({ ...base, serviceTier: "default" } as any),
+    ).toBeCloseTo(0.00391, 8);
+    expect(estimateOpenAICostUsd(base)).toBeNull();
+  });
   it("defaults generation to gpt-5.4", () => {
     expect(DEFAULT_OPENAI_MODEL).toBe("gpt-5.4");
   });

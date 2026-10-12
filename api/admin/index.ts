@@ -207,13 +207,13 @@ const PROFILE_SELECT =
   "id, email, api_calls_this_month, subscription_tier, subscription_status, created_at, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, abuse_notes, paused_at, paused_by, email_subscribed, unsubscribe_token, review_request_sent_at, ai_instructions, ai_style_suggestion, ai_style_suggestion_reason";
 
 const LOG_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const LOG_LIST_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const LOG_GENERATION_LIST_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const JOURNEY_EVENT_LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, full_request_body, response_status, created_at";
@@ -2061,15 +2061,33 @@ type OpenAICostLog = {
   openai_completion_tokens?: number | null;
   openai_cached_tokens?: number | null;
   processing_duration_ms?: number | null;
+  openai_billing?: unknown;
 };
 
 function getLogEstimatedOpenAICost(log: OpenAICostLog) {
+  const billing = log.openai_billing;
+  const serviceTier =
+    billing &&
+    typeof billing === "object" &&
+    "serviceTier" in billing &&
+    typeof billing.serviceTier === "string"
+      ? billing.serviceTier
+      : null;
+  const cacheWriteTokens =
+    billing &&
+    typeof billing === "object" &&
+    "cacheWriteTokens" in billing &&
+    typeof billing.cacheWriteTokens === "number"
+      ? billing.cacheWriteTokens
+      : 0;
   return estimateOpenAICostUsd({
     model: log.openai_model,
     promptTokens: log.openai_prompt_tokens,
     completionTokens: log.openai_completion_tokens,
     cachedTokens: log.openai_cached_tokens,
     totalTokens: log.openai_tokens_used,
+    serviceTier,
+    cacheWriteTokens,
   });
 }
 
@@ -2097,7 +2115,7 @@ async function fetchOpenAICostLogsForWindow(windowStartIso: string) {
     const { data, error } = await supabase
       .from("api_logs")
       .select(
-        "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, processing_duration_ms",
+        "created_at, user_id, user_email, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, processing_duration_ms",
       )
       .eq("endpoint", "/api/generate")
       .gte("created_at", windowStartIso)
@@ -2632,7 +2650,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       const { data: todayLogs, error: todayLogsError } = await supabase
         .from("api_logs")
         .select(
-          "endpoint, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, response_status, created_at",
+          "endpoint, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, response_status, created_at",
         )
         .gte("created_at", todayStart)
         .lt("created_at", todayEnd);
@@ -2681,7 +2699,7 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
     const { data: logsLastWeek } = await supabase
       .from("api_logs")
       .select(
-        "created_at, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
+        "created_at, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling",
       )
       .gte("created_at", `${weekAgoStr}T00:00:00Z`);
 

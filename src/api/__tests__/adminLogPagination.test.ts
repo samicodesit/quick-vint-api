@@ -23,6 +23,14 @@ const { selections, query } = vi.hoisted(() => {
           data: Array.from({ length: 50 }, (_, i) => ({
             id: `log-${i}`,
             endpoint: "/event/telemetry_queue_dropped",
+            ...(i === 0
+              ? {
+                  openai_model: "gpt-6.1-sol",
+                  openai_prompt_tokens: 1000,
+                  openai_completion_tokens: 200,
+                  openai_billing: { serviceTier: "fast", cacheWriteTokens: 0 },
+                }
+              : {}),
           })),
           error: null,
         };
@@ -70,6 +78,7 @@ describe("admin log pagination", () => {
       res,
     );
     expect(res.body.logs).toHaveLength(50);
+    expect(res.body.logs[0].openai_estimated_cost_usd).toBeCloseTo(0.008, 8);
     expect(res.body.pagination).toEqual({
       page: 1,
       limit: 50,

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createCompletion = vi.fn();
+const createResponseApi = vi.fn();
 const getUser = vi.fn();
 const profileSingle = vi.fn();
 const logRequest = vi.fn();
@@ -12,6 +13,7 @@ const detectAndPauseDuplicateIpAccount = vi.fn();
 vi.mock("openai", () => ({
   OpenAI: vi.fn(function OpenAI() {
     return {
+      post: createResponseApi,
       chat: {
         completions: {
           create: createCompletion,
@@ -102,6 +104,7 @@ function createResponse() {
 describe("/api/generate remote image handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.OPENAI_DRAFT_PILOT_PERCENT = "0";
     process.env.VERCEL_APP_SUPABASE_URL = "https://project.supabase.co";
 
     getUser.mockResolvedValue({
@@ -150,6 +153,153 @@ describe("/api/generate remote image handling", () => {
         response: new Response(null, { headers: {} }),
       })),
     });
+    createResponseApi.mockReturnValue({
+      withResponse: vi.fn(async () => ({
+        data: {
+          status: "completed",
+          service_tier: "fast",
+          output: [
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: JSON.stringify({
+                    title: "Black Dress",
+                    description: "Black dress.",
+                  }),
+                },
+              ],
+            },
+          ],
+          usage: {
+            total_tokens: 1200,
+            input_tokens: 1000,
+            output_tokens: 200,
+            input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
+          },
+        },
+        response: new Response(null, { headers: {} }),
+      })),
+    });
+  });
+
+  const pilotRequest = () => ({
+    method: "POST",
+    headers: { authorization: "Bearer token" },
+    body: {
+      imageUrls: ["data:image/jpeg;base64,abc"],
+      titleLanguageCode: "en",
+      descriptionLanguageCode: "en",
+      tone: "standard",
+      useEmojis: false,
+      useHashtags: true,
+      useBulletPoints: true,
+      descriptionLength: "short",
+      generationMode: "manual",
+    },
+  });
+
+  it("routes pilot accounts through Fast Responses with identical prompt text and logs actual billing", async () => {
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    await handler(pilotRequest() as any, createResponse() as any);
+    const baseline = createCompletion.mock.calls[0][0];
+    vi.clearAllMocks();
+    process.env.OPENAI_DRAFT_PILOT_PERCENT = "100";
+    const res = createResponse();
+    await handler(pilotRequest() as any, res as any);
+    expect(res.statusCode).toBe(200);
+    expect(createCompletion).not.toHaveBeenCalled();
+    expect(createResponseApi).toHaveBeenCalledOnce();
+    const [path, options] = createResponseApi.mock.calls[0];
+    expect(path).toBe("/responses");
+    expect(options.body).toMatchObject({
+      model: "gpt-6.1-sol",
+      service_tier: "fast",
+      reasoning: { effort: "low" },
+      max_output_tokens: 1000,
+      store: false,
+      prompt_cache_options: { mode: "explicit" },
+    });
+    expect(options.body.input[0].content).toBe(baseline.messages[0].content);
+    expect(options.body.input[1].content[0]).toEqual({
+      type: "input_text",
+      text: baseline.messages[1].content[0].text,
+    });
+    expect(options.body.input[1].content[1]).toEqual({
+      type: "input_image",
+      image_url: "data:image/jpeg;base64,abc",
+      detail: "high",
+    });
+    expect(options.body).not.toHaveProperty("temperature");
+    expect(JSON.stringify(options.body)).not.toContain(
+      "prompt_cache_breakpoint",
+    );
+    expect(logRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openaiModel: "gpt-6.1-sol",
+        openaiPromptTokens: 1000,
+        openaiCompletionTokens: 200,
+        fullRequestBody: expect.objectContaining({
+          openaiBilling: expect.objectContaining({
+            serviceTier: "fast",
+            cacheWriteTokens: 0,
+          }),
+          draftModelPilot: expect.objectContaining({
+            arm: "pilot",
+            percentage: 100,
+          }),
+        }),
+      }),
+    );
+    expect(commitGenerationReservation).toHaveBeenCalledWith("reservation-1");
+  });
+
+  it("refunds incomplete pilot responses even when their text happens to be valid JSON", async () => {
+    process.env.OPENAI_DRAFT_PILOT_PERCENT = "100";
+    createResponseApi.mockReturnValue({
+      withResponse: vi.fn(async () => ({
+        data: {
+          status: "incomplete",
+          service_tier: "fast",
+          output: [
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: '{"title":"Dress","description":"Dress."}',
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 1000,
+            output_tokens: 1000,
+            total_tokens: 2000,
+          },
+        },
+        response: new Response(null),
+      })),
+    });
+    const module = await import("../../../api/generate.js");
+    const handler = (module as any).default;
+    const res = createResponse();
+    await handler(pilotRequest() as any, res as any);
+    expect(res.statusCode).toBe(500);
+    expect(refundGenerationReservation).toHaveBeenCalledWith(
+      "reservation-1",
+      "generation_failed",
+    );
+    expect(commitGenerationReservation).not.toHaveBeenCalled();
+    expect(createCompletion).not.toHaveBeenCalled();
+    expect(logRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openaiPromptTokens: 1000,
+        openaiCompletionTokens: 1000,
+      }),
+    );
   });
 
   it("rejects missing auth before reserving generation or calling OpenAI", async () => {

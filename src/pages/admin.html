@@ -4130,7 +4130,7 @@
                 </div>
                 <div class="pagination-bar">
                     <span>${pagination.total == null ? `Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${logs.length ? ((pagination.page - 1) * pagination.limit) + logs.length : 0} search results` : `Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}`}</span>
-                    <span>${pagination.totalPages == null ? `Page ${pagination.page}` : `Page ${pagination.totalPages ? pagination.page : 0} of ${pagination.totalPages || 0}`}</span>
+                    <span>${pagination.totalPages == null ? `Page ${pagination.page}` : `Page ${pagination.totalPages ? pagination.page : 0} of ${pagination.totalPages || 0}`}${pagination.searchWindowDays ? ` · Last ${Number(pagination.searchWindowDays)} days` : ''}</span>
                     <div class="flex gap-2">
                         <button class="btn-secondary" ${pagination.page <= 1 ? 'disabled' : ''} onclick="setLogsPage(${pagination.page - 1})">Previous</button>
                         <button class="btn-secondary" ${(pagination.totalPages == null ? !pagination.hasMore : pagination.page >= pagination.totalPages) ? 'disabled' : ''} onclick="setLogsPage(${pagination.page + 1})">Next</button>

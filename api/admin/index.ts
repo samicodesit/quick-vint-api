@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { handleIssues } from "../../utils/incidents/admin";
 import { supabase } from "../../utils/supabaseClient";
 import { handleWebAppStats } from "../../utils/webAppStats";
+import eventDefinitions from "../../utils/incidents/registry.json";
 import {
   FREE_LIFETIME_LIMIT,
   TIER_CONFIGS,
@@ -1904,10 +1905,27 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
 }
 
 async function getRelatedLogTarget(req: VercelRequest) {
+  const search = (getQueryString(req.query.search) || "").trim();
   const relatedUserId = (
     getQueryString(req.query.related_user_id) || ""
   ).trim();
-  const relatedEmail = (getQueryString(req.query.related_email) || "").trim();
+  const relatedEmail = (
+    getQueryString(req.query.related_email) ||
+    (!req.query.user_id && search.includes("@") ? search : "")
+  ).trim();
+
+  if (
+    !relatedUserId &&
+    (relatedEmail || (!req.query.user_id && UUID_PATTERN.test(search)))
+  ) {
+    let query = supabase.from("profiles").select("id");
+    query = relatedEmail
+      ? query.ilike("email", relatedEmail.replace(/[%_]/g, "\\$&"))
+      : query.eq("id", search);
+    const { data, error } = await query.limit(1).maybeSingle();
+    if (error) throw error;
+    if (data?.id) return { userId: data.id, email: relatedEmail || null };
+  }
 
   if (!relatedUserId && !relatedEmail) return null;
 
@@ -1948,7 +1966,18 @@ function isLikelyIpSearch(value: string) {
   return search.includes(":") && IPV6_PATTERN.test(search);
 }
 
+function isKnownLogEvent(search: string) {
+  return Object.prototype.hasOwnProperty.call(
+    eventDefinitions,
+    search.toLowerCase(),
+  );
+}
 function buildLogSearchFilter(search: string) {
+  if (isKnownLogEvent(search))
+    return `endpoint.eq./event/${search.toLowerCase()}`;
+  if (/^\/(?:api|event)\/[a-z0-9_/-]+$/i.test(search))
+    return `endpoint.eq.${search}`;
+  if (isLikelyIpSearch(search)) return `ip_address.eq.${search}`;
   const safeSearch = search.replace(/[%_,]/g, "\\$&");
   const filters = search.includes("@")
     ? [`user_email.eq.${safeSearch}`]
@@ -1983,7 +2012,19 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const search = (getQueryString(req.query.search) || "").trim();
     const statusFilter = getQueryString(req.query.status_filter) || "all";
     const relatedLogTarget = await getRelatedLogTarget(req);
-    const boundedSearch = Boolean(search && !relatedLogTarget);
+    const boundedSearch = Boolean(
+      search || (relatedLogTarget?.email && !relatedLogTarget.userId),
+    );
+    const searchWindowDays =
+      boundedSearch &&
+      !startDate &&
+      !userId &&
+      !relatedLogTarget?.userId &&
+      !isKnownLogEvent(search) &&
+      !/^\/(?:api|event)\/[a-z0-9_/-]+$/i.test(search) &&
+      !isLikelyIpSearch(search)
+        ? 30
+        : undefined;
 
     const applyLogTypeFilter = (query: any) => {
       if (logType === "all") return query;
@@ -2022,6 +2063,11 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       query = query.eq("suspicious_activity", true);
     query = applyAccountFilter(query);
     if (startDate) query = query.gte("created_at", startDate);
+    else if (searchWindowDays)
+      query = query.gte(
+        "created_at",
+        new Date(Date.now() - searchWindowDays * 86400000).toISOString(),
+      );
     if (endDate) query = query.lte("created_at", endDate);
     if (!relatedLogTarget && search) {
       query = query.or(buildLogSearchFilter(search));
@@ -2044,6 +2090,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
           total: null,
           totalPages: null,
           hasMore: (logs || []).length > limit,
+          searchWindowDays,
         },
       });
 

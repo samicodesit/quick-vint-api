@@ -6,7 +6,7 @@ import {
   CropperShade,
   CropperGrid,
 } from "cropperjs";
-import "../../styles/photo-editor.css";
+import editorStyles from "../../styles/photo-editor.css?inline";
 
 /** Imported only from the photo menu. No editor, image or listener at app startup. */
 export function openPhotoEditor(options: {
@@ -15,6 +15,12 @@ export function openPhotoEditor(options: {
   onSave: (photo: Blob) => Promise<void>;
   onClose: () => void;
 }) {
+  if (!document.querySelector("style[data-photo-editor-styles]")) {
+    const style = document.createElement("style");
+    style.dataset.photoEditorStyles = "";
+    style.textContent = editorStyles;
+    document.head.append(style);
+  }
   for (const element of [
     CropperCanvas,
     CropperImage,

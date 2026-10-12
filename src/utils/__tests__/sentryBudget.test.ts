@@ -30,7 +30,24 @@ it("applies the shared atomic budget and scrubber to automatic SDK captures", as
   expect(JSON.stringify(accepted)).not.toContain("private");
   expect(await config.beforeSend(event)).toBeNull();
   expect(await config.beforeSend(event)).toBeNull();
-  expect(mocks.rpc).toHaveBeenCalledWith("incident_reserve_sentry");
+  expect(mocks.rpc).toHaveBeenCalledWith("incident_reserve_sentry", {
+    p_incident_id: null,
+  });
+});
+it("passes the durable incident ID and rejects malformed tags", async () => {
+  const { initSentry } = await import("../../../utils/sentry.js");
+  initSentry();
+  mocks.rpc.mockResolvedValue({ data: true });
+  const beforeSend = mocks.init.mock.calls[0][0].beforeSend;
+  const id = "00000000-0000-4000-8000-000000000001";
+  await beforeSend({ tags: { incidentId: id, severity: "blocking" } });
+  expect(mocks.rpc).toHaveBeenLastCalledWith("incident_reserve_sentry", {
+    p_incident_id: id,
+  });
+  await beforeSend({ tags: { incidentId: "malformed" } });
+  expect(mocks.rpc).toHaveBeenLastCalledWith("incident_reserve_sentry", {
+    p_incident_id: null,
+  });
 });
 it("does not reserve or send when paused", async () => {
   const { initSentry } = await import("../../../utils/sentry.js");

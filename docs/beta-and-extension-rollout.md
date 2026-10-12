@@ -2,8 +2,8 @@
 
 October 12, 2026. Preparation is authorized. Activation is conditional on the
 release gates below. The approved shared retry migration is now applied and
-verified in production. No customer generation, payment, customer contact or
-store submission has occurred.
+verified in production. No customer generation, payment or customer contact
+occurred during this rollout. The extension was submitted for store review.
 
 ## Database acceptance
 
@@ -76,8 +76,13 @@ MOBILE_WEB_APP_ENABLED=true
 LISTING_DRAFTS_ENABLED=false
 ```
 
-The private preview is ready at:
-https://quick-vint-api-git-codex-m-09f8c8-ahmed-samis-projects-e6ef0336.vercel.app/app
+The private preview has a short entry link:
+https://autolister.app/beta
+
+The temporary redirect returns 307 to the existing protected preview's `/app`
+URL. It does not create another app origin or change sign-in permissions.
+Live HTTP checks confirmed the redirect and unchanged Vercel login protection.
+Evidence: `qa/browser-drafts/short-beta-link.json`.
 
 It reuses the existing Supabase URL/anon key and provider credentials. The exact
 branch origin was added to its branch-only CORS setting, preserving all existing

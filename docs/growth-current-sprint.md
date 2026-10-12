@@ -2,6 +2,7 @@
 
 ## Public web beta, October 12, 2026
 
+- Follow-up: the install button explicitly names the extension in all eight site languages. All 19 rendered viewport/locale checks and the guarded 876-test production gate passed. Deployment `dpl_8FEnk5UUnm5ec4YYyisXnpfWjKZs` is READY for `ebf1206`; all eight live homepages return the translated label and app route. No customer account or generation was used.
 - Owner approved publishing the compact dual-route homepage and public local-draft web app. Homepage-only Search Console queries support preserving the current AI listing headline and compatibility phrase. The demo remains visible and the header counter is compact plain text.
 - The existing admin gains `/admin/web-app`: browser visits, verified sign-ins, same-browser new signups, server-confirmed generations, copies, returning generators and current paid entitlement. Retries/recovered results count once. Anonymous activity is directional and client-reported; current paid entitlement is not a new-payment or revenue metric.
 - Existing telemetry/log storage is reused. An additive service-only compaction function preserves only small web metrics for 30 days; no new table, cloud draft persistence, quota change or extension release. Production callback/config preparation preserves existing auth and private preview protection.

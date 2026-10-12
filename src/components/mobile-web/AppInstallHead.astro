@@ -1,0 +1,10 @@
+<link rel="manifest" href="/app/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="icon" type="image/png" href="/favicon-96x96.png" />
+<meta name="theme-color" content="#faf9f6" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="AutoLister" />
+<script is:inline>
+  // Installation stays available in the browser menu without an automatic prompt.
+  window.addEventListener("beforeinstallprompt", (event) => event.preventDefault());
+</script>

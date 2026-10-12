@@ -847,8 +847,23 @@ html:has([data-drafts-enabled="true"]) {
   border-radius: 8px;
 }
 .draft-mode button {
+  position: relative;
   background: transparent;
   min-width: 120px;
+}
+.draft-new-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--mobile-brand);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  pointer-events: none;
 }
 .draft-mode button[aria-current="page"] {
   background: white;

@@ -183,7 +183,13 @@ await context.route(`${base}/api/**`, async (route) => {
     });
   if (url.pathname === "/api/generate") {
     const body = req.postDataJSON();
-    assert.equal(body.analyticsClientId, await page.evaluate(() => localStorage.getItem("autolister.web-client.v1")), "The real generation carries the same pseudonymous browser ID");
+    assert.equal(
+      body.analyticsClientId,
+      await page.evaluate(() =>
+        localStorage.getItem("autolister.web-client.v1"),
+      ),
+      "The real generation carries the same pseudonymous browser ID",
+    );
     assert.ok(
       !body.draftId && body.imageUrls.length,
       "Generation uses existing direct images, never a cloud draft",
@@ -312,6 +318,46 @@ try {
     "The app logo stays inside the web app",
   );
   await click("new");
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const mode of ["new", "bulk"]) {
+      await click(mode);
+      const tab = page.locator(
+        '.draft-mode:visible [data-draft-action="bulk"]',
+      );
+      const badge = tab.locator(".draft-new-badge");
+      assert.equal(await badge.textContent(), "New");
+      const tabBox = await tab.boundingBox();
+      const badgeBox = await badge.boundingBox();
+      assert.ok(
+        badgeBox.y < tabBox.y,
+        "New badge sits above the multiple-items tab",
+      );
+      assert.ok(
+        badgeBox.y >= 0 &&
+          badgeBox.x >= 0 &&
+          badgeBox.x + badgeBox.width <= width,
+        "Badge stays visible inside the screen",
+      );
+      assert.ok(
+        tabBox.height >= 44,
+        "Badge does not reduce the tab click target",
+      );
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await click("new");
+  await settled();
+  await page.screenshot({ path: `${output}/new-badge-phone.png` });
+  checks.push(
+    "New badge stays above the batch tab in both entry modes at phone/tablet/desktop widths",
+  );
   await page
     .locator('[data-draft-action="generate"]')
     .waitFor({ state: "hidden" });

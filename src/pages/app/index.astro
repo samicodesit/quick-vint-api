@@ -8,6 +8,7 @@ import brandFont from "@fontsource-variable/inter-tight/files/inter-tight-latin-
 import "../../styles/mobile-web-app.css";
 import "../../styles/listing-drafts.css";
 import WorkspaceShell from "../../components/mobile-web/WorkspaceShell.astro";
+import AppInstallHead from "../../components/mobile-web/AppInstallHead.astro";
 import { getMobileWebBuildConfig } from "../../app/mobile-web/config";
 
 const buildConfig = getMobileWebBuildConfig({
@@ -44,6 +45,7 @@ const contentSecurityPolicy = [
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="Content-Security-Policy" content={contentSecurityPolicy} />
     <title>AutoLister AI</title>
+    {buildConfig.enabled && <AppInstallHead />}
     <link rel="preload" href={bodyFont} as="font" type="font/woff2" crossorigin="anonymous" />
     <link rel="preload" href={headingFont} as="font" type="font/woff2" crossorigin="anonymous" />
     <link rel="preload" href={brandFont} as="font" type="font/woff2" crossorigin="anonymous" />

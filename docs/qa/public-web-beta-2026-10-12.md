@@ -42,3 +42,7 @@ Physical-phone browsers, a new live signup, new paid conversion and production g
 ## Header logo correction
 
 The web app logo now targets `/app` and returns to the Drafts library inside the current document. It shares the existing library-tab navigation, flushes pending edits and preserves background work. Modified clicks retain normal link behavior. The rendered browser regression first failed on the old `/` target, then passed an immediate edit followed by a logo click, confirming saved text and the same document before reload. The complete 17-step local draft journey and the production gate (876 tests, including real generation HTTP checks) passed.
+
+## Extension label and hero localization
+
+The install CTA now explicitly names the AutoLister extension in all eight supported site languages. The new web action, both route explanations, demo label, phone support label and header counter use localized copy. Rendered landing checks passed 19 viewport/locale combinations, including every language at 360px and 390px. Install buttons retain their 48px height, the pages have no horizontal overflow, the English phone actions remain above the fold and the existing video fullscreen behavior works. All eight existing landing copy/performance tests passed. Production publication uses the required full guarded gate.

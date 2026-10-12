@@ -7,6 +7,16 @@ const browser = await chromium.launch({
   args: ["--no-sandbox"],
 });
 const checks = [];
+const installLabels = {
+  "/": "Install AutoLister Extension",
+  "/fr/": "Installer l’extension AutoLister",
+  "/de/": "AutoLister-Erweiterung installieren",
+  "/nl/": "AutoLister-extensie installeren",
+  "/pl/": "Zainstaluj rozszerzenie AutoLister",
+  "/es/": "Instalar la extensión AutoLister",
+  "/it/": "Installa l’estensione AutoLister",
+  "/pt/": "Instalar a extensão AutoLister",
+};
 try {
   for (const [width, height, path] of [
     [360, 800, "/"],
@@ -16,6 +26,18 @@ try {
     [1440, 1000, "/"],
     [390, 844, "/fr/"],
     [390, 844, "/de/"],
+    [390, 844, "/nl/"],
+    [390, 844, "/pl/"],
+    [390, 844, "/es/"],
+    [390, 844, "/it/"],
+    [390, 844, "/pt/"],
+    [360, 800, "/fr/"],
+    [360, 800, "/de/"],
+    [360, 800, "/nl/"],
+    [360, 800, "/pl/"],
+    [360, 800, "/es/"],
+    [360, 800, "/it/"],
+    [360, 800, "/pt/"],
   ]) {
     const context = await browser.newContext({ viewport: { width, height } });
     await context.route("**/api/public-stats", async (route) => {
@@ -47,6 +69,15 @@ try {
     const extensionBox = await page
       .locator('[data-track-context="home_hero_primary"]')
       .boundingBox();
+    assert.equal(
+      extensionBox.height,
+      48,
+      "The longer install label keeps the same button height",
+    );
+    assert.equal(
+      await page.locator('[data-track-context="home_hero_primary"] span').textContent(),
+      installLabels[path],
+    );
     if (width < 640 && path === "/") {
       assert(video.y < appBox.y, "The demo precedes the actions on mobile");
       assert(

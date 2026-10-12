@@ -28,4 +28,13 @@ Production public web flags and validated public anon config are set. Cloud draf
 
 Search Console Web search, exact homepage, September 12 through October 9: 1,019 clicks and 7,997 impressions. The leading queries concern AI listing agents and the AutoLister brand. Existing headline/compatibility copy is retained; neither route's conversion rate is established yet.
 
-Live rollout still requires a READY deployment with the expected source SHA and final public-route checks. No live customer generation, test purchase, new account, email or marketplace listing was used for these checks. Physical-phone browsers and paid conversion are not claimed verified.
+## Live acceptance
+
+- Final guarded main push passed all 876 tests in 123 files. Production deployment `dpl_92TBFsmGDTYVTPpxHdFLoY5HxpMx` is READY on source `e62b5a553fb12b60d7a84dc56d26ac15be838af2`, with `autolister.app` assigned. The final copy-scope adjustment was checked by the same independent reviewer.
+- `/beta` reaches the public `/app` with no preview banner and `noindex, nofollow`. The exact homepage Create a draft link opens it. The real mobile header displays the live 11,733+ counter without a badge or extra row; the existing demo and both actions remain visible.
+- Existing owner Google sign-in completed through the production callback and opened the real local draft workspace. Existing plan/usage loaded. No new account, generation, email, purchase or marketplace listing was used.
+- The real authenticated admin view and API load. An unauthenticated admin request returns 401. Live business telemetry appears in the overview: one anonymous QA browser visit and two observed homepage QA clicks. These are release checks, not customer acquisition. Internal owner sign-ins do not inflate user/activation figures.
+- Cloud `/api/drafts` returns 404 with `drafts_disabled`. The service-only compaction RPC accepts an empty batch and changes zero rows. Existing private-preview protection and other callbacks remain intact.
+- Beta and admin tabs are left open. Final mobile and admin screenshots are saved as local QA evidence. Earlier preview drafts remain at the original preview origin; opening the public origin does not migrate or delete them.
+
+Physical-phone browsers, a new live signup, new paid conversion and production generation were not exercised. Real generation behavior and retry recovery were tested locally through rendered browsers, HTTP endpoints and PostgreSQL. Conversion performance is still unmeasured.

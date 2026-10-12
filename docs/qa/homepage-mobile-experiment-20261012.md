@@ -2,7 +2,7 @@
 
 ## Scope and sources
 
-This is a homepage experiment, not a web-app product experiment. The user accepted the actual rendered A/B comparison and a 50/50 phone split. Implementation is validated for release; production readiness is checked after the guarded main push.
+This is a homepage experiment, not a web-app product experiment. The user accepted the actual rendered A/B comparison and a 50/50 phone split. `bc27dba` is live on autolister.app, with Vercel deployment `dpl_7rCT87abgkrrFmBfrECJ7umBnhna` confirmed READY after the full 937-test guarded main push. Live playback and admin acceptance passed.
 
 - Search Console, verified property autolister.app, Web search, September 13 to October 10. Homepage regex covers root plus fr, de, nl, pl, es, it and pt homepages. Device rows: mobile 646 clicks / 4,233 impressions, desktop 103 / 1,025, tablet 7 / 41. Independently filtered mobile and desktop charts confirm their respective click counts. Mobile is 85.4% of these device-row clicks. Clicks are not unique people or all-channel visits. The unfiltered chart total does not match the filtered row sum; no sitewide percentage is claimed.
 - Mobile top queries: ai listing agent for vinted (231), vinted ai listing agent (106), ai vinted listing agent (56), ai listing agent vinted (36), autolister ai (31). Desktop has relatively more branded clicks (autolister ai 30, autolister 9). Generic mobile AI-listing intent is an inference, not a survey.

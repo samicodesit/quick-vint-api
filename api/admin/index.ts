@@ -1983,6 +1983,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const search = (getQueryString(req.query.search) || "").trim();
     const statusFilter = getQueryString(req.query.status_filter) || "all";
     const relatedLogTarget = await getRelatedLogTarget(req);
+    const boundedSearch = Boolean(search && !relatedLogTarget);
 
     const applyLogTypeFilter = (query: any) => {
       if (logType === "all") return query;
@@ -2012,7 +2013,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         .from("api_logs")
         .select(logListSelect)
         .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1),
+        .range(offset, offset + limit - 1 + (boundedSearch ? 1 : 0)),
     );
 
     if (suspiciousOnly) query = query.eq("suspicious_activity", true);
@@ -2032,6 +2033,19 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       console.error("Error fetching logs:", logsError);
       return res.status(500).json({ error: "Failed to fetch logs" });
     }
+    // A search-wide exact count can time out even when the requested recent
+    // rows are ready. One extra row proves Next without another table scan.
+    if (boundedSearch)
+      return res.status(200).json({
+        logs: attachOpenAICostsToLogs((logs || []).slice(0, limit)),
+        pagination: {
+          page,
+          limit,
+          total: null,
+          totalPages: null,
+          hasMore: (logs || []).length > limit,
+        },
+      });
 
     let countQuery = applyLogTypeFilter(
       supabase.from("api_logs").select("id", { count: "exact", head: true }),

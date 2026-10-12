@@ -53,6 +53,7 @@ try {
             logs,
             pagination: { page: 1, total: 2, totalPages: 1, limit: 50 },
           };
+        if (url.searchParams.get("action") === "view-logs" && url.searchParams.get("search") === "web_app_view") body = { logs, pagination: { page: Number(url.searchParams.get("page") || 1), limit: 2, total: null, totalPages: null, hasMore: Number(url.searchParams.get("page") || 1) === 1 } };
         if (url.searchParams.get("action") === "log-detail") {
           const log = logs.find(
             (item) => item.id === url.searchParams.get("id"),
@@ -121,6 +122,13 @@ try {
       assert.equal(await page.locator("#modalBackdrop.open").count(), 0);
     }
     assert.deepEqual(errors, []);
+    await page.goto("http://admin.test/admin/logs?log_type=all&search=web_app_view");
+    await page.getByText("Showing 1-2 search results", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Next", exact: true }).isEnabled(), true);
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await page.getByText("Showing 3-4 search results", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Next", exact: true }).isEnabled(), false);
+    assert.equal(await page.getByRole("button", { name: "Previous", exact: true }).isEnabled(), true);
     await page.goto("http://admin.test/admin/web-app");
     await page.getByText("Mobile homepage A/B", { exact: true }).waitFor();
     assert.match(await page.locator("#contentArea").innerText(), /A: Demo first/);

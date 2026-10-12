@@ -20,7 +20,7 @@ const { selections, query } = vi.hoisted(() => {
     query.result = options?.head
       ? { count: options.count === "exact" ? 127 : 1, error: null }
       : {
-          data: Array.from({ length: 50 }, (_, i) => ({
+          data: Array.from({ length: 51 }, (_, i) => ({
             id: `log-${i}`,
             endpoint: "/event/telemetry_queue_dropped",
             ...(i === 0
@@ -37,6 +37,11 @@ const { selections, query } = vi.hoisted(() => {
     return query;
   });
   query.then = (resolve: any) => Promise.resolve(query.result).then(resolve);
+  query.range.mockImplementation((start: number, end: number) => {
+    if (query.result?.data)
+      query.result.data = query.result.data.slice(0, end - start + 1);
+    return query;
+  });
   return { selections, query };
 });
 vi.mock("../../../utils/supabaseClient", () => ({
@@ -70,7 +75,6 @@ describe("admin log pagination", () => {
         query: {
           action: "view-logs",
           log_type: "all",
-          search: "seller@example.invalid",
           page: "1",
           limit: "50",
         },
@@ -94,5 +98,41 @@ describe("admin log pagination", () => {
       "event_status:full_request_body->context->status",
     );
     expect(listColumns).not.toMatch(/(?:^|, )full_request_body(?:,|$)/);
+  });
+  it("keeps search usable without a whole-table count and proves the next page with one extra row", async () => {
+    process.env.ADMIN_SECRET = "secret";
+    selections.length = 0;
+    const res: any = {
+      body: null,
+      status() {
+        return this;
+      },
+      json(body: any) {
+        this.body = body;
+        return this;
+      },
+    };
+    await handler(
+      {
+        method: "GET",
+        headers: { authorization: "Bearer secret" },
+        query: {
+          action: "view-logs",
+          log_type: "all",
+          search: "web_app_view",
+          limit: "50",
+        },
+      } as any,
+      res,
+    );
+    expect(res.body.logs).toHaveLength(50);
+    expect(res.body.pagination).toMatchObject({
+      page: 1,
+      limit: 50,
+      total: null,
+      totalPages: null,
+      hasMore: true,
+    });
+    expect(selections.some((option) => option?.head)).toBe(false);
   });
 });

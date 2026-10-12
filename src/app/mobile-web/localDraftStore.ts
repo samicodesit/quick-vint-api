@@ -6,6 +6,7 @@ import {
   type Draft,
   type DraftLibrary,
   type DraftPhoto,
+  validDraftId,
 } from "./draftContracts";
 import type {
   MobileGenerationInput,
@@ -29,8 +30,10 @@ type Snapshot = {
   photos: Map<string, DraftPhoto>;
   attempts: Map<string, LocalDraftAttempt>;
   tx: IDBTransaction;
+  blob?: { id: string; blob: Blob; original?: Blob };
 };
 type Scope = {
+  blobId?: string;
   draftIds?: string[];
   itemPhotos?: string;
   photoId?: string;
@@ -101,6 +104,7 @@ export class LocalDraftStore {
   private connection?: Promise<IDBDatabase>;
   private disposed = false;
   private urls = new Map<string, string>();
+  private urlRevisions = new Map<string, number>();
   constructor(readonly userId: string) {
     if (!userId)
       throw localDraftError(
@@ -247,7 +251,7 @@ export class LocalDraftStore {
             ).filter((row): row is Row => !!row);
           return request<Row[]>(draftStore.getAll());
         };
-        const [drafts, photos, attempts, draftCount] = await Promise.all([
+        const [drafts, photos, attempts, draftCount, blob] = await Promise.all([
           draftRows(),
           photoRows,
           scope.attemptId
@@ -256,6 +260,11 @@ export class LocalDraftStore {
               ).then((row) => (row ? [row] : []))
             : Promise.resolve([]),
           request(draftStore.count()),
+          scope.blobId
+            ? request<{ id: string; blob: Blob; original?: Blob } | undefined>(
+                tx.objectStore("blobs").get(scope.blobId),
+              )
+            : Promise.resolve(undefined),
         ]);
         const result = operation({
           draftCount,
@@ -263,6 +272,7 @@ export class LocalDraftStore {
           photos: new Map(photos.map(({ group_key: _, ...p }) => [p.id, p])),
           attempts: new Map(attempts.map((a) => [a.draftId, a])),
           tx,
+          blob,
         });
         await finished;
         if (!scope.noPhotos && !scope.itemPhotos && !scope.photoId) {
@@ -271,6 +281,7 @@ export class LocalDraftStore {
             if (!live.has(id)) {
               URL.revokeObjectURL(url);
               this.urls.delete(id);
+              this.urlRevisions.delete(id);
             }
         }
         return result;
@@ -324,13 +335,26 @@ export class LocalDraftStore {
       "drafts" in value
         ? [...value.drafts.flatMap((d) => d.photos), ...value.imports]
         : value.photos;
-    const missing = photos.filter((p) => !this.urls.has(p.id));
+    const missing = photos.filter((p) => {
+      if (
+        this.urls.has(p.id) &&
+        this.urlRevisions.get(p.id) === (p.revision || 0)
+      )
+        return false;
+      const oldUrl = this.urls.get(p.id);
+      if (oldUrl) URL.revokeObjectURL(oldUrl);
+      this.urls.delete(p.id);
+      this.urlRevisions.delete(p.id);
+      return true;
+    });
     if (missing.length) {
       const files = await this.photoFiles(missing.map((p) => p.id));
       if (this.disposed) return value;
       missing.forEach((p, index) => {
-        if (!this.urls.has(p.id))
+        if (!this.urls.has(p.id)) {
           this.urls.set(p.id, URL.createObjectURL(files[index]));
+          this.urlRevisions.set(p.id, p.revision || 0);
+        }
       });
     }
     photos.forEach((p) => {
@@ -534,6 +558,7 @@ export class LocalDraftStore {
       const url = this.urls.get(id);
       if (url) URL.revokeObjectURL(url);
       this.urls.delete(id);
+      this.urlRevisions.delete(id);
     }
     return "photos" in result ? this.hydrate(result) : result;
   }
@@ -558,7 +583,10 @@ export class LocalDraftStore {
           return existing;
         }
         if (
-          [...data.photos.values()].reduce((bytes, p) => bytes + p.bytes, 0) +
+          [...data.photos.values()].reduce(
+            (bytes, p) => bytes + p.bytes + (p.original_bytes || 0),
+            0,
+          ) +
             blob.size >
           DRAFT_LIMITS.storageBytes
         )
@@ -613,6 +641,86 @@ export class LocalDraftStore {
       nextCursor: null,
     });
     return view.imports[0];
+  }
+  /** Preserve one original JPEG and atomically replace only its owned photo. */
+  async editPhoto(
+    input: { draftId: string; photoId: string; revision: number },
+    replacement: Blob | null,
+  ): Promise<Draft> {
+    if (
+      !validDraftId(input.draftId) ||
+      !validDraftId(input.photoId) ||
+      !Number.isSafeInteger(input.revision) ||
+      input.revision < 0
+    )
+      throw localDraftError(
+        "invalid_draft_request",
+        "Reopen this photo and try again.",
+        400,
+      );
+    if (
+      replacement &&
+      (replacement.type !== "image/jpeg" ||
+        !replacement.size ||
+        replacement.size > DRAFT_LIMITS.uploadBytes)
+    )
+      throw localDraftError(
+        "photo_size",
+        "Choose a JPEG photo smaller than 4 MB.",
+        400,
+      );
+    const result = await this.transact(
+      "readwrite",
+      (data) => {
+        const photo = data.photos.get(input.photoId);
+        if (
+          !photo ||
+          photo.draft_id !== input.draftId ||
+          photo.status !== "ready" ||
+          !data.blob?.blob
+        )
+          throw localDraftError(
+            "photo_not_found",
+            "This photo moved or is no longer saved. Reopen the item.",
+            404,
+          );
+        const row = this.row(data, input.draftId);
+        editable(row);
+        if ((photo.revision || 0) !== input.revision) throw conflict();
+        if (!replacement && !data.blob.original) return this.view(data, row);
+        const original = data.blob.original || data.blob.blob;
+        const blob = replacement || original;
+        const originalBytes = replacement ? original.size : 0;
+        const usedBytes = [...data.photos.values()].reduce(
+          (sum, p) => sum + p.bytes + (p.original_bytes || 0),
+          0,
+        );
+        if (
+          usedBytes -
+            photo.bytes -
+            (photo.original_bytes || 0) +
+            blob.size +
+            originalBytes >
+          DRAFT_LIMITS.storageBytes
+        )
+          throw localDraftError(
+            "storage_limit",
+            "This browser's photo storage is full. Delete unused photos and try again.",
+          );
+        data.tx
+          .objectStore("blobs")
+          .put({ id: photo.id, blob, ...(replacement ? { original } : {}) });
+        photo.bytes = blob.size;
+        photo.revision = (photo.revision || 0) + 1;
+        if (originalBytes) photo.original_bytes = originalBytes;
+        else delete photo.original_bytes;
+        this.putPhoto(data, photo);
+        this.saveRow(data, row, true);
+        return this.view(data, row);
+      },
+      { draftIds: [input.draftId], blobId: input.photoId },
+    );
+    return this.hydrate(result);
   }
   async beginAttempt(
     draftId: string,
@@ -709,5 +817,6 @@ export class LocalDraftStore {
     void this.connection?.then((db) => db.close()).catch(() => {});
     this.urls.forEach((url) => URL.revokeObjectURL(url));
     this.urls.clear();
+    this.urlRevisions.clear();
   }
 }

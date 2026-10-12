@@ -31,6 +31,8 @@ export interface DraftPhoto {
   draft_id: string | null;
   position: number;
   bytes: number;
+  original_bytes?: number;
+  revision?: number;
   status: "pending" | "ready";
   url?: string;
   created_at: string;

@@ -89,6 +89,12 @@ Refresh these after the Monday review. Until then, do not start new growth side 
 | 2        | Pick one store or trust improvement from the refreshed bottleneck | Chrome Store | FR/NL    | Better install quality or more ratings | Pending |
 | 3        | Pick one acquisition/content action from the refreshed bottleneck | SEO/outreach | FR first | Active generators, not clicks          | Pending |
 
+## 2026-10-12: Local photo editor QA
+
+- Added the approved free crop, rotate/straighten and restore-original controls through existing photo menus. The editor is loaded only on demand; edits and the first prepared JPEG backup stay in the existing local blob store and count toward its cap. No new backend/infra, quota, payment or extension changes.
+- Actual Chromium passed 23 journey checks, including mouse/touch crop, keyboard straighten, exported rotation pixels/source dimensions, exact downloaded/restore JPEG bytes, edited-photo generation upload, repeated fast dismissal and existing paywall/batch/local-draft flows. Phone and desktop captures inspected at 320/390/768/1440px. Storage tests passed 14 cases. [Evidence and test limits](qa/local-photo-editor-20261012.md).
+- Physical phone gestures/native download and low-memory behavior remain untested. This does not establish conversion uplift; no purchase or marketplace listing was performed.
+
 ## Active Experiments
 
 Use this table for any growth action that takes more than one day or spends money.

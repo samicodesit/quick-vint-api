@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { LocalDraftStore } from "../localDraftStore";
-import { DEFAULT_DRAFT_SETTINGS } from "../draftContracts";
+import { DEFAULT_DRAFT_SETTINGS, DRAFT_LIMITS } from "../draftContracts";
 
 let first: LocalDraftStore;
 const id = () => crypto.randomUUID();
@@ -26,6 +26,129 @@ const photo = async (draftId?: string) => {
     ...(draftId ? { draftId } : {}),
   });
 };
+
+it("edits only one photo and preserves its original, text, order and fresh preview across connections", async () => {
+  let draft = await create();
+  const a = await photo(draft.id);
+  const b = await photo(draft.id);
+  draft = await first.action("detail", { draftId: draft.id });
+  await first.action("save", {
+    draftId: draft.id,
+    expectedVersion: draft.version,
+    title: "Keep title",
+    description: "Keep description",
+  });
+  const other = new LocalDraftStore("account-one");
+  const before = await other.action("detail", { draftId: draft.id });
+  const edited = new Blob(["edited jpeg"], { type: "image/jpeg" });
+  const changed = await first.editPhoto(
+    { draftId: draft.id, photoId: b.id, revision: 0 },
+    edited,
+  );
+  expect(changed).toMatchObject({
+    title: "Keep title",
+    description: "Keep description",
+    input_version: before.input_version + 1,
+  });
+  expect(changed.photos.map((p) => p.id)).toEqual([a.id, b.id]);
+  expect(changed.photos[1]).toMatchObject({
+    revision: 1,
+    original_bytes: jpeg().size,
+    bytes: edited.size,
+  });
+  const after = await other.action("detail", { draftId: draft.id });
+  expect(after.photos[1].url).not.toBe(before.photos[1].url);
+  expect(await (await other.photoFiles([b.id]))[0].text()).toBe("edited jpeg");
+  await first.editPhoto(
+    { draftId: draft.id, photoId: b.id, revision: 1 },
+    new Blob(["second edit"], { type: "image/jpeg" }),
+  );
+  const restored = await other.editPhoto(
+    { draftId: draft.id, photoId: b.id, revision: 2 },
+    null,
+  );
+  expect(restored.photos[1].original_bytes).toBeUndefined();
+  expect(await (await other.photoFiles([b.id]))[0].arrayBuffer()).toEqual(
+    await jpeg().arrayBuffer(),
+  );
+  expect(restored.photos[1].revision).toBe(3);
+});
+
+it("serializes photo edits across tabs and rejects stale or generating writes", async () => {
+  let draft = await create();
+  const p = await photo(draft.id);
+  const other = new LocalDraftStore("account-one");
+  const input = { draftId: draft.id, photoId: p.id, revision: 0 };
+  const edits = await Promise.allSettled([
+    first.editPhoto(input, jpeg()),
+    other.editPhoto(input, jpeg()),
+  ]);
+  expect(edits.filter((result) => result.status === "fulfilled")).toHaveLength(
+    1,
+  );
+  expect(edits.find((result) => result.status === "rejected")).toMatchObject({
+    reason: { code: "draft_conflict" },
+  });
+  draft = await first.action("detail", { draftId: draft.id });
+  await first.beginAttempt(
+    draft.id,
+    { operationId: id(), inputVersion: draft.input_version },
+    false,
+  );
+  await expect(
+    first.editPhoto({ ...input, revision: 1 }, jpeg()),
+  ).rejects.toMatchObject({ code: "generation_in_progress" });
+  await expect(
+    first.editPhoto({ ...input, revision: 1 }, null),
+  ).rejects.toMatchObject({ code: "generation_in_progress" });
+});
+
+it("rejects moved, deleted and other-account photos instead of replacing another photo", async () => {
+  const p = await photo();
+  let a = await create(first, [p.id]);
+  const b = await create();
+  await first.action("group", {
+    draftId: b.id,
+    expectedVersion: b.version,
+    photoIds: [p.id],
+    sourceVersions: { [a.id]: a.version },
+  });
+  await expect(
+    first.editPhoto({ draftId: a.id, photoId: p.id, revision: 0 }, jpeg()),
+  ).rejects.toMatchObject({ code: "photo_not_found" });
+  await expect(
+    new LocalDraftStore("account-two").editPhoto(
+      { draftId: b.id, photoId: p.id, revision: 0 },
+      jpeg(),
+    ),
+  ).rejects.toMatchObject({ code: "photo_not_found" });
+  await first.action("removePhoto", { photoId: p.id });
+  await expect(
+    first.editPhoto({ draftId: b.id, photoId: p.id, revision: 0 }, jpeg()),
+  ).rejects.toMatchObject({ code: "photo_not_found" });
+});
+
+it("accounts for the original backup in the existing cap and rolls back a rejected edit", async () => {
+  const draft = await create();
+  const p = await photo(draft.id);
+  const cap = vi.spyOn(DRAFT_LIMITS, "storageBytes", "get");
+  cap.mockReturnValue(jpeg().size * 2 - 1);
+  try {
+    await expect(
+      first.editPhoto(
+        { draftId: draft.id, photoId: p.id, revision: 0 },
+        jpeg(),
+      ),
+    ).rejects.toMatchObject({ code: "storage_limit" });
+    const saved = await first.action("detail", { draftId: draft.id });
+    expect(saved.photos[0].revision || 0).toBe(0);
+    expect(await (await first.photoFiles([p.id]))[0].arrayBuffer()).toEqual(
+      await jpeg().arrayBuffer(),
+    );
+  } finally {
+    cap.mockRestore();
+  }
+});
 
 it("persists JPEGs and edits across connections while isolating accounts", async () => {
   let draft = await create();

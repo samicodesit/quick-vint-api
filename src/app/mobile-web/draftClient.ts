@@ -225,6 +225,12 @@ export function createDraftClient(userId: string) {
       file: File,
       input: { photoId: string; importId: string; draftId?: string },
     ) => store.upload(file, input),
+    editDraftPhoto: (
+      input: { draftId: string; photoId: string; revision: number },
+      replacement: Blob | null,
+    ) => store.editPhoto(input, replacement),
+    readDraftPhoto: async (photoId: string) =>
+      (await store.photoFiles([photoId]))[0],
     executeDraftAttempt: (
       draft: Draft,
       attempt: DraftAttempt,

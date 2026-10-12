@@ -73,6 +73,8 @@ let portalObserved;
 let checkoutFail = true;
 let minute = false;
 let uploadCount = 0;
+let expectedEditedPhoto;
+let editedPhotoUploaded = false;
 const sessions = new Map();
 await context.route(`${base}/api/**`, async (route) => {
   const req = route.request();
@@ -158,7 +160,14 @@ await context.route(`${base}/api/**`, async (route) => {
     if (action === "prepare")
       session.count = Number(url.searchParams.get("expectedCount"));
     if (action === "complete") session.complete = true;
-    if (!action && req.method() === "POST") uploadCount++;
+    if (!action && req.method() === "POST") {
+      uploadCount++;
+      if (
+        expectedEditedPhoto &&
+        req.postDataBuffer()?.includes(expectedEditedPhoto)
+      )
+        editedPhotoUploaded = true;
+    }
     if (action === "cleanup") sessions.delete(sessionId);
     return route.fulfill({
       json: {
@@ -222,6 +231,8 @@ const page = await context.newPage();
 const errors = [];
 const checks = [];
 page.on("pageerror", (error) => errors.push(error.message));
+const assetRequests = [];
+page.on("request", (request) => assetRequests.push(request.url()));
 page.on("dialog", (dialog) => dialog.accept());
 const action = (name) =>
   page.locator(`[data-draft-action="${name}"]:visible`).first();
@@ -374,6 +385,303 @@ try {
     await page.locator("[data-draft-item-photos] .draft-photo").count(),
     10,
   );
+  assert.equal(
+    assetRequests.some((url) =>
+      /photoEditor|cropperjs|element-selection/.test(url),
+    ),
+    false,
+    "Editor and cropper do not load with the workspace",
+  );
+  const photoData = async (index) =>
+    page
+      .locator("[data-draft-item-photos] .draft-photo img")
+      .nth(index)
+      .evaluate(async (image, userId) => {
+        const db = await new Promise((resolve, reject) => {
+          const r = indexedDB.open(`autolister:drafts:v1:${userId}`);
+          r.onsuccess = () => resolve(r.result);
+          r.onerror = () => reject(r.error);
+        });
+        const id = image
+          .closest(".draft-photo")
+          .querySelector("[data-photo-options]").dataset.photoOptions;
+        const row = await new Promise((resolve, reject) => {
+          const r = db
+            .transaction("blobs", "readonly")
+            .objectStore("blobs")
+            .get(id);
+          r.onsuccess = () => resolve(r.result);
+          r.onerror = () => reject(r.error);
+        });
+        db.close();
+        const blob = row.blob;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(image, 0, 0);
+        const samples = [
+          [0.25, 0.25],
+          [0.75, 0.25],
+          [0.75, 0.75],
+          [0.25, 0.75],
+        ].map(([x, y]) => {
+          const pixels = ctx.getImageData(
+            Math.round(x * canvas.width) - 10,
+            Math.round(y * canvas.height) - 10,
+            20,
+            20,
+          ).data;
+          return [0, 1, 2].map((channel) => {
+            let total = 0;
+            for (let i = channel; i < pixels.length; i += 4) total += pixels[i];
+            return total / 400;
+          });
+        });
+        return {
+          bytes: Array.from(new Uint8Array(await blob.arrayBuffer())),
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+          samples,
+        };
+      }, userId);
+  const originalTarget = await photoData(1);
+  const untouchedPhoto = await photoData(0);
+  const openEditor = async () => {
+    const target = page.locator("[data-draft-item-photos] .draft-photo").nth(1);
+    if ((await target.locator("details").getAttribute("open")) === null)
+      await target.locator("summary").click();
+    await target
+      .getByRole("button", { name: "Edit photo", exact: true })
+      .click();
+    await page.locator('.photo-editor[data-ready="true"]').waitFor();
+  };
+  await openEditor();
+  const editor = page.getByRole("dialog", { name: "Edit photo", exact: true });
+  assert.equal(
+    await editor
+      .getByRole("button", { name: "Save photo", exact: true })
+      .isDisabled(),
+    true,
+  );
+  const initialSelection = await editor
+    .locator("cropper-selection")
+    .boundingBox();
+  const corner = await editor
+    .locator('cropper-handle[action="se-resize"]')
+    .boundingBox();
+  const dot = await editor
+    .locator('cropper-handle[action="se-resize"] span')
+    .boundingBox();
+  assert.ok(
+    corner.width >= 44 && corner.height >= 44,
+    "Crop handle keeps a generous invisible touch target",
+  );
+  assert.ok(
+    dot.width <= 15 && dot.height <= 15,
+    "Visible crop handle stays small",
+  );
+  await page.mouse.move(
+    corner.x + corner.width / 2,
+    corner.y + corner.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(corner.x - 28, corner.y - 28, { steps: 5 });
+  await page.mouse.up();
+  assert.ok(
+    (await editor.locator("cropper-selection").boundingBox()).width <
+      initialSelection.width,
+    "Real pointer gesture resizes the crop",
+  );
+  await editor.getByRole("button", { name: "Reset", exact: true }).click();
+  assert.equal(
+    await editor
+      .getByRole("button", { name: "Save photo", exact: true })
+      .isDisabled(),
+    true,
+  );
+  const cdp = await context.newCDPSession(page);
+  const touchCorner = await editor
+    .locator('cropper-handle[action="se-resize"]')
+    .boundingBox();
+  const tx = touchCorner.x + touchCorner.width / 2,
+    ty = touchCorner.y + touchCorner.height / 2;
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: tx, y: ty }],
+  });
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: tx - 30, y: ty - 30 }],
+  });
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  assert.ok(
+    (await editor.locator("cropper-selection").boundingBox()).width <
+      initialSelection.width,
+    "Real touch gesture resizes the crop",
+  );
+  await editor.getByRole("button", { name: "Reset", exact: true }).click();
+  await editor.getByRole("button", { name: "Square", exact: true }).click();
+  await editor.getByRole("button", { name: "Rotate", exact: true }).click();
+  for (let step = 0; step < 3; step++)
+    await editor
+      .getByRole("slider", { name: "Straighten", exact: true })
+      .press("ArrowRight");
+  assert.equal(
+    await editor
+      .getByRole("slider", { name: "Straighten", exact: true })
+      .inputValue(),
+    "3",
+  );
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: width === 320 ? 568 : 844 });
+    await page.waitForTimeout(100);
+    const box = await editor.boundingBox();
+    assert.ok(
+      (await editor.locator(".photo-editor-stage").boundingBox()).height >= 220,
+      "Photo preview has useful space on desktop as well as phones",
+    );
+    const saveBox = await editor
+      .getByRole("button", { name: "Save photo", exact: true })
+      .boundingBox();
+    assert.ok(
+      box.x >= 0 &&
+        box.x + box.width <= width + 1 &&
+        box.y >= 0 &&
+        box.y + box.height <= (width === 320 ? 568 : 844) + 1,
+      "Editor fits the viewport",
+    );
+    assert.ok(
+      saveBox.height >= 44 &&
+        saveBox.y + saveBox.height <= (width === 320 ? 568 : 844),
+      "Save stays visible with a full touch target",
+    );
+    await page.screenshot({ path: `${output}/photo-editor-${width}.png` });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await editor.getByRole("button", { name: "Save photo", exact: true }).click();
+  await editor.waitFor({ state: "detached" });
+  const changedPhoto = await photoData(1);
+  assert.equal(
+    changedPhoto.width,
+    changedPhoto.height,
+    "Square crop remains square after rotation and straighten",
+  );
+  assert.ok(
+    changedPhoto.width > 600,
+    "Export keeps source resolution rather than a tiny on-screen crop",
+  );
+  assert.notDeepEqual(changedPhoto.bytes, originalTarget.bytes);
+  assert.deepEqual(
+    (await photoData(0)).bytes,
+    untouchedPhoto.bytes,
+    "Editing photo two leaves photo one untouched",
+  );
+  await openEditor();
+  await editor.getByRole("button", { name: "Rotate", exact: true }).click();
+  await page.keyboard.press("Escape");
+  assert.deepEqual(
+    (await photoData(1)).bytes,
+    changedPhoto.bytes,
+    "Escape discards unsaved transformations",
+  );
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  const editedTarget = page
+    .locator("[data-draft-item-photos] .draft-photo")
+    .nth(1);
+  await editedTarget.locator("summary").click();
+  await editedTarget
+    .getByRole("button", { name: "Restore original", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      !document.querySelector(
+        "[data-draft-item-photos] [data-photo-options][open]",
+      ),
+  );
+  assert.deepEqual(
+    (await photoData(1)).bytes,
+    originalTarget.bytes,
+    "Restore recovers the exact original JPEG",
+  );
+  await openEditor();
+  await editor.getByRole("button", { name: "Rotate", exact: true }).click();
+  await editor.getByRole("button", { name: "Save photo", exact: true }).click();
+  await editor.waitFor({ state: "detached" });
+  const rotated = await photoData(1);
+  assert.equal(
+    rotated.width,
+    originalTarget.height,
+    "Full photo rotation preserves source height as width",
+  );
+  assert.equal(
+    rotated.height,
+    originalTarget.width,
+    "Full photo rotation preserves source width as height",
+  );
+  for (let sample = 0; sample < 4; sample++) {
+    const expected = originalTarget.samples[(sample + 3) % 4];
+    assert.ok(
+      rotated.samples[sample].every(
+        (value, channel) => Math.abs(value - expected[channel]) < 15,
+      ),
+      "Actual exported pixels rotate clockwise without blank corners or a wrong source photo",
+    );
+  }
+  await editedTarget.locator("summary").click();
+  await editedTarget
+    .getByRole("button", { name: "Restore original", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      !document.querySelector(
+        "[data-draft-item-photos] [data-photo-options][open]",
+      ),
+  );
+  assert.deepEqual((await photoData(1)).bytes, originalTarget.bytes);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await openEditor();
+    await editor
+      .getByRole("button", { name: "Close photo editor", exact: true })
+      .click();
+    assert.equal(
+      await page.locator(".photo-editor, cropper-canvas").count(),
+      0,
+      "Close releases the editor and cropper elements immediately",
+    );
+    assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+    assert.match(
+      await page.evaluate(() =>
+        document.activeElement?.getAttribute("aria-label"),
+      ),
+      /Photo 2 options/,
+    );
+  }
+  await openEditor();
+  await editor.getByRole("button", { name: "Square", exact: true }).click();
+  await editor.getByRole("button", { name: "Save photo", exact: true }).click();
+  await editor.waitFor({ state: "detached" });
+  expectedEditedPhoto = Buffer.from((await photoData(1)).bytes);
+  await editedTarget.locator("summary").click();
+  const downloaded = page.waitForEvent("download");
+  await editedTarget
+    .getByRole("button", { name: "Save photo (JPEG)", exact: true })
+    .click();
+  const download = await downloaded;
+  assert.equal(download.suggestedFilename(), "autolister-2.jpg");
+  assert.deepEqual(
+    await readFile(await download.path()),
+    expectedEditedPhoto,
+    "Download uses the exact edited JPEG without a blocked blob fetch",
+  );
+  await page.keyboard.press("Escape");
+  checks.push(
+    "Lazy photo editor handles real mouse/touch crops, rotation, straighten, source-size export, Cancel and exact original restore",
+  );
   const before = await action("generate").boundingBox();
   const panelBefore = await page
     .locator("[data-draft-generation-actions]")
@@ -397,6 +705,11 @@ try {
   while (!release && Date.now() < deadline)
     await new Promise((resolve) => setTimeout(resolve, 20));
   assert.ok(release, "Generation request reaches the existing endpoint");
+  assert.equal(
+    editedPhotoUploaded,
+    true,
+    "The generation uploads the edited local JPEG, not its original or thumbnail",
+  );
   release();
   await action("done").waitFor();
   const after = await action("done").boundingBox();

@@ -83,6 +83,8 @@ export function mountDraftWorkspace(
   let openedFromGrouping = false;
   let restoringHistory = false;
   let railSignature = "";
+  let photoEditor: { close: () => void } | undefined;
+  let openingPhotoEditor = false;
   const nativePhotoPicker =
     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -1640,12 +1642,9 @@ export function mountDraftWorkspace(
         controls.append(
           button("Save photo (JPEG)", () =>
             run(async () => {
-              const response = await fetch(photo.url!);
-              if (!response.ok)
-                throw new Error(
-                  "This photo link expired. Reopen the item and try again.",
-                );
-              const url = URL.createObjectURL(await response.blob());
+              const url = URL.createObjectURL(
+                await client.readDraftPhoto(photo.id),
+              );
               const link = document.createElement("a");
               link.href = url;
               link.download = `autolister-${photo.position + 1}.jpg`;
@@ -1661,6 +1660,90 @@ export function mountDraftWorkspace(
         controls.append(help);
       }
       if (!locked) {
+        if (photo.status === "ready") {
+          controls.prepend(
+            button("Edit photo", () =>
+              run(async () => {
+                if (photoEditor || openingPhotoEditor) return;
+                openingPhotoEditor = true;
+                const menu = controls.closest<HTMLDetailsElement>("details");
+                const trigger =
+                  controls.querySelector<HTMLButtonElement>("button")!;
+                trigger.disabled = true;
+                trigger.textContent = "Opening…";
+                try {
+                  await flush();
+                  const [editor, blob] = await Promise.all([
+                    import("./photoEditor.js"),
+                    client.readDraftPhoto(photo.id),
+                  ]);
+                  if (
+                    disposed ||
+                    selected?.value.id !== draft.id ||
+                    !menu?.open
+                  )
+                    return;
+                  closeContainedPopovers(rail);
+                  photoEditor = editor.openPhotoEditor({
+                    photo: blob,
+                    icon,
+                    onSave: async (replacement) => {
+                      if (disposed || selected?.value.id !== draft.id)
+                        throw new Error("Reopen this item to edit its photo.");
+                      await flush();
+                      await client.editDraftPhoto(
+                        {
+                          draftId: draft.id,
+                          photoId: photo.id,
+                          revision: photo.revision || 0,
+                        },
+                        replacement,
+                      );
+                      await reloadSelected();
+                      await reload();
+                    },
+                    onClose: () => {
+                      photoEditor = undefined;
+                      root
+                        .querySelector<HTMLElement>(
+                          `[data-focus-key="options-${photo.id}"]`,
+                        )
+                        ?.focus({ preventScroll: true });
+                    },
+                  });
+                } finally {
+                  openingPhotoEditor = false;
+                  trigger.disabled = false;
+                  trigger.textContent = "Edit photo";
+                }
+              }),
+            ),
+          );
+          if (photo.original_bytes)
+            controls.append(
+              button("Restore original", () =>
+                run(async () => {
+                  await flush();
+                  await client.editDraftPhoto(
+                    {
+                      draftId: draft.id,
+                      photoId: photo.id,
+                      revision: photo.revision || 0,
+                    },
+                    null,
+                  );
+                  closeContainedPopovers(rail);
+                  await reloadSelected();
+                  await reload();
+                  root
+                    .querySelector<HTMLElement>(
+                      `[data-focus-key="options-${photo.id}"]`,
+                    )
+                    ?.focus({ preventScroll: true });
+                }),
+              ),
+            );
+        }
         if (photo.position > 0 && photo.status === "ready")
           controls.append(
             button("Use as cover", () =>
@@ -3229,6 +3312,7 @@ export function mountDraftWorkspace(
     flush,
     dispose(clearRecovery = false) {
       remember();
+      photoEditor?.close();
       const dialog = find<HTMLDialogElement>("[data-draft-delete-dialog]");
       if (dialog.open) dialog.close("cancel");
       disposed = true;

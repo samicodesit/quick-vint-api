@@ -34,8 +34,17 @@ export function initSentry() {
       if (event.level === "debug" || event.level === "info") return null;
       if (process.env.INCIDENT_PROCESSING_PAUSED === "true") return null;
       try {
+        const incidentId = event.tags?.incidentId;
         const { data, error } = await supabase
-          .rpc("incident_reserve_sentry")
+          .rpc("incident_reserve_sentry", {
+            p_incident_id:
+              typeof incidentId === "string" &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                incidentId,
+              )
+                ? incidentId
+                : null,
+          })
           .abortSignal(AbortSignal.timeout(1000));
         if (error || data !== true) return null;
         return sanitizeSentryEvent(event);

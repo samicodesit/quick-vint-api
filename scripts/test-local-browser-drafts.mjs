@@ -392,60 +392,65 @@ try {
     false,
     "Editor and cropper do not load with the workspace",
   );
-  const photoData = async (index) =>
+  const samplePoints = [
+    [0.25, 0.25],
+    [0.75, 0.25],
+    [0.75, 0.75],
+    [0.25, 0.75],
+  ];
+  const photoData = async (index, points = samplePoints) =>
     page
       .locator("[data-draft-item-photos] .draft-photo img")
       .nth(index)
-      .evaluate(async (image, userId) => {
-        const db = await new Promise((resolve, reject) => {
-          const r = indexedDB.open(`autolister:drafts:v1:${userId}`);
-          r.onsuccess = () => resolve(r.result);
-          r.onerror = () => reject(r.error);
-        });
-        const id = image
-          .closest(".draft-photo")
-          .querySelector("[data-photo-options]").dataset.photoOptions;
-        const row = await new Promise((resolve, reject) => {
-          const r = db
-            .transaction("blobs", "readonly")
-            .objectStore("blobs")
-            .get(id);
-          r.onsuccess = () => resolve(r.result);
-          r.onerror = () => reject(r.error);
-        });
-        db.close();
-        const blob = row.blob;
-        await image.decode();
-        const canvas = document.createElement("canvas");
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(image, 0, 0);
-        const samples = [
-          [0.25, 0.25],
-          [0.75, 0.25],
-          [0.75, 0.75],
-          [0.25, 0.75],
-        ].map(([x, y]) => {
-          const pixels = ctx.getImageData(
-            Math.round(x * canvas.width) - 10,
-            Math.round(y * canvas.height) - 10,
-            20,
-            20,
-          ).data;
-          return [0, 1, 2].map((channel) => {
-            let total = 0;
-            for (let i = channel; i < pixels.length; i += 4) total += pixels[i];
-            return total / 400;
+      .evaluate(
+        async (image, { userId, points }) => {
+          const db = await new Promise((resolve, reject) => {
+            const r = indexedDB.open(`autolister:drafts:v1:${userId}`);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
           });
-        });
-        return {
-          bytes: Array.from(new Uint8Array(await blob.arrayBuffer())),
-          width: image.naturalWidth,
-          height: image.naturalHeight,
-          samples,
-        };
-      }, userId);
+          const id = image
+            .closest(".draft-photo")
+            .querySelector("[data-photo-options]").dataset.photoOptions;
+          const row = await new Promise((resolve, reject) => {
+            const r = db
+              .transaction("blobs", "readonly")
+              .objectStore("blobs")
+              .get(id);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+          });
+          db.close();
+          const blob = row.blob;
+          await image.decode();
+          const canvas = document.createElement("canvas");
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(image, 0, 0);
+          const samples = points.map(([x, y]) => {
+            const pixels = ctx.getImageData(
+              Math.round(x * canvas.width) - 10,
+              Math.round(y * canvas.height) - 10,
+              20,
+              20,
+            ).data;
+            return [0, 1, 2].map((channel) => {
+              let total = 0;
+              for (let i = channel; i < pixels.length; i += 4)
+                total += pixels[i];
+              return total / 400;
+            });
+          });
+          return {
+            bytes: Array.from(new Uint8Array(await blob.arrayBuffer())),
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+            samples,
+          };
+        },
+        { userId, points },
+      );
   const originalTarget = await photoData(1);
   const untouchedPhoto = await photoData(0);
   const openEditor = async () => {
@@ -459,6 +464,254 @@ try {
   };
   await openEditor();
   const editor = page.getByRole("dialog", { name: "Edit photo", exact: true });
+  const rotate = async () => {
+    await editor.getByRole("button", { name: "Rotate", exact: true }).click();
+    await editor
+      .getByRole("button", { name: "Rotate 90°", exact: true })
+      .click();
+  };
+  const shape = async (value) => {
+    await editor.getByRole("button", { name: "Crop", exact: true }).click();
+    await editor
+      .getByRole("combobox", { name: "Crop shape", exact: true })
+      .selectOption(value);
+  };
+  const hide = async (point, touch = false) => {
+    await editor
+      .getByRole("button", { name: "Hide area", exact: true })
+      .click();
+    await page.waitForTimeout(100);
+    const paintBox = await editor.locator("cropper-selection").boundingBox();
+    const from = {
+      x: paintBox.x + (point[0] - 0.01) * paintBox.width,
+      y: paintBox.y + (point[1] - 0.01) * paintBox.height,
+    };
+    const to = {
+      x: paintBox.x + (point[0] + 0.01) * paintBox.width,
+      y: paintBox.y + (point[1] + 0.01) * paintBox.height,
+    };
+    if (touch) {
+      const touchSession = await context.newCDPSession(page);
+      await touchSession.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [from],
+      });
+      await touchSession.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [to],
+      });
+      await touchSession.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+      await touchSession.detach();
+    } else {
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(to.x, to.y, { steps: 5 });
+      await page.mouse.up();
+    }
+    await page.waitForTimeout(30);
+    await editor.getByRole("button", { name: "Crop", exact: true }).click();
+    await page.waitForTimeout(100);
+  };
+  const privacyPoints = [
+    [0.15, 0.25],
+    [0.85, 0.25],
+    [0.85, 0.75],
+    [0.15, 0.75],
+  ];
+  const privacyOriginal = await photoData(1, privacyPoints);
+  const lightest = privacyOriginal.samples.reduce(
+    (best, rgb, index, rows) =>
+      rgb.reduce((a, b) => a + b, 0) > rows[best].reduce((a, b) => a + b, 0)
+        ? index
+        : best,
+    0,
+  );
+  assert.ok(
+    Math.max(...privacyOriginal.samples[lightest]) > 100,
+    "Privacy negative control starts with visibly unmasked bright pixels",
+  );
+  await hide(privacyPoints[lightest]);
+  assert.equal(await editor.locator("[data-photo-masks] path").count(), 1);
+  const defaultStrokeWidth = Number(
+    await editor
+      .locator("[data-photo-masks] path")
+      .getAttribute("stroke-width"),
+  );
+  assert.equal(
+    await editor
+      .getByRole("slider", { name: "Straighten", exact: true })
+      .isVisible(),
+    false,
+    "Optional angle adjustment is tucked away by default",
+  );
+  await editor.getByRole("button", { name: "Undo hide", exact: true }).click();
+  assert.equal(await editor.locator("[data-photo-masks] path").count(), 0);
+  assert.equal(
+    await editor
+      .getByRole("button", { name: "Save photo", exact: true })
+      .isDisabled(),
+    true,
+    "Undoing the only hide leaves no unsaved change",
+  );
+  await editor.getByRole("button", { name: "Hide area", exact: true }).click();
+  for (let step = 0; step < 3; step++)
+    await editor
+      .getByRole("slider", { name: "Brush size", exact: true })
+      .press("ArrowRight");
+  assert.equal(
+    await editor.locator("[data-photo-panel]:visible").count(),
+    1,
+    "The editor shows only the selected tool's controls",
+  );
+  await page.waitForTimeout(100);
+  const tapBox = await editor.locator("cropper-selection").boundingBox();
+  await page.mouse.click(
+    tapBox.x + privacyPoints[lightest][0] * tapBox.width,
+    tapBox.y + privacyPoints[lightest][1] * tapBox.height,
+  );
+  assert.ok(
+    Number(
+      await editor
+        .locator("[data-photo-masks] path")
+        .getAttribute("stroke-width"),
+    ) > defaultStrokeWidth,
+    "Brush size changes the actual stroke",
+  );
+  await page.screenshot({ path: `${output}/photo-brush-390.png` });
+  await editor.getByRole("button", { name: "Save photo", exact: true }).click();
+  await editor.waitFor({ state: "detached" });
+  const tapSaved = await photoData(1, privacyPoints);
+  assert.ok(
+    tapSaved.samples[lightest].every((value) => value < 8),
+    "A single tap produces an opaque round mark in the JPEG",
+  );
+  for (let sample = 0; sample < 4; sample++) {
+    if (sample !== lightest)
+      assert.ok(
+        tapSaved.samples[sample].every(
+          (value, channel) =>
+            Math.abs(value - privacyOriginal.samples[sample][channel]) < 15,
+        ),
+        "Unpainted regions retain their original pixels within JPEG tolerance",
+      );
+  }
+  const restoredTarget = page
+    .locator("[data-draft-item-photos] .draft-photo")
+    .nth(1);
+  await restoredTarget.locator("summary").click();
+  await restoredTarget
+    .getByRole("button", { name: "Restore original", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      !document.querySelector(
+        "[data-draft-item-photos] [data-photo-options][open]",
+      ),
+  );
+  assert.deepEqual((await photoData(1)).bytes, originalTarget.bytes);
+  await openEditor();
+  await hide(privacyPoints[lightest], true);
+  await hide(privacyPoints[(lightest + 2) % 4]);
+  assert.equal(
+    await editor.locator("[data-photo-masks] path").count(),
+    2,
+    "A user can paint over multiple private details",
+  );
+  await editor.getByRole("button", { name: "Undo hide", exact: true }).click();
+  assert.equal(
+    await editor.locator("[data-photo-masks] path").count(),
+    1,
+    "Undo removes only the last stroke",
+  );
+  await page.keyboard.press("Escape");
+  assert.deepEqual(
+    (await photoData(1)).bytes,
+    originalTarget.bytes,
+    "Cancel discards private-area edits without touching the saved JPEG",
+  );
+  await openEditor();
+  await hide(privacyPoints[lightest]);
+  await editor.getByRole("button", { name: "Reset", exact: true }).click();
+  assert.equal(
+    await editor.locator("[data-photo-masks] path").count(),
+    0,
+    "Reset clears all unsaved brush marks",
+  );
+  assert.equal(
+    await editor
+      .getByRole("button", { name: "Save photo", exact: true })
+      .isDisabled(),
+    true,
+  );
+  await hide(privacyPoints[lightest]);
+  await rotate();
+  await editor
+    .getByRole("slider", { name: "Straighten", exact: true })
+    .press("ArrowRight");
+  await shape("square");
+  let maskPoint;
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: width === 320 ? 568 : 844 });
+    await page.waitForTimeout(100);
+    const cropBox = await editor.locator("cropper-selection").boundingBox();
+    const maskBox = await editor
+      .locator("[data-photo-masks] path")
+      .boundingBox();
+    maskPoint = [
+      (maskBox.x + maskBox.width / 2 - cropBox.x) / cropBox.width,
+      (maskBox.y + maskBox.height / 2 - cropBox.y) / cropBox.height,
+    ];
+    assert.ok(
+      maskPoint.every((value) => value > 0.03 && value < 0.97),
+      "Cover remains anchored to the visible photo after rotation, crop and viewport changes",
+    );
+    const footer = await editor
+      .getByRole("button", { name: "Save photo", exact: true })
+      .boundingBox();
+    assert.ok(
+      footer.y + footer.height <= (width === 320 ? 568 : 844),
+      "Save remains visible with privacy and angle controls",
+    );
+    await page.screenshot({ path: `${output}/photo-privacy-${width}.png` });
+  }
+  await editor.getByRole("button", { name: "Save photo", exact: true }).click();
+  await editor.waitFor({ state: "detached" });
+  const concealed = await photoData(1, [maskPoint]);
+  assert.ok(
+    concealed.samples[0].every((channel) => channel < 8),
+    "Exported JPEG is opaque black at the exact previewed private area, including crop, rotation and straighten",
+  );
+  assert.deepEqual(
+    (await photoData(0)).bytes,
+    untouchedPhoto.bytes,
+    "Concealing photo two leaves photo one untouched",
+  );
+  const maskedTarget = page
+    .locator("[data-draft-item-photos] .draft-photo")
+    .nth(1);
+  await maskedTarget.locator("summary").click();
+  await maskedTarget
+    .getByRole("button", { name: "Restore original", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      !document.querySelector(
+        "[data-draft-item-photos] [data-photo-options][open]",
+      ),
+  );
+  assert.deepEqual(
+    (await photoData(1)).bytes,
+    originalTarget.bytes,
+    "Restore recovers the original pixels after privacy masking",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  checks.push(
+    "Manual privacy brush works with mouse and touch, Undo/Cancel, crop/rotation/straighten, viewport changes, opaque exported pixels and exact original restore",
+  );
+  await openEditor();
   assert.equal(
     await editor
       .getByRole("button", { name: "Save photo", exact: true })
@@ -525,8 +778,8 @@ try {
     "Real touch gesture resizes the crop",
   );
   await editor.getByRole("button", { name: "Reset", exact: true }).click();
-  await editor.getByRole("button", { name: "Square", exact: true }).click();
-  await editor.getByRole("button", { name: "Rotate", exact: true }).click();
+  await shape("square");
+  await rotate();
   for (let step = 0; step < 3; step++)
     await editor
       .getByRole("slider", { name: "Straighten", exact: true })
@@ -582,7 +835,7 @@ try {
     "Editing photo two leaves photo one untouched",
   );
   await openEditor();
-  await editor.getByRole("button", { name: "Rotate", exact: true }).click();
+  await rotate();
   await page.keyboard.press("Escape");
   assert.deepEqual(
     (await photoData(1)).bytes,
@@ -609,7 +862,7 @@ try {
     "Restore recovers the exact original JPEG",
   );
   await openEditor();
-  await editor.getByRole("button", { name: "Rotate", exact: true }).click();
+  await rotate();
   await editor.getByRole("button", { name: "Save photo", exact: true }).click();
   await editor.waitFor({ state: "detached" });
   const rotated = await photoData(1);
@@ -645,6 +898,7 @@ try {
   assert.deepEqual((await photoData(1)).bytes, originalTarget.bytes);
   for (let cycle = 0; cycle < 3; cycle++) {
     await openEditor();
+    await hide(privacyPoints[lightest]);
     await editor
       .getByRole("button", { name: "Close photo editor", exact: true })
       .click();
@@ -654,6 +908,11 @@ try {
       "Close releases the editor and cropper elements immediately",
     );
     assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+    assert.deepEqual(
+      (await photoData(1)).bytes,
+      originalTarget.bytes,
+      "Repeated close discards brush strokes and keeps the original saved photo",
+    );
     assert.match(
       await page.evaluate(() =>
         document.activeElement?.getAttribute("aria-label"),
@@ -662,7 +921,8 @@ try {
     );
   }
   await openEditor();
-  await editor.getByRole("button", { name: "Square", exact: true }).click();
+  await shape("square");
+  await hide(privacyPoints[lightest]);
   await editor.getByRole("button", { name: "Save photo", exact: true }).click();
   await editor.waitFor({ state: "detached" });
   expectedEditedPhoto = Buffer.from((await photoData(1)).bytes);

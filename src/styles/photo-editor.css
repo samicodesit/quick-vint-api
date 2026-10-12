@@ -21,7 +21,7 @@
 }
 .photo-editor-heading,
 .photo-editor-tools,
-.photo-editor-ratios,
+.photo-editor-options,
 .photo-editor-footer {
   display: flex;
   align-items: center;
@@ -50,6 +50,7 @@
   font: inherit;
   font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .photo-editor button svg {
   width: 18px;
@@ -60,6 +61,7 @@
 }
 .photo-editor button:focus-visible,
 .photo-editor input:focus-visible,
+.photo-editor select:focus-visible,
 .photo-editor cropper-selection:focus-visible {
   outline: 2px solid var(--mobile-brand);
   outline-offset: 2px;
@@ -77,6 +79,7 @@
 }
 .photo-editor-heading,
 .photo-editor-tools,
+.photo-editor-options,
 .photo-editor-straighten,
 .photo-editor-status,
 .photo-editor-footer {
@@ -125,20 +128,72 @@
   pointer-events: none;
 }
 .photo-editor-tools {
-  justify-content: space-between;
+  gap: 4px;
 }
-.photo-editor-ratios {
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--app-radius-control);
-  background: var(--mobile-surface-soft);
+.photo-editor-tools button {
+  flex: 1;
 }
-.photo-editor-ratios button {
-  padding-inline: 10px;
-}
-.photo-editor-ratios button[aria-pressed="true"] {
+.photo-editor-tools [aria-pressed="true"] {
   background: var(--mobile-surface);
-  box-shadow: 0 1px 3px #25292312;
+  box-shadow: inset 0 0 0 1px var(--mobile-border);
+}
+.photo-editor-options {
+  min-height: 46px;
+}
+.photo-editor-options [data-photo-panel] {
+  flex: 1;
+  min-width: 0;
+}
+.photo-editor-options [data-photo-panel="rotate"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.photo-editor select {
+  width: min(100%, 180px);
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--mobile-border);
+  border-radius: var(--app-radius-control);
+  background: var(--mobile-surface);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
+.photo-editor [data-photo-masks] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.photo-editor[data-tool="hide"] cropper-selection {
+  pointer-events: none;
+}
+.photo-editor[data-tool="hide"] cropper-canvas {
+  cursor: crosshair;
+}
+.photo-editor:not([data-tool="crop"]) cropper-handle[action$="-resize"],
+.photo-editor:not([data-tool="crop"]) cropper-grid {
+  display: none;
+}
+.photo-editor [hidden] {
+  display: none !important;
+}
+.photo-editor-brush {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--mobile-muted);
+}
+.photo-editor-brush input {
+  min-height: 32px;
+  width: 100%;
+  margin: 0;
+  accent-color: var(--mobile-brand);
 }
 .photo-editor-straighten {
   display: grid;

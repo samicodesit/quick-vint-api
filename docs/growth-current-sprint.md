@@ -91,6 +91,7 @@ Refresh these after the Monday review. Until then, do not start new growth side 
 
 ## 2026-10-12: Local photo editor QA
 
+- Follow-up: added an adjustable solid-cover privacy brush with Undo and a single contextual tool row. Actual Chromium passed 24 journey checks, including mouse/touch painting, exported-pixel accuracy, unpainted-region preservation, source alignment through crop/rotate/angle changes, exact original restore and flattened-JPEG download/generation. No new dependency, backend or AI cost. Physical phones remain untested.
 - Added the approved free crop, rotate/straighten and restore-original controls through existing photo menus. The editor is loaded only on demand; edits and the first prepared JPEG backup stay in the existing local blob store and count toward its cap. No new backend/infra, quota, payment or extension changes.
 - Actual Chromium passed 23 journey checks, including mouse/touch crop, keyboard straighten, exported rotation pixels/source dimensions, exact downloaded/restore JPEG bytes, edited-photo generation upload, repeated fast dismissal and existing paywall/batch/local-draft flows. Phone and desktop captures inspected at 320/390/768/1440px. Storage tests passed 14 cases. [Evidence and test limits](qa/local-photo-editor-20261012.md).
 - Physical phone gestures/native download and low-memory behavior remain untested. This does not establish conversion uplift; no purchase or marketplace listing was performed.

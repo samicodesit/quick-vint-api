@@ -17,6 +17,13 @@ Approved scope: free crop, rotate, straighten, Reset and Save through each draft
 - The actual [deployed app](https://autolister.app/app/) passed the same 23 Chromium checks with its deployed HTML/CSS/JavaScript and fonts, while all auth/API/provider/billing calls were intercepted. No real customer account, purchase or marketplace listing was created. Live phone and desktop captures were inspected.
 - Built editor JavaScript is 53,113 bytes, 15.97KB gzip, loaded through a dynamic import only when requested. The initial browser request trace contains no editor/Cropper assets. Production assets returned HTTP 200.
 
+## Privacy brush follow-up
+
+- The editor now has one Crop / Rotate / Hide area toolbar and one contextual options row. Crop shapes use a compact native select. The Straighten slider appears only with Rotate. Hide uses a familiar solid black brush with adjustable size and Undo. No new library, backend, data table or AI call is added.
+- Actual Chromium passed 24 journey checks with zero page errors. The new privacy checks use real pointer and CDP touch strokes, brush-size keyboard changes, a single tap, multi-stroke Undo, Reset, Cancel and repeated immediate dismissal. Source regions start bright as a negative control. Exported selected pixels turn opaque black; unpainted regions retain their source colors within JPEG tolerance.
+- Brush paths stay attached to source pixels through crop, rotation, angle adjustment and viewport changes at 320/390/768/1440px. The exported JPEG matches the actual previewed location. Downloads and the generation upload contain the flattened edited JPEG, and exact original restore still passes.
+- Previews update at most once per animation frame. Only the current path changes during a gesture, and JPEG encoding happens on Save. Closing cancels the pending frame and releases pointer capture. Visual checks cover the compact phone/desktop layout and visible Save button. Physical phones and assistive-technology painting remain untested.
+
 ## Limits
 
 This is controlled browser QA with fixture auth and intercepted API/provider/billing responses, not a real purchase or live marketplace listing. Physical iOS/Android gestures, large camera files, native downloads and low-memory behavior remain untested. The preserved original is the app's existing prepared JPEG, not the full camera file. Original backup bytes count against the existing local storage cap. There is no cloud backup or new database table.

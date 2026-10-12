@@ -27,6 +27,7 @@ try {
   await page.getByText("2 users found for today", { exact: true }).waitFor();
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
+    if (width < 768) assert.equal(await page.locator(".sidebar .nav-item").evaluateAll(items => items.every(item => getComputedStyle(item).visibility === "hidden")), true, "Closed mobile navigation must not bleed through the Users page during resize");
     const list = page.locator(width >= 768 ? ".table-container tbody" : ".mobile-card-list");
     const badge = list.getByText("Web app", { exact: true });
     assert.equal(await badge.count(), 1);

@@ -25,6 +25,8 @@ export interface MobileGenerationResult {
 }
 
 export interface MobileUsage {
+  blockedReason?: string | null;
+  nextTier?: string | null;
   plan?: {
     tier?: string;
     status?: string;

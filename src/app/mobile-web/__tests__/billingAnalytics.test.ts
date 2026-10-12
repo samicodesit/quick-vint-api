@@ -169,6 +169,31 @@ describe("mobile result, billing, and analytics", () => {
     }
     expect(loadUsageMock).toHaveBeenCalledTimes(2);
   });
+  it("waits for webhook propagation when usage reads succeed but still show exhausted quota", async () => {
+    vi.useFakeTimers();
+    loadUsageMock
+      .mockResolvedValueOnce({
+        canGenerate: false,
+        plan: { tier: "free" },
+        remaining: { generations: 0 },
+      })
+      .mockResolvedValueOnce({
+        canGenerate: true,
+        plan: { tier: "starter" },
+        remaining: { generations: 75 },
+      });
+    try {
+      const { refreshAfterCheckout } = await import("../billing.js");
+      const pending = refreshAfterCheckout({ attempts: 2, delaysMs: [10] });
+      await vi.advanceTimersByTimeAsync(10);
+      await expect(pending).resolves.toMatchObject({
+        canGenerate: true,
+        plan: { tier: "starter" },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it("sends only allowlisted mobile analytics context and never generated text", async () => {
     const { trackMobileEvent } = await import("../analytics.js");

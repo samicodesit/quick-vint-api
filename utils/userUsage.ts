@@ -56,9 +56,14 @@ export interface UsageResponse {
     subscriptionPeriodEnd: string | null;
   };
   canGenerate: boolean;
+  blockedReason: string | null;
+  nextTier: string | null;
   pricing: {
     currency: "EUR";
-    tiers: Record<string, { monthly: number }>;
+    tiers: Record<
+      string,
+      { monthly: number; dailyLimit: number; monthlyLimit: number }
+    >;
     creditPack: { credits: number; price: number };
   };
 }
@@ -128,7 +133,11 @@ function pricingSummary() {
     tiers: Object.fromEntries(
       getAllPaidTiers().map((tier) => [
         tier.id,
-        { monthly: tier.monthlyPrice },
+        {
+          monthly: tier.monthlyPrice,
+          dailyLimit: tier.limits.daily,
+          monthlyLimit: tier.limits.monthly,
+        },
       ]),
     ),
     creditPack: {
@@ -252,6 +261,17 @@ export function buildUsageResponse(
       status !== "inactive" &&
       status !== "payment_required" &&
       Boolean(capacity.allowed),
+    blockedReason:
+      status === "paused"
+        ? "account_paused"
+        : status === "inactive"
+          ? "account_inactive"
+          : status === "payment_required"
+            ? "payment_required"
+            : capacity.allowed
+              ? null
+              : capacity.reason || "service_unavailable",
+    nextTier: capacity.nextTier || null,
     pricing: pricingSummary(),
   };
 }

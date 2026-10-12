@@ -48,6 +48,8 @@ export function mountDraftWorkspace(
   options: {
     userId: string;
     onUsageChange: () => Promise<MobileUsage | null>;
+    onGenerationBlocked?: (usage: MobileUsage | null, code?: string) => boolean;
+    onViewPlans?: () => void;
     defaultSettings?: DraftSettings;
   },
 ) {
@@ -625,6 +627,22 @@ export function mountDraftWorkspace(
     draft.operation_state === "running" ||
     draft.operation_state === "pending" ||
     queue.active === draft.id;
+  bind(root, "mobile-paywall-request", () => options.onViewPlans?.());
+  bind(root, "click", (event) => {
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(
+      "a[data-draft-plan-lock]",
+    );
+    if (
+      !link ||
+      (event as MouseEvent).ctrlKey ||
+      (event as MouseEvent).metaKey ||
+      (event as MouseEvent).shiftKey ||
+      (event as MouseEvent).altKey
+    )
+      return;
+    event.preventDefault();
+    options.onViewPlans?.();
+  });
   const photoCount = (draft: Draft) =>
     new Set([
       ...draft.photos.map((p) => p.id),
@@ -871,7 +889,7 @@ export function mountDraftWorkspace(
     const runSize = Math.min(
       eligible.length,
       DRAFT_LIMITS.batch,
-      allowance ?? DRAFT_LIMITS.batch,
+      allowance !== null && allowance > 0 ? allowance : DRAFT_LIMITS.batch,
     );
     action("generate-selected").hidden = !eligible.length;
     label(
@@ -2052,7 +2070,19 @@ export function mountDraftWorkspace(
             renderEditor();
           }
         }
-        await options.onUsageChange();
+        const blockedUsage = await options.onUsageChange();
+        const blockCode = (error as { code?: string }).code;
+        if (
+          blockCode &&
+          [
+            "free_lifetime_limit",
+            "daily_limit",
+            "monthly_limit",
+            "account_paused",
+            "payment_required",
+          ].includes(blockCode)
+        )
+          options.onGenerationBlocked?.(blockedUsage, blockCode);
         if (
           recovered?.operation_state !== "succeeded" ||
           recovered.operation_id !== attempt.operationId
@@ -2256,6 +2286,8 @@ export function mountDraftWorkspace(
       return;
     if (!ids.length) throw new Error("Select at least one item to generate.");
     const usage = await options.onUsageChange();
+    if (usage?.canGenerate === false && options.onGenerationBlocked?.(usage))
+      return;
     const available = Math.min(
       DRAFT_LIMITS.batch,
       draftGenerationAllowance(usage),
@@ -3150,6 +3182,11 @@ export function mountDraftWorkspace(
     }
   });
   return {
+    closeOverlays() {
+      root
+        .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+        .forEach((details) => closePopover(details, false));
+    },
     updateUsage(usage: MobileUsage) {
       const tier = usage.plan?.tier || "free";
       const active =

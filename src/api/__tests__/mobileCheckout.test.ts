@@ -238,6 +238,48 @@ describe("bearer-owned mobile Stripe billing", () => {
     });
   });
 
+  it("opens a one-time web credit checkout for the bearer owner, including active subscribers", async () => {
+    process.env.STRIPE_CREDIT_PACK_PRICE_ID = "price_credit_fixture";
+    profileResponse.data = {
+      id: "bearer-user",
+      email: "owner@example.com",
+      stripe_customer_id: "cus_existing",
+      stripe_subscription_id: "sub_owner",
+      subscription_status: "active",
+      subscription_tier: "business",
+    };
+    const { default: handler } =
+      await import("../../../api/stripe/create-checkout.js");
+    const response = createResponse();
+    await (handler as any)(
+      mobileRequest({
+        tier: "credit_pack",
+        email: "other@example.com",
+        userId: "other-user",
+      }) as any,
+      response as any,
+    );
+    expect(response.statusCode).toBe(200);
+    expect(checkoutCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "payment",
+        customer: "cus_existing",
+        line_items: [{ price: "price_credit_fixture", quantity: 1 }],
+        success_url:
+          "https://autolister.app/app?checkout=success&session_id={CHECKOUT_SESSION_ID}",
+        cancel_url:
+          "https://autolister.app/app?checkout=cancel&session_id={CHECKOUT_SESSION_ID}",
+        metadata: expect.objectContaining({
+          purchase_type: "credit_pack",
+          profile_id: "bearer-user",
+          credits: "20",
+          source: "mobile_web",
+        }),
+      }),
+    );
+    expect(portalCreateMock).not.toHaveBeenCalled();
+  });
+
   it("uses fixed approved app checkout URLs and falls back from an unapproved origin", async () => {
     const { getMobileCheckoutUrls, getMobilePortalReturnUrl } =
       await import("../../../utils/mobileCheckout.js");

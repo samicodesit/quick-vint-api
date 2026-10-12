@@ -119,10 +119,8 @@ export function mountDraftSelects(root: HTMLElement) {
     const select = widget.querySelector<HTMLSelectElement>("select")!;
     if ((option as HTMLButtonElement).disabled) return;
     if (option.hasAttribute("data-draft-plan-locked")) {
-      window.open(
-        "https://autolister.app/pricing",
-        "_blank",
-        "noopener,noreferrer",
+      root.dispatchEvent(
+        new CustomEvent("mobile-paywall-request", { bubbles: true }),
       );
       return;
     }

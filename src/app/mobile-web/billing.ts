@@ -4,7 +4,33 @@ import { getMobileUtmParameters } from "./analytics.js";
 
 export const MOBILE_BILLING_CLIENT = "mobile_web" as const;
 
-export type MobileBillingTier = "starter" | "pro" | "business";
+/** Keep the current local editor when Stripe returns to the same browser tab. */
+export function rememberMobileBillingReturn(userId: string): void {
+  try {
+    const view = window.history.state?.draftWorkspace;
+    if (view?.owner === userId)
+      sessionStorage.setItem(
+        `autolister.mobile.billing.return.${userId}`,
+        JSON.stringify(view),
+      );
+  } catch {}
+}
+
+export function restoreMobileBillingReturn(userId: string): void {
+  try {
+    const key = `autolister.mobile.billing.return.${userId}`;
+    const view = JSON.parse(sessionStorage.getItem(key) || "null");
+    sessionStorage.removeItem(key);
+    if (view?.owner === userId)
+      window.history.replaceState(
+        { ...window.history.state, draftWorkspace: view },
+        "",
+        window.location.href,
+      );
+  } catch {}
+}
+
+export type MobileBillingTier = "starter" | "pro" | "business" | "credit_pack";
 
 export type ListingField = "title" | "description";
 
@@ -18,6 +44,7 @@ const BILLING_TIERS = new Set<MobileBillingTier>([
   "starter",
   "pro",
   "business",
+  "credit_pack",
 ]);
 
 function copyWithExecCommand(text: string): boolean {
@@ -104,6 +131,7 @@ function assertBillingTier(tier: string): asserts tier is MobileBillingTier {
  */
 export async function startMobileCheckout(
   tier: MobileBillingTier,
+  expectedUserId?: string,
 ): Promise<MobileBillingSession> {
   assertBillingTier(tier);
   const response = await fetchMobileJson<unknown>(
@@ -120,20 +148,22 @@ export async function startMobileCheckout(
         utm: getMobileUtmParameters(),
       }),
     },
-    { retryOn401: true },
+    { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
   );
   return parseBillingSession(response);
 }
 
 /** Open the existing Stripe customer portal for the current bearer user. */
-export async function openMobilePortal(): Promise<MobileBillingSession> {
+export async function openMobilePortal(
+  expectedUserId?: string,
+): Promise<MobileBillingSession> {
   const response = await fetchMobileJson<unknown>(
     "/api/stripe/create-portal",
     {
       method: "POST",
       headers: { "X-Autolister-Client": MOBILE_BILLING_CLIENT },
     },
-    { retryOn401: true },
+    { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
   );
   return parseBillingSession(response);
 }
@@ -164,16 +194,17 @@ export async function refreshAfterCheckout(
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      return await loadUsage();
+      const usage = await loadUsage();
+      if (usage.canGenerate !== false || attempt === attempts - 1) return usage;
     } catch (error) {
       lastError = error;
       if (attempt === attempts - 1) break;
-      const delay = Math.max(
-        0,
-        delays[attempt] ?? delays[delays.length - 1] ?? 0,
-      );
-      if (delay) await wait(delay);
     }
+    const delay = Math.max(
+      0,
+      delays[attempt] ?? delays[delays.length - 1] ?? 0,
+    );
+    if (delay) await wait(delay);
   }
 
   throw lastError instanceof Error

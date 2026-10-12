@@ -207,12 +207,22 @@ async function upload(page) {
     .waitFor();
 }
 async function pricing(page, click) {
-  const popup = page.waitForEvent("popup");
+  const tone = page.locator(
+    '[data-draft-global-settings] [data-draft-select="tone"] [data-draft-select-trigger]',
+  );
+  const toneWasOpen = (await tone.getAttribute("aria-expanded")) === "true";
   await click();
-  const opened = await popup;
-  await opened.waitForURL("https://autolister.app/pricing");
-  assert.equal(await opened.evaluate(() => window.opener === null), true);
-  await opened.close();
+  const dialog = page.getByRole("dialog", { name: "Choose a plan" });
+  await dialog.waitFor();
+  assert.equal(
+    await dialog.getByRole("button", { name: /Upgrade to Pro/ }).isVisible(),
+    true,
+  );
+  await dialog.getByRole("button", { name: "Close paid options" }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await page.locator("[data-draft-global-trigger]").click();
+  if (toneWasOpen && (await tone.getAttribute("aria-expanded")) !== "true")
+    await tone.click();
 }
 try {
   const f = await fixture("pro");
@@ -354,7 +364,7 @@ try {
   assert.deepEqual(basic.errors, []);
   await basic.context.close();
   checks.push(
-    "Basic plan locks open pricing by pointer and keyboard without changing values or starting checkout; generation remains permitted",
+    "Basic plan locks open in-app paid options by pointer and keyboard without changing values or starting checkout; generation remains permitted",
   );
 
   const stored = {

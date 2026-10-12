@@ -2,6 +2,7 @@
 
 ## Public web beta, October 12, 2026
 
+- Web checkout follow-up: reuse the extension's primary limit and paused-account prompts in a phone-sized app dialog, add bearer-owned one-time packs to existing checkout, retain the local editor through Stripe and remove the extension-install detour from locked settings. Existing billing and quotas remain. [Regression evidence and live-check limits](qa/2026-10-12-web-checkout-paywalls.md). Guarded publication and live Stripe opening/cancellation follow the final gate. No payment or customer generation was made.
 - Follow-up: the install button explicitly names the extension in all eight site languages. All 19 rendered viewport/locale checks and the guarded 876-test production gate passed. Deployment `dpl_8FEnk5UUnm5ec4YYyisXnpfWjKZs` is READY for `ebf1206`; all eight live homepages return the translated label and app route. No customer account or generation was used.
 - Owner approved publishing the compact dual-route homepage and public local-draft web app. Homepage-only Search Console queries support preserving the current AI listing headline and compatibility phrase. The demo remains visible and the header counter is compact plain text.
 - The existing admin gains `/admin/web-app`: browser visits, verified sign-ins, same-browser new signups, server-confirmed generations, copies, returning generators and current paid entitlement. Retries/recovered results count once. Anonymous activity is directional and client-reported; current paid entitlement is not a new-payment or revenue metric.

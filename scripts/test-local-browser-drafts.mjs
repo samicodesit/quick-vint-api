@@ -64,6 +64,10 @@ let hold = false;
 let release;
 let loseResponse = false;
 let quota = false;
+let quotaTier = "free";
+let quotaCode = "free_lifetime_limit";
+let checkoutCalls = 0;
+let checkoutFail = true;
 let minute = false;
 let uploadCount = 0;
 const sessions = new Map();
@@ -73,10 +77,47 @@ await context.route(`${base}/api/**`, async (route) => {
   requests.push({ path: url.pathname, method: req.method() });
   if (["/api/drafts", "/api/draft-photo"].includes(url.pathname))
     return route.abort("failed");
+  if (url.pathname === "/api/stripe/create-checkout") {
+    checkoutCalls++;
+    const body = req.postDataJSON();
+    assert.equal(req.headers()["x-autolister-client"], "mobile_web");
+    assert.match(req.headers().authorization, /^Bearer /);
+    assert.equal(body.source, "mobile_web");
+    assert.equal("email" in body, false);
+    assert.equal("userId" in body, false);
+    assert.equal(body.tier, "credit_pack");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return route.fulfill(
+      checkoutFail
+        ? { status: 503, json: { error: "Fixture unavailable" } }
+        : {
+            json: { url: "https://checkout.stripe.com/c/web-paywall-fixture" },
+          },
+    );
+  }
   if (url.pathname === "/api/user/usage")
     return route.fulfill({
       json: {
-        plan: { tier: "pro", status: "active", isPaid: true },
+        plan: {
+          tier: quota ? quotaTier : "pro",
+          status:
+            quota && quotaCode === "account_paused"
+              ? "paused"
+              : quota && quotaTier === "free"
+                ? "free"
+                : "active",
+          isPaid: !quota || quotaTier !== "free",
+        },
+        blockedReason: quota ? quotaCode : null,
+        nextTier: quota ? "starter" : "business",
+        pricing: {
+          tiers: {
+            starter: { monthly: 3.99, dailyLimit: 10, monthlyLimit: 75 },
+            pro: { monthly: 9.99, dailyLimit: 25, monthlyLimit: 250 },
+            business: { monthly: 19.99, dailyLimit: 60, monthlyLimit: 600 },
+          },
+          creditPack: { credits: 20, price: 5.99 },
+        },
         canGenerate: !quota,
         limits: { daily: 50, monthly: 500 },
         remaining: {
@@ -453,8 +494,121 @@ try {
   await upload(1);
   quota = true;
   await click("generate");
-  await page.locator("[data-draft-message]:visible").waitFor();
+  await page.getByRole("dialog", { name: "Free listings used" }).waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: /Upgrade to Starter/ }).isVisible(),
+    true,
+  );
   assert.equal(generations, callsBeforeQuota);
+  await page.screenshot({ path: `${output}/quota-paywall.png` });
+  for (const [tier, code, title, targets] of [
+    ["starter", "daily_limit", "Daily limit reached", ["Pro", "Business"]],
+    ["starter", "monthly_limit", "Monthly limit reached", ["Pro", "Business"]],
+    ["pro", "monthly_limit", "Monthly limit reached", ["Business"]],
+    ["business", "monthly_limit", "Limit reached", []],
+    [
+      "free",
+      "account_paused",
+      "Continue with a paid option",
+      ["Starter", "Pro", "Business"],
+    ],
+  ]) {
+    await page.getByRole("button", { name: "Close paid options" }).click();
+    quotaTier = tier;
+    quotaCode = code;
+    await click("generate");
+    const dialog = page.getByRole("dialog", { name: title });
+    await dialog.waitFor();
+    assert.equal(
+      await dialog.locator("button.mobile-paywall-option").count(),
+      targets.length + 1,
+    );
+    for (const target of targets)
+      assert.equal(
+        await dialog
+          .getByRole("button", { name: new RegExp(`Upgrade to ${target}`) })
+          .isVisible(),
+        true,
+      );
+    assert.equal(
+      await dialog
+        .getByRole("button", { name: /Buy one-time credits/ })
+        .isVisible(),
+      true,
+    );
+    assert.equal(generations, callsBeforeQuota);
+    const box = await dialog.boundingBox();
+    assert(box.x >= 0 && box.x + box.width <= 390);
+    assert(box.y >= 0 && box.y + box.height <= 844);
+  }
+  for (const [width, height] of [
+    [320, 568],
+    [360, 640],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    const dialog = page.getByRole("dialog", {
+      name: "Continue with a paid option",
+    });
+    const box = await dialog.boundingBox();
+    assert(box.x >= 0 && box.x + box.width <= width);
+    assert(box.y >= 0 && box.y + box.height <= height);
+    const primary = await dialog
+      .locator("button.mobile-paywall-option")
+      .first()
+      .boundingBox();
+    assert(
+      primary.y >= 0 && primary.y + primary.height <= height,
+      "The first payment choice stays visible on short phones",
+    );
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+    );
+    await page.screenshot({ path: `${output}/paused-paywall-${width}.png` });
+  }
+  await page.getByRole("button", { name: "Close paid options" }).click();
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  quotaTier = "free";
+  quotaCode = "burst_limit";
+  await click("generate");
+  await page.locator("[data-draft-message]:visible").waitFor();
+  assert.equal(await page.locator("dialog.mobile-paywall[open]").count(), 0);
+  assert.equal(generations, callsBeforeQuota);
+  quotaCode = "free_lifetime_limit";
+  await click("generate");
+  await page.getByRole("button", { name: /Buy one-time credits/ }).click();
+  await page.waitForFunction(
+    () => document.querySelector("[data-paywall-status]")?.hidden === false,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: /Buy one-time credits/ })
+      .isEnabled(),
+    true,
+  );
+  checkoutFail = false;
+  await context.route(
+    "https://checkout.stripe.com/c/web-paywall-fixture",
+    (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<a href="${base}/app?checkout=cancel">Back to AutoLister</a>`,
+      }),
+  );
+  await page.getByRole("button", { name: /Buy one-time credits/ }).click();
+  await page.waitForURL("https://checkout.stripe.com/c/web-paywall-fixture");
+  assert.equal(checkoutCalls, 2);
+  await page.getByRole("link", { name: "Back to AutoLister" }).click();
+  await page.waitForURL(`${base}/app*`);
+  await action("generate").waitFor();
+  assert.equal((await snapshot()).drafts.length, 5);
+  assert.equal(generations, callsBeforeQuota);
+  checks.push(
+    "Tailored trial, daily, monthly and pause paywalls preserve drafts; burst limits never sell access; bearer checkout retries and cancellation work",
+  );
   quota = false;
   await page.reload();
   await action("generate").waitFor();

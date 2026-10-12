@@ -38,3 +38,7 @@ Search Console Web search, exact homepage, September 12 through October 9: 1,019
 - Beta and admin tabs are left open. Final mobile and admin screenshots are saved as local QA evidence. Earlier preview drafts remain at the original preview origin; opening the public origin does not migrate or delete them.
 
 Physical-phone browsers, a new live signup, new paid conversion and production generation were not exercised. Real generation behavior and retry recovery were tested locally through rendered browsers, HTTP endpoints and PostgreSQL. Conversion performance is still unmeasured.
+
+## Header logo correction
+
+The web app logo now targets `/app` and returns to the Drafts library inside the current document. It shares the existing library-tab navigation, flushes pending edits and preserves background work. Modified clicks retain normal link behavior. The rendered browser regression first failed on the old `/` target, then passed an immediate edit followed by a logo click, confirming saved text and the same document before reload. The complete 17-step local draft journey and the production gate (876 tests, including real generation HTTP checks) passed.

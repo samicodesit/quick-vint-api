@@ -244,6 +244,11 @@ async function bounds(label) {
 try {
   await page.goto(`${base}/app`);
   await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  assert.equal(
+    await page.locator(".mobile-workspace-brand").getAttribute("href"),
+    "/app",
+    "The app logo stays inside the web app",
+  );
   await click("new");
   await page
     .locator('[data-draft-action="generate"]')
@@ -318,8 +323,31 @@ try {
     path: `${output}/review-390.png`,
     animations: "disabled",
   });
-  await click("back");
+  const documentMarker = crypto.randomUUID();
+  await page.evaluate((marker) => {
+    document.documentElement.dataset.logoNavigationTest = marker;
+  }, documentMarker);
+  await page
+    .locator('[data-draft-field="title"]')
+    .fill("Saved before returning through the logo");
+  await page.locator(".mobile-workspace-brand").click();
   await waitForDrafts(1);
+  assert.equal(new URL(page.url()).pathname, "/app");
+  assert.equal(
+    await page.locator("html").getAttribute("data-logo-navigation-test"),
+    documentMarker,
+    "Logo navigation keeps the same document mounted",
+  );
+  assert.equal(
+    (await snapshot()).drafts[0].title,
+    "Saved before returning through the logo",
+  );
+  await page.evaluate(() => {
+    delete document.documentElement.dataset.logoNavigationTest;
+  });
+  checks.push(
+    "App logo returns to drafts without reloading and saves pending edits",
+  );
   await page.reload();
   await waitForDrafts(1);
   await page.locator(".draft-item-open").first().click();

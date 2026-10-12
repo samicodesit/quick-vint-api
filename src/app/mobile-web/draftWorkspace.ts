@@ -2969,27 +2969,50 @@ export function mountDraftWorkspace(
     )
       run(() => flush());
   });
-  root.querySelectorAll<HTMLButtonElement>("[data-draft-tab]").forEach((el) =>
-    bind(el, "click", () =>
+  const showLibrary = async (nextTab: "draft" | "done") => {
+    const intent = beginNavigation();
+    await flush();
+    if (disposed || intent !== selectionIntent) return;
+    tab = nextTab;
+    libraryPages = 1;
+    chosen.clear();
+    selectionMode = false;
+    selected = null;
+    composing = false;
+    bulk = false;
+    openedFromGrouping = false;
+    await reload();
+    if (disposed || intent !== selectionIntent) return;
+    renderEditor();
+    rememberView();
+  };
+  root
+    .querySelectorAll<HTMLButtonElement>("[data-draft-tab]")
+    .forEach((el) =>
+      bind(el, "click", () =>
+        run(() => showLibrary(el.dataset.draftTab as "draft" | "done")),
+      ),
+    );
+  const brandLink = root
+    .closest('[data-mobile-web="workspace"]')
+    ?.querySelector<HTMLAnchorElement>(".mobile-workspace-brand");
+  if (brandLink)
+    bind(brandLink, "click", (event) => {
+      const click = event as MouseEvent;
+      if (
+        click.button !== 0 ||
+        click.ctrlKey ||
+        click.metaKey ||
+        click.shiftKey ||
+        click.altKey
+      )
+        return;
+      click.preventDefault();
       run(async () => {
-        const intent = beginNavigation();
-        await flush();
-        if (disposed || intent !== selectionIntent) return;
-        tab = el.dataset.draftTab as "draft" | "done";
-        libraryPages = 1;
-        chosen.clear();
-        selectionMode = false;
-        selected = null;
-        composing = false;
-        bulk = false;
-        openedFromGrouping = false;
-        await reload();
-        if (disposed || intent !== selectionIntent) return;
-        renderEditor();
-        rememberView();
-      }),
-    ),
-  );
+        await showLibrary("draft");
+        if (!disposed) window.scrollTo({ top: 0 });
+      });
+    });
   bind(root, "dragover", (event) => {
     if ((event as DragEvent).dataTransfer?.types.includes("Files")) {
       event.preventDefault();

@@ -2,7 +2,7 @@
 
 ## Scope and sources
 
-This is a proposed homepage experiment, not a web-app product experiment. The design preview is local only. No assignment, experiment or homepage layout change has been published.
+This is a homepage experiment, not a web-app product experiment. The user accepted the actual rendered A/B comparison and a 50/50 phone split. Implementation is validated for release; production readiness is checked after the guarded main push.
 
 - Search Console, verified property autolister.app, Web search, September 13 to October 10. Homepage regex covers root plus fr, de, nl, pl, es, it and pt homepages. Device rows: mobile 646 clicks / 4,233 impressions, desktop 103 / 1,025, tablet 7 / 41. Independently filtered mobile and desktop charts confirm their respective click counts. Mobile is 85.4% of these device-row clicks. Clicks are not unique people or all-channel visits. The unfiltered chart total does not match the filtered row sum; no sitewide percentage is claimed.
 - Mobile top queries: ai listing agent for vinted (231), vinted ai listing agent (106), ai vinted listing agent (56), ai listing agent vinted (36), autolister ai (31). Desktop has relatively more branded clicks (autolister ai 30, autolister 9). Generic mobile AI-listing intent is an inference, not a survey.
@@ -31,3 +31,12 @@ One 50/50 test among eligible mobile homepage visitors, stable per-browser assig
 - Vercel background work contract: https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package#waituntil
 
 The existing copy and SEO identity are preserved. No mobile winner or conversion improvement is claimed before a valid measured experiment.
+
+## Implemented measurement and QA
+
+- `mobile-entry-v1` assigns one cryptographic bit before paint on the eight homepages, below 768px. Browser storage keeps the variant across refresh/auth/app entry. Denied storage defaults to A without claiming exposure. Enrollment ends November 2 UTC; outcomes finish November 9 and the UI returns to A. Thirty-day retention is unchanged, so final aggregates must be exported before cleanup.
+- One durable exposure is queued per browser, with the existing browser/session IDs and two bounded assignment labels. Raw event occurrence time survives receipt delays. Server-classified crawlers are excluded. Identifiable internal browser evidence is excluded, but unidentified anonymous activity cannot be classified without adding fingerprinting. Exposure describes a recorded browser page load, not proof of attention or a unique person.
+- Primary outcome is an authenticated API success or committed result within seven days on the same browser. Repeated generations/recovery do not inflate the browser conversion. Mature cohort rates use Wilson 95% intervals. Client success events, other-browser accounts, extension generations and outcomes outside the window are not counted. Stripe activations are a separate secondary metric, attributed only when exactly one eligible observed browser belongs to that verified account before payment.
+- Existing `/admin/web-app` renders both arms and pending/mature cohorts at desktop and phone widths. It stays a manual bounded query, not realtime polling. The existing entry-click local commit is capped at 16ms, reduced from 150ms; removing it entirely lost clicks in a native browser test. Generation and billing never wait for analytics delivery.
+- Native Chromium: 20 homepage checks, including the real first visible frame, 320/360/390px, all translations, unchanged desktop geometry, blocked storage, four autoplay/first-tap cases and delayed buffering with fullscreen consuming the gesture. The 21-check app regression confirms processed local photo inputs, exact generation-to-review CTA placement, long text, offline persistence, paywalls/checkout, response-loss recovery, batch and overlay dismissal. Six admin modal cycles and mobile A/B readability pass with zero page errors. No production telemetry, signup, purchase or generation is created by these fixtures. Physical iPhone Safari is not verified.
+- The poster is an actual 40-second finished-listing frame from the existing demo, encoded at 1280x720 as a 31 KB WebP. No AI-made product proof or new video asset is introduced. The video starts synchronously on a user tap before fullscreen, and clicking native controls no longer forces fullscreen.

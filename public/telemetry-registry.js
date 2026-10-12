@@ -3,6 +3,9 @@ globalThis.AutoListerEventRegistry = {
   web_app_click: {
     kind: "business",
   },
+  home_hero_exposure: {
+    kind: "business",
+  },
   web_app_view: {
     kind: "business",
   },
@@ -672,6 +675,8 @@ globalThis.AutoListerContextPolicy = {
     "outputTrackingId",
     "source",
     "heroCopyVersion",
+    "heroExperiment",
+    "heroVariant",
     "reasonLabel",
     "feedback",
     "selectedTier",

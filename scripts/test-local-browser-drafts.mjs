@@ -183,6 +183,7 @@ await context.route(`${base}/api/**`, async (route) => {
     });
   if (url.pathname === "/api/generate") {
     const body = req.postDataJSON();
+    assert.equal(body.analyticsClientId, await page.evaluate(() => localStorage.getItem("autolister.web-client.v1")), "The real generation carries the same pseudonymous browser ID");
     assert.ok(
       !body.draftId && body.imageUrls.length,
       "Generation uses existing direct images, never a cloud draft",

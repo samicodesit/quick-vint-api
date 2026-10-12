@@ -12,12 +12,18 @@ describe("web metric compaction in PostgreSQL", () => {
       await db.exec(
         readFileSync("migrations/2026-10-12_web_metric_compaction.sql", "utf8"),
       );
+      await db.exec(
+        readFileSync("migrations/2026-10-12_web_metric_outcomes.sql", "utf8"),
+      );
       const bodies = [
         [
           "/api/generate",
           {
             client: "mobile_web",
             requestId: "request-1",
+            analyticsClientId: "00000000-0000-4000-8000-000000000001",
+            imageCount: 2,
+            openaiImageCount: 2,
             imageUrls: ["private-photo"],
             descriptionFooter: "private-note",
           },
@@ -66,6 +72,9 @@ describe("web metric compaction in PostgreSQL", () => {
         analyticsOnly: true,
         client: "mobile_web",
         requestId: "request-1",
+        analyticsClientId: "00000000-0000-4000-8000-000000000001",
+        imageCount: 2,
+        openaiImageCount: 2,
       });
       expect(web.image_urls).toBeNull();
       expect(web.generated_description).toBeNull();
@@ -92,6 +101,74 @@ describe("web metric compaction in PostgreSQL", () => {
         after.find((r) => r.endpoint === "/event/listing_report_submitted")
           .full_request_body.context.message,
       ).toBe("customer feedback");
+      for (const event of [
+        "home_hero_exposure",
+        "chrome_store_click",
+        "web_generation_run",
+        "web_paywall_view",
+        "checkout_return",
+        "subscription_started",
+      ]) {
+        const source =
+          event === "subscription_started"
+            ? "stripe_webhook"
+            : event.startsWith("home_") || event === "chrome_store_click"
+              ? "website"
+              : "mobile_web";
+        const body = {
+          event,
+          source,
+          context: {
+            heroExperiment: "mobile-entry-v1",
+            heroVariant: "b",
+            method: "batch",
+            count: 10,
+            status: "success",
+            tier: "starter",
+            reason: "limit_reached",
+            description: "private-text",
+            imageUrls: ["private-photo"],
+          },
+        };
+        const inserted = await db.query<any>(
+          "INSERT INTO api_logs(endpoint,full_request_body,created_at) VALUES($1,$2,now()-interval '8 hours') RETURNING id",
+          [`/event/${event}`, JSON.stringify(body)],
+        );
+        await db.query("SELECT compact_api_logs_for_web_metrics($1::uuid[])", [
+          [inserted.rows[0].id],
+        ]);
+        const compacted = (
+          await db.query<any>(
+            "SELECT full_request_body FROM api_logs WHERE id=$1",
+            [inserted.rows[0].id],
+          )
+        ).rows[0].full_request_body;
+        expect(compacted.context).toMatchObject({
+          heroExperiment: "mobile-entry-v1",
+          heroVariant: "b",
+          method: "batch",
+          count: 10,
+          status: "success",
+          tier: "starter",
+          reason: "limit_reached",
+        });
+        expect(JSON.stringify(compacted)).not.toContain("private");
+        await db.query(
+          "UPDATE api_logs SET created_at=now()-interval '31 days' WHERE id=$1",
+          [inserted.rows[0].id],
+        );
+        await db.query("SELECT compact_api_logs_for_web_metrics($1::uuid[])", [
+          [inserted.rows[0].id],
+        ]);
+        expect(
+          (
+            await db.query<any>(
+              "SELECT full_request_body FROM api_logs WHERE id=$1",
+              [inserted.rows[0].id],
+            )
+          ).rows[0].full_request_body,
+        ).toBeNull();
+      }
       expect(
         (
           await db.query<any>(

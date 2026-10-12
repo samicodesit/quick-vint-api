@@ -3,6 +3,7 @@ import "../styles/global.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import { SITE_COPY, SITE_EXTRA_COPY, normalizeSiteLocale } from "../i18n/site.js";
 import { WEB_ENTRY_COPY } from "../i18n/webEntry";
+import { bootstrapHomepageExperiment, HOMEPAGE_EXPERIMENT } from "../scripts/homepageExperiment";
 import type { SiteLocale } from "../i18n/site.js";
 
 export interface Props {
@@ -57,6 +58,7 @@ const chromeHref =
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {isHomepage && <script is:inline set:html={`(${bootstrapHomepageExperiment.toString()})(window,${JSON.stringify(HOMEPAGE_EXPERIMENT)});`} />}
 
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

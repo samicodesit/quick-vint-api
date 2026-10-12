@@ -43,10 +43,11 @@ try {
         externalRequests++;
         return route.abort();
       }
-      if (url.pathname === "/admin/logs")
+      if (url.pathname.startsWith("/admin/"))
         return route.fulfill({ contentType: "text/html", body: html });
       if (url.pathname.startsWith("/api/")) {
         let body = { ok: true };
+        if (url.searchParams.get("action") === "web-app-stats") body = { available: true, window: { start: "2026-10-12T00:00:00Z", end: "2026-10-21T00:00:00Z" }, totals: {}, daily: [], entrySources: [], completeness: {}, measurement: {}, homepageExperiment: { status: "Enrolling", definition: "Same-browser API outcomes", enrollmentEnd: "2026-11-02T00:00:00Z", end: "2026-11-09T00:00:00Z", arms: [{ label: "A: Demo first", exposed: 10, appClicks: 4, extensionClicks: 2, generated: 2, copied: 1, matureGenerated: 2, mature: 10, conversionRate: 20, confidenceInterval: [5.7, 51] }, { label: "B: App first", exposed: 12, appClicks: 7, extensionClicks: 1, generated: 3, copied: 2, matureGenerated: 0, mature: 0, conversionRate: null, confidenceInterval: null }] } };
         if (url.searchParams.get("action") === "view-logs")
           body = {
             logs,
@@ -119,6 +120,13 @@ try {
         .click();
       assert.equal(await page.locator("#modalBackdrop.open").count(), 0);
     }
+    assert.deepEqual(errors, []);
+    await page.goto("http://admin.test/admin/web-app");
+    await page.getByText("Mobile homepage A/B", { exact: true }).waitFor();
+    assert.match(await page.locator("#contentArea").innerText(), /A: Demo first/);
+    assert.match(await page.locator("#contentArea").innerText(), /B: App first/);
+    assert.match(await page.locator("#contentArea").innerText(), /20.0%/);
+    assert.match(await page.locator("#contentArea").innerText(), /Pending/);
     assert.deepEqual(errors, []);
     console.log(
       JSON.stringify({

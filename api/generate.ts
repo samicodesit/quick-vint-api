@@ -290,6 +290,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             redactedRequestBody as Record<string, unknown>;
           return {
             ...safeBody,
+            analyticsClientId:
+              typeof safeBody.analyticsClientId === "string" &&
+              /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+                safeBody.analyticsClientId,
+              )
+                ? safeBody.analyticsClientId
+                : undefined,
             client: "mobile_web",
             generationCommitted: false,
             generationStartedAt: new Date(startTime).toISOString(),

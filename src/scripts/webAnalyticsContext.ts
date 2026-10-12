@@ -1,3 +1,8 @@
+import {
+  HOMEPAGE_EXPERIMENT,
+  readHomepageAssignment,
+} from "./homepageExperiment";
+
 const CLIENT_KEY = "autolister.web-client.v1";
 const SESSION_KEY = "autolister.web-session.v1";
 const SESSION_IDLE_MS = 30 * 60 * 1000;
@@ -28,7 +33,17 @@ export function getWebAnalyticsContext(): Record<string, string> {
     )
       visit = { id: crypto.randomUUID() };
     storage.setItem(SESSION_KEY, JSON.stringify({ id: visit.id, last: now }));
-    return { analyticsClientId: client!, webSessionId: visit.id! };
+    const assignment = readHomepageAssignment(storage, now);
+    return {
+      analyticsClientId: client!,
+      webSessionId: visit.id!,
+      ...(assignment
+        ? {
+            heroExperiment: HOMEPAGE_EXPERIMENT.id,
+            heroVariant: assignment.variant,
+          }
+        : {}),
+    };
   } catch {
     return {};
   }

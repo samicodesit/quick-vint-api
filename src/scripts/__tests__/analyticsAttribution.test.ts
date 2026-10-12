@@ -1,6 +1,6 @@
 import vm from "node:vm";
 import { build } from "esbuild";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 
 async function storeDestination(
   page: string,
@@ -67,6 +67,54 @@ it("keeps the website fallback for untagged visits", async () => {
   );
   expect(result.searchParams.get("utm_source")).toBe("autolister_site");
   expect(result.searchParams.get("utm_content")).toBe("home_hero_primary");
+});
+it("enters the app within one local queue frame when telemetry is stalled", async () => {
+  const { outputFiles } = await build({
+    entryPoints: ["src/scripts/analytics.js"],
+    bundle: true,
+    format: "iife",
+    write: false,
+  });
+  class Anchor {
+    href = "https://autolister.app/app";
+    target = "";
+    dataset = { trackEvent: "web_app_click" };
+    clickHandler: any;
+    addEventListener(_event: string, handler: any) {
+      this.clickHandler = handler;
+    }
+  }
+  const anchor = new Anchor();
+  const destination = new URL("https://autolister.app/") as URL & {
+    assign: ReturnType<typeof vi.fn>;
+  };
+  destination.assign = vi.fn();
+  const scope: any = {
+    URL,
+    URLSearchParams,
+    Event,
+    Promise,
+    setTimeout,
+    clearTimeout,
+    HTMLAnchorElement: Anchor,
+    addEventListener() {},
+    setInterval() {},
+    window: {
+      location: destination,
+      addEventListener() {},
+    },
+    document: {
+      querySelectorAll: (selector: string) =>
+        selector === "[data-track-event]" ? [anchor] : [],
+      addEventListener() {},
+    },
+  };
+  vm.runInNewContext(outputFiles[0].text, scope);
+  scope.AutoListerWebsiteTelemetry.track = () => new Promise(() => {});
+  const preventDefault = vi.fn();
+  anchor.clickHandler({ button: 0, preventDefault });
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  expect(destination.assign).toHaveBeenCalledWith(anchor.href);
 });
 
 it("does not retag unrelated destinations or explicit non-website campaigns", async () => {

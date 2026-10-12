@@ -42,6 +42,8 @@
     "outputTrackingId",
     "source",
     "heroCopyVersion",
+    "heroExperiment",
+    "heroVariant",
     "reasonLabel",
     "feedback",
     "selectedTier",

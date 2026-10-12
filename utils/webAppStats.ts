@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "./supabaseClient";
 import { ApiLogger } from "./apiLogger";
 import { hasPaidEntitlementStatus } from "../src/utils/subscriptionStatus";
+import { buildHomepageExperimentStats } from "./homepageExperimentStats";
+import { HOMEPAGE_EXPERIMENT } from "../src/scripts/homepageExperiment";
 
 const DAY = 86400000;
 const MAX_LOGS = 50000;
@@ -51,14 +53,21 @@ export function buildWebAppStats(
           excluded.has(l.user_id || "") ||
           ApiLogger.isInternalLogExcludedEmail(l.user_email),
       )
-      .map((l) => l.full_request_body?.context?.analyticsClientId)
+      .map(
+        (l) =>
+          l.full_request_body?.analyticsClientId ||
+          l.full_request_body?.context?.analyticsClientId,
+      )
       .filter(Boolean),
   );
   const safe = logs.filter(
     (l) =>
       !excluded.has(l.user_id || "") &&
       !ApiLogger.isInternalLogExcludedEmail(l.user_email) &&
-      !excludedClients.has(l.full_request_body?.context?.analyticsClientId) &&
+      !excludedClients.has(
+        l.full_request_body?.analyticsClientId ||
+          l.full_request_body?.context?.analyticsClientId,
+      ) &&
       Date.parse(l.created_at) >= Date.parse(start) &&
       Date.parse(l.created_at) <= Date.parse(end),
   );
@@ -198,6 +207,11 @@ export function buildWebAppStats(
   const observedUsers = new Set([...signedIn, ...activated]);
   return {
     available: true,
+    homepageExperiment: buildHomepageExperimentStats(
+      logs,
+      profiles,
+      Date.parse(end),
+    ),
     window: { start, end, days },
     totals: {
       homepageClicks,
@@ -255,6 +269,17 @@ export async function handleWebAppStats(
       now.getUTCDate() - (days - 1),
     ),
   ).toISOString();
+  // While the fixed experiment is reportable, load its cohorts even in the
+  // seven-day activity view. Always stay within existing thirty-day retention.
+  const queryStart =
+    now.getTime() <= HOMEPAGE_EXPERIMENT.end + DAY
+      ? new Date(
+          Math.min(
+            Date.parse(start),
+            Math.max(HOMEPAGE_EXPERIMENT.start, now.getTime() - 30 * DAY),
+          ),
+        ).toISOString()
+      : start;
   try {
     const logs: Log[] = [];
     let truncated = false;
@@ -264,10 +289,10 @@ export async function handleWebAppStats(
         .select(
           "id,user_id,user_email,endpoint,response_status,created_at,full_request_body",
         )
-        .gte("created_at", start)
+        .gte("created_at", queryStart)
         .lte("created_at", end)
         .or(
-          "full_request_body->>client.eq.mobile_web,full_request_body->>source.eq.mobile_web,and(endpoint.eq./event/web_app_click,full_request_body->>source.eq.website)",
+          `full_request_body->>client.eq.mobile_web,full_request_body->>source.eq.mobile_web,and(endpoint.eq./event/web_app_click,full_request_body->>source.eq.website),and(endpoint.in.(/event/home_hero_exposure,/event/chrome_store_click),full_request_body->>source.eq.website,full_request_body->context->>heroExperiment.eq.${HOMEPAGE_EXPERIMENT.id}),and(endpoint.eq./event/subscription_started,full_request_body->>source.eq.stripe_webhook)`,
         )
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })

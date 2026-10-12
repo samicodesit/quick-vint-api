@@ -1,5 +1,6 @@
 import { fetchMobileJson } from "./api.js";
 import type { DescriptionLength } from "./formatting.js";
+import { getWebAnalyticsContext } from "../../scripts/webAnalyticsContext";
 
 export interface MobileGenerationInput {
   imageUrls: string[];
@@ -93,6 +94,7 @@ export async function generateListing(
 ): Promise<MobileGenerationResult> {
   const requestId = input.requestId?.trim() || createRequestId();
   const body = {
+    analyticsClientId: getWebAnalyticsContext().analyticsClientId,
     imageUrls: input.imageUrls,
     titleLanguageCode: input.titleLanguageCode,
     descriptionLanguageCode: input.descriptionLanguageCode,

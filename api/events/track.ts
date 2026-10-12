@@ -442,9 +442,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .map((key) => [key, redact(raw.utm[key], 120)]),
           ),
           context,
+          ...(raw.event === "home_hero_exposure"
+            ? {
+                automatedTraffic:
+                  /bot\b|crawler|spider|headlesschrome|lighthouse/i.test(
+                    metadata.userAgent || "",
+                  ),
+              }
+            : {}),
           ...(dropCarrier ||
           raw.source === "mobile_web" ||
-          raw.event === "web_app_click"
+          [
+            "web_app_click",
+            "home_hero_exposure",
+            "chrome_store_click",
+          ].includes(raw.event)
             ? { transportEventId: raw.id, occurredAt: raw.occurredAt }
             : {}),
         },

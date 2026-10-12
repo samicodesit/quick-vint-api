@@ -1,5 +1,6 @@
 {
   "web_app_click": { "kind": "business" },
+  "home_hero_exposure": { "kind": "business" },
   "web_app_view": { "kind": "business" },
   "auth_complete": { "kind": "business" },
   "upload_complete": { "kind": "business" },

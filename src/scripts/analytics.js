@@ -4,6 +4,10 @@ import "../../public/telemetry-client.js";
 import "../../public/telemetry-website.js";
 import { captureFirstTouch } from "./attribution.js";
 import { getWebAnalyticsContext } from "./webAnalyticsContext";
+import {
+  HOMEPAGE_EXPERIMENT,
+  readHomepageAssignment,
+} from "./homepageExperiment";
 
 const KNOWN_UTM_KEYS = [
   "utm_source",
@@ -40,7 +44,11 @@ function trackEventUnsafe(event, properties) {
     ...properties,
   };
 
-  if (event === "web_app_click") {
+  if (
+    ["web_app_click", "chrome_store_click", "home_hero_exposure"].includes(
+      event,
+    )
+  ) {
     payload.context = {
       ...(typeof payload.context === "object"
         ? payload.context
@@ -124,14 +132,12 @@ function bindTrackedClicks() {
         element.target !== "_blank"
       ) {
         click.preventDefault();
-        // Wait only for a local queue write, never for the network. A blocked
-        // storage backend must not prevent someone entering the app.
+        // Give the existing local queue at most one frame to commit. Never
+        // wait for delivery or leave entry blocked by unavailable storage.
         void Promise.race([
           Promise.resolve(queued),
-          new Promise((resolve) => setTimeout(resolve, 150)),
-        ]).finally(() => {
-          window.location.assign(element.href);
-        });
+          new Promise((resolve) => setTimeout(resolve, 16)),
+        ]).finally(() => window.location.assign(element.href));
       }
     });
   });
@@ -139,3 +145,27 @@ function bindTrackedClicks() {
 
 bindTrackedClicks();
 document.addEventListener("astro:page-load", bindTrackedClicks);
+
+// One durable exposure per assigned browser, not one event per page render.
+try {
+  const assignment = readHomepageAssignment();
+  const key = `${HOMEPAGE_EXPERIMENT.key}.exposed`;
+  if (
+    assignment &&
+    document.querySelector("[data-home-hero]") &&
+    window.matchMedia("(max-width: 767px)").matches &&
+    !localStorage.getItem(key)
+  ) {
+    const queued = trackEvent("home_hero_exposure", {
+      context: { source: "home_hero" },
+    });
+    if (queued)
+      void Promise.resolve(queued)
+        .then((result) => {
+          if (result?.queued) localStorage.setItem(key, "1");
+        })
+        .catch(() => {});
+  }
+} catch {
+  /* No exposure claimed when browser storage is unavailable. */
+}

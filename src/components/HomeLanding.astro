@@ -186,8 +186,10 @@ const subtitleParts =
               <span>{entry.action}</span>
             </a>
             <p class="home-entry-note">{entry.web}</p>
+            <p class="home-entry-device-label"><Smartphone size={14} aria-hidden="true" />{entry.devices}</p>
           </div>
           <div class="home-entry-route">
+          <p class="home-entry-desktop-label">{entry.desktop}</p>
           <a
             href={chromeHref}
             target="_blank"
@@ -351,7 +353,7 @@ const subtitleParts =
               data-hero-video
               data-video-src="/vid-promo.mp4"
               class="hero-demo-video w-full h-full object-cover"
-              poster="/video-poster.webp"
+              poster="/video-draft-poster.webp"
               width="1920"
               height="1080"
               preload="none"
@@ -728,7 +730,7 @@ const subtitleParts =
         {extra.howItWorksTitle}
       </h2>
       <p class="text-lg text-slate-600">
-        {extra.howItWorksSubtitle}
+        <span class="home-desktop-instructions">{extra.howItWorksSubtitle}</span><span class="home-mobile-instructions">{entry.web}</span>
       </p>
     </div>
     <div class="grid md:grid-cols-3 gap-8 relative">
@@ -744,10 +746,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">1</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {extra.step1Title}
+          <span class="home-desktop-instructions">{extra.step1Title}</span><span class="home-mobile-instructions">{entry.steps[0]}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {extra.step1Body}
+          <span class="home-desktop-instructions">{extra.step1Body}</span><span class="home-mobile-instructions">{entry.stepBodies[0]}</span>
         </p>
       </div>
 
@@ -758,10 +760,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">2</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {extra.step2Title}
+          <span class="home-desktop-instructions">{extra.step2Title}</span><span class="home-mobile-instructions">{entry.steps[1]}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {extra.step2Body}
+          <span class="home-desktop-instructions">{extra.step2Body}</span><span class="home-mobile-instructions">{entry.stepBodies[1]}</span>
         </p>
       </div>
 
@@ -772,10 +774,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">3</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {extra.step3Title}
+          <span class="home-desktop-instructions">{extra.step3Title}</span><span class="home-mobile-instructions">{entry.steps[2]}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {extra.step3Body}
+          <span class="home-desktop-instructions">{extra.step3Body}</span><span class="home-mobile-instructions">{entry.stepBodies[2]}</span>
         </p>
       </div>
     </div>
@@ -812,16 +814,17 @@ const subtitleParts =
             {extra.finalCtaTitle}
           </h2>
           <p class="text-lg leading-relaxed text-slate-300 mb-10 font-medium">
-            {extra.finalCtaBody}
+            <span class="home-desktop-instructions">{extra.finalCtaBody}</span><span class="home-mobile-instructions">{entry.web}</span>
           </p>
           <div
             class="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4"
           >
+            <a href="/app?ref=home_final" data-track-event="web_app_click" data-track-context="home_final_web" class="home-mobile-instructions home-final-web items-center justify-center gap-2 px-8 py-4 text-lg font-bold rounded-2xl text-white bg-brand-600 w-full"><Images size={20} aria-hidden="true" />{entry.action}</a>
             <a
               href={chromeHref}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-2xl shadow-xl shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-500 transition-all hover:-translate-y-1 w-full sm:w-auto"
+              class="home-desktop-instructions inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-2xl shadow-xl shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-500 transition-all hover:-translate-y-1 w-full sm:w-auto"
             >
               {extra.getStartedFree}
             </a>
@@ -875,6 +878,9 @@ const subtitleParts =
   async function openHeroFullscreen() {
     if (!heroVideo) return;
     loadHeroVideo();
+    // Start during the tap gesture. Fullscreen can consume that gesture, and
+    // Safari may decline fullscreen while a cold video is still buffering.
+    const playback = heroVideo.play().catch(() => {});
     try {
       if (heroVideo.requestFullscreen) {
         await heroVideo.requestFullscreen();
@@ -884,13 +890,13 @@ const subtitleParts =
     } catch (err) {
       // ignore
     }
-    try {
-      await heroVideo.play();
-    } catch (e) {}
+    await playback;
   }
 
   document.querySelectorAll("[data-open-fullscreen]").forEach((el) => {
     el.addEventListener("click", (e) => {
+      // Native video controls must keep their normal play/pause behavior.
+      if (e.target === heroVideo) return;
       e.preventDefault();
       e.stopPropagation();
       openHeroFullscreen();
@@ -1294,6 +1300,24 @@ const subtitleParts =
   .home-entry-button:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 3px; }
   .home-entry-note { margin-top: 5px; font-size: 12px; line-height: 1.4; color: #64748b; }
   .home-entry-phone { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; color: #4338ca; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+  .home-entry-device-label, .home-entry-desktop-label, .home-mobile-instructions { display: none; }
+
+  @media (max-width: 767px) {
+    .home-desktop-instructions { display: none; }
+    .home-mobile-instructions { display: inline; }
+    .home-final-web { display: flex; }
+    html[data-home-entry-variant="b"] .home-hero-actions { display: contents; }
+    html[data-home-entry-variant="b"] .home-entry-route:first-child { order: 1; }
+    html[data-home-entry-variant="b"] .home-hero-demo { order: 2; }
+    html[data-home-entry-variant="b"] .home-entry-route:nth-child(2) { order: 3; }
+    html[data-home-entry-variant="b"] .home-hero-mobile-proof { order: 4; }
+    html[data-home-entry-variant="b"] .home-hero-screenshots { order: 5; }
+    html[data-home-entry-variant="b"] .home-entry-phone { display: none; }
+    html[data-home-entry-variant="b"] .home-entry-web { min-height: 52px; font-size: 16px; }
+    html[data-home-entry-variant="b"] .home-entry-note { font-size: 13px; line-height: 1.5; color: #526176; }
+    html[data-home-entry-variant="b"] .home-entry-device-label { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 4px; color: #526176; font-size: 12px; }
+    html[data-home-entry-variant="b"] .home-entry-desktop-label { display: block; margin-bottom: 7px; color: #526176; font-size: 12px; }
+  }
 
   @media (max-width: 1023px) {
     .home-hero-grid { display: flex; flex-direction: column; align-items: stretch; gap: 18px; max-width: 640px; margin: 0 auto; }

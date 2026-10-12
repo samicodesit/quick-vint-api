@@ -33,7 +33,9 @@ vi.mock("../../../utils/incidents/service", () => ({
 
 vi.mock("../../../utils/apiLogger", () => ({
   ApiLogger: {
-    extractRequestMetadata: vi.fn(() => ({})),
+    extractRequestMetadata: vi.fn((req) => ({
+      userAgent: req.headers["user-agent"],
+    })),
     logRequest: vi.fn(),
     logRequests: logRequestsMock,
     isInternalLogExcludedEmail: () => false,
@@ -153,6 +155,7 @@ describe("events tracking endpoint", () => {
   async function postEvent(
     body: Record<string, unknown>,
     authenticated = true,
+    userAgent = "Mozilla/5.0",
   ) {
     const module = await import("../../../api/events/track.js");
     const handler = (module as any).default;
@@ -160,7 +163,10 @@ describe("events tracking endpoint", () => {
     await handler(
       {
         method: "POST",
-        headers: authenticated ? { authorization: "Bearer token" } : {},
+        headers: {
+          ...(authenticated ? { authorization: "Bearer token" } : {}),
+          "user-agent": userAgent,
+        },
         body,
       } as any,
       response as any,
@@ -265,6 +271,40 @@ describe("events tracking endpoint", () => {
           .rows,
       ).toHaveLength(0);
       expect(JSON.stringify(rows)).not.toContain("private");
+      for (const [index, event] of [
+        "home_hero_exposure",
+        "chrome_store_click",
+      ].entries()) {
+        const item = {
+          id: `e423926a-35a6-4bf5-8027-8ab335c7222${index}`,
+          occurredAt: new Date(Date.now() - 3600000).toISOString(),
+          event,
+          source: "website",
+          context: {
+            analyticsClientId: "browser-1",
+            heroExperiment: "mobile-entry-v1",
+            heroVariant: "b",
+          },
+        };
+        await postEvent(
+          { schemaVersion: 2, events: [item] },
+          false,
+          "Googlebot/2.1",
+        );
+        const actual = (
+          await db.query<any>(
+            "SELECT full_request_body FROM api_logs WHERE endpoint=$1",
+            [`/event/${event}`],
+          )
+        ).rows[0].full_request_body;
+        expect(actual).toMatchObject({
+          occurredAt: item.occurredAt,
+          transportEventId: item.id,
+          context: { heroExperiment: "mobile-entry-v1", heroVariant: "b" },
+        });
+        if (event === "home_hero_exposure")
+          expect(actual.automatedTraffic).toBe(true);
+      }
       expect(
         (await db.query<any>("SELECT id FROM incident_groups")).rows,
       ).toHaveLength(0);

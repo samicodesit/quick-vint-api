@@ -80,6 +80,54 @@ describe("web app admin endpoint", () => {
     expect((await request("Bearer wrong")).statusCode).toBe(401);
     expect(from).not.toHaveBeenCalled();
   });
+  it("reports the observed homepage cohort through the authenticated endpoint", async () => {
+    const exposure = {
+      ...event("ex", "home_hero_exposure", null, "2026-10-12", {
+        analyticsClientId: "c1",
+        heroExperiment: "mobile-entry-v1",
+        heroVariant: "b",
+      }),
+      full_request_body: {
+        source: "website",
+        event: "home_hero_exposure",
+        context: {
+          analyticsClientId: "c1",
+          heroExperiment: "mobile-entry-v1",
+          heroVariant: "b",
+        },
+      },
+    };
+    const logs = [
+      exposure,
+      {
+        id: "gen",
+        endpoint: "/api/generate",
+        user_id: "user",
+        response_status: 200,
+        created_at: "2026-10-12T11:00:00Z",
+        full_request_body: {
+          client: "mobile_web",
+          analyticsClientId: "c1",
+          requestId: "r1",
+        },
+      },
+    ];
+    const logQuery = query(logs);
+    from.mockImplementation((table) =>
+      table === "api_logs" ? logQuery : query([]),
+    );
+    const r = await request();
+    expect(r.statusCode).toBe(200);
+    expect(r.body.homepageExperiment.arms[1]).toMatchObject({
+      exposed: 1,
+      generated: 1,
+      mature: 0,
+      conversionRate: null,
+    });
+    expect(logQuery.or.mock.calls[0][0]).toContain(
+      "heroExperiment.eq.mobile-entry-v1",
+    );
+  });
   it("separates sessions, new signups, retries, copies and returning generators", async () => {
     const logs = [
       event("v1", "web_app_view", null, "2026-10-10", {

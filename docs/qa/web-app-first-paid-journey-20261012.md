@@ -21,6 +21,8 @@ Records prove activation, successful generations, payment return and useful copy
 - Two bounded business events distinguish generation run size/method and paid-option presentation/reason. Per-item success/error and copy use the existing durable queue. No draft text, signed photo URLs or new service/table is added.
 - After mobile saved-result and allowance commits, use Vercel waitUntil for reporting. Generation delivery does not await reporting. Extension behavior and all quota/credit commits are unchanged.
 - Admin refresh remains manual. Events already batch, deduplicate, retry from durable browser storage and retain occurrence time separately from receipt time. No real-time polling is added.
+- Follow-up: read-only Stripe Dashboard confirms the EUR 3.99 invoice is Paid. Renewal is turned off for November 12, with the selected reason "It's too expensive." Repeated useful title/description copies preceded the billing-portal visit. Output was reviewed for readability and obvious problems, but factual correctness cannot be checked against photos that are not retained. Price is direct evidence; dissatisfaction with text or desire for one month only remain unproven interpretations. No pricing/model change or customer contact follows from this single case.
+- Manage plan had a separate telemetry-preparation dependency before the portal request. A real Chromium regression now holds that telemetry promise unresolved: the old handler fails to reach billing before release; the corrected handler reaches bearer billing independently. Normal queue delivery was already asynchronous, so this test uses an explicit stalled preparation, not an assertion that network delivery always delayed billing.
 
 ## Validation
 

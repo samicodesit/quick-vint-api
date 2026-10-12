@@ -68,6 +68,8 @@ let quota = false;
 let quotaTier = "free";
 let quotaCode = "free_lifetime_limit";
 let checkoutCalls = 0;
+let portalCalls = 0;
+let portalObserved;
 let checkoutFail = true;
 let minute = false;
 let uploadCount = 0;
@@ -81,6 +83,16 @@ await context.route(`${base}/api/**`, async (route) => {
     telemetryEvents.push(...events);
     return route.fulfill({
       json: { acknowledgedIds: events.map((event) => event.id) },
+    });
+  }
+  if (url.pathname === "/api/stripe/create-portal") {
+    portalCalls++;
+    portalObserved?.();
+    assert.equal(req.headers()["x-autolister-client"], "mobile_web");
+    assert.match(req.headers().authorization, /^Bearer /);
+    return route.fulfill({
+      status: 503,
+      json: { error: "Fixture unavailable" },
     });
   }
   if (["/api/drafts", "/api/draft-photo"].includes(url.pathname))
@@ -786,6 +798,45 @@ try {
   );
   assert.equal((await snapshot()).blobCount, 11);
   assert.equal(errors.length, 0, errors.join("\n"));
+  await page.evaluate(() => {
+    const runtime = globalThis.AutoListerWebsiteTelemetry;
+    const original = runtime.track;
+    runtime.track = (event, properties, immediate) => {
+      if (event === "checkout_start" && properties.context.target === "manage")
+        return new Promise((resolve) => {
+          globalThis.releaseFixtureTelemetry = () => {
+            runtime.track = original;
+            resolve({ queued: false });
+          };
+        });
+      return original(event, properties, immediate);
+    };
+  });
+  const portalReached = new Promise((resolve) => {
+    portalObserved = () => resolve(true);
+  });
+  await page.locator('[data-mobile-web="profile-menu-trigger"]').click();
+  await page.locator('[data-mobile-web="manage-billing"]').click();
+  try {
+    assert.equal(
+      await Promise.race([
+        portalReached,
+        new Promise((resolve) => setTimeout(() => resolve(false), 1500)),
+      ]),
+      true,
+      "Billing must not wait for a stalled telemetry request",
+    );
+    assert.equal(portalCalls, 1);
+  } finally {
+    await page.evaluate(() => {
+      globalThis.releaseFixtureTelemetry?.();
+      delete globalThis.releaseFixtureTelemetry;
+    });
+  }
+  await page.keyboard.press("Escape");
+  checks.push(
+    "Manage plan reaches bearer billing without waiting for stalled background telemetry",
+  );
   await page.evaluate(() => globalThis.AutoListerWebsiteTelemetry.flush());
   assert.ok(
     telemetryEvents.some(

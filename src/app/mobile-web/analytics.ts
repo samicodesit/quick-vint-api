@@ -19,6 +19,7 @@ export const MOBILE_ANALYTICS_EVENTS = [
   "vinted_click",
   "checkout_start",
   "checkout_return",
+  "chrome_store_click",
 ] as const;
 
 export type MobileAnalyticsEvent = (typeof MOBILE_ANALYTICS_EVENTS)[number];

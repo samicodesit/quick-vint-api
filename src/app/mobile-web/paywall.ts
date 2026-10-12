@@ -56,7 +56,6 @@ export function mountMobilePaywall(
     )
       close();
   });
-  dialog.addEventListener("close", restore);
   dialog.addEventListener("cancel", (event) => {
     event.preventDefault();
     close();
@@ -222,7 +221,6 @@ export function mountMobilePaywall(
     dispose() {
       disposed = true;
       if (dialog.open) close();
-      dialog.removeEventListener("close", restore);
       dialog.remove();
     },
   };

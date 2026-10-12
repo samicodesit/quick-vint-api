@@ -870,6 +870,29 @@ describe("admin HTML", () => {
     },
   );
 
+  it("labels observed web-app use on desktop and mobile independently of acquisition", () => {
+    const { context } = buildAdminHarness();
+    for (const render of [
+      context.renderUserRow,
+      context.renderUserMobileCard,
+    ]) {
+      const user = {
+        id: "web-seller",
+        acquisition_source: "google",
+        web_app_observed: true,
+      };
+      expect(render(user)).toContain(">Web app</span>");
+      expect(render(user)).toContain("Acquisition channel: Google");
+      expect(render({ ...user, web_app_observed: false })).not.toContain(
+        ">Web app</span>",
+      );
+      expect(render({ ...user, web_app_observed: "true" })).not.toContain(
+        ">Web app</span>",
+      );
+      expect(render({ id: "other" })).not.toContain(">Extension</span>");
+    }
+  });
+
   it("hides review request action after the one-time email was sent", () => {
     const { context } = buildAdminHarness();
     const baseUser = {

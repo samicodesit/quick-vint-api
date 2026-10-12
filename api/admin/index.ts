@@ -1118,28 +1118,48 @@ async function enrichAdminUsers(
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
 
-  const [{ data: recentLogs }, { data: activeRateLimits }, attributionResult] =
-    await Promise.all([
+  const [
+    { data: recentLogs },
+    { data: activeRateLimits },
+    attributionResult,
+    webActivity,
+  ] = await Promise.all([
+    supabase
+      .from("api_logs")
+      .select("user_id, user_email, ip_address, created_at")
+      .in("user_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(ids.length * 25, 1000)),
+    supabase
+      .from("rate_limits")
+      .select("user_id, window_type, count, expires_at")
+      .in("user_id", ids)
+      .or(`expires_at.gt.${nowIso},expires_at.is.null`),
+    fetchAttributionRowsByIds(
+      "user_attributions",
+      "user_id, source, referrer_host",
+      "user_id",
+      ids,
+    )
+      .then((result) => ({ rows: result.rows, available: true }))
+      .catch(() => ({ rows: [], available: false })),
+    Promise.resolve(
       supabase
         .from("api_logs")
-        .select("user_id, user_email, ip_address, created_at")
+        .select("user_id")
         .in("user_id", ids)
+        .gte("created_at", new Date(now - 30 * 86400000).toISOString())
+        .or(
+          "full_request_body->>client.eq.mobile_web,full_request_body->>source.eq.mobile_web",
+        )
         .order("created_at", { ascending: false })
-        .limit(Math.min(ids.length * 25, 1000)),
-      supabase
-        .from("rate_limits")
-        .select("user_id, window_type, count, expires_at")
-        .in("user_id", ids)
-        .or(`expires_at.gt.${nowIso},expires_at.is.null`),
-      fetchAttributionRowsByIds(
-        "user_attributions",
-        "user_id, source, referrer_host",
-        "user_id",
-        ids,
-      )
-        .then((result) => ({ rows: result.rows, available: true }))
-        .catch(() => ({ rows: [], available: false })),
-    ]);
+        .limit(5000),
+    )
+      .then((result) => (result.error ? [] : result.data || []))
+      .catch(() => []),
+  ]);
+
+  const webAppUsers = new Set(webActivity.map((row: any) => row.user_id));
 
   const attributionByUser = new Map(
     attributionResult.rows.map((row: any) => [row.user_id, row]),
@@ -1219,6 +1239,7 @@ async function enrichAdminUsers(
 
     return {
       ...safeUser,
+      web_app_observed: webAppUsers.has(user.id),
       acquisition_source: sanitizeAttributionSource(
         attributionByUser.get(user.id)?.source,
       ),

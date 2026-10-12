@@ -4526,6 +4526,12 @@
             return `<span class="badge channel-badge ${known ? 'badge-info' : 'badge-neutral'}" aria-label="Acquisition channel: ${escapeAttribute(label)}" title="${escapeAttribute(title)}">${escapeHtml(label)}</span>`;
         }
 
+        function renderWebAppBadge(u) {
+            return u.web_app_observed === true
+                ? '<span class="badge badge-info channel-badge" title="Observed web app activity in the last 30 days. This account can also use the extension.">Web app</span>'
+                : '';
+        }
+
         function renderUserRow(u) {
             const email = escapeHtml(u.email || 'Unknown');
             const id = escapeHtml(u.id || '');
@@ -4535,7 +4541,7 @@
             return `
                 <tr>
                     <td>
-                        <div class="font-medium user-identity" style="color: var(--text-main); font-weight: 600;"><span>${email}</span>${renderAcquisitionBadge(u)}</div>
+                        <div class="font-medium user-identity" style="color: var(--text-main); font-weight: 600;"><span>${email}</span>${renderAcquisitionBadge(u)}${renderWebAppBadge(u)}</div>
                         <div class="text-sm text-muted" style="font-size: 0.75rem; font-family: monospace;">${id}</div>
                         ${ip ? `<div class="text-sm text-muted" style="font-size: 0.75rem;">${ip}</div>` : ''}
                         ${u.is_new_today ? '<span class="badge badge-success" style="margin-top: 0.35rem;">New today</span>' : ''}
@@ -4567,7 +4573,7 @@
                 <div class="mobile-card">
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Email</span>
-                        <span class="mobile-card-value user-identity" style="font-weight: 600; word-break: break-all;"><span>${email}</span>${renderAcquisitionBadge(u)}</span>
+                        <span class="mobile-card-value user-identity" style="font-weight: 600; word-break: break-all;"><span>${email}</span>${renderAcquisitionBadge(u)}${renderWebAppBadge(u)}</span>
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">User id</span>

@@ -2798,6 +2798,10 @@ export function mountDraftWorkspace(
       action(`copy-${field}`).querySelector("svg")!.replaceWith(icon("check"));
       find("[data-draft-copy-status]").textContent =
         `${field === "title" ? "Title" : "Description"} copied.`;
+      if (!disposed)
+        root.dispatchEvent(
+          new CustomEvent("mobile-copy-complete", { bubbles: true }),
+        );
       setTimeout(() => {
         if (!disposed) {
           label(`copy-${field}`, "Copy");

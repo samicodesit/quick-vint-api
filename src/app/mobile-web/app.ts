@@ -1,5 +1,6 @@
 import { mountDraftWorkspace } from "./draftWorkspace";
 import { mountMobilePaywall } from "./paywall";
+import { mountExtensionSuggestion } from "./extensionSuggestion";
 import { getMobilePaywall } from "./paywallPolicy";
 import { initializeMobileTelemetry } from "./telemetry";
 import { activateMobileSheet } from "./sheet";
@@ -918,9 +919,22 @@ export function mountMobileWebApp(
   let draftWorkspace: ReturnType<typeof mountDraftWorkspace> | undefined;
   let latestUsage: MobileUsage | null = null;
   let paywall: ReturnType<typeof mountMobilePaywall> | undefined;
+  const extensionSuggestion = mountExtensionSuggestion(
+    root,
+    () => session?.user.id,
+  );
+  const suggestExtension = () => {
+    void extensionSuggestion.suggest();
+  };
+  root.addEventListener("mobile-copy-complete", suggestExtension);
+  listeners.push(() => {
+    root.removeEventListener("mobile-copy-complete", suggestExtension);
+    extensionSuggestion.dispose();
+  });
   listeners.push(() => paywall?.dispose());
   const showPaywall = (usage: MobileUsage, requested?: string) => {
     if (!getMobilePaywall(usage, requested)) return false;
+    extensionSuggestion.close();
     paywall ??= mountMobilePaywall(root, {
       userId: () => session?.user.id,
       flush: async () => {
@@ -1339,6 +1353,7 @@ export function mountMobileWebApp(
     );
     void trackMobileEvent("copy", getMobileCopyAnalyticsContext(field, copied));
     if (!copied) return;
+    suggestExtension();
     if (field === "title") copiedTitle = true;
     else copiedDescription = true;
     if (typeof navigator !== "undefined") navigator.vibrate?.(20);

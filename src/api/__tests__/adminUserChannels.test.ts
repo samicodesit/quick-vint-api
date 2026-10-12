@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { from, attributionQueries } = vi.hoisted(() => ({
+const { from, attributionQueries, webQueries } = vi.hoisted(() => ({
   from: vi.fn(),
   attributionQueries: [] as any[],
+  webQueries: [] as any[],
 }));
 vi.mock("../../../utils/supabaseClient", () => ({ supabase: { from } }));
 vi.mock("resend", () => ({
@@ -56,7 +57,7 @@ const users = ["known", "referral", "campaign", "missing"].map((id) => ({
   subscription_tier: "free",
   api_calls_this_month: 5,
 }));
-function stubDatabase(attributions: unknown) {
+function stubDatabase(attributions: unknown, webError: unknown = null) {
   from.mockImplementation((table: string) => {
     if (table === "profiles")
       return queryResult({ data: users, count: 4, error: null });
@@ -65,14 +66,27 @@ function stubDatabase(attributions: unknown) {
       attributionQueries.push(query);
       return query;
     }
-    if (table === "api_logs")
-      return queryResult({
+    if (table === "api_logs") {
+      const query = queryResult({
         data: users.map((u) => ({
           user_id: u.id,
           created_at: "2026-10-01T11:00:00Z",
         })),
         error: null,
       });
+      query.select.mockImplementation((fields: string) => {
+        if (fields === "user_id") {
+          webQueries.push(query);
+          query.then = (resolve: any) =>
+            Promise.resolve({
+              data: [{ user_id: "known" }],
+              error: webError,
+            }).then(resolve);
+        }
+        return query;
+      });
+      return query;
+    }
     return queryResult({ data: [], error: null });
   });
 }
@@ -81,6 +95,7 @@ describe("admin user channel badges data", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     attributionQueries.length = 0;
+    webQueries.length = 0;
     process.env.ADMIN_SECRET = "secret";
   });
 
@@ -165,5 +180,60 @@ describe("admin user channel badges data", () => {
     );
     expect(res.statusCode).toBe(401);
     expect(from).not.toHaveBeenCalled();
+  });
+  it("marks observed web-app use separately from the arrival channel without hiding other users", async () => {
+    stubDatabase({
+      data: [{ user_id: "known", source: "google", referrer_host: null }],
+      error: null,
+    });
+    const res = response();
+    await handler(
+      {
+        method: "GET",
+        headers: { authorization: "Bearer secret" },
+        query: { action: "list-users" },
+      } as any,
+      res as any,
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.users).toHaveLength(4);
+    expect(res.body.users.find((u: any) => u.id === "known")).toMatchObject({
+      acquisition_source: "google",
+      web_app_observed: true,
+    });
+    expect(
+      res.body.users.find((u: any) => u.id === "missing").web_app_observed,
+    ).toBe(false);
+    expect(webQueries).toHaveLength(1);
+    expect(webQueries[0].select).toHaveBeenCalledWith("user_id");
+    expect(webQueries[0].in).toHaveBeenCalledWith(
+      "user_id",
+      users.map((user) => user.id),
+    );
+    expect(webQueries[0].or).toHaveBeenCalledWith(
+      "full_request_body->>client.eq.mobile_web,full_request_body->>source.eq.mobile_web",
+    );
+    expect(webQueries[0].gte).toHaveBeenCalledWith(
+      "created_at",
+      expect.any(String),
+    );
+    expect(webQueries[0].limit).toHaveBeenCalledWith(5000);
+  });
+  it("keeps Users available without invented badges when web activity cannot be read", async () => {
+    stubDatabase({ data: [], error: null }, { message: "Unavailable" });
+    const res = response();
+    await handler(
+      {
+        method: "GET",
+        headers: { authorization: "Bearer secret" },
+        query: { action: "list-users" },
+      } as any,
+      res as any,
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.users).toHaveLength(4);
+    expect(
+      res.body.users.every((user: any) => user.web_app_observed === false),
+    ).toBe(true);
   });
 });

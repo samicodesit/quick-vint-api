@@ -41,6 +41,31 @@ describe("mobile result, billing, and analytics", () => {
     });
   });
 
+  it("records the extension install CTA in the existing transport without private context", async () => {
+    const { trackMobileEvent } = await import("../analytics.js");
+    await expect(
+      trackMobileEvent("chrome_store_click", {
+        target: "extension_suggestion",
+        email: "private@example.test",
+        listingText: "Private description",
+      }),
+    ).resolves.toBe(true);
+    expect(telemetryTrack).toHaveBeenCalledWith(
+      "chrome_store_click",
+      expect.objectContaining({
+        source: "mobile_web",
+        page: "/app",
+        context: expect.objectContaining({ target: "extension_suggestion" }),
+      }),
+    );
+    expect(JSON.stringify(telemetryTrack.mock.calls)).not.toContain(
+      "private@example.test",
+    );
+    expect(JSON.stringify(telemetryTrack.mock.calls)).not.toContain(
+      "Private description",
+    );
+  });
+
   it("copies only the requested field and preserves description line breaks", async () => {
     const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", {

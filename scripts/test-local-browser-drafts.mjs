@@ -671,6 +671,48 @@ try {
   checks.push(
     "A lost response recovers via a read-only lookup without another generation",
   );
+  await click("copy-title");
+  await page.waitForFunction(() => document.querySelector('[data-draft-copy-status]')?.textContent === 'Title copied.');
+  assert.equal(await page.locator("dialog.mobile-extension-suggestion[open]").count(), 0);
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await click("copy-description");
+  const suggestion = page.getByRole("dialog", { name: "Prefer to work directly inside Vinted?" });
+  await suggestion.waitFor();
+  const install = suggestion.getByRole("link", { name: "Install Chrome extension" });
+  const installUrl = new URL(await install.getAttribute("href"));
+  assert.equal(installUrl.hostname, "chromewebstore.google.com");
+  assert.match(installUrl.pathname, /mommklhpammnlojjobejddmidmdcalcl$/);
+  assert.equal(await install.getAttribute("target"), "_blank");
+  await page.screenshot({ path: `${output}/extension-suggestion.png` });
+  await suggestion.getByRole("button", { name: "Not now" }).click();
+  assert.equal(await suggestion.count(), 0);
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  await click("copy-title");
+  await page.waitForFunction(() => document.querySelector('[data-draft-copy-status]')?.textContent === 'Title copied.');
+  assert.equal(await suggestion.count(), 0);
+  await page.reload();
+  await action("done").waitFor();
+  await click("copy-title");
+  await page.waitForFunction(() => document.querySelector('[data-draft-copy-status]')?.textContent === 'Title copied.');
+  assert.equal(await suggestion.count(), 0);
+  // A known installed extension must not be promoted again after cooldown.
+  await page.evaluate(({ userId }) => {
+    localStorage.setItem(`autolister.mobile.extension-suggestion.${userId}`, String(Date.now() - 1));
+    window.__fixturePingCount = 0;
+    window.chrome ||= {};
+    window.chrome.runtime = { sendMessage: (_id, _message, reply) => { window.__fixturePingCount++; reply({ installed: true }); } };
+  }, { userId });
+  await click("copy-title");
+  await page.waitForFunction(() => window.__fixturePingCount === 1);
+  assert.equal(await suggestion.count(), 0);
+  await page.evaluate(() => { delete window.chrome.runtime; });
+  await click("copy-title");
+  await suggestion.waitFor();
+  await page.keyboard.press("Escape");
+  assert.equal(await suggestion.count(), 0);
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  checks.push("Desktop copy offers the real Chrome extension; phones and installed users are skipped; dismissal survives reload for seven days; Escape removes the backdrop immediately");
+  await page.setViewportSize({ width: 390, height: 844 });
   await click("done");
   await page.locator('[data-draft-tab="done"]').click();
   await waitForDrafts(1);
@@ -728,6 +770,13 @@ try {
   );
 } catch (error) {
   await page.screenshot({ path: `${output}/failure.png` });
+  console.error(await page.evaluate(({ userId }) => ({
+    ua: navigator.userAgent, width: innerWidth, hidden: document.hidden,
+    active: document.activeElement?.outerHTML.slice(0, 200),
+    overlays: Array.from(document.querySelectorAll('dialog[open], [aria-modal="true"], details[data-draft-popover][open], [data-mobile-web="profile-menu"]:not([hidden])')).map(el => el.outerHTML.slice(0, 200)),
+    cooldown: localStorage.getItem(`autolister.mobile.extension-suggestion.${userId}`),
+    copyStatus: document.querySelector('[data-draft-copy-status]')?.textContent,
+  }), { userId }));
   console.error(JSON.stringify({ errors, requests: requests.slice(-12) }));
   throw error;
 } finally {

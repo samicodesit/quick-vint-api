@@ -6,6 +6,13 @@
     "lockedOptions": "Locks next to each unavailable tone, emoji switch and seller note inclusion. Activation opens pricing in a separate tab without changing the draft or starting checkout.",
     "savedChoices": "Existing defaults and drafts retain their choices. Plan restrictions affect displayed controls and new generation inputs, not stored preferences or uncertain retry inputs."
   },
+  "deployment": {
+    "source": "3da73fa936a6d2be73d30cafaf357119a43e80bd",
+    "id": "dpl_E2yRMXzVq7XSnvJbZu7db8gio3HC",
+    "state": "READY",
+    "link": "https://autolister.app/beta",
+    "verified": "Short link returns 307 to the existing protected branch alias. Protected app returns 200 with the new lock markup and discovery bundle; anonymous access redirects to Vercel login. Pricing returns 200. Project-wide preview skip and Vercel protection remain unchanged. Public production app remains disabled."
+  },
   "verification": {
     "redTest": "The focused rendered-browser test first failed because a new account had no Settings discovery cue.",
     "focusedBrowser": "5 scenarios passed: global/item/batch defaults and generation payloads; Basic locks and keyboard pricing navigation; saved opt-outs and reduced motion; account isolation and downgrade/upgrade preferences; Free extras and responsive widths.",
@@ -13,5 +20,6 @@
     "releaseGate": "Lint, TypeScript, Astro build, formatting and all 864 tests in 121 files passed with RUN_GENERATION_BROWSER_TESTS=1. The real browser/HTTP retry integration tests ran.",
     "visual": "Inspected Settings highlight and locked tone dropdown screenshots at 360px. No horizontal overflow at 360, 390, 768 or 1440px. Header bounds remain identical after discovery clears.",
     "limitations": "External auth, usage, upload and generation services are fixtures in the UI tests. No customer generation or checkout was executed. Physical iOS/Android camera, keyboard and storage behavior was not reverified for this change."
-  }
+  },
+  "cleanup": "The test server was stopped and the generation inspection helper removed. Automatic approval review blocked deletion of /tmp/autolister-settings-qa and /tmp/autolister-settings-flow-qa. These task-owned screenshots and browser outputs remain locally; no customer data or secrets are stored in them."
 }

@@ -24,6 +24,16 @@ describe("home hero copy", () => {
       "Group mixed photos into separate items before creating your listing drafts.",
     );
   });
+  it("scopes the no-copy-paste promise to the extension route", () => {
+    expect(source).toContain(
+      "data-extension-only-benefit>{extra.heroBullet2}</p>",
+    );
+    const sharedBenefits = source.slice(
+      source.indexOf("<ul"),
+      source.indexOf("</ul>"),
+    );
+    expect(sharedBenefits).not.toContain("{extra.heroBullet2}");
+  });
 
   it("does not render or load blog posts on the homepage", () => {
     expect(source).not.toContain("BlogCard");

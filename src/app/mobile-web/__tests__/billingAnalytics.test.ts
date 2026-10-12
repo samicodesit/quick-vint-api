@@ -20,6 +20,33 @@ vi.mock("../generationClient.js", () => ({
 vi.mock("../../../scripts/attribution.js", () => attributionModule);
 
 describe("mobile result, billing, and analytics", () => {
+  it("records batch size and paid-option reasons without draft text or photo URLs", async () => {
+    const { trackMobileEvent } = await import("../analytics.js");
+    await expect(
+      trackMobileEvent("web_generation_run", {
+        method: "batch",
+        count: 7,
+        listingText: "Private",
+        photoUrl: "https://private.test/photo",
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      trackMobileEvent("web_paywall_view", {
+        errorCode: "free_lifetime_limit",
+        tier: "free",
+      }),
+    ).resolves.toBe(true);
+    expect(telemetryTrack).toHaveBeenCalledWith(
+      "web_generation_run",
+      expect.objectContaining({
+        context: expect.objectContaining({ method: "batch", count: 7 }),
+      }),
+    );
+    expect(JSON.stringify(telemetryTrack.mock.calls)).not.toContain("Private");
+    expect(JSON.stringify(telemetryTrack.mock.calls)).not.toContain(
+      "private.test",
+    );
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     telemetryTrack.mockResolvedValue({ queued: true });

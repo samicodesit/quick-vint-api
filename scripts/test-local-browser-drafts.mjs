@@ -58,6 +58,7 @@ await context.route("https://drafts-test.supabase.co/**", (route) =>
   route.fulfill({ json: {} }),
 );
 const requests = [];
+const telemetryEvents = [];
 const outcomes = new Map();
 let generations = 0;
 let hold = false;
@@ -75,6 +76,13 @@ await context.route(`${base}/api/**`, async (route) => {
   const req = route.request();
   const url = new URL(req.url());
   requests.push({ path: url.pathname, method: req.method() });
+  if (url.pathname === "/api/events/track") {
+    const events = req.postDataJSON().events || [];
+    telemetryEvents.push(...events);
+    return route.fulfill({
+      json: { acknowledgedIds: events.map((event) => event.id) },
+    });
+  }
   if (["/api/drafts", "/api/draft-photo"].includes(url.pathname))
     return route.abort("failed");
   if (url.pathname === "/api/stripe/create-checkout") {
@@ -672,13 +680,24 @@ try {
     "A lost response recovers via a read-only lookup without another generation",
   );
   await click("copy-title");
-  await page.waitForFunction(() => document.querySelector('[data-draft-copy-status]')?.textContent === 'Title copied.');
-  assert.equal(await page.locator("dialog.mobile-extension-suggestion[open]").count(), 0);
+  await page.waitForFunction(
+    () =>
+      document.querySelector("[data-draft-copy-status]")?.textContent ===
+      "Title copied.",
+  );
+  assert.equal(
+    await page.locator("dialog.mobile-extension-suggestion[open]").count(),
+    0,
+  );
   await page.setViewportSize({ width: 1200, height: 900 });
   await click("copy-description");
-  const suggestion = page.getByRole("dialog", { name: "Prefer to work directly inside Vinted?" });
+  const suggestion = page.getByRole("dialog", {
+    name: "Prefer to work directly inside Vinted?",
+  });
   await suggestion.waitFor();
-  const install = suggestion.getByRole("link", { name: "Install Chrome extension" });
+  const install = suggestion.getByRole("link", {
+    name: "Install Chrome extension",
+  });
   const installUrl = new URL(await install.getAttribute("href"));
   assert.equal(installUrl.hostname, "chromewebstore.google.com");
   assert.match(installUrl.pathname, /mommklhpammnlojjobejddmidmdcalcl$/);
@@ -688,30 +707,53 @@ try {
   assert.equal(await suggestion.count(), 0);
   assert.equal(await page.evaluate(() => document.body.style.overflow), "");
   await click("copy-title");
-  await page.waitForFunction(() => document.querySelector('[data-draft-copy-status]')?.textContent === 'Title copied.');
+  await page.waitForFunction(
+    () =>
+      document.querySelector("[data-draft-copy-status]")?.textContent ===
+      "Title copied.",
+  );
   assert.equal(await suggestion.count(), 0);
   await page.reload();
   await action("done").waitFor();
   await click("copy-title");
-  await page.waitForFunction(() => document.querySelector('[data-draft-copy-status]')?.textContent === 'Title copied.');
+  await page.waitForFunction(
+    () =>
+      document.querySelector("[data-draft-copy-status]")?.textContent ===
+      "Title copied.",
+  );
   assert.equal(await suggestion.count(), 0);
   // A known installed extension must not be promoted again after cooldown.
-  await page.evaluate(({ userId }) => {
-    localStorage.setItem(`autolister.mobile.extension-suggestion.${userId}`, String(Date.now() - 1));
-    window.__fixturePingCount = 0;
-    window.chrome ||= {};
-    window.chrome.runtime = { sendMessage: (_id, _message, reply) => { window.__fixturePingCount++; reply({ installed: true }); } };
-  }, { userId });
+  await page.evaluate(
+    ({ userId }) => {
+      localStorage.setItem(
+        `autolister.mobile.extension-suggestion.${userId}`,
+        String(Date.now() - 1),
+      );
+      window.__fixturePingCount = 0;
+      window.chrome ||= {};
+      window.chrome.runtime = {
+        sendMessage: (_id, _message, reply) => {
+          window.__fixturePingCount++;
+          reply({ installed: true });
+        },
+      };
+    },
+    { userId },
+  );
   await click("copy-title");
   await page.waitForFunction(() => window.__fixturePingCount === 1);
   assert.equal(await suggestion.count(), 0);
-  await page.evaluate(() => { delete window.chrome.runtime; });
+  await page.evaluate(() => {
+    delete window.chrome.runtime;
+  });
   await click("copy-title");
   await suggestion.waitFor();
   await page.keyboard.press("Escape");
   assert.equal(await suggestion.count(), 0);
   assert.equal(await page.evaluate(() => document.body.style.overflow), "");
-  checks.push("Desktop copy offers the real Chrome extension; phones and installed users are skipped; dismissal survives reload for seven days; Escape removes the backdrop immediately");
+  checks.push(
+    "Desktop copy offers the real Chrome extension; phones and installed users are skipped; dismissal survives reload for seven days; Escape removes the backdrop immediately",
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await click("done");
   await page.locator('[data-draft-tab="done"]').click();
@@ -744,6 +786,26 @@ try {
   );
   assert.equal((await snapshot()).blobCount, 11);
   assert.equal(errors.length, 0, errors.join("\n"));
+  await page.evaluate(() => globalThis.AutoListerWebsiteTelemetry.flush());
+  assert.ok(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "web_generation_run" &&
+        event.context.method === "batch" &&
+        event.context.count === 3,
+    ),
+  );
+  assert.ok(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "web_paywall_view" &&
+        event.context.errorCode === "free_lifetime_limit",
+    ),
+  );
+  assert.ok(telemetryEvents.some((event) => event.event === "copy"));
+  checks.push(
+    "Existing durable telemetry records batch size, quota paywalls and copies without blocking the UI",
+  );
   await writeFile(
     `${output}/result.json`,
     JSON.stringify(
@@ -770,13 +832,27 @@ try {
   );
 } catch (error) {
   await page.screenshot({ path: `${output}/failure.png` });
-  console.error(await page.evaluate(({ userId }) => ({
-    ua: navigator.userAgent, width: innerWidth, hidden: document.hidden,
-    active: document.activeElement?.outerHTML.slice(0, 200),
-    overlays: Array.from(document.querySelectorAll('dialog[open], [aria-modal="true"], details[data-draft-popover][open], [data-mobile-web="profile-menu"]:not([hidden])')).map(el => el.outerHTML.slice(0, 200)),
-    cooldown: localStorage.getItem(`autolister.mobile.extension-suggestion.${userId}`),
-    copyStatus: document.querySelector('[data-draft-copy-status]')?.textContent,
-  }), { userId }));
+  console.error(
+    await page.evaluate(
+      ({ userId }) => ({
+        ua: navigator.userAgent,
+        width: innerWidth,
+        hidden: document.hidden,
+        active: document.activeElement?.outerHTML.slice(0, 200),
+        overlays: Array.from(
+          document.querySelectorAll(
+            'dialog[open], [aria-modal="true"], details[data-draft-popover][open], [data-mobile-web="profile-menu"]:not([hidden])',
+          ),
+        ).map((el) => el.outerHTML.slice(0, 200)),
+        cooldown: localStorage.getItem(
+          `autolister.mobile.extension-suggestion.${userId}`,
+        ),
+        copyStatus: document.querySelector("[data-draft-copy-status]")
+          ?.textContent,
+      }),
+      { userId },
+    ),
+  );
   console.error(JSON.stringify({ errors, requests: requests.slice(-12) }));
   throw error;
 } finally {

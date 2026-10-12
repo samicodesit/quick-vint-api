@@ -86,5 +86,13 @@ describe("admin log pagination", () => {
       totalPages: 3,
     });
     expect(selections).toContainEqual({ count: "exact", head: true });
+    const listColumns = query.select.mock.calls.find(
+      (call: any[]) => !call[1]?.head,
+    )?.[0];
+    expect(listColumns).toContain("image_count:full_request_body->imageCount");
+    expect(listColumns).toContain(
+      "event_status:full_request_body->context->status",
+    );
+    expect(listColumns).not.toMatch(/(?:^|, )full_request_body(?:,|$)/);
   });
 });

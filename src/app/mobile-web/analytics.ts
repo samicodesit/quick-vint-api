@@ -15,6 +15,8 @@ export const MOBILE_ANALYTICS_EVENTS = [
   "upload_complete",
   "generation_success",
   "generation_error",
+  "web_generation_run",
+  "web_paywall_view",
   "copy",
   "vinted_click",
   "checkout_start",

@@ -18,6 +18,12 @@ globalThis.AutoListerEventRegistry = {
   generation_error: {
     kind: "business",
   },
+  web_generation_run: {
+    kind: "business",
+  },
+  web_paywall_view: {
+    kind: "business",
+  },
   copy: {
     kind: "business",
   },

@@ -2057,6 +2057,8 @@ export function mountDraftWorkspace(
         void trackMobileEvent("generation_success", {
           target: "draft_workspace",
           imageCount: current.photos.length,
+          method: generationCount > 1 ? "batch" : "single",
+          count: generationCount,
         });
       } catch (error) {
         const recovered = await draftAction("recover", { draftId: id }).catch(
@@ -2072,6 +2074,12 @@ export function mountDraftWorkspace(
         }
         const blockedUsage = await options.onUsageChange();
         const blockCode = (error as { code?: string }).code;
+        void trackMobileEvent("generation_error", {
+          target: "draft_workspace",
+          errorCode: blockCode || "generation_failed",
+          method: generationCount > 1 ? "batch" : "single",
+          count: generationCount,
+        });
         if (
           blockCode &&
           [
@@ -2312,6 +2320,11 @@ export function mountDraftWorkspace(
     )
       return;
     generationCount = ids.length;
+    void trackMobileEvent("web_generation_run", {
+      method: ids.length > 1 ? "batch" : "single",
+      count: ids.length,
+      target: "draft_workspace",
+    });
     reviewIds = [...ids];
     rememberView();
     attempts.clear();

@@ -553,6 +553,65 @@ function buildAdminHarness() {
 }
 
 describe("admin HTML", () => {
+  it("opens a mobile generation with JSON null photos and displays its recorded photo count", async () => {
+    const { context, modalBody, modalTitle } = buildAdminHarness();
+    context.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        log: {
+          id: "mobile-log",
+          endpoint: "/api/generate",
+          response_status: 200,
+          image_urls: "null",
+          full_request_body: {
+            client: "mobile_web",
+            imageCount: 2,
+            openaiImageCount: 2,
+          },
+          generated_title: "Photo-based item",
+          created_at: "2026-10-12T16:30:53Z",
+        },
+      }),
+    });
+    await context.showLogDetails("mobile-log");
+    expect(modalTitle.textContent).toBe("Log Details");
+    expect(modalBody.innerHTML).toContain("2 photos sent");
+    expect(modalBody.innerHTML).toContain("Preview not retained");
+  });
+
+  it("renders compact counts and payment outcomes without fetching full request bodies", () => {
+    const { context } = buildAdminHarness();
+    const html = context.renderActivityFeed([
+      {
+        id: "mobile-count",
+        endpoint: "/api/generate",
+        response_status: 200,
+        image_count: 3,
+        log_client: "mobile_web",
+      },
+      {
+        id: "paid",
+        endpoint: "/event/subscription_started",
+        response_status: 204,
+        event_tier: "starter",
+        event_status: "active",
+        log_source: "stripe_webhook",
+      },
+      {
+        id: "cancel",
+        endpoint: "/event/checkout_return",
+        response_status: 204,
+        event_status: "cancel",
+        log_source: "mobile_web",
+      },
+    ]);
+    expect(html).toContain("3 images");
+    expect(html).toContain("Web app");
+    expect(html).toContain("Subscription activated");
+    expect(html).toContain("starter");
+    expect(html).toContain("cancel");
+    expect(html).not.toContain("0 images");
+  });
   it("collapses consecutive delivery diagnostics while preserving every raw record and product event", () => {
     const { context } = buildAdminHarness();
     const rows = Array.from({ length: 12 }, (_, index) => ({

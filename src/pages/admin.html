@@ -3295,6 +3295,14 @@
                 paywall_shown: 'Paywall shown',
                 paywall_option_select: 'Paywall option select',
                 checkout_start: 'Checkout start',
+                checkout_return: 'Checkout return',
+                subscription_started: 'Subscription activated',
+                credit_pack_paid: 'Credits purchased',
+                web_paywall_view: 'Web app paid options shown',
+                web_generation_run: 'Web app generation run',
+                generation_success: 'Generation success',
+                generation_error: 'Generation error',
+                copy: 'Copied draft text',
                 checkout_opened: 'Checkout opened',
                 chrome_store_click: 'Chrome Store click',
                 magic_link_request: 'Magic link request',
@@ -3435,14 +3443,19 @@
         }
 
         function getLogContext(log) {
-            const body = log.full_request_body || {};
-            const context = body.context || {};
+            const body = parseLogMetadata(log);
+            const context = body.context || {
+                status: log.event_status, tier: log.event_tier,
+                target: log.event_target, field: log.event_field
+            };
             const event = typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')
                 ? log.endpoint.replace('/event/', '')
                 : '';
-            const summary = getEventContextSummary(event, context);
+            const summary = ['checkout_return', 'subscription_started', 'credit_pack_paid', 'copy'].includes(event)
+                ? [context.status, context.tier || body.plan, context.field].filter(Boolean).join(' · ')
+                : getEventContextSummary(event, context);
             const page = context.path || context.page || body.page || '';
-            const source = body.source || context.source || '';
+            const source = body.source || log.log_source || context.source || '';
             return [summary, page, source].filter(Boolean).join(' · ') || log.endpoint || 'No details';
         }
 
@@ -3750,10 +3763,19 @@
 
         function parseLogImages(log) {
             try {
-                if (typeof log.image_urls === 'string') return JSON.parse(log.image_urls);
-                if (Array.isArray(log.image_urls)) return log.image_urls;
+                const images = typeof log.image_urls === 'string' ? JSON.parse(log.image_urls) : log.image_urls;
+                if (Array.isArray(images)) return images;
             } catch (e) { }
             return [];
+        }
+
+        function getLogImageCount(log) {
+            const metadata = parseLogMetadata(log);
+            for (const count of [log.image_count, metadata.imageCount, metadata.openaiImageCount]) {
+                if (Number.isInteger(count) && count >= 0) return count;
+            }
+            const images = parseLogImages(log);
+            return images.length || getSafeLogImageUrls(log).length || null;
         }
 
         function parseLogMetadata(log) {
@@ -3839,7 +3861,8 @@
             if (eventName === 'generate_cancelled') return { symbol: 'CXL', className: 'warning' };
             if (eventName === 'generate_success') return { symbol: 'OK', className: 'success' };
             if (eventName === 'generate_limit_hit' || eventName === 'account_paused_shown') return { symbol: 'LIM', className: 'warning' };
-            if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_')) return { symbol: 'PAY', className: 'warning' };
+            if (eventName === 'subscription_started' || eventName === 'credit_pack_paid') return { symbol: 'PAID', className: 'success' };
+            if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_') || eventName === 'web_paywall_view') return { symbol: 'PAY', className: 'warning' };
             if (eventName.startsWith('magic_link_') || eventName.startsWith('auth_') || eventName === 'signin_cta_click' || eventName === 'signed_out_tools_ready') return { symbol: 'AUTH', className: 'system' };
             if (eventName === 'listing_tools_ready') return { symbol: 'READY', className: 'success' };
             if (eventName === 'generate_click' || eventName === 'generate_request') return { symbol: 'GEN', className: 'generate' };
@@ -3868,8 +3891,10 @@
             const kind = getLogKind(log);
             if (kind === 'Event') return getLogContext(log);
             if (kind === 'Generation') {
-                const imageCount = getSafeLogImageUrls(log).length || parseLogImages(log).length;
-                return `${imageCount || 0} image${imageCount === 1 ? '' : 's'} · ${log.openai_model || 'unknown model'} · ${formatOpenAICost(log)}`;
+                const imageCount = getLogImageCount(log);
+                const metadata = parseLogMetadata(log);
+                const client = (log.log_client || metadata.client) === 'mobile_web' ? 'Web app · ' : '';
+                return `${client}${imageCount === null ? 'Photo count unavailable' : `${imageCount} image${imageCount === 1 ? '' : 's'}`} · ${log.openai_model || 'unknown model'} · ${formatOpenAICost(log)}`;
             }
             return getLogPreview(log);
         }
@@ -3910,14 +3935,14 @@
                 const images = getSafeLogImageUrls(log);
                 const thumb = images.length
                     ? `<img src="${escapeAttribute(images[0])}" alt="Item preview" loading="lazy">`
-                    : (getLogKind(log) === 'Generation' ? 'No image' : '');
+                    : (getLogKind(log) === 'Generation' ? 'No preview' : '');
                 const statusClass = dropDiagnostic ? 'warning' : log.response_status >= 400
                     ? 'danger'
                     : (log.response_status ? 'success' : 'neutral');
 
                 return `
                     <div class="activity-row ${icon.className || 'system'}" onclick="showLogDetails('${escapeAttribute(log.id)}')">
-                        <div class="log-time">${formatDateTime(log.created_at)}</div>
+                        <div class="log-time">${formatDateTime(log.event_occurred_at || parseLogMetadata(log).occurredAt || log.created_at)}</div>
                         <div class="activity-icon ${icon.className}">${escapeHtml(icon.symbol)}</div>
                         <div class="activity-thumb">${thumb}</div>
                         <div class="activity-main">
@@ -4966,7 +4991,8 @@
                         </div>
                         <div class="text-sm text-muted">
                             ID: ${escapeHtml(log.id)}<br>
-                            Time: ${escapeHtml(formatDateTime(log.created_at))}<br>
+                            Time: ${escapeHtml(formatDateTime(metadata.occurredAt || log.created_at))}<br>
+                            ${metadata.occurredAt ? `Received: ${escapeHtml(formatDateTime(log.created_at))}<br>` : ''}
                             Actor: ${getLogActor(log)}<br>
                             ${correlatedUserLine}
                             ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
@@ -4997,7 +5023,7 @@
                 `<div class="image-gallery">
                     ${images.map((url, index) => renderLogImageButton(log, url, index)).join('')}
                  </div>` :
-                `<div style="padding: 2rem; text-align: center; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">No item images for this ${escapeHtml(logKind.toLowerCase())} log</div>`;
+                `<div style="padding: 1rem; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">${getLogImageCount(log) === null ? 'Photo count unavailable.' : `${getLogImageCount(log)} photos sent.`} Preview not retained for this log.</div>`;
 
             const content = `
                 <div>

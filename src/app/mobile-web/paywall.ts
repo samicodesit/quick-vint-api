@@ -215,6 +215,10 @@ export function mountMobilePaywall(
         overflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
         dialog.showModal();
+        void trackMobileEvent("web_paywall_view", {
+          errorCode: requested || usage.blockedReason || "paid_options",
+          tier: usage.plan?.tier,
+        });
       }
       return true;
     },

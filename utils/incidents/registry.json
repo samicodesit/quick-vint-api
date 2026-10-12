@@ -5,6 +5,8 @@
   "upload_complete": { "kind": "business" },
   "generation_success": { "kind": "business" },
   "generation_error": { "kind": "business" },
+  "web_generation_run": { "kind": "business" },
+  "web_paywall_view": { "kind": "business" },
   "copy": { "kind": "business" },
   "vinted_click": { "kind": "business" },
   "checkout_return": { "kind": "business" },

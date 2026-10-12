@@ -25,8 +25,7 @@ import {
   normalizeGenerationMode,
 } from "../utils/generationOffers";
 import {
-  DEFAULT_OPENAI_IMAGE_DETAIL,
-  DEFAULT_OPENAI_MODEL,
+  selectDraftModel,
   getOpenAIChatTemperatureParam,
   getOpenAIChatTokenLimitParam,
 } from "../utils/openaiModelExperiment";
@@ -390,11 +389,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const selectedModel =
-    user.email?.toLowerCase() === "samicodesit+ai-style-test@gmail.com"
-      ? "gpt-5.4-mini"
-      : DEFAULT_OPENAI_MODEL;
-  const selectedImageDetail = DEFAULT_OPENAI_IMAGE_DETAIL;
+  const draftModelPilot = selectDraftModel(user.id, user.email);
+  const selectedModel = draftModelPilot.model;
+  const selectedImageDetail = draftModelPilot.imageDetail;
+  mergeLogRequestBody(logData, { draftModelPilot });
 
   if (isDisposableEmail(user.email || "")) {
     logData.responseStatus = 403;
@@ -1040,6 +1038,7 @@ Reply only in JSON: {"title":"...","description":"..."}
   try {
     const openAIImageUrls = await prepareOpenAIImageUrls(imageUrls);
     mergeLogRequestBody(logData, {
+      openaiImageCount: openAIImageUrls.length,
       openaiImageUrlKinds: openAIImageUrls.map((url) =>
         url.startsWith("data:") ? "data_url" : "remote_url",
       ),
@@ -1092,20 +1091,120 @@ Reply only in JSON: {"title":"...","description":"..."}
       return openai.chat.completions.create(completionParams).withResponse();
     };
 
-    const { data: chat, response: openaiResponse } =
-      await createCompletion(selectedModel);
-
-    // Log token usage and rate limit info
-    logData.openaiTokensUsed = chat.usage?.total_tokens;
-    logData.openaiPromptTokens = chat.usage?.prompt_tokens;
-    logData.openaiCompletionTokens = chat.usage?.completion_tokens;
-    logData.openaiCachedTokens =
-      chat.usage?.prompt_tokens_details?.cached_tokens;
+    let content: string;
+    let openaiResponse: Awaited<
+      ReturnType<typeof createCompletion>
+    >["response"];
+    const modelStartTime = Date.now();
+    if (draftModelPilot.arm === "pilot") {
+      // SDK 4's convenience types predate Fast and explicit cache controls.
+      // Its typed POST transport preserves the exact audited Responses body.
+      const { data: result, response } = await openai
+        .post<
+          Record<string, unknown>,
+          {
+            id?: string;
+            model?: string;
+            status: string;
+            service_tier?: string;
+            output?: Array<{
+              type: string;
+              content?: Array<{ type: string; text?: string }>;
+            }>;
+            usage?: {
+              total_tokens: number;
+              input_tokens: number;
+              output_tokens: number;
+              input_tokens_details?: {
+                cached_tokens?: number;
+                cache_write_tokens?: number;
+              };
+            };
+          }
+        >("/responses", {
+          body: {
+            model: selectedModel,
+            input: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content: [
+                  { type: "input_text", text: userPrompt },
+                  ...openAIImageUrls.map((image_url) => ({
+                    type: "input_image",
+                    image_url,
+                    detail: selectedImageDetail,
+                  })),
+                ],
+              },
+            ],
+            service_tier: "fast",
+            reasoning: { effort: "low" },
+            max_output_tokens: OPEN_AI_MAX_OUTPUT_TOKENS,
+            store: false,
+            prompt_cache_options: { mode: "explicit" },
+            text: {
+              format: {
+                type: "json_schema",
+                name: "listing",
+                strict: true,
+                schema: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    title: { type: "string", minLength: 1 },
+                    description: { type: "string", minLength: 1 },
+                  },
+                  required: ["title", "description"],
+                },
+              },
+            },
+          },
+        })
+        .withResponse();
+      openaiResponse = response;
+      logData.openaiTokensUsed = result.usage?.total_tokens;
+      logData.openaiPromptTokens = result.usage?.input_tokens;
+      logData.openaiCompletionTokens = result.usage?.output_tokens;
+      logData.openaiCachedTokens =
+        result.usage?.input_tokens_details?.cached_tokens;
+      mergeLogRequestBody(logData, {
+        openaiBilling: {
+          serviceTier: result.service_tier ?? null,
+          cacheWriteTokens:
+            result.usage?.input_tokens_details?.cache_write_tokens ?? 0,
+        },
+        openaiRequestedServiceTier: "fast",
+        openaiResponseId: result.id,
+        openaiActualModel: result.model,
+        openaiResponseStatus: result.status,
+        openaiModelDurationMs: Date.now() - modelStartTime,
+      });
+      if (result.status !== "completed")
+        throw new Error("OpenAI response incomplete");
+      content = (result.output ?? [])
+        .filter((item) => item.type === "message")
+        .flatMap((item) => item.content ?? [])
+        .filter((part) => part.type === "output_text")
+        .map((part) => part.text ?? "")
+        .join("");
+    } else {
+      const { data: chat, response } = await createCompletion(selectedModel);
+      openaiResponse = response;
+      logData.openaiTokensUsed = chat.usage?.total_tokens;
+      logData.openaiPromptTokens = chat.usage?.prompt_tokens;
+      logData.openaiCompletionTokens = chat.usage?.completion_tokens;
+      logData.openaiCachedTokens =
+        chat.usage?.prompt_tokens_details?.cached_tokens;
+      mergeLogRequestBody(logData, {
+        openaiModelDurationMs: Date.now() - modelStartTime,
+      });
+      content = chat.choices?.[0]?.message?.content ?? "{}";
+    }
     const rateLimitInfo = extractOpenAIRateLimitHeaders(openaiResponse.headers);
     logData.openaiRateLimitInfo = rateLimitInfo;
     console.log("🔄 OpenAI Rate Limit Status:", rateLimitInfo);
 
-    const content = chat.choices?.[0]?.message?.content ?? "{}";
     const { title, description } = parseOpenAIListingOutput(content);
     const finalDescription = appendDescriptionFooter(
       description,

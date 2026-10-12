@@ -1,0 +1,9 @@
+# Web app abuse enforcement parity
+
+The web app and extension call the same `/api/generate` handler. Its authenticated duplicate-IP check and existing account-pause check run before photo preparation, idempotency recovery, credit reservation and AI generation. These checks do not depend on a browser event or client header. The web app maps `account_paused` to the existing paid-option/support prompt.
+
+No production enforcement change is needed. The extension's current policy, thresholds, paid entitlement exemption and support/payment recovery remain unchanged. This verifies parity, not perfect abuse detection: the existing IP-based rule has its existing coverage and false-positive limits. No new fingerprinting, storage, query, service or request latency is introduced.
+
+The permanent `generationAbuse.integration.test.ts` regression uses real loopback HTTP requests, the actual generation handler, real request IP extraction and the actual auto-pause helper against PGlite SQL tables. Only hosted auth/PostgREST and provider/log transport boundaries are replaced with local fixtures. AI transport throws if invoked. No real account, IP evidence, generation, credit or payment is touched.
+
+Nine integration cases verify persisted automatic pauses for web, extension and legacy requests; existing pauses across changed IP/client headers in manual/batch/phone-upload modes; a different-IP control reaching photo validation; shared IP without exhausted free usage; and the paid entitlement exemption. Existing helper, usage endpoint and mobile paywall tests also pass, totaling 43 targeted checks. Full production verification passed lint, type-check, build, formatting and 949 tests in 128 files, including the opt-in real HTTP/browser/database retry suite. The shipped app already enforces these rules, so this test-only follow-up does not require a deployment.

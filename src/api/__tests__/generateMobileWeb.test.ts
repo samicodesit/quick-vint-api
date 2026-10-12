@@ -4,6 +4,10 @@ const createCompletion = vi.fn();
 const getUser = vi.fn();
 const profileSingle = vi.fn();
 const logRequest = vi.fn();
+const backgroundWork = vi.hoisted(() => [] as Promise<unknown>[]);
+vi.mock("@vercel/functions", () => ({
+  waitUntil: (work: Promise<unknown>) => backgroundWork.push(work),
+}));
 const reserveGenerationRequest = vi.fn();
 const reserveEmojiRetry = vi.fn();
 const commitGenerationReservation = vi.fn();
@@ -326,6 +330,28 @@ describe("mobile web generation idempotency", () => {
     );
     return response;
   }
+  it("logs only a bounded browser ID without changing processed photo inputs", async () => {
+    await invoke(mobileHeaders, {
+      ...body,
+      analyticsClientId: requestId,
+    } as any);
+    await Promise.all(backgroundWork.splice(0));
+    const logged = logRequest.mock.calls.at(-1)![0];
+    expect(logged.fullRequestBody.analyticsClientId).toBe(requestId);
+    expect(logged.fullRequestBody.imageUrls).toBeUndefined();
+    expect(logged.fullRequestBody.imageCount).toBe(1);
+    expect(JSON.stringify(createCompletion.mock.calls)).toContain(
+      body.imageUrls[0],
+    );
+    await invoke(mobileHeaders, {
+      ...body,
+      analyticsClientId: { secret: "unbounded" },
+    } as any);
+    await Promise.all(backgroundWork.splice(0));
+    expect(
+      logRequest.mock.calls.at(-1)![0].fullRequestBody.analyticsClientId,
+    ).toBeUndefined();
+  });
 
   async function invokeWithoutBody(
     headers: Record<string, string> = mobileHeaders,
@@ -343,6 +369,30 @@ describe("mobile web generation idempotency", () => {
     "x-autolister-extension-version": "1.3.17",
     "x-autolister-request-id": requestId,
   };
+
+  it("returns a committed mobile result while a slow reporting write finishes in the background", async () => {
+    let finishLog!: () => void;
+    logRequest.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishLog = resolve;
+        }),
+    );
+    const pending = invoke();
+    try {
+      const response = await Promise.race([
+        pending,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 200)),
+      ]);
+      expect(response?.statusCode).toBe(200);
+      expect(response?.body.title).toBe("Black Dress");
+      expect(completeMobileGenerationIdempotency).toHaveBeenCalled();
+      expect(backgroundWork.length).toBeGreaterThan(0);
+    } finally {
+      finishLog?.();
+      await pending;
+    }
+  });
 
   it("replays an extension result with mobile disabled without another AI call or credit", async () => {
     process.env.MOBILE_WEB_APP_ENABLED = "false";

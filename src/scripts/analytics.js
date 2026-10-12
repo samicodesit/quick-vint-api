@@ -3,6 +3,11 @@ import "../../public/telemetry-core.js";
 import "../../public/telemetry-client.js";
 import "../../public/telemetry-website.js";
 import { captureFirstTouch } from "./attribution.js";
+import { getWebAnalyticsContext } from "./webAnalyticsContext";
+import {
+  HOMEPAGE_EXPERIMENT,
+  readHomepageAssignment,
+} from "./homepageExperiment";
 
 const KNOWN_UTM_KEYS = [
   "utm_source",
@@ -39,16 +44,28 @@ function trackEventUnsafe(event, properties) {
     ...properties,
   };
 
+  if (
+    ["web_app_click", "chrome_store_click", "home_hero_exposure"].includes(
+      event,
+    )
+  ) {
+    payload.context = {
+      ...(typeof payload.context === "object"
+        ? payload.context
+        : { source: payload.context }),
+      ...getWebAnalyticsContext(),
+    };
+  }
   if (typeof window.gtag === "function") {
     window.gtag("event", event, payload);
   }
 
-  void globalThis.AutoListerWebsiteTelemetry.track(event, payload);
+  return globalThis.AutoListerWebsiteTelemetry.track(event, payload);
 }
 
 export function trackEvent(event, properties = {}) {
   try {
-    trackEventUnsafe(event, properties);
+    return trackEventUnsafe(event, properties);
   } catch {}
 }
 
@@ -92,7 +109,7 @@ function bindTrackedClicks() {
   document.querySelectorAll("[data-track-event]").forEach((element) => {
     if (element.dataset.trackBound === "true") return;
     element.dataset.trackBound = "true";
-    element.addEventListener("click", () => {
+    element.addEventListener("click", (click) => {
       const context = element.dataset.trackCopyVersion
         ? {
             source: element.dataset.trackContext || null,
@@ -100,13 +117,55 @@ function bindTrackedClicks() {
           }
         : element.dataset.trackContext || null;
 
-      trackEvent(element.dataset.trackEvent, {
+      const queued = trackEvent(element.dataset.trackEvent, {
         context,
         plan: element.dataset.trackPlan || null,
       });
+      if (
+        element.dataset.trackEvent === "web_app_click" &&
+        element instanceof HTMLAnchorElement &&
+        click.button === 0 &&
+        !click.ctrlKey &&
+        !click.metaKey &&
+        !click.shiftKey &&
+        !click.altKey &&
+        element.target !== "_blank"
+      ) {
+        click.preventDefault();
+        // Give the existing local queue at most one frame to commit. Never
+        // wait for delivery or leave entry blocked by unavailable storage.
+        void Promise.race([
+          Promise.resolve(queued),
+          new Promise((resolve) => setTimeout(resolve, 16)),
+        ]).finally(() => window.location.assign(element.href));
+      }
     });
   });
 }
 
 bindTrackedClicks();
 document.addEventListener("astro:page-load", bindTrackedClicks);
+
+// One durable exposure per assigned browser, not one event per page render.
+try {
+  const assignment = readHomepageAssignment();
+  const key = `${HOMEPAGE_EXPERIMENT.key}.exposed`;
+  if (
+    assignment &&
+    document.querySelector("[data-home-hero]") &&
+    window.matchMedia("(max-width: 767px)").matches &&
+    !localStorage.getItem(key)
+  ) {
+    const queued = trackEvent("home_hero_exposure", {
+      context: { source: "home_hero" },
+    });
+    if (queued)
+      void Promise.resolve(queued)
+        .then((result) => {
+          if (result?.queued) localStorage.setItem(key, "1");
+        })
+        .catch(() => {});
+  }
+} catch {
+  /* No exposure claimed when browser storage is unavailable. */
+}

@@ -39,9 +39,21 @@ export function syncDraftSelects(root: HTMLElement, attribute?: string) {
           const nativeOption = nativeOptions.get(
             option.dataset.draftSelectOption!,
           );
-          const disabled = Boolean(nativeOption?.disabled);
+          const planLocked = Boolean(nativeOption?.disabled);
+          const disabled = select.disabled;
           if ((option as HTMLButtonElement).disabled !== disabled)
             (option as HTMLButtonElement).disabled = disabled;
+          const lock = option.querySelector<HTMLElement>(
+            "[data-draft-plan-lock]",
+          );
+          if (lock) lock.hidden = !planLocked;
+          option.toggleAttribute("data-draft-plan-locked", planLocked);
+          if (planLocked)
+            option.setAttribute(
+              "aria-label",
+              `${nativeOption?.textContent}: locked, view plans`,
+            );
+          else option.removeAttribute("aria-label");
           const selected = String(
             option.dataset.draftSelectOption === select.value,
           );
@@ -106,6 +118,12 @@ export function mountDraftSelects(root: HTMLElement) {
   const choose = (widget: HTMLElement, option: HTMLElement) => {
     const select = widget.querySelector<HTMLSelectElement>("select")!;
     if ((option as HTMLButtonElement).disabled) return;
+    if (option.hasAttribute("data-draft-plan-locked")) {
+      root.dispatchEvent(
+        new CustomEvent("mobile-paywall-request", { bubbles: true }),
+      );
+      return;
+    }
     select.value = option.dataset.draftSelectOption!;
     close(widget, true);
     select.dispatchEvent(new Event("change", { bubbles: true }));

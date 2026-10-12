@@ -34,6 +34,7 @@ export async function ingestEnvelope(
       "extension_callback",
       "extension_background",
       "website",
+      "mobile_web",
       "phone_upload_page",
       "web_auth_callback",
       "uninstall_page",

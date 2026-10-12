@@ -227,14 +227,20 @@ export class ApiLogger {
       const remaining = safeBatchSize - ids.size;
       if (remaining <= 0) break;
 
-      const { data: rows, error: selectError } = await supabase
+      let query = supabase
         .from("api_logs")
         .select("id")
         .or(compactableEndpoints)
         .lt("created_at", cutoffIso)
         .not(field, "is", null)
-        .order("created_at", { ascending: true })
-        .limit(remaining);
+        .order("created_at", { ascending: true });
+      if (field === "full_request_body") {
+        const metricCutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+        query = query.or(
+          `full_request_body->>analyticsOnly.is.null,created_at.lt.${metricCutoff}`,
+        );
+      }
+      const { data: rows, error: selectError } = await query.limit(remaining);
 
       if (selectError) {
         throw selectError;
@@ -256,18 +262,6 @@ export class ApiLogger {
     }
 
     const idList = Array.from(ids);
-    const heavyFieldClearPatch = {
-      image_urls: null,
-      raw_prompt: null,
-      full_request_body: null,
-      generated_title: null,
-      generated_description: null,
-      user_agent: null,
-      origin: null,
-      ip_address: null,
-      user_email: null,
-    };
-
     for (
       let start = 0;
       start < idList.length;
@@ -277,11 +271,10 @@ export class ApiLogger {
         start,
         start + API_LOG_COMPACTION_UPDATE_CHUNK_SIZE,
       );
-      const { error: updateError } = await supabase
-        .from("api_logs")
-        .update(heavyFieldClearPatch)
-        .or(compactableEndpoints)
-        .in("id", chunk);
+      const { error: updateError } = await supabase.rpc(
+        "compact_api_logs_for_web_metrics",
+        { p_ids: chunk },
+      );
 
       if (updateError) {
         throw updateError;

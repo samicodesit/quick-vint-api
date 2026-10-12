@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { waitUntil } from "@vercel/functions";
 import { OpenAI } from "openai";
 import type {
   ChatCompletionContentPart,
@@ -289,6 +290,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             redactedRequestBody as Record<string, unknown>;
           return {
             ...safeBody,
+            analyticsClientId:
+              typeof safeBody.analyticsClientId === "string" &&
+              /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+                safeBody.analyticsClientId,
+              )
+                ? safeBody.analyticsClientId
+                : undefined,
+            client: "mobile_web",
+            generationCommitted: false,
+            generationStartedAt: new Date(startTime).toISOString(),
+            requestId:
+              typeof mobileRequestId === "string"
+                ? mobileRequestId.slice(0, 80)
+                : undefined,
             imageCount: Array.isArray(req.body?.imageUrls)
               ? req.body.imageUrls.length
               : 0,
@@ -307,9 +322,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Extract imageUrls early for logging purposes (even if validation fails later)
   if (req.body && Array.isArray(req.body.imageUrls)) {
-    logData.imageUrls = isMobileWebRequest
-      ? { count: req.body.imageUrls.length }
-      : req.body.imageUrls;
+    logData.imageUrls = isMobileWebRequest ? undefined : req.body.imageUrls;
   }
 
   try {
@@ -1335,6 +1348,8 @@ Reply only in JSON: {"title":"...","description":"..."}
         });
       }
       mobileReservationCommitState = "committed";
+      if (isMobileWebRequest)
+        logData.fullRequestBody.generationCommitted = true;
     }
 
     // Add generated content to log
@@ -1389,7 +1404,20 @@ Reply only in JSON: {"title":"...","description":"..."}
           code: "generation_commit_pending",
         });
       }
-      await ApiLogger.logRequest(logData);
+      if (isMobileWebRequest) {
+        // The result and allowance are already committed. Reporting must not
+        // delay delivery, and Vercel keeps this write alive after the response.
+        const reporting = Promise.resolve(ApiLogger.logRequest(logData)).catch(
+          () => console.warn("Mobile generation reporting write failed"),
+        );
+        try {
+          waitUntil(reporting);
+        } catch {
+          // Local runners do not have a Vercel request context.
+        }
+      } else {
+        await ApiLogger.logRequest(logData);
+      }
       return res.status(200).json(responseBody);
     } else {
       await ApiLogger.logRequest(logData);

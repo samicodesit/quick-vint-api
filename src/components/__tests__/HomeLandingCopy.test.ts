@@ -12,8 +12,8 @@ describe("home hero copy", () => {
   it("renders one consolidated badge and one review-before-publishing benefit", () => {
     expect(source).not.toContain("{copy.heroBadgeSafe}");
     expect(source).not.toContain("{copy.heroBulletSafety}");
-    expect(source.match(/\{extra\.heroBadgePrimary\}/g)).toHaveLength(2);
-    expect(source.match(/\{extra\.heroBullet3\}/g)).toHaveLength(1);
+    expect(source.match(/\{extra\.heroBadgePrimary\}/g)).toHaveLength(1);
+    expect(source.match(/\{extra\.heroBullet3\}/g)).toHaveLength(2);
   });
 
   it("describes the photo organizer card by its actual function", () => {
@@ -23,6 +23,16 @@ describe("home hero copy", () => {
     expect(SITE_EXTRA_COPY.en.home.feature2Body).toBe(
       "Group mixed photos into separate items before creating your listing drafts.",
     );
+  });
+  it("scopes the no-copy-paste promise to the extension route", () => {
+    expect(source).toContain(
+      "data-extension-only-benefit>{extra.heroBullet2}</p>",
+    );
+    const sharedBenefits = source.slice(
+      source.indexOf("<ul"),
+      source.indexOf("</ul>"),
+    );
+    expect(sharedBenefits).not.toContain("{extra.heroBullet2}");
   });
 
   it("does not render or load blog posts on the homepage", () => {

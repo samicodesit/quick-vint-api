@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../utils/supabaseClient";
 import { runUsageCors } from "../utils/usageCors";
+import { ApiLogger } from "../utils/apiLogger";
 import {
   isMobileWebEnabled,
   isValidMobileRequestId,
@@ -46,7 +47,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ error: "Sign in again to check your result." });
     const { data: row, error } = await supabase
       .from("mobile_generation_idempotency")
-      .select("status,response_json,commit_pending,reservation_id,expires_at")
+      .select(
+        "status,response_json,commit_pending,reservation_id,expires_at,created_at",
+      )
       .eq("user_id", user.id)
       .eq("client", "mobile_web")
       .eq("request_id", requestId)
@@ -69,6 +72,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (committed) {
       const result = validateStoredResponse(row.response_json);
       if (!result.ok) return res.status(200).json({ state: "unavailable" });
+      await ApiLogger.logRequest({
+        ...ApiLogger.extractRequestMetadata(req),
+        endpoint: "/api/generation-result",
+        userId: user.id,
+        userEmail: user.email,
+        responseStatus: 200,
+        fullRequestBody: {
+          client: "mobile_web",
+          requestId,
+          generationCommitted: true,
+          generationStartedAt: row.created_at,
+        },
+      });
       return res
         .status(200)
         .json({ state: "succeeded", result: result.response });

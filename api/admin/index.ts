@@ -3,6 +3,8 @@ import { Resend } from "resend";
 import Stripe from "stripe";
 import { handleIssues } from "../../utils/incidents/admin";
 import { supabase } from "../../utils/supabaseClient";
+import { handleWebAppStats } from "../../utils/webAppStats";
+import eventDefinitions from "../../utils/incidents/registry.json";
 import {
   FREE_LIFETIME_LIMIT,
   TIER_CONFIGS,
@@ -113,6 +115,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleGrowthStats(req, res);
     } else if (action === "attribution-report") {
       return handleAttributionReport(req, res);
+    } else if (action === "web-app-stats") {
+      return handleWebAppStats(req, res);
     } else if (action === "list-users") {
       return handleListUsers(req, res);
     } else if (action === "user-journey") {
@@ -210,10 +214,9 @@ const LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const LOG_LIST_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, image_count:full_request_body->imageCount, log_client:full_request_body->client, log_source:full_request_body->source, event_status:full_request_body->context->status, event_tier:full_request_body->context->tier, event_target:full_request_body->context->target, event_field:full_request_body->context->field, event_occurred_at:full_request_body->occurredAt, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
-const LOG_GENERATION_LIST_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+const LOG_GENERATION_LIST_SELECT = LOG_LIST_SELECT;
 
 const JOURNEY_EVENT_LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, full_request_body, response_status, created_at";
@@ -1115,28 +1118,48 @@ async function enrichAdminUsers(
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
 
-  const [{ data: recentLogs }, { data: activeRateLimits }, attributionResult] =
-    await Promise.all([
+  const [
+    { data: recentLogs },
+    { data: activeRateLimits },
+    attributionResult,
+    webActivity,
+  ] = await Promise.all([
+    supabase
+      .from("api_logs")
+      .select("user_id, user_email, ip_address, created_at")
+      .in("user_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(ids.length * 25, 1000)),
+    supabase
+      .from("rate_limits")
+      .select("user_id, window_type, count, expires_at")
+      .in("user_id", ids)
+      .or(`expires_at.gt.${nowIso},expires_at.is.null`),
+    fetchAttributionRowsByIds(
+      "user_attributions",
+      "user_id, source, referrer_host",
+      "user_id",
+      ids,
+    )
+      .then((result) => ({ rows: result.rows, available: true }))
+      .catch(() => ({ rows: [], available: false })),
+    Promise.resolve(
       supabase
         .from("api_logs")
-        .select("user_id, user_email, ip_address, created_at")
+        .select("user_id")
         .in("user_id", ids)
+        .gte("created_at", new Date(now - 30 * 86400000).toISOString())
+        .or(
+          "full_request_body->>client.eq.mobile_web,full_request_body->>source.eq.mobile_web",
+        )
         .order("created_at", { ascending: false })
-        .limit(Math.min(ids.length * 25, 1000)),
-      supabase
-        .from("rate_limits")
-        .select("user_id, window_type, count, expires_at")
-        .in("user_id", ids)
-        .or(`expires_at.gt.${nowIso},expires_at.is.null`),
-      fetchAttributionRowsByIds(
-        "user_attributions",
-        "user_id, source, referrer_host",
-        "user_id",
-        ids,
-      )
-        .then((result) => ({ rows: result.rows, available: true }))
-        .catch(() => ({ rows: [], available: false })),
-    ]);
+        .limit(5000),
+    )
+      .then((result) => (result.error ? [] : result.data || []))
+      .catch(() => []),
+  ]);
+
+  const webAppUsers = new Set(webActivity.map((row: any) => row.user_id));
 
   const attributionByUser = new Map(
     attributionResult.rows.map((row: any) => [row.user_id, row]),
@@ -1216,6 +1239,7 @@ async function enrichAdminUsers(
 
     return {
       ...safeUser,
+      web_app_observed: webAppUsers.has(user.id),
       acquisition_source: sanitizeAttributionSource(
         attributionByUser.get(user.id)?.source,
       ),
@@ -1881,10 +1905,27 @@ async function handleUserJourney(req: VercelRequest, res: VercelResponse) {
 }
 
 async function getRelatedLogTarget(req: VercelRequest) {
+  const search = (getQueryString(req.query.search) || "").trim();
   const relatedUserId = (
     getQueryString(req.query.related_user_id) || ""
   ).trim();
-  const relatedEmail = (getQueryString(req.query.related_email) || "").trim();
+  const relatedEmail = (
+    getQueryString(req.query.related_email) ||
+    (!req.query.user_id && search.includes("@") ? search : "")
+  ).trim();
+
+  if (
+    !relatedUserId &&
+    (relatedEmail || (!req.query.user_id && UUID_PATTERN.test(search)))
+  ) {
+    let query = supabase.from("profiles").select("id");
+    query = relatedEmail
+      ? query.ilike("email", relatedEmail.replace(/[%_]/g, "\\$&"))
+      : query.eq("id", search);
+    const { data, error } = await query.limit(1).maybeSingle();
+    if (error) throw error;
+    if (data?.id) return { userId: data.id, email: relatedEmail || null };
+  }
 
   if (!relatedUserId && !relatedEmail) return null;
 
@@ -1925,7 +1966,18 @@ function isLikelyIpSearch(value: string) {
   return search.includes(":") && IPV6_PATTERN.test(search);
 }
 
+function isKnownLogEvent(search: string) {
+  return Object.prototype.hasOwnProperty.call(
+    eventDefinitions,
+    search.toLowerCase(),
+  );
+}
 function buildLogSearchFilter(search: string) {
+  if (isKnownLogEvent(search))
+    return `endpoint.eq./event/${search.toLowerCase()}`;
+  if (/^\/(?:api|event)\/[a-z0-9_/-]+$/i.test(search))
+    return `endpoint.eq.${search}`;
+  if (isLikelyIpSearch(search)) return `ip_address.eq.${search}`;
   const safeSearch = search.replace(/[%_,]/g, "\\$&");
   const filters = search.includes("@")
     ? [`user_email.eq.${safeSearch}`]
@@ -1960,6 +2012,19 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
     const search = (getQueryString(req.query.search) || "").trim();
     const statusFilter = getQueryString(req.query.status_filter) || "all";
     const relatedLogTarget = await getRelatedLogTarget(req);
+    const boundedSearch = Boolean(
+      search || (relatedLogTarget?.email && !relatedLogTarget.userId),
+    );
+    const searchWindowDays =
+      boundedSearch &&
+      !startDate &&
+      !userId &&
+      !relatedLogTarget?.userId &&
+      !isKnownLogEvent(search) &&
+      !/^\/(?:api|event)\/[a-z0-9_/-]+$/i.test(search) &&
+      !isLikelyIpSearch(search)
+        ? 30
+        : undefined;
 
     const applyLogTypeFilter = (query: any) => {
       if (logType === "all") return query;
@@ -1989,7 +2054,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         .from("api_logs")
         .select(logListSelect)
         .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1),
+        .range(offset, offset + limit - 1 + (boundedSearch ? 1 : 0)),
     );
 
     if (suspiciousOnly) query = query.eq("suspicious_activity", true);
@@ -1998,6 +2063,11 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       query = query.eq("suspicious_activity", true);
     query = applyAccountFilter(query);
     if (startDate) query = query.gte("created_at", startDate);
+    else if (searchWindowDays)
+      query = query.gte(
+        "created_at",
+        new Date(Date.now() - searchWindowDays * 86400000).toISOString(),
+      );
     if (endDate) query = query.lte("created_at", endDate);
     if (!relatedLogTarget && search) {
       query = query.or(buildLogSearchFilter(search));
@@ -2009,6 +2079,20 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
       console.error("Error fetching logs:", logsError);
       return res.status(500).json({ error: "Failed to fetch logs" });
     }
+    // A search-wide exact count can time out even when the requested recent
+    // rows are ready. One extra row proves Next without another table scan.
+    if (boundedSearch)
+      return res.status(200).json({
+        logs: attachOpenAICostsToLogs((logs || []).slice(0, limit)),
+        pagination: {
+          page,
+          limit,
+          total: null,
+          totalPages: null,
+          hasMore: (logs || []).length > limit,
+          searchWindowDays,
+        },
+      });
 
     let countQuery = applyLogTypeFilter(
       supabase.from("api_logs").select("id", { count: "exact", head: true }),

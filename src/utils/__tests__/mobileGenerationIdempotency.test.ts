@@ -20,6 +20,26 @@ vi.mock("../../../utils/supabaseClient", () => ({
 }));
 
 describe("mobile generation idempotency", () => {
+  it("does not treat browser analytics metadata as a different generation", async () => {
+    const { normalizeMobileGenerationRequest } =
+      await import("../../../utils/mobileGenerationIdempotency.js");
+    const input = {
+      imageUrls: ["data:image/jpeg;base64,abc"],
+      titleLanguageCode: "en",
+      descriptionLanguageCode: "en",
+    };
+    expect(
+      normalizeMobileGenerationRequest({
+        ...input,
+        analyticsClientId: "browser-a",
+      } as any).hash,
+    ).toBe(
+      normalizeMobileGenerationRequest({
+        ...input,
+        analyticsClientId: "browser-b",
+      } as any).hash,
+    );
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

@@ -58,12 +58,19 @@ await context.route("https://drafts-test.supabase.co/**", (route) =>
   route.fulfill({ json: {} }),
 );
 const requests = [];
+const telemetryEvents = [];
 const outcomes = new Map();
 let generations = 0;
 let hold = false;
 let release;
 let loseResponse = false;
 let quota = false;
+let quotaTier = "free";
+let quotaCode = "free_lifetime_limit";
+let checkoutCalls = 0;
+let portalCalls = 0;
+let portalObserved;
+let checkoutFail = true;
 let minute = false;
 let uploadCount = 0;
 const sessions = new Map();
@@ -71,12 +78,66 @@ await context.route(`${base}/api/**`, async (route) => {
   const req = route.request();
   const url = new URL(req.url());
   requests.push({ path: url.pathname, method: req.method() });
+  if (url.pathname === "/api/events/track") {
+    const events = req.postDataJSON().events || [];
+    telemetryEvents.push(...events);
+    return route.fulfill({
+      json: { acknowledgedIds: events.map((event) => event.id) },
+    });
+  }
+  if (url.pathname === "/api/stripe/create-portal") {
+    portalCalls++;
+    portalObserved?.();
+    assert.equal(req.headers()["x-autolister-client"], "mobile_web");
+    assert.match(req.headers().authorization, /^Bearer /);
+    return route.fulfill({
+      status: 503,
+      json: { error: "Fixture unavailable" },
+    });
+  }
   if (["/api/drafts", "/api/draft-photo"].includes(url.pathname))
     return route.abort("failed");
+  if (url.pathname === "/api/stripe/create-checkout") {
+    checkoutCalls++;
+    const body = req.postDataJSON();
+    assert.equal(req.headers()["x-autolister-client"], "mobile_web");
+    assert.match(req.headers().authorization, /^Bearer /);
+    assert.equal(body.source, "mobile_web");
+    assert.equal("email" in body, false);
+    assert.equal("userId" in body, false);
+    assert.equal(body.tier, "credit_pack");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return route.fulfill(
+      checkoutFail
+        ? { status: 503, json: { error: "Fixture unavailable" } }
+        : {
+            json: { url: "https://checkout.stripe.com/c/web-paywall-fixture" },
+          },
+    );
+  }
   if (url.pathname === "/api/user/usage")
     return route.fulfill({
       json: {
-        plan: { tier: "pro", status: "active", isPaid: true },
+        plan: {
+          tier: quota ? quotaTier : "pro",
+          status:
+            quota && quotaCode === "account_paused"
+              ? "paused"
+              : quota && quotaTier === "free"
+                ? "free"
+                : "active",
+          isPaid: !quota || quotaTier !== "free",
+        },
+        blockedReason: quota ? quotaCode : null,
+        nextTier: quota ? "starter" : "business",
+        pricing: {
+          tiers: {
+            starter: { monthly: 3.99, dailyLimit: 10, monthlyLimit: 75 },
+            pro: { monthly: 9.99, dailyLimit: 25, monthlyLimit: 250 },
+            business: { monthly: 19.99, dailyLimit: 60, monthlyLimit: 600 },
+          },
+          creditPack: { credits: 20, price: 5.99 },
+        },
         canGenerate: !quota,
         limits: { daily: 50, monthly: 500 },
         remaining: {
@@ -122,6 +183,7 @@ await context.route(`${base}/api/**`, async (route) => {
     });
   if (url.pathname === "/api/generate") {
     const body = req.postDataJSON();
+    assert.equal(body.analyticsClientId, await page.evaluate(() => localStorage.getItem("autolister.web-client.v1")), "The real generation carries the same pseudonymous browser ID");
     assert.ok(
       !body.draftId && body.imageUrls.length,
       "Generation uses existing direct images, never a cloud draft",
@@ -244,6 +306,11 @@ async function bounds(label) {
 try {
   await page.goto(`${base}/app`);
   await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  assert.equal(
+    await page.locator(".mobile-workspace-brand").getAttribute("href"),
+    "/app",
+    "The app logo stays inside the web app",
+  );
   await click("new");
   await page
     .locator('[data-draft-action="generate"]')
@@ -318,8 +385,31 @@ try {
     path: `${output}/review-390.png`,
     animations: "disabled",
   });
-  await click("back");
+  const documentMarker = crypto.randomUUID();
+  await page.evaluate((marker) => {
+    document.documentElement.dataset.logoNavigationTest = marker;
+  }, documentMarker);
+  await page
+    .locator('[data-draft-field="title"]')
+    .fill("Saved before returning through the logo");
+  await page.locator(".mobile-workspace-brand").click();
   await waitForDrafts(1);
+  assert.equal(new URL(page.url()).pathname, "/app");
+  assert.equal(
+    await page.locator("html").getAttribute("data-logo-navigation-test"),
+    documentMarker,
+    "Logo navigation keeps the same document mounted",
+  );
+  assert.equal(
+    (await snapshot()).drafts[0].title,
+    "Saved before returning through the logo",
+  );
+  await page.evaluate(() => {
+    delete document.documentElement.dataset.logoNavigationTest;
+  });
+  checks.push(
+    "App logo returns to drafts without reloading and saves pending edits",
+  );
   await page.reload();
   await waitForDrafts(1);
   await page.locator(".draft-item-open").first().click();
@@ -425,8 +515,131 @@ try {
   await upload(1);
   quota = true;
   await click("generate");
-  await page.locator("[data-draft-message]:visible").waitFor();
+  await page.getByRole("dialog", { name: "Free listings used" }).waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: /Upgrade to Starter/ }).isVisible(),
+    true,
+  );
   assert.equal(generations, callsBeforeQuota);
+  await page.screenshot({ path: `${output}/quota-paywall.png` });
+  for (const [tier, code, title, targets] of [
+    ["starter", "daily_limit", "Daily limit reached", ["Pro", "Business"]],
+    ["starter", "monthly_limit", "Monthly limit reached", ["Pro", "Business"]],
+    ["pro", "monthly_limit", "Monthly limit reached", ["Business"]],
+    ["business", "monthly_limit", "Limit reached", []],
+    [
+      "free",
+      "account_paused",
+      "Continue with a paid option",
+      ["Starter", "Pro", "Business"],
+    ],
+  ]) {
+    await page.getByRole("button", { name: "Close paid options" }).click();
+    quotaTier = tier;
+    quotaCode = code;
+    await click("generate");
+    const dialog = page.getByRole("dialog", { name: title });
+    await dialog.waitFor();
+    assert.equal(
+      await dialog.locator("button.mobile-paywall-option").count(),
+      targets.length + 1,
+    );
+    for (const target of targets)
+      assert.equal(
+        await dialog
+          .getByRole("button", { name: new RegExp(`Upgrade to ${target}`) })
+          .isVisible(),
+        true,
+      );
+    assert.equal(
+      await dialog
+        .getByRole("button", { name: /Buy one-time credits/ })
+        .isVisible(),
+      true,
+    );
+    assert.equal(generations, callsBeforeQuota);
+    const box = await dialog.boundingBox();
+    assert(box.x >= 0 && box.x + box.width <= 390);
+    assert(box.y >= 0 && box.y + box.height <= 844);
+  }
+  for (const [width, height] of [
+    [320, 568],
+    [360, 640],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    const dialog = page.getByRole("dialog", {
+      name: "Continue with a paid option",
+    });
+    const box = await dialog.boundingBox();
+    assert(box.x >= 0 && box.x + box.width <= width);
+    assert(box.y >= 0 && box.y + box.height <= height);
+    const primary = await dialog
+      .locator("button.mobile-paywall-option")
+      .first()
+      .boundingBox();
+    assert(
+      primary.y >= 0 && primary.y + primary.height <= height,
+      "The first payment choice stays visible on short phones",
+    );
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+    );
+    const badge = await dialog.locator(".mobile-paywall-badge").boundingBox();
+    const side = await dialog
+      .locator(".mobile-paywall-option")
+      .filter({ has: page.locator(".mobile-paywall-badge") })
+      .locator(".mobile-paywall-option-side")
+      .boundingBox();
+    assert(
+      badge.x + badge.width + 5 <= side.x,
+      "Plan badges do not collide with prices or limits on narrow phones",
+    );
+    await page.screenshot({ path: `${output}/paused-paywall-${width}.png` });
+  }
+  await page.getByRole("button", { name: "Close paid options" }).click();
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  quotaTier = "free";
+  quotaCode = "burst_limit";
+  await click("generate");
+  await page.locator("[data-draft-message]:visible").waitFor();
+  assert.equal(await page.locator("dialog.mobile-paywall[open]").count(), 0);
+  assert.equal(generations, callsBeforeQuota);
+  quotaCode = "free_lifetime_limit";
+  await click("generate");
+  await page.getByRole("button", { name: /Buy one-time credits/ }).click();
+  await page.waitForFunction(
+    () => document.querySelector("[data-paywall-status]")?.hidden === false,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: /Buy one-time credits/ })
+      .isEnabled(),
+    true,
+  );
+  checkoutFail = false;
+  await context.route(
+    "https://checkout.stripe.com/c/web-paywall-fixture",
+    (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<a href="${base}/app?checkout=cancel">Back to AutoLister</a>`,
+      }),
+  );
+  await page.getByRole("button", { name: /Buy one-time credits/ }).click();
+  await page.waitForURL("https://checkout.stripe.com/c/web-paywall-fixture");
+  assert.equal(checkoutCalls, 2);
+  await page.getByRole("link", { name: "Back to AutoLister" }).click();
+  await page.waitForURL(`${base}/app*`);
+  await action("generate").waitFor();
+  assert.equal((await snapshot()).drafts.length, 5);
+  assert.equal(generations, callsBeforeQuota);
+  checks.push(
+    "Tailored trial, daily, monthly and pause paywalls preserve drafts; burst limits never sell access; bearer checkout retries and cancellation work",
+  );
   quota = false;
   await page.reload();
   await action("generate").waitFor();
@@ -479,6 +692,82 @@ try {
   checks.push(
     "A lost response recovers via a read-only lookup without another generation",
   );
+  await click("copy-title");
+  await page.waitForFunction(
+    () =>
+      document.querySelector("[data-draft-copy-status]")?.textContent ===
+      "Title copied.",
+  );
+  assert.equal(
+    await page.locator("dialog.mobile-extension-suggestion[open]").count(),
+    0,
+  );
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await click("copy-description");
+  const suggestion = page.getByRole("dialog", {
+    name: "Prefer to work directly inside Vinted?",
+  });
+  await suggestion.waitFor();
+  const install = suggestion.getByRole("link", {
+    name: "Install Chrome extension",
+  });
+  const installUrl = new URL(await install.getAttribute("href"));
+  assert.equal(installUrl.hostname, "chromewebstore.google.com");
+  assert.match(installUrl.pathname, /mommklhpammnlojjobejddmidmdcalcl$/);
+  assert.equal(await install.getAttribute("target"), "_blank");
+  await page.screenshot({ path: `${output}/extension-suggestion.png` });
+  await suggestion.getByRole("button", { name: "Not now" }).click();
+  assert.equal(await suggestion.count(), 0);
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  await click("copy-title");
+  await page.waitForFunction(
+    () =>
+      document.querySelector("[data-draft-copy-status]")?.textContent ===
+      "Title copied.",
+  );
+  assert.equal(await suggestion.count(), 0);
+  await page.reload();
+  await action("done").waitFor();
+  await click("copy-title");
+  await page.waitForFunction(
+    () =>
+      document.querySelector("[data-draft-copy-status]")?.textContent ===
+      "Title copied.",
+  );
+  assert.equal(await suggestion.count(), 0);
+  // A known installed extension must not be promoted again after cooldown.
+  await page.evaluate(
+    ({ userId }) => {
+      localStorage.setItem(
+        `autolister.mobile.extension-suggestion.${userId}`,
+        String(Date.now() - 1),
+      );
+      window.__fixturePingCount = 0;
+      window.chrome ||= {};
+      window.chrome.runtime = {
+        sendMessage: (_id, _message, reply) => {
+          window.__fixturePingCount++;
+          reply({ installed: true });
+        },
+      };
+    },
+    { userId },
+  );
+  await click("copy-title");
+  await page.waitForFunction(() => window.__fixturePingCount === 1);
+  assert.equal(await suggestion.count(), 0);
+  await page.evaluate(() => {
+    delete window.chrome.runtime;
+  });
+  await click("copy-title");
+  await suggestion.waitFor();
+  await page.keyboard.press("Escape");
+  assert.equal(await suggestion.count(), 0);
+  assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  checks.push(
+    "Desktop copy offers the real Chrome extension; phones and installed users are skipped; dismissal survives reload for seven days; Escape removes the backdrop immediately",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
   await click("done");
   await page.locator('[data-draft-tab="done"]').click();
   await waitForDrafts(1);
@@ -510,6 +799,65 @@ try {
   );
   assert.equal((await snapshot()).blobCount, 11);
   assert.equal(errors.length, 0, errors.join("\n"));
+  await page.evaluate(() => {
+    const runtime = globalThis.AutoListerWebsiteTelemetry;
+    const original = runtime.track;
+    runtime.track = (event, properties, immediate) => {
+      if (event === "checkout_start" && properties.context.target === "manage")
+        return new Promise((resolve) => {
+          globalThis.releaseFixtureTelemetry = () => {
+            runtime.track = original;
+            resolve({ queued: false });
+          };
+        });
+      return original(event, properties, immediate);
+    };
+  });
+  const portalReached = new Promise((resolve) => {
+    portalObserved = () => resolve(true);
+  });
+  await page.locator('[data-mobile-web="profile-menu-trigger"]').click();
+  await page.locator('[data-mobile-web="manage-billing"]').click();
+  try {
+    assert.equal(
+      await Promise.race([
+        portalReached,
+        new Promise((resolve) => setTimeout(() => resolve(false), 1500)),
+      ]),
+      true,
+      "Billing must not wait for a stalled telemetry request",
+    );
+    assert.equal(portalCalls, 1);
+  } finally {
+    await page.evaluate(() => {
+      globalThis.releaseFixtureTelemetry?.();
+      delete globalThis.releaseFixtureTelemetry;
+    });
+  }
+  await page.keyboard.press("Escape");
+  checks.push(
+    "Manage plan reaches bearer billing without waiting for stalled background telemetry",
+  );
+  await page.evaluate(() => globalThis.AutoListerWebsiteTelemetry.flush());
+  assert.ok(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "web_generation_run" &&
+        event.context.method === "batch" &&
+        event.context.count === 3,
+    ),
+  );
+  assert.ok(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "web_paywall_view" &&
+        event.context.errorCode === "free_lifetime_limit",
+    ),
+  );
+  assert.ok(telemetryEvents.some((event) => event.event === "copy"));
+  checks.push(
+    "Existing durable telemetry records batch size, quota paywalls and copies without blocking the UI",
+  );
   await writeFile(
     `${output}/result.json`,
     JSON.stringify(
@@ -536,6 +884,27 @@ try {
   );
 } catch (error) {
   await page.screenshot({ path: `${output}/failure.png` });
+  console.error(
+    await page.evaluate(
+      ({ userId }) => ({
+        ua: navigator.userAgent,
+        width: innerWidth,
+        hidden: document.hidden,
+        active: document.activeElement?.outerHTML.slice(0, 200),
+        overlays: Array.from(
+          document.querySelectorAll(
+            'dialog[open], [aria-modal="true"], details[data-draft-popover][open], [data-mobile-web="profile-menu"]:not([hidden])',
+          ),
+        ).map((el) => el.outerHTML.slice(0, 200)),
+        cooldown: localStorage.getItem(
+          `autolister.mobile.extension-suggestion.${userId}`,
+        ),
+        copyStatus: document.querySelector("[data-draft-copy-status]")
+          ?.textContent,
+      }),
+      { userId },
+    ),
+  );
   console.error(JSON.stringify({ errors, requests: requests.slice(-12) }));
   throw error;
 } finally {

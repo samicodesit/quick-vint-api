@@ -1,5 +1,8 @@
 ---
 import type { SiteCopy, SiteExtraHomeCopy } from "../i18n/site.js";
+import { normalizeSiteLocale } from "../i18n/site.js";
+import { WEB_ENTRY_COPY } from "../i18n/webEntry";
+import { Images, Laptop, Smartphone } from "@lucide/astro";
 
 interface Props {
   copy: SiteCopy["home"];
@@ -19,6 +22,7 @@ const chromeHref =
   "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 const pricingHref = locale === "en" ? "/pricing" : `/${locale}/pricing`;
 const tierProofValues = JSON.stringify(extra.tierProof.tiers);
+const entry = WEB_ENTRY_COPY[normalizeSiteLocale(locale)];
 const iphoneHelpLabels: Record<string, string> = {
   en: "iPhone or iPad? Set up with Orion",
   fr: "iPhone ou iPad ? Installer avec Orion",
@@ -38,7 +42,7 @@ const subtitleParts =
 
 <!-- Hero Section -->
 <div
-  class="relative pt-32 pb-12 lg:pt-[97px] lg:pb-0 overflow-hidden bg-white"
+  class="relative pt-[84px] pb-8 lg:pt-[97px] lg:pb-0 overflow-hidden bg-white"
   data-home-hero
 >
   <div
@@ -61,10 +65,11 @@ const subtitleParts =
   <div
     class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full"
   >
-    <div class="lg:grid lg:grid-cols-12 lg:gap-8 xl:gap-16 items-center">
+    <div class="home-hero-grid lg:grid lg:grid-cols-12 lg:gap-8 xl:gap-16 items-center">
       <div
-        class="lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start opacity-0 animate-[fadeInUp_0.8s_ease-out_forwards]"
+        class="home-hero-copy lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start"
       >
+        <div class="home-hero-heading">
         <div
           class="hidden sm:flex flex-wrap items-center gap-2 mb-5"
           data-home-hero-badges
@@ -85,7 +90,7 @@ const subtitleParts =
         </div>
 
         <h1
-          class="text-[2.55rem] sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.06] sm:leading-[1.1] mb-4 sm:mb-5 text-slate-900 mt-2 sm:mt-4 lg:mt-0 text-balance"
+          class="text-[2rem] sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.08] sm:leading-[1.1] mb-3 sm:mb-5 text-slate-900 lg:mt-0 text-balance"
         >
           {
             heroTitleAccent ? (
@@ -101,7 +106,7 @@ const subtitleParts =
         </h1>
 
         <p
-          class="home-hero-subtitle hidden sm:block text-lg sm:text-xl text-slate-600 mb-6 max-w-lg leading-relaxed font-medium"
+          class="home-hero-subtitle hidden lg:block text-lg sm:text-xl text-slate-600 mb-6 max-w-lg leading-relaxed font-medium"
         >
           {
             subtitleParts ? (
@@ -119,13 +124,14 @@ const subtitleParts =
         </p>
 
         <p
-          class="sm:hidden text-base text-slate-600 mb-5 max-w-sm leading-relaxed font-semibold"
+          class="lg:hidden text-sm text-slate-600 mb-0 max-w-lg leading-relaxed font-medium"
         >
           {copy.heroMobileSubtitle}
         </p>
+        </div>
 
         <ul
-          class="home-hero-benefits hidden sm:block space-y-2.5 mb-6 text-left w-full max-w-md px-2 sm:px-0 list-none"
+          class="home-hero-benefits hidden lg:block space-y-2.5 mb-6 text-left w-full max-w-md px-2 sm:px-0 list-none"
         >
           <li class="flex items-start gap-3">
             <div
@@ -166,35 +172,24 @@ const subtitleParts =
               </svg>
             </div>
             <span class="text-slate-700 font-semibold text-lg leading-snug"
-              >{extra.heroBullet2}</span
-            >
-          </li>
-          <li class="flex items-start gap-3">
-            <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-brand-50 flex items-center justify-center mt-0.5 border border-brand-100 shadow-sm"
-            >
-              <svg
-                class="w-4 h-4 text-brand-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.5"
-                  d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-            <span class="text-slate-700 font-semibold text-lg leading-snug"
               >{extra.heroBullet3}</span
             >
           </li>
         </ul>
 
         <div
-          class="home-hero-actions flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:gap-4 w-full max-w-2xl px-1 sm:px-0"
+          class="home-hero-actions w-full"
         >
+          <div class="home-entry-route">
+            <a href="/app?ref=home_hero" data-track-event="web_app_click" data-track-context="home_hero_web" data-track-copy-version="dual_route_v1" class="home-entry-button home-entry-web">
+              <Images size={20} stroke-width={1.8} aria-hidden="true" />
+              <span>{entry.action}</span>
+            </a>
+            <p class="home-entry-note">{entry.web}</p>
+            <p class="home-entry-device-label"><Smartphone size={14} aria-hidden="true" />{entry.devices}</p>
+          </div>
+          <div class="home-entry-route">
+          <p class="home-entry-desktop-label"><Laptop size={15} aria-hidden="true" />{entry.desktop}</p>
           <a
             href={chromeHref}
             target="_blank"
@@ -202,14 +197,14 @@ const subtitleParts =
             data-track-event="chrome_store_click"
             data-track-context="home_hero_primary"
             data-track-copy-version="vinted_ai_listing_assistant_v1"
-            class="group relative inline-flex min-h-[60px] sm:min-h-[76px] w-full sm:flex-1 items-center justify-start gap-3 px-5 py-3.5 sm:px-7 sm:py-4 text-left text-base font-bold text-white bg-brand-600 rounded-2xl hover:bg-brand-700 transition-all duration-200 hover:-translate-y-1 shadow-lg shadow-brand-600/30 overflow-hidden focus:ring-2 ring-brand-500 no-underline"
+            class="home-entry-button home-entry-extension"
           >
             <div
-              class="bg-white rounded-full p-0.5 shadow-sm shrink-0 self-center"
+              class="bg-white rounded-full shrink-0 self-center"
             >
               <svg
                 viewBox="0 0 48 48"
-                class="w-5 h-5 shrink-0 transition-transform group-hover:rotate-12 duration-500"
+                class="w-5 h-5 shrink-0"
               >
                 <defs>
                   <linearGradient
@@ -260,79 +255,59 @@ const subtitleParts =
               </svg>
             </div>
 
-            <span class="min-w-0 flex flex-col items-start leading-tight">
-              <span class="break-words text-base font-bold"
-                >{extra.addToChrome}</span
-              >
-              <span class="font-medium text-brand-100 opacity-90 mt-1 text-sm"
-                >{extra.addToChromeNote}</span
-              >
-            </span>
+            <span>{extra.addToChrome}</span>
           </a>
-
-          <button
-            data-open-fullscreen
-            data-track-event="demo_video_open"
-            data-track-context="home_hero_secondary"
-            data-track-copy-version="vinted_ai_listing_assistant_v1"
-            class="inline-flex min-h-[56px] sm:min-h-[76px] w-full sm:w-auto sm:min-w-[220px] items-center justify-start gap-2 px-5 py-3.5 sm:px-7 sm:py-4 text-left text-base font-bold text-slate-800 bg-white border-2 border-slate-300 rounded-2xl hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 hover:-translate-y-1 shadow-sm cursor-pointer"
-          >
-            <svg
-              class="w-5 h-5 text-slate-900 shrink-0"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M8 5v14l11-7z"></path>
-            </svg>
-            <span class="break-words leading-tight">{extra.watchDemo}</span>
-          </button>
-        </div>
+          <p class="home-entry-note">{entry.extension}</p>
+          <p class="home-entry-note hidden lg:block" data-extension-only-benefit>{extra.heroBullet2}</p>
 
         <a
           href="/support#iphone-ipad"
-          class="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-brand-700 underline underline-offset-4 hover:text-brand-900"
+          class="home-entry-phone"
         >
+          <Smartphone size={15} stroke-width={1.8} aria-hidden="true" />
           {iphoneHelpLabels[locale] || iphoneHelpLabels.en}
         </a>
-
-        <div
-          class="sm:hidden mt-5 grid w-full max-w-sm grid-cols-1 gap-2 px-1 text-left"
-          aria-label="AutoLister highlights"
-        >
-          <div
-            class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-bold leading-tight text-slate-800 shadow-sm"
-          >
-            <svg
-              class="h-4 w-4 shrink-0 text-brand-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2.5"
-              aria-hidden="true"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span>{extra.heroBadgePrimary}</span>
-          </div>
-          <div
-            class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-bold leading-tight text-slate-800 shadow-sm"
-          >
-            <svg
-              class="h-4 w-4 shrink-0 text-brand-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2.5"
-              aria-hidden="true"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span>{extra.heroBullet2}</span>
           </div>
         </div>
 
+        <ul
+          class="home-hero-mobile-proof lg:hidden grid w-full grid-cols-1 gap-2 text-left list-none"
+          aria-label="AutoLister highlights"
+        >
+          <li
+            class="flex items-start gap-2 text-sm font-medium leading-snug text-slate-700"
+          >
+            <svg
+              class="mt-0.5 h-4 w-4 shrink-0 text-brand-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>{extra.heroBullet3}</span>
+          </li>
+          <li
+            class="flex items-start gap-2 text-sm font-medium leading-snug text-slate-700"
+          >
+            <svg
+              class="mt-0.5 h-4 w-4 shrink-0 text-brand-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>{extra.heroBullet1}</span>
+          </li>
+        </ul>
+
         <div
-          class="mt-6 hidden sm:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
+          class="home-hero-testimonial mt-6 hidden lg:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
         >
           <img
             class="w-10 h-10 rounded-full border-2 border-white shadow-md shrink-0"
@@ -357,7 +332,7 @@ const subtitleParts =
       </div>
 
       <div
-        class="lg:col-span-7 mt-12 lg:mt-0 relative opacity-0 animate-[fadeInUp_0.8s_ease-out_0.2s_forwards]"
+        class="home-hero-media lg:col-span-7 relative"
       >
         <div
           class="absolute -top-12 -right-12 w-72 h-72 bg-brand-100 rounded-full mix-blend-multiply filter blur-[60px] opacity-60"
@@ -368,23 +343,7 @@ const subtitleParts =
         >
         </div>
 
-        <div
-          data-public-stats
-          data-stats-endpoint="/api/public-stats"
-          class="public-stats-video-badge mx-auto mb-3 flex w-fit max-w-full items-center rounded-full border border-indigo-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-lg shadow-indigo-200/60"
-          aria-label={extra.publicStatsAriaLabel}
-          aria-busy="true"
-          aria-live="polite"
-        >
-          <span
-            data-stat-generations
-            class="public-stat-number min-w-[8ch] text-right text-base font-black text-indigo-600"
-          >
-            —
-          </span>
-          <span class="ml-1">{extra.publicStatsGenerationsLabel}</span>
-        </div>
-
+        <div class="home-hero-demo">
         <div
           class="relative w-full rounded-2xl overflow-hidden video-wrapper bg-white group cursor-pointer"
           data-open-fullscreen
@@ -394,7 +353,7 @@ const subtitleParts =
               data-hero-video
               data-video-src="/vid-promo.mp4"
               class="hero-demo-video w-full h-full object-cover"
-              poster="/video-poster.webp"
+              poster="/video-draft-poster.webp"
               width="1920"
               height="1080"
               preload="none"
@@ -406,11 +365,14 @@ const subtitleParts =
             >
             </video>
 
-            <div class="absolute top-4 right-4 z-20">
+            <div class="absolute top-2 right-2 z-20">
               <button
                 data-open-fullscreen
-                class="p-2.5 bg-black/40 backdrop-blur-md text-white rounded-full hover:bg-black/60 transition-all duration-200 hover:scale-110"
-                aria-label="View Full Screen"
+                data-track-event="demo_video_open"
+                data-track-context="home_hero_secondary"
+                data-track-copy-version="dual_route_v1"
+                class="inline-flex items-center gap-1.5 px-3 py-2 bg-black/65 text-white rounded-lg text-xs font-semibold hover:bg-black/80"
+                aria-label={extra.watchDemo}
               >
                 <svg
                   class="w-5 h-5"
@@ -425,18 +387,20 @@ const subtitleParts =
                     d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
                   ></path>
                 </svg>
+                <span>{extra.watchDemo}</span>
               </button>
             </div>
           </div>
         </div>
 
-        <div class="mt-4 text-center">
-          <p class="text-sm text-slate-500 font-medium">
+        <div class="mt-2 text-center">
+          <p class="text-xs text-slate-500 font-medium">
             {extra.videoCaption}
           </p>
         </div>
+        </div>
 
-        <div class="mt-5 max-w-md mx-auto">
+        <div class="home-hero-screenshots mt-5 max-w-md mx-auto">
           <div class="mb-2 flex items-center justify-between gap-3 px-1">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-600">
               {extra.screenshotPreviewLabel}
@@ -766,7 +730,7 @@ const subtitleParts =
         {extra.howItWorksTitle}
       </h2>
       <p class="text-lg text-slate-600">
-        {extra.howItWorksSubtitle}
+        <span class="home-desktop-instructions">{extra.howItWorksSubtitle}</span><span class="home-mobile-instructions">{entry.web}</span>
       </p>
     </div>
     <div class="grid md:grid-cols-3 gap-8 relative">
@@ -782,10 +746,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">1</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {extra.step1Title}
+          <span class="home-desktop-instructions">{extra.step1Title}</span><span class="home-mobile-instructions">{entry.steps[0]}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {extra.step1Body}
+          <span class="home-desktop-instructions">{extra.step1Body}</span><span class="home-mobile-instructions">{entry.stepBodies[0]}</span>
         </p>
       </div>
 
@@ -796,10 +760,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">2</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {extra.step2Title}
+          <span class="home-desktop-instructions">{extra.step2Title}</span><span class="home-mobile-instructions">{entry.steps[1]}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {extra.step2Body}
+          <span class="home-desktop-instructions">{extra.step2Body}</span><span class="home-mobile-instructions">{entry.stepBodies[1]}</span>
         </p>
       </div>
 
@@ -810,10 +774,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">3</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {extra.step3Title}
+          <span class="home-desktop-instructions">{extra.step3Title}</span><span class="home-mobile-instructions">{entry.steps[2]}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {extra.step3Body}
+          <span class="home-desktop-instructions">{extra.step3Body}</span><span class="home-mobile-instructions">{entry.stepBodies[2]}</span>
         </p>
       </div>
     </div>
@@ -850,16 +814,17 @@ const subtitleParts =
             {extra.finalCtaTitle}
           </h2>
           <p class="text-lg leading-relaxed text-slate-300 mb-10 font-medium">
-            {extra.finalCtaBody}
+            <span class="home-desktop-instructions">{extra.finalCtaBody}</span><span class="home-mobile-instructions">{entry.web}</span>
           </p>
           <div
             class="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4"
           >
+            <a href="/app?ref=home_final" data-track-event="web_app_click" data-track-context="home_final_web" class="home-mobile-instructions home-final-web items-center justify-center gap-2 px-8 py-4 text-lg font-bold rounded-2xl text-white bg-brand-600 w-full"><Images size={20} aria-hidden="true" />{entry.action}</a>
             <a
               href={chromeHref}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-2xl shadow-xl shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-500 transition-all hover:-translate-y-1 w-full sm:w-auto"
+              class="home-desktop-instructions inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-2xl shadow-xl shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-500 transition-all hover:-translate-y-1 w-full sm:w-auto"
             >
               {extra.getStartedFree}
             </a>
@@ -913,6 +878,9 @@ const subtitleParts =
   async function openHeroFullscreen() {
     if (!heroVideo) return;
     loadHeroVideo();
+    // Start during the tap gesture. Fullscreen can consume that gesture, and
+    // Safari may decline fullscreen while a cold video is still buffering.
+    const playback = heroVideo.play().catch(() => {});
     try {
       if (heroVideo.requestFullscreen) {
         await heroVideo.requestFullscreen();
@@ -922,14 +890,15 @@ const subtitleParts =
     } catch (err) {
       // ignore
     }
-    try {
-      await heroVideo.play();
-    } catch (e) {}
+    await playback;
   }
 
   document.querySelectorAll("[data-open-fullscreen]").forEach((el) => {
     el.addEventListener("click", (e) => {
+      // Native video controls must keep their normal play/pause behavior.
+      if (e.target === heroVideo) return;
       e.preventDefault();
+      e.stopPropagation();
       openHeroFullscreen();
     });
   });
@@ -1322,7 +1291,45 @@ const subtitleParts =
     }
   }
 
+  .home-hero-actions { display: grid; gap: 12px; text-align: center; }
+  .home-entry-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 16px; border-radius: 12px; font-size: 15px; font-weight: 700; line-height: 1.25; text-decoration: none; transition: background-color 120ms, border-color 120ms; }
+  .home-entry-web { color: white; background: var(--color-brand-600, #4f46e5); border: 1px solid transparent; }
+  .home-entry-web:hover { background: var(--color-brand-700, #4338ca); }
+  .home-entry-extension { color: #1e293b; background: white; border: 1px solid #cbd5e1; }
+  .home-entry-extension:hover { border-color: #94a3b8; background: #f8fafc; }
+  .home-entry-button:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 3px; }
+  .home-entry-note { margin-top: 5px; font-size: 12px; line-height: 1.4; color: #64748b; }
+  .home-entry-phone { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; color: #4338ca; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+  .home-entry-device-label, .home-entry-desktop-label, .home-mobile-instructions { display: none; }
+
+  @media (max-width: 767px) {
+    .home-desktop-instructions { display: none; }
+    .home-mobile-instructions { display: inline; }
+    .home-final-web { display: flex; }
+    html[data-home-entry-variant="b"] .home-hero-actions { display: contents; }
+    html[data-home-entry-variant="b"] .home-entry-route:first-child { order: 1; }
+    html[data-home-entry-variant="b"] .home-hero-demo { order: 2; }
+    html[data-home-entry-variant="b"] .home-entry-route:nth-child(2) { order: 3; }
+    html[data-home-entry-variant="b"] .home-hero-mobile-proof { order: 4; }
+    html[data-home-entry-variant="b"] .home-hero-screenshots { order: 5; }
+    html[data-home-entry-variant="b"] .home-entry-phone { display: none; }
+    html[data-home-entry-variant="b"] .home-entry-web { min-height: 52px; font-size: 16px; }
+    html[data-home-entry-variant="b"] .home-entry-note { font-size: 13px; line-height: 1.5; color: #526176; }
+    html[data-home-entry-variant="b"] .home-entry-device-label { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 4px; color: #526176; font-size: 12px; }
+    html[data-home-entry-variant="b"] .home-entry-desktop-label { display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 7px; color: #526176; font-size: 12px; }
+  }
+
   @media (max-width: 1023px) {
+    .home-hero-grid { display: flex; flex-direction: column; align-items: stretch; gap: 18px; max-width: 640px; margin: 0 auto; }
+    .home-hero-copy, .home-hero-media { display: contents; }
+    .home-hero-heading { order: 0; text-align: center; }
+    .home-hero-heading p { margin-left: auto; margin-right: auto; }
+    .home-hero-heading [data-home-hero-badges] { display: none; }
+    .home-hero-demo { order: 1; }
+    .home-hero-actions { order: 2; }
+    .home-hero-mobile-proof { order: 3; margin-top: 8px; }
+    .home-hero-screenshots { order: 4; width: 100%; }
+    .home-hero-media > .absolute { display: none; }
     .home-tier-proof-slot {
       min-height: 0;
       margin-top: 36px;

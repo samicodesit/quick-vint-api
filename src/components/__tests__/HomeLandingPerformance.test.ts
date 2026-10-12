@@ -6,8 +6,12 @@ const source = readFileSync(
   join(process.cwd(), "src/components/HomeLanding.astro"),
   "utf8",
 );
+const layout = readFileSync(
+  join(process.cwd(), "src/layouts/SiteLayout.astro"),
+  "utf8",
+);
 const publicStatsTag =
-  source.match(/<div\s+data-public-stats[\s\S]*?>/)?.[0] || "";
+  layout.match(/<div\s+data-public-stats[\s\S]*?>/)?.[0] || "";
 
 describe("HomeLanding performance", () => {
   it("defers the public stats counter until after initial page load", () => {
@@ -22,9 +26,10 @@ describe("HomeLanding performance", () => {
   it("keeps a fixed public-stats slot while the deferred count loads", () => {
     expect(publicStatsTag).not.toMatch(/\bhidden\b/);
     expect(publicStatsTag).toMatch(/\bflex\b/);
-    expect(source).toContain('aria-busy="true"');
-    expect(source).toContain("—");
-    expect(source).toContain("min-w-[8ch]");
+    expect(layout).toContain('aria-busy="true"');
+    expect(layout).toContain('class="public-stat-number">...</span>');
+    expect(layout).toContain("height: 38px");
+    expect(publicStatsTag).not.toMatch(/rounded|border|shadow|bg-white/);
     expect(source).not.toContain("animatePublicStatNumber");
     expect(source).not.toContain(
       '.public-stats-video-badge[data-loaded="true"]',

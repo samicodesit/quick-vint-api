@@ -1,6 +1,10 @@
 import { fetchMobileJson } from "./api";
 import { getBrowserSession } from "./auth";
-import { normalizeDraftSettings, type Draft } from "./draftContracts";
+import {
+  permittedDraftSettings,
+  type Draft,
+  type DraftSettingsAccess,
+} from "./draftContracts";
 import {
   generateListing,
   type MobileGenerationResult,
@@ -101,7 +105,12 @@ export function createDraftClient(userId: string) {
     draft = await store.action("detail", { draftId });
     return draft;
   }
-  async function run(draft: Draft, attempt: DraftAttempt, batch: boolean) {
+  async function run(
+    draft: Draft,
+    attempt: DraftAttempt,
+    batch: boolean,
+    access: DraftSettingsAccess,
+  ) {
     const current = await store.action("detail", { draftId: draft.id });
     if (
       current.operation_id === attempt.operationId ||
@@ -151,7 +160,7 @@ export function createDraftClient(userId: string) {
         files,
         controller.signal,
       );
-      const settings = normalizeDraftSettings(current.settings);
+      const settings = permittedDraftSettings(current.settings, access);
       saved.input = {
         imageUrls,
         titleLanguageCode: settings.titleLanguageCode,
@@ -220,10 +229,11 @@ export function createDraftClient(userId: string) {
       draft: Draft,
       attempt: DraftAttempt,
       batch: boolean,
+      access: DraftSettingsAccess = { tone: true, extras: true },
     ) => {
       const existing = active.get(draft.id);
       if (existing) return existing;
-      const operation = run(draft, attempt, batch).finally(() =>
+      const operation = run(draft, attempt, batch, access).finally(() =>
         active.delete(draft.id),
       );
       active.set(draft.id, operation);

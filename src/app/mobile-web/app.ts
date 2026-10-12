@@ -1,4 +1,8 @@
 import { mountDraftWorkspace } from "./draftWorkspace";
+import { mountMobilePaywall } from "./paywall";
+import { mountExtensionSuggestion } from "./extensionSuggestion";
+import { getMobilePaywall } from "./paywallPolicy";
+import { initializeMobileTelemetry } from "./telemetry";
 import { activateMobileSheet } from "./sheet";
 import { animateSurface } from "./surfaceMotion";
 import {
@@ -37,10 +41,9 @@ import {
 import { revokeMobilePreview } from "./imagePreparation.js";
 import {
   copyListingField,
-  isMobileBillingTier,
   openMobilePortal,
   refreshAfterCheckout,
-  startMobileCheckout,
+  restoreMobileBillingReturn,
 } from "./billing.js";
 import {
   captureMobileFirstTouch,
@@ -288,7 +291,7 @@ function setBillingControls(root: ParentNode, usage: MobileUsage | null): void {
   const isPaid =
     usage?.plan?.isPaid === true ||
     (typeof tier === "string" && tier !== "free");
-  const showUpgrade = usage?.canGenerate === false && !isPaid;
+  const showUpgrade = Boolean(usage) && !isPaid;
   setHidden(root, '[data-mobile-web="upgrade"]', !showUpgrade);
   setHidden(root, '[data-mobile-web="manage-billing"]', !isPaid);
 }
@@ -914,6 +917,34 @@ export function mountMobileWebApp(
   let appOpenedTracked = false;
   let checkoutReturnHandled = false;
   let draftWorkspace: ReturnType<typeof mountDraftWorkspace> | undefined;
+  let latestUsage: MobileUsage | null = null;
+  let paywall: ReturnType<typeof mountMobilePaywall> | undefined;
+  const extensionSuggestion = mountExtensionSuggestion(
+    root,
+    () => session?.user.id,
+  );
+  const suggestExtension = () => {
+    void extensionSuggestion.suggest();
+  };
+  root.addEventListener("mobile-copy-complete", suggestExtension);
+  listeners.push(() => {
+    root.removeEventListener("mobile-copy-complete", suggestExtension);
+    extensionSuggestion.dispose();
+  });
+  listeners.push(() => paywall?.dispose());
+  const showPaywall = (usage: MobileUsage, requested?: string) => {
+    if (!getMobilePaywall(usage, requested)) return false;
+    extensionSuggestion.close();
+    paywall ??= mountMobilePaywall(root, {
+      userId: () => session?.user.id,
+      flush: async () => {
+        await draftWorkspace?.flush();
+      },
+    });
+    closeMobileProfileMenu(root, false);
+    draftWorkspace?.closeOverlays();
+    return paywall.show(usage, requested);
+  };
   const openDraftWorkspace = () => {
     if (
       draftWorkspace ||
@@ -927,6 +958,11 @@ export function mountMobileWebApp(
     draftWorkspace = mountDraftWorkspace(workspace, {
       userId: session.user.id,
       onUsageChange: () => refreshUsage(),
+      onGenerationBlocked: (usage, code) =>
+        usage ? showPaywall(usage, code) : false,
+      onViewPlans: () => {
+        if (latestUsage) showPaywall(latestUsage, "feature");
+      },
       defaultSettings: {
         titleLanguageCode: language.titleLanguageCode,
         descriptionLanguageCode: language.descriptionLanguageCode,
@@ -964,6 +1000,7 @@ export function mountMobileWebApp(
         : await loadUsage();
       if (disposed) return null;
       canGenerate = usage.canGenerate !== false;
+      latestUsage = usage;
       draftWorkspace?.updateUsage(usage);
       renderMobileUsage(root, usage);
       setBillingControls(root, usage);
@@ -1316,6 +1353,7 @@ export function mountMobileWebApp(
     );
     void trackMobileEvent("copy", getMobileCopyAnalyticsContext(field, copied));
     if (!copied) return;
+    suggestExtension();
     if (field === "title") copiedTitle = true;
     else copiedDescription = true;
     if (typeof navigator !== "undefined") navigator.vibrate?.(20);
@@ -1396,26 +1434,8 @@ export function mountMobileWebApp(
     });
   }
   bind(asElement(root, '[data-mobile-web="upgrade"]'), "click", (event) => {
-    const button = event.currentTarget as HTMLButtonElement;
-    const tier = button.dataset.tier ?? "starter";
-    if (!isMobileBillingTier(tier)) return;
-    button.disabled = true;
-    void trackMobileEvent("checkout_start", { tier })
-      .then(() => startMobileCheckout(tier))
-      .then(({ url }) => window.location.assign(url))
-      .catch(() => {
-        if (!disposed)
-          text(
-            root,
-            shell.dataset.draftsEnabled === "true"
-              ? '[data-mobile-web="account-status"]'
-              : '[data-mobile-web="generation-status"]',
-            "Could not open checkout. Please try again.",
-          );
-      })
-      .finally(() => {
-        if (!disposed) button.disabled = false;
-      });
+    event.preventDefault();
+    if (latestUsage) showPaywall(latestUsage, "plans");
   });
   bind(
     asElement(root, '[data-mobile-web="manage-billing"]'),
@@ -1423,8 +1443,8 @@ export function mountMobileWebApp(
     (event) => {
       const button = event.currentTarget as HTMLButtonElement;
       button.disabled = true;
-      void trackMobileEvent("checkout_start", { target: "manage" })
-        .then(() => openMobilePortal())
+      void trackMobileEvent("checkout_start", { target: "manage" });
+      void openMobilePortal()
         .then(({ url }) => window.location.assign(url))
         .catch(() => {
           if (!disposed)
@@ -1660,12 +1680,13 @@ export function mountMobileWebApp(
   renderPhotos(root, photos);
   applyGenerationState();
 
+  initializeMobileTelemetry();
   const start = async (): Promise<void> => {
     try {
       if (!appOpenedTracked) {
         appOpenedTracked = true;
         captureMobileFirstTouch();
-        void trackMobileEvent("web_app_click", { target: "app_open" });
+        void trackMobileEvent("web_app_view", { target: "app_open" });
       }
       if (checkoutReturnStatus) clearCheckoutReturnParams();
       session = await getBrowserSession();
@@ -1677,6 +1698,7 @@ export function mountMobileWebApp(
       void claimFirstTouchAfterAuth(session);
       void trackMobileEvent("auth_complete", { method: "session" });
       showApp(root);
+      if (checkoutReturnStatus) restoreMobileBillingReturn(session.user.id);
       openDraftWorkspace();
       if (checkoutReturnStatus && !checkoutReturnHandled) {
         checkoutReturnHandled = true;
@@ -1686,6 +1708,18 @@ export function mountMobileWebApp(
         await refreshUsage(checkoutReturnStatus === "success");
       } else {
         await refreshUsage();
+      }
+      const plansRequested =
+        new URL(window.location.href).searchParams.get("plans") === "1";
+      if (plansRequested && latestUsage) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("plans");
+        window.history.replaceState(
+          {},
+          "",
+          `${url.pathname}${url.search}${url.hash}`,
+        );
+        showPaywall(latestUsage, "plans");
       }
     } catch {
       if (disposed) return;

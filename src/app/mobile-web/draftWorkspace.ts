@@ -8,6 +8,7 @@ import {
   type DraftSettings,
   validDraftId,
   normalizeDraftSettings,
+  permittedDraftSettings,
   validateDraftSettings,
 } from "./draftContracts";
 import {
@@ -47,6 +48,8 @@ export function mountDraftWorkspace(
   options: {
     userId: string;
     onUsageChange: () => Promise<MobileUsage | null>;
+    onGenerationBlocked?: (usage: MobileUsage | null, code?: string) => boolean;
+    onViewPlans?: () => void;
     defaultSettings?: DraftSettings;
   },
 ) {
@@ -91,9 +94,13 @@ export function mountDraftWorkspace(
   let startingGenerationId: string | null = null;
   let allowance: number | null = null;
   const defaultsKey = `autolister:listing-defaults:${options.userId}`;
-  let defaultSettings = normalizeDraftSettings(
-    options.defaultSettings || DEFAULT_DRAFT_SETTINGS,
-  );
+  const freshDefaults = {
+    ...DEFAULT_DRAFT_SETTINGS,
+    ...options.defaultSettings,
+    useHashtags: true,
+    useEmojis: true,
+  };
+  let defaultSettings = normalizeDraftSettings(freshDefaults);
   try {
     const saved = localStorage.getItem(defaultsKey);
     if (saved) defaultSettings = normalizeDraftSettings(JSON.parse(saved));
@@ -105,9 +112,7 @@ export function mountDraftWorkspace(
         JSON.parse(localStorage.getItem(defaultsKey) || "null"),
       );
     } catch {
-      return normalizeDraftSettings(
-        options.defaultSettings || DEFAULT_DRAFT_SETTINGS,
-      );
+      return normalizeDraftSettings(freshDefaults);
     }
   };
   let newItemSettings = loadDefaults();
@@ -214,6 +219,13 @@ export function mountDraftWorkspace(
   };
   if (globalTrigger) {
     globalTrigger.hidden = false;
+    const discoveryKey = `autolister:settings-opened:${options.userId}`;
+    try {
+      if (!localStorage.getItem(discoveryKey))
+        globalTrigger.dataset.settingsUnseen = "true";
+    } catch {
+      globalTrigger.dataset.settingsUnseen = "true";
+    }
     const openGlobal = () => {
       const details =
         batchSettingsItem || selected
@@ -223,11 +235,16 @@ export function mountDraftWorkspace(
             ? find<HTMLDetailsElement>(".draft-batch-settings")
             : globalDetails;
       openPopover(details);
+      delete globalTrigger.dataset.settingsUnseen;
+      try {
+        localStorage.setItem(discoveryKey, "true");
+      } catch {}
     };
     globalTrigger.addEventListener("click", openGlobal);
     listeners.push(() => {
       globalTrigger.removeEventListener("click", openGlobal);
       globalTrigger.hidden = true;
+      delete globalTrigger.dataset.settingsUnseen;
       globalTrigger.setAttribute("aria-expanded", "false");
     });
   }
@@ -610,6 +627,22 @@ export function mountDraftWorkspace(
     draft.operation_state === "running" ||
     draft.operation_state === "pending" ||
     queue.active === draft.id;
+  bind(root, "mobile-paywall-request", () => options.onViewPlans?.());
+  bind(root, "click", (event) => {
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(
+      "a[data-draft-plan-lock]",
+    );
+    if (
+      !link ||
+      (event as MouseEvent).ctrlKey ||
+      (event as MouseEvent).metaKey ||
+      (event as MouseEvent).shiftKey ||
+      (event as MouseEvent).altKey
+    )
+      return;
+    event.preventDefault();
+    options.onViewPlans?.();
+  });
   const photoCount = (draft: Draft) =>
     new Set([
       ...draft.photos.map((p) => p.id),
@@ -856,7 +889,7 @@ export function mountDraftWorkspace(
     const runSize = Math.min(
       eligible.length,
       DRAFT_LIMITS.batch,
-      allowance ?? DRAFT_LIMITS.batch,
+      allowance !== null && allowance > 0 ? allowance : DRAFT_LIMITS.batch,
     );
     action("generate-selected").hidden = !eligible.length;
     label(
@@ -1394,7 +1427,7 @@ export function mountDraftWorkspace(
         find("[data-draft-editor-summary]").textContent =
           `${newItemSettings.descriptionLength === "short" ? "Short" : "Long"} · ${newItemSettings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
         find("[data-draft-settings-summary]").textContent =
-          `${settingsLanguages(newItemSettings)}\n${settingsExtras(newItemSettings)}`;
+          `${settingsLanguages(newItemSettings)}\n${settingsExtras(permittedDraftSettings(newItemSettings, settingsAccess))}`;
         find("[data-draft-settings-context]").textContent = "For this new item";
         hide("[data-draft-regenerate-notice]", true);
         action("regenerate").hidden = true;
@@ -1469,7 +1502,7 @@ export function mountDraftWorkspace(
       ? `Photos · ${draft.photos.length}`
       : "Photos";
     find("[data-draft-settings-summary]").textContent =
-      `${settingsLanguages(draft.settings)}\n${settingsExtras(draft.settings)}`;
+      `${settingsLanguages(draft.settings)}\n${settingsExtras(permittedDraftSettings(draft.settings, settingsAccess))}`;
     find("[data-draft-editor-summary]").textContent =
       `${draft.settings.descriptionLength === "short" ? "Short" : "Long"} · ${draft.settings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
     find("[data-draft-settings-context]").textContent =
@@ -2015,10 +2048,17 @@ export function mountDraftWorkspace(
         renderQueue();
       }
       try {
-        await executeDraftAttempt(current, attempt, generationCount > 1);
+        await executeDraftAttempt(
+          current,
+          attempt,
+          generationCount > 1,
+          settingsAccess,
+        );
         void trackMobileEvent("generation_success", {
           target: "draft_workspace",
           imageCount: current.photos.length,
+          method: generationCount > 1 ? "batch" : "single",
+          count: generationCount,
         });
       } catch (error) {
         const recovered = await draftAction("recover", { draftId: id }).catch(
@@ -2032,7 +2072,25 @@ export function mountDraftWorkspace(
             renderEditor();
           }
         }
-        await options.onUsageChange();
+        const blockedUsage = await options.onUsageChange();
+        const blockCode = (error as { code?: string }).code;
+        void trackMobileEvent("generation_error", {
+          target: "draft_workspace",
+          errorCode: blockCode || "generation_failed",
+          method: generationCount > 1 ? "batch" : "single",
+          count: generationCount,
+        });
+        if (
+          blockCode &&
+          [
+            "free_lifetime_limit",
+            "daily_limit",
+            "monthly_limit",
+            "account_paused",
+            "payment_required",
+          ].includes(blockCode)
+        )
+          options.onGenerationBlocked?.(blockedUsage, blockCode);
         if (
           recovered?.operation_state !== "succeeded" ||
           recovered.operation_id !== attempt.operationId
@@ -2236,22 +2294,8 @@ export function mountDraftWorkspace(
       return;
     if (!ids.length) throw new Error("Select at least one item to generate.");
     const usage = await options.onUsageChange();
-    for (const id of ids) {
-      const settings = normalizeDraftSettings(
-        library.drafts.find((d) => d.id === id)?.settings,
-      );
-      if (!settingsAccess.tone && settings.tone !== "standard")
-        throw new Error(
-          "Choose Standard tone for this plan, or switch to Pro or Business.",
-        );
-      if (
-        !settingsAccess.extras &&
-        (settings.useEmojis || settings.includeSellerNote)
-      )
-        throw new Error(
-          "Turn off emojis and seller note inclusion for this plan. Your note will stay saved.",
-        );
-    }
+    if (usage?.canGenerate === false && options.onGenerationBlocked?.(usage))
+      return;
     const available = Math.min(
       DRAFT_LIMITS.batch,
       draftGenerationAllowance(usage),
@@ -2276,6 +2320,11 @@ export function mountDraftWorkspace(
     )
       return;
     generationCount = ids.length;
+    void trackMobileEvent("web_generation_run", {
+      method: ids.length > 1 ? "batch" : "single",
+      count: ids.length,
+      target: "draft_workspace",
+    });
     reviewIds = [...ids];
     rememberView();
     attempts.clear();
@@ -2762,6 +2811,10 @@ export function mountDraftWorkspace(
       action(`copy-${field}`).querySelector("svg")!.replaceWith(icon("check"));
       find("[data-draft-copy-status]").textContent =
         `${field === "title" ? "Title" : "Description"} copied.`;
+      if (!disposed)
+        root.dispatchEvent(
+          new CustomEvent("mobile-copy-complete", { bubbles: true }),
+        );
       setTimeout(() => {
         if (!disposed) {
           label(`copy-${field}`, "Copy");
@@ -2965,27 +3018,50 @@ export function mountDraftWorkspace(
     )
       run(() => flush());
   });
-  root.querySelectorAll<HTMLButtonElement>("[data-draft-tab]").forEach((el) =>
-    bind(el, "click", () =>
+  const showLibrary = async (nextTab: "draft" | "done") => {
+    const intent = beginNavigation();
+    await flush();
+    if (disposed || intent !== selectionIntent) return;
+    tab = nextTab;
+    libraryPages = 1;
+    chosen.clear();
+    selectionMode = false;
+    selected = null;
+    composing = false;
+    bulk = false;
+    openedFromGrouping = false;
+    await reload();
+    if (disposed || intent !== selectionIntent) return;
+    renderEditor();
+    rememberView();
+  };
+  root
+    .querySelectorAll<HTMLButtonElement>("[data-draft-tab]")
+    .forEach((el) =>
+      bind(el, "click", () =>
+        run(() => showLibrary(el.dataset.draftTab as "draft" | "done")),
+      ),
+    );
+  const brandLink = root
+    .closest('[data-mobile-web="workspace"]')
+    ?.querySelector<HTMLAnchorElement>(".mobile-workspace-brand");
+  if (brandLink)
+    bind(brandLink, "click", (event) => {
+      const click = event as MouseEvent;
+      if (
+        click.button !== 0 ||
+        click.ctrlKey ||
+        click.metaKey ||
+        click.shiftKey ||
+        click.altKey
+      )
+        return;
+      click.preventDefault();
       run(async () => {
-        const intent = beginNavigation();
-        await flush();
-        if (disposed || intent !== selectionIntent) return;
-        tab = el.dataset.draftTab as "draft" | "done";
-        libraryPages = 1;
-        chosen.clear();
-        selectionMode = false;
-        selected = null;
-        composing = false;
-        bulk = false;
-        openedFromGrouping = false;
-        await reload();
-        if (disposed || intent !== selectionIntent) return;
-        renderEditor();
-        rememberView();
-      }),
-    ),
-  );
+        await showLibrary("draft");
+        if (!disposed) window.scrollTo({ top: 0 });
+      });
+    });
   bind(root, "dragover", (event) => {
     if ((event as DragEvent).dataTransfer?.types.includes("Files")) {
       event.preventDefault();
@@ -3123,6 +3199,11 @@ export function mountDraftWorkspace(
     }
   });
   return {
+    closeOverlays() {
+      root
+        .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
+        .forEach((details) => closePopover(details, false));
+    },
     updateUsage(usage: MobileUsage) {
       const tier = usage.plan?.tier || "free";
       const active =

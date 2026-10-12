@@ -184,6 +184,36 @@ describe("authenticated mobile usage endpoint", () => {
     expect(JSON.stringify(response)).not.toContain("stripe_customer_id");
   });
 
+  it("exposes the authoritative denial reason without turning burst limits into trial exhaustion", async () => {
+    const { buildUsageResponse } = await loadProjection();
+    expect(
+      buildUsageResponse(
+        freeProfile,
+        {
+          ...freeCapacity,
+          allowed: false,
+          available: 0,
+          reason: "burst_limit",
+          nextTier: "starter",
+        },
+        0,
+        now,
+      ),
+    ).toMatchObject({
+      blockedReason: "burst_limit",
+      nextTier: "starter",
+      canGenerate: false,
+    });
+    expect(
+      buildUsageResponse(
+        { ...freeProfile, account_status: "paused" },
+        freeCapacity,
+        3,
+        now,
+      ),
+    ).toMatchObject({ blockedReason: "account_paused", canGenerate: false });
+  });
+
   it("maps paused, inactive, and payment-required account states", async () => {
     const { buildUsageResponse } = await loadProjection();
     const paidProfile = {

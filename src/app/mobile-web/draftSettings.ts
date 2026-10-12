@@ -2,6 +2,7 @@ import {
   DEFAULT_DRAFT_SETTINGS,
   type Draft,
   type DraftSettings,
+  permittedDraftSettings,
 } from "./draftContracts";
 import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
 import { validateDescriptionFooterText } from "../../../utils/descriptionFooter";
@@ -65,7 +66,7 @@ export function syncSettingsControls(
   locked = false,
   access = { tone: true, extras: true },
 ) {
-  const settings = { ...DEFAULT_DRAFT_SETTINGS, ...value };
+  const settings = permittedDraftSettings(value, access);
   root
     .querySelectorAll<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -86,12 +87,17 @@ export function syncSettingsControls(
         Array.from(el.options).forEach(
           (o) => (o.disabled = !access.tone && o.value !== "standard"),
         );
-      if (
-        ["useEmojis", "includeSellerNote"].includes(key) &&
-        !access.extras &&
-        !current
-      )
-        el.disabled = true;
+      if (["useEmojis", "includeSellerNote"].includes(key)) {
+        el.disabled = locked || !access.extras;
+        const link = el
+          .closest("label")
+          ?.querySelector<HTMLAnchorElement>("[data-draft-plan-lock]");
+        if (link) {
+          link.hidden = access.extras;
+          link.tabIndex = locked ? -1 : 0;
+          link.style.pointerEvents = locked ? "none" : "";
+        }
+      }
     });
   syncDraftSelects(root, attribute);
   const note = root.querySelector<HTMLTextAreaElement>(
@@ -119,11 +125,4 @@ export function syncSettingsControls(
       button.disabled = locked || !validation.ok;
     });
   if (newlyInvalid) error.scrollIntoView({ block: "nearest" });
-  const hint = panel.querySelector<HTMLElement>(
-    "[data-draft-settings-access]",
-  )!;
-  hint.hidden = access.tone && access.extras;
-  hint.textContent = !access.tone
-    ? "Extra tones require Pro or Business. Your saved choices stay available."
-    : "Emojis and seller notes aren't available on this plan.";
 }

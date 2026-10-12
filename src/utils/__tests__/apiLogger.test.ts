@@ -62,6 +62,10 @@ vi.mock("../../../utils/supabaseClient", () => ({
       fromCalls.push(table);
       return createBuilder();
     }),
+    rpc: vi.fn(async (name: string, args: any) => {
+      updateCalls.push({ name, args });
+      return updateResponse;
+    }),
   },
 }));
 
@@ -229,11 +233,11 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
       batchSize: 2,
       compacted: 2,
     });
-    expect(fromCalls).toEqual(["api_logs", "api_logs"]);
+    expect(fromCalls).toEqual(["api_logs"]);
     expect(selectCalls).toEqual(["id"]);
     expect(ltCalls[0]).toEqual(["created_at", "2026-06-27T06:00:00.000Z"]);
     expect(orCalls).toEqual(
-      Array(2).fill(
+      Array(1).fill(
         "endpoint.is.null,endpoint.neq./event/listing_report_submitted",
       ),
     );
@@ -241,17 +245,9 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     expect(orderCalls[0]).toEqual(["created_at", { ascending: true }]);
     expect(limitCalls).toEqual([2]);
     expect(updateCalls[0]).toEqual({
-      image_urls: null,
-      raw_prompt: null,
-      full_request_body: null,
-      generated_title: null,
-      generated_description: null,
-      user_agent: null,
-      origin: null,
-      ip_address: null,
-      user_email: null,
+      name: "compact_api_logs_for_web_metrics",
+      args: { p_ids: ["log-1", "log-2"] },
     });
-    expect(inCalls[0]).toEqual(["id", ["log-1", "log-2"]]);
 
     vi.useRealTimers();
   });
@@ -297,10 +293,7 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
         lt: () => builder,
         not: () => builder,
         order: () => builder,
-        or: (value: string) => {
-          expect(value).toBe(
-            "endpoint.is.null,endpoint.neq./event/listing_report_submitted",
-          );
+        or: (_value: string) => {
           excluded = "/event/listing_report_submitted";
           return builder;
         },
@@ -323,6 +316,17 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
       };
       return builder;
     });
+    const rpc = vi.mocked(supabase.rpc);
+    const originalRpc = rpc.getMockImplementation();
+    rpc.mockImplementation((async (_name: string, args: any) => {
+      for (const row of rows)
+        if (
+          args.p_ids.includes(row.id) &&
+          row.endpoint !== "/event/listing_report_submitted"
+        )
+          row.full_request_body = null as any;
+      return { error: null } as any;
+    }) as any);
     try {
       const { ApiLogger } = await import("../../../utils/apiLogger.js");
       await ApiLogger.compactOldLogs({ cutoffHours: 6, batchSize: 2 });
@@ -333,6 +337,7 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
       expect(rows[2].full_request_body).toBeNull();
     } finally {
       from.mockImplementation(original!);
+      rpc.mockImplementation(originalRpc!);
     }
   });
 });

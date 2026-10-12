@@ -1,5 +1,41 @@
 // Generated from quick-vint-api/utils/incidents/registry.json. Do not edit.
 globalThis.AutoListerEventRegistry = {
+  web_app_click: {
+    kind: "business",
+  },
+  home_hero_exposure: {
+    kind: "business",
+  },
+  web_app_view: {
+    kind: "business",
+  },
+  auth_complete: {
+    kind: "business",
+  },
+  upload_complete: {
+    kind: "business",
+  },
+  generation_success: {
+    kind: "business",
+  },
+  generation_error: {
+    kind: "business",
+  },
+  web_generation_run: {
+    kind: "business",
+  },
+  web_paywall_view: {
+    kind: "business",
+  },
+  copy: {
+    kind: "business",
+  },
+  vinted_click: {
+    kind: "business",
+  },
+  checkout_return: {
+    kind: "business",
+  },
   generate_request: {
     kind: "checkpoint",
     stage: "generation_requested",
@@ -607,6 +643,14 @@ globalThis.AutoListerContextPolicy = {
     "operationId",
     "batchId",
     "analyticsClientId",
+    "webSessionId",
+    "target",
+    "method",
+    "field",
+    "resultStatus",
+    "tier",
+    "countryCode",
+    "language",
     "browserFamily",
     "browser",
     "clientBrowser",
@@ -631,6 +675,8 @@ globalThis.AutoListerContextPolicy = {
     "outputTrackingId",
     "source",
     "heroCopyVersion",
+    "heroExperiment",
+    "heroVariant",
     "reasonLabel",
     "feedback",
     "selectedTier",
@@ -645,6 +691,8 @@ globalThis.AutoListerContextPolicy = {
     "expectedDescriptionLength",
     "actualDescriptionLength",
     "photoCount",
+    "imageCount",
+    "count",
     "expectedPhotoCount",
     "confirmedPhotoCount",
     "itemIndex",
@@ -712,6 +760,7 @@ globalThis.AutoListerContextPolicy = {
     "titleChangedSincePrevious",
     "descriptionChangedSincePrevious",
     "retryable",
+    "useBulletPoints",
   ],
   imageStrings: [
     "sourceSelection",

@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-12T09:47:40.115Z",
+  "shortUrl": "https://autolister.app/beta",
+  "shortStatus": 307,
+  "destination": "https://quick-vint-api-git-codex-m-09f8c8-ahmed-samis-projects-e6ef0336.vercel.app/app",
+  "previewUnauthenticatedStatus": 302,
+  "previewLoginProtectionVerified": true,
+  "deployments": [
+    {
+      "id": "dpl_6B9n8YgbGwvJaQPF7KrdhB4Sbepm",
+      "state": "READY",
+      "commit": "f736913d809e0a58be3f0b0aa1a375b0a044b9bc",
+      "branch": "main",
+      "target": "production"
+    },
+    {
+      "id": "dpl_4gm82r7S2CLbyQTppNvGQxopf9Sh",
+      "state": "CANCELED",
+      "commit": "f165c02b894984aa79b62fd1fc23261d34ea9740",
+      "branch": "codex/mobile-web-phase1",
+      "target": null
+    },
+    {
+      "id": "dpl_6kroWcrUZRVagQEQNZYvBTmkWszE",
+      "state": "READY",
+      "commit": "7d9088030c6c9d89c7cb59cf274dc3694c314394",
+      "branch": "codex/mobile-web-phase1",
+      "target": null
+    }
+  ]
+}

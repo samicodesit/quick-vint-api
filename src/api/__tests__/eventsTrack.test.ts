@@ -33,7 +33,9 @@ vi.mock("../../../utils/incidents/service", () => ({
 
 vi.mock("../../../utils/apiLogger", () => ({
   ApiLogger: {
-    extractRequestMetadata: vi.fn(() => ({})),
+    extractRequestMetadata: vi.fn((req) => ({
+      userAgent: req.headers["user-agent"],
+    })),
     logRequest: vi.fn(),
     logRequests: logRequestsMock,
     isInternalLogExcludedEmail: () => false,
@@ -153,6 +155,7 @@ describe("events tracking endpoint", () => {
   async function postEvent(
     body: Record<string, unknown>,
     authenticated = true,
+    userAgent = "Mozilla/5.0",
   ) {
     const module = await import("../../../api/events/track.js");
     const handler = (module as any).default;
@@ -160,13 +163,156 @@ describe("events tracking endpoint", () => {
     await handler(
       {
         method: "POST",
-        headers: authenticated ? { authorization: "Bearer token" } : {},
+        headers: {
+          ...(authenticated ? { authorization: "Bearer token" } : {}),
+          "user-agent": userAgent,
+        },
         body,
       } as any,
       response as any,
     );
     return response;
   }
+
+  it("persists anonymous and verified web events once across response-loss retries", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (_name, args) => {
+        const result = await db.query<any>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result };
+      });
+      const visit = {
+        id: "a423926a-35a6-4bf5-8027-8ab335c72223",
+        occurredAt: new Date().toISOString(),
+        event: "web_app_view",
+        source: "mobile_web",
+        page: "/app?secret=private",
+        context: {
+          analyticsClientId: "browser-1",
+          webSessionId: "session-1",
+          source: "home_hero",
+          description: "private text",
+          imageUrl: "private image",
+          token: "private token",
+        },
+      };
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [visit] }, false)).body,
+      ).toMatchObject({ acknowledgedIds: [visit.id] });
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [visit] }, false)).body,
+      ).toMatchObject({ duplicateIds: [visit.id] });
+      const auth = {
+        ...visit,
+        id: "b423926a-35a6-4bf5-8027-8ab335c72223",
+        event: "auth_complete",
+        accountId: USER_ID,
+        context: {
+          analyticsClientId: "browser-1",
+          webSessionId: "session-1",
+          method: "email",
+        },
+      };
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [auth] })).body,
+      ).toMatchObject({ acknowledgedIds: [auth.id] });
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [auth] })).body,
+      ).toMatchObject({ duplicateIds: [auth.id] });
+      const checkout = {
+        ...auth,
+        id: "c423926a-35a6-4bf5-8027-8ab335c72223",
+        event: "checkout_start",
+        context: {
+          tier: "starter",
+          analyticsClientId: "browser-1",
+          webSessionId: "session-1",
+        },
+      };
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [checkout] })).body,
+      ).toMatchObject({ acknowledgedIds: [checkout.id] });
+      const rows = (
+        await db.query<any>(
+          "SELECT user_id,full_request_body FROM api_logs ORDER BY created_at",
+        )
+      ).rows;
+      expect(rows).toHaveLength(3);
+      expect(rows[0].user_id).toBeNull();
+      expect(rows[1].user_id).toBe(USER_ID);
+      expect(rows[0].full_request_body).toMatchObject({
+        source: "mobile_web",
+        page: "/app",
+        transportEventId: visit.id,
+        context: {
+          analyticsClientId: "browser-1",
+          webSessionId: "session-1",
+          source: "home_hero",
+        },
+      });
+      expect(rows[1].full_request_body.context.method).toBe("email");
+      expect(rows[2].full_request_body).toMatchObject({
+        event: "checkout_start",
+        source: "mobile_web",
+        transportEventId: checkout.id,
+        context: { tier: "starter" },
+      });
+      expect(
+        (await db.query<any>("SELECT id FROM incident_flows WHERE running"))
+          .rows,
+      ).toHaveLength(0);
+      expect(JSON.stringify(rows)).not.toContain("private");
+      for (const [index, event] of [
+        "home_hero_exposure",
+        "chrome_store_click",
+      ].entries()) {
+        const item = {
+          id: `e423926a-35a6-4bf5-8027-8ab335c7222${index}`,
+          occurredAt: new Date(Date.now() - 3600000).toISOString(),
+          event,
+          source: "website",
+          context: {
+            analyticsClientId: "browser-1",
+            heroExperiment: "mobile-entry-v1",
+            heroVariant: "b",
+          },
+        };
+        await postEvent(
+          { schemaVersion: 2, events: [item] },
+          false,
+          "Googlebot/2.1",
+        );
+        const actual = (
+          await db.query<any>(
+            "SELECT full_request_body FROM api_logs WHERE endpoint=$1",
+            [`/event/${event}`],
+          )
+        ).rows[0].full_request_body;
+        expect(actual).toMatchObject({
+          occurredAt: item.occurredAt,
+          transportEventId: item.id,
+          context: { heroExperiment: "mobile-entry-v1", heroVariant: "b" },
+        });
+        if (event === "home_hero_exposure")
+          expect(actual.automatedTraffic).toBe(true);
+      }
+      expect(
+        (await db.query<any>("SELECT id FROM incident_groups")).rows,
+      ).toHaveLength(0);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
 
   it.each([false, true])(
     "durably retains drop evidence and deduplicates retries (internal account: %s)",

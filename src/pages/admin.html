@@ -270,7 +270,7 @@
             text-decoration: none;
             border-radius: var(--radius-sm);
             margin-bottom: 0.25rem;
-            transition: all 0.15s ease;
+            transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
             cursor: pointer;
             font-weight: 500;
             font-size: 0.9rem;
@@ -2071,6 +2071,10 @@
                         <span class="nav-meta">Source, activation, and paid outcomes</span>
                     </span>
                 </a>
+                <a class="nav-item" data-view="web-app" href="/admin/web-app" onclick="return handleAdminNav(event, 'web-app')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>
+                    <span class="nav-copy"><span class="nav-label">Web app</span><span class="nav-meta">Visits, drafts, and repeat use</span></span>
+                </a>
                 <a class="nav-item active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2219,7 +2223,7 @@
 
     <script src="/admin-issues.js"></script>
     <script>
-        const ADMIN_VIEWS = ['costs', 'reports', 'acquisition', 'logs', 'users', 'emails', 'ui-pages'];
+        const ADMIN_VIEWS = ['costs', 'reports', 'acquisition', 'web-app', 'logs', 'users', 'emails', 'ui-pages'];
         // State Management
         const state = {
             secret: '',
@@ -2467,6 +2471,11 @@
                     subtitle: 'Feedback and complaints submitted from the Vinted listing tools.',
                     loading: 'Loading submitted reports...'
                 },
+                'web-app': {
+                    title: 'Web app',
+                    subtitle: 'Public beta usage, successful drafts, and repeat use.',
+                    loading: 'Loading web app metrics...'
+                },
                 acquisition: {
                     title: 'Acquisition',
                     subtitle: 'Authenticated first-touch source evidence and downstream outcomes.',
@@ -2548,6 +2557,7 @@
                 if (view === 'costs') await renderCosts(content);
                 else if (view === 'reports') await renderReports(content);
                 else if (view === 'acquisition') await renderAcquisition(content);
+                else if (view === 'web-app') await renderWebApp(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
                 else if (view === 'emails') await renderEmails(content);
@@ -2956,6 +2966,35 @@
             `;
         }
 
+        let webAppDays = 7;
+        async function renderWebApp(container) {
+            const reportingDays = webAppDays;
+            const data = await fetchAPI(`/api/admin?action=web-app-stats&days=${reportingDays}`);
+            if (state.currentView !== 'web-app' || reportingDays !== webAppDays) return;
+            if (!data.available) throw new Error(data.error || 'Web app metrics unavailable.');
+            const t = data.totals;
+            const count = value => Number(value || 0).toLocaleString();
+            const experiment = data.homepageExperiment;
+            const experimentHtml = experiment ? `<div class="card" style="margin-bottom:1rem"><div style="padding:1rem"><div class="card-title">Mobile homepage A/B</div><div class="text-sm text-muted">${escapeHtml(experiment.status)}. ${escapeHtml(experiment.definition)}</div></div><div class="table-container"><table><thead><tr><th>Variant</th><th>Browsers</th><th>App clicks</th><th>Extension clicks</th><th>Generated</th><th>Copied</th><th>Paid</th><th>7-day cohorts</th><th>Draft conversion</th></tr></thead><tbody>${experiment.arms.map(a => `<tr><td>${escapeHtml(a.label)}</td><td>${count(a.exposed)}</td><td>${count(a.appClicks)}</td><td>${count(a.extensionClicks)}</td><td>${count(a.generated)}</td><td>${count(a.copied)}</td><td>${count(a.paid)}</td><td>${count(a.matureGenerated)} / ${count(a.mature)}</td><td>${a.conversionRate == null ? 'Pending' : `${Number(a.conversionRate).toFixed(1)}%<div class="text-sm text-muted">95% interval: ${a.confidenceInterval.map(n => Number(n).toFixed(1)).join(' to ')}%</div>`}</td></tr>`).join('')}</tbody></table></div><div class="mobile-card-list" style="padding:0 1rem">${experiment.arms.map(a => `<div class="mobile-card"><strong>${escapeHtml(a.label)}</strong><div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.75rem">${[['Browsers',a.exposed],['App clicks',a.appClicks],['Extension clicks',a.extensionClicks],['Generated',a.generated],['Copied',a.copied],['Paid',a.paid],['7-day cohorts',`${count(a.matureGenerated)} / ${count(a.mature)}`]].map(([label,value]) => `<div><div class="text-sm text-muted">${label}</div><strong>${typeof value === 'string' ? value : count(value)}</strong></div>`).join('')}</div><div style="margin-top:0.75rem"><span class="text-sm text-muted">Draft conversion: </span><strong>${a.conversionRate == null ? 'Pending' : `${Number(a.conversionRate).toFixed(1)}%`}</strong>${a.confidenceInterval ? `<div class="text-sm text-muted">95% interval: ${a.confidenceInterval.map(n => Number(n).toFixed(1)).join(' to ')}%</div>` : ''}</div></div>`).join('')}</div><div class="text-sm text-muted" style="padding:1rem">Enrollment ends ${escapeHtml(formatDateTime(experiment.enrollmentEnd))}; outcomes finish ${escapeHtml(formatDateTime(experiment.end))}. No result is a proven winner from early click rates.</div></div>` : '';
+            const cards = [
+                ['Browser visits',t.visits,'Client-reported sessions, not unique people'],
+                ['Signed-in users',t.signedInUsers,'Verified accounts seen in the web app'],
+                ['New web signups',t.newSignups,'Same-browser arrival before account creation'],
+                ['Users who generated',t.activatedUsers,'At least one successful web API result'],
+                ['Drafts generated',t.generations,'Retries count once'],
+                ['Returning generators',t.returningGenerators,'Generated on 2 or more UTC days'],
+                ['Copies',t.copies,'Title or description copied'],
+                ['Currently paid users',t.currentPaidUsers,'Current entitlement, not new sales']
+            ];
+            container.innerHTML = `
+                <div class="view-brief"><div class="view-brief-top"><div><div class="view-brief-title">Web app beta</div><div class="view-brief-copy">${escapeHtml(formatDateTime(data.window.start))} to ${escapeHtml(formatDateTime(data.window.end))}. Extension activity is excluded.</div></div><select class="filter-input" aria-label="Web app reporting window" onchange="webAppDays=Number(this.value);loadView('web-app')"><option value="7" ${webAppDays===7?'selected':''}>Last 7 days</option><option value="30" ${webAppDays===30?'selected':''}>Last 30 days</option></select></div></div>
+                ${data.completeness.truncated ? '<div class="card" style="padding:1rem;margin-bottom:1rem;color:var(--danger-text)">Incomplete sample. Use the 7-day window. Counts below are lower bounds.</div>' : ''}
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0.85rem;margin-bottom:1rem">${cards.map(([label,value,note])=>`<div class="card" style="padding:1rem"><div class="text-sm text-muted">${label}</div><div style="font-size:1.8rem;font-weight:800;margin:0.3rem 0">${count(value)}</div><div class="text-sm text-muted">${note}</div></div>`).join('')}</div>
+                ${experimentHtml}
+                <div class="card" style="margin-bottom:1rem"><div style="padding:1rem"><div class="card-title">Daily activity</div><div class="text-sm text-muted">UTC days. ${count(t.homepageClicks)} homepage app clicks, ${count(t.checkoutStarts)} checkout starts, ${count(t.failedGenerations)} failed generation requests.</div></div><div class="table-container"><table><thead><tr><th>Day</th><th>Visits</th><th>New signups</th><th>Drafts</th><th>Copies</th><th>Failed requests</th></tr></thead><tbody>${data.daily.slice().reverse().map(d=>`<tr><td>${escapeHtml(d.date)}</td><td>${count(d.visits)}</td><td>${count(d.newSignups)}</td><td>${count(d.generations)}</td><td>${count(d.copies)}</td><td>${count(d.failedGenerations)}</td></tr>`).join('')}</tbody></table></div></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem"><div class="card" style="padding:1rem"><div class="card-title">App entry points</div>${data.entrySources.length ? data.entrySources.map(s=>`<div style="display:flex;justify-content:space-between;margin-top:0.5rem"><span>${escapeHtml(s.source)}</span><strong>${count(s.visits)}</strong></div>`).join('') : '<p class="text-sm text-muted">No recorded visits yet.</p>'}</div><div class="card" style="padding:1rem"><div class="card-title">Measurement limits</div><p class="text-sm text-muted">Tracking can be blocked or unavailable. Cross-device signups are not attributed. ${count(data.measurement.unidentifiedViews)} views had no usable session ID. Metrics start with this release and are kept for 30 days. Checkout starts and current paid users do not prove new payments or revenue.</p></div></div>`;
+        }
+
         async function renderCosts(container) {
             const todayRange = getLocalTodayRange();
             const data = await fetchAPI(`/api/admin?action=usage-stats&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`);
@@ -3259,6 +3298,14 @@
                 paywall_shown: 'Paywall shown',
                 paywall_option_select: 'Paywall option select',
                 checkout_start: 'Checkout start',
+                checkout_return: 'Checkout return',
+                subscription_started: 'Subscription activated',
+                credit_pack_paid: 'Credits purchased',
+                web_paywall_view: 'Web app paid options shown',
+                web_generation_run: 'Web app generation run',
+                generation_success: 'Generation success',
+                generation_error: 'Generation error',
+                copy: 'Copied draft text',
                 checkout_opened: 'Checkout opened',
                 chrome_store_click: 'Chrome Store click',
                 magic_link_request: 'Magic link request',
@@ -3399,14 +3446,19 @@
         }
 
         function getLogContext(log) {
-            const body = log.full_request_body || {};
-            const context = body.context || {};
+            const body = parseLogMetadata(log);
+            const context = body.context || {
+                status: log.event_status, tier: log.event_tier,
+                target: log.event_target, field: log.event_field
+            };
             const event = typeof log.endpoint === 'string' && log.endpoint.startsWith('/event/')
                 ? log.endpoint.replace('/event/', '')
                 : '';
-            const summary = getEventContextSummary(event, context);
+            const summary = ['checkout_return', 'subscription_started', 'credit_pack_paid', 'copy'].includes(event)
+                ? [context.status, context.tier || body.plan, context.field].filter(Boolean).join(' · ')
+                : getEventContextSummary(event, context);
             const page = context.path || context.page || body.page || '';
-            const source = body.source || context.source || '';
+            const source = body.source || log.log_source || context.source || '';
             return [summary, page, source].filter(Boolean).join(' · ') || log.endpoint || 'No details';
         }
 
@@ -3714,10 +3766,19 @@
 
         function parseLogImages(log) {
             try {
-                if (typeof log.image_urls === 'string') return JSON.parse(log.image_urls);
-                if (Array.isArray(log.image_urls)) return log.image_urls;
+                const images = typeof log.image_urls === 'string' ? JSON.parse(log.image_urls) : log.image_urls;
+                if (Array.isArray(images)) return images;
             } catch (e) { }
             return [];
+        }
+
+        function getLogImageCount(log) {
+            const metadata = parseLogMetadata(log);
+            for (const count of [log.image_count, metadata.imageCount, metadata.openaiImageCount]) {
+                if (Number.isInteger(count) && count >= 0) return count;
+            }
+            const images = parseLogImages(log);
+            return images.length || getSafeLogImageUrls(log).length || null;
         }
 
         function parseLogMetadata(log) {
@@ -3803,7 +3864,8 @@
             if (eventName === 'generate_cancelled') return { symbol: 'CXL', className: 'warning' };
             if (eventName === 'generate_success') return { symbol: 'OK', className: 'success' };
             if (eventName === 'generate_limit_hit' || eventName === 'account_paused_shown') return { symbol: 'LIM', className: 'warning' };
-            if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_')) return { symbol: 'PAY', className: 'warning' };
+            if (eventName === 'subscription_started' || eventName === 'credit_pack_paid') return { symbol: 'PAID', className: 'success' };
+            if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_') || eventName === 'web_paywall_view') return { symbol: 'PAY', className: 'warning' };
             if (eventName.startsWith('magic_link_') || eventName.startsWith('auth_') || eventName === 'signin_cta_click' || eventName === 'signed_out_tools_ready') return { symbol: 'AUTH', className: 'system' };
             if (eventName === 'listing_tools_ready') return { symbol: 'READY', className: 'success' };
             if (eventName === 'generate_click' || eventName === 'generate_request') return { symbol: 'GEN', className: 'generate' };
@@ -3832,8 +3894,10 @@
             const kind = getLogKind(log);
             if (kind === 'Event') return getLogContext(log);
             if (kind === 'Generation') {
-                const imageCount = getSafeLogImageUrls(log).length || parseLogImages(log).length;
-                return `${imageCount || 0} image${imageCount === 1 ? '' : 's'} · ${log.openai_model || 'unknown model'} · ${formatOpenAICost(log)}`;
+                const imageCount = getLogImageCount(log);
+                const metadata = parseLogMetadata(log);
+                const client = (log.log_client || metadata.client) === 'mobile_web' ? 'Web app · ' : '';
+                return `${client}${imageCount === null ? 'Photo count unavailable' : `${imageCount} image${imageCount === 1 ? '' : 's'}`} · ${log.openai_model || 'unknown model'} · ${formatOpenAICost(log)}`;
             }
             return getLogPreview(log);
         }
@@ -3874,14 +3938,14 @@
                 const images = getSafeLogImageUrls(log);
                 const thumb = images.length
                     ? `<img src="${escapeAttribute(images[0])}" alt="Item preview" loading="lazy">`
-                    : (getLogKind(log) === 'Generation' ? 'No image' : '');
+                    : (getLogKind(log) === 'Generation' ? 'No preview' : '');
                 const statusClass = dropDiagnostic ? 'warning' : log.response_status >= 400
                     ? 'danger'
                     : (log.response_status ? 'success' : 'neutral');
 
                 return `
                     <div class="activity-row ${icon.className || 'system'}" onclick="showLogDetails('${escapeAttribute(log.id)}')">
-                        <div class="log-time">${formatDateTime(log.created_at)}</div>
+                        <div class="log-time">${formatDateTime(log.event_occurred_at || parseLogMetadata(log).occurredAt || log.created_at)}</div>
                         <div class="activity-icon ${icon.className}">${escapeHtml(icon.symbol)}</div>
                         <div class="activity-thumb">${thumb}</div>
                         <div class="activity-main">
@@ -4065,11 +4129,11 @@
                         </div>`}
                 </div>
                 <div class="pagination-bar">
-                    <span>Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}</span>
-                    <span>Page ${pagination.totalPages ? pagination.page : 0} of ${pagination.totalPages || 0}</span>
+                    <span>${pagination.total == null ? `Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${logs.length ? ((pagination.page - 1) * pagination.limit) + logs.length : 0} search results` : `Showing ${logs.length ? ((pagination.page - 1) * pagination.limit) + 1 : 0}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}`}</span>
+                    <span>${pagination.totalPages == null ? `Page ${pagination.page}` : `Page ${pagination.totalPages ? pagination.page : 0} of ${pagination.totalPages || 0}`}${pagination.searchWindowDays ? ` · Last ${Number(pagination.searchWindowDays)} days` : ''}</span>
                     <div class="flex gap-2">
                         <button class="btn-secondary" ${pagination.page <= 1 ? 'disabled' : ''} onclick="setLogsPage(${pagination.page - 1})">Previous</button>
-                        <button class="btn-secondary" ${pagination.page >= pagination.totalPages ? 'disabled' : ''} onclick="setLogsPage(${pagination.page + 1})">Next</button>
+                        <button class="btn-secondary" ${(pagination.totalPages == null ? !pagination.hasMore : pagination.page >= pagination.totalPages) ? 'disabled' : ''} onclick="setLogsPage(${pagination.page + 1})">Next</button>
                     </div>
                 </div>
             `;
@@ -4490,6 +4554,12 @@
             return `<span class="badge channel-badge ${known ? 'badge-info' : 'badge-neutral'}" aria-label="Acquisition channel: ${escapeAttribute(label)}" title="${escapeAttribute(title)}">${escapeHtml(label)}</span>`;
         }
 
+        function renderWebAppBadge(u) {
+            return u.web_app_observed === true
+                ? '<span class="badge badge-info channel-badge" title="Observed web app activity in the last 30 days. This account can also use the extension.">Web app</span>'
+                : '';
+        }
+
         function renderUserRow(u) {
             const email = escapeHtml(u.email || 'Unknown');
             const id = escapeHtml(u.id || '');
@@ -4499,7 +4569,7 @@
             return `
                 <tr>
                     <td>
-                        <div class="font-medium user-identity" style="color: var(--text-main); font-weight: 600;"><span>${email}</span>${renderAcquisitionBadge(u)}</div>
+                        <div class="font-medium user-identity" style="color: var(--text-main); font-weight: 600;"><span>${email}</span>${renderAcquisitionBadge(u)}${renderWebAppBadge(u)}</div>
                         <div class="text-sm text-muted" style="font-size: 0.75rem; font-family: monospace;">${id}</div>
                         ${ip ? `<div class="text-sm text-muted" style="font-size: 0.75rem;">${ip}</div>` : ''}
                         ${u.is_new_today ? '<span class="badge badge-success" style="margin-top: 0.35rem;">New today</span>' : ''}
@@ -4531,7 +4601,7 @@
                 <div class="mobile-card">
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Email</span>
-                        <span class="mobile-card-value user-identity" style="font-weight: 600; word-break: break-all;"><span>${email}</span>${renderAcquisitionBadge(u)}</span>
+                        <span class="mobile-card-value user-identity" style="font-weight: 600; word-break: break-all;"><span>${email}</span>${renderAcquisitionBadge(u)}${renderWebAppBadge(u)}</span>
                     </div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">User id</span>
@@ -4924,7 +4994,8 @@
                         </div>
                         <div class="text-sm text-muted">
                             ID: ${escapeHtml(log.id)}<br>
-                            Time: ${escapeHtml(formatDateTime(log.created_at))}<br>
+                            Time: ${escapeHtml(formatDateTime(metadata.occurredAt || log.created_at))}<br>
+                            ${metadata.occurredAt ? `Received: ${escapeHtml(formatDateTime(log.created_at))}<br>` : ''}
                             Actor: ${getLogActor(log)}<br>
                             ${correlatedUserLine}
                             ${analyticsClientId ? `Client ID: ${escapeHtml(analyticsClientId)}<br>` : ''}
@@ -4955,7 +5026,7 @@
                 `<div class="image-gallery">
                     ${images.map((url, index) => renderLogImageButton(log, url, index)).join('')}
                  </div>` :
-                `<div style="padding: 2rem; text-align: center; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">No item images for this ${escapeHtml(logKind.toLowerCase())} log</div>`;
+                `<div style="padding: 1rem; background: #f9fafb; border-radius: 0.5rem; color: var(--text-muted);">${getLogImageCount(log) === null ? 'Photo count unavailable.' : `${getLogImageCount(log)} photos sent.`} Preview not retained for this log.</div>`;
 
             const content = `
                 <div>

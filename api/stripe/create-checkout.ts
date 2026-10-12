@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
-import { TIER_CONFIGS } from "../../utils/tierConfig";
+import { CREDIT_PACK_CONFIG, TIER_CONFIGS } from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
 import {
   createBillingPortalSessionForProfile,
@@ -172,6 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         utm?: unknown;
       };
       const tier = body.tier;
+      const creditPack = tier === "credit_pack";
       alertContext = {
         userId: profile.id,
         tier: typeof tier === "string" ? tier : undefined,
@@ -180,17 +181,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (
         typeof tier !== "string" ||
-        !PAID_TIERS.has(tier) ||
-        !Object.prototype.hasOwnProperty.call(TIER_CONFIGS, tier)
+        (!creditPack &&
+          (!PAID_TIERS.has(tier) ||
+            !Object.prototype.hasOwnProperty.call(TIER_CONFIGS, tier)))
       ) {
         return res.status(400).json({ error: "Invalid tier specified." });
       }
 
       const tierKey = tier as keyof typeof TIER_CONFIGS;
-      const tierConfig = TIER_CONFIGS[tierKey];
-      const priceId = tierConfig.stripe.priceId;
+      const priceId = creditPack
+        ? process.env.STRIPE_CREDIT_PACK_PRICE_ID
+        : TIER_CONFIGS[tierKey].stripe.priceId;
+      if (!priceId) throw new Error("Stripe price is not configured.");
       const offerToken =
-        typeof body.offerToken === "string" ? body.offerToken : undefined;
+        !creditPack && typeof body.offerToken === "string"
+          ? body.offerToken
+          : undefined;
       const utm =
         body.utm && typeof body.utm === "object"
           ? (body.utm as Record<string, unknown>)
@@ -265,7 +271,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      if (customerId && !activeSubscriptionId) {
+      if (!creditPack && customerId && !activeSubscriptionId) {
         const manageableSubscription =
           await findManageableSubscriptionForCustomer(stripe, customerId);
         if (manageableSubscription) {
@@ -273,7 +279,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      if (customerId && activeSubscriptionId) {
+      if (!creditPack && customerId && activeSubscriptionId) {
         const portalSession = await createBillingPortalSessionForProfile({
           stripe,
           email: profile.email,
@@ -322,7 +328,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const session = await stripe.checkout.sessions.create({
-        mode: "subscription",
+        mode: creditPack ? "payment" : "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
         customer: customerId,
         success_url: getMobileCheckoutUrls({
@@ -339,6 +345,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         metadata: {
           source: "mobile_web",
           tier,
+          ...(creditPack
+            ? {
+                purchase_type: "credit_pack",
+                pack_id: CREDIT_PACK_CONFIG.id,
+                credits: String(CREDIT_PACK_CONFIG.credits),
+                profile_id: profile.id,
+              }
+            : {}),
           utm_source: typeof utm.utm_source === "string" ? utm.utm_source : "",
           utm_medium: typeof utm.utm_medium === "string" ? utm.utm_medium : "",
           utm_campaign:

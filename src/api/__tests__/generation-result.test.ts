@@ -3,11 +3,18 @@ const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   from: vi.fn(),
   cors: vi.fn(),
+  log: vi.fn(),
 }));
 vi.mock("../../../utils/supabaseClient", () => ({
   supabase: { auth: { getUser: mocks.auth }, from: mocks.from },
 }));
 vi.mock("../../../utils/usageCors", () => ({ runUsageCors: mocks.cors }));
+vi.mock("../../../utils/apiLogger", () => ({
+  ApiLogger: {
+    logRequest: mocks.log,
+    extractRequestMetadata: () => ({ requestMethod: "GET" }),
+  },
+}));
 import handler from "../../../api/generation-result";
 const requestId = "123e4567-e89b-42d3-a456-426614174000";
 let filters: unknown[][];
@@ -25,6 +32,7 @@ beforeEach(() => {
     status: "succeeded",
     response_json: { title: "Dress", description: "Details" },
     expires_at: new Date(Date.now() + 60000).toISOString(),
+    created_at: "2026-10-10T10:00:00.000Z",
   };
   reservation = { status: "committed" };
   mocks.from.mockImplementation((table) => {
@@ -85,6 +93,19 @@ it("recovers a committed pending response without reserving or charging", async 
     state: "succeeded",
     result: { title: "Dress", description: "Details" },
   });
+  expect(mocks.log).toHaveBeenCalledWith(
+    expect.objectContaining({
+      userId: "owner",
+      endpoint: "/api/generation-result",
+      fullRequestBody: {
+        client: "mobile_web",
+        requestId,
+        generationCommitted: true,
+        generationStartedAt: "2026-10-10T10:00:00.000Z",
+      },
+    }),
+  );
+  expect(JSON.stringify(mocks.log.mock.calls)).not.toContain("Details");
 });
 it("keeps pending, missing, failed and expired outcomes distinct", async () => {
   row = null;

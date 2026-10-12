@@ -2071,6 +2071,10 @@
                         <span class="nav-meta">Source, activation, and paid outcomes</span>
                     </span>
                 </a>
+                <a class="nav-item" data-view="web-app" href="/admin/web-app" onclick="return handleAdminNav(event, 'web-app')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>
+                    <span class="nav-copy"><span class="nav-label">Web app</span><span class="nav-meta">Visits, drafts, and repeat use</span></span>
+                </a>
                 <a class="nav-item active" data-view="logs" href="/admin/logs" onclick="return handleAdminNav(event, 'logs')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -2219,7 +2223,7 @@
 
     <script src="/admin-issues.js"></script>
     <script>
-        const ADMIN_VIEWS = ['costs', 'reports', 'acquisition', 'logs', 'users', 'emails', 'ui-pages'];
+        const ADMIN_VIEWS = ['costs', 'reports', 'acquisition', 'web-app', 'logs', 'users', 'emails', 'ui-pages'];
         // State Management
         const state = {
             secret: '',
@@ -2467,6 +2471,11 @@
                     subtitle: 'Feedback and complaints submitted from the Vinted listing tools.',
                     loading: 'Loading submitted reports...'
                 },
+                'web-app': {
+                    title: 'Web app',
+                    subtitle: 'Public beta usage, successful drafts, and repeat use.',
+                    loading: 'Loading web app metrics...'
+                },
                 acquisition: {
                     title: 'Acquisition',
                     subtitle: 'Authenticated first-touch source evidence and downstream outcomes.',
@@ -2548,6 +2557,7 @@
                 if (view === 'costs') await renderCosts(content);
                 else if (view === 'reports') await renderReports(content);
                 else if (view === 'acquisition') await renderAcquisition(content);
+                else if (view === 'web-app') await renderWebApp(content);
                 else if (view === 'logs') await renderLogs(content);
                 else if (view === 'users') await renderUsers(content);
                 else if (view === 'emails') await renderEmails(content);
@@ -2954,6 +2964,32 @@
                     </div>
                 </div>
             `;
+        }
+
+        let webAppDays = 7;
+        async function renderWebApp(container) {
+            const reportingDays = webAppDays;
+            const data = await fetchAPI(`/api/admin?action=web-app-stats&days=${reportingDays}`);
+            if (state.currentView !== 'web-app' || reportingDays !== webAppDays) return;
+            if (!data.available) throw new Error(data.error || 'Web app metrics unavailable.');
+            const t = data.totals;
+            const count = value => Number(value || 0).toLocaleString();
+            const cards = [
+                ['Browser visits',t.visits,'Client-reported sessions, not unique people'],
+                ['Signed-in users',t.signedInUsers,'Verified accounts seen in the web app'],
+                ['New web signups',t.newSignups,'Same-browser arrival before account creation'],
+                ['Users who generated',t.activatedUsers,'At least one successful web API result'],
+                ['Drafts generated',t.generations,'Retries count once'],
+                ['Returning generators',t.returningGenerators,'Generated on 2 or more UTC days'],
+                ['Copies',t.copies,'Title or description copied'],
+                ['Currently paid users',t.currentPaidUsers,'Current entitlement, not new sales']
+            ];
+            container.innerHTML = `
+                <div class="view-brief"><div class="view-brief-top"><div><div class="view-brief-title">Web app beta</div><div class="view-brief-copy">${escapeHtml(formatDateTime(data.window.start))} to ${escapeHtml(formatDateTime(data.window.end))}. Extension activity is excluded.</div></div><select class="filter-input" aria-label="Web app reporting window" onchange="webAppDays=Number(this.value);loadView('web-app')"><option value="7" ${webAppDays===7?'selected':''}>Last 7 days</option><option value="30" ${webAppDays===30?'selected':''}>Last 30 days</option></select></div></div>
+                ${data.completeness.truncated ? '<div class="card" style="padding:1rem;margin-bottom:1rem;color:var(--danger-text)">Incomplete sample. Use the 7-day window. Counts below are lower bounds.</div>' : ''}
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0.85rem;margin-bottom:1rem">${cards.map(([label,value,note])=>`<div class="card" style="padding:1rem"><div class="text-sm text-muted">${label}</div><div style="font-size:1.8rem;font-weight:800;margin:0.3rem 0">${count(value)}</div><div class="text-sm text-muted">${note}</div></div>`).join('')}</div>
+                <div class="card" style="margin-bottom:1rem"><div style="padding:1rem"><div class="card-title">Daily activity</div><div class="text-sm text-muted">UTC days. ${count(t.homepageClicks)} homepage app clicks, ${count(t.checkoutStarts)} checkout starts, ${count(t.failedGenerations)} failed generation requests.</div></div><div class="table-container"><table><thead><tr><th>Day</th><th>Visits</th><th>New signups</th><th>Drafts</th><th>Copies</th><th>Failed requests</th></tr></thead><tbody>${data.daily.slice().reverse().map(d=>`<tr><td>${escapeHtml(d.date)}</td><td>${count(d.visits)}</td><td>${count(d.newSignups)}</td><td>${count(d.generations)}</td><td>${count(d.copies)}</td><td>${count(d.failedGenerations)}</td></tr>`).join('')}</tbody></table></div></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem"><div class="card" style="padding:1rem"><div class="card-title">App entry points</div>${data.entrySources.length ? data.entrySources.map(s=>`<div style="display:flex;justify-content:space-between;margin-top:0.5rem"><span>${escapeHtml(s.source)}</span><strong>${count(s.visits)}</strong></div>`).join('') : '<p class="text-sm text-muted">No recorded visits yet.</p>'}</div><div class="card" style="padding:1rem"><div class="card-title">Measurement limits</div><p class="text-sm text-muted">Tracking can be blocked or unavailable. Cross-device signups are not attributed. ${count(data.measurement.unidentifiedViews)} views had no usable session ID. Metrics start with this release and are kept for 30 days. Checkout starts and current paid users do not prove new payments or revenue.</p></div></div>`;
         }
 
         async function renderCosts(container) {

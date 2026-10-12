@@ -1,5 +1,12 @@
 # AutoLister AI Growth Current Sprint
 
+## Public web beta, October 12, 2026
+
+- Owner approved publishing the compact dual-route homepage and public local-draft web app. Homepage-only Search Console queries support preserving the current AI listing headline and compatibility phrase. The demo remains visible and the header counter is compact plain text.
+- The existing admin gains `/admin/web-app`: browser visits, verified sign-ins, same-browser new signups, server-confirmed generations, copies, returning generators and current paid entitlement. Retries/recovered results count once. Anonymous activity is directional and client-reported; current paid entitlement is not a new-payment or revenue metric.
+- Existing telemetry/log storage is reused. An additive service-only compaction function preserves only small web metrics for 30 days; no new table, cloud draft persistence, quota change or extension release. Production callback/config preparation preserves existing auth and private preview protection.
+- Independent review identified and confirmed the fix for checkout-event retention. Full production gate passed 875 tests in 123 files, real browser/HTTP retry tests, rendered mobile/desktop checks and existing 16-step draft plus five-scenario settings journeys. Detailed evidence and untested steps: [public-web-beta-2026-10-12.md](qa/public-web-beta-2026-10-12.md). Final live-route and READY deployment verification follows the guarded production push.
+
 ## Draft model Fast pilot, October 12, 2026
 
 - Owner approved shipping a stable 50% account pilot of GPT-6.1 Sol Fast, including existing and new accounts, while continuing to investigate larger-photo costs. The control remains GPT-5.4. High-detail photos, low reasoning, strict JSON, 1,000 output tokens and explicit caching without breakpoints preserve the audited configuration and unchanged prompt text.

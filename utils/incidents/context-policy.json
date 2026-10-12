@@ -10,6 +10,14 @@
     "operationId",
     "batchId",
     "analyticsClientId",
+    "webSessionId",
+    "target",
+    "method",
+    "field",
+    "resultStatus",
+    "tier",
+    "countryCode",
+    "language",
     "browserFamily",
     "browser",
     "clientBrowser",
@@ -48,6 +56,8 @@
     "expectedDescriptionLength",
     "actualDescriptionLength",
     "photoCount",
+    "imageCount",
+    "count",
     "expectedPhotoCount",
     "confirmedPhotoCount",
     "itemIndex",
@@ -114,7 +124,8 @@
     "descriptionChanged",
     "titleChangedSincePrevious",
     "descriptionChangedSincePrevious",
-    "retryable"
+    "retryable",
+    "useBulletPoints"
   ],
   "imageStrings": [
     "sourceSelection",

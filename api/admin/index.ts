@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import Stripe from "stripe";
 import { handleIssues } from "../../utils/incidents/admin";
 import { supabase } from "../../utils/supabaseClient";
+import { handleWebAppStats } from "../../utils/webAppStats";
 import {
   FREE_LIFETIME_LIMIT,
   TIER_CONFIGS,
@@ -113,6 +114,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleGrowthStats(req, res);
     } else if (action === "attribution-report") {
       return handleAttributionReport(req, res);
+    } else if (action === "web-app-stats") {
+      return handleWebAppStats(req, res);
     } else if (action === "list-users") {
       return handleListUsers(req, res);
     } else if (action === "user-journey") {

@@ -1,5 +1,6 @@
 import { fetchMobileJson } from "./api.js";
 import type { MobileWebSession } from "./types.js";
+import { getWebAnalyticsContext } from "../../scripts/webAnalyticsContext";
 import {
   captureFirstTouch,
   getStoredAttribution,
@@ -9,7 +10,7 @@ import {
 export const MOBILE_REF_STORAGE_KEY = "autolister.mobile_web.ref.v1";
 
 export const MOBILE_ANALYTICS_EVENTS = [
-  "web_app_click",
+  "web_app_view",
   "auth_complete",
   "upload_complete",
   "generation_success",
@@ -181,7 +182,7 @@ function isMobileAnalyticsEvent(value: string): value is MobileAnalyticsEvent {
 }
 
 /**
- * Send a small, bounded event through the normal same-origin bearer wrapper.
+ * Enqueue a small, bounded event in the existing durable website transport.
  * Unknown event names and context keys are ignored rather than sent.
  */
 export async function trackMobileEvent(
@@ -190,26 +191,19 @@ export async function trackMobileEvent(
 ): Promise<boolean> {
   if (!isMobileAnalyticsEvent(event)) return false;
   try {
-    await fetchMobileJson(
-      "/api/events/track",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          events: [
-            {
-              event,
-              source: "mobile_web",
-              page: "/app",
-              context: sanitizeContext(context, event),
-              utm: getMobileUtmParameters(),
-            },
-          ],
-        }),
+    const runtime = (globalThis as any).AutoListerWebsiteTelemetry;
+    if (!runtime) return false;
+    const result = await runtime.track(event, {
+      source: "mobile_web",
+      page: "/app",
+      context: {
+        ...sanitizeContext(context, event),
+        ...getWebAnalyticsContext(),
+        source: readRef() || "app_direct",
       },
-      { retryOn401: true },
-    );
-    return true;
+      utm: getMobileUtmParameters(),
+    });
+    return result.queued === true;
   } catch {
     return false;
   }

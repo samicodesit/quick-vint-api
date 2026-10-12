@@ -2,7 +2,7 @@
   "redirects": [
     {
       "source": "/beta",
-      "destination": "https://quick-vint-api-git-codex-m-09f8c8-ahmed-samis-projects-e6ef0336.vercel.app/app",
+      "destination": "/app",
       "permanent": false
     }
   ],

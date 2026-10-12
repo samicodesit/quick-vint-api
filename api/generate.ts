@@ -289,6 +289,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             redactedRequestBody as Record<string, unknown>;
           return {
             ...safeBody,
+            client: "mobile_web",
+            generationCommitted: false,
+            generationStartedAt: new Date(startTime).toISOString(),
+            requestId:
+              typeof mobileRequestId === "string"
+                ? mobileRequestId.slice(0, 80)
+                : undefined,
             imageCount: Array.isArray(req.body?.imageUrls)
               ? req.body.imageUrls.length
               : 0,
@@ -1335,6 +1342,8 @@ Reply only in JSON: {"title":"...","description":"..."}
         });
       }
       mobileReservationCommitState = "committed";
+      if (isMobileWebRequest)
+        logData.fullRequestBody.generationCommitted = true;
     }
 
     // Add generated content to log

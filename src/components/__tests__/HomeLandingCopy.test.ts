@@ -12,8 +12,8 @@ describe("home hero copy", () => {
   it("renders one consolidated badge and one review-before-publishing benefit", () => {
     expect(source).not.toContain("{copy.heroBadgeSafe}");
     expect(source).not.toContain("{copy.heroBulletSafety}");
-    expect(source.match(/\{extra\.heroBadgePrimary\}/g)).toHaveLength(2);
-    expect(source.match(/\{extra\.heroBullet3\}/g)).toHaveLength(1);
+    expect(source.match(/\{extra\.heroBadgePrimary\}/g)).toHaveLength(1);
+    expect(source.match(/\{extra\.heroBullet3\}/g)).toHaveLength(2);
   });
 
   it("describes the photo organizer card by its actual function", () => {

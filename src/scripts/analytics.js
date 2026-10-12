@@ -3,6 +3,7 @@ import "../../public/telemetry-core.js";
 import "../../public/telemetry-client.js";
 import "../../public/telemetry-website.js";
 import { captureFirstTouch } from "./attribution.js";
+import { getWebAnalyticsContext } from "./webAnalyticsContext";
 
 const KNOWN_UTM_KEYS = [
   "utm_source",
@@ -39,16 +40,24 @@ function trackEventUnsafe(event, properties) {
     ...properties,
   };
 
+  if (event === "web_app_click") {
+    payload.context = {
+      ...(typeof payload.context === "object"
+        ? payload.context
+        : { source: payload.context }),
+      ...getWebAnalyticsContext(),
+    };
+  }
   if (typeof window.gtag === "function") {
     window.gtag("event", event, payload);
   }
 
-  void globalThis.AutoListerWebsiteTelemetry.track(event, payload);
+  return globalThis.AutoListerWebsiteTelemetry.track(event, payload);
 }
 
 export function trackEvent(event, properties = {}) {
   try {
-    trackEventUnsafe(event, properties);
+    return trackEventUnsafe(event, properties);
   } catch {}
 }
 
@@ -92,7 +101,7 @@ function bindTrackedClicks() {
   document.querySelectorAll("[data-track-event]").forEach((element) => {
     if (element.dataset.trackBound === "true") return;
     element.dataset.trackBound = "true";
-    element.addEventListener("click", () => {
+    element.addEventListener("click", (click) => {
       const context = element.dataset.trackCopyVersion
         ? {
             source: element.dataset.trackContext || null,
@@ -100,10 +109,30 @@ function bindTrackedClicks() {
           }
         : element.dataset.trackContext || null;
 
-      trackEvent(element.dataset.trackEvent, {
+      const queued = trackEvent(element.dataset.trackEvent, {
         context,
         plan: element.dataset.trackPlan || null,
       });
+      if (
+        element.dataset.trackEvent === "web_app_click" &&
+        element instanceof HTMLAnchorElement &&
+        click.button === 0 &&
+        !click.ctrlKey &&
+        !click.metaKey &&
+        !click.shiftKey &&
+        !click.altKey &&
+        element.target !== "_blank"
+      ) {
+        click.preventDefault();
+        // Wait only for a local queue write, never for the network. A blocked
+        // storage backend must not prevent someone entering the app.
+        void Promise.race([
+          Promise.resolve(queued),
+          new Promise((resolve) => setTimeout(resolve, 150)),
+        ]).finally(() => {
+          window.location.assign(element.href);
+        });
+      }
     });
   });
 }

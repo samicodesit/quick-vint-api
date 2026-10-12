@@ -378,6 +378,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     (raw, context) => {
       const retained =
         isRegisteredBusiness(raw.event) ||
+        (raw.source === "mobile_web" && raw.event === "checkout_start") ||
         [
           "generate_request",
           "generate_success",
@@ -441,7 +442,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .map((key) => [key, redact(raw.utm[key], 120)]),
           ),
           context,
-          ...(dropCarrier
+          ...(dropCarrier ||
+          raw.source === "mobile_web" ||
+          raw.event === "web_app_click"
             ? { transportEventId: raw.id, occurredAt: raw.occurredAt }
             : {}),
         },

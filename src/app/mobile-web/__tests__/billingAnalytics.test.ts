@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fetchMobileJsonMock = vi.fn();
 const loadUsageMock = vi.fn();
+const telemetryTrack = vi.fn();
 const attributionModule = {
   FIRST_TOUCH_STORAGE_KEY: "autolister.first_touch.v1",
   getStoredAttribution: vi.fn(),
@@ -21,6 +22,8 @@ vi.mock("../../../scripts/attribution.js", () => attributionModule);
 describe("mobile result, billing, and analytics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    telemetryTrack.mockResolvedValue({ queued: true });
+    vi.stubGlobal("AutoListerWebsiteTelemetry", { track: telemetryTrack });
     fetchMobileJsonMock.mockResolvedValue({
       url: "https://checkout.stripe.com/c/session",
     });
@@ -180,22 +183,13 @@ describe("mobile result, billing, and analytics", () => {
       token: "secret-token",
     });
 
-    expect(fetchMobileJsonMock).toHaveBeenCalledWith(
-      "/api/events/track",
-      expect.objectContaining({ method: "POST" }),
-      { retryOn401: true },
-    );
-    const body = JSON.parse(fetchMobileJsonMock.mock.calls[0][1].body);
+    expect(fetchMobileJsonMock).not.toHaveBeenCalled();
+    const body = telemetryTrack.mock.calls[0][1];
     expect(body).toEqual({
-      events: [
-        {
-          event: "generation_success",
-          source: "mobile_web",
-          page: "/app",
-          context: { imageCount: 2, resultStatus: "ready" },
-          utm: {},
-        },
-      ],
+      source: "mobile_web",
+      page: "/app",
+      context: { imageCount: 2, resultStatus: "ready", source: "app_direct" },
+      utm: {},
     });
     expect(JSON.stringify(body)).not.toContain("private");
     expect(JSON.stringify(body)).not.toContain("signed.example");
@@ -205,20 +199,20 @@ describe("mobile result, billing, and analytics", () => {
 
   it("keeps only approved checkout return statuses in analytics context", async () => {
     const { trackMobileEvent } = await import("../analytics.js");
-    const getLastBody = () =>
-      JSON.parse(
-        String(fetchMobileJsonMock.mock.calls.at(-1)?.[1]?.body ?? "{}"),
-      );
+    const getLastBody = () => telemetryTrack.mock.calls.at(-1)?.[1];
 
     await trackMobileEvent("checkout_return", { status: "success" });
 
     const successBody = getLastBody();
-    expect(successBody.events[0].context).toEqual({ status: "success" });
+    expect(successBody.context).toEqual({
+      status: "success",
+      source: "app_direct",
+    });
 
     await trackMobileEvent("checkout_return", { status: "unexpected" });
 
     const unexpectedBody = getLastBody();
-    expect(unexpectedBody.events[0].context).toEqual({});
+    expect(unexpectedBody.context).toEqual({ source: "app_direct" });
   });
 
   it("claims sanitized first touch after authentication without sending a token in the body", async () => {

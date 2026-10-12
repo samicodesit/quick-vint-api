@@ -1,4 +1,5 @@
 import { mountDraftWorkspace } from "./draftWorkspace";
+import { initializeMobileTelemetry } from "./telemetry";
 import { activateMobileSheet } from "./sheet";
 import { animateSurface } from "./surfaceMotion";
 import {
@@ -1660,12 +1661,13 @@ export function mountMobileWebApp(
   renderPhotos(root, photos);
   applyGenerationState();
 
+  initializeMobileTelemetry();
   const start = async (): Promise<void> => {
     try {
       if (!appOpenedTracked) {
         appOpenedTracked = true;
         captureMobileFirstTouch();
-        void trackMobileEvent("web_app_click", { target: "app_open" });
+        void trackMobileEvent("web_app_view", { target: "app_open" });
       }
       if (checkoutReturnStatus) clearCheckoutReturnParams();
       session = await getBrowserSession();

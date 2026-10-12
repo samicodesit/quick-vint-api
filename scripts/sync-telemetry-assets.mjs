@@ -15,8 +15,9 @@ const generated = await format(
   `// Generated from quick-vint-api/utils/incidents/registry.json. Do not edit.\nglobalThis.AutoListerEventRegistry = ${JSON.stringify(registry, null, 2)};\nglobalThis.AutoListerContextPolicy = ${JSON.stringify(policy, null, 2)};\n`,
   { parser: "babel" },
 );
-writeFileSync(resolve(frontend, "lib/telemetry-registry.js"), generated);
 writeFileSync("public/telemetry-registry.js", generated);
+if (process.argv.includes("--website-only")) process.exit(0);
+writeFileSync(resolve(frontend, "lib/telemetry-registry.js"), generated);
 for (const name of [
   "telemetry-core.js",
   "telemetry-client.js",

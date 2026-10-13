@@ -141,6 +141,34 @@ Interpretation:
 
 Existing Vinted edit pages normally have only Vinted-hosted DOM photos. The extension can only use temp uploads when it captured the original files during manual file input, phone upload injection, or batch injection.
 
+### Why Vinted page photos were used
+
+Start with the admin "Flagged" badge on a failed `/api/generate` row. It reads
+`Photo preparation failed: ...` when a photo could not be downloaded before the
+AI call (it names the photo number and host), or `OpenAI generation error: ...`
+for provider failures. Both end with `| Photos: <count>x <source>`.
+
+Each Vinted page photo carries the exact cause in
+`imageMetadata[*].capturedUploadMatchStatus` (and the same value appears in
+`generate_click` / `generate_error` as `context.photoSource`, e.g.
+`vinted_page_photos:no_capture_expired`, or `captured` when every photo was the
+seller's own file):
+
+- `no_capture_expired`: originals were captured on this page but expired (30 minutes; storage links live 1 hour).
+- `no_capture_existing_listing`: an `/items/<id>/edit` page. Vinted's 800px copies are the only photos that exist.
+- `no_capture_drag_and_drop`: files were dropped on the page and never reached the file input.
+- `no_capture_photos_present_at_load`: Vinted showed the photos when the form appeared (an opened draft or a restored form).
+- `no_capture_never_captured`: photos appeared later without any captured upload.
+- `count_mismatch_after_reorder_fallback_to_vinted`: photos were reordered, then the set changed.
+- `count_mismatch_after_<reason>_fallback_to_vinted`: earlier captured files were dropped for `<reason>` (`expired`, `unmatched_set`, `delete_after_reorder`, ...).
+- `count_mismatch_fallback_to_vinted`, `delete_after_reorder_fallback_to_vinted`, `delete_index_unmatched_fallback_to_vinted`: the captured set no longer matched Vinted's grid.
+
+Generate requests above 3,500,000 UTF-8 bytes never go inline: their prepared
+photos are uploaded to temp storage first and the request carries
+`generationPayloadSource: "prepared_photo_storage_url"`. If that upload fails,
+the user sees "Could not prepare photos. Try again." and `generate_error` has
+`reason: "photo_storage_upload_failed"` with the upload `statusCode`/`order`.
+
 ## Phone Upload Logs
 
 `/api/phone-upload` currently writes admin logs for failures, not successful uploads. A successful upload can exist in Vercel request logs without a matching admin `api_logs` row.

@@ -135,12 +135,14 @@ export function summarizePhotoSourcesForLog(imageMetadata: unknown) {
         ? metadata.capturedUploadMatchStatus
         : null;
     const label =
-      payloadSource ||
-      (metadata.promptSource === "vinted_dom_image"
-        ? `vinted_page_photo${reason ? ` (${reason})` : ""}`
-        : typeof metadata.promptSource === "string"
-          ? metadata.promptSource
-          : "unknown");
+      metadata.promptSource === "vinted_dom_image"
+        ? `vinted_page_photo${reason ? ` (${reason})` : ""}${
+            payloadSource ? ` via ${payloadSource}` : ""
+          }`
+        : payloadSource ||
+          (typeof metadata.promptSource === "string"
+            ? metadata.promptSource
+            : "unknown");
     counts.set(label, (counts.get(label) || 0) + 1);
   }
   return Array.from(counts, ([label, count]) => `${count}x ${label}`)

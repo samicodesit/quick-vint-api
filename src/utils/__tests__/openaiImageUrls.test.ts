@@ -90,6 +90,20 @@ describe("summarizePhotoSourcesForLog", () => {
     );
   });
 
+  it("keeps the page-photo reason when those photos travelled through storage", () => {
+    expect(
+      summarizePhotoSourcesForLog([
+        {
+          promptSource: "vinted_dom_image",
+          capturedUploadMatchStatus: "no_capture_existing_listing",
+          generationPayloadSource: "prepared_photo_storage_url",
+        },
+      ]),
+    ).toBe(
+      "1x vinted_page_photo (no_capture_existing_listing) via prepared_photo_storage_url",
+    );
+  });
+
   it("returns null without image metadata", () => {
     expect(summarizePhotoSourcesForLog(undefined)).toBeNull();
     expect(summarizePhotoSourcesForLog([])).toBeNull();

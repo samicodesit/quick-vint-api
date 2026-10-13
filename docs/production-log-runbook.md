@@ -167,7 +167,9 @@ Generate requests above 3,500,000 UTF-8 bytes never go inline: their prepared
 photos are uploaded to temp storage first and the request carries
 `generationPayloadSource: "prepared_photo_storage_url"`. If that upload fails,
 the user sees "Could not prepare photos. Try again." and `generate_error` has
-`reason: "photo_storage_upload_failed"` with the upload `statusCode`/`order`.
+`reason: "photo_storage_upload_failed:<upload HTTP status>"` and the photo
+`order`. Page photos that travelled this way show in the Flagged badge as
+`vinted_page_photo (<reason>) via prepared_photo_storage_url`.
 
 ## Phone Upload Logs
 

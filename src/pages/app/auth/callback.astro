@@ -83,9 +83,9 @@ const contentSecurityPolicy = [
     {
       buildConfig.enabled && (
         <script>
-          import { completeWebCallback } from "../../../app/mobile-web/auth";
+          import { completeMobileAuthCallback } from "../../../app/mobile-web/authCallback";
 
-          completeWebCallback(new URL(window.location.href))
+          completeMobileAuthCallback(new URL(window.location.href))
             .then(() => window.location.replace("/app"))
             .catch(() => {
               const copy = document.querySelector("[data-mobile-web='callback-status'] p");

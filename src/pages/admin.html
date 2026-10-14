@@ -2233,6 +2233,7 @@
             logsType: 'generation',
             logsSearch: '',
             logsStatus: 'all',
+            logsBackground: false,
             logsRelatedUserId: '',
             logsRelatedEmail: '',
             logsSearchTimer: null,
@@ -2277,6 +2278,7 @@
             state.logsType = 'generation';
             state.logsSearch = '';
             state.logsStatus = 'all';
+            state.logsBackground = false;
             state.logsRelatedUserId = '';
             state.logsRelatedEmail = '';
         }
@@ -2288,6 +2290,7 @@
             state.logsType = params.get('log_type') || 'generation';
             state.logsSearch = params.get('search') || '';
             state.logsStatus = params.get('status_filter') || 'all';
+            state.logsBackground = params.get('background') === 'true';
             state.logsRelatedUserId = params.get('user_id') || params.get('related_user_id') || '';
             state.logsRelatedEmail = params.get('related_email') || '';
         }
@@ -2298,6 +2301,7 @@
             if (state.logsType && state.logsType !== 'generation') params.set('log_type', state.logsType);
             if (state.logsSearch) params.set('search', state.logsSearch);
             if (state.logsStatus && state.logsStatus !== 'all') params.set('status_filter', state.logsStatus);
+            if (state.logsBackground) params.set('background', 'true');
             if (state.logsRelatedUserId) params.set('user_id', state.logsRelatedUserId);
             if (state.logsRelatedEmail) params.set('related_email', state.logsRelatedEmail);
             const query = params.toString();
@@ -3311,6 +3315,8 @@
                 magic_link_request: 'Magic link request',
                 magic_link_sent: 'Magic link sent',
                 auth_success: 'Auth success',
+                auth_complete: 'Sign-in completed',
+                session_restored: 'Session restored',
                 auth_vinted_cta_click: 'Opened Vinted after auth',
                 auth_plans_click: 'Viewed plans after auth',
                 auth_close_click: 'Closed auth callback',
@@ -3460,6 +3466,14 @@
             const page = context.path || context.page || body.page || '';
             const source = body.source || log.log_source || context.source || '';
             return [summary, page, source].filter(Boolean).join(' · ') || log.endpoint || 'No details';
+        }
+
+        function getLogEventLabel(log) {
+            const event = (log.endpoint || '').replace('/event/', '');
+            const method = log.event_method || parseLogMetadata(log).context?.method;
+            // Historical records used auth_complete for ordinary restoration.
+            if (event === 'auth_complete' && method === 'session') return 'Session restored';
+            return friendlyEventName(event);
         }
 
         function getEditedOutputContextFromLog(log) {
@@ -3630,7 +3644,7 @@
                 <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
                     <td><div class="log-time">${formatDateTime(log.created_at)}</div></td>
                     <td>
-                        <div class="log-primary">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
+                        <div class="log-primary">${escapeHtml(getLogEventLabel(log))}</div>
                         <div class="log-secondary"><code>${escapeHtml((log.endpoint || '').replace('/event/', '') || 'event')}</code></div>
                     </td>
                     <td>
@@ -3650,7 +3664,7 @@
         function renderEventLogMobileCards(logs) {
             return logs.map(log => `
                 <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
-                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtml(friendlyEventName((log.endpoint || '').replace('/event/', '')))}</div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtml(getLogEventLabel(log))}</div>
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">${formatDateTime(log.created_at)} · ${getLogActor(log)} ${log.ip_address ? `· ${renderLogIp(log)}` : ''}</div>
                     <div class="mobile-card-row">
                         <span class="mobile-card-label">Status</span>
@@ -3866,6 +3880,7 @@
             if (eventName === 'generate_limit_hit' || eventName === 'account_paused_shown') return { symbol: 'LIM', className: 'warning' };
             if (eventName === 'subscription_started' || eventName === 'credit_pack_paid') return { symbol: 'PAID', className: 'success' };
             if (eventName.startsWith('paywall_') || eventName.startsWith('checkout_') || eventName === 'web_paywall_view') return { symbol: 'PAY', className: 'warning' };
+            if (eventName === 'session_restored' || (eventName === 'auth_complete' && (log.event_method || parseLogMetadata(log).context?.method) === 'session')) return { symbol: 'SYS', className: 'system' };
             if (eventName.startsWith('magic_link_') || eventName.startsWith('auth_') || eventName === 'signin_cta_click' || eventName === 'signed_out_tools_ready') return { symbol: 'AUTH', className: 'system' };
             if (eventName === 'listing_tools_ready') return { symbol: 'READY', className: 'success' };
             if (eventName === 'generate_click' || eventName === 'generate_request') return { symbol: 'GEN', className: 'generate' };
@@ -3881,7 +3896,7 @@
             const kind = getLogKind(log);
             if (kind === 'Event') {
                 const eventName = (log.endpoint || '').replace('/event/', '');
-                return friendlyEventName(eventName);
+                return getLogEventLabel(log);
             }
             if (kind === 'Generation') {
                 return log.generated_title || 'Generated listing request';
@@ -4001,6 +4016,7 @@
                 page: state.logsPage,
                 limit: 50,
                 log_type: state.logsType || 'generation',
+                ...(!state.logsBackground && ['all', 'events'].includes(state.logsType) ? { activity_only: 'true' } : {}),
                 search: state.logsSearch || '',
                 status_filter: state.logsStatus || 'all'
             });
@@ -4077,7 +4093,7 @@
                 ? 'Event logs are for verifying a specific tracked behavior, anonymous client, or instrumentation gap.'
                 : isGenerationLogView
                     ? 'Generation logs are for debugging AI output, image input, cost, latency, and prompt/model behavior.'
-                    : 'All logs are for forensic review when you need the exact sequence across generation, events, and system calls.';
+                    : 'Useful activity across generation, events, and system calls. Show background events for the full forensic sequence.';
 
             const logsHtml = `
                 <div class="view-brief">
@@ -4108,6 +4124,14 @@
                         ${renderOption('flagged', 'Flagged only', state.logsStatus)}
                     </select>
                 </div>
+
+                ${['all', 'events'].includes(logViewType) ? `
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.875rem;">
+                        <input type="checkbox" ${state.logsBackground ? 'checked' : ''} onchange="setLogsBackground(this.checked)">
+                        Show background events
+                        <span class="text-muted">(routine session restoration)</span>
+                    </label>
+                ` : ''}
 
                 ${quickFilters}
 
@@ -4155,6 +4179,12 @@
 
         function setLogsStatus(status) {
             state.logsStatus = status;
+            state.logsPage = 1;
+            renderLogs(document.getElementById('contentArea'));
+        }
+
+        function setLogsBackground(enabled) {
+            state.logsBackground = enabled === true;
             state.logsPage = 1;
             renderLogs(document.getElementById('contentArea'));
         }
@@ -4984,7 +5014,7 @@
                         <div>
                             <label class="text-sm font-bold text-muted">Event</label>
                             <div class="p-2 bg-gray-100 rounded mt-1" style="border: 1px solid var(--border-color);">
-                                <div style="font-weight: 700;">${escapeHtml(friendlyEventName(eventName))}</div>
+                                <div style="font-weight: 700;">${escapeHtml(getLogEventLabel(log))}</div>
                                 <code>${escapeHtml(eventName)}</code>
                             </div>
                         </div>

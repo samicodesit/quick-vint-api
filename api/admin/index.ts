@@ -214,7 +214,7 @@ const LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const LOG_LIST_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, image_count:full_request_body->imageCount, log_client:full_request_body->client, log_source:full_request_body->source, event_status:full_request_body->context->status, event_tier:full_request_body->context->tier, event_target:full_request_body->context->target, event_field:full_request_body->context->field, event_occurred_at:full_request_body->occurredAt, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, image_count:full_request_body->imageCount, log_client:full_request_body->client, log_source:full_request_body->source, event_method:full_request_body->context->method, event_status:full_request_body->context->status, event_tier:full_request_body->context->tier, event_target:full_request_body->context->target, event_field:full_request_body->context->field, event_occurred_at:full_request_body->occurredAt, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const LOG_GENERATION_LIST_SELECT = LOG_LIST_SELECT;
 
@@ -2027,6 +2027,15 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         : undefined;
 
     const applyLogTypeFilter = (query: any) => {
+      // Apply before range/count. Never hide failures or flagged records.
+      // Raw API reads remain forensic unless the admin UI opts into activity.
+      if (
+        req.query.activity_only === "true" &&
+        ["all", "events"].includes(logType)
+      )
+        query = query.or(
+          "response_status.gte.400,suspicious_activity.eq.true,and(endpoint.neq./event/session_restored,or(endpoint.neq./event/auth_complete,full_request_body->context->>method.is.null,full_request_body->context->>method.neq.session))",
+        );
       if (logType === "all") return query;
       if (logType === "events") return query.like("endpoint", "/event/%");
       if (logType === "system") {

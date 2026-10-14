@@ -49,6 +49,8 @@ import {
   captureMobileFirstTouch,
   claimFirstTouchAfterAuth,
   trackMobileEvent,
+  trackMobileAuthComplete,
+  trackMobileSessionRestored,
 } from "./analytics.js";
 import {
   detectUserCountryAndGetVintedUrl,
@@ -1565,7 +1567,7 @@ export function mountMobileWebApp(
         if (disposed) return;
         session = nextSession;
         void claimFirstTouchAfterAuth(session);
-        void trackMobileEvent("auth_complete", { method: "email" });
+        void trackMobileAuthComplete(session.user.id, "email");
         showApp(root);
         openDraftWorkspace();
         void refreshUsage();
@@ -1717,7 +1719,7 @@ export function mountMobileWebApp(
         return;
       }
       void claimFirstTouchAfterAuth(session);
-      void trackMobileEvent("auth_complete", { method: "session" });
+      void trackMobileSessionRestored(session.user.id);
       showApp(root);
       if (checkoutReturnStatus) restoreMobileBillingReturn(session.user.id);
       openDraftWorkspace();

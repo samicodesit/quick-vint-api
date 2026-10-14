@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdir } from "node:fs/promises";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -26,6 +26,19 @@ const logs = [
     log_source: "stripe_webhook",
     created_at: "2026-10-12T16:36:41Z",
   },
+  {
+    id: "00000000-0000-4000-8000-000000000003",
+    endpoint: "/event/auth_complete",
+    response_status: 204,
+    event_method: "session",
+    created_at: "2026-10-12T16:37:41Z",
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000004",
+    endpoint: "/event/session_restored",
+    response_status: 401,
+    created_at: "2026-10-12T16:38:41Z",
+  },
 ];
 const browser = await chromium.launch({ headless: true });
 let externalRequests = 0;
@@ -50,10 +63,10 @@ try {
         if (url.searchParams.get("action") === "web-app-stats") body = { available: true, window: { start: "2026-10-12T00:00:00Z", end: "2026-10-21T00:00:00Z" }, totals: {}, daily: [], entrySources: [], completeness: {}, measurement: {}, homepageExperiment: { status: "Enrolling", definition: "Same-browser API outcomes", enrollmentEnd: "2026-11-02T00:00:00Z", end: "2026-11-09T00:00:00Z", arms: [{ label: "A: Demo first", exposed: 10, appClicks: 4, extensionClicks: 2, generated: 2, copied: 1, matureGenerated: 2, mature: 10, conversionRate: 20, confidenceInterval: [5.7, 51] }, { label: "B: App first", exposed: 12, appClicks: 7, extensionClicks: 1, generated: 3, copied: 2, matureGenerated: 0, mature: 0, conversionRate: null, confidenceInterval: null }] } };
         if (url.searchParams.get("action") === "view-logs")
           body = {
-            logs,
-            pagination: { page: 1, total: 2, totalPages: 1, limit: 50 },
+            logs: url.searchParams.get("activity_only") === "true" ? logs.filter((log) => log.event_method !== "session") : logs,
+            pagination: { page: 1, total: url.searchParams.get("activity_only") === "true" ? 3 : 4, totalPages: 1, limit: 50 },
           };
-        if (url.searchParams.get("action") === "view-logs" && url.searchParams.get("search") === "web_app_view") body = { logs, pagination: { page: Number(url.searchParams.get("page") || 1), limit: 2, total: null, totalPages: null, hasMore: Number(url.searchParams.get("page") || 1) === 1 } };
+        if (url.searchParams.get("action") === "view-logs" && url.searchParams.get("search") === "web_app_view") body = { logs: logs.slice(0, 2), pagination: { page: Number(url.searchParams.get("page") || 1), limit: 2, total: null, totalPages: null, hasMore: Number(url.searchParams.get("page") || 1) === 1 } };
         if (url.searchParams.get("action") === "log-detail") {
           const log = logs.find(
             (item) => item.id === url.searchParams.get("id"),
@@ -100,6 +113,16 @@ try {
       .locator(".activity-row")
       .filter({ hasText: "Local photo fixture" });
     await row.waitFor();
+    assert.equal(await page.locator(".activity-row").filter({ hasText: "Session restored" }).count(), 1, "Restoration failures remain visible by default");
+    await page.getByRole("checkbox", { name: /Show background events/ }).check();
+    await page.waitForFunction(() => document.querySelectorAll(".activity-row").length === 4);
+    assert.equal(await page.locator(".activity-row").filter({ hasText: "Session restored" }).count(), 2, "Historical restoration is accurately labeled in the forensic view");
+    await page.getByRole("checkbox", { name: /Show background events/ }).uncheck();
+    await page.waitForFunction(() => document.querySelectorAll(".activity-row").length === 3);
+    if (process.env.AUTH_QA_OUTPUT) {
+      await mkdir(process.env.AUTH_QA_OUTPUT, { recursive: true });
+      await page.screenshot({ path: `${process.env.AUTH_QA_OUTPUT}/admin-${width}.png`, fullPage: true });
+    }
     assert.match(await row.innerText(), /2 images/);
     assert.match(
       await page.locator("#contentArea").innerText(),

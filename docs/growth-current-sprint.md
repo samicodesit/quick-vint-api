@@ -183,3 +183,9 @@ Append one row whenever the weekly focus changes or an experiment ends.
 - Reviewed the actual 1200x630 artwork: AutoLister branding, readable "From photos to listing drafts" headline, and a seller photographing clothes. Existing article hero images remain in article content.
 - Local build passed: 129 HTML pages, including 117 social-card pages. Parsed every generated social-card page and verified image URLs, dimensions, alt text, and Twitter attributes. No old banner remains in social metadata.
 - Production gate is required before push. After deployment, verify those same 117 URLs as Twitterbot and compare the served PNG dimensions and SHA256 with the repository asset. Native platform preview caches and signup/activation are untested by this metadata change.
+
+## 2026-10-14: Distinguish web sign-in from session restoration
+
+- Investigated a same-visit timeline with two `auth_complete` rows. Both restored an existing session; they were separate app initializations, not duplicate delivery or two new sign-ins. Two upload events represented two photos and one generation succeeded.
+- Local cleanup reserves sign-in completion for credential verification, coalesces restoration once per account/visit/tab, and hides routine restoration in the admin unless background events are requested. Failures remain visible. Unique authenticated-user and homepage cohort attribution continue to include restored users.
+- [QA evidence](qa/incident-tracking/auth-event-cleanup-2026-10-14.md): full production gate, local production-build reload/retry checks, desktop/mobile admin checks and read-only validation of the activity filter. No paid generations or customer changes. Production approval pending.

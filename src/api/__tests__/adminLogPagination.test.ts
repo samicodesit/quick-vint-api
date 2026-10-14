@@ -64,6 +64,61 @@ vi.mock("resend", () => ({
 import handler from "../../../api/admin/index.js";
 
 describe("admin log pagination", () => {
+  it("filters routine restoration before pagination and applies the same rule to counts", async () => {
+    vi.clearAllMocks();
+    process.env.ADMIN_SECRET = "secret";
+    const res: any = {
+      status() {
+        return this;
+      },
+      json(body: any) {
+        this.body = body;
+        return this;
+      },
+    };
+    await handler(
+      {
+        method: "GET",
+        headers: { authorization: "Bearer secret" },
+        query: { action: "view-logs", log_type: "all", activity_only: "true" },
+      } as any,
+      res,
+    );
+    const filters = query.or.mock.calls.map(([filter]: any[]) => filter);
+    expect(filters).toHaveLength(2);
+    expect(filters[0]).toBe(filters[1]);
+    expect(filters[0]).toContain("endpoint.neq./event/session_restored");
+    expect(filters[0]).toContain(
+      "full_request_body->context->>method.neq.session",
+    );
+    expect(filters[0]).toContain("response_status.gte.400");
+    expect(filters[0]).toContain("suspicious_activity.eq.true");
+    expect(res.body.pagination.total).toBe(127);
+  });
+
+  it("leaves the raw forensic stream available to background review and monitoring", async () => {
+    vi.clearAllMocks();
+    process.env.ADMIN_SECRET = "secret";
+    const res: any = {
+      status() {
+        return this;
+      },
+      json(body: any) {
+        this.body = body;
+        return this;
+      },
+    };
+    await handler(
+      {
+        method: "GET",
+        headers: { authorization: "Bearer secret" },
+        query: { action: "view-logs", log_type: "all" },
+      } as any,
+      res,
+    );
+    expect(query.or).not.toHaveBeenCalled();
+    expect(res.body.logs).toHaveLength(50);
+  });
   it("keeps later forensic records reachable when a planned count underestimates the result", async () => {
     process.env.ADMIN_SECRET = "secret";
     selections.length = 0;

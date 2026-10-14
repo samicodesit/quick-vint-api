@@ -31,7 +31,7 @@ describe("private mobile web documents", () => {
     expect(indexSource).not.toContain("/auth/callback.js");
     expect(callbackSource).not.toContain("public/auth-callback.js");
     expect(callbackSource).not.toContain("chrome-extension://");
-    expect(callbackSource).toContain("completeWebCallback");
+    expect(callbackSource).toContain("completeMobileAuthCallback");
     expect(callbackSource).toContain('window.location.replace("/app")');
   });
 

@@ -12,6 +12,7 @@ export const MOBILE_REF_STORAGE_KEY = "autolister.mobile_web.ref.v1";
 export const MOBILE_ANALYTICS_EVENTS = [
   "web_app_view",
   "auth_complete",
+  "session_restored",
   "upload_complete",
   "generation_success",
   "generation_error",
@@ -210,6 +211,58 @@ export async function trackMobileEvent(
   } catch {
     return false;
   }
+}
+
+const RESTORED_SESSION_KEY = "autolister.session-restored.v1";
+let lastRestoredSession = "";
+const restoring = new Map<string, Promise<boolean>>();
+
+function restorationKey(userId: string): string {
+  return `${userId}:${getWebAnalyticsContext().webSessionId || "page"}`;
+}
+
+function rememberRestoration(key: string): void {
+  lastRestoredSession = key;
+  try {
+    window.sessionStorage.setItem(RESTORED_SESSION_KEY, key);
+  } catch {
+    // Memory still coalesces repeated checks when storage is unavailable.
+  }
+}
+
+/** One background confirmation per account and visit, including across reloads. */
+export async function trackMobileSessionRestored(
+  userId: string,
+): Promise<boolean> {
+  const key = restorationKey(userId);
+  if (lastRestoredSession === key) return true;
+  try {
+    if (window.sessionStorage.getItem(RESTORED_SESSION_KEY) === key)
+      return true;
+  } catch {
+    // Analytics must never block access to the app.
+  }
+  const pending = restoring.get(key);
+  if (pending) return pending;
+  const queued = trackMobileEvent("session_restored", { method: "session" })
+    .then((success) => {
+      if (success) rememberRestoration(key);
+      return success;
+    })
+    .finally(() => restoring.delete(key));
+  restoring.set(key, queued);
+  return queued;
+}
+
+/** Reserve auth_complete for successful credential verification. */
+export async function trackMobileAuthComplete(
+  userId: string,
+  method: "email" | "google",
+): Promise<boolean> {
+  const key = restorationKey(userId);
+  const queued = await trackMobileEvent("auth_complete", { method });
+  if (queued) rememberRestoration(key);
+  return queued;
 }
 
 /** Claim the stored first-touch record after Supabase authentication. */

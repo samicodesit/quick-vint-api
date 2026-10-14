@@ -12,6 +12,9 @@ globalThis.AutoListerEventRegistry = {
   auth_complete: {
     kind: "business",
   },
+  session_restored: {
+    kind: "business",
+  },
   upload_complete: {
     kind: "business",
   },

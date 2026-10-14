@@ -153,7 +153,10 @@ export function buildWebAppStats(
         entrySources.set(source, (entrySources.get(source) || 0) + 1);
       }
     }
-    if (log.user_id && body.event === "auth_complete") {
+    if (
+      log.user_id &&
+      ["auth_complete", "session_restored"].includes(body.event)
+    ) {
       signedIn.add(log.user_id);
       if (
         !firstAuth.has(log.user_id) ||

@@ -101,7 +101,10 @@ export function buildHomepageExperimentStats(
     if (
       log.user_id &&
       (b.client === "mobile_web" ||
-        (b.source === "mobile_web" && log.endpoint === "/event/auth_complete"))
+        (b.source === "mobile_web" &&
+          ["/event/auth_complete", "/event/session_restored"].includes(
+            log.endpoint,
+          )))
     ) {
       const clients =
         observedAccounts.get(log.user_id) || new Map<string, number>();

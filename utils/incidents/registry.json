@@ -3,6 +3,7 @@
   "home_hero_exposure": { "kind": "business" },
   "web_app_view": { "kind": "business" },
   "auth_complete": { "kind": "business" },
+  "session_restored": { "kind": "business" },
   "upload_complete": { "kind": "business" },
   "generation_success": { "kind": "business" },
   "generation_error": { "kind": "business" },

@@ -64,6 +64,25 @@ const arm = (logs: any[], variant = "a", profiles: any[] = []) =>
     (a) => a.variant === variant,
   )!;
 describe("homepage seven-day experiment cohorts", () => {
+  it("retains verified account attribution from a restored session without inventing a generation", () => {
+    const restored = event("c1", "session_restored");
+    restored.full_request_body.source = "mobile_web";
+    const paid = {
+      id: "paid",
+      endpoint: "/event/subscription_started",
+      user_id: "seller",
+      response_status: 204,
+      created_at: "2026-10-14T12:00:00Z",
+      full_request_body: {
+        source: "stripe_webhook",
+        context: { status: "active", tier: "starter" },
+      },
+    };
+    expect(arm([exposure("c1"), restored, paid])).toMatchObject({
+      paid: 1,
+      generated: 0,
+    });
+  });
   it("requires a real authenticated API outcome, deduplicates browser exposure and transport retries", () => {
     const ex = exposure("c1");
     const g = generation("c1");

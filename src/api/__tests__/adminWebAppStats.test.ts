@@ -145,7 +145,7 @@ describe("web app admin endpoint", () => {
         }),
         created_at: "2026-10-10T10:10:00Z",
       },
-      event("a2", "auth_complete", "old", "2026-10-10", {
+      event("a2", "session_restored", "old", "2026-10-10", {
         analyticsClientId: "c2",
       }),
       event("copy1", "copy", "new", "2026-10-10", { field: "title" }),

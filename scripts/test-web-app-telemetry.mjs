@@ -123,15 +123,28 @@ try {
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Your drafts" }).waitFor();
   await page.evaluate(() => globalThis.AutoListerWebsiteTelemetry.flush());
-  const auth = received.find((r) => r.event.event === "auth_complete");
+  const auth = received.find((r) => r.event.event === "session_restored");
   assert(
     auth?.authorization?.startsWith("Bearer "),
-    "Verified events use bearer ownership",
+    "Restored sessions use bearer ownership",
   );
   assert.equal(auth.event.accountId, "123e4567-e89b-42d3-a456-426614174000");
   assert.equal(
     auth.event.context.analyticsClientId,
     firstView.context.analyticsClientId,
+  );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.getByRole("heading", { name: "Your drafts" }).waitFor();
+  await page.evaluate(() => globalThis.AutoListerWebsiteTelemetry.flush());
+  assert.equal(
+    [...stored.values()].filter((event) => event.event === "session_restored").length,
+    1,
+    "Reload does not emit another restoration in the same visit",
+  );
+  assert.equal(
+    [...stored.values()].filter((event) => event.event === "auth_complete").length,
+    0,
+    "A persisted session is never a new sign-in",
   );
   assert(
     !JSON.stringify([...stored.values()]).includes("fixture@example.test"),

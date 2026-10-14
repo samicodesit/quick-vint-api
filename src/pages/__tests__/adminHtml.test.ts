@@ -524,6 +524,7 @@ function buildAdminHarness() {
       ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
       renderActivityFeed: (logs: Array<Record<string, unknown>>) => string;
+      setLogsBackground: (enabled: boolean) => void;
       renderUserRow: (user: Record<string, unknown>) => string;
       renderUserMobileCard: (user: Record<string, unknown>) => string;
       openAiInstructions: (userId: string) => void;
@@ -539,6 +540,7 @@ function buildAdminHarness() {
         currentView: string;
         logsType: string;
         logsStatus: string;
+        logsBackground: boolean;
         logsSearch: string;
         logsRelatedUserId: string;
         logsRelatedEmail: string;
@@ -553,6 +555,36 @@ function buildAdminHarness() {
 }
 
 describe("admin HTML", () => {
+  it("defaults to useful activity and can request the full background stream", async () => {
+    const { context, content } = buildAdminHarness();
+    context.state.currentView = "logs";
+    context.state.logsType = "all";
+    await context.loadView("logs");
+    expect(context.fetchCalls.at(-1)).toContain("activity_only=true");
+    expect(content.innerHTML).toContain("Show background events");
+    context.setLogsBackground(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(context.fetchCalls.at(-1)).not.toContain("activity_only=true");
+  });
+
+  it("labels legacy session restoration and fresh sign-ins distinctly", () => {
+    const { context } = buildAdminHarness();
+    const log = {
+      id: "session",
+      endpoint: "/event/auth_complete",
+      response_status: 204,
+      event_method: "session",
+    };
+    expect(context.renderActivityFeed([log])).toContain("Session restored");
+    expect(
+      context.renderActivityFeed([{ ...log, event_method: "email" }]),
+    ).toContain("Sign-in completed");
+    expect(
+      context.renderActivityFeed([
+        { ...log, endpoint: "/event/session_restored" },
+      ]),
+    ).toContain("Session restored");
+  });
   it("opens a mobile generation with JSON null photos and displays its recorded photo count", async () => {
     const { context, modalBody, modalTitle } = buildAdminHarness();
     context.fetch = async () => ({

@@ -737,7 +737,7 @@ describe("RateLimiter entitlement decisions", () => {
         p_effective_tier: "starter",
         p_monthly_limit: 75,
         p_daily_limit: 10,
-        p_burst_limit: 10,
+        p_burst_limit: 20,
       },
     });
   });

@@ -1136,6 +1136,11 @@ try {
   await click("generate");
   await page.getByRole("dialog", { name: "Free listings used" }).waitFor();
   assert.equal(
+    await page.evaluate(() => document.activeElement?.id),
+    "mobile-paywall-title",
+    "Opening the paywall focuses its heading, never the dismiss button",
+  );
+  assert.equal(
     await page.getByRole("radio", { name: /Starter/ }).isVisible(),
     true,
   );
@@ -1350,6 +1355,40 @@ try {
     await settled();
     await page.locator('[data-mobile-web="profile-menu-trigger"]').click();
     await page.locator('[data-mobile-web="profile-menu"]').waitFor();
+    if (width < 768) {
+      assert.equal(
+        await page.evaluate(() =>
+          document.activeElement?.getAttribute("data-mobile-web"),
+        ),
+        "profile-menu",
+      );
+      await page.keyboard.press("Shift+Tab");
+      assert.equal(
+        await page
+          .locator('[data-mobile-web="profile-menu"]')
+          .evaluate((el) => el.contains(document.activeElement)),
+        true,
+      );
+      await page.keyboard.press("Tab");
+      assert.equal(
+        await page.evaluate(() =>
+          document.activeElement?.getAttribute("data-mobile-web"),
+        ),
+        "close-account",
+        "Keyboard focus remains trapped after neutral initial sheet focus",
+      );
+      await page.locator('[data-mobile-web="close-account"]').click();
+      await settled();
+      assert.equal(
+        await page
+          .locator('[data-mobile-web="profile-menu-trigger"]')
+          .evaluate((el) => getComputedStyle(el).outlineStyle),
+        "none",
+        "Touch/pointer dismissal does not outline the profile trigger",
+      );
+      await page.locator('[data-mobile-web="profile-menu-trigger"]').click();
+      await page.locator('[data-mobile-web="profile-menu"]').waitFor();
+    }
     assert.equal(
       await page
         .locator(".mobile-workspace-brand")
@@ -1363,6 +1402,13 @@ try {
     await page.keyboard.press("Escape");
     await settled();
     assert.equal(await page.locator(".mobile-sheet-backdrop").count(), 0);
+    assert.notEqual(
+      await page
+        .locator('[data-mobile-web="profile-menu-trigger"]')
+        .evaluate((el) => getComputedStyle(el).outlineStyle),
+      "none",
+      "Keyboard dismissal retains a visible focus indicator",
+    );
     await bounds(
       `Dropdowns and account sheet open and close cleanly at ${width}px`,
     );

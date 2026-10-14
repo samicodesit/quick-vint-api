@@ -150,6 +150,12 @@ Append one row whenever the weekly focus changes or an experiment ends.
 - Keep "Vinted description generator" visible in high-intent acquisition copy.
 - Every experiment needs a hypothesis, channel, market, action, budget, date range, success metric, result, and decision.
 
+## 2026-10-14: Web journey audit and batch pacing
+
+- Read-only event and API details show eight successful generations from today's checked web cohort and one genuine burst-limit failure during a five-item trial batch. The requested account uploaded one photo and explored plans without a recorded generation/error. Saved-session restores are not repeated sign-in failures. Logs cannot prove why a user stopped. [Evidence and limits](qa/web-journeys-burst-focus-20261014.md).
+- Free and Starter request ceilings become 20/minute across web and extension, independent of remaining credits. Pro/Business remain 20/30. Trial, daily/monthly, billing and abuse protections are unchanged. No batch wait, migration or new service is added.
+- Eleven production-SQL regressions and 24 actual Chromium flows pass, including full trial/paid batches, retained quotas and keyboard/pointer focus behavior. Release-gate and deployed acceptance are recorded separately; physical Safari remains untested.
+
 ## 2026-10-09: Listing preparation app QA
 
 - Implemented the accepted `/app` design on isolated `codex/mobile-web-phase1`: photo-first home, separate Add item/Add several, persistent grouping, readable review/copy, manual Listed/restore, and compact auth/account/settings. API contracts and persisted draft/done states are unchanged; this redesign adds no migration.

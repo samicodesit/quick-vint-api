@@ -145,18 +145,6 @@ export function getGenerationReservationParams(
   const hasUnlimitedDaily =
     activeCustomDailyLimit === null &&
     hasUnlimitedDailyLimit(profile, pricingLimitsMode);
-  const freeRemaining =
-    pricingLimitsMode === "current" && effectiveTier === "free"
-      ? Math.max(
-          FREE_LIFETIME_LIMIT -
-            Math.max(0, profile.free_lifetime_generations_used || 0),
-          0,
-        )
-      : 0;
-  const paidCreditBurstLimit =
-    pricingLimitsMode === "current" && effectiveTier === "free"
-      ? Math.max(0, freeRemaining + Math.max(0, profile.pack_credits || 0))
-      : 0;
 
   return {
     pricingLimitsMode,
@@ -165,10 +153,8 @@ export function getGenerationReservationParams(
     dailyLimit:
       activeCustomDailyLimit ??
       (hasUnlimitedDaily ? null : tierConfig.limits.daily),
-    burstLimit: Math.max(
-      tierConfig.limits.burst.perMinute,
-      paidCreditBurstLimit,
-    ),
+    // Request pacing is independent of the changing credit balance.
+    burstLimit: tierConfig.limits.burst.perMinute,
     freeLifetimeLimit: FREE_LIFETIME_LIMIT,
     hasUnlimitedDaily,
   };

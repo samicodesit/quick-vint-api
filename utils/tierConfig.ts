@@ -130,7 +130,7 @@ export const TIER_CONFIGS: Record<TierKey, TierConfig> = {
       daily: FREE_LIFETIME_LIMIT,
       monthly: FREE_LIFETIME_LIMIT,
       burst: {
-        perMinute: 3, // Allow a couple quick tries
+        perMinute: 20, // Allow one full batch; lifetime credits still cap Free.
       },
     },
     features: ["5 lifetime listings", "AI-generated titles and descriptions"],
@@ -150,7 +150,7 @@ export const TIER_CONFIGS: Record<TierKey, TierConfig> = {
       daily: 10,
       monthly: 75,
       burst: {
-        perMinute: 10,
+        perMinute: 20,
       },
     },
     features: [
@@ -216,7 +216,7 @@ export const LEGACY_TIER_CONFIGS: Record<TierKey, TierConfig> = {
   ...TIER_CONFIGS,
   starter: {
     ...TIER_CONFIGS.starter,
-    limits: { daily: 15, monthly: 300, burst: { perMinute: 10 } },
+    limits: { daily: 15, monthly: 300, burst: { perMinute: 20 } },
     features: [
       "AI-generated titles and descriptions",
       "Priority support",
@@ -255,7 +255,7 @@ export const COMPATIBILITY_TIER_CONFIGS: Record<TierKey, TierConfig> = {
       daily: 2,
       monthly: 8,
       burst: {
-        perMinute: 3,
+        perMinute: 20,
       },
     },
     features: ["AI-generated titles and descriptions", "Basic support"],

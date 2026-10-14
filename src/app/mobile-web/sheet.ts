@@ -37,7 +37,9 @@ function activateModal(
   animated: boolean,
 ) {
   const previousRole = panel.getAttribute("role");
+  const previousTabIndex = panel.getAttribute("tabindex");
   panel.setAttribute("role", "dialog");
+  panel.tabIndex = -1;
   panel.setAttribute("aria-modal", "true");
   panel.classList.add("is-mobile-sheet");
   const background: Array<[HTMLElement, boolean]> = [];
@@ -84,6 +86,7 @@ function activateModal(
     if (
       event.shiftKey &&
       (document.activeElement === first ||
+        document.activeElement === panel ||
         !panel.contains(document.activeElement))
     ) {
       event.preventDefault();
@@ -91,6 +94,7 @@ function activateModal(
     } else if (
       !event.shiftKey &&
       (document.activeElement === last ||
+        document.activeElement === panel ||
         !panel.contains(document.activeElement))
     ) {
       event.preventDefault();
@@ -98,7 +102,7 @@ function activateModal(
     }
   };
   panel.addEventListener("keydown", keydown);
-  controls()[0]?.focus({ preventScroll: true });
+  panel.focus({ preventScroll: true });
   if (animated) animateSurface(panel, "enter");
   return () => {
     panel.removeEventListener("keydown", keydown);
@@ -112,5 +116,8 @@ function activateModal(
     panel.classList.remove("is-mobile-sheet");
     if (previousRole) panel.setAttribute("role", previousRole);
     else panel.removeAttribute("role");
+    if (previousTabIndex !== null)
+      panel.setAttribute("tabindex", previousTabIndex);
+    else panel.removeAttribute("tabindex");
   };
 }

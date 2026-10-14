@@ -27,7 +27,7 @@ export function mountMobilePaywall(
   const dialog = document.createElement("dialog");
   dialog.className = "mobile-paywall";
   dialog.setAttribute("aria-labelledby", "mobile-paywall-title");
-  dialog.innerHTML = `<div class="mobile-paywall-heading"><img src="/favicon-96x96.png" width="40" height="40" alt="" /><div><span class="mobile-paywall-brand">AutoLister AI</span><h2 id="mobile-paywall-title"></h2></div><button type="button" aria-label="Close paid options">×</button></div><div class="mobile-paywall-body"><p data-paywall-copy></p><div data-paywall-options role="group" aria-label="Paid options"></div><p role="status" data-paywall-status hidden></p><a data-paywall-support href="${support}" hidden>Contact support</a></div><div class="mobile-paywall-footer"><button type="button" class="mobile-primary-button" data-paywall-continue hidden></button><p class="mobile-paywall-trust" data-paywall-trust></p></div>`;
+  dialog.innerHTML = `<div class="mobile-paywall-heading"><img src="/favicon-96x96.png" width="40" height="40" alt="" /><div><span class="mobile-paywall-brand">AutoLister AI</span><h2 id="mobile-paywall-title" tabindex="-1"></h2></div><button type="button" aria-label="Close paid options">×</button></div><div class="mobile-paywall-body"><p data-paywall-copy></p><div data-paywall-options role="group" aria-label="Paid options"></div><p role="status" data-paywall-status hidden></p><a data-paywall-support href="${support}" hidden>Contact support</a></div><div class="mobile-paywall-footer"><button type="button" class="mobile-primary-button" data-paywall-continue hidden></button><p class="mobile-paywall-trust" data-paywall-trust></p></div>`;
   root.append(dialog);
   const find = (selector: string) =>
     dialog.querySelector<HTMLElement>(selector)!;
@@ -264,6 +264,7 @@ export function mountMobilePaywall(
         overflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
         dialog.showModal();
+        find("h2").focus({ preventScroll: true });
         void trackMobileEvent("web_paywall_view", {
           errorCode: requested || usage.blockedReason || "paid_options",
           tier: usage.plan?.tier,

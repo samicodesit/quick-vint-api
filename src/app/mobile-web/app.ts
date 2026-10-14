@@ -911,6 +911,27 @@ export function mountMobileWebApp(
   let formatting = safeFormattingPreferences();
   let state: MobileGenerationState = { status: "idle" };
   const listeners: Array<() => void> = [];
+  if (typeof document !== "undefined" && document.documentElement) {
+    const html = document.documentElement;
+    const previousModality = html.dataset.mobileWebFocus;
+    const pointerFocus = () => {
+      if (html.dataset.mobileWebFocus !== "pointer")
+        html.dataset.mobileWebFocus = "pointer";
+    };
+    const keyboardFocus = () => {
+      if (html.dataset.mobileWebFocus !== "keyboard")
+        html.dataset.mobileWebFocus = "keyboard";
+    };
+    pointerFocus();
+    document.addEventListener("pointerdown", pointerFocus, true);
+    document.addEventListener("keydown", keyboardFocus, true);
+    listeners.push(() => {
+      document.removeEventListener("pointerdown", pointerFocus, true);
+      document.removeEventListener("keydown", keyboardFocus, true);
+      if (previousModality) html.dataset.mobileWebFocus = previousModality;
+      else delete html.dataset.mobileWebFocus;
+    });
+  }
   listeners.push(() => closeMobileProfileMenu(root, false));
   let copiedTitle = false;
   let copiedDescription = false;

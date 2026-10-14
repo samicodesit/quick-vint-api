@@ -1837,3 +1837,12 @@ textarea:focus-visible {
   font: inherit;
   cursor: pointer;
 }
+
+/* Safari can show :focus-visible after touch-triggered focus restoration. */
+html[data-mobile-web-focus="pointer"] :focus-visible,
+html[data-mobile-web-focus="pointer"]
+  .mobile-paywall-choice:has(input:focus-visible),
+html[data-mobile-web-focus="pointer"] .draft-add:has(input:focus-visible),
+html[data-mobile-web-focus="pointer"] .draft-choice input:focus-visible + span {
+  outline: none !important;
+}

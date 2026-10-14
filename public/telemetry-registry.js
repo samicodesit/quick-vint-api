@@ -684,6 +684,7 @@ globalThis.AutoListerContextPolicy = {
     "checkoutKind",
     "phoneSessionKey",
     "queueDropLastRejection",
+    "queueDroppedEventTypes",
   ],
   numbers: [
     "expectedTitleLength",

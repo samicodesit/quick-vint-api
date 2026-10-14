@@ -4,6 +4,58 @@
   const bytes = (value) =>
     new TextEncoder().encode(JSON.stringify(value)).length;
   const RETRY_MS = [60000, 300000, 900000, 1800000];
+  const hasOwn = (value, key) =>
+    Object.prototype.hasOwnProperty.call(value, key);
+  function evidenceKey(entry) {
+    const context = entry.event.context || {};
+    // Periodic refresh attempts get a new operation ID even for the same
+    // handled network error. Other operations must retain their own evidence.
+    return JSON.stringify([
+      entry.accountId,
+      entry.event.event,
+      entry.event.source,
+      entry.event.phoneSessionKey,
+      context.phase,
+      context.stage,
+      context.errorCode,
+      context.errorName,
+      context.statusCode,
+      context.message,
+      ...(entry.event.event === "token_refresh_failed"
+        ? []
+        : [context.generationAttemptId, context.operationId, context.batchId]),
+    ]);
+  }
+  function capacityVictim(events) {
+    const routine = events.findIndex(
+      (entry) => !entry.critical && !entry.event.context?.queueDropped,
+    );
+    if (routine >= 0) return routine;
+    const seen = new Set();
+    let repeated = -1;
+    for (let index = events.length - 1; index >= 0; index--) {
+      const entry = events[index];
+      if (
+        entry.event.event === "listing_report_submitted" ||
+        entry.event.context?.queueDropped
+      )
+        continue;
+      const key = evidenceKey(entry);
+      if (seen.has(key)) repeated = index;
+      seen.add(key);
+    }
+    if (repeated >= 0) return repeated;
+    const diagnostic = events.findIndex(
+      (entry) =>
+        entry.event.event !== "listing_report_submitted" &&
+        !entry.event.context?.queueDropped,
+    );
+    if (diagnostic >= 0) return diagnostic;
+    const report = events.findIndex(
+      (entry) => !entry.event.context?.queueDropped,
+    );
+    return report >= 0 ? report : 0;
+  }
   function createQueue({ storage, identity, send, now = Date.now }) {
     let flushing;
     let flushRequested = false;
@@ -12,6 +64,19 @@
       state.dropCounts ||= {};
       const counts = state.dropCounts;
       counts[reason] = (counts[reason] || 0) + 1;
+      counts.eventTypes ||= {};
+      // Record only registered names, never caller-provided diagnostic text.
+      // Four types plus an aggregate bucket keep this below the context limit.
+      const name = hasOwn(root.AutoListerEventRegistry || {}, entry.event.event)
+        ? entry.event.event
+        : "other";
+      const key =
+        hasOwn(counts.eventTypes, name) ||
+        Object.keys(counts.eventTypes).filter((key) => key !== "other").length <
+          4
+          ? name
+          : "other";
+      counts.eventTypes[key] = (counts.eventTypes[key] || 0) + 1;
       if (entry.critical) counts.critical = (counts.critical || 0) + 1;
       if (entry.event.event === "listing_report_submitted")
         counts.customerReports = (counts.customerReports || 0) + 1;
@@ -40,8 +105,7 @@
         return false;
       });
       while (state.events.length > 200 || bytes(state) > 524288) {
-        const routine = state.events.findIndex((item) => !item.critical);
-        const [entry] = state.events.splice(routine < 0 ? 0 : routine, 1);
+        const [entry] = state.events.splice(capacityVictim(state.events), 1);
         recordDrop(state, entry, "capacity");
       }
     }
@@ -108,6 +172,11 @@
                 ),
                 queueDroppedCritical: counts.critical || 0,
                 queueDroppedCustomerReports: counts.customerReports || 0,
+                ...(counts.eventTypes
+                  ? {
+                      queueDroppedEventTypes: JSON.stringify(counts.eventTypes),
+                    }
+                  : {}),
                 ...(counts.lastRejection
                   ? { queueDropLastRejection: counts.lastRejection }
                   : {}),

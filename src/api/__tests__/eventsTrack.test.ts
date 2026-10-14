@@ -346,6 +346,8 @@ describe("events tracking endpoint", () => {
           queueDroppedCritical: 1,
           queueDroppedCustomerReports: 1,
           queueDropLastRejection: "expired",
+          queueDroppedEventTypes:
+            '{"generate_error":1,"token_refresh_failed":56}',
           authorization: "Bearer private",
           photos: ["private-photo"],
           message: "internal product detail",
@@ -388,6 +390,8 @@ describe("events tracking endpoint", () => {
               queueDroppedCritical: 1,
               queueDroppedCustomerReports: 1,
               queueDropLastRejection: "expired",
+              queueDroppedEventTypes:
+                '{"generate_error":1,"token_refresh_failed":56}',
             },
           },
         });

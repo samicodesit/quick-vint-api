@@ -82,6 +82,34 @@ export function sanitizeContext(
       (typeof source.status === "number" ? source.status : undefined),
   };
   for (const [key, value] of Object.entries(canonical)) {
+    if (key === "queueDroppedEventTypes") {
+      try {
+        if (typeof value !== "string" || value.length > 500) continue;
+        const counts = JSON.parse(value);
+        if (!counts || Array.isArray(counts) || typeof counts !== "object")
+          continue;
+        const entries = Object.entries(counts);
+        if (
+          entries.length > 5 ||
+          entries.filter(([name]) => name !== "other").length > 4
+        )
+          continue;
+        if (
+          entries.every(
+            ([name, count]) =>
+              (name === "other" ||
+                Object.prototype.hasOwnProperty.call(registry, name)) &&
+              Number.isSafeInteger(count) &&
+              Number(count) > 0 &&
+              Number(count) <= 1e12,
+          )
+        )
+          output[key] = JSON.stringify(counts);
+      } catch {
+        /* Malformed transport health is fail-open for ingestion. */
+      }
+      continue;
+    }
     if (stringKeys.has(key) && typeof value === "string")
       output[key] = redact(
         value,

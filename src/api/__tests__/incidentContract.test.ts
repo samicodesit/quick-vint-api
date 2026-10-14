@@ -3,6 +3,7 @@ import {
   normalizeIncidentEvent,
   classifyEvent,
   redact,
+  sanitizeContext,
 } from "../../../utils/incidents/contract";
 
 const now = Date.parse("2026-10-03T10:00:00Z");
@@ -15,6 +16,29 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it("retains bounded registered drop types without accepting caller text", () => {
+    const types = {
+      token_refresh_failed: 100,
+      generate_error: 2,
+      phone_upload_inject_error: 1,
+      listing_report_submitted: 1,
+      other: 4,
+    };
+    expect(
+      sanitizeContext({ queueDroppedEventTypes: JSON.stringify(types) }, false)
+        .queueDroppedEventTypes,
+    ).toBe(JSON.stringify(types));
+    for (const value of [
+      '{"private_name":1}',
+      '{"generate_error":"secret"}',
+      '{"generate_error":-1}',
+      "invalid",
+    ]) {
+      expect(
+        sanitizeContext({ queueDroppedEventTypes: value }, false),
+      ).not.toHaveProperty("queueDroppedEventTypes");
+    }
+  });
   it("retains legacy provider codes and numeric HTTP status as canonical diagnostics", () => {
     const result = normalizeIncidentEvent(
       {

@@ -22,3 +22,12 @@ The supplied phone screenshot showed a highlighted first card with no separate a
 The permanent actual-browser suite was first run against the old UI and failed because it had no radio choices. The revised UI and expanded rerun passed all 24 browser flow checks, including native keyboard selection, one checkout for a double tap, and payment recovery through the portal. Screenshots at 320/360/390px were inspected. Release verification is recorded below when complete.
 
 Browser API/auth/Stripe responses are intercepted fixtures, not customer purchases. Physical iOS Safari and a live purchase remain untested. Google approval is an external result, not established by a website deployment.
+
+## Live acceptance
+
+- Guarded `npm run push:production`, with real generation browser integration enabled, passed lint, types, build, formatting and 956 tests in 129 files. `origin/main` moved from `0122f68` to `dcd9d2a`. The newer telemetry commit was preserved.
+- Vercel deployment `EMUFMBMCPjsGWJ2xcuNCmCyt2W3N` reached Ready at October 14, 2026, 19:47:36 GMT+2 and serves `autolister.app`.
+- The same 24 actual-browser flow checks passed against the deployed assets, with all API, auth and Stripe responses intercepted. Native radio selection produces no checkout request, keyboard arrows update the CTA, double taps produce one checkout request, retry retains the chosen credit pack, and payment recovery uses the portal.
+- Google's second branding verification succeeded against the corrected live policy. Published the verified branding. Google's status reads: "Your branding has been verified and is being shown to users."
+- A fresh production Supabase Google authorization request, stopped at the account chooser without selecting an account, visibly showed the AutoLister logo and "to continue to AutoLister", with `/privacy` and `/terms` links. No paid custom domain, new credential, changed scope or callback was needed.
+- Minimal screenshot and result evidence: `C:/Users/Sami/.codex/visualizations/2026/10/14/autolister-paywall/`. Google screenshot is cropped to the heading/logo to exclude account identifiers. The exact live paywall screenshots at 320px and 390px were inspected.

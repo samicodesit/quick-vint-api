@@ -1,6 +1,6 @@
 # Web authentication activity cleanup
 
-Status: implemented and verified locally. Production approval pending.
+Status: implemented and verified locally. Owner approved the production push on October 14. Deployment acceptance is recorded separately.
 
 The reported two authentication rows were separate app initializations, 44 seconds apart, in the same browser visit. Both contained `method: session`. The app incorrectly reused `auth_complete` for restoration. Two upload rows corresponded to two photos; one generation succeeded. Customer identities are omitted.
 
@@ -23,4 +23,4 @@ The reported two authentication rows were separate app initializations, 44 secon
 
 ## Limits
 
-No production code or historical rows were changed. Real Google/email authentication was not exercised; callback orchestration is covered with controlled local tests. If browser storage stalls beyond the bounded enqueue window, navigation continues and the sign-in event may be unavailable. No prompts, generation defaults, pilot assignment, credentials or customer accounts were changed.
+No historical rows were changed. Real Google/email authentication was not exercised; callback orchestration is covered with controlled local tests. If browser storage stalls beyond the bounded enqueue window, navigation continues and the sign-in event may be unavailable. No prompts, generation defaults, pilot assignment, credentials or customer accounts were changed.

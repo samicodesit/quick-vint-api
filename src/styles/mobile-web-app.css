@@ -1641,6 +1641,31 @@ textarea:focus-visible {
   height: 3px;
   background: linear-gradient(90deg, #10b981, #38bdf8, #4f46e5);
 }
+.mobile-paywall[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.mobile-paywall-heading,
+.mobile-paywall-footer {
+  flex-shrink: 0;
+}
+.mobile-paywall-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.mobile-paywall-footer {
+  padding-top: 12px;
+}
+.mobile-paywall [data-paywall-continue] {
+  width: 100%;
+  min-height: 48px;
+  font-size: 16px;
+}
+.mobile-paywall [data-paywall-continue][hidden] {
+  display: none;
+}
 .mobile-paywall::backdrop {
   background: #18203466;
 }
@@ -1739,14 +1764,24 @@ textarea:focus-visible {
   width: fit-content;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 3px 6px;
+  padding: 3px 4px;
   border-radius: 5px;
   font-size: 11px;
   font-weight: 600;
   color: #4f46e5;
   background: #f4f2ff;
 }
-.mobile-paywall-option.is-primary {
+.mobile-paywall-choice {
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.mobile-paywall-choice input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--mobile-brand);
+}
+.mobile-paywall-choice:has(input:checked) {
   border-color: #a5a0ef;
   background: #fafaff;
 }
@@ -1755,6 +1790,10 @@ textarea:focus-visible {
   background: #fafaff;
 }
 .mobile-paywall-option:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.mobile-paywall-choice:has(input:disabled) {
   opacity: 0.65;
   cursor: wait;
 }
@@ -1777,6 +1816,10 @@ textarea:focus-visible {
 .mobile-paywall a:focus-visible {
   outline: 2px solid var(--mobile-brand);
   outline-offset: 3px;
+}
+.mobile-paywall-choice:has(input:focus-visible) {
+  outline: 2px solid var(--mobile-brand);
+  outline-offset: -2px;
 }
 .mobile-extension-suggestion a.mobile-primary-button {
   gap: 8px;

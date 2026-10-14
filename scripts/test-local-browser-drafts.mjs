@@ -1136,7 +1136,24 @@ try {
   await click("generate");
   await page.getByRole("dialog", { name: "Free listings used" }).waitFor();
   assert.equal(
-    await page.getByRole("button", { name: /Upgrade to Starter/ }).isVisible(),
+    await page.getByRole("radio", { name: /Starter/ }).isVisible(),
+    true,
+  );
+  assert.equal(
+    await page.getByRole("radio", { name: /Starter/ }).isChecked(),
+    true,
+  );
+  await page.getByRole("radio", { name: /Starter/ }).focus();
+  await page.getByRole("radio", { name: /Starter/ }).press("ArrowDown");
+  assert.equal(
+    await page.getByRole("radio", { name: /Pro,/ }).isChecked(),
+    true,
+  );
+  assert.equal(checkoutCalls, 0, "Selecting a plan never creates checkout");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Continue with Pro", exact: true })
+      .isVisible(),
     true,
   );
   assert.equal(generations, callsBeforeQuota);
@@ -1159,21 +1176,16 @@ try {
     await click("generate");
     const dialog = page.getByRole("dialog", { name: title });
     await dialog.waitFor();
-    assert.equal(
-      await dialog.locator("button.mobile-paywall-option").count(),
-      targets.length + 1,
-    );
+    assert.equal(await dialog.getByRole("radio").count(), targets.length + 1);
     for (const target of targets)
       assert.equal(
         await dialog
-          .getByRole("button", { name: new RegExp(`Upgrade to ${target}`) })
+          .getByRole("radio", { name: new RegExp(target) })
           .isVisible(),
         true,
       );
     assert.equal(
-      await dialog
-        .getByRole("button", { name: /Buy one-time credits/ })
-        .isVisible(),
+      await dialog.getByRole("radio", { name: /One-time credits/ }).isVisible(),
       true,
     );
     assert.equal(generations, callsBeforeQuota);
@@ -1194,7 +1206,7 @@ try {
     assert(box.x >= 0 && box.x + box.width <= width);
     assert(box.y >= 0 && box.y + box.height <= height);
     const primary = await dialog
-      .locator("button.mobile-paywall-option")
+      .locator(".mobile-paywall-option")
       .first()
       .boundingBox();
     assert(
@@ -1207,20 +1219,51 @@ try {
       ),
       true,
     );
+    const continueBox = await dialog
+      .locator("[data-paywall-continue]")
+      .boundingBox();
+    assert(
+      continueBox.y >= 0 && continueBox.y + continueBox.height <= height,
+      "Checkout CTA stays visible without scrolling on short phones",
+    );
     const badge = await dialog.locator(".mobile-paywall-badge").boundingBox();
     const side = await dialog
       .locator(".mobile-paywall-option")
       .filter({ has: page.locator(".mobile-paywall-badge") })
       .locator(".mobile-paywall-option-side")
       .boundingBox();
+    await page.screenshot({ path: `${output}/paused-paywall-${width}.png` });
     assert(
       badge.x + badge.width + 5 <= side.x,
-      "Plan badges do not collide with prices or limits on narrow phones",
+      `Plan badges do not collide with prices or limits on narrow phones: ${JSON.stringify({ width, badge, side })}`,
     );
-    await page.screenshot({ path: `${output}/paused-paywall-${width}.png` });
   }
   await page.getByRole("button", { name: "Close paid options" }).click();
   assert.equal(await page.evaluate(() => document.body.style.overflow), "");
+  quotaCode = "payment_required";
+  await click("generate");
+  const paymentDialog = page.getByRole("dialog", {
+    name: "Update your payment",
+  });
+  await paymentDialog.waitFor();
+  assert.equal(await paymentDialog.getByRole("radio").count(), 0);
+  assert.equal(
+    await paymentDialog.locator("[data-paywall-continue]").isVisible(),
+    false,
+  );
+  await paymentDialog
+    .getByRole("button", { name: "Update payment", exact: true })
+    .click();
+  await page.waitForFunction(
+    () => document.querySelector("[data-paywall-status]")?.hidden === false,
+  );
+  assert.equal(portalCalls, 1);
+  assert.equal(
+    checkoutCalls,
+    0,
+    "Payment recovery uses the portal, not a new subscription",
+  );
+  await page.getByRole("button", { name: "Close paid options" }).click();
   quotaTier = "free";
   quotaCode = "burst_limit";
   await click("generate");
@@ -1229,13 +1272,28 @@ try {
   assert.equal(generations, callsBeforeQuota);
   quotaCode = "free_lifetime_limit";
   await click("generate");
-  await page.getByRole("button", { name: /Buy one-time credits/ }).click();
+  await page.getByRole("radio", { name: /One-time credits/ }).check();
+  assert.equal(checkoutCalls, 0);
+  await page
+    .getByRole("button", {
+      name: "Continue with one-time credits",
+      exact: true,
+    })
+    .dblclick();
   await page.waitForFunction(
     () => document.querySelector("[data-paywall-status]")?.hidden === false,
   );
   assert.equal(
+    checkoutCalls,
+    1,
+    "A double tap creates only one checkout request",
+  );
+  assert.equal(
     await page
-      .getByRole("button", { name: /Buy one-time credits/ })
+      .getByRole("button", {
+        name: "Continue with one-time credits",
+        exact: true,
+      })
       .isEnabled(),
     true,
   );
@@ -1248,7 +1306,16 @@ try {
         body: `<a href="${base}/app?checkout=cancel">Back to AutoLister</a>`,
       }),
   );
-  await page.getByRole("button", { name: /Buy one-time credits/ }).click();
+  assert.equal(
+    await page.getByRole("radio", { name: /One-time credits/ }).isChecked(),
+    true,
+  );
+  await page
+    .getByRole("button", {
+      name: "Continue with one-time credits",
+      exact: true,
+    })
+    .click();
   await page.waitForURL("https://checkout.stripe.com/c/web-paywall-fixture");
   assert.equal(checkoutCalls, 2);
   await page.getByRole("link", { name: "Back to AutoLister" }).click();
@@ -1446,7 +1513,7 @@ try {
       true,
       "Billing must not wait for a stalled telemetry request",
     );
-    assert.equal(portalCalls, 1);
+    assert.equal(portalCalls, 2);
   } finally {
     await page.evaluate(() => {
       globalThis.releaseFixtureTelemetry?.();

@@ -72,11 +72,11 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 
   <div class="privacy-container">
     <h1>Privacy Policy</h1>
-    <p>Last updated: October 3, 2026</p>
+    <p>Last updated: October 14, 2026</p>
     <p>
       AutoLister AI ("we", "our", or "us") values your privacy. This Privacy
       Policy explains how we collect, use, disclose, and safeguard your
-      information when you use our Chrome extension ("Product"). By using the
+      information when you use our Chrome extension or web app ("Product"). By using the
       Product, you consent to the practices described in this policy. If you do
       not agree with any term, please do not use the Product.
     </p>
@@ -84,12 +84,22 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     <h2>1. Information We Collect</h2>
     <h3>1.1 Personal Information</h3>
     <p>
-      When you sign in to the Product via Magic Link, we collect the following:
+      When you sign in to the Product using an email link, email code, or Google,
+      we collect the following:
     </p>
     <ul>
       <li>
         <strong>Email address:</strong> Used to identify your account and create a
         Supabase session.
+      </li>
+      <li>
+        <strong>Google sign-in information:</strong> If you choose Google sign-in,
+        Google provides your email address, account identifier, and basic profile
+        information such as your name and profile picture. Supabase uses this
+        information to authenticate you and associate your AutoLister account
+        with your Google account. We use it for sign-in and account identification.
+        We do not request access to your Gmail messages, Google Drive files, or
+        other Google account content.
       </li>
       <li>
         <strong>Stripe customer ID:</strong> Used during subscription checkout and
@@ -150,8 +160,11 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     </p>
     <ul>
       <li>
-        <strong>Authentication:</strong> When you enter your email, we send a magic
-        link via Supabase. Supabase collects and stores your email and session tokens.
+        <strong>Authentication:</strong> Supabase manages email-link, email-code,
+        and Google sign-in and stores account information and session tokens.
+        Sign-in emails are delivered through Resend. When you choose Google,
+        Google asks you to select an account and authorize the basic sign-in
+        information described above.
       </li>
       <li>
         <strong>Stripe Checkout & Billing Portal:</strong> When you choose to upgrade
@@ -176,8 +189,8 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     <h2>3. How We Use Your Information</h2>
     <ul>
       <li>
-        <strong>Email Address:</strong> To authenticate you via Supabase magic link
-        and tie your extension usage to your account.
+        <strong>Email Address:</strong> To authenticate you and tie your extension
+        and web app usage to your account.
       </li>
       <li>
         <strong>Supabase Session Token:</strong> To keep you logged in, fetch your
@@ -304,6 +317,12 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     <h2>5. Third-Party Services & Links</h2>
     <p>The Product integrates with the following third-party services:</p>
     <ul>
+      <li>
+        <strong>Google:</strong> An optional sign-in provider. Google processes
+        the sign-in request and shares the basic account information you authorize
+        with Supabase for AutoLister authentication. See
+        <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.
+      </li>
       <li>
         <strong>Supabase:</strong> For authentication, user profile management, and
         storing subscription metadata. By using the Product, you agree that Supabase

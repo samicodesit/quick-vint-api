@@ -1,5 +1,10 @@
 # AutoLister AI Growth Current Sprint
 
+## Mobile paywall and Google branding, October 14, 2026
+
+- Plan taps now select native radio choices without a checkout request. A separate Continue CTA stays visible within a bounded phone dialog. The existing tailored paywalls, prices, quotas, account-pause rules and bearer-owned Stripe routes are preserved. Actual Chromium flow tests passed 24 checks, including keyboard selection, double-tap prevention, failed checkout retry, portal recovery, saved drafts and 320/360/390px layouts. No customer purchase was made. Evidence and release status: [mobile paywall and branding QA](qa/mobile-paywall-branding-20261014.md).
+- Matched the live Supabase Google client to its Google Cloud project. Saved the AutoLister name, moved OAuth from Testing to Production with explicit user confirmation, and corrected obsolete privacy/terms URLs. No credentials, scopes or callbacks were changed. The privacy policy now describes Google sign-in and the web app. The original branding check failed on the obsolete policy URL; final verification follows the policy release. Google approval is separate from a website push.
+
 ## Mobile homepage test release, October 12, 2026
 
 - Shared visual refinement: phone/tablet feature bullets are now plain checkmarked list items rather than bordered cards that resemble the Chrome install button. Both A/B arms keep the same copy, routes, assignment and demo behavior. The existing computer hint in B gains a decorative laptop icon from the installed icon set, with no dependency or extra script. Twenty existing native homepage checks and eight rendered A/B checks at 320/390/768/1440px pass, including no overflow, a 48px Chrome click target, unboxed proof text and unchanged desktop geometry. Phone and desktop screenshots were inspected; guarded production verification and live acceptance follow.

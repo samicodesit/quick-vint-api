@@ -165,9 +165,9 @@ describe("mobile web output language preferences", () => {
 });
 
 describe("mobile web listing formatting", () => {
-  it("uses Long and Bullets defaults and serializes exact generation fields", () => {
+  it("uses Short and Bullets defaults and serializes exact generation fields", () => {
     expect(readFormattingPreferences(memoryStorage())).toEqual({
-      descriptionLength: "long",
+      descriptionLength: "short",
       useBulletPoints: true,
     });
     expect(

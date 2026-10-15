@@ -11,6 +11,7 @@ export const MOBILE_REF_STORAGE_KEY = "autolister.mobile_web.ref.v1";
 
 export const MOBILE_ANALYTICS_EVENTS = [
   "web_app_view",
+  "web_style_setup",
   "auth_complete",
   "session_restored",
   "upload_complete",

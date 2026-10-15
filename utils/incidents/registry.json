@@ -2,6 +2,7 @@
   "web_app_click": { "kind": "business" },
   "home_hero_exposure": { "kind": "business" },
   "web_app_view": { "kind": "business" },
+  "web_style_setup": { "kind": "business" },
   "auth_complete": { "kind": "business" },
   "session_restored": { "kind": "business" },
   "upload_complete": { "kind": "business" },

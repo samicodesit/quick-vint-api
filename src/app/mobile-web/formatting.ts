@@ -15,9 +15,9 @@ export function readFormattingPreferences(
 ): FormattingPreferences {
   return {
     descriptionLength:
-      storage.getItem(DESCRIPTION_LENGTH_STORAGE_KEY) === "short"
-        ? "short"
-        : "long",
+      storage.getItem(DESCRIPTION_LENGTH_STORAGE_KEY) === "long"
+        ? "long"
+        : "short",
     useBulletPoints: storage.getItem(OUTPUT_SHAPE_STORAGE_KEY) !== "false",
   };
 }

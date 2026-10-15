@@ -1,0 +1,8 @@
+{
+  "cycles": 7,
+  "maxFrameGapMs": 42.5,
+  "maxPageScroll": 0,
+  "longTasks": [],
+  "includesViewportResize": true,
+  "physicalPhoneMeasured": false
+}

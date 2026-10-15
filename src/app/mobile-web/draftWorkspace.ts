@@ -51,6 +51,7 @@ export function mountDraftWorkspace(
     onGenerationBlocked?: (usage: MobileUsage | null, code?: string) => boolean;
     onViewPlans?: () => void;
     defaultSettings?: DraftSettings;
+    startWithNewItem?: boolean;
   },
 ) {
   const client = createDraftClient(options.userId);
@@ -98,9 +99,9 @@ export function mountDraftWorkspace(
   const defaultsKey = `autolister:listing-defaults:${options.userId}`;
   const freshDefaults = {
     ...DEFAULT_DRAFT_SETTINGS,
-    ...options.defaultSettings,
     useHashtags: true,
     useEmojis: true,
+    ...options.defaultSettings,
   };
   let defaultSettings = normalizeDraftSettings(freshDefaults);
   try {
@@ -3269,6 +3270,13 @@ export function mountDraftWorkspace(
       if (initialView?.owner === options.userId) await restoreView(initialView);
       else {
         await reload();
+        if (
+          options.startWithNewItem &&
+          !library.drafts.length &&
+          !library.imports.length &&
+          !disposed
+        )
+          await handlers.new();
         rememberView();
       }
     } finally {

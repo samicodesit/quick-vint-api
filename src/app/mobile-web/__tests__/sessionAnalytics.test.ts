@@ -37,6 +37,27 @@ describe("restored-session telemetry", () => {
     ]);
   });
 
+  it("queues bounded style setup outcomes without seller-note or preview text", async () => {
+    const analytics = await import("../analytics.js");
+    expect(
+      await analytics.trackMobileEvent("web_style_setup", {
+        phase: "complete",
+        method: "apply",
+        descriptionLength: "short",
+        descriptionFooterText: "Private seller note",
+        generatedDescription: "Example output",
+      }),
+    ).toBe(true);
+    const body = track.mock.calls[0][1];
+    expect(body.context).toMatchObject({
+      phase: "complete",
+      method: "apply",
+      descriptionLength: "short",
+    });
+    expect(JSON.stringify(body)).not.toContain("Private seller note");
+    expect(JSON.stringify(body)).not.toContain("Example output");
+  });
+
   it("records new visits and changed accounts separately", async () => {
     const analytics = await import("../analytics.js");
     await analytics.trackMobileSessionRestored("seller-1");

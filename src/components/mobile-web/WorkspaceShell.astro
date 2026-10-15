@@ -4,6 +4,7 @@ import PhotoRail from "./PhotoRail.astro";
 import ListingControls from "./ListingControls.astro";
 import ListingResult from "./ListingResult.astro";
 import DraftWorkspace from "./DraftWorkspace.astro";
+import StyleOnboarding from "./StyleOnboarding.astro";
 
 interface Props {
   titleLanguageCode?: string;
@@ -99,6 +100,7 @@ const {
       <p class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
     </section>
 
+    <StyleOnboarding />
     <section class="mobile-app-view" data-mobile-web="app-view" hidden aria-labelledby="mobile-app-title">
       <div class="mobile-app-heading">
         <div>

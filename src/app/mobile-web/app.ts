@@ -1,4 +1,9 @@
 import { mountDraftWorkspace } from "./draftWorkspace";
+import {
+  shouldOfferStyleOnboarding,
+  saveOnboardingStyle,
+} from "./styleOnboardingState";
+import type { DraftSettings } from "./draftContracts";
 import { mountMobilePaywall } from "./paywall";
 import { mountExtensionSuggestion } from "./extensionSuggestion";
 import { getMobilePaywall } from "./paywallPolicy";
@@ -940,6 +945,12 @@ export function mountMobileWebApp(
   let appOpenedTracked = false;
   let checkoutReturnHandled = false;
   let draftWorkspace: ReturnType<typeof mountDraftWorkspace> | undefined;
+  let styleSetupCleanup: (() => void) | undefined;
+  let styleSetupLoading = false;
+  listeners.push(() => {
+    styleSetupCleanup?.();
+    delete shell.dataset.styleSetup;
+  });
   let latestUsage: MobileUsage | null = null;
   let paywall: ReturnType<typeof mountMobilePaywall> | undefined;
   const extensionSuggestion = mountExtensionSuggestion(
@@ -968,7 +979,10 @@ export function mountMobileWebApp(
     draftWorkspace?.closeOverlays();
     return paywall.show(usage, requested);
   };
-  const openDraftWorkspace = () => {
+  const openDraftWorkspace = (
+    bypassStyleSetup = false,
+    chosenStyle?: DraftSettings,
+  ) => {
     if (
       draftWorkspace ||
       !session ||
@@ -977,6 +991,53 @@ export function mountMobileWebApp(
       return;
     const workspace = asElement<HTMLElement>(root, "[data-draft-workspace]");
     if (!workspace) return;
+    const initialSettings: DraftSettings = {
+      titleLanguageCode: language.titleLanguageCode,
+      descriptionLanguageCode: language.descriptionLanguageCode,
+      ...formatting,
+      useHashtags: true,
+      useEmojis: true,
+      ...chosenStyle,
+    };
+    const setup = asElement<HTMLElement>(root, "[data-style-setup]");
+    const storage = getStorage();
+    if (
+      !bypassStyleSetup &&
+      setup &&
+      storage &&
+      shouldOfferStyleOnboarding(
+        storage,
+        session.user.id,
+        session.user.created_at,
+      )
+    ) {
+      if (styleSetupLoading || styleSetupCleanup) return;
+      styleSetupLoading = true;
+      shell.dataset.styleSetup = "true";
+      const owner = session.user.id;
+      void import("./styleOnboarding.js")
+        .then(({ mountStyleOnboarding }) => {
+          styleSetupLoading = false;
+          if (disposed || session?.user.id !== owner) return;
+          styleSetupCleanup = mountStyleOnboarding(
+            setup,
+            initialSettings,
+            (settings) => {
+              saveOnboardingStyle(storage, owner, settings);
+              styleSetupCleanup?.();
+              styleSetupCleanup = undefined;
+              delete shell.dataset.styleSetup;
+              openDraftWorkspace(true, settings);
+            },
+          );
+        })
+        .catch(() => {
+          styleSetupLoading = false;
+          delete shell.dataset.styleSetup;
+          if (!disposed && session?.user.id === owner) openDraftWorkspace(true);
+        });
+      return;
+    }
     shell.dataset.draftsEnabled = "true";
     draftWorkspace = mountDraftWorkspace(workspace, {
       userId: session.user.id,
@@ -986,12 +1047,10 @@ export function mountMobileWebApp(
       onViewPlans: () => {
         if (latestUsage) showPaywall(latestUsage, "feature");
       },
-      defaultSettings: {
-        titleLanguageCode: language.titleLanguageCode,
-        descriptionLanguageCode: language.descriptionLanguageCode,
-        ...formatting,
-      },
+      defaultSettings: initialSettings,
+      startWithNewItem: Boolean(chosenStyle),
     });
+    if (latestUsage) draftWorkspace.updateUsage(latestUsage);
   };
   const checkoutReturnStatus = readCheckoutReturnStatus();
   const vintedDestination = getMobileVintedDestination();
@@ -1041,6 +1100,9 @@ export function mountMobileWebApp(
       if (disposed) return null;
       if (errorDetails(error).status === 401) {
         session = null;
+        styleSetupCleanup?.();
+        styleSetupCleanup = undefined;
+        delete shell.dataset.styleSetup;
         activeController?.abort();
         await cleanupServerSession("cancelled");
         clearPreviews();

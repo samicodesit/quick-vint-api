@@ -1,0 +1,15 @@
+{
+  "providerCalls": 0,
+  "generationRequests": 1,
+  "photoCount": 2,
+  "forwardedSettings": {
+    "titleLanguageCode": "en",
+    "descriptionLanguageCode": "nl",
+    "descriptionLength": "short",
+    "useBulletPoints": true,
+    "useEmojis": false,
+    "useHashtags": false,
+    "descriptionFooterText": "Smoke-free home. Happy to bundle items."
+  },
+  "matchesChosenSettings": true
+}

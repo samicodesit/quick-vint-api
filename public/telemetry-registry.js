@@ -9,6 +9,9 @@ globalThis.AutoListerEventRegistry = {
   web_app_view: {
     kind: "business",
   },
+  web_style_setup: {
+    kind: "business",
+  },
   auth_complete: {
     kind: "business",
   },

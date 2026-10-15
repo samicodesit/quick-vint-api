@@ -29,7 +29,7 @@ Keep Google plus passwordless email for this release. There is no evidence in th
 
 ## Verification and limits
 
-The full deterministic suite passed 986 tests in 133 files, with three opt-in generation-browser tests skipped. Lint, TypeScript, formatting and a feature-enabled 132-page build passed. The guarded production push runs the full gate again on the release checkout. Local release and deployment evidence is retained under `reports/style-onboarding-release-2026-10-15` in the parent workspace.
+The full deterministic suite passed 987 tests in 134 files, with three opt-in generation-browser tests skipped. Lint, TypeScript, formatting and a feature-enabled 132-page build passed. A regression also checks that the generated browser registry ships the same style-setup event as the backend. The guarded production push runs the full gate again on the release checkout. Local release and deployment evidence is retained under `reports/style-onboarding-release-2026-10-15` in the parent workspace.
 
 Live landing and signed-out UI were captured; authenticated setup, upload, request handoff, saved draft and copying used the actual compiled frontend with local fixtures. Real Google/email authentication, real provider output, live billing, native camera/HEIC, physical iOS/Android keyboards and assistive-technology behavior were not re-enacted. Screenshots do not establish full accessibility compliance. Existing backend/auth/idempotency tests provide regression coverage; no claim of live end-to-end verification follows from them.
 

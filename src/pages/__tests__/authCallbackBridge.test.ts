@@ -161,6 +161,10 @@ describe("auth callback bridge", () => {
       expect.objectContaining({ event: "auth_extension_handoff_success" }),
     ]);
     expect(elements.get("authCountdown")?.textContent).toBe("3");
+    expect(elements.get("authCallbackCard")?.dataset.state).toBe("success");
+    expect(elements.get("authCallbackCopy")?.textContent).toBe(
+      "This tab will close shortly.",
+    );
     expect(timers[0].delay).toBe(1000);
   });
 
@@ -304,6 +308,9 @@ describe("auth callback bridge", () => {
       "chrome-extension://mommklhpammnlojjobejddmidmdcalcl/callback.html#access_token=access-1&refresh_token=refresh-1&expires_in=3600&token_type=bearer",
     );
     expect(elements.get("authCallbackCard")?.dataset.state).not.toBe("success");
-    expect(elements.get("authCallbackCopy")?.textContent).toMatch(/Orion/);
+    expect(elements.get("authCallbackCopy")?.textContent).toMatch(
+      /browser where you installed/,
+    );
+    expect(elements.get("authCallbackCopy")?.textContent).not.toMatch(/Orion/);
   });
 });

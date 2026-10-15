@@ -46,7 +46,7 @@ afterAll(async () => {
 });
 
 it.skipIf(!enabled)(
-  "shows honest fallback guidance that preserves Orion instead of claiming sign-in success",
+  "shows generic recovery guidance only when extension messaging is unavailable",
   async () => {
     const profiles = [
       {
@@ -96,9 +96,9 @@ it.skipIf(!enabled)(
             .locator("#authCallbackCopy")
             .textContent({ timeout: 2000 }),
         ).toMatch(/browser where you installed/i);
-        expect(await page.locator("#authCallbackCopy").textContent()).toMatch(
-          /Orion/i,
-        );
+        expect(
+          await page.locator("#authCallbackCopy").textContent(),
+        ).not.toMatch(/Orion/i);
         expect(await page.locator("#authCallbackCopy").textContent()).toMatch(
           /new|fresh/i,
         );

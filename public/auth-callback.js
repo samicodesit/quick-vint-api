@@ -328,7 +328,7 @@
         track("auth_extension_callback_fallback");
         setStatus(
           "Continue sign-in in AutoLister AI.",
-          "If AutoLister does not open, return to the browser where you installed it (Orion on iPhone or iPad). Request a new sign-in email there and enter its 6-digit code.",
+          "If AutoLister does not open, return to the browser where you installed it. Request a new sign-in email there and enter its 6-digit code.",
           "pending",
         );
         window.location.href = buildExtensionCallbackUrl(session);

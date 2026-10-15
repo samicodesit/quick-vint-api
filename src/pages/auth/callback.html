@@ -16,7 +16,8 @@
         color: #111827;
       }
       main {
-        width: min(92vw, 460px);
+        box-sizing: border-box;
+        width: min(92vw, 522px);
         padding: 30px;
         border: 1px solid #e5e7eb;
         border-radius: 20px;
@@ -55,6 +56,7 @@
         margin-top: 22px;
       }
       .mark {
+        flex-shrink: 0;
         width: 42px;
         height: 42px;
         border-radius: 999px;
@@ -76,6 +78,13 @@
       main[data-state="success"] .mark {
         background: #dcfce7;
         transform: scale(1.04);
+      }
+      main[data-state="pending"] .mark::before {
+        width: 10px;
+        height: 10px;
+        border: 3px solid #4f46e5;
+        border-radius: 50%;
+        transform: none;
       }
       main[data-state="success"] .mark::before {
         border-color: #16a34a;
@@ -164,9 +173,9 @@
       <div class="progress"><span></span></div>
     </main>
     <script src="/telemetry-registry.js"></script>
-<script src="/telemetry-core.js"></script>
-<script src="/telemetry-client.js"></script>
-<script src="/telemetry-website.js"></script>
-<script src="/auth-callback.js"></script>
+    <script src="/telemetry-core.js"></script>
+    <script src="/telemetry-client.js"></script>
+    <script src="/telemetry-website.js"></script>
+    <script src="/auth-callback.js"></script>
   </body>
 </html>

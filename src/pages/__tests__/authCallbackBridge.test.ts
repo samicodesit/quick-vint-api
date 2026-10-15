@@ -279,7 +279,7 @@ describe("auth callback bridge", () => {
   });
 
   it("falls back to the extension callback page when old extension handoff closes the port", async () => {
-    const { events, locationHref } = await runBridge(
+    const { events, locationHref, elements } = await runBridge(
       "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1&expires_in=3600&token_type=bearer",
       undefined,
       {
@@ -303,5 +303,7 @@ describe("auth callback bridge", () => {
     expect(locationHref).toBe(
       "chrome-extension://mommklhpammnlojjobejddmidmdcalcl/callback.html#access_token=access-1&refresh_token=refresh-1&expires_in=3600&token_type=bearer",
     );
+    expect(elements.get("authCallbackCard")?.dataset.state).not.toBe("success");
+    expect(elements.get("authCallbackCopy")?.textContent).toMatch(/Orion/);
   });
 });

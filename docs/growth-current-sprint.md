@@ -2,6 +2,8 @@
 
 ## Listing style setup, October 15, 2026
 
+- Header follow-up: reproduced the owner's screenshot as a zero-pixel gap between the shared header divider and onboarding title. Add 8 to 12 pixels of scoped separation, taking the space from the scrollable example. All 18 languages on the shortest phone and seven additional sizes keep the primary action visible; the original zero-gap assertion fails and corrected measurements pass. Updated screenshot and measurements are in the flow audit.
+
 - Owner-approved integration of the reviewed style preview into the real web app. Eligible new accounts see a compact, translated, photo-based example once, then proceed directly to Add item. Existing accounts and saved preferences are preserved. Fresh web preferences use Short; extension defaults, model-pilot assignment and generation prompt text are unchanged.
 - The compiled frontend's local journey reached photo preparation, a stubbed draft response, saved review and exact copying of both fields. Checked independent languages, Short/Long, bullets/text, both extras off, empty/user-entered notes, dismissal, Skip, return visits and saved Long. Fixed the extras merge order and clipped actions on small translated screens. No paid generation, real signup, customer setting change or marketplace publication was used for QA.
 - All 18 languages fit 320 by 480 with visible primary actions and 44-pixel buttons. Additional phone, landscape, tablet and desktop sizes passed. Seven measured note-dialog cycles had no detected long tasks or page scrolling; physical-phone smoothness remains unmeasured. The style screen uses prepared copy and lazy loading with no new UI dependency.

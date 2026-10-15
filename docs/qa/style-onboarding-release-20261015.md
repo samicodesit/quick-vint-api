@@ -25,6 +25,12 @@ The owner approved publishing the reviewed style preview into the real web app a
 
 ## Authentication recommendation
 
+### Header-spacing correction
+
+The owner's screenshot exposed a visual issue missed by the initial fold checks: the onboarding heading started exactly at the shared header's divider, with zero separation. The negative font-space impression was persistent, not a loading-state artifact. Scope an 8-pixel gap to short screens and a 12-pixel gap to taller screens. Subtract the same gap from the example area's height so the main action remains visible.
+
+The original geometry assertion failed at zero pixels. After the correction, all 18 languages at 320 by 480 and seven additional viewport sizes have at least 8 pixels of header separation, no horizontal overflow and a primary action inside the viewport. The updated style screenshot above supersedes the original header appearance. [Header regression measurements](style-onboarding-release-20261015/header-checks.json).
+
 Keep Google plus passwordless email for this release. There is no evidence in this audit that a missing Apple button prevents activation. Apple web sign-in requires separate Services ID, app association and key configuration. It is a useful future option if real sign-in evidence warrants it, not a prerequisite for this browser release. Source: [Apple web setup](https://developer.apple.com/help/account/capabilities/configure-sign-in-with-apple-for-the-web).
 
 ## Verification and limits

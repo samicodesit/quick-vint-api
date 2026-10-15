@@ -17,6 +17,13 @@ const names = {
   credit_pack: "One-time credits",
 };
 
+export type MobilePaywallEntryPoint =
+  | "profile_menu"
+  | "feature_lock"
+  | "plans_link"
+  | "generation_limit"
+  | "unknown";
+
 export function mountMobilePaywall(
   root: HTMLElement,
   options: {
@@ -37,6 +44,11 @@ export function mountMobilePaywall(
   let disposed = false;
   let revision = 0;
   let selectedTier: MobileBillingTier | undefined;
+  let paywallContext: { reason: string; entryPoint: MobilePaywallEntryPoint } =
+    {
+      reason: "paid_options",
+      entryPoint: "unknown",
+    };
   const proceed = find("[data-paywall-continue]") as HTMLButtonElement;
   const continueLabel = () =>
     selectedTier === "credit_pack"
@@ -78,10 +90,10 @@ export function mountMobilePaywall(
     try {
       await options.flush();
       if (!active()) return;
-      void trackMobileEvent(
-        "checkout_start",
-        tier === "manage" ? { target: "manage" } : { tier },
-      );
+      void trackMobileEvent("checkout_start", {
+        ...paywallContext,
+        ...(tier === "manage" ? { target: "manage" } : { tier }),
+      });
       const session =
         tier === "manage"
           ? await openMobilePortal(userId)
@@ -126,9 +138,17 @@ export function mountMobilePaywall(
     close();
   });
   return {
-    show(usage: MobileUsage, requested?: string): boolean {
+    show(
+      usage: MobileUsage,
+      requested?: string,
+      entryPoint: MobilePaywallEntryPoint = "unknown",
+    ): boolean {
       const policy = getMobilePaywall(usage, requested);
       if (!policy || disposed || busy) return false;
+      paywallContext = {
+        reason: requested || usage.blockedReason || "paid_options",
+        entryPoint,
+      };
       revision++;
       selectedTier = undefined;
       proceed.hidden = true;
@@ -266,7 +286,7 @@ export function mountMobilePaywall(
         dialog.showModal();
         find("h2").focus({ preventScroll: true });
         void trackMobileEvent("web_paywall_view", {
-          errorCode: requested || usage.blockedReason || "paid_options",
+          ...paywallContext,
           tier: usage.plan?.tier,
         });
       }

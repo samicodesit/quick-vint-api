@@ -174,6 +174,78 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
+  it.each([
+    [
+      "web_paywall_view",
+      { reason: "plans", entryPoint: "profile_menu", tier: "free" },
+    ],
+    [
+      "checkout_start",
+      { reason: "plans", entryPoint: "profile_menu", tier: "pro" },
+    ],
+    [
+      "web_style_setup",
+      {
+        phase: "complete",
+        method: "apply",
+        descriptionLength: "short",
+        useBulletPoints: true,
+        useHashtags: false,
+        useEmojis: false,
+        includeSellerNote: true,
+      },
+    ],
+    [
+      "web_style_setup",
+      {
+        phase: "complete",
+        method: "skip",
+        descriptionLength: "long",
+        useBulletPoints: false,
+        useHashtags: true,
+        useEmojis: true,
+        includeSellerNote: false,
+      },
+    ],
+  ])(
+    "retains safe %s funnel context through the endpoint and business log",
+    async (event, choices) => {
+      const context = {
+        ...choices,
+        source: "home_hero",
+        webSessionId: "session-1",
+        analyticsClientId: "browser-1",
+      };
+      const response = await postEvent({
+        schemaVersion: 2,
+        events: [
+          {
+            id: "b423926a-35a6-4bf5-8027-8ab335c72223",
+            occurredAt: new Date().toISOString(),
+            event,
+            source: "mobile_web",
+            page: "/app",
+            context: {
+              ...context,
+              descriptionFooterText: "private note",
+              imageUrl: "https://private.test/photo",
+            },
+          },
+        ],
+      });
+      expect(response.statusCode).toBe(200);
+      const write = rpcMock.mock.calls.find(
+        ([name]) => name === "incident_ingest",
+      )![1].p_event;
+      expect(write.context).toEqual(context);
+      expect(write.businessLog.full_request_body.context).toEqual(context);
+      expect(write.definition.kind).toBe(
+        event === "checkout_start" ? "checkpoint" : "business",
+      );
+      expect(write.definition.running).not.toBe(true);
+    },
+  );
+
   it("persists anonymous and verified web events once across response-loss retries", async () => {
     const db = new PGlite();
     try {

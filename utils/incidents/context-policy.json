@@ -25,6 +25,8 @@
     "market",
     "category",
     "reason",
+    "entryPoint",
+    "descriptionLength",
     "mode",
     "photoSource",
     "status",
@@ -128,7 +130,10 @@
     "titleChangedSincePrevious",
     "descriptionChangedSincePrevious",
     "retryable",
-    "useBulletPoints"
+    "useBulletPoints",
+    "useHashtags",
+    "useEmojis",
+    "includeSellerNote"
   ],
   "imageStrings": [
     "sourceSelection",

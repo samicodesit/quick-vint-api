@@ -252,6 +252,9 @@ export function mountStyleOnboarding(
         descriptionLanguageCode: next.descriptionLanguageCode,
         descriptionLength: next.descriptionLength,
         useBulletPoints: next.useBulletPoints,
+        useHashtags: next.useHashtags,
+        useEmojis: next.useEmojis,
+        includeSellerNote: next.includeSellerNote,
       });
     } catch {
       const error = find("[data-style-save-error]");

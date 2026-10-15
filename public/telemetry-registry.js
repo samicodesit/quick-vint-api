@@ -664,6 +664,8 @@ globalThis.AutoListerContextPolicy = {
     "market",
     "category",
     "reason",
+    "entryPoint",
+    "descriptionLength",
     "mode",
     "photoSource",
     "status",
@@ -768,6 +770,9 @@ globalThis.AutoListerContextPolicy = {
     "descriptionChangedSincePrevious",
     "retryable",
     "useBulletPoints",
+    "useHashtags",
+    "useEmojis",
+    "includeSellerNote",
   ],
   imageStrings: [
     "sourceSelection",

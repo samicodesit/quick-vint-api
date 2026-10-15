@@ -2,6 +2,8 @@
 
 ## Listing style setup, October 15, 2026
 
+- Tracking follow-up: keep Skip and its direct Add item handoff. Normal paywall views use `reason` plus a separate `entryPoint`, carried into checkout without replacing acquisition source or session identity. Final style events include all three extra switches; fix the backend filter dropping Short/Long and retain the small onboarding/pricing fields through routine cleanup. Local browser, endpoint, transport and PostgreSQL checks cover privacy, attribution and expiry. [Tracking QA and migration](qa/style-tracking-cleanup-20261015.md).
+
 - Header follow-up: reproduced the owner's screenshot as a zero-pixel gap between the shared header divider and onboarding title. Add 8 to 12 pixels of scoped separation, taking the space from the scrollable example. All 18 languages on the shortest phone and seven additional sizes keep the primary action visible; the original zero-gap assertion fails and corrected measurements pass. Updated screenshot and measurements are in the flow audit.
 
 - Owner-approved integration of the reviewed style preview into the real web app. Eligible new accounts see a compact, translated, photo-based example once, then proceed directly to Add item. Existing accounts and saved preferences are preserved. Fresh web preferences use Short; extension defaults, model-pilot assignment and generation prompt text are unchanged.

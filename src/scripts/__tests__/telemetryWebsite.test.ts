@@ -39,6 +39,59 @@ function browser(
   return sandbox.AutoListerWebsiteTelemetry;
 }
 
+it("delivers final style choices and paywall origin through the shipped browser transport", async () => {
+  const received: any[] = [];
+  const telemetry = browser(new IDBFactory(), async (body) => {
+    received.push(...body.events);
+    return {
+      status: 200,
+      headers: new Headers(),
+      json: async () => ({
+        acknowledgedIds: body.events.map((entry: any) => entry.id),
+      }),
+    };
+  });
+  const choices = {
+    phase: "complete",
+    method: "apply",
+    descriptionLength: "short",
+    useBulletPoints: true,
+    useHashtags: false,
+    useEmojis: false,
+    includeSellerNote: true,
+    webSessionId: "session-1",
+  };
+  const pricing = {
+    reason: "plans",
+    entryPoint: "profile_menu",
+    tier: "free",
+    source: "home_hero",
+    webSessionId: "session-1",
+  };
+  await telemetry.track("web_style_setup", {
+    source: "mobile_web",
+    page: "/app",
+    context: { ...choices, descriptionFooterText: "private note" },
+  });
+  await telemetry.track("web_paywall_view", {
+    source: "mobile_web",
+    page: "/app",
+    context: pricing,
+  });
+  await telemetry.flush();
+  const platform = {
+    browserFamily: "chrome",
+    clientBrowser: "chrome",
+    clientPlatform: "desktop",
+  };
+  expect(
+    received.find((entry) => entry.event === "web_style_setup")?.context,
+  ).toEqual({ ...choices, ...platform });
+  expect(
+    received.find((entry) => entry.event === "web_paywall_view")?.context,
+  ).toEqual({ ...pricing, ...platform });
+});
+
 it.each([
   ["error", { filename: "", message: "Script error." }, false],
   ["error", { filename: null, message: "Script error." }, false],

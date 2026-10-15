@@ -20,6 +20,62 @@ vi.mock("../generationClient.js", () => ({
 vi.mock("../../../scripts/attribution.js", () => attributionModule);
 
 describe("mobile result, billing, and analytics", () => {
+  it("keeps the paywall reason and exact entry point separate from acquisition source", async () => {
+    const { trackMobileEvent } = await import("../analytics.js");
+    await trackMobileEvent("web_paywall_view", {
+      reason: "plans",
+      entryPoint: "profile_menu",
+      tier: "free",
+      source: "wrong_source",
+      note: "private seller note",
+    });
+    expect(telemetryTrack.mock.calls.at(-1)?.[1].context).toEqual({
+      reason: "plans",
+      entryPoint: "profile_menu",
+      tier: "free",
+      source: "app_direct",
+    });
+    await trackMobileEvent("checkout_start", {
+      reason: "plans",
+      entryPoint: "profile_menu",
+      tier: "pro",
+    });
+    expect(telemetryTrack.mock.calls.at(-1)?.[1].context).toEqual({
+      reason: "plans",
+      entryPoint: "profile_menu",
+      tier: "pro",
+      source: "app_direct",
+    });
+  });
+
+  it("records every final style switch but excludes the seller note itself", async () => {
+    const { trackMobileEvent } = await import("../analytics.js");
+    await trackMobileEvent("web_style_setup", {
+      phase: "complete",
+      method: "apply",
+      descriptionLength: "short",
+      titleLanguageCode: "fr",
+      descriptionLanguageCode: "nl",
+      useBulletPoints: true,
+      useHashtags: false,
+      useEmojis: false,
+      includeSellerNote: true,
+      descriptionFooterText: "private seller note",
+    });
+    expect(telemetryTrack.mock.calls.at(-1)?.[1].context).toEqual({
+      phase: "complete",
+      method: "apply",
+      descriptionLength: "short",
+      titleLanguageCode: "fr",
+      descriptionLanguageCode: "nl",
+      useBulletPoints: true,
+      useHashtags: false,
+      useEmojis: false,
+      includeSellerNote: true,
+      source: "app_direct",
+    });
+  });
+
   it("records batch size and paid-option reasons without draft text or photo URLs", async () => {
     const { trackMobileEvent } = await import("../analytics.js");
     await expect(
@@ -32,7 +88,7 @@ describe("mobile result, billing, and analytics", () => {
     ).resolves.toBe(true);
     await expect(
       trackMobileEvent("web_paywall_view", {
-        errorCode: "free_lifetime_limit",
+        reason: "free_lifetime_limit",
         tier: "free",
       }),
     ).resolves.toBe(true);

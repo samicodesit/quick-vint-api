@@ -15,6 +15,9 @@ describe("web metric compaction in PostgreSQL", () => {
       await db.exec(
         readFileSync("migrations/2026-10-12_web_metric_outcomes.sql", "utf8"),
       );
+      await db.exec(
+        readFileSync("migrations/2026-10-15_style_funnel_metrics.sql", "utf8"),
+      );
       const bodies = [
         [
           "/api/generate",
@@ -106,6 +109,7 @@ describe("web metric compaction in PostgreSQL", () => {
         "chrome_store_click",
         "web_generation_run",
         "web_paywall_view",
+        "web_style_setup",
         "checkout_return",
         "subscription_started",
       ]) {
@@ -126,6 +130,16 @@ describe("web metric compaction in PostgreSQL", () => {
             status: "success",
             tier: "starter",
             reason: "limit_reached",
+            entryPoint: "profile_menu",
+            phase: "complete",
+            titleLanguageCode: "fr",
+            descriptionLanguageCode: "nl",
+            descriptionLength: "short",
+            useBulletPoints: true,
+            useHashtags: false,
+            useEmojis: false,
+            includeSellerNote: true,
+            descriptionFooterText: "private-note",
             description: "private-text",
             imageUrls: ["private-photo"],
           },
@@ -151,6 +165,15 @@ describe("web metric compaction in PostgreSQL", () => {
           status: "success",
           tier: "starter",
           reason: "limit_reached",
+          entryPoint: "profile_menu",
+          phase: "complete",
+          titleLanguageCode: "fr",
+          descriptionLanguageCode: "nl",
+          descriptionLength: "short",
+          useBulletPoints: true,
+          useHashtags: false,
+          useEmojis: false,
+          includeSellerNote: true,
         });
         expect(JSON.stringify(compacted)).not.toContain("private");
         await db.query(

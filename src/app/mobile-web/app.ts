@@ -4,7 +4,7 @@ import {
   saveOnboardingStyle,
 } from "./styleOnboardingState";
 import type { DraftSettings } from "./draftContracts";
-import { mountMobilePaywall } from "./paywall";
+import { mountMobilePaywall, type MobilePaywallEntryPoint } from "./paywall";
 import { mountExtensionSuggestion } from "./extensionSuggestion";
 import { getMobilePaywall } from "./paywallPolicy";
 import { initializeMobileTelemetry } from "./telemetry";
@@ -966,7 +966,11 @@ export function mountMobileWebApp(
     extensionSuggestion.dispose();
   });
   listeners.push(() => paywall?.dispose());
-  const showPaywall = (usage: MobileUsage, requested?: string) => {
+  const showPaywall = (
+    usage: MobileUsage,
+    requested: string | undefined,
+    entryPoint: MobilePaywallEntryPoint,
+  ) => {
     if (!getMobilePaywall(usage, requested)) return false;
     extensionSuggestion.close();
     paywall ??= mountMobilePaywall(root, {
@@ -977,7 +981,7 @@ export function mountMobileWebApp(
     });
     closeMobileProfileMenu(root, false);
     draftWorkspace?.closeOverlays();
-    return paywall.show(usage, requested);
+    return paywall.show(usage, requested, entryPoint);
   };
   const openDraftWorkspace = (
     bypassStyleSetup = false,
@@ -1043,9 +1047,9 @@ export function mountMobileWebApp(
       userId: session.user.id,
       onUsageChange: () => refreshUsage(),
       onGenerationBlocked: (usage, code) =>
-        usage ? showPaywall(usage, code) : false,
+        usage ? showPaywall(usage, code, "generation_limit") : false,
       onViewPlans: () => {
-        if (latestUsage) showPaywall(latestUsage, "feature");
+        if (latestUsage) showPaywall(latestUsage, "feature", "feature_lock");
       },
       defaultSettings: initialSettings,
       startWithNewItem: Boolean(chosenStyle),
@@ -1520,7 +1524,7 @@ export function mountMobileWebApp(
   }
   bind(asElement(root, '[data-mobile-web="upgrade"]'), "click", (event) => {
     event.preventDefault();
-    if (latestUsage) showPaywall(latestUsage, "plans");
+    if (latestUsage) showPaywall(latestUsage, "plans", "profile_menu");
   });
   bind(
     asElement(root, '[data-mobile-web="manage-billing"]'),
@@ -1804,7 +1808,7 @@ export function mountMobileWebApp(
           "",
           `${url.pathname}${url.search}${url.hash}`,
         );
-        showPaywall(latestUsage, "plans");
+        showPaywall(latestUsage, "plans", "plans_link");
       }
     } catch {
       if (disposed) return;

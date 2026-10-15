@@ -44,6 +44,11 @@ const ALLOWED_CONTEXT_KEYS = new Set([
   "descriptionLanguageCode",
   "descriptionLength",
   "useBulletPoints",
+  "useHashtags",
+  "useEmojis",
+  "includeSellerNote",
+  "reason",
+  "entryPoint",
   "count",
   "status",
   "errorCode",
@@ -171,7 +176,15 @@ function sanitizeContext(
       if (numeric !== null) context[key] = numeric;
       continue;
     }
-    if (key === "retryable" || key === "useBulletPoints") {
+    if (
+      [
+        "retryable",
+        "useBulletPoints",
+        "useHashtags",
+        "useEmojis",
+        "includeSellerNote",
+      ].includes(key)
+    ) {
       const boolean = booleanValue(item);
       if (boolean !== null) context[key] = boolean;
       continue;

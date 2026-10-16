@@ -25,6 +25,18 @@ Manual visual checks found and corrected stale completed progress hiding a new s
 
 Auth, remote storage and AI were controlled. Native iOS suspension/keyboard behavior, live provider service and Vinted publication are untested. Browser-only progress is not a durable server batch runner and does not establish historical recovery.
 
+## Replacement failure review
+
+A failed replacement remains Needs attention and is excluded from automatic
+ready-item navigation. Existing Copy buttons say Copy previous so sellers can
+use their earlier work without another paid generation. Queued and active
+replacement output stays locked. Retry remains explicit and shows its cost;
+successful completion restores ordinary Copy and Mark as listed controls.
+This replaces the overly strict initial rule that disabled Copy after failure.
+Three browser rounds cover clipboard contents, no generation caused by Copy,
+queued-output locks, explicit retry, retained photos and another unresolved
+failure after reload. The primary also inspected the 390px and 320px screens.
+
 ## Durable background processing follow-up
 
 The existing browser loop starts each next item; `generation-result` recovers only an already-started item. No existing durable batch runner was found. A server-owned job needs persistent batch/item state, confirmed temporary photo availability, leases/recovery after worker interruption, account-scoped cancellation and the existing entitlement/idempotency contracts. Do not claim that `waitUntil`, a progress display or browser visibility handling makes a durable queue. Do not introduce a new migration or service under the earlier monitoring authorization. Prepare a concrete proposal for that separate backend increment.

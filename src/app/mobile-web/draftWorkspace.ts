@@ -1639,8 +1639,12 @@ export function mountDraftWorkspace(
       readable.textContent = draft[name];
       readable.hidden = editing;
       el.disabled = locked;
-      action(`copy-${name}`).disabled =
-        outputPreparing || failedOutput || !draft[name];
+      action(`copy-${name}`).disabled = outputPreparing || !draft[name];
+      action(`copy-${name}`).setAttribute(
+        "aria-label",
+        `Copy ${failedOutput ? "previous " : ""}${name}`,
+      );
+      label(`copy-${name}`, failedOutput ? "Copy previous" : "Copy");
     }
     syncSettingsControls(root, "field", draft.settings, locked, settingsAccess);
     root
@@ -3032,7 +3036,6 @@ export function mountDraftWorkspace(
   async function copy(field: "title" | "description") {
     if (
       !selected ||
-      outputFailed(selected.value) ||
       generating(selected.value) ||
       queue.remaining.includes(selected.value.id)
     )
@@ -3052,7 +3055,10 @@ export function mountDraftWorkspace(
         );
       setTimeout(() => {
         if (!disposed) {
-          label(`copy-${field}`, "Copy");
+          label(
+            `copy-${field}`,
+            selected && outputFailed(selected.value) ? "Copy previous" : "Copy",
+          );
           action(`copy-${field}`)
             .querySelector("svg")!
             .replaceWith(icon("copy"));

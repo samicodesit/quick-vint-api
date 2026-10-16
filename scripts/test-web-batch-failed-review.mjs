@@ -58,14 +58,30 @@ try {
   await page.locator('[data-draft-field="title"]:visible').waitFor();
   assert.equal(
     await page.locator('[data-draft-action="copy-title"]:visible').isDisabled(),
-    true,
-    "a failed replacement must not offer its prior title as a new result",
+    false,
+    "a failed replacement must preserve access to previous work without a paid retry",
   );
   assert.equal(
     await page
       .locator('[data-draft-action="copy-description"]:visible')
       .isDisabled(),
-    true,
+    false,
+  );
+  assert.equal(
+    await page
+      .locator('[data-draft-action="copy-title"]')
+      .getAttribute("aria-label"),
+    "Copy previous title",
+  );
+  assert.equal(
+    await page.locator('[data-draft-action="copy-title"]').innerText(),
+    "Copy previous",
+  );
+  assert.equal(
+    await page
+      .locator('[data-draft-action="copy-description"]')
+      .getAttribute("aria-label"),
+    "Copy previous description",
   );
   assert.match(
     await page.locator('[data-draft-action="done"]:visible').innerText(),
@@ -93,11 +109,24 @@ try {
   await page.evaluate(() =>
     navigator.clipboard.writeText("unchanged-failed-output"),
   );
-  await page.locator('[data-draft-action="copy-title"]').dispatchEvent("click");
+  const previousTitle = await page
+    .locator('[data-draft-field="title"]')
+    .inputValue();
+  await flow.click("copy-title");
   assert.equal(
     await page.evaluate(() => navigator.clipboard.readText()),
-    "unchanged-failed-output",
-    "the Copy handler must also reject stale output when a disabled-control event is dispatched",
+    previousTitle,
+    "the explicitly labelled previous output can be copied without generation",
+  );
+  assert.equal(
+    failedCalls,
+    2,
+    "copying previous text must never start a retry",
+  );
+  await page.waitForTimeout(1900);
+  assert.equal(
+    await page.locator('[data-draft-action="copy-title"]').innerText(),
+    "Copy previous",
   );
   const before = await flow.snapshot();
   await page.screenshot({
@@ -106,12 +135,13 @@ try {
   });
   await page.unroute("**/api/generate");
   await flow.click("done");
-  await until(() =>
-    page
-      .locator('[data-draft-action="copy-title"]:visible')
-      .isDisabled()
-      .then((disabled) => !disabled),
-  );
+  await until(async () => {
+    const copy = page.locator('[data-draft-action="copy-title"]:visible');
+    return (
+      !(await copy.isDisabled()) &&
+      (await copy.getAttribute("aria-label")) === "Copy title"
+    );
+  });
   assert.equal(
     await page.locator('[data-draft-action="done"]:visible').isDisabled(),
     false,
@@ -165,7 +195,13 @@ try {
   await page.locator('[data-draft-field="title"]:visible').waitFor();
   assert.equal(
     await page.locator('[data-draft-action="copy-title"]:visible').isDisabled(),
-    true,
+    false,
+  );
+  assert.equal(
+    await page
+      .locator('[data-draft-action="copy-title"]')
+      .getAttribute("aria-label"),
+    "Copy previous title",
   );
   assert.deepEqual(flow.stats().errors, []);
   const result = {
@@ -173,7 +209,7 @@ try {
     failedCalls,
     retainedPhotos: photos.length,
     scope:
-      "Actual web queue, IndexedDB and controls; local auth, storage and model. Prior generated output, failed replacements, guarded actions and successful explicit retry.",
+      "Actual web queue, IndexedDB and controls; local auth, storage and model. Failed replacements stay Needs attention, explicitly labelled previous output stays copyable without paid retry, navigation skips failed items, and explicit successful retry restores ordinary controls.",
   };
   await writeFile(
     `${process.env.DRAFT_BROWSER_OUTPUT}/failed-result.json`,

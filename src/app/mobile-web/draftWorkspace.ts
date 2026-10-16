@@ -685,6 +685,7 @@ export function mountDraftWorkspace(
     Boolean(
       draft &&
       (generating(draft) ||
+        queue.remaining.includes(draft.id) ||
         uploads.some((p) => p.draftId === draft.id && p.state !== "error")),
     );
   const upsert = (draft: Draft) => {
@@ -1578,10 +1579,13 @@ export function mountDraftWorkspace(
     find("[data-draft-settings-context]").textContent =
       `This item${draft.title ? ` · ${draft.title}` : ""}`;
     const locked = busy(draft);
+    const outputPreparing =
+      generating(draft) || queue.remaining.includes(draft.id);
     const order = reviewOrder();
     const index = order.indexOf(draft.id);
-    find("#draft-editor-title").textContent =
-      writingDraftId === draft.id
+    find("#draft-editor-title").textContent = outputPreparing
+      ? "Preparing item"
+      : writingDraftId === draft.id
         ? "Write item"
         : hasText
           ? "Review and copy"
@@ -1628,7 +1632,7 @@ export function mountDraftWorkspace(
       readable.textContent = draft[name];
       readable.hidden = editing;
       el.disabled = locked;
-      action(`copy-${name}`).disabled = !draft[name];
+      action(`copy-${name}`).disabled = outputPreparing || !draft[name];
     }
     syncSettingsControls(root, "field", draft.settings, locked, settingsAccess);
     root
@@ -1637,11 +1641,11 @@ export function mountDraftWorkspace(
       )
       .forEach((el) => {
         el.disabled =
-          generating(draft) || photoCount(draft) >= DRAFT_LIMITS.photos;
+          outputPreparing || photoCount(draft) >= DRAFT_LIMITS.photos;
       });
     const photoSource = find<HTMLElement>(".draft-photo-source > summary");
     const cannotAddPhotos =
-      generating(draft) || photoCount(draft) >= DRAFT_LIMITS.photos;
+      outputPreparing || photoCount(draft) >= DRAFT_LIMITS.photos;
     photoSource.setAttribute("aria-disabled", String(cannotAddPhotos));
     photoSource.title = cannotAddPhotos
       ? "Remove a photo to add another"
@@ -1678,6 +1682,9 @@ export function mountDraftWorkspace(
     );
     find("[data-draft-operation-status]").textContent =
       queue.failed.get(draft.id) ||
+      (queue.remaining.includes(draft.id)
+        ? "Waiting for its turn. The previous text will be replaced."
+        : "") ||
       (draft.operation_state === "running" ||
       draft.operation_state === "pending"
         ? "Your generation is still being saved. Check its result before trying again."
@@ -2993,6 +3000,12 @@ export function mountDraftWorkspace(
     if (next) await openDraft(next, true, false);
   }
   async function copy(field: "title" | "description") {
+    if (
+      !selected ||
+      generating(selected.value) ||
+      queue.remaining.includes(selected.value.id)
+    )
+      return;
     const el = find<HTMLInputElement | HTMLTextAreaElement>(
       `[data-draft-field="${field}"]`,
     );

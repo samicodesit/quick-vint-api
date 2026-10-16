@@ -28,6 +28,8 @@ describe("phone upload page v2 contract", () => {
       "reject",
       "trackUploadEvent",
       "telemetryAttemptId",
+      "idleTimer",
+      "attempt",
       handler!,
     )(
       state,
@@ -41,6 +43,8 @@ describe("phone upload page v2 contract", () => {
       (event: string, context: Record<string, unknown>) =>
         events.push({ event, context }),
       "transfer-attempt-1",
+      undefined,
+      0,
     );
     expect(events).toEqual([
       {

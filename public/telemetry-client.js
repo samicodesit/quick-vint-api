@@ -175,10 +175,17 @@
     input = {},
     source = "extension_content",
     immediate = false,
+    expectedAccountId = undefined,
   ) {
     try {
       const { supabaseSession } =
         await chrome.storage.local.get("supabaseSession");
+      if (
+        expectedAccountId !== undefined &&
+        expectedAccountId !== (supabaseSession?.user?.id || null)
+      ) {
+        return { queued: false, reason: "account_changed" };
+      }
       setAccount(supabaseSession?.user?.id || null);
       const prepared = prepare(event, input, source);
       if (

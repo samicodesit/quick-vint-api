@@ -630,7 +630,9 @@
             const API_COMPLETE = '/api/phone-upload?action=complete';
             const BATCH_UPLOAD_CONCURRENCY = 2;
             const COMPRESSION_RETRY_DELAYS_MS = [250];
-            const UPLOAD_RETRY_DELAYS_MS = [700, 1500];
+            const UPLOAD_RETRY_DELAYS_MS = [700, 1500, 3000, 5000];
+            const UPLOAD_IDLE_TIMEOUT_MS = 45000;
+            const UPLOAD_RECOVERY_WINDOW_MS = 120000;
             const STATUS_POLL_MS = 3000;
 
             const sessionCodeEl = document.getElementById('sessionCode');
@@ -856,6 +858,7 @@
             }
 
             function renderBatchProgress() {
+                if (state.terminal) return;
                 if (!isBatchMode() && !isV2()) {
                     // Keep the individual legacy photo cards, including previews.
                     sendBtn.style.display = state.completeFailed ? 'flex' : 'none';
@@ -916,7 +919,7 @@
                     pageCopy.classList.toggle('is-ready', total > 0 && !state.isSending && failed === 0);
                     if (state.isSending) {
                         mainBtn.lastChild.textContent = `Adding ${active} of ${total}…`;
-                        pageCopy.textContent = state.metadataRecovering ? 'Connection interrupted. Retrying…' : 'Keep this page open while your photos are added.';
+                        pageCopy.textContent = state.metadataRecovering || state.files.some(item => item.connectionWaiting) ? 'Waiting for your connection. Your photos are kept here.' : 'Keep this page open while your photos are added.';
                     } else if (failed > 0) {
                         mainBtn.lastChild.textContent = `Retry ${failed} failed photo${failed === 1 ? '' : 's'}`;
                         pageCopy.textContent = failureMessage || `${failed} photo${failed === 1 ? '' : 's'} need another try.`;
@@ -963,7 +966,14 @@
                         ? `${API_UPLOAD}?v=2&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`
                         : API_UPLOAD;
                     xhr.open('POST', uploadUrl, true);
-                    const telemetryAttemptId = crypto.randomUUID();
+                    const telemetryAttemptId = item.telemetryOperationId ||= crypto.randomUUID();
+                    let idleTimer;
+                    let idleExpired = false;
+                    let lastProgressBytes = 0;
+                    const armIdleDeadline = () => {
+                        clearTimeout(idleTimer);
+                        idleTimer = setTimeout(() => { idleExpired = true; xhr.abort(); }, UPLOAD_IDLE_TIMEOUT_MS);
+                    };
                     let lastTelemetryProgressAt = 0;
                     let lastTelemetryBytes = -1;
                     trackUploadEvent('phone_upload_transfer_start', { operationId: telemetryAttemptId, itemIndex: item.order, attempt });
@@ -979,6 +989,12 @@
                     renderBatchProgress();
 
                     xhr.upload.onprogress = (e) => {
+                        if (e.loaded > lastProgressBytes) {
+                            lastProgressBytes = e.loaded;
+                            item.connectionWaiting = false;
+                            armIdleDeadline();
+                            renderBatchProgress();
+                        }
                         if (e.lengthComputable) {
                             if (e.loaded !== lastTelemetryBytes && Date.now() - lastTelemetryProgressAt >= 30000) {
                                 lastTelemetryProgressAt = Date.now();
@@ -994,6 +1010,7 @@
                     };
 
                     xhr.onload = () => {
+                        clearTimeout(idleTimer);
                         state.activeRequests.delete(xhr);
                         if (xhr.status >= 200 && xhr.status < 300) {
                             try {
@@ -1010,6 +1027,7 @@
                                 ui.status.classList.add('status-done');
                             }
                             trackUploadEvent('phone_upload_ready', { operationId: telemetryAttemptId, itemIndex: item.order, uploadedCount: 1 });
+                            item.connectionWaiting = false;
                             item.done = true;
                             item.failed = false;
                             item.uploading = false;
@@ -1023,8 +1041,14 @@
                             resolve();
                         } else {
                             if (isV2() && xhr.status === 410) {
+                                state.terminal = true;
+                                if (state.statusPollTimer) clearInterval(state.statusPollTimer);
+                                state.statusPollTimer = null;
+                                state.activeRequests.forEach(request => request.abort());
                                 pageTitle.textContent = 'Upload Expired';
                                 pageCopy.textContent = 'This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.';
+                                setDraftControlsLocked(true);
+                                mainBtn.style.display = sendBtn.style.display = cancelBtn.style.display = 'none';
                             }
                             if (ui) {
                                 ui.status.textContent = 'Failed';
@@ -1042,12 +1066,14 @@
                             }
                             const error = new Error(message);
                             error.status = xhr.status;
+                            error.retryAfterMs = globalThis.AutoListerPhoneRecovery.retryAfterMs(xhr.getResponseHeader('Retry-After'), Date.now());
                             trackUploadEvent(xhr.status === 410 ? 'phone_session_expired' : 'phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: `UPLOAD_HTTP_${xhr.status}`, statusCode: xhr.status, message });
                             reject(error);
                         }
                     };
 
                     xhr.onerror = () => {
+                        clearTimeout(idleTimer);
                         state.activeRequests.delete(xhr);
                         if (ui) {
                             ui.status.textContent = 'Error';
@@ -1056,16 +1082,21 @@
                         item.failed = true;
                         item.uploading = false;
                         renderBatchProgress();
-                        trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_NETWORK_ERROR', statusCode: 0, message: 'Upload error' });
+                        if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_NETWORK_ERROR', statusCode: 0, message: 'Upload error' });
                         reject(new Error('Upload error'));
                     };
 
                     xhr.onabort = () => {
+                        clearTimeout(idleTimer);
                         state.activeRequests.delete(xhr);
                         item.uploading = false;
-                        reject(new Error('Upload cancelled'));
+                        if (idleExpired) {
+                            if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_IDLE_TIMEOUT', statusCode: 0, message: 'Upload stopped making progress' });
+                            reject(Object.assign(new Error('Upload stopped making progress'), { status: 0 }));
+                        } else reject(Object.assign(new Error('Upload cancelled'), { code: 'PHONE_OPERATION_CANCELLED' }));
                     };
 
+                    armIdleDeadline();
                     xhr.send(form);
                 });
             }
@@ -1073,39 +1104,43 @@
             async function uploadFile(item, ui) {
                 let lastError = null;
                 let attempts = 0;
-                for (let attempt = 0; attempt <= UPLOAD_RETRY_DELAYS_MS.length; attempt += 1) {
+                let interruptedAt = null;
+                const sessionId = state.sessionId;
+                const active = () => !state.cancelled && !state.terminal && state.sessionId === sessionId;
+                for (let attempt = 0; ; attempt += 1) {
+                    if (!active()) throw Object.assign(new Error('Upload cancelled'), { code: 'PHONE_OPERATION_CANCELLED' });
                     attempts += 1;
                     try {
                         return await uploadFileOnce(item, ui, attempt);
                     } catch (error) {
                         lastError = error;
-                        const delayMs = UPLOAD_RETRY_DELAYS_MS[attempt];
+                        if (!active() || error.code === 'PHONE_OPERATION_CANCELLED') throw error;
+                        interruptedAt ??= Date.now();
                         const status = Number(error?.status);
-                        const retryable = Number.isFinite(status)
-                            ? isRetryableUploadStatus(status)
-                            : true;
-                        if (!delayMs || !retryable) break;
-                        trackUploadEvent('phone_upload_file_retry', {
-                            order: item.order,
-                            attempt: attempt + 1,
-                            nextAttempt: attempt + 2,
+                        const retryable = !status || isRetryableUploadStatus(status);
+                        const delayMs = Math.max(UPLOAD_RETRY_DELAYS_MS[Math.min(attempt, UPLOAD_RETRY_DELAYS_MS.length - 1)], error.retryAfterMs || 0);
+                        if (!retryable || Date.now() + delayMs - interruptedAt >= UPLOAD_RECOVERY_WINDOW_MS) break;
+                        if (attempt === 0 || ((attempt + 1) & attempt) === 0) trackUploadEvent('phone_upload_file_retry', {
+                            operationId: item.telemetryOperationId,
+                            order: item.order, attempt: attempt + 1, nextAttempt: attempt + 2,
                             status: Number.isFinite(status) ? status : null,
-                            retryable,
-                            message: error?.message || String(error)
+                            retryable, message: error?.message || String(error)
                         });
                         item.failed = false;
                         item.uploading = false;
+                        item.connectionWaiting = true;
                         if (ui) {
                             ui.status.classList.remove('status-error');
-                            ui.status.textContent = 'Retrying...';
+                            ui.status.textContent = 'Waiting for connection…';
                         }
                         renderBatchProgress();
-                        await wait(delayMs);
+                        const retryAt = Date.now() + delayMs;
+                        while (Date.now() < retryAt && active()) await wait(Math.min(250, retryAt - Date.now()));
                     }
                 }
+                item.connectionWaiting = false;
                 trackUploadEvent('phone_upload_file_error', {
-                    order: item.order,
-                    attempts,
+                    operationId: item.telemetryOperationId, order: item.order, attempts,
                     status: Number.isFinite(Number(lastError?.status)) ? Number(lastError.status) : null,
                     message: lastError?.message || String(lastError || 'Upload failed')
                 });
@@ -1319,7 +1354,7 @@
                 fileList.querySelectorAll('.move-up, .move-down, .remove-photo').forEach((control) => {
                     control.disabled = locked;
                 });
-                cancelBtn.style.display = locked && !state.completeSent ? 'flex' : 'none';
+                cancelBtn.style.display = locked && !state.completeSent && !state.terminal && !state.cancelled ? 'flex' : 'none';
             }
 
             function moveItem(item, direction) {
@@ -1426,18 +1461,35 @@
             async function recoverMetadata(stage, url, options, settling = false) {
                 const sessionId = state.sessionId;
                 if (Date.now() < state.metadataRetryAt) throw new Error('Please wait a moment before retrying.');
+                const deadline = Date.now() + UPLOAD_RECOVERY_WINDOW_MS;
+                const operationId = crypto.randomUUID();
+                let metadataAttempts = 0;
+                const active = () => !state.cancelled && !state.terminal && state.sessionId === sessionId;
                 try {
-                    return await globalThis.AutoListerPhoneRecovery.run({
-                        settling,
-                        active: () => !state.cancelled && !state.terminal && state.sessionId === sessionId,
-                        request: async ({ signal }) => {
-                            const response = await fetch(url, { ...options, signal });
-                            const data = await response.json().catch(() => null);
-                            return { ok: response.ok, status: response.status, data, retryAfter: response.headers.get('Retry-After') };
-                        },
-                        onRetry: () => { state.metadataRecovering = true; renderBatchProgress(); showToast('Connection interrupted. Retrying…'); },
-                        onRecovered: ({ attempts }) => trackUploadEvent('phone_upload_metadata_recovered', { stage, attempts }),
-                    });
+                    for (;;) {
+                        try {
+                            const result = await globalThis.AutoListerPhoneRecovery.run({
+                                settling, active,
+                                request: async ({ signal }) => {
+                                    metadataAttempts++;
+                                    const response = await fetch(url, { ...options, signal });
+                                    const data = await response.json().catch(() => null);
+                                    return { ok: response.ok, status: response.status, data, retryAfter: response.headers.get('Retry-After') };
+                                },
+                                onRetry: () => { state.metadataRecovering = true; renderBatchProgress(); },
+                            });
+                            if (metadataAttempts > 1) trackUploadEvent('phone_upload_metadata_recovered', { operationId, stage, attempts: metadataAttempts });
+                            return result;
+                        } catch (error) {
+                            const delayMs = Math.max(700, (error.retryAt || 0) - Date.now());
+                            if (!active() || error.code === 'PHONE_OPERATION_CANCELLED' || error.retryable === false ||
+                                (error.status && !isRetryableUploadStatus(error.status)) || Date.now() + delayMs >= deadline) throw error;
+                            state.metadataRecovering = true;
+                            renderBatchProgress();
+                            const retryAt = Date.now() + delayMs;
+                            while (Date.now() < retryAt && active()) await wait(Math.min(250, retryAt - Date.now()));
+                        }
+                    }
                 } catch (error) {
                     if (error.status === 410) {
                         state.terminal = true;
@@ -1539,7 +1591,7 @@
                         try {
                             await prepareExpectedCount();
                         } catch (error) {
-                            if (state.cancelled || error.code === 'PHONE_OPERATION_CANCELLED') return;
+                            if (state.cancelled || state.terminal || error.code === 'PHONE_OPERATION_CANCELLED') return;
                             if (await checkSessionStatus()) return;
                             pendingItems.forEach((item) => {
                                 item.failed = true;
@@ -1564,7 +1616,7 @@
                         Array.from({ length: workerCount }, () => runNextUpload())
                     );
 
-                    if (state.cancelled) {
+                    if (state.cancelled || state.terminal) {
                         return;
                     }
 

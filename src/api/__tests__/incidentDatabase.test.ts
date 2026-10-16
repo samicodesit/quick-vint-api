@@ -459,14 +459,14 @@ describe("atomic incident persistence", () => {
     ).toBe(true);
   });
 
-  it("charges the delivery day when a pending email crosses midnight", async () => {
+  it("charges the UTC delivery day when a pending email crosses midnight", async () => {
     const issue = await ingest(event({ fingerprint: "midnight" }));
     await db.query(
-      "UPDATE incident_groups SET notification_budget_day=current_date-1 WHERE id=$1",
+      "UPDATE incident_groups SET notification_budget_day=(now() AT TIME ZONE 'UTC')::date-1 WHERE id=$1",
       [issue.incidentId],
     );
     await db.exec(
-      "UPDATE incident_daily_budgets SET emails=20 WHERE day=current_date",
+      "UPDATE incident_daily_budgets SET emails=20 WHERE day=(now() AT TIME ZONE 'UTC')::date",
     );
     const claimed = (
       await db.query<any>("SELECT * FROM incident_claim_notifications(20)")
@@ -481,7 +481,7 @@ describe("atomic incident persistence", () => {
       ).rows[0].notification_status,
     ).toBe("suppressed");
     await db.exec(
-      "UPDATE incident_daily_budgets SET emails=0 WHERE day=current_date",
+      "UPDATE incident_daily_budgets SET emails=0 WHERE day=(now() AT TIME ZONE 'UTC')::date",
     );
   });
 

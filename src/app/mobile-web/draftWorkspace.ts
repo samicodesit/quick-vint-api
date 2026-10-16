@@ -660,6 +660,10 @@ export function mountDraftWorkspace(
     draft.operation_state === "running" ||
     draft.operation_state === "pending" ||
     queue.active === draft.id;
+  const outputFailed = (draft: Draft) =>
+    !generating(draft) &&
+    !queue.remaining.includes(draft.id) &&
+    (queue.failed.has(draft.id) || draft.operation_state === "failed");
   bind(root, "mobile-paywall-request", () => options.onViewPlans?.());
   bind(root, "click", (event) => {
     const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(
@@ -846,7 +850,7 @@ export function mountDraftWorkspace(
       detail.dataset.state =
         draft.state === "done"
           ? "ready"
-          : queue.failed.has(draft.id)
+          : outputFailed(draft)
             ? "error"
             : busy(draft)
               ? "working"
@@ -862,7 +866,7 @@ export function mountDraftWorkspace(
               ? queue.paused || !queue.running
                 ? "Paused"
                 : "Waiting…"
-              : queue.failed.has(draft.id)
+              : outputFailed(draft)
                 ? "Needs attention"
                 : draft.operation_state === "running" ||
                     draft.operation_state === "pending"
@@ -1117,7 +1121,7 @@ export function mountDraftWorkspace(
       const title = document.createElement("strong");
       title.textContent = draft.title || `Item ${groups.indexOf(draft) + 1}`;
       const status = document.createElement("small");
-      status.textContent = queue.failed.has(draft.id)
+      status.textContent = outputFailed(draft)
         ? "Needs attention"
         : queue.remaining.includes(draft.id)
           ? queue.paused
@@ -1203,9 +1207,9 @@ export function mountDraftWorkspace(
       remove.disabled = busy(draft);
       remove.style.visibility = draft.description ? "hidden" : "visible";
       remove.disabled ||= Boolean(draft.description);
-      if (queue.failed.has(draft.id) || (draft.description && !busy(draft))) {
+      if (outputFailed(draft) || (draft.description && !busy(draft))) {
         const review = button(
-          queue.failed.has(draft.id) ? "Open" : "Review",
+          outputFailed(draft) ? "Open" : "Review",
           () => run(() => openDraft(draft.id)),
           "draft-text-button draft-group-review",
         );
@@ -1521,6 +1525,7 @@ export function mountDraftWorkspace(
     }
     preparationDraftId = draft.id;
     const hasText = Boolean(draft.title || draft.description);
+    const failedOutput = outputFailed(draft);
     const hasPhotos = Boolean(photoCount(draft));
     find("[data-draft-editor]").classList.toggle(
       "is-preparing",
@@ -1585,13 +1590,15 @@ export function mountDraftWorkspace(
     const index = order.indexOf(draft.id);
     find("#draft-editor-title").textContent = outputPreparing
       ? "Preparing item"
-      : writingDraftId === draft.id
-        ? "Write item"
-        : hasText
-          ? "Review and copy"
-          : draft.state === "done"
-            ? "Listed item"
-            : "Prepare item";
+      : failedOutput
+        ? "Needs attention"
+        : writingDraftId === draft.id
+          ? "Write item"
+          : hasText
+            ? "Review and copy"
+            : draft.state === "done"
+              ? "Listed item"
+              : "Prepare item";
     find("#draft-editor-title").classList.remove("draft-sr-only");
     const cover = find<HTMLImageElement>("[data-draft-editor-cover]");
     const coverUrl =
@@ -1632,7 +1639,8 @@ export function mountDraftWorkspace(
       readable.textContent = draft[name];
       readable.hidden = editing;
       el.disabled = locked;
-      action(`copy-${name}`).disabled = outputPreparing || !draft[name];
+      action(`copy-${name}`).disabled =
+        outputPreparing || failedOutput || !draft[name];
     }
     syncSettingsControls(root, "field", draft.settings, locked, settingsAccess);
     root
@@ -1652,7 +1660,14 @@ export function mountDraftWorkspace(
       : "Add photos";
     const singleGenerating =
       startingGenerationId === draft.id || generating(draft);
-    label("generate", singleGenerating ? "Generating…" : "Generate draft");
+    label(
+      "generate",
+      singleGenerating
+        ? "Generating…"
+        : failedOutput
+          ? "Retry generation"
+          : "Generate draft",
+    );
     action("generate").setAttribute("aria-busy", String(singleGenerating));
     find("[data-draft-generate-play]").toggleAttribute(
       "hidden",
@@ -1672,16 +1687,27 @@ export function mountDraftWorkspace(
         .validity.valid;
     action("regenerate").disabled = action("generate").disabled;
     action("regenerate").hidden = !hasText || draft.state === "done";
-    action("done").disabled = locked;
+    action("done").disabled = failedOutput
+      ? action("generate").disabled
+      : locked;
+    action("done")
+      .querySelector("svg")
+      ?.replaceWith(icon(failedOutput ? "rotate" : "check"));
     label(
       "done",
-      selected?.savedState === "done" ? "Move to drafts" : "Mark as listed",
+      failedOutput
+        ? "Retry · 1 generation"
+        : selected?.savedState === "done"
+          ? "Move to drafts"
+          : "Mark as listed",
     );
     action("check").hidden = !(
       draft.operation_state === "running" || draft.operation_state === "pending"
     );
     find("[data-draft-operation-status]").textContent =
-      queue.failed.get(draft.id) ||
+      (failedOutput
+        ? `${queue.failed.get(draft.id) || "Generation failed."}${hasText ? " Previous text kept." : ""}`
+        : "") ||
       (queue.remaining.includes(draft.id)
         ? "Waiting for its turn. The previous text will be replaced."
         : "") ||
@@ -2340,10 +2366,8 @@ export function mountDraftWorkspace(
     find("[data-draft-queue-copy]").textContent = queue.running
       ? "Keep AutoLister open while preparing."
       : queue.remaining.length
-        ? `${queue.remaining.length} items left. Completed drafts are saved.`
-        : queue.failed.size
-          ? "Open an item marked ‘Needs attention’ to check or retry it."
-          : "";
+        ? `${queue.remaining.length} items left.`
+        : "";
     hide(
       "[data-draft-queue-copy]",
       !find("[data-draft-queue-copy]").textContent,
@@ -2900,7 +2924,12 @@ export function mountDraftWorkspace(
       await options.onUsageChange();
     },
     done: async () => {
-      if (!selected) return;
+      if (!selected || busy(selected.value)) return;
+      if (outputFailed(selected.value)) {
+        if (!action("generate").disabled)
+          await startGeneration([selected.value.id]);
+        return;
+      }
       const intent = beginNavigation();
       const snapshot = selected;
       const target = selected.savedState === "done" ? "draft" : "done";
@@ -2933,7 +2962,8 @@ export function mountDraftWorkspace(
         if (
           draft?.state === "draft" &&
           (draft.title || draft.description) &&
-          !busy(draft)
+          !busy(draft) &&
+          !outputFailed(draft)
         ) {
           await openDraft(id, true, false, intent);
           return;
@@ -2990,7 +3020,7 @@ export function mountDraftWorkspace(
         draft &&
         Boolean(draft.title || draft.description) &&
         !busy(draft) &&
-        !queue.failed.has(id)
+        !outputFailed(draft)
       );
     });
   }
@@ -3002,6 +3032,7 @@ export function mountDraftWorkspace(
   async function copy(field: "title" | "description") {
     if (
       !selected ||
+      outputFailed(selected.value) ||
       generating(selected.value) ||
       queue.remaining.includes(selected.value.id)
     )

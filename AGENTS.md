@@ -1,5 +1,12 @@
 # Agent Instructions
 
+## Product UI copy
+
+- Omit helper text by default. Use brief text only for a necessary action,
+  real consequence, or error recovery. Do not repeat nearby labels or status.
+- Reject filler, redundant reassurance, and generic AI copy. Preserve the compact
+  UI and include this rule in design and independent release reviews.
+
 This repo is mostly operated by AI agents. Treat `main` as the production backend/site/admin branch.
 
 ## Email

@@ -146,9 +146,19 @@ export function mountDraftWorkspace(
     field.style.height = `${Math.max(120, field.scrollHeight + 2)}px`;
   };
   let photoViewportFrame = 0;
+  const workspaceHeader = root
+    .closest(".mobile-workspace-shell")
+    ?.querySelector<HTMLElement>(".mobile-workspace-header");
   const schedulePhotoViewport = () => {
     cancelAnimationFrame(photoViewportFrame);
     photoViewportFrame = requestAnimationFrame(() => {
+      if (workspaceHeader) {
+        const headerHeight = `${Math.ceil(workspaceHeader.getBoundingClientRect().height)}px`;
+        if (
+          root.style.getPropertyValue("--draft-header-height") !== headerHeight
+        )
+          root.style.setProperty("--draft-header-height", headerHeight);
+      }
       resizeDescription();
       const rail = find("[data-draft-item-photos]");
       if (
@@ -175,9 +185,11 @@ export function mountDraftWorkspace(
   };
   const photoViewportObserver = new ResizeObserver(schedulePhotoViewport);
   photoViewportObserver.observe(root);
+  if (workspaceHeader) photoViewportObserver.observe(workspaceHeader);
   window.addEventListener("resize", schedulePhotoViewport);
   window.visualViewport?.addEventListener("resize", schedulePhotoViewport);
   listeners.push(() => {
+    root.style.removeProperty("--draft-header-height");
     cancelAnimationFrame(photoViewportFrame);
     photoViewportObserver.disconnect();
     window.removeEventListener("resize", schedulePhotoViewport);
@@ -255,6 +267,24 @@ export function mountDraftWorkspace(
   const queuePanel = find("[data-draft-queue]");
   const queueAnchor = document.createComment("Batch progress home");
   queuePanel.before(queueAnchor);
+  function positionQueuePanel() {
+    updateQueueVisibility();
+    const reviewing = Boolean(
+      selected?.value.title || selected?.value.description,
+    );
+    const reviewSlot = find("[data-draft-editor-progress]");
+    const target = bulk
+      ? find("[data-draft-group-generation]")
+      : selected && reviewing
+        ? reviewSlot
+        : selected || composing
+          ? find("[data-draft-generation-actions]")
+          : root;
+    if (target === root) {
+      if (queuePanel.parentElement !== root) queueAnchor.after(queuePanel);
+    } else if (queuePanel.parentElement !== target) target.append(queuePanel);
+    reviewSlot.hidden = target !== reviewSlot || queuePanel.hidden;
+  }
   listeners.push(() => {
     queueAnchor.after(queuePanel);
     queueAnchor.remove();
@@ -1026,7 +1056,31 @@ export function mountDraftWorkspace(
       renderPool();
     }
   }
+  function batchHasStarted() {
+    return groupIds.some(
+      (id) =>
+        queue.active === id ||
+        queue.remaining.includes(id) ||
+        queue.completed.includes(id) ||
+        queue.failed.has(id) ||
+        library.drafts.some(
+          (draft) => draft.id === id && Boolean(draft.description),
+        ),
+    );
+  }
   function renderGroups() {
+    const started = batchHasStarted();
+    const importer = find("[data-draft-import]");
+    importer.classList.toggle("has-started", started);
+    hide(
+      "[data-draft-grouping-complete]",
+      !importer.classList.contains("is-complete") || started,
+    );
+    hide(
+      "[data-draft-grouping-instruction]",
+      importer.classList.contains("is-complete"),
+    );
+    if (started) hide("[data-draft-import-controls]", false);
     const groups = groupIds
       .map((id) => library.drafts.find((d) => d.id === id))
       .filter((d): d is Draft => Boolean(d));
@@ -1148,7 +1202,19 @@ export function mountDraftWorkspace(
       remove.disabled = busy(draft);
       remove.style.visibility = draft.description ? "hidden" : "visible";
       remove.disabled ||= Boolean(draft.description);
-      row.append(remove, card, settings);
+      if (queue.failed.has(draft.id) || (draft.description && !busy(draft))) {
+        const review = button(
+          queue.failed.has(draft.id) ? "Open" : "Review",
+          () => run(() => openDraft(draft.id)),
+          "draft-text-button draft-group-review",
+        );
+        review.dataset.focusKey = `group-review-${draft.id}`;
+        review.setAttribute(
+          "aria-label",
+          `${review.textContent} ${title.textContent}`,
+        );
+        row.append(remove, card, review);
+      } else row.append(remove, card, settings);
       container.append(row);
     }
     const eligibleCount = groups.filter(
@@ -1182,17 +1248,14 @@ export function mountDraftWorkspace(
         ? "All drafts are ready to review and copy."
         : "Open an item to review its photos and finish preparing it.";
     find("[data-draft-groups-status]").textContent = status;
-    hide("[data-draft-groups-status]", eligible || queue.running);
+    hide("[data-draft-groups-status]", eligible || !queuePanel.hidden);
     restoreFocus();
   }
   function renderPool() {
     if (disposed) return;
     updatePhoneEntry();
     renderDefaults();
-    if (bulk) find("[data-draft-group-generation]").append(queuePanel);
-    else if (selected || composing)
-      find("[data-draft-generation-actions]").append(queuePanel);
-    else if (queuePanel.parentElement !== root) queueAnchor.after(queuePanel);
+    positionQueuePanel();
     root.classList.toggle("has-import", bulk);
     hide("[data-draft-import]", !bulk);
     find("[data-draft-heading]").textContent = bulk
@@ -1218,12 +1281,13 @@ export function mountDraftWorkspace(
       "is-empty",
       !hasPhotos && !complete,
     );
-    hide("[data-draft-grouping-complete]", !complete);
+    const startedBatch = batchHasStarted();
+    hide("[data-draft-grouping-complete]", !complete || startedBatch);
     find("[data-draft-grouping-instruction]").textContent = complete
       ? "All photos grouped. Generate each item automatically."
       : "Select photos of the same item.";
     hide("[data-draft-bulk-entry]", hasPhotos || groupIds.length > 0);
-    hide("[data-draft-import-controls]", !hasPhotos);
+    hide("[data-draft-import-controls]", !hasPhotos && !startedBatch);
     hide(
       "[data-draft-import-summary]",
       bulk ||
@@ -1380,7 +1444,8 @@ export function mountDraftWorkspace(
     }
     updatePhoneEntry();
     const draft = selected?.value;
-    label("back", openedFromGrouping ? "Back to grouping" : "Back to drafts");
+    positionQueuePanel();
+    label("back", openedFromGrouping ? "Back to batch" : "Back to drafts");
     hide("[data-draft-editor]", !draft && !composing);
     hide("[data-draft-editor-empty]", true);
     root.classList.toggle("has-editor", Boolean(draft) || composing);
@@ -1477,7 +1542,9 @@ export function mountDraftWorkspace(
     );
     hide(
       "[data-draft-generation-actions]",
-      (!hasPhotos || hasText || draft.state === "done") && queuePanel.hidden,
+      (!hasPhotos || hasText || draft.state === "done") &&
+        (queuePanel.hidden ||
+          queuePanel.parentElement !== find("[data-draft-generation-actions]")),
     );
     hide(
       "[data-draft-upload-actions]",
@@ -1534,9 +1601,20 @@ export function mountDraftWorkspace(
     hide("[data-draft-position]", order.length < 2);
     action("previous").hidden = order.length < 2;
     action("next").hidden = order.length < 2;
-    action("next").setAttribute("aria-label", "Next");
-    action("previous").disabled = index <= 0;
-    action("next").disabled = index < 0 || index >= order.length - 1;
+    const batchReview = generationCount > 1 && reviewIds.includes(draft.id);
+    action("next").setAttribute(
+      "aria-label",
+      batchReview ? "Next ready item" : "Next",
+    );
+    action("next").querySelector("span")!.textContent = batchReview
+      ? "Next ready"
+      : "Next";
+    action("previous").disabled = !reviewTarget(-1);
+    action("next").disabled = !reviewTarget(1);
+    action("next").title =
+      batchReview && !reviewTarget(1) && queue.running
+        ? "The next item is still preparing."
+        : "";
     for (const name of ["title", "description"] as const) {
       const el = find<HTMLInputElement | HTMLTextAreaElement>(
         `[data-draft-field="${name}"]`,
@@ -2206,6 +2284,27 @@ export function mountDraftWorkspace(
     }
     await options.onUsageChange();
   }, renderQueue);
+  function updateQueueVisibility() {
+    const keepCompletedProgress =
+      generationCount > 1 &&
+      queue.completed.length > 0 &&
+      ((Boolean(selected) && reviewIds.includes(selected!.value.id)) ||
+        (bulk && groupIds.some((id) => queue.completed.includes(id))));
+    hide(
+      "[data-draft-queue]",
+      (generationCount === 1 &&
+        !selected?.value.title &&
+        !selected?.value.description &&
+        queue.running &&
+        Boolean(selected) &&
+        (selected?.value.id === queue.active ||
+          startingGenerationId === selected?.value.id)) ||
+        (!queue.running &&
+          !queue.remaining.length &&
+          !queue.failed.size &&
+          !keepCompletedProgress),
+    );
+  }
   function renderQueue() {
     if (disposed) return;
     if (bulk) find("[data-draft-heading]").textContent = "Your batch";
@@ -2225,24 +2324,14 @@ export function mountDraftWorkspace(
         );
       else sessionStorage.removeItem(queueKey);
     } catch {}
-    hide(
-      "[data-draft-queue]",
-      (generationCount === 1 &&
-        !selected?.value.title &&
-        !selected?.value.description &&
-        queue.running &&
-        Boolean(selected) &&
-        (selected?.value.id === queue.active ||
-          startingGenerationId === selected?.value.id)) ||
-        (!queue.running && !queue.remaining.length && !queue.failed.size),
-    );
+    updateQueueVisibility();
     find("[data-draft-queue-title]").textContent = queue.running
       ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
       : queue.remaining.length
         ? `Paused · ${queue.completed.length} of ${generationCount} ready`
-        : `${queue.completed.length} ready${queue.failed.size ? ` · ${queue.failed.size} need attention` : ""}`;
+        : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} need attention` : ""}`;
     find("[data-draft-queue-copy]").textContent = queue.running
-      ? "Keep this tab open. Ready drafts are saved."
+      ? "Keep AutoLister open while preparing."
       : queue.remaining.length
         ? `${queue.remaining.length} items left. Completed drafts are saved.`
         : queue.failed.size
@@ -2824,7 +2913,6 @@ export function mountDraftWorkspace(
       await reload();
       if (disposed || intent !== selectionIntent) return;
       renderEditor();
-      openedFromGrouping = false;
       for (const id of candidates) {
         let draft = library.drafts.find((d) => d.id === id);
         if (!draft) {
@@ -2844,6 +2932,7 @@ export function mountDraftWorkspace(
           return;
         }
       }
+      openedFromGrouping = false;
       renderPool();
       rememberView();
       window.scrollTo({ top: scrollY });
@@ -2879,10 +2968,28 @@ export function mountDraftWorkspace(
     const ids = library.drafts.map((d) => d.id);
     return selected && reviewIds.includes(selected.value.id) ? reviewIds : ids;
   }
-  async function navigate(delta: number) {
+  function reviewTarget(delta: number): string | undefined {
     if (!selected) return;
     const order = reviewOrder();
-    const next = order[order.indexOf(selected.value.id) + delta];
+    const index = order.indexOf(selected.value.id);
+    if (index < 0) return;
+    if (generationCount <= 1 || !reviewIds.includes(selected.value.id))
+      return order[index + delta];
+    const candidates =
+      delta > 0 ? order.slice(index + 1) : order.slice(0, index).reverse();
+    return candidates.find((id) => {
+      const draft = library.drafts.find((item) => item.id === id);
+      return (
+        draft &&
+        Boolean(draft.title || draft.description) &&
+        !busy(draft) &&
+        !queue.failed.has(id)
+      );
+    });
+  }
+  async function navigate(delta: number) {
+    if (!selected) return;
+    const next = reviewTarget(delta);
     if (next) await openDraft(next, true, false);
   }
   async function copy(field: "title" | "description") {

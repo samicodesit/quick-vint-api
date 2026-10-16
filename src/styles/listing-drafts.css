@@ -81,6 +81,14 @@
   outline: 2px solid var(--mobile-brand);
   outline-offset: 2px;
 }
+@media (max-width: 350px) {
+  [data-drafts-enabled="true"] .mobile-header-settings {
+    min-width: 44px;
+  }
+  [data-drafts-enabled="true"] .mobile-header-settings span {
+    display: none;
+  }
+}
 .mobile-app-view {
   width: 100%;
 }
@@ -1124,7 +1132,7 @@ html:has([data-drafts-enabled="true"]) {
 }
 .draft-group-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   border-bottom: 1px solid var(--mobile-border);
@@ -1136,6 +1144,30 @@ html:has([data-drafts-enabled="true"]) {
   padding: 10px;
   width: 44px;
   color: var(--mobile-brand);
+}
+.draft-workspace .draft-group-review {
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--mobile-brand);
+  font-weight: 550;
+}
+.draft-editor-progress {
+  position: sticky;
+  top: var(--draft-header-height, 61px);
+  z-index: 12;
+  background: var(--mobile-bg);
+}
+.draft-editor-progress .draft-queue {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.draft-editor-progress .draft-queue-items {
+  display: none;
+}
+.draft-editor-progress .draft-queue p {
+  font-size: 12px;
 }
 .draft-queue-items {
   grid-column: 1 / -1;
@@ -1355,6 +1387,9 @@ html:has([data-drafts-enabled="true"]) {
 }
 .draft-import.is-complete .draft-import-toolbar .draft-add {
   display: none;
+}
+.draft-import.is-complete.has-started .draft-import-toolbar .draft-add {
+  display: inline-flex;
 }
 .draft-import-controls > .draft-settings {
   margin-left: auto;

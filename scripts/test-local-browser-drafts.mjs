@@ -7,7 +7,7 @@ const output =
   process.env.DRAFT_BROWSER_OUTPUT || "/tmp/autolister-local-drafts";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
-  headless: true,
+  headless: process.env.DRAFT_BROWSER_INTERACTIVE !== "1" || process.env.DRAFT_BROWSER_HEADLESS === "1",
   ...(process.env.CHROMIUM_PATH
     ? { executablePath: process.env.CHROMIUM_PATH }
     : {}),
@@ -25,7 +25,7 @@ const context = await browser.newContext({
   permissions: ["clipboard-read", "clipboard-write"],
 });
 await context.addInitScript(
-  ({ userId }) => {
+  ({ userId, createdAt }) => {
     const encode = (v) =>
       btoa(JSON.stringify(v))
         .replace(/=/g, "")
@@ -38,7 +38,7 @@ await context.addInitScript(
       role: "authenticated",
       app_metadata: {},
       user_metadata: {},
-      created_at: new Date().toISOString(),
+      created_at: createdAt,
     };
     localStorage.setItem(
       "sb-drafts-test-auth-token",
@@ -52,8 +52,19 @@ await context.addInitScript(
       }),
     );
   },
-  { userId },
+  { userId,
+    // The established suite exercises an existing account. Interactive review
+    // also covers the first-use style setup offered to newly created accounts.
+    createdAt: process.env.DRAFT_BROWSER_INTERACTIVE === "1" ? new Date().toISOString() : "2026-10-01T00:00:00Z",
+  },
 );
+if (process.env.DRAFT_BROWSER_INTERACTIVE === "1") {
+  await context.route("**/*", (route) => {
+    const url = new URL(route.request().url());
+    return url.origin === new URL(base).origin || ["blob:", "data:"].includes(url.protocol)
+      ? route.continue() : route.abort();
+  });
+}
 await context.route("https://drafts-test.supabase.co/**", (route) =>
   route.fulfill({ json: {} }),
 );
@@ -320,6 +331,16 @@ async function bounds(label) {
   );
   checks.push(label);
 }
+export const reviewJourney = { browser, context, page, click, upload, saved, snapshot, settled, bounds,
+  holdNextGeneration() { hold = true; },
+  finishGeneration() { release?.(); },
+  loseNextResponse() { loseResponse = true; },
+  stats() { return { generations, uploadCount, errors, requests }; },
+};
+
+if (process.env.DRAFT_BROWSER_INTERACTIVE === "1") {
+  await page.goto(`${base}/app`);
+} else {
 try {
   await page.goto(`${base}/app`);
   await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
@@ -1583,7 +1604,7 @@ try {
     telemetryEvents.some(
       (event) =>
         event.event === "web_paywall_view" &&
-        event.context.errorCode === "free_lifetime_limit",
+        event.context.reason === "free_lifetime_limit",
     ),
   );
   assert.ok(telemetryEvents.some((event) => event.event === "copy"));
@@ -1641,4 +1662,5 @@ try {
   throw error;
 } finally {
   await browser.close();
+}
 }

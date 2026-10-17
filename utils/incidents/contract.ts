@@ -19,6 +19,24 @@ type Definition = {
 import definitions from "./registry.json";
 const registry = definitions as Record<string, Definition>;
 
+// Batch lifecycle checkpoints belong to the parent even when they carry the
+// current item's generation ID. Item generation events keep their own scope.
+const batchLifecycleEvents = new Set([
+  "batch_start",
+  "batch_resume",
+  "batch_resume_started",
+  "batch_item_started",
+  "batch_worker_progress",
+  "batch_worker_waiting",
+  "batch_complete",
+  "batch_done",
+  "batch_paused",
+  "batch_cancelled",
+  "batch_failed",
+  "batch_resume_failed",
+  "batch_recovery_available",
+]);
+
 const browserScriptSignatures = new Map([
   [
     "TypeError: undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')",
@@ -264,10 +282,12 @@ export function normalizeIncidentEvent(
     ? String(input.market || context.market).toLowerCase()
     : "unknown";
   const operationId =
-    context.generationAttemptId ||
-    context.operationId ||
-    context.batchId ||
-    null;
+    context.batchId && batchLifecycleEvents.has(input.event)
+      ? context.batchId
+      : context.generationAttemptId ||
+        context.operationId ||
+        context.batchId ||
+        null;
   const code = String(context.errorCode || input.event)
     .toLowerCase()
     .replace(/\d+/g, "#")

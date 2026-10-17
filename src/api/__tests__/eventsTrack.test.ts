@@ -490,6 +490,94 @@ describe("events tracking endpoint", () => {
     15000,
   );
 
+  it("closes a successful batch parent without hiding a genuinely stalled batch", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (name, args) => {
+        if (name !== "incident_ingest") return { data: false };
+        const result = await db.query<{ result: unknown }>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result, error: null };
+      });
+      // The real loaded-extension trace sends Done with both identifiers.
+      const events = [
+        { event: "batch_start", context: { batchId: "completed-batch" } },
+        {
+          event: "generate_request",
+          context: {
+            batchId: "completed-batch",
+            generationAttemptId: "last-item",
+          },
+        },
+        {
+          event: "generate_success",
+          context: {
+            batchId: "completed-batch",
+            generationAttemptId: "last-item",
+          },
+        },
+        {
+          event: "batch_worker_progress",
+          context: {
+            batchId: "completed-batch",
+            generationAttemptId: "last-item",
+          },
+        },
+        {
+          event: "batch_done",
+          context: {
+            batchId: "completed-batch",
+            generationAttemptId: "last-item",
+          },
+        },
+        { event: "batch_start", context: { batchId: "genuine-stall" } },
+      ];
+      for (const [index, entry] of events.entries()) {
+        const response = await postEvent({
+          schemaVersion: 2,
+          events: [
+            {
+              ...entry,
+              id: `b423926a-35a6-4bf5-8027-8ab335c7333${index}`,
+              occurredAt: new Date().toISOString(),
+              source: "extension_content",
+              extensionVersion: "1.4.17",
+            },
+          ],
+        });
+        expect(response.statusCode).toBe(200);
+      }
+      const completed = (
+        await db.query<any>(
+          "SELECT stage,running FROM incident_flows WHERE operation_id='completed-batch'",
+        )
+      ).rows;
+      expect(completed).toEqual([{ stage: "user_review", running: false }]);
+      await db.exec(
+        "UPDATE incident_flows SET last_progress_at=now()-interval '10 minutes'",
+      );
+      await db.query("SELECT incident_sweep(100)");
+      const incidents = (
+        await db.query<any>(
+          "SELECT examples FROM incident_groups WHERE event='operation_possibly_stalled'",
+        )
+      ).rows;
+      expect(incidents).toHaveLength(1);
+      expect(incidents[0].examples[0].operationId).toBe("genuine-stall");
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
+
   it("persists injected phone-script warnings without email while real exceptions still alert", async () => {
     const db = new PGlite();
     try {

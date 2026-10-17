@@ -16,6 +16,62 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it.each([
+    "batch_start",
+    "batch_resume",
+    "batch_resume_started",
+    "batch_item_started",
+    "batch_worker_progress",
+    "batch_worker_waiting",
+    "batch_complete",
+    "batch_done",
+    "batch_paused",
+    "batch_cancelled",
+    "batch_failed",
+    "batch_resume_failed",
+    "batch_recovery_available",
+  ])("keeps %s on its batch when it also names the last generation", (name) => {
+    const result = normalizeIncidentEvent(
+      {
+        ...event,
+        event: name,
+        context: {
+          batchId: "batch-parent",
+          generationAttemptId: "last-generation",
+          itemIndex: 2,
+        },
+      },
+      now,
+    ).value!;
+    expect(result.operationId).toBe("batch-parent");
+    expect(result.context.generationAttemptId).toBe("last-generation");
+  });
+
+  it("keeps per-generation incidents on their attempt and legacy batch events attributable", () => {
+    expect(
+      normalizeIncidentEvent(
+        {
+          ...event,
+          context: {
+            batchId: "batch-parent",
+            generationAttemptId: "failed-generation",
+          },
+        },
+        now,
+      ).value?.operationId,
+    ).toBe("failed-generation");
+    expect(
+      normalizeIncidentEvent(
+        {
+          ...event,
+          event: "batch_done",
+          context: { operationId: "legacy-batch" },
+        },
+        now,
+      ).value?.operationId,
+    ).toBe("legacy-batch");
+  });
+
   const browserMessages = [
     [
       "TypeError",

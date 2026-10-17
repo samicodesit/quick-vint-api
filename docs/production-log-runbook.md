@@ -166,6 +166,35 @@ node -e 'const fs=require("fs"); const lines=fs.readFileSync("/tmp/phone-upload-
 
 Vercel request logs usually do not prove which user made the request unless the app emitted identifying runtime logs. Use admin event/generate detail for user-attributed payload proof.
 
+## Extension auth action correlation
+
+The candidate `codex/auth-action-correlation` adds the fields below. Check actual
+client delivery before expecting them; the already submitted 1.4.18 package does
+not contain this candidate. Their absence in older records cannot establish that
+no user action was blocked.
+
+For the verified account and a tight UTC window, read `log-detail` for the refresh
+and `/event/auth_action_result` rows. Match the refresh `operationId` against the
+action's `authRefreshOperationId`. The action has its own `operationId`; a refresh
+initiated by it also carries that ID as `parentOperationId`.
+
+- `entryPoint=scheduled_refresh` identifies the initiating timer, not proof that
+  no foreground action was affected. Check for `refresh_joined` and action results
+  linked to the same refresh.
+- `credentials_returned` proves only a credential response. `blocked` records
+  an actual missing session or API 401 at Generate. `succeeded` records successful
+  Generate completion despite the refresh failure.
+- `recovered` links a matching successful retry to its earlier blocked action
+  in the same content document and known account. Verify the generation attempt
+  and successful output; do not substitute an auth success on another client.
+- A changed photo/settings scope, account, expired retry window or destroyed
+  content document does not establish recovery. Telemetry loss or absence is not
+  proof of success. Network status 0 and `navigator.onLine` do not identify the
+  underlying DNS/TLS/connection cause.
+
+These action records are business evidence, without new incident emails or
+watchdog flows. Original genuine auth failures remain incidents.
+
 ## Codex Network Rule
 
 Codex sandboxed commands may fail with errors like:

@@ -8,6 +8,8 @@
     "lastConfirmedStage",
     "generationAttemptId",
     "operationId",
+    "parentOperationId",
+    "authRefreshOperationId",
     "batchId",
     "analyticsClientId",
     "webSessionId",

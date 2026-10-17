@@ -174,6 +174,79 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
+  it("persists auth action block and recovery correlation through the endpoint and native SQL", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (_name, args) => {
+        const result = await db.query<any>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result };
+      });
+      const outcomes = [
+        "refresh_joined",
+        "credentials_returned",
+        "blocked",
+        "recovered",
+        "succeeded",
+      ];
+      for (const [index, resultStatus] of outcomes.entries()) {
+        const context = {
+          operationId: "action-1",
+          authRefreshOperationId: "refresh-1",
+          parentOperationId: "action-1",
+          entryPoint: "generate",
+          resultStatus,
+          attempt: index + 1,
+        };
+        const event = {
+          id: `b423926a-35a6-4bf5-8027-8ab335c7222${index}`,
+          occurredAt: new Date().toISOString(),
+          event: "auth_action_result",
+          source: index < 2 ? "extension_background" : "extension_content",
+          context: { ...context, access_token: "private" },
+        };
+        expect(
+          (await postEvent({ schemaVersion: 2, events: [event] })).body,
+        ).toMatchObject({ acknowledgedIds: [event.id] });
+        expect(
+          (await postEvent({ schemaVersion: 2, events: [event] })).body,
+        ).toMatchObject({ duplicateIds: [event.id] });
+        const row = (
+          await db.query<any>(
+            "SELECT user_id,full_request_body FROM api_logs WHERE full_request_body->>'transportEventId'=$1",
+            [event.id],
+          )
+        ).rows[0];
+        expect(row).toMatchObject({
+          user_id: USER_ID,
+          full_request_body: { context },
+        });
+        expect(JSON.stringify(row)).not.toContain("private");
+      }
+      expect(
+        (await db.query<any>("SELECT id FROM api_logs")).rows,
+      ).toHaveLength(outcomes.length);
+      expect(
+        (await db.query<any>("SELECT id FROM incident_groups")).rows,
+      ).toHaveLength(0);
+      expect(
+        (await db.query<any>("SELECT id FROM incident_flows WHERE running"))
+          .rows,
+      ).toHaveLength(0);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
+
   it.each([
     [
       "web_paywall_view",

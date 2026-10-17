@@ -453,6 +453,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ...(dropCarrier ||
           raw.source === "mobile_web" ||
           [
+            "auth_action_result",
             "web_app_click",
             "home_hero_exposure",
             "chrome_store_click",

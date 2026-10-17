@@ -103,6 +103,9 @@
     "stage": "authenticating",
     "running": true
   },
+  "auth_action_result": {
+    "kind": "business"
+  },
   "token_refresh_start": {
     "kind": "checkpoint",
     "stage": "authenticating",

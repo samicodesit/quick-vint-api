@@ -86,6 +86,10 @@ export function mountDraftWorkspace(
   let openedFromGrouping = false;
   let restoringHistory = false;
   let railSignature = "";
+  const poolThumbnails = new Map<
+    string,
+    { signature: string; node: HTMLElement }
+  >();
   let photoEditor: { close: () => void } | undefined;
   let openingPhotoEditor = false;
   const nativePhotoPicker =
@@ -519,6 +523,18 @@ export function mountDraftWorkspace(
     find<HTMLTemplateElement>(
       `[data-draft-icon="${name}"]`,
     ).content.firstElementChild!.cloneNode(true);
+  const statusLabel = (
+    el: HTMLElement,
+    text: string,
+    presentation: "working" | "ready" | "idle" = "idle",
+  ) => {
+    if (el.textContent === text && el.dataset.presentation === presentation)
+      return;
+    el.textContent = text;
+    el.classList.add("draft-inline-status");
+    el.dataset.presentation = presentation;
+    if (presentation === "working") el.prepend(icon("loading"));
+  };
   const label = (name: string, value: string) => {
     const el = action(name);
     const span = el.querySelector("[data-draft-label]");
@@ -878,6 +894,14 @@ export function mountDraftWorkspace(
                     : draft.photos.length
                       ? `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Uploading"}`
                       : "No photos yet";
+      statusLabel(
+        detail,
+        detail.textContent || "",
+        queue.active === draft.id ||
+          (!queue.remaining.includes(draft.id) && busy(draft))
+          ? "working"
+          : "idle",
+      );
       text.append(title, detail);
       open.append(text);
       row.append(check, open);
@@ -1134,6 +1158,15 @@ export function mountDraftWorkspace(
             : draft.description
               ? "Ready to copy"
               : `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${sameSettings(draft.settings, defaultSettings) ? "Uses batch settings" : "Custom settings"}`;
+      statusLabel(
+        status,
+        status.textContent || "",
+        !queue.remaining.includes(draft.id) && busy(draft)
+          ? "working"
+          : draft.description && !busy(draft) && !outputFailed(draft)
+            ? "ready"
+            : "idle",
+      );
       text.append(title, status);
       card.append(text);
       const settings = button("", () =>
@@ -1310,46 +1343,78 @@ export function mountDraftWorkspace(
     const pool = find("[data-draft-pool]");
     const restoreFocus = preserveFocus(pool);
     closeContainedPopovers(pool);
-    pool.replaceChildren();
+    const nodes: HTMLElement[] = [];
+    const keys = new Set<string>();
+    const cached = (
+      key: string,
+      signature: string,
+      create: () => HTMLElement,
+    ) => {
+      keys.add(key);
+      const previous = poolThumbnails.get(key);
+      const node = previous?.signature === signature ? previous.node : create();
+      poolThumbnails.set(key, { signature, node });
+      nodes.push(node);
+    };
     for (const photo of library.imports) {
       if (uploads.some((p) => p.id === photo.id)) continue;
-      const wrap = thumbnail(photo, true);
-      const menu = document.createElement("details");
-      menu.className = "draft-photo-options";
-      const summary = document.createElement("summary");
-      summary.append(icon("more"));
-      summary.dataset.focusKey = `options-${photo.id}`;
-      summary.setAttribute("aria-label", "Photo options");
-      menu.dataset.draftPopover = "";
-      menu.dataset.photoOptions = photo.id;
-      const panel = document.createElement("div");
-      panel.className = "draft-popover-panel";
-      menu.append(summary, panel);
-      panel.append(
-        button("Close", () => closePopover(menu), "draft-close"),
-        button(
-          "Delete",
-          () =>
-            run(async () => {
-              if (
-                !(await confirmDelete(
-                  "Delete this saved photo? This cannot be undone.",
-                  photo,
-                ))
-              )
-                return;
-              await draftAction("removePhoto", { photoId: photo.id });
-              chosenPhotos.delete(photo.id);
-              await reload();
-            }),
-          "draft-photo-delete",
-        ),
+      cached(
+        `photo:${photo.id}`,
+        JSON.stringify([photo, library.imports.indexOf(photo)]),
+        () => {
+          const wrap = thumbnail(photo, true);
+          const menu = document.createElement("details");
+          menu.className = "draft-photo-options";
+          const summary = document.createElement("summary");
+          summary.append(icon("more"));
+          summary.dataset.focusKey = `options-${photo.id}`;
+          summary.setAttribute("aria-label", "Photo options");
+          menu.dataset.draftPopover = "";
+          menu.dataset.photoOptions = photo.id;
+          const panel = document.createElement("div");
+          panel.className = "draft-popover-panel";
+          menu.append(summary, panel);
+          panel.append(
+            button("Close", () => closePopover(menu), "draft-close"),
+            button(
+              "Delete",
+              () =>
+                run(async () => {
+                  if (
+                    !(await confirmDelete(
+                      "Delete this saved photo? This cannot be undone.",
+                      photo,
+                    ))
+                  )
+                    return;
+                  await draftAction("removePhoto", { photoId: photo.id });
+                  chosenPhotos.delete(photo.id);
+                  await reload();
+                }),
+              "draft-photo-delete",
+            ),
+          );
+          wrap.append(menu);
+          return wrap;
+        },
       );
-      wrap.append(menu);
-      pool.append(wrap);
     }
     for (const upload of uploads.filter((p) => !p.draftId))
-      pool.append(uploadThumbnail(upload));
+      cached(
+        `upload:${upload.id}`,
+        JSON.stringify([upload.state, upload.preview, upload.error]),
+        () => uploadThumbnail(upload),
+      );
+    for (const key of poolThumbnails.keys())
+      if (!keys.has(key)) poolThumbnails.delete(key);
+    const wanted = new Set(nodes);
+    for (const child of Array.from(pool.children))
+      if (!wanted.has(child as HTMLElement)) child.remove();
+    let next = pool.firstChild;
+    for (const node of nodes) {
+      if (node === next) next = next.nextSibling;
+      else pool.insertBefore(node, next);
+    }
     if (focused)
       pool
         .querySelector<HTMLInputElement>(`[data-draft-photo-id="${focused}"]`)
@@ -1359,6 +1424,11 @@ export function mountDraftWorkspace(
     renderGroups();
   }
   function renderPoolSelection() {
+    find("[data-draft-pool]")
+      .querySelectorAll<HTMLInputElement>("[data-draft-photo-id]")
+      .forEach((input) => {
+        input.checked = chosenPhotos.has(input.dataset.draftPhotoId!);
+      });
     hide("[data-draft-import-footer]", !chosenPhotos.size);
     find("[data-draft-photo-count]").textContent =
       `${chosenPhotos.size} photo${chosenPhotos.size === 1 ? "" : "s"} selected`;
@@ -1391,12 +1461,15 @@ export function mountDraftWorkspace(
       wrap.append(img);
     }
     const text = document.createElement("span");
-    text.textContent =
+    statusLabel(
+      text,
       upload.state === "error"
         ? upload.error || "Upload failed"
         : upload.state === "waiting"
           ? "Waiting…"
-          : "Uploading…";
+          : "Uploading…",
+      upload.state === "uploading" ? "working" : "idle",
+    );
     wrap.append(text);
     if (upload.state === "error") {
       wrap.append(
@@ -1590,7 +1663,7 @@ export function mountDraftWorkspace(
       generating(draft) || queue.remaining.includes(draft.id);
     const order = reviewOrder();
     const index = order.indexOf(draft.id);
-    find("#draft-editor-title").textContent = outputPreparing
+    const editorTitle = outputPreparing
       ? "Preparing item"
       : failedOutput
         ? "Needs attention"
@@ -1601,6 +1674,13 @@ export function mountDraftWorkspace(
             : draft.state === "done"
               ? "Listed item"
               : "Prepare item";
+    statusLabel(
+      find("#draft-editor-title"),
+      editorTitle,
+      outputPreparing && !queue.remaining.includes(draft.id)
+        ? "working"
+        : "idle",
+    );
     find("#draft-editor-title").classList.remove("draft-sr-only");
     const cover = find<HTMLImageElement>("[data-draft-editor-cover]");
     const coverUrl =
@@ -2367,11 +2447,16 @@ export function mountDraftWorkspace(
       else sessionStorage.removeItem(queueKey);
     } catch {}
     updateQueueVisibility();
-    find("[data-draft-queue-title]").textContent = queue.running
+    const queueTitle = queue.running
       ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
       : queue.remaining.length
         ? `Paused · ${queue.completed.length} of ${generationCount} ready`
         : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} failed` : ""}`;
+    statusLabel(
+      find("[data-draft-queue-title]"),
+      queueTitle,
+      queue.running ? "working" : "idle",
+    );
     find("[data-draft-queue-copy]").textContent = queue.running
       ? "Keep AutoLister open while preparing."
       : "";
@@ -3500,6 +3585,7 @@ export function mountDraftWorkspace(
       queue.pause();
       clearTimeout(saveTimer);
       listeners.forEach((remove) => remove());
+      poolThumbnails.clear();
       uploads.forEach((p) => {
         if (p.preview) URL.revokeObjectURL(p.preview);
       });

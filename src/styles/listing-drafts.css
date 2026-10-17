@@ -74,7 +74,9 @@
 @keyframes settings-discovery {
   50% {
     background: #3458df30;
-    box-shadow: inset 0 0 0 1px #3458df90, 0 0 0 3px #3458df15;
+    box-shadow:
+      inset 0 0 0 1px #3458df90,
+      0 0 0 3px #3458df15;
   }
 }
 .mobile-header-settings:focus-visible {
@@ -1201,12 +1203,35 @@ html:has([data-drafts-enabled="true"]) {
   font-size: 13px;
   color: var(--mobile-muted);
 }
+.draft-inline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.draft-inline-status[data-presentation="working"] > svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: var(--mobile-brand);
+  animation: draft-loading 1s linear infinite;
+}
+.draft-inline-status[data-presentation="ready"] {
+  color: var(--mobile-success);
+}
+.draft-workspace [data-draft-action="next"]:not(:disabled) {
+  color: var(--mobile-brand);
+}
 .draft-queue-row[data-status="generating"] .draft-queue-item-status svg {
   animation: draft-loading 1s linear infinite;
 }
 @keyframes draft-loading {
   to {
     transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .draft-inline-status[data-presentation="working"] > svg {
+    animation: none;
   }
 }
 .draft-queue-row[data-status="ready"] .draft-queue-item-status {
@@ -1466,8 +1491,8 @@ html:has([data-drafts-enabled="true"]) {
   margin: var(--app-space-2) 0 var(--app-space-6);
 }
 .draft-photo-grid .draft-photo > img {
-  height: auto;
-  aspect-ratio: 4 / 5;
+  height: 106px;
+  aspect-ratio: auto;
 }
 .draft-import.has-groups .draft-photo-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1546,7 +1571,8 @@ html:has([data-drafts-enabled="true"]) {
   border: 0;
   border-radius: 0;
 }
-.draft-generation-actions .draft-queue-items:not(:has([data-status="needs-attention"])) {
+.draft-generation-actions
+  .draft-queue-items:not(:has([data-status="needs-attention"])) {
   display: none;
 }
 .draft-items[aria-busy="true"] {
@@ -1942,8 +1968,13 @@ html:has([data-drafts-enabled="true"]) {
     padding-bottom: 144px;
   }
   .draft-editor .draft-generation-actions,
-  .draft-workspace.has-import:not(:has([data-draft-import-footer]:not([hidden])))
-    .draft-group-generation:has(> button:not([hidden]), .draft-queue:not([hidden])) {
+  .draft-workspace.has-import:not(
+      :has([data-draft-import-footer]:not([hidden]))
+    )
+    .draft-group-generation:has(
+      > button:not([hidden]),
+      .draft-queue:not([hidden])
+    ) {
     position: fixed;
     z-index: 15;
     bottom: 0;
@@ -1986,7 +2017,8 @@ html:has([data-drafts-enabled="true"]) {
       scrollbar-width: thin;
       margin-top: 0;
     }
-    .draft-editor.is-preparing:has(.draft-upload[data-state="error"]) .draft-item-photos {
+    .draft-editor.is-preparing:has(.draft-upload[data-state="error"])
+      .draft-item-photos {
       max-height: none;
       overflow: visible;
     }
@@ -2115,7 +2147,7 @@ html:has([data-drafts-enabled="true"]) {
     gap: 8px;
   }
   .draft-photo-grid .draft-photo > img {
-    height: auto;
+    height: 160px;
   }
   .draft-import.has-groups .draft-photo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2538,7 +2570,10 @@ html:has([data-drafts-enabled="true"]) {
   opacity: 0.5;
   cursor: default;
 }
-.draft-workspace[data-native-photo-picker="true"] .draft-photo-source > summary > svg:last-child {
+.draft-workspace[data-native-photo-picker="true"]
+  .draft-photo-source
+  > summary
+  > svg:last-child {
   display: none;
 }
 @media (min-width: 768px) {

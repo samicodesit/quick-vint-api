@@ -2374,9 +2374,7 @@ export function mountDraftWorkspace(
         : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} need attention` : ""}`;
     find("[data-draft-queue-copy]").textContent = queue.running
       ? "Keep AutoLister open while preparing."
-      : queue.remaining.length
-        ? `${queue.remaining.length} items left.`
-        : "";
+      : "";
     hide(
       "[data-draft-queue-copy]",
       !find("[data-draft-queue-copy]").textContent,

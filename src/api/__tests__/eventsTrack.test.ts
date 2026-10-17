@@ -490,6 +490,77 @@ describe("events tracking endpoint", () => {
     15000,
   );
 
+  it("persists injected phone-script warnings without email while real exceptions still alert", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (name, args) => {
+        if (name !== "incident_ingest") return { data: false };
+        const result = await db.query<{ result: unknown }>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result, error: null };
+      });
+      const messages = [
+        "TypeError: undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')",
+        "TypeError: undefined is not an object (evaluating 'window.__firefox__.reader')",
+        "ReferenceError: Can't find variable: __firefox__",
+      ];
+      for (let n = 0; n < 4; n++) {
+        const message = messages[n] || "Cannot read upload state";
+        const response = await postEvent({
+          schemaVersion: 2,
+          events: [
+            {
+              id: `b423926a-35a6-4bf5-8027-8ab335c7222${n}`,
+              occurredAt: new Date().toISOString(),
+              event: "own_context_exception",
+              source: "phone_upload_page",
+              context: {
+                errorName: n === 2 ? "ReferenceError" : "TypeError",
+                message,
+                stack: "global code@[url]",
+              },
+            },
+          ],
+        });
+        expect(response.statusCode).toBe(200);
+      }
+      const rows = (
+        await db.query<any>(
+          "SELECT event,severity,notification_status,examples FROM incident_groups",
+        )
+      ).rows;
+      const warnings = rows.filter(
+        (row) => row.event === "browser_script_exception",
+      );
+      expect(warnings).toHaveLength(2);
+      expect(
+        warnings.every(
+          (row) =>
+            row.severity === "warning" && row.notification_status === "quiet",
+        ),
+      ).toBe(true);
+      expect(
+        warnings
+          .flatMap((row) => row.examples)
+          .map((example) => example.context.message),
+      ).toEqual(expect.arrayContaining(messages));
+      expect(
+        rows.find((row) => row.event === "own_context_exception"),
+      ).toMatchObject({ severity: "blocking", notification_status: "pending" });
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
+
   it("saves legacy generation pairs without creating running watchdog flows", async () => {
     const response = await postEvent({
       events: [

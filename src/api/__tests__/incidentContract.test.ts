@@ -16,6 +16,79 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  const browserMessages = [
+    [
+      "TypeError",
+      "TypeError: undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')",
+    ],
+    [
+      "TypeError",
+      "TypeError: undefined is not an object (evaluating 'window.__firefox__.reader')",
+    ],
+    ["ReferenceError", "ReferenceError: Can't find variable: __firefox__"],
+  ];
+  const phoneException = (errorName: string, message: string) => ({
+    ...event,
+    event: "own_context_exception",
+    source: "phone_upload_page",
+    context: { errorName, message, stack: "global code@[url]" },
+  });
+
+  it.each(browserMessages)(
+    "retains the exact injected %s signature as a separate warning (%s)",
+    (name, message) => {
+      const result = normalizeIncidentEvent(
+        phoneException(name, message),
+        now,
+      ).value!;
+      expect(result.event).toBe("browser_script_exception");
+      expect(result.definition).toMatchObject({
+        kind: "incident",
+        severity: "warning",
+        stage: "browser_script",
+      });
+      expect(result.context).toMatchObject({
+        errorName: name,
+        message,
+        stack: "global code@[url]",
+      });
+      expect(result.fingerprint).not.toBe(
+        normalizeIncidentEvent(
+          phoneException("TypeError", "Cannot read upload state"),
+          now,
+        ).value!.fingerprint,
+      );
+    },
+  );
+
+  it("keeps ambiguous, named app-frame and other-source errors blocking", () => {
+    const input = phoneException(...(browserMessages[0] as [string, string]));
+    for (const change of [
+      { context: { ...input.context, stack: "" } },
+      {
+        context: {
+          ...input.context,
+          stack: "upload@https://autolister.app/phone-upload:450:3",
+        },
+      },
+      {
+        context: { ...input.context, stack: "global code@[url]\nupload@[url]" },
+      },
+      { context: { ...input.context, message: "Cannot read upload state" } },
+      { context: { ...input.context, errorCode: "UPLOAD_FAILED" } },
+      { context: { ...input.context, errorName: "UploadError" } },
+      { source: "extension_content" },
+      { source: "backend" },
+    ]) {
+      const result = normalizeIncidentEvent(
+        { ...input, ...change },
+        now,
+      ).value!;
+      expect(result.event).toBe("own_context_exception");
+      expect(result.definition.severity).toBe("blocking");
+    }
+  });
+
   it("retains bounded registered drop types without accepting caller text", () => {
     const types = {
       token_refresh_failed: 100,

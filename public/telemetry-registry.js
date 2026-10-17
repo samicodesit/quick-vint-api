@@ -260,6 +260,11 @@ globalThis.AutoListerEventRegistry = {
     kind: "incident",
     severity: "blocking",
   },
+  browser_script_exception: {
+    kind: "incident",
+    severity: "warning",
+    stage: "browser_script",
+  },
   webhook_failed: {
     kind: "incident",
     severity: "blocking",

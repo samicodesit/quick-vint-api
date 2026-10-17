@@ -19,6 +19,21 @@ type Definition = {
 import definitions from "./registry.json";
 const registry = definitions as Record<string, Definition>;
 
+const browserScriptSignatures = new Map([
+  [
+    "TypeError: undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')",
+    "BROWSER_INJECTED_WALLET",
+  ],
+  [
+    "TypeError: undefined is not an object (evaluating 'window.__firefox__.reader')",
+    "BROWSER_INJECTED_READER",
+  ],
+  [
+    "ReferenceError: Can't find variable: __firefox__",
+    "BROWSER_INJECTED_READER",
+  ],
+]);
+
 export function classifyEvent(name: string): Definition {
   return registry[name] || { kind: "business" };
 }
@@ -221,6 +236,24 @@ export function normalizeIncidentEvent(
     input.context,
     definition.kind === "incident" || definition.kind === "report",
   );
+  let eventName = input.event;
+  const browserScriptCode = browserScriptSignatures.get(context.message);
+  // iOS browser injections can wear the page URL. Only these exact known
+  // signatures with a lone global frame are external. Keep ambiguous errors
+  // blocking, and retain browser warnings in separate groups without email.
+  if (
+    input.event === "own_context_exception" &&
+    input.source === "phone_upload_page" &&
+    !context.errorCode &&
+    context.stack?.trim() === "global code@[url]" &&
+    browserScriptCode &&
+    ["TypeError", "ReferenceError"].includes(context.errorName) &&
+    context.message.startsWith(`${context.errorName}: `)
+  ) {
+    eventName = "browser_script_exception";
+    definition = classifyEvent(eventName);
+    context.errorCode = browserScriptCode;
+  }
   const release = redact(
     input.extensionVersion || input.release || "unknown",
     80,
@@ -258,7 +291,7 @@ export function normalizeIncidentEvent(
   return {
     value: {
       id: input.id,
-      event: input.event,
+      event: eventName,
       occurredAt: new Date(time).toISOString(),
       source: redact(input.source || "unknown", 80),
       release,

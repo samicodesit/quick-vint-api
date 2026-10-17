@@ -1349,6 +1349,8 @@
 
             function setDraftControlsLocked(locked) {
                 state.draftLocked = locked;
+                const expiryHint = document.querySelector('.session-expiry-hint');
+                if (expiryHint) expiryHint.style.display = state.terminal || state.cancelled ? 'none' : '';
                 fileInput.disabled = locked;
                 mainBtn.disabled = locked;
                 fileList.querySelectorAll('.move-up, .move-down, .remove-photo').forEach((control) => {

@@ -52,7 +52,7 @@ try {
     page
       .locator("[data-draft-queue-title]")
       .textContent()
-      .then((text) => text.includes("2 need attention")),
+      .then((text) => text.includes("2 failed")),
   );
   await page.locator(".draft-queue-row button").first().click();
   await page.locator('[data-draft-field="title"]:visible').waitFor();
@@ -102,9 +102,9 @@ try {
     await page.locator("#draft-editor-title").innerText(),
     /Needs attention/,
   );
-  assert.match(
+  assert.equal(
     await page.locator("[data-draft-operation-status]").innerText(),
-    /previous text/i,
+    "Controlled definitive failure",
   );
   await page.evaluate(() =>
     navigator.clipboard.writeText("unchanged-failed-output"),

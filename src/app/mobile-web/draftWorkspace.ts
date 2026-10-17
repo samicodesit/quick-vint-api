@@ -1712,7 +1712,7 @@ export function mountDraftWorkspace(
     );
     find("[data-draft-operation-status]").textContent =
       (failedOutput
-        ? `${queue.failed.get(draft.id) || "Generation failed."}${hasText ? " Previous text kept." : ""}`
+        ? queue.failed.get(draft.id) || "Generation failed."
         : "") ||
       (queue.remaining.includes(draft.id)
         ? "Waiting for its turn. The previous text will be replaced."
@@ -2371,7 +2371,7 @@ export function mountDraftWorkspace(
       ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
       : queue.remaining.length
         ? `Paused · ${queue.completed.length} of ${generationCount} ready`
-        : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} need attention` : ""}`;
+        : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} failed` : ""}`;
     find("[data-draft-queue-copy]").textContent = queue.running
       ? "Keep AutoLister open while preparing."
       : "";

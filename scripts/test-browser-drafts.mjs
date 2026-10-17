@@ -4191,7 +4191,7 @@ try {
     await page.waitForFunction(() =>
       document
         .querySelector("[data-draft-queue-title]")
-        .textContent.includes("1 need attention"),
+        .textContent.includes("1 failed"),
     );
     await page.waitForFunction(() =>
       document

@@ -62,7 +62,7 @@ try {
         .locator("[data-draft-queue-title]")
         .textContent()
         .then((text) =>
-          text.includes(`${mode === "mixed" ? 1 : 2} need attention`),
+          text.includes(`${mode === "mixed" ? 1 : 2} failed`),
         ),
     "generation outcomes persisted",
   );

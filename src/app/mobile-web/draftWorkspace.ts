@@ -2357,6 +2357,7 @@ export function mountDraftWorkspace(
             failed: [...queue.failed],
             attempts: [...attempts],
             total: generationCount,
+            reviewIds,
           }),
         );
       else sessionStorage.removeItem(queueKey);
@@ -2476,6 +2477,16 @@ export function mountDraftWorkspace(
             typeof entry[1] === "string"
           )
             queue.failed.set(entry[0], entry[1].slice(0, 300));
+      reviewIds = [
+        ...new Set<string>([
+          ...(Array.isArray(saved.reviewIds)
+            ? saved.reviewIds.filter(validDraftId).slice(0, 20)
+            : []),
+          ...queue.completed,
+          ...queue.remaining,
+          ...queue.failed.keys(),
+        ]),
+      ].slice(0, 20);
       renderQueue();
     }
   } catch {}
@@ -3014,15 +3025,15 @@ export function mountDraftWorkspace(
     const order = reviewOrder();
     const index = order.indexOf(selected.value.id);
     if (index < 0) return;
-    if (generationCount <= 1 || !reviewIds.includes(selected.value.id))
-      return order[index + delta];
+    const batchReview =
+      generationCount > 1 && reviewIds.includes(selected.value.id);
     const candidates =
       delta > 0 ? order.slice(index + 1) : order.slice(0, index).reverse();
     return candidates.find((id) => {
       const draft = library.drafts.find((item) => item.id === id);
       return (
         draft &&
-        Boolean(draft.title || draft.description) &&
+        (!batchReview || Boolean(draft.title || draft.description)) &&
         !busy(draft) &&
         !outputFailed(draft)
       );

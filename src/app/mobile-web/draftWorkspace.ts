@@ -80,6 +80,8 @@ export function mountDraftWorkspace(
   let bulk = false;
   let composing = false;
   let reviewIds: string[] = [];
+  // Browser history owns the displayed review scope, never the live run order.
+  let queueReviewIds: string[] = [];
   let groupIds: string[] = [];
   let openedFromGrouping = false;
   let restoringHistory = false;
@@ -2066,6 +2068,8 @@ export function mountDraftWorkspace(
     bulk = false;
     composing = false;
     selected = makeAutosave(draft);
+    if (!restoringHistory && queueReviewIds.includes(id))
+      reviewIds = [...queueReviewIds];
     conflict = false;
     upsert(draft);
     renderEditor();
@@ -2357,7 +2361,7 @@ export function mountDraftWorkspace(
             failed: [...queue.failed],
             attempts: [...attempts],
             total: generationCount,
-            reviewIds,
+            reviewIds: queueReviewIds,
           }),
         );
       else sessionStorage.removeItem(queueKey);
@@ -2477,7 +2481,7 @@ export function mountDraftWorkspace(
             typeof entry[1] === "string"
           )
             queue.failed.set(entry[0], entry[1].slice(0, 300));
-      reviewIds = [
+      queueReviewIds = [
         ...new Set<string>([
           ...(Array.isArray(saved.reviewIds)
             ? saved.reviewIds.filter(validDraftId).slice(0, 20)
@@ -2487,6 +2491,7 @@ export function mountDraftWorkspace(
           ...queue.failed.keys(),
         ]),
       ].slice(0, 20);
+      reviewIds = [...queueReviewIds];
       renderQueue();
     }
   } catch {}
@@ -2545,6 +2550,7 @@ export function mountDraftWorkspace(
       target: "draft_workspace",
     });
     reviewIds = [...ids];
+    queueReviewIds = [...ids];
     rememberView();
     attempts.clear();
     chosen.clear();

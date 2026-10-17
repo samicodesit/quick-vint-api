@@ -118,6 +118,21 @@ and temporary uploads. See [local storage QA](qa/browser-drafts/local-storage.md
 for acceptance evidence and limits. Physical devices and live external integration
 remain release gates.
 
+For batch history regressions against the same fixture preview, run:
+
+```bash
+node scripts/test-web-batch-history.mjs
+WEB_HISTORY_ITEMS=distinct node scripts/test-web-batch-history.mjs
+```
+
+These use actual Back/Forward, a held sequential generation, reload, explicit
+Resume and Next. One case reverses the earlier batch's item order; the other
+uses different items. The live queue must persist its own order while a prior
+history view is displayed. Opening its ready draft from the library restores
+that queue's review order. Photos remain in IndexedDB. Auth, uploads and model
+responses are controlled; these checks do not certify native iOS suspension or
+production billing.
+
 ## Rollback
 
 Rebuild with `PUBLIC_LISTING_DRAFTS_ENABLED=false` to restore the earlier browser

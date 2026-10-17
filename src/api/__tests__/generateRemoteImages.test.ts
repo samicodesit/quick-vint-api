@@ -683,4 +683,79 @@ describe("/api/generate remote image handling", () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it("logs a failed Vinted photo download as photo preparation, not an OpenAI error", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (url: string) =>
+      String(url).includes("/second/")
+        ? new Response('{"result":"not-found"}', { status: 404 })
+        : new Response(Buffer.from("webp-bytes"), {
+            headers: { "content-type": "image/webp" },
+          }),
+    ) as typeof fetch;
+
+    try {
+      const module = await import("../../../api/generate.js");
+      const handler = (module as any).default;
+      const res = createResponse();
+
+      await handler(
+        {
+          method: "POST",
+          headers: {
+            authorization: "Bearer token",
+            "x-autolister-extension-version": "1.4.15",
+          },
+          body: {
+            imageUrls: [
+              "https://images1.vinted.net/t/first/f800/1.webp?s=sig",
+              "https://images1.vinted.net/t/second/f800/2.webp",
+            ],
+            imageMetadata: [
+              {
+                index: 1,
+                promptSource: "vinted_dom_image",
+                capturedUploadMatchStatus: "no_capture_expired",
+              },
+              {
+                index: 2,
+                promptSource: "vinted_dom_image",
+                capturedUploadMatchStatus: "no_capture_expired",
+              },
+            ],
+            languageCode: "en",
+            titleLanguageCode: "en",
+            descriptionLanguageCode: "en",
+            tone: "standard",
+            useEmojis: false,
+            useHashtags: true,
+            useBulletPoints: true,
+            descriptionLength: "short",
+            generationMode: "manual",
+          },
+        } as any,
+        res as any,
+      );
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({
+        error:
+          "There was an issue processing your images. Please try different images.",
+      });
+      expect(createCompletion).not.toHaveBeenCalled();
+      expect(refundGenerationReservation).toHaveBeenCalledWith(
+        "reservation-1",
+        "invalid_generation_input",
+      );
+      expect(logRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          responseStatus: 400,
+          flaggedReason:
+            "Photo preparation failed: Invalid image URL: photo 2 of 2 (Vinted photo) fetch failed (404). | Photos: 2x vinted_page_photo (no_capture_expired)",
+        }),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

@@ -116,6 +116,7 @@
     "expectedCount"
   ],
   "booleans": [
+    "signInRequired",
     "titleFieldPresent",
     "descriptionFieldPresent",
     "titleMatches",

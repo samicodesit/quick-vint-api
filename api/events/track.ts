@@ -454,6 +454,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           raw.source === "mobile_web" ||
           [
             "auth_action_result",
+            "auth_session_result",
             "web_app_click",
             "home_hero_exposure",
             "chrome_store_click",

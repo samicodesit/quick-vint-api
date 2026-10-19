@@ -591,6 +591,30 @@ it.skipIf(!enabled)(
               );
             });
           expect(spareInside).toBeLessThanOrEqual(2);
+          await page.evaluate(() => {
+            const main = document.querySelector<HTMLElement>(
+              ".mobile-workspace-main",
+            )!;
+            const padding = parseFloat(getComputedStyle(main).paddingTop);
+            main.style.paddingTop = `${padding + 16}px`;
+            window.dispatchEvent(new Event("resize"));
+          });
+          await page.evaluate(
+            () =>
+              new Promise<void>((resolve) =>
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => resolve()),
+                ),
+              ),
+          );
+          await page
+            .locator(".mobile-workspace-main")
+            .evaluate((main: HTMLElement) =>
+              main.style.removeProperty("padding-top"),
+            );
+          await expect
+            .poll(async () => (await readBounds()).footerGap)
+            .toBeLessThanOrEqual(16);
           await page.emulateMedia({ reducedMotion: "no-preference" });
           const shimmer = await page
             .locator("[data-style-finish]")

@@ -284,6 +284,7 @@ export function mountStyleOnboarding(
   fitPreview();
   const layoutObserver = new ResizeObserver(fitPreview);
   layoutObserver.observe(footer);
+  if (root.parentElement) layoutObserver.observe(root.parentElement);
   const header = root
     .closest(".mobile-workspace-shell")
     ?.querySelector(".mobile-workspace-header");

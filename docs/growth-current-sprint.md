@@ -4,6 +4,7 @@
 
 - Owner found the original static halo too faint. Use this style now has a stronger blue halo, a deeper blue fill and a light sweep that repeats every 4.2 seconds. The label stays above the decorative layer and the button does not move. Reduced-motion mode removes the sweep while retaining the stronger halo. The light overlay is capped at 20 percent so white text retains at least 4.6:1 calculated contrast across the fill.
 - Actual browser captures at the start and middle of the sweep differ visibly; this checks rendered pixels as well as animation state. Short previews still fit their content, long descriptions and notes scroll, the settings remain stationary, and the fixed bar retains a 12-pixel gap. The 48-case responsive browser regression passes, including moving/disabled animation modes. Measurements wait for font and resize-observer layout completion. No new helper text, homepage, experiment, auth or preference change is included. Final production verification follows.
+- Full-suite load exposed a stale 435-pixel available-height measurement at 700 by 600 when the actual available height was 451 pixels. The preview container can move without resizing the header/footer. The observer now also tracks its parent container; a controlled 16-pixel parent-layout change reproduces the stale spacing and verifies recovery. The corrected build passes all 1,032 tests, including nine actual browser cases and the motion/layout checks. The earlier failed release gate did not push the shimmer change.
 
 ## Preview content height, October 19, 2026
 

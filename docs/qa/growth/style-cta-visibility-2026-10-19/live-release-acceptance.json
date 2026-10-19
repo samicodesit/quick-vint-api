@@ -1,0 +1,325 @@
+{
+  "commit": "42f21318c24f5c826caf190abd2e9c3583f95b08",
+  "deployment": "https://vercel.com/ahmed-samis-projects-e6ef0336/quick-vint-api/6hzGfwY4ffVSPxcj73byn1nEJfLp",
+  "deploymentCompletedAt": "2026-10-19T14:55:35Z",
+  "pushProof": [
+    "Repo: quick-vint-api",
+    "Branch pushed: main",
+    "fd770e5..42f2131  main -> main"
+  ],
+  "gate": {
+    "passed": true,
+    "testsPassed": 1031,
+    "testsSkipped": 4,
+    "filesPassed": 136
+  },
+  "app": {
+    "checkedAt": "2026-10-19T14:56:16.220Z",
+    "origin": "https://autolister.app",
+    "cases": [
+      {
+        "width": 320,
+        "height": 568,
+        "footerGap": 12,
+        "presentation": {
+          "buttonShadow": "rgba(52, 88, 223, 0.125) 0px 0px 0px 3px, rgba(52, 88, 223, 0.314) 0px 4px 16px 0px",
+          "footerPosition": "fixed",
+          "footerShadow": "rgba(28, 37, 51, 0.18) 0px -10px 28px 0px, rgba(28, 37, 51, 0.08) 0px -1px 0px 0px"
+        },
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "footerGap": 12,
+        "presentation": {
+          "buttonShadow": "rgba(52, 88, 223, 0.125) 0px 0px 0px 3px, rgba(52, 88, 223, 0.314) 0px 4px 16px 0px",
+          "footerPosition": "fixed",
+          "footerShadow": "rgba(28, 37, 51, 0.18) 0px -10px 28px 0px, rgba(28, 37, 51, 0.08) 0px -1px 0px 0px"
+        },
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 568,
+        "height": 320,
+        "footerGap": -76.25,
+        "presentation": {
+          "buttonShadow": "rgba(52, 88, 223, 0.125) 0px 0px 0px 3px, rgba(52, 88, 223, 0.314) 0px 4px 16px 0px",
+          "footerPosition": "fixed",
+          "footerShadow": "rgba(28, 37, 51, 0.18) 0px -10px 28px 0px, rgba(28, 37, 51, 0.08) 0px -1px 0px 0px"
+        },
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "footerGap": 20,
+        "presentation": {
+          "buttonShadow": "rgba(52, 88, 223, 0.125) 0px 0px 0px 3px, rgba(52, 88, 223, 0.314) 0px 4px 16px 0px",
+          "footerPosition": "static",
+          "footerShadow": "none"
+        },
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "footerGap": 20,
+        "presentation": {
+          "buttonShadow": "rgba(52, 88, 223, 0.125) 0px 0px 0px 3px, rgba(52, 88, 223, 0.314) 0px 4px 16px 0px",
+          "footerPosition": "static",
+          "footerShadow": "none"
+        },
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      }
+    ],
+    "directSignInFresh": true
+  },
+  "article": {
+    "checkedAt": "2026-10-19T14:57:32.426Z",
+    "base": "https://autolister.app",
+    "cases": [
+      {
+        "locale": "en",
+        "width": 320,
+        "status": 200,
+        "scrollWidth": 320,
+        "layout": "288px",
+        "beforeTitle": "Before",
+        "afterTitle": "After",
+        "afterDetails": 5,
+        "hashtags": "#Maje #dress #blackdress #puffsleeves #wrapdress #vneckdress #textureddress #minidress #black #womensfashion",
+        "font": "17px",
+        "beforeCTA": true,
+        "ctaGap": 32,
+        "ctaNext": true,
+        "actions": [
+          {
+            "label": "Create a draft",
+            "href": "/app?ref=blog_description_formula",
+            "height": 48
+          },
+          {
+            "label": "Install Chrome extension",
+            "href": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=website&utm_campaign=website_cta&utm_content=blog_description_formula_extension",
+            "height": 48
+          }
+        ],
+        "mobileStack": true,
+        "extraLabels": 0,
+        "images": 0
+      },
+      {
+        "locale": "de",
+        "width": 320,
+        "status": 200,
+        "scrollWidth": 320,
+        "layout": "288px",
+        "beforeTitle": "Vorher",
+        "afterTitle": "Nachher",
+        "afterDetails": 5,
+        "hashtags": "#Maje #Kleid #schwarzesKleid #Puff\u00e4rmel #Wickeloptik #VAusschnitt #Minikleid #schwarz #Damenmode",
+        "font": "17px",
+        "beforeCTA": true,
+        "ctaGap": 32,
+        "ctaNext": true,
+        "actions": [
+          {
+            "label": "Entwurf erstellen",
+            "href": "/app?ref=blog_de_description_formula",
+            "height": 48
+          },
+          {
+            "label": "Chrome-Erweiterung installieren",
+            "href": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=website&utm_campaign=website_cta&utm_content=blog_de_description_formula_extension",
+            "height": 68
+          }
+        ],
+        "mobileStack": true,
+        "extraLabels": 0,
+        "images": 0
+      },
+      {
+        "locale": "en",
+        "width": 390,
+        "status": 200,
+        "scrollWidth": 390,
+        "layout": "358px",
+        "beforeTitle": "Before",
+        "afterTitle": "After",
+        "afterDetails": 5,
+        "hashtags": "#Maje #dress #blackdress #puffsleeves #wrapdress #vneckdress #textureddress #minidress #black #womensfashion",
+        "font": "17px",
+        "beforeCTA": true,
+        "ctaGap": 32,
+        "ctaNext": true,
+        "actions": [
+          {
+            "label": "Create a draft",
+            "href": "/app?ref=blog_description_formula",
+            "height": 48
+          },
+          {
+            "label": "Install Chrome extension",
+            "href": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=website&utm_campaign=website_cta&utm_content=blog_description_formula_extension",
+            "height": 48
+          }
+        ],
+        "mobileStack": true,
+        "extraLabels": 0,
+        "images": 0,
+        "exactLinkJourney": true
+      },
+      {
+        "locale": "de",
+        "width": 390,
+        "status": 200,
+        "scrollWidth": 390,
+        "layout": "358px",
+        "beforeTitle": "Vorher",
+        "afterTitle": "Nachher",
+        "afterDetails": 5,
+        "hashtags": "#Maje #Kleid #schwarzesKleid #Puff\u00e4rmel #Wickeloptik #VAusschnitt #Minikleid #schwarz #Damenmode",
+        "font": "17px",
+        "beforeCTA": true,
+        "ctaGap": 32,
+        "ctaNext": true,
+        "actions": [
+          {
+            "label": "Entwurf erstellen",
+            "href": "/app?ref=blog_de_description_formula",
+            "height": 48
+          },
+          {
+            "label": "Chrome-Erweiterung installieren",
+            "href": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=website&utm_campaign=website_cta&utm_content=blog_de_description_formula_extension",
+            "height": 48
+          }
+        ],
+        "mobileStack": true,
+        "extraLabels": 0,
+        "images": 0,
+        "exactLinkJourney": true
+      },
+      {
+        "locale": "en",
+        "width": 1440,
+        "status": 200,
+        "scrollWidth": 1440,
+        "layout": "376px 376px",
+        "beforeTitle": "Before",
+        "afterTitle": "After",
+        "afterDetails": 5,
+        "hashtags": "#Maje #dress #blackdress #puffsleeves #wrapdress #vneckdress #textureddress #minidress #black #womensfashion",
+        "font": "17px",
+        "beforeCTA": true,
+        "ctaGap": 32,
+        "ctaNext": true,
+        "actions": [
+          {
+            "label": "Create a draft",
+            "href": "/app?ref=blog_description_formula",
+            "height": 48
+          },
+          {
+            "label": "Install Chrome extension",
+            "href": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=website&utm_campaign=website_cta&utm_content=blog_description_formula_extension",
+            "height": 48
+          }
+        ],
+        "mobileStack": false,
+        "extraLabels": 0,
+        "images": 0
+      },
+      {
+        "locale": "de",
+        "width": 1440,
+        "status": 200,
+        "scrollWidth": 1440,
+        "layout": "376px 376px",
+        "beforeTitle": "Vorher",
+        "afterTitle": "Nachher",
+        "afterDetails": 5,
+        "hashtags": "#Maje #Kleid #schwarzesKleid #Puff\u00e4rmel #Wickeloptik #VAusschnitt #Minikleid #schwarz #Damenmode",
+        "font": "17px",
+        "beforeCTA": true,
+        "ctaGap": 32,
+        "ctaNext": true,
+        "actions": [
+          {
+            "label": "Entwurf erstellen",
+            "href": "/app?ref=blog_de_description_formula",
+            "height": 48
+          },
+          {
+            "label": "Chrome-Erweiterung installieren",
+            "href": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl?utm_source=autolister_site&utm_medium=website&utm_campaign=website_cta&utm_content=blog_de_description_formula_extension",
+            "height": 48
+          }
+        ],
+        "mobileStack": false,
+        "extraLabels": 0,
+        "images": 0
+      }
+    ]
+  },
+  "homepage": {
+    "matched": true,
+    "before": {
+      "/": "9095c9d09e262ed54e1fa0705e711b699a405a5e2aeeee0ebf534e9a834293ef",
+      "/fr/": "a1b387531889beedbaae3027015c417bdf6732559e9ec8915f14a3eb0923a99c",
+      "/de/": "f516974746184c7d61a10fc5eb4092600750ce90a3561eb701d577715ff7f431",
+      "/nl/": "3f8b2103c3653edd73a54a5a6b4afa383818050af9008a7673161956a8c60e5e",
+      "/pl/": "0564e542c76b672b73a8d16febe6e43e473d731a09f5000e6d9a524d99d305fc",
+      "/es/": "3289666b142867b90504d08a5a0b5573948a05b0a672c0a7f2a21e49c79b132a",
+      "/it/": "5c1e4296debf44974acbd19bf4f6129085b9fae8e82a028053a35957384d73d1",
+      "/pt/": "c5648235b64a2c0c596c64074b0334e87624ad27b05e35d185a527e84fd618a6"
+    },
+    "after": {
+      "/": "9095c9d09e262ed54e1fa0705e711b699a405a5e2aeeee0ebf534e9a834293ef",
+      "/fr/": "a1b387531889beedbaae3027015c417bdf6732559e9ec8915f14a3eb0923a99c",
+      "/de/": "f516974746184c7d61a10fc5eb4092600750ce90a3561eb701d577715ff7f431",
+      "/nl/": "3f8b2103c3653edd73a54a5a6b4afa383818050af9008a7673161956a8c60e5e",
+      "/pl/": "0564e542c76b672b73a8d16febe6e43e473d731a09f5000e6d9a524d99d305fc",
+      "/es/": "3289666b142867b90504d08a5a0b5573948a05b0a672c0a7f2a21e49c79b132a",
+      "/it/": "5c1e4296debf44974acbd19bf4f6129085b9fae8e82a028053a35957384d73d1",
+      "/pt/": "c5648235b64a2c0c596c64074b0334e87624ad27b05e35d185a527e84fd618a6"
+    }
+  },
+  "limits": [
+    "Short windows intentionally scroll document content under a fixed CTA; initial control-to-footer gap can be negative until scrolling.",
+    "Auth/API/telemetry responses intercepted for live UI acceptance. No real signup, email, generation or purchase.",
+    "Controlled Google/email handoffs passed in the full local gate. Physical phones remain untested.",
+    "Browser-local preferences do not transfer across browsers or devices."
+  ]
+}

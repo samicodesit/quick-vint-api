@@ -1086,7 +1086,14 @@ export function mountMobileWebApp(
     });
     if (latestUsage) draftWorkspace.updateUsage(latestUsage);
   };
+  const setSignInRoute = (signIn: boolean) => {
+    const url = new URL(window.location.href);
+    if (signIn) url.searchParams.set("signin", "1");
+    else url.searchParams.delete("signin");
+    window.history.replaceState(window.history.state, "", url);
+  };
   const showEntry = (editStyle = false) => {
+    if (editStyle) setSignInRoute(false);
     const storage = getStorage();
     const setup = asElement<HTMLElement>(root, "[data-style-setup]");
     const pending = readPreAuthStyle(storage);
@@ -1105,11 +1112,7 @@ export function mountMobileWebApp(
       showAuth(root);
       return;
     }
-    if (
-      !setup ||
-      !window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.draftsEnabled ||
-      (!editStyle && pending)
-    ) {
+    if (!setup || !window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.draftsEnabled) {
       showAuth(root);
       return;
     }
@@ -1134,6 +1137,7 @@ export function mountMobileWebApp(
           (settings, action) => {
             if (!storage) throw new Error("style_storage_unavailable");
             savePreAuthStyle(storage, action === "skip" ? null : settings);
+            setSignInRoute(true);
             styleSetupCleanup?.();
             styleSetupCleanup = undefined;
             delete shell.dataset.styleSetup;

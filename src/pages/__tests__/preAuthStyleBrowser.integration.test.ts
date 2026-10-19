@@ -300,6 +300,53 @@ it.skipIf(!enabled).each(["google", "email-code", "email-link"])(
 );
 
 it.skipIf(!enabled)(
+  "opens the preview on a normal app visit even with a saved choice, and resumes only explicit sign-in",
+  async () => {
+    const { context, page } = await fixture(440, 956);
+    try {
+      await chooseStyle(page);
+      await page.goto(base + "/app");
+      await expect(page.locator("section[data-style-setup]")).toBeVisible({
+        timeout: 1500,
+      });
+      await expect(page.locator('[data-mobile-web="auth-card"]')).toBeHidden();
+      await expect(
+        page.locator('[data-style-field="titleLanguageCode"]'),
+      ).toHaveValue("de");
+      await expect(
+        page.locator('[data-style-field="descriptionLanguageCode"]'),
+      ).toHaveValue("fr");
+      await expect(page.locator("[data-style-note-preview]")).toHaveText(
+        chosen.descriptionFooterText,
+      );
+      await page.click("[data-style-finish]");
+      expect(new URL(page.url()).searchParams.get("signin")).toBe("1");
+      await page.reload();
+      await expect(page.locator('[data-mobile-web="auth-card"]')).toBeVisible();
+      await page.click('[data-mobile-web="change-style"]');
+      expect(new URL(page.url()).searchParams.has("signin")).toBe(false);
+      await page.reload();
+      await expect(page.locator("section[data-style-setup]")).toBeVisible();
+      await expect(
+        page.locator('[data-style-field="titleLanguageCode"]'),
+      ).toHaveValue("de");
+      await page.click('[data-mobile-web="direct-sign-in"]');
+      await expect(page.locator('[data-mobile-web="auth-card"]')).toBeVisible();
+      expect(
+        await page.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("autolister:pre-auth-style:v1")!)
+              .settings,
+        ),
+      ).toEqual(chosen);
+    } finally {
+      await context.close();
+    }
+  },
+  15000,
+);
+
+it.skipIf(!enabled)(
   "keeps saved preferences when skipping and opens returning sessions without a preview",
   async () => {
     const first = await fixture(390, 844, { existing: true });
@@ -419,8 +466,6 @@ it.skipIf(!enabled)(
         page.locator('[data-mobile-web="callback-status"]'),
       ).toHaveAttribute("data-state", "error");
       await page.goto(base + "/app");
-      await expect(page.locator('[data-mobile-web="auth-card"]')).toBeVisible();
-      await page.click('[data-mobile-web="change-style"]');
       await expect(page.locator("section[data-style-setup]")).toBeVisible();
       expect(
         await page

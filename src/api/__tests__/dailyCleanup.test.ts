@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const cleanupExpiredRecords = vi.fn(async () => {});
+const cleanupDraftPhotos = vi.fn(async () => 0);
 const compactOldLogs = vi.fn(async () => ({
   cutoffHours: 6,
   cutoffIso: "2026-06-27T06:00:00.000Z",
@@ -31,6 +32,8 @@ vi.mock("../../../utils/rateLimiter", () => ({
     cleanupExpiredRecords,
   },
 }));
+
+vi.mock("../../../utils/listingDrafts", () => ({ cleanupDraftPhotos }));
 
 vi.mock("../../../utils/apiLogger", () => ({
   ApiLogger: {
@@ -123,6 +126,26 @@ describe("daily cleanup cron", () => {
       cutoffHours: 6,
       error: null,
     });
+  });
+
+  it("reports failed compaction to the scheduler while completing other cleanup", async () => {
+    compactOldLogs.mockRejectedValueOnce({
+      code: "57014",
+      message: "canceling statement due to statement timeout",
+    });
+    const module = await import("../../../api/cron/daily-cleanup.js");
+    const res = createResponse();
+
+    await (module as any).default(authorizedRequest() as any, res as any);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.results.apiLogs.success).toBe(false);
+    expect(res.body.results.apiLogs.error).toBe(
+      "canceling statement due to statement timeout",
+    );
+    expect(res.body.results.tempUploads.success).toBe(true);
+    expect(cleanupDraftPhotos).toHaveBeenCalledTimes(1);
+    expect(res.body.results.listingDraftPhotos.success).toBe(true);
   });
 
   it("keeps storage entries that have no creation timestamp", async () => {

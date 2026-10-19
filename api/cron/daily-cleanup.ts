@@ -259,8 +259,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch {
     results.listingDraftPhotos.error = "Draft photo cleanup failed";
   }
-  return res.status(200).json({
-    message: "Daily cleanup job completed",
+  return res.status(results.apiLogs.success ? 200 : 500).json({
+    message: results.apiLogs.success
+      ? "Daily cleanup job completed"
+      : "Daily cleanup job completed with API log compaction errors",
     results,
   });
 }

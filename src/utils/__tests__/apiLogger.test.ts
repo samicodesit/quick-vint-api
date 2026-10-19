@@ -252,6 +252,45 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     vi.useRealTimers();
   });
 
+  it("bounds legacy payload cleanup writes while processing every selected ID once", async () => {
+    const ids = Array.from({ length: 500 }, (_, index) => `legacy-${index}`);
+    selectResponse = { data: ids.map((id) => ({ id })), error: null };
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+
+    const result = await ApiLogger.compactOldLogs({
+      cutoffHours: 6,
+      batchSize: 500,
+    });
+
+    expect(result.compacted).toBe(500);
+    expect(updateCalls).toHaveLength(25);
+    expect(updateCalls.every((call) => call.args.p_ids.length <= 20)).toBe(
+      true,
+    );
+    expect(updateCalls.flatMap((call) => call.args.p_ids)).toEqual(ids);
+  });
+
+  it("keeps a failed cleanup RPC visible and stops before later chunks", async () => {
+    selectResponse = {
+      data: Array.from({ length: 50 }, (_, index) => ({
+        id: `legacy-${index}`,
+      })),
+      error: null,
+    };
+    const { supabase } = await import("../../../utils/supabaseClient.js");
+    const failure = {
+      code: "57014",
+      message: "canceling statement due to statement timeout",
+    };
+    updateResponse = { error: failure };
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+
+    await expect(ApiLogger.compactOldLogs({ batchSize: 50 })).rejects.toEqual(
+      failure,
+    );
+    expect(vi.mocked(supabase.rpc)).toHaveBeenCalledTimes(1);
+  });
+
   it("does not issue an update when no old logs need compaction", async () => {
     selectResponse = { data: [], error: null };
 

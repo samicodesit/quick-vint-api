@@ -2,7 +2,9 @@ import type { VercelRequest } from "@vercel/node";
 import { supabase } from "./supabaseClient";
 
 const INTERNAL_LOG_EXCLUDED_EMAILS = new Set(["samicodesit@gmail.com"]);
-const API_LOG_COMPACTION_UPDATE_CHUNK_SIZE = 200;
+// Legacy logs can hold megabytes of TOAST data per row. Keep each write well
+// below the existing RPC's 200-row ceiling and eight-second statement timeout.
+const API_LOG_COMPACTION_UPDATE_CHUNK_SIZE = 20;
 
 export interface ApiLogData {
   userId?: string;

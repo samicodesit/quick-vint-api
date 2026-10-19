@@ -529,28 +529,45 @@ it.skipIf(!enabled)(
       });
       try {
         await expect(page.locator("section[data-style-setup]")).toBeVisible();
-        const bounds = await page.evaluate(() => {
-          const action = document
-            .querySelector("[data-style-finish]")!
-            .getBoundingClientRect();
-          return {
-            width: innerWidth,
-            scrollWidth: document.documentElement.scrollWidth,
-            action: {
-              bottom: action.bottom,
-              top: action.top,
-              height: action.height,
-            },
-            previewHeight: document
-              .querySelector("[data-style-preview]")!
-              .getBoundingClientRect().height,
-            footerGap:
-              document.querySelector(".style-footer")!.getBoundingClientRect()
-                .top -
-              document.querySelector(".style-controls")!.getBoundingClientRect()
-                .bottom,
-          };
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
         });
+        const readBounds = () =>
+          page.evaluate(() => {
+            const action = document
+              .querySelector("[data-style-finish]")!
+              .getBoundingClientRect();
+            return {
+              width: innerWidth,
+              scrollWidth: document.documentElement.scrollWidth,
+              action: {
+                bottom: action.bottom,
+                top: action.top,
+                height: action.height,
+              },
+              previewHeight: document
+                .querySelector("[data-style-preview]")!
+                .getBoundingClientRect().height,
+              footerGap:
+                document.querySelector(".style-footer")!.getBoundingClientRect()
+                  .top -
+                document
+                  .querySelector(".style-controls")!
+                  .getBoundingClientRect().bottom,
+            };
+          });
+        let bounds = await readBounds();
+        if (height >= 568 && width <= 700) {
+          await expect
+            .poll(async () => {
+              bounds = await readBounds();
+              return bounds.footerGap;
+            })
+            .toBeLessThanOrEqual(16);
+        }
         expect(bounds.scrollWidth).toBeLessThanOrEqual(width);
         expect(bounds.action.bottom).toBeLessThanOrEqual(height);
         expect(bounds.action.height).toBeGreaterThanOrEqual(48);
@@ -574,6 +591,36 @@ it.skipIf(!enabled)(
               );
             });
           expect(spareInside).toBeLessThanOrEqual(2);
+          await page.emulateMedia({ reducedMotion: "no-preference" });
+          const shimmer = await page
+            .locator("[data-style-finish]")
+            .evaluate((button: HTMLElement) => {
+              const effect = getComputedStyle(button, "::after");
+              return {
+                animation: effect.animationName,
+                transform: effect.transform,
+              };
+            });
+          expect(shimmer.animation).not.toBe("none");
+          await expect
+            .poll(() =>
+              page
+                .locator("[data-style-finish]")
+                .evaluate(
+                  (button: HTMLElement) =>
+                    getComputedStyle(button, "::after").transform,
+                ),
+            )
+            .not.toBe(shimmer.transform);
+          await page.emulateMedia({ reducedMotion: "reduce" });
+          expect(
+            await page
+              .locator("[data-style-finish]")
+              .evaluate(
+                (button: HTMLElement) =>
+                  getComputedStyle(button, "::after").animationName,
+              ),
+          ).toBe("none");
           if (process.env.PREAUTH_STYLE_BROWSER_OUTPUT) {
             await mkdir(process.env.PREAUTH_STYLE_BROWSER_OUTPUT, {
               recursive: true,
@@ -612,7 +659,10 @@ it.skipIf(!enabled)(
         }
         if (height >= 568 && width <= 700) {
           expect(bounds.footerGap).toBeGreaterThanOrEqual(0);
-          expect(bounds.footerGap).toBeLessThanOrEqual(16);
+          expect(
+            bounds.footerGap,
+            `${width}x${height} ${locale}`,
+          ).toBeLessThanOrEqual(16);
         }
         expect(
           await page

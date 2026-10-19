@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-19T15:25:32.471Z",
+  "base": "http://127.0.0.1:46481",
+  "viewport": {
+    "width": 440,
+    "height": 956
+  },
+  "short": {
+    "cardBottom": 501,
+    "settingsTop": 602,
+    "footerGap": 12,
+    "spareInside": 0,
+    "previewHeight": 383,
+    "previewContentHeight": 383
+  },
+  "long": {
+    "cardBottom": 590,
+    "settingsTop": 602,
+    "footerGap": 12,
+    "spareInside": -0.5,
+    "previewHeight": 472,
+    "previewContentHeight": 599
+  },
+  "visibleMotionFramesDiffer": true,
+  "reducedMotion": {
+    "animation": "none",
+    "shadow": "rgba(117, 150, 255, 0.4) 0px 0px 0px 3px, rgba(52, 88, 223, 0.65) 0px 0px 18px 0px, rgba(38, 57, 200, 0.4) 0px 6px 24px 0px"
+  },
+  "pageErrors": [],
+  "limits": "Real built assets with API/auth/telemetry isolated. No account, email, generation or payment."
+}

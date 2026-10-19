@@ -1,5 +1,10 @@
 # AutoLister AI Growth Current Sprint
 
+## Stronger style CTA, October 19, 2026
+
+- Owner found the original static halo too faint. Use this style now has a stronger blue halo, a deeper blue fill and a light sweep that repeats every 4.2 seconds. The label stays above the decorative layer and the button does not move. Reduced-motion mode removes the sweep while retaining the stronger halo. The light overlay is capped at 20 percent so white text retains at least 4.6:1 calculated contrast across the fill.
+- Actual browser captures at the start and middle of the sweep differ visibly; this checks rendered pixels as well as animation state. Short previews still fit their content, long descriptions and notes scroll, the settings remain stationary, and the fixed bar retains a 12-pixel gap. The 48-case responsive browser regression passes, including moving/disabled animation modes. Measurements wait for font and resize-observer layout completion. No new helper text, homepage, experiment, auth or preference change is included. Final production verification follows.
+
 ## Preview content height, October 19, 2026
 
 - Owner requested that the phone preview card end at its content, with unused vertical space between the card and the bottom settings. Scoped the change to the existing single-column entry layout: the card aligns at the top and fits its content up to the available row height. Longer content keeps its internal scroll area. Settings, fixed CTA, shadow and 12-pixel bar separation retain their positions. No UI copy, preference, auth, homepage or A/B change is included.

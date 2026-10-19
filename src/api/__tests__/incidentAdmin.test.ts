@@ -30,6 +30,111 @@ beforeEach(() => {
   vi.clearAllMocks();
   delete process.env.INCIDENT_PROCESSING_PAUSED;
 });
+it("retrieves an owner's referenced refresh beyond the newest 50 group operations", async () => {
+  const id = "a423926a-35a6-4bf5-8027-8ab335c71110";
+  const owner = "a423926a-35a6-4bf5-8027-8ab335c71111";
+  const operation = "a423926a-35a6-4bf5-8027-8ab335c71112";
+  const target = {
+    id: `${owner}:${operation}`,
+    incident_id: id,
+    user_id: owner,
+    operation_id: operation,
+    identity_verified: true,
+    progress: { release: "1.4.21", phase: "restore_session" },
+  };
+  const rows = [
+    ...Array.from({ length: 55 }, (_, i) => ({
+      ...target,
+      operation_id: `newer-${i}`,
+    })),
+    { ...target, user_id: "another-owner" },
+    { ...target, incident_id: "another-group" },
+    target,
+  ];
+  mocks.from.mockImplementation((table: string) => {
+    const filters: Array<[string, unknown]> = [];
+    const query: any = {};
+    for (const method of ["select", "gt", "order"]) query[method] = () => query;
+    query.eq = (field: string, value: unknown) => {
+      filters.push([field, value]);
+      return query;
+    };
+    query.maybeSingle = async () => ({
+      data: { id, evidence_expires_at: "2099-01-01T00:00:00Z" },
+    });
+    query.limit = async (limit: number) => ({
+      data:
+        table === "incident_flows"
+          ? rows
+              .filter((row) =>
+                filters.every(
+                  ([field, value]) => (row as any)[field] === value,
+                ),
+              )
+              .slice(0, limit)
+          : [],
+    });
+    return query;
+  });
+  const res = response();
+  await handleIssues(
+    { method: "GET", query: { action: "issue-detail", id } } as any,
+    res,
+  );
+  expect(res.body.operations).toHaveLength(50);
+  expect(res.body.operations).not.toContainEqual(target);
+  expect(res.body.moreOperations).toBe(true);
+  await handleIssues(
+    {
+      method: "GET",
+      query: {
+        action: "issue-detail",
+        id,
+        user_id: owner,
+        operation_id: operation,
+      },
+    } as any,
+    res,
+  );
+  expect(res.code).toBe(200);
+  expect(res.body.operations).toEqual([target]);
+  expect(res.body.moreOperations).toBe(false);
+  await handleIssues(
+    {
+      method: "GET",
+      query: {
+        action: "issue-detail",
+        id,
+        user_id: id,
+        operation_id: operation,
+      },
+    } as any,
+    res,
+  );
+  expect(res.body.operations).toEqual([]);
+});
+
+it("rejects invalid or unscoped operation lookups before database access", async () => {
+  const id = "a423926a-35a6-4bf5-8027-8ab335c71110";
+  for (const filters of [
+    { operation_id: id },
+    { operation_id: "invalid", user_id: id },
+    { operation_id: id, user_id: "invalid" },
+    { operation_id: [id, id], user_id: id },
+    { user_id: id },
+  ]) {
+    const res = response();
+    await handleIssues(
+      {
+        method: "GET",
+        query: { action: "issue-detail", id, ...filters },
+      } as any,
+      res,
+    );
+    expect(res.code).toBe(400);
+  }
+  expect(mocks.from).not.toHaveBeenCalled();
+});
 it("returns 50 summaries and a cursor containing the last returned row", async () => {
   const rows = Array.from({ length: 51 }, (_, i) => ({
     id: `a423926a-35a6-4bf5-8027-${String(i).padStart(12, "0")}`,

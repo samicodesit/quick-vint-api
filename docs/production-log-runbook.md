@@ -195,6 +195,21 @@ initiated by it also carries that ID as `parentOperationId`.
 These action records are business evidence, without new incident emails or
 watchdog flows. Original genuine auth failures remain incidents.
 
+## Referenced operations outside the newest issue detail window
+
+`GET /api/admin?action=issue-detail&id=<incidentId>` returns the newest 50
+retained operations. `moreOperations: true` means an older reference may still
+exist beyond that window. It does not establish a lost receipt.
+
+For an exact refresh reference from `auth_session_result`, add both
+`user_id=<authenticatedOwnerUuid>` and `operation_id=<failedOperationUuid>`.
+This reads only the matching retained flow in that incident and account. Read
+the outcome with `log-detail` first, then compare operation, verified ownership,
+release, phase and time. A flow summary does not reconstruct an expired or
+displaced full failure example, and a session outcome does not prove Generate
+or listing completion. An empty result does not establish recovery or absence
+of customer impact. Normal retention and admin authentication still apply.
+
 ## Codex Network Rule
 
 Codex sandboxed commands may fail with errors like:

@@ -115,6 +115,30 @@ export async function handleIssues(req: VercelRequest, res: VercelResponse) {
       const id = String(req.query.id || "");
       if (!uuid.test(id))
         return res.status(400).json({ error: "Invalid issue" });
+      const operationId = req.query.operation_id;
+      const userId = req.query.user_id;
+      const exactOperation = operationId !== undefined || userId !== undefined;
+      if (
+        exactOperation &&
+        (typeof operationId !== "string" ||
+          !uuid.test(operationId) ||
+          typeof userId !== "string" ||
+          !uuid.test(userId))
+      )
+        return res.status(400).json({ error: "Invalid operation lookup" });
+      let flowsQuery = supabase
+        .from("incident_flows")
+        .select(
+          "id,operation_id,user_id,identity_verified,stage,running,progress,updated_at",
+        )
+        .eq("incident_id", id)
+        .gt("expires_at", new Date().toISOString());
+      // A referenced refresh may be older than the newest 50 group operations.
+      // Scope exact lookups to both its group and authenticated owner.
+      if (exactOperation)
+        flowsQuery = flowsQuery
+          .eq("operation_id", operationId)
+          .eq("user_id", userId);
       const [issue, flows] = await Promise.all([
         supabase
           .from("incident_groups")
@@ -122,15 +146,7 @@ export async function handleIssues(req: VercelRequest, res: VercelResponse) {
           .eq("id", id)
           .gt("expires_at", new Date().toISOString())
           .maybeSingle(),
-        supabase
-          .from("incident_flows")
-          .select(
-            "id,operation_id,user_id,identity_verified,stage,running,progress,updated_at",
-          )
-          .eq("incident_id", id)
-          .gt("expires_at", new Date().toISOString())
-          .order("updated_at", { ascending: false })
-          .limit(51),
+        flowsQuery.order("updated_at", { ascending: false }).limit(51),
       ]);
       if (issue.error || flows.error)
         throw new Error("Issue detail unavailable");

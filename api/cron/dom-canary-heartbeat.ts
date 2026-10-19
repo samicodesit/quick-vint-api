@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
+import { assertResendAccepted } from "../../utils/resendAcceptance";
 import { supabase } from "../../utils/supabaseClient";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -90,21 +91,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  await resend.emails.send({
-    from: "AutoLister AI Alerts <alerts@autolister.app>",
-    to: alertEmail,
-    subject: "Vinted DOM canary heartbeat missing",
-    html: `
+  try {
+    assertResendAccepted(
+      await resend.emails.send({
+        from: "AutoLister AI Alerts <alerts@autolister.app>",
+        to: alertEmail,
+        subject: "Vinted DOM canary heartbeat missing",
+        html: `
       <h2>Vinted DOM canary heartbeat missing</h2>
       <p>No successful Vinted DOM injection proof was logged in the last ${staleHours} hours.</p>
       <p>This means neither the daily canary nor real Vinted.nl user telemetry proved that AutoLister injected into the current listing page.</p>
     `,
-    text: [
-      "Vinted DOM canary heartbeat missing",
-      `No successful Vinted DOM injection proof was logged in the last ${staleHours} hours.`,
-      "This means neither the daily canary nor real Vinted.nl user telemetry proved that AutoLister injected into the current listing page.",
-    ].join("\n"),
-  });
+        text: [
+          "Vinted DOM canary heartbeat missing",
+          `No successful Vinted DOM injection proof was logged in the last ${staleHours} hours.`,
+          "This means neither the daily canary nor real Vinted.nl user telemetry proved that AutoLister injected into the current listing page.",
+        ].join("\n"),
+      }),
+    );
+  } catch (error: any) {
+    console.error("Failed to send DOM canary heartbeat alert:", error);
+    return res.status(500).json({
+      ok: false,
+      stale: true,
+      error: error?.message || "Failed to send alert",
+    });
+  }
 
   return res.status(200).json({
     ok: true,

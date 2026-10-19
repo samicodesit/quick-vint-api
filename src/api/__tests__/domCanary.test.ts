@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getUserMock = vi.fn();
 const extractRequestMetadataMock = vi.fn();
 const logRequestMock = vi.fn();
+const sendMock = vi.fn();
 
 vi.mock("cors", () => ({
   default: vi.fn(
@@ -15,7 +16,7 @@ vi.mock("resend", () => ({
   Resend: vi.fn(function () {
     return {
       emails: {
-        send: vi.fn(),
+        send: sendMock,
       },
     };
   }),
@@ -79,6 +80,10 @@ describe("DOM canary endpoint", () => {
     vi.resetModules();
     process.env.DOM_CANARY_SECRET = "machine-secret";
     process.env.RESEND_API_KEY = "resend-key";
+    sendMock.mockResolvedValue({
+      data: { id: "controlled-email" },
+      error: null,
+    });
     extractRequestMetadataMock.mockReturnValue({ userAgent: "vitest" });
     logRequestMock.mockResolvedValue(undefined);
     getUserMock.mockResolvedValue({
@@ -132,6 +137,24 @@ describe("DOM canary endpoint", () => {
       }),
     );
   });
+
+  it.each([
+    { data: null, error: { message: "Provider rejected alert" } },
+    { data: {}, error: null },
+  ])(
+    "keeps a failed canary alert visible when the provider does not accept it",
+    async (result) => {
+      sendMock.mockResolvedValue(result);
+      const { default: handler }: { default: any } =
+        await import("../../../api/dom-canary.js");
+      const req = createRequest("machine-secret");
+      req.body.status = "failed";
+      const res = createResponse();
+      await handler(req as any, res as any);
+      expect(res.statusCode).toBe(500);
+      expect(logRequestMock).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("rejects an invalid token when it is not a Supabase user token", async () => {
     const handlerModule = await import("../../../api/dom-canary.js");

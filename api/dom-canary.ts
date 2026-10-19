@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
 import { Resend } from "resend";
+import { assertResendAccepted } from "../utils/resendAcceptance";
 import { supabase } from "../utils/supabaseClient";
 import { ApiLogger } from "../utils/apiLogger";
 
@@ -154,11 +155,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await resend.emails.send({
-      from: "AutoLister AI Alerts <alerts@autolister.app>",
-      to: alertEmail,
-      subject: "Vinted DOM canary failed",
-      html: `
+    assertResendAccepted(
+      await resend.emails.send({
+        from: "AutoLister AI Alerts <alerts@autolister.app>",
+        to: alertEmail,
+        subject: "Vinted DOM canary failed",
+        html: `
         <h2>Vinted field injection canary failed</h2>
         <p><strong>Check:</strong> ${escapeHtml(check)}</p>
         <p><strong>Occurred:</strong> ${escapeHtml(occurredAt)}</p>
@@ -171,18 +173,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         <h3>Selectors</h3>
         <pre>${escapeHtml(JSON.stringify(selectors, null, 2))}</pre>
       `,
-      text: [
-        "Vinted field injection canary failed",
-        `Check: ${check}`,
-        `Occurred: ${occurredAt}`,
-        `User: ${actor.email || actor.id}`,
-        `Extension version: ${extensionVersion}`,
-        `URL: ${url}`,
-        `Path: ${path}`,
-        `Result: ${JSON.stringify(result)}`,
-        `Selectors: ${JSON.stringify(selectors)}`,
-      ].join("\n"),
-    });
+        text: [
+          "Vinted field injection canary failed",
+          `Check: ${check}`,
+          `Occurred: ${occurredAt}`,
+          `User: ${actor.email || actor.id}`,
+          `Extension version: ${extensionVersion}`,
+          `URL: ${url}`,
+          `Path: ${path}`,
+          `Result: ${JSON.stringify(result)}`,
+          `Selectors: ${JSON.stringify(selectors)}`,
+        ].join("\n"),
+      }),
+    );
 
     return res.status(202).json({ ok: true });
   } catch (error: any) {

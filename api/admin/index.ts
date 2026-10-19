@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
 import Stripe from "stripe";
+import { assertResendAccepted } from "../../utils/resendAcceptance";
 import { handleIssues } from "../../utils/incidents/admin";
 import { supabase } from "../../utils/supabaseClient";
 import { handleWebAppStats } from "../../utils/webAppStats";
@@ -3548,16 +3549,18 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
           ? wrapDirectReplyLayout(renderedBody, testPreheader)
           : wrapEmailLayout(renderedBody, testPreheader, demoUnsubUrl);
 
-      await resend.emails.send({
-        from: BRAND.from,
-        to: test_email,
-        subject: `[TEST] ${subject}`,
-        html,
-        headers: {
-          "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${demoUnsubUrl}>`,
-          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        },
-      });
+      assertResendAccepted(
+        await resend.emails.send({
+          from: BRAND.from,
+          to: test_email,
+          subject: `[TEST] ${subject}`,
+          html,
+          headers: {
+            "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${demoUnsubUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }),
+      );
 
       return res.status(200).json({
         mode: "test",
@@ -3645,16 +3648,18 @@ async function handleSendCampaign(req: VercelRequest, res: VercelResponse) {
       );
 
       try {
-        await resend.emails.send({
-          from: BRAND.from,
-          to: user.email,
-          subject,
-          html,
-          headers: {
-            "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${unsubUrl}>`,
-            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-          },
-        });
+        assertResendAccepted(
+          await resend.emails.send({
+            from: BRAND.from,
+            to: user.email,
+            subject,
+            html,
+            headers: {
+              "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${unsubUrl}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          }),
+        );
         if (shouldMarkReviewRequestSent) {
           const { error: markerError } = await supabase
             .from("profiles")
@@ -3746,16 +3751,18 @@ async function handleSendLimitFollowup(
         demoUnsubUrl,
       );
 
-      await resend.emails.send({
-        from: BRAND.from,
-        to: test_email,
-        subject: `[TEST] ${template.subject}`,
-        html,
-        headers: {
-          "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${demoUnsubUrl}>`,
-          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        },
-      });
+      assertResendAccepted(
+        await resend.emails.send({
+          from: BRAND.from,
+          to: test_email,
+          subject: `[TEST] ${template.subject}`,
+          html,
+          headers: {
+            "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${demoUnsubUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }),
+      );
 
       return res.status(200).json({
         mode: "test",
@@ -3804,16 +3811,18 @@ async function handleSendLimitFollowup(
       );
 
       try {
-        await resend.emails.send({
-          from: BRAND.from,
-          to: recipient.email,
-          subject: template.subject,
-          html,
-          headers: {
-            "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${unsubUrl}>`,
-            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-          },
-        });
+        assertResendAccepted(
+          await resend.emails.send({
+            from: BRAND.from,
+            to: recipient.email,
+            subject: template.subject,
+            html,
+            headers: {
+              "List-Unsubscribe": `<mailto:unsubscribe@autolister.app?subject=Unsubscribe>, <${unsubUrl}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          }),
+        );
         results.push({ email: recipient.email, status: "sent" });
         await ApiLogger.logRequest({
           userId: recipient.id,

@@ -68,6 +68,10 @@ describe("DOM canary heartbeat cron", () => {
     queryError = null;
     process.env.CRON_SECRET = "cron-secret";
     process.env.RESEND_API_KEY = "resend-key";
+    sendMock.mockResolvedValue({
+      data: { id: "controlled-email" },
+      error: null,
+    });
   });
 
   it("requires a recent passed canary report as the live heartbeat", async () => {
@@ -91,6 +95,25 @@ describe("DOM canary heartbeat cron", () => {
     expect(sendMock).not.toHaveBeenCalled();
     expect(queryCalls).toContainEqual(["eq", "suspicious_activity", false]);
   });
+
+  it.each([
+    { data: null, error: { message: "Provider rejected alert" } },
+    { data: {}, error: null },
+  ])(
+    "does not acknowledge a heartbeat alert the provider did not accept",
+    async (result) => {
+      sendMock.mockResolvedValue(result);
+      const { default: handler }: { default: any } =
+        await import("../../../api/cron/dom-canary-heartbeat.js");
+      const res = createResponse();
+      await handler(
+        { headers: { authorization: "Bearer cron-secret" } } as any,
+        res as any,
+      );
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toMatchObject({ ok: false, stale: true });
+    },
+  );
 
   it("accepts recent real Vinted.nl listing injection telemetry as proof", async () => {
     queryDataQueue = [

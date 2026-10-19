@@ -1,0 +1,75 @@
+{
+  "commit": "0c2a592f3a729052ffa0496b64827bd30ce5eb67",
+  "deployment": "https://vercel.com/ahmed-samis-projects-e6ef0336/quick-vint-api/4qhj61fVM4m6D9wuzGMK8urZx7YD",
+  "deploymentCompletedAt": "2026-10-19T15:08:26Z",
+  "pushProof": [
+    "Repo: quick-vint-api",
+    "Branch pushed: main",
+    "42f2131..0c2a592  main -> main"
+  ],
+  "gate": {
+    "passed": true,
+    "testsPassed": 1032,
+    "skipped": 4,
+    "browserCases": 9,
+    "layoutCases": 47
+  },
+  "before": {
+    "checkedAt": "2026-10-19T15:03:53.945Z",
+    "release": "42f2131",
+    "path": "/app",
+    "viewport": {
+      "width": 440,
+      "height": 956
+    },
+    "authVisible": true,
+    "previewVisible": false,
+    "savedTitleLanguage": "de"
+  },
+  "after": {
+    "checkedAt": "2026-10-19T15:09:15.411Z",
+    "path": "https://autolister.app/app",
+    "viewport": {
+      "width": 440,
+      "height": 956
+    },
+    "normalVisitWithSavedChoiceShowsPreview": true,
+    "reloadPlainEntryShowsPreview": true,
+    "selectedStyleRestored": true,
+    "explicitAuthRefreshResumesSignIn": true,
+    "headerDirectSignIn": true,
+    "changeStyleReturnsPreview": true,
+    "brandLinkReturnsPreview": true,
+    "preferenceEnvelopePreserved": true,
+    "pageErrors": [],
+    "network": "Production assets, all auth/API/telemetry requests intercepted. No real signup, email, generation or purchase."
+  },
+  "homepage": {
+    "matched": true,
+    "before": {
+      "/": "9095c9d09e262ed54e1fa0705e711b699a405a5e2aeeee0ebf534e9a834293ef",
+      "/fr/": "a1b387531889beedbaae3027015c417bdf6732559e9ec8915f14a3eb0923a99c",
+      "/de/": "f516974746184c7d61a10fc5eb4092600750ce90a3561eb701d577715ff7f431",
+      "/nl/": "3f8b2103c3653edd73a54a5a6b4afa383818050af9008a7673161956a8c60e5e",
+      "/pl/": "0564e542c76b672b73a8d16febe6e43e473d731a09f5000e6d9a524d99d305fc",
+      "/es/": "3289666b142867b90504d08a5a0b5573948a05b0a672c0a7f2a21e49c79b132a",
+      "/it/": "5c1e4296debf44974acbd19bf4f6129085b9fae8e82a028053a35957384d73d1",
+      "/pt/": "c5648235b64a2c0c596c64074b0334e87624ad27b05e35d185a527e84fd618a6"
+    },
+    "after": {
+      "/": "9095c9d09e262ed54e1fa0705e711b699a405a5e2aeeee0ebf534e9a834293ef",
+      "/fr/": "a1b387531889beedbaae3027015c417bdf6732559e9ec8915f14a3eb0923a99c",
+      "/de/": "f516974746184c7d61a10fc5eb4092600750ce90a3561eb701d577715ff7f431",
+      "/nl/": "3f8b2103c3653edd73a54a5a6b4afa383818050af9008a7673161956a8c60e5e",
+      "/pl/": "0564e542c76b672b73a8d16febe6e43e473d731a09f5000e6d9a524d99d305fc",
+      "/es/": "3289666b142867b90504d08a5a0b5573948a05b0a672c0a7f2a21e49c79b132a",
+      "/it/": "5c1e4296debf44974acbd19bf4f6129085b9fae8e82a028053a35957384d73d1",
+      "/pt/": "c5648235b64a2c0c596c64074b0334e87624ad27b05e35d185a527e84fd618a6"
+    }
+  },
+  "limits": [
+    "Real production assets and browser-local storage, with auth/API/telemetry isolated.",
+    "Google/email handoffs and account preference retention exercised with actual built app and SDK in local controlled browser cases.",
+    "No real sign-in, email, generation, purchase or marketplace action. Physical phones untested."
+  ]
+}

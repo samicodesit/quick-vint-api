@@ -1,10 +1,16 @@
 # AutoLister AI Growth Current Sprint
 
+## Preview content height, October 19, 2026
+
+- Owner requested that the phone preview card end at its content, with unused vertical space between the card and the bottom settings. Scoped the change to the existing single-column entry layout: the card aligns at the top and fits its content up to the available row height. Longer content keeps its internal scroll area. Settings, fixed CTA, shadow and 12-pixel bar separation retain their positions. No UI copy, preference, auth, homepage or A/B change is included.
+- The new 440 by 956 check reproduces 85 pixels of unnecessary interior space on the delivered CSS. With the correction it fits the content within two pixels of its normal padding, and a long description plus seller note scrolls while settings remain stationary. The full responsive browser check passes 48 layout cases across phone, landscape, tablet, desktop and translated interfaces. Full production gate and live acceptance follow separately.
+
 ## App entry routing correction, October 19, 2026
 
 - Owner screenshot at `/app` showed sign-in instead of the agreed interactive preview. Reproduced on deployed `42f2131` at 440 by 956 pixels: saving a style and revisiting `/app` hid the preview because a pending browser choice was treated as a request to resume sign-in. This was an implementation mistake in the public entry route, not a homepage A/B change.
 - Normal anonymous `/app` visits now show the preview with the saved selection restored. Use this style and Skip explicitly enter `?signin=1`, so refreshing during sign-in retains that step. Change listing style removes that flag and restores the preview. The header icon continues to open direct sign-in. Browser preferences, provider callbacks, one-time application and returning authenticated accounts keep their existing behavior.
 - The new affected-path browser regression fails on the delivered code and passes with the correction. All nine compiled browser cases pass, including Google, email code, email link, cancellation, direct sign-in, saved styles, returning sessions and the 47 layout checks. Production gate and live acceptance follow separately. No UI helper text, homepage/experiment edits, real accounts, emails, generations, purchases or marketplace actions are included.
+- Production acceptance: the guarded push passed lint, types, build, formatting and 1,032 tests (four unrelated opt-in tests skipped), moving `origin/main` to `0c2a592f3a729052ffa0496b64827bd30ce5eb67`. Production deployment `4qhj61fVM4m6D9wuzGMK8urZx7YD` completed at `2026-10-19T15:08:26Z`. Live assets at the owner's 440 by 956 viewport now pass saved-choice revisits and reloads, explicit sign-in reload, Change listing style, header sign-in and brand-link return, with the preference envelope unchanged and no page errors. Eight marketing homepage snapshots still match. [Affected-path evidence](qa/growth/app-entry-routing-2026-10-19/live-acceptance.json). This delivery timestamp also marks the common entry-funnel correction for growth analysis. Acceptance evidence is retained locally after deployment.
 
 ## Style CTA visibility, October 19, 2026
 

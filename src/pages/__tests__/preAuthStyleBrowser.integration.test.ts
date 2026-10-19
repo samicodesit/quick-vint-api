@@ -501,6 +501,7 @@ it.skipIf(!enabled)(
       ...[
         [320, 568],
         [390, 844],
+        [440, 956],
         [667, 375],
         [844, 390],
         [1024, 320],
@@ -554,6 +555,61 @@ it.skipIf(!enabled)(
         expect(bounds.action.bottom).toBeLessThanOrEqual(height);
         expect(bounds.action.height).toBeGreaterThanOrEqual(48);
         expect(bounds.previewHeight).toBeGreaterThanOrEqual(44);
+        if (width === 440 && height === 956) {
+          const spareInside = await page
+            .locator(".style-example")
+            .evaluate((card: HTMLElement) => {
+              const preview = card.querySelector<HTMLElement>(
+                "[data-style-preview]",
+              )!;
+              const last = Array.from(preview.children)
+                .filter((el) => el.getClientRects().length)
+                .at(-1)!;
+              return (
+                card.getBoundingClientRect().bottom -
+                last.getBoundingClientRect().bottom -
+                parseFloat(getComputedStyle(last).marginBottom) -
+                parseFloat(getComputedStyle(preview).paddingBottom) -
+                1
+              );
+            });
+          expect(spareInside).toBeLessThanOrEqual(2);
+          if (process.env.PREAUTH_STYLE_BROWSER_OUTPUT) {
+            await mkdir(process.env.PREAUTH_STYLE_BROWSER_OUTPUT, {
+              recursive: true,
+            });
+            await page.screenshot({
+              path: join(
+                process.env.PREAUTH_STYLE_BROWSER_OUTPUT,
+                "preview-440-short.png",
+              ),
+            });
+          }
+          const settings = await page.locator(".style-controls").boundingBox();
+          await page.click('[data-style-length="long"]');
+          await page.click("[data-style-edit-note]");
+          await page.fill(
+            "[data-style-note-input]",
+            "I usually post parcels on Tuesdays. ".repeat(6).trim(),
+          );
+          await page.click("[data-style-save-note]");
+          const expanded = await page
+            .locator("[data-style-preview]")
+            .evaluate((el: HTMLElement) => ({
+              height: el.clientHeight,
+              content: el.scrollHeight,
+            }));
+          expect(expanded.content).toBeGreaterThan(expanded.height);
+          const settingsAfter = await page
+            .locator(".style-controls")
+            .boundingBox();
+          expect(Math.abs(settingsAfter!.y - settings!.y)).toBeLessThanOrEqual(
+            1,
+          );
+          await expect(page.locator("[data-style-finish]")).toBeInViewport({
+            ratio: 1,
+          });
+        }
         if (height >= 568 && width <= 700) {
           expect(bounds.footerGap).toBeGreaterThanOrEqual(0);
           expect(bounds.footerGap).toBeLessThanOrEqual(16);

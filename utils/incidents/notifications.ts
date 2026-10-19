@@ -2,6 +2,11 @@ import { Resend } from "resend";
 import { wrapDirectReplyLayout } from "../emailTemplates";
 import { supabase } from "../supabaseClient";
 import { redact, sanitizeContext } from "./contract";
+import {
+  isBackgroundAuthFailure,
+  loadAuthNotificationEvidence,
+  type AuthNotificationEvidence,
+} from "./authNotificationEvidence";
 
 const escape = (value: unknown) =>
   String(value ?? "").replace(
@@ -12,14 +17,61 @@ const escape = (value: unknown) =>
       ]!,
   );
 
-export function renderIncidentEmail(payload: any) {
+function emailTime(value: string) {
+  const time = Date.parse(value);
+  return Number.isFinite(time)
+    ? new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Amsterdam",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(new Date(time)) + " (Amsterdam)"
+    : "Unavailable";
+}
+
+export function renderIncidentEmail(
+  payload: any,
+  evidence?: AuthNotificationEvidence,
+) {
   const context = sanitizeContext(payload.example?.context, false);
   const link = `https://autolister.app/admin/reports?incident=${encodeURIComponent(payload.incidentId)}`;
-  const subject = `AutoLister issue: ${redact(payload.event, 80).replace(/[\r\n]/g, " ")}`;
-  const body = `<div style="overflow-wrap:anywhere;word-break:break-word"><p><strong>${escape(payload.event)}</strong></p>
+  let subject = `AutoLister issue: ${redact(payload.event, 80).replace(/[\r\n]/g, " ")}`;
+  let body = `<div style="overflow-wrap:anywhere;word-break:break-word"><p><strong>${escape(payload.event)}</strong></p>
     <p>Stage: ${escape(payload.stage)}<br>Severity: ${escape(payload.severity)}<br>Version: ${escape(payload.release)}<br>Market: ${escape(payload.market)}</p>
     <p>${escape(context.message || context.error || context.errorCode || "Open the issue for available evidence.")}</p>
     <p><a href="${escape(link)}" style="color:#007782;text-decoration:underline">Open this issue in AutoLister</a></p></div>`;
+  if (isBackgroundAuthFailure(payload)) {
+    const status = evidence?.status || "unavailable";
+    const silent = status === "silent_renewed";
+    const signedIn = status === "signed_in";
+    subject = `AutoLister: background renewal ${silent ? "recovered" : signedIn ? "recovered after sign-in" : "failed"}`;
+    const heading = silent
+      ? "Recovered automatically"
+      : signedIn
+        ? "Recovered after sign-in"
+        : "Background renewal failed";
+    const outcome = silent
+      ? `This browser renewed its saved session at ${escape(emailTime(evidence!.renewedAt!))}.${evidence?.signInRequired === false ? " No sign-in requirement was recorded." : " A sign-in requirement was recorded during this interruption."}`
+      : signedIn
+        ? `This browser signed in again at ${escape(emailTime(evidence!.renewedAt!))}.`
+        : status === "not_recorded"
+          ? "No matching renewal or fresh sign-in was found in the checked records."
+          : "Recovery status unavailable at send time.";
+    body = `<div style="overflow-wrap:anywhere;word-break:break-word">
+      <p style="font-weight:700;color:${silent ? "#157347" : "#9a3412"}">${heading}</p>
+      <p>This status applies to the sampled browser and failed renewal.</p>
+      <p>${outcome}</p>
+      ${evidence?.blockedGenerateAt ? `<p><strong>Generate was blocked</strong> at ${escape(emailTime(evidence.blockedGenerateAt))}. A successful Generate retry is not established by this email.</p>` : ""}
+      <p>Failure: ${escape(emailTime(payload.example.occurredAt))}<br>Browser: ${escape(redact(context.clientBrowser || context.browserFamily || "unknown", 40))}<br>Extension: ${escape(payload.release)}</p>
+      <p>Original error: ${escape(context.message || context.error || context.errorCode || payload.event)}</p>
+      <p>Other failures in this grouped issue remain visible for review.</p>
+      <p style="font-size:12px;color:#666">Status checked: ${escape(emailTime(evidence?.checkedAt || new Date().toISOString()))}</p>
+      <p><a href="${escape(link)}" style="color:#007782;text-decoration:underline">Open this issue in AutoLister</a></p></div>`;
+  }
   return {
     from: "AutoLister AI Alerts <alerts@autolister.app>",
     to: "samicodesit@gmail.com",
@@ -46,11 +98,12 @@ export async function deliverPendingNotifications(limit = 10) {
     try {
       let snapshot = incident.notification_payload;
       if (!snapshot?.email) {
+        const evidence = await loadAuthNotificationEvidence(snapshot);
         const frozen = await supabase
           .rpc("incident_freeze_notification", {
             p_id: incident.id,
             p_key: incident.notification_key,
-            p_email: renderIncidentEmail(snapshot),
+            p_email: renderIncidentEmail(snapshot, evidence),
           })
           .abortSignal(AbortSignal.timeout(3000));
         if (frozen.error || !frozen.data?.email)

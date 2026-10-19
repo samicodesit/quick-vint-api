@@ -2,6 +2,9 @@ import { mountDraftWorkspace } from "./draftWorkspace";
 import {
   shouldOfferStyleOnboarding,
   saveOnboardingStyle,
+  readPreAuthStyle,
+  savePreAuthStyle,
+  applyPreAuthStyle,
 } from "./styleOnboardingState";
 import type { DraftSettings } from "./draftContracts";
 import { mountMobilePaywall, type MobilePaywallEntryPoint } from "./paywall";
@@ -144,6 +147,13 @@ export function renderMobileAuthStep(
     email === null ? "Sign in" : "Check your email",
   );
   text(root, '[data-mobile-web="auth-email"]', email || "");
+  text(
+    root,
+    "#mobile-otp-help",
+    readPreAuthStyle(getStorage())?.settings
+      ? "Open the email link in this browser to keep your selected style."
+      : "The same email also includes a secure sign-in link.",
+  );
 }
 
 export type MobileLanguageKind = "title" | "description";
@@ -850,6 +860,7 @@ function showAuth(root: ParentNode): void {
   closeMobileProfileMenu(root, false);
   renderMobileAuthStep(root, null);
   setHidden(root, '[data-mobile-web="auth-card"]', false);
+  setHidden(root, '[data-mobile-web="direct-sign-in"]', false);
   setHidden(root, '[data-mobile-web="app-view"]', true);
   setHidden(root, '[data-mobile-web="state-card"]', true);
   setHidden(root, '[data-mobile-web="profile-menu-root"]', true);
@@ -857,11 +868,17 @@ function showAuth(root: ParentNode): void {
   setHidden(root, '[data-mobile-web="usage"]', true);
   setHidden(root, '[data-mobile-web="upgrade"]', true);
   setHidden(root, '[data-mobile-web="manage-billing"]', true);
+  setHidden(
+    root,
+    '[data-mobile-web="change-style"]',
+    !readPreAuthStyle(getStorage()),
+  );
 }
 
 function showApp(root: ParentNode): void {
   closeMobileProfileMenu(root, false);
   setHidden(root, '[data-mobile-web="auth-card"]', true);
+  setHidden(root, '[data-mobile-web="direct-sign-in"]', true);
   setHidden(root, '[data-mobile-web="app-view"]', false);
   setHidden(root, '[data-mobile-web="state-card"]', true);
   setHidden(root, '[data-mobile-web="profile-menu-root"]', false);
@@ -995,6 +1012,20 @@ export function mountMobileWebApp(
       return;
     const workspace = asElement<HTMLElement>(root, "[data-draft-workspace]");
     if (!workspace) return;
+    const storage = getStorage();
+    try {
+      chosenStyle ??= storage
+        ? (applyPreAuthStyle(storage, session.user.id) ?? undefined)
+        : undefined;
+    } catch {
+      showState(
+        root,
+        "Your style is still saved",
+        "We could not apply it to this account. Please try again.",
+        "Try again",
+      );
+      return;
+    }
     const initialSettings: DraftSettings = {
       titleLanguageCode: language.titleLanguageCode,
       descriptionLanguageCode: language.descriptionLanguageCode,
@@ -1004,7 +1035,6 @@ export function mountMobileWebApp(
       ...chosenStyle,
     };
     const setup = asElement<HTMLElement>(root, "[data-style-setup]");
-    const storage = getStorage();
     if (
       !bypassStyleSetup &&
       setup &&
@@ -1055,6 +1085,71 @@ export function mountMobileWebApp(
       startWithNewItem: Boolean(chosenStyle),
     });
     if (latestUsage) draftWorkspace.updateUsage(latestUsage);
+  };
+  const showEntry = (editStyle = false) => {
+    const storage = getStorage();
+    const setup = asElement<HTMLElement>(root, "[data-style-setup]");
+    const pending = readPreAuthStyle(storage);
+    if (
+      !editStyle &&
+      new URL(window.location.href).searchParams.get("signin") === "1"
+    ) {
+      // Direct sign-in skips setup, but keeps a style already chosen on this browser.
+      if (storage && !pending) {
+        try {
+          savePreAuthStyle(storage, null);
+        } catch {
+          /* Sign-in remains accessible. */
+        }
+      }
+      showAuth(root);
+      return;
+    }
+    if (
+      !setup ||
+      !window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.draftsEnabled ||
+      (!editStyle && pending)
+    ) {
+      showAuth(root);
+      return;
+    }
+    if (styleSetupLoading || styleSetupCleanup) return;
+    showAuth(root);
+    setHidden(root, '[data-mobile-web="auth-card"]', true);
+    shell.dataset.styleSetup = "true";
+    styleSetupLoading = true;
+    void import("./styleOnboarding.js")
+      .then(({ mountStyleOnboarding }) => {
+        styleSetupLoading = false;
+        if (disposed || session) return;
+        styleSetupCleanup = mountStyleOnboarding(
+          setup,
+          pending?.settings ?? {
+            titleLanguageCode: language.titleLanguageCode,
+            descriptionLanguageCode: language.descriptionLanguageCode,
+            ...formatting,
+            useHashtags: true,
+            useEmojis: true,
+          },
+          (settings, action) => {
+            if (!storage) throw new Error("style_storage_unavailable");
+            savePreAuthStyle(storage, action === "skip" ? null : settings);
+            styleSetupCleanup?.();
+            styleSetupCleanup = undefined;
+            delete shell.dataset.styleSetup;
+            showAuth(root);
+            asElement<HTMLElement>(
+              root,
+              '[data-mobile-web="google-sign-in"]',
+            )?.focus({ preventScroll: true });
+          },
+        );
+      })
+      .catch(() => {
+        styleSetupLoading = false;
+        delete shell.dataset.styleSetup;
+        if (!disposed && !session) showAuth(root);
+      });
   };
   const checkoutReturnStatus = readCheckoutReturnStatus();
   const vintedDestination = getMobileVintedDestination();
@@ -1686,9 +1781,15 @@ export function mountMobileWebApp(
         if (!disposed) button.disabled = false;
       });
   });
-  bind(asElement(root, '[data-mobile-web="state-action"]'), "click", () =>
-    showAuth(root),
+  bind(asElement(root, '[data-mobile-web="change-style"]'), "click", () =>
+    showEntry(true),
   );
+  bind(asElement(root, '[data-mobile-web="state-action"]'), "click", () => {
+    if (session) {
+      showApp(root);
+      openDraftWorkspace();
+    } else showAuth(root);
+  });
 
   const listingControls = asElement<HTMLElement>(
     root,
@@ -1781,7 +1882,7 @@ export function mountMobileWebApp(
       session = await getBrowserSession();
       if (disposed) return;
       if (!session) {
-        showAuth(root);
+        showEntry();
         return;
       }
       void claimFirstTouchAfterAuth(session);

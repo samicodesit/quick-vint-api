@@ -14,7 +14,7 @@ import { trackMobileEvent } from "./analytics";
 export function mountStyleOnboarding(
   root: HTMLElement,
   initial: DraftSettings,
-  finish: (settings: DraftSettings) => void,
+  finish: (settings: DraftSettings, action: "apply" | "skip") => void,
 ) {
   const uiLanguage = detectLanguage([
     ...navigator.languages,
@@ -244,7 +244,7 @@ export function mountStyleOnboarding(
   function complete(skip: boolean) {
     const next = draftSettingsFromStyle(skip ? original : style);
     try {
-      finish(next);
+      finish(next, skip ? "skip" : "apply");
       void trackMobileEvent("web_style_setup", {
         phase: "complete",
         method: skip ? "skip" : "apply",

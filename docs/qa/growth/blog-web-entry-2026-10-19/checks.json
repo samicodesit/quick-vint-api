@@ -1,0 +1,177 @@
+{
+  "checkedAt": "2026-10-19T13:28:51.656Z",
+  "cases": [
+    {
+      "page": "description",
+      "width": 320,
+      "scrollWidth": 320,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "description-de",
+      "width": 320,
+      "scrollWidth": 320,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "many-items",
+      "width": 320,
+      "scrollWidth": 320,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "batch",
+      "width": 320,
+      "scrollWidth": 320,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "generator",
+      "width": 320,
+      "scrollWidth": 320,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "description",
+      "width": 390,
+      "scrollWidth": 390,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "description-de",
+      "width": 390,
+      "scrollWidth": 390,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "many-items",
+      "width": 390,
+      "scrollWidth": 390,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "batch",
+      "width": 390,
+      "scrollWidth": 390,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "generator",
+      "width": 390,
+      "scrollWidth": 390,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "description",
+      "width": 768,
+      "scrollWidth": 768,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "description-de",
+      "width": 768,
+      "scrollWidth": 768,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "many-items",
+      "width": 768,
+      "scrollWidth": 768,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "batch",
+      "width": 768,
+      "scrollWidth": 768,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "generator",
+      "width": 768,
+      "scrollWidth": 768,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "description",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "description-de",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "many-items",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "batch",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "minTapHeight": 48,
+      "buttons": 4
+    },
+    {
+      "page": "generator",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "minTapHeight": 48,
+      "buttons": 4
+    }
+  ],
+  "journey": [
+    {
+      "page": "description",
+      "destination": "/app?ref=blog_description_formula",
+      "refPreserved": true
+    },
+    {
+      "page": "description-de",
+      "destination": "/app?ref=blog_de_description_formula",
+      "refPreserved": true
+    },
+    {
+      "page": "many-items",
+      "destination": "/app?ref=blog_many_items_workflow",
+      "refPreserved": true
+    },
+    {
+      "page": "batch",
+      "destination": "/app?ref=blog_batch_workflow",
+      "refPreserved": true
+    },
+    {
+      "page": "generator",
+      "destination": "/app?ref=vinted_description_generator_hero",
+      "refPreserved": true
+    }
+  ],
+  "notes": [
+    "Local Chromium. External auth and production telemetry blocked. No account creation, generation, purchase or live marketplace automation."
+  ],
+  "telemetryRequests": 14,
+  "telemetryShape": ["schemaVersion", "events"]
+}

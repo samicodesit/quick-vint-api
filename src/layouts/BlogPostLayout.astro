@@ -11,6 +11,7 @@ import {
 import BlogCard from "../components/blog/BlogCard.astro";
 import CategoryBadge from "../components/blog/CategoryBadge.astro";
 import EndOfPostCTA from "../components/blog/EndOfPostCTA.astro";
+import ListingDraftCTA from "../components/blog/ListingDraftCTA.astro";
 import ShareButtons from "../components/blog/ShareButtons.astro";
 import TableOfContents from "../components/blog/TableOfContents.astro";
 import TagList from "../components/blog/TagList.astro";
@@ -30,6 +31,8 @@ interface Props {
 
 const { post, headings, relatedPosts, translations } = Astro.props;
 const locale = post.data.locale as BlogLocale;
+const descriptionEntry = post.data.translationKey === "vinted-descriptions-that-sell" && ["en", "de"].includes(locale);
+const batchEntry = locale === "en" && ["sell-many-items-at-once", "batch-generate-vinted-listings"].includes(post.data.translationKey);
 const copy = BLOG_COPY[locale];
 const canonicalUrl = new URL(getPostUrl(post), Astro.site || "https://autolister.app").toString();
 const readingTime = estimateReadingTime(post.body || "");
@@ -195,7 +198,13 @@ const faqSchema = post.data.faqItems?.length
           <div class="mt-8 lg:hidden">
             <ShareButtons title={post.data.title} url={canonicalUrl} locale={locale} />
           </div>
-          <EndOfPostCTA locale={locale} />
+          {descriptionEntry || batchEntry ? (
+            <ListingDraftCTA
+              locale={locale === "de" ? "de" : "en"}
+              intent={batchEntry ? "batch" : "single"}
+              context={`blog_${post.data.slug}_end`}
+            />
+          ) : <EndOfPostCTA locale={locale} />}
         </div>
       </article>
 

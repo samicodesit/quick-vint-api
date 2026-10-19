@@ -1,0 +1,57 @@
+[
+  {
+    "height": 568,
+    "width": 320,
+    "scrollWidth": 305,
+    "action": {
+      "bottom": 556,
+      "top": 508,
+      "height": 48
+    },
+    "previewHeight": 156.75
+  },
+  {
+    "height": 844,
+    "width": 390,
+    "scrollWidth": 375,
+    "action": {
+      "bottom": 811,
+      "top": 763,
+      "height": 48
+    },
+    "previewHeight": 354.5
+  },
+  {
+    "height": 390,
+    "width": 844,
+    "scrollWidth": 829,
+    "action": {
+      "bottom": 378,
+      "top": 330,
+      "height": 48
+    },
+    "previewHeight": 280.75
+  },
+  {
+    "height": 1024,
+    "width": 768,
+    "scrollWidth": 753,
+    "action": {
+      "bottom": 458.5,
+      "top": 410.5,
+      "height": 48
+    },
+    "previewHeight": 626.5
+  },
+  {
+    "height": 900,
+    "width": 1440,
+    "scrollWidth": 1425,
+    "action": {
+      "bottom": 458.5,
+      "top": 410.5,
+      "height": 48
+    },
+    "previewHeight": 626.5
+  }
+]

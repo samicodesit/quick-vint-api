@@ -1,0 +1,138 @@
+---
+import { CHROME_WEB_STORE_URL } from "../../utils/blog.js";
+
+interface Props {
+  locale?: "en" | "de";
+  intent?: "single" | "batch";
+  context: string;
+  showTitle?: boolean;
+}
+
+const { locale = "en", intent = "single", context, showTitle = true } = Astro.props;
+const copy = {
+  en: {
+    title: intent === "batch" ? "Start with your next item" : "Try it with your own photos",
+    web: "Create a draft",
+    webDetail: "Upload photos, then review and copy your title and description.",
+    extension: "Install Chrome extension",
+    extensionDetail: "On your computer, generate directly inside Vinted without copy-paste.",
+    offer: "Create an account for 5 free generations.",
+  },
+  de: {
+    title: "Mit deinen eigenen Fotos ausprobieren",
+    web: "Entwurf erstellen",
+    webDetail: "Fotos hochladen, Text prüfen und kopieren. Die Web-App ist auf Englisch.",
+    extension: "Chrome-Erweiterung installieren",
+    extensionDetail: "Am Computer direkt in Vinted erstellen, ohne Kopieren und Einfügen.",
+    offer: "Mit einem Konto erhältst du 5 kostenlose Generierungen.",
+  },
+}[locale];
+---
+
+<aside class:list={["listing-entry", { "listing-entry-batch": intent === "batch" }]} data-listing-entry>
+  {showTitle && <h3 class="listing-entry-title">{copy.title}</h3>}
+  <div class="listing-entry-options">
+    <div class="listing-entry-option listing-entry-web">
+      <a
+        href={`/app?ref=${context}`}
+        data-track-event="web_app_click"
+        data-track-context={context}
+        class="listing-entry-button listing-entry-primary"
+      >
+        {copy.web}
+      </a>
+      <p class="listing-entry-detail">{copy.webDetail}</p>
+    </div>
+    <div class="listing-entry-option listing-entry-extension">
+      <a
+        href={CHROME_WEB_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-track-event="chrome_store_click"
+        data-track-context={`${context}_extension`}
+        class="listing-entry-button listing-entry-secondary"
+      >
+        {copy.extension}
+      </a>
+      <p class="listing-entry-detail">{copy.extensionDetail}</p>
+    </div>
+  </div>
+  <p class="listing-entry-offer">{copy.offer}</p>
+</aside>
+
+<style>
+  .listing-entry {
+    margin: 2rem 0;
+    padding: 1.25rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background: #f8fafc;
+    text-align: left;
+  }
+  .listing-entry .listing-entry-title {
+    margin: 0 0 1rem;
+    color: #0f172a;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .listing-entry-options {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .listing-entry-option { min-width: 0; }
+  .listing-entry-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none;
+  }
+  .listing-entry-primary {
+    border-color: #4f46e5;
+    background: #4f46e5;
+    color: #fff;
+  }
+  .listing-entry-primary:hover { background: #4338ca; }
+  .listing-entry-secondary { background: #fff; color: #0f172a; }
+  .listing-entry-secondary:hover { background: #e2e8f0; }
+  .listing-entry-button:focus-visible {
+    outline: 3px solid #818cf8;
+    outline-offset: 3px;
+  }
+  .listing-entry .listing-entry-detail {
+    margin: 0.5rem 0 0;
+    color: #475569;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .listing-entry .listing-entry-offer {
+    margin: 1rem 0 0;
+    color: #475569;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  @media (min-width: 640px) {
+    .listing-entry-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .listing-entry-batch .listing-entry-extension { order: -1; }
+    .listing-entry-batch .listing-entry-secondary {
+      border-color: #4f46e5;
+      background: #4f46e5;
+      color: #fff;
+    }
+    .listing-entry-batch .listing-entry-secondary:hover { background: #4338ca; }
+    .listing-entry-batch .listing-entry-primary {
+      border-color: #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+    }
+    .listing-entry-batch .listing-entry-primary:hover { background: #e2e8f0; }
+  }
+</style>

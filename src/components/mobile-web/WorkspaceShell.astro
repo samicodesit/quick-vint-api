@@ -20,6 +20,13 @@ const {
 <div class="mobile-workspace-shell" data-mobile-web="workspace" data-state="loading">
   <header class="mobile-workspace-header">
     <a class="mobile-workspace-brand" href="/app" aria-label="AutoLister drafts">AutoLister</a>
+    <a
+      href="/app?signin=1"
+      class="mobile-profile-menu-trigger"
+      data-mobile-web="direct-sign-in"
+      aria-label="Sign in or create an account"
+      hidden
+    ><span class="mobile-profile-avatar" aria-hidden="true"><UserRound size={20} /></span></a>
     <div class="mobile-workspace-header-actions" data-mobile-web="profile-menu-root" hidden>
       <button type="button" class="mobile-header-settings" data-draft-global-trigger aria-label="Listing settings" aria-haspopup="dialog" aria-controls="draft-global-dialog" aria-expanded="false" hidden><Settings2 size={18} aria-hidden="true" /><span>Settings</span></button>
       <button
@@ -98,6 +105,7 @@ const {
         </div>
       </form>
       <p class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
+      <button type="button" class="mobile-text-button" data-mobile-web="change-style" hidden>Change listing style</button>
     </section>
 
     <StyleOnboarding />

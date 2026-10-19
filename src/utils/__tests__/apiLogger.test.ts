@@ -285,10 +285,53 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     updateResponse = { error: failure };
     const { ApiLogger } = await import("../../../utils/apiLogger.js");
 
-    await expect(ApiLogger.compactOldLogs({ batchSize: 50 })).rejects.toEqual(
-      failure,
-    );
+    await expect(
+      ApiLogger.compactOldLogs({ batchSize: 50 }),
+    ).rejects.toMatchObject(failure);
     expect(vi.mocked(supabase.rpc)).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports the failed cleanup write IDs and already completed progress", async () => {
+    const ids = Array.from({ length: 50 }, (_, index) => `legacy-${index}`);
+    selectResponse = { data: ids.map((id) => ({ id })), error: null };
+    const { supabase } = await import("../../../utils/supabaseClient.js");
+    vi.mocked(supabase.rpc)
+      .mockResolvedValueOnce({ error: null } as any)
+      .mockResolvedValueOnce({
+        error: { code: "57014", message: "Controlled timeout" },
+      } as any);
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+    await expect(
+      ApiLogger.compactOldLogs({ batchSize: 50 }),
+    ).rejects.toMatchObject({
+      code: "57014",
+      message: "Controlled timeout",
+      compaction: {
+        phase: "write",
+        completedRows: 20,
+        selectedRows: 50,
+        failedRowIds: ids.slice(20, 40),
+        callElapsedMs: expect.any(Number),
+      },
+    });
+    expect(supabase.rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it("identifies a timed out cleanup selector without claiming write progress", async () => {
+    selectResponse = {
+      data: [],
+      error: { code: "57014", message: "Controlled select timeout" },
+    };
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+    await expect(ApiLogger.compactOldLogs()).rejects.toMatchObject({
+      code: "57014",
+      compaction: {
+        phase: "select",
+        field: "image_urls",
+        callElapsedMs: expect.any(Number),
+      },
+    });
+    expect(updateCalls).toHaveLength(0);
   });
 
   it("does not issue an update when no old logs need compaction", async () => {

@@ -242,10 +242,18 @@ export class ApiLogger {
           `full_request_body->>analyticsOnly.is.null,created_at.lt.${metricCutoff}`,
         );
       }
+      const callStartedAt = Date.now();
       const { data: rows, error: selectError } = await query.limit(remaining);
 
       if (selectError) {
-        throw selectError;
+        throw {
+          ...selectError,
+          compaction: {
+            phase: "select",
+            field,
+            callElapsedMs: Date.now() - callStartedAt,
+          },
+        };
       }
 
       (rows || [])
@@ -273,13 +281,25 @@ export class ApiLogger {
         start,
         start + API_LOG_COMPACTION_UPDATE_CHUNK_SIZE,
       );
+      const callStartedAt = Date.now();
       const { error: updateError } = await supabase.rpc(
         "compact_api_logs_for_web_metrics",
         { p_ids: chunk },
       );
 
       if (updateError) {
-        throw updateError;
+        // Operational IDs only. Never copy the payloads being compacted into
+        // error logs, and retain the database's original code and message.
+        throw {
+          ...updateError,
+          compaction: {
+            phase: "write",
+            completedRows: start,
+            selectedRows: idList.length,
+            failedRowIds: chunk,
+            callElapsedMs: Date.now() - callStartedAt,
+          },
+        };
       }
     }
 

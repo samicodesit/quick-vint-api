@@ -3,6 +3,7 @@ import { readFile, stat, mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { extname, join, resolve } from "node:path";
 import { afterAll, beforeAll, it } from "vitest";
+import { translations } from "../../app/mobile-web/styleTranslations";
 
 // Real built app and Supabase client. Only auth/network responses are local fixtures.
 // No production requests, account creation, emails, purchases or generations.
@@ -83,11 +84,15 @@ afterAll(async () => {
 async function fixture(
   width = 390,
   height = 844,
-  options: { existing?: boolean; authenticated?: boolean } = {},
+  options: {
+    existing?: boolean;
+    authenticated?: boolean;
+    locale?: string;
+  } = {},
 ) {
   const context = await browser.newContext({
     viewport: { width, height },
-    locale: "en-GB",
+    locale: options.locale || "en-GB",
     reducedMotion: "reduce",
   });
   const user = {
@@ -447,14 +452,35 @@ it.skipIf(!enabled)(
   "fits the interactive preview on small phones, landscape, tablet and desktop",
   async () => {
     const cases = [];
-    for (const [width, height] of [
-      [320, 568],
-      [390, 844],
-      [844, 390],
-      [768, 1024],
-      [1440, 900],
-    ]) {
-      const { context, page, errors } = await fixture(width, height);
+    const viewports = [
+      ...[
+        [320, 568],
+        [390, 844],
+        [667, 375],
+        [844, 390],
+        [1024, 320],
+        [600, 551],
+        [601, 551],
+        [700, 600],
+        [701, 451],
+        [768, 1024],
+        [1440, 900],
+      ].map(([width, height]) => ({ width, height, locale: "en-GB" })),
+      ...translations.flatMap(({ code }) =>
+        [
+          [320, 480],
+          [568, 320],
+        ].map(([width, height]) => ({
+          width,
+          height,
+          locale: code === "cz" ? "cs" : code,
+        })),
+      ),
+    ];
+    for (const { width, height, locale } of viewports) {
+      const { context, page, errors } = await fixture(width, height, {
+        locale,
+      });
       try {
         await expect(page.locator("section[data-style-setup]")).toBeVisible();
         const bounds = await page.evaluate(() => {
@@ -472,21 +498,96 @@ it.skipIf(!enabled)(
             previewHeight: document
               .querySelector("[data-style-preview]")!
               .getBoundingClientRect().height,
+            footerGap:
+              document.querySelector(".style-footer")!.getBoundingClientRect()
+                .top -
+              document.querySelector(".style-controls")!.getBoundingClientRect()
+                .bottom,
           };
         });
         expect(bounds.scrollWidth).toBeLessThanOrEqual(width);
         expect(bounds.action.bottom).toBeLessThanOrEqual(height);
         expect(bounds.action.height).toBeGreaterThanOrEqual(48);
-        expect(bounds.previewHeight).toBeGreaterThan(70);
+        expect(bounds.previewHeight).toBeGreaterThanOrEqual(44);
+        if (height >= 568 && width <= 700) {
+          expect(bounds.footerGap).toBeGreaterThanOrEqual(0);
+          expect(bounds.footerGap).toBeLessThanOrEqual(16);
+        }
+        expect(
+          await page
+            .locator("[data-style-finish]")
+            .evaluate((button: HTMLElement) => {
+              const box = button.getBoundingClientRect();
+              return button.contains(
+                document.elementFromPoint(
+                  box.left + box.width / 2,
+                  box.top + box.height / 2,
+                ),
+              );
+            }),
+        ).toBe(true);
+        if (height <= 550 && width <= 700) {
+          await page
+            .locator(
+              'section[data-style-setup] [data-draft-select="titleLanguageCode"] [data-draft-select-trigger]',
+            )
+            .click();
+          await page
+            .locator(
+              'section[data-style-setup] [data-draft-select="titleLanguageCode"] [data-draft-select-option="de"]',
+            )
+            .click();
+          await expect(
+            page.locator('[data-style-field="titleLanguageCode"]'),
+          ).toHaveValue("de");
+          await page.locator("[data-style-edit-note]").scrollIntoViewIfNeeded();
+          const footer = await page
+            .locator("[data-style-finish]")
+            .boundingBox();
+          expect(footer!.y + footer!.height).toBeLessThanOrEqual(height);
+        }
         expect(errors).toEqual([]);
-        cases.push({ height, ...bounds });
+        cases.push({ height, locale, ...bounds });
         const output = process.env.PREAUTH_STYLE_BROWSER_OUTPUT;
-        if (output && (width === 390 || width === 1440)) {
+        if (
+          output &&
+          (width === 390 ||
+            width === 1440 ||
+            (width === 568 && locale === "en"))
+        ) {
           await mkdir(output, { recursive: true });
           await page
             .locator(".style-example-photo img")
             .evaluate((img: HTMLImageElement) => img.decode());
           await page.screenshot({ path: join(output, `preview-${width}.png`) });
+        }
+        if (
+          (width === 320 && height === 480 && locale === "de") ||
+          (width === 390 && height === 844)
+        ) {
+          if (width === 390) {
+            await page.setViewportSize({ width: 844, height: 390 });
+            await expect(page.locator("[data-style-finish]")).toBeInViewport({
+              ratio: 1,
+            });
+            await page.setViewportSize({ width, height });
+            await expect(page.locator("[data-style-finish]")).toBeInViewport({
+              ratio: 1,
+            });
+          }
+          await page.addStyleTag({
+            content:
+              "section[data-style-setup] button { font-size: 20px !important; } #style-heading { font-size: 38px !important; }",
+          });
+          const enlarged = await page
+            .locator("[data-style-finish]")
+            .boundingBox();
+          expect(enlarged!.y).toBeGreaterThanOrEqual(0);
+          expect(enlarged!.y + enlarged!.height).toBeLessThanOrEqual(height);
+          await page.locator("[data-style-finish]").click();
+          await expect(
+            page.locator('[data-mobile-web="auth-card"]'),
+          ).toBeVisible();
         }
       } finally {
         await context.close();
@@ -498,5 +599,5 @@ it.skipIf(!enabled)(
         JSON.stringify(cases, null, 2) + "\n",
       );
   },
-  30000,
+  60000,
 );

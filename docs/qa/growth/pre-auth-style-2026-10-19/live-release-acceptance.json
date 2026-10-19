@@ -1,0 +1,174 @@
+{
+  "commit": "fd770e599800c60e5b6d5f82c3d5facc563269dc",
+  "productionDeployment": "https://vercel.com/ahmed-samis-projects-e6ef0336/quick-vint-api/6ijuWGWsBHuK7tPsJxTsjUhKgNAW",
+  "deploymentCompletedAt": "2026-10-19T14:31:05Z",
+  "pushProof": [
+    "Repo: quick-vint-api",
+    "Branch pushed: main",
+    "0bd50be..fd770e5  main -> main"
+  ],
+  "gate": {
+    "passed": true,
+    "testsPassed": 1031,
+    "testsSkipped": 4,
+    "testFilesPassed": 136
+  },
+  "app": {
+    "checkedAt": "2026-10-19T14:31:34.475Z",
+    "origin": "https://autolister.app",
+    "cases": [
+      {
+        "width": 320,
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 390,
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 768,
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 1440,
+        "preview": true,
+        "headerIcon": true,
+        "saveBeforeAuth": true,
+        "reloadRetains": true,
+        "directSignInRetains": true,
+        "noOverflow": true,
+        "pageErrors": []
+      }
+    ],
+    "directSignInFresh": true
+  },
+  "entryPages": [
+    {
+      "path": "/blog/how-to-write-vinted-descriptions-that-sell",
+      "width": 390,
+      "status": 200,
+      "webAppReference": "blog_description_formula",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/de/blog/vinted-beschreibungen-die-verkaufen",
+      "width": 390,
+      "status": 200,
+      "webAppReference": "blog_de_description_formula",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/blog/fastest-way-to-sell-many-items-at-once",
+      "width": 390,
+      "status": 200,
+      "webAppReference": "blog_many_items_workflow",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/blog/batch-generate-vinted-listings",
+      "width": 390,
+      "status": 200,
+      "webAppReference": "blog_batch_workflow",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/vinted-description-generator",
+      "width": 390,
+      "status": 200,
+      "webAppReference": "vinted_description_generator_hero",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/blog/how-to-write-vinted-descriptions-that-sell",
+      "width": 1440,
+      "status": 200,
+      "webAppReference": "blog_description_formula",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/de/blog/vinted-beschreibungen-die-verkaufen",
+      "width": 1440,
+      "status": 200,
+      "webAppReference": "blog_de_description_formula",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/blog/fastest-way-to-sell-many-items-at-once",
+      "width": 1440,
+      "status": 200,
+      "webAppReference": "blog_many_items_workflow",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/blog/batch-generate-vinted-listings",
+      "width": 1440,
+      "status": 200,
+      "webAppReference": "blog_batch_workflow",
+      "extensionVisible": true,
+      "noOverflow": true
+    },
+    {
+      "path": "/vinted-description-generator",
+      "width": 1440,
+      "status": 200,
+      "webAppReference": "vinted_description_generator_hero",
+      "extensionVisible": true,
+      "noOverflow": true
+    }
+  ],
+  "homepage": {
+    "matched": true,
+    "before": {
+      "/": "9095c9d09e262ed54e1fa0705e711b699a405a5e2aeeee0ebf534e9a834293ef",
+      "/fr/": "a1b387531889beedbaae3027015c417bdf6732559e9ec8915f14a3eb0923a99c",
+      "/de/": "f516974746184c7d61a10fc5eb4092600750ce90a3561eb701d577715ff7f431",
+      "/nl/": "3f8b2103c3653edd73a54a5a6b4afa383818050af9008a7673161956a8c60e5e",
+      "/pl/": "0564e542c76b672b73a8d16febe6e43e473d731a09f5000e6d9a524d99d305fc",
+      "/es/": "3289666b142867b90504d08a5a0b5573948a05b0a672c0a7f2a21e49c79b132a",
+      "/it/": "5c1e4296debf44974acbd19bf4f6129085b9fae8e82a028053a35957384d73d1",
+      "/pt/": "c5648235b64a2c0c596c64074b0334e87624ad27b05e35d185a527e84fd618a6"
+    },
+    "after": {
+      "/": "9095c9d09e262ed54e1fa0705e711b699a405a5e2aeeee0ebf534e9a834293ef",
+      "/fr/": "a1b387531889beedbaae3027015c417bdf6732559e9ec8915f14a3eb0923a99c",
+      "/de/": "f516974746184c7d61a10fc5eb4092600750ce90a3561eb701d577715ff7f431",
+      "/nl/": "3f8b2103c3653edd73a54a5a6b4afa383818050af9008a7673161956a8c60e5e",
+      "/pl/": "0564e542c76b672b73a8d16febe6e43e473d731a09f5000e6d9a524d99d305fc",
+      "/es/": "3289666b142867b90504d08a5a0b5573948a05b0a672c0a7f2a21e49c79b132a",
+      "/it/": "5c1e4296debf44974acbd19bf4f6129085b9fae8e82a028053a35957384d73d1",
+      "/pt/": "c5648235b64a2c0c596c64074b0334e87624ad27b05e35d185a527e84fd618a6"
+    }
+  },
+  "limits": [
+    "Controlled Google, email code and same-browser email-link handoffs passed locally using actual built app and SDK with auth fixtures.",
+    "Live UI acceptance intercepted auth/API/telemetry calls. No real sign-in, email, generation or purchase.",
+    "Pending preferences are browser-local; no cross-browser/device transfer.",
+    "Physical-device rendering remains untested."
+  ]
+}

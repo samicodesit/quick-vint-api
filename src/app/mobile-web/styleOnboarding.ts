@@ -266,9 +266,35 @@ export function mountStyleOnboarding(
   bind(find("[data-style-skip]"), "click", () => complete(true));
   render();
   root.hidden = false;
+  const footer = find(".style-footer");
+  const fitPreview = () => {
+    if (!window.matchMedia("(max-width: 700px), (max-height: 450px)").matches) {
+      root.style.removeProperty("--style-content-height");
+      root.style.removeProperty("--style-footer-height");
+      return;
+    }
+    const footerHeight = footer.getBoundingClientRect().height;
+    const top = root.getBoundingClientRect().top + window.scrollY;
+    root.style.setProperty("--style-footer-height", `${footerHeight}px`);
+    root.style.setProperty(
+      "--style-content-height",
+      `${Math.max(0, window.innerHeight - top - footerHeight - 12)}px`,
+    );
+  };
+  fitPreview();
+  const layoutObserver = new ResizeObserver(fitPreview);
+  layoutObserver.observe(footer);
+  const header = root
+    .closest(".mobile-workspace-shell")
+    ?.querySelector(".mobile-workspace-header");
+  if (header) layoutObserver.observe(header);
+  bind(window, "resize", fitPreview);
   void trackMobileEvent("web_style_setup", { phase: "shown" });
   find("#style-heading").focus({ preventScroll: true });
   return () => {
+    layoutObserver.disconnect();
+    root.style.removeProperty("--style-content-height");
+    root.style.removeProperty("--style-footer-height");
     listeners.forEach((remove) => remove());
     unmountSelects();
     if (dialog.open) dialog.close();

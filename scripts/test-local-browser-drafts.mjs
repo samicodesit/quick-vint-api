@@ -84,6 +84,7 @@ let portalObserved;
 let checkoutFail = true;
 let minute = false;
 let uploadCount = 0;
+let rejectPhotoUpload = false;
 let expectedEditedPhoto;
 let editedPhotoUploaded = false;
 const sessions = new Map();
@@ -163,6 +164,12 @@ await context.route(`${base}/api/**`, async (route) => {
       },
     });
   if (url.pathname === "/api/phone-upload") {
+    if (
+      rejectPhotoUpload &&
+      req.method() === "POST" &&
+      !url.searchParams.get("action")
+    )
+      return route.abort("connectionreset");
     const sessionId = url.searchParams.get("sessionId");
     const action = url.searchParams.get("action");
     if (action === "open")
@@ -338,7 +345,146 @@ export const reviewJourney = { browser, context, page, click, upload, saved, sna
   stats() { return { generations, uploadCount, errors, requests }; },
 };
 
-if (process.env.DRAFT_BROWSER_INTERACTIVE === "1") {
+async function checkDeletedQueueItem() {
+  await page.goto(`${base}/app`);
+  await page
+    .locator('[data-draft-items][aria-busy="false"]')
+    .waitFor({ state: "attached" });
+  if (await action("back").isVisible()) await click("back");
+  await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  await click("new");
+  await page.getByRole("heading", { name: "Add item", exact: true }).waitFor();
+  await upload(4);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll(
+        "[data-draft-item-photos] .draft-photo:not(.draft-upload)",
+      ).length === 4,
+  );
+  const before = await snapshot();
+  rejectPhotoUpload = true;
+  await click("generate");
+  await page
+    .getByText("We could not upload this photo.", { exact: true })
+    .first()
+    .waitFor();
+  rejectPhotoUpload = false;
+  const failed = await snapshot();
+  assert.equal(
+    failed.blobCount,
+    before.blobCount,
+    "Failed transport retains photos",
+  );
+  assert.equal(
+    await action("generate").isVisible(),
+    true,
+    "Failed progress must leave the retained-photo retry action visible",
+  );
+  await page.locator(".draft-item-menu > summary").click();
+  await click("delete");
+  await page
+    .locator('[data-draft-delete-dialog] button[value="confirm"]')
+    .click();
+  await page.waitForFunction(
+    () =>
+      !document.querySelector("[data-draft-delete-dialog][open]") &&
+      document.querySelector('[data-draft-items][aria-busy="false"]'),
+  );
+  await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  const after = await snapshot();
+  assert.equal(after.drafts.length, before.drafts.length - 1);
+  assert.equal(after.blobCount, before.blobCount - 4);
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Open Item 1", exact: true })
+      .count(),
+    0,
+    "Deleted failed item must leave no stale queue button",
+  );
+  await page.reload();
+  await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Open Item 1", exact: true })
+      .count(),
+    0,
+    "Deleted queue item must stay removed after reload",
+  );
+  assert.equal(errors.length, 0, errors.join("\n"));
+}
+
+async function checkActiveDeletionConflict() {
+  await page.goto(`${base}/app`);
+  await page
+    .locator('[data-draft-items][aria-busy="false"]')
+    .waitFor({ state: "attached" });
+  if (await action("back").isVisible()) await click("back");
+  await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  await click("new");
+  await page.getByRole("heading", { name: "Add item", exact: true }).waitFor();
+  await upload(1);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll(
+        "[data-draft-item-photos] .draft-photo:not(.draft-upload)",
+      ).length === 1,
+  );
+  const before = await snapshot();
+  const previousGenerations = generations;
+  hold = true;
+  release = undefined;
+  await click("generate");
+  for (let wait = 0; !release && wait < 100; wait++)
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.ok(
+    release,
+    `Generation reaches the isolated provider: ${await page.locator("body").innerText()}`,
+  );
+  await page.locator(".draft-item-menu > summary").click();
+  await click("delete");
+  await page
+    .locator('[data-draft-delete-dialog] button[value="confirm"]')
+    .click();
+  await page
+    .getByText("This item changed in another tab. Reload its saved version.", {
+      exact: true,
+    })
+    .waitFor();
+  release();
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-draft-action="copy-title"]')?.disabled ===
+      false,
+  );
+  const after = await snapshot();
+  assert.equal(
+    after.drafts.length,
+    before.drafts.length,
+    "Existing version guard rejects deleting the in-flight item",
+  );
+  assert.equal(after.blobCount, before.blobCount);
+  assert.equal(
+    generations,
+    previousGenerations + 1,
+    "The rejected deletion starts no extra generation",
+  );
+  assert.equal(errors.length, 0, errors.join("\n"));
+}
+
+if (process.env.DRAFT_BROWSER_DELETION_ONLY === "1") {
+  try {
+    for (let round = 0; round < 3; round++) {
+      await checkDeletedQueueItem();
+      await checkActiveDeletionConflict();
+    }
+    console.log(JSON.stringify({ deletionRounds: 3, generations, errors }));
+  } catch (error) {
+    console.error(await page.locator("body").innerText());
+    throw error;
+  } finally {
+    await browser.close();
+  }
+} else if (process.env.DRAFT_BROWSER_INTERACTIVE === "1") {
   await page.goto(`${base}/app`);
 } else {
 try {
@@ -1610,6 +1756,11 @@ try {
   assert.ok(telemetryEvents.some((event) => event.event === "copy"));
   checks.push(
     "Existing durable telemetry records batch size, quota paywalls and copies without blocking the UI",
+  );
+  await checkDeletedQueueItem();
+  await checkActiveDeletionConflict();
+  checks.push(
+    "Deleting a failed item removes its queue link across reload and preserves other saved drafts and photos",
   );
   await writeFile(
     `${output}/result.json`,

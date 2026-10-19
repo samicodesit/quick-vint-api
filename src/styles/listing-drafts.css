@@ -1560,8 +1560,8 @@ html:has([data-drafts-enabled="true"]) {
 .draft-group-generation .draft-queue p {
   margin-bottom: 0;
 }
-.draft-generation-actions:has(.draft-queue:not([hidden])) > .draft-generate,
-.draft-generation-actions:has(.draft-queue:not([hidden])) > .draft-help {
+.draft-generation-actions:has(.draft-queue[data-running="true"]:not([hidden])) > .draft-generate,
+.draft-generation-actions:has(.draft-queue[data-running="true"]:not([hidden])) > .draft-help {
   display: none;
 }
 .draft-generation-actions .draft-queue {

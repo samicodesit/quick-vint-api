@@ -719,6 +719,20 @@ export function mountDraftWorkspace(
       else library.drafts[index] = draft;
     } else if (index >= 0) library.drafts.splice(index, 1);
   };
+  function forgetDeletedDraft(id: string) {
+    const inRun = queueReviewIds.includes(id);
+    queue.remaining = queue.remaining.filter((item) => item !== id);
+    queue.completed = queue.completed.filter((item) => item !== id);
+    queue.failed.delete(id);
+    attempts.delete(id);
+    queueReviewIds = queueReviewIds.filter((item) => item !== id);
+    reviewIds = reviewIds.filter((item) => item !== id);
+    chosen.delete(id);
+    groupIds = groupIds.filter((item) => item !== id);
+    if (inRun) generationCount = Math.max(0, generationCount - 1);
+    rememberGroups();
+    renderQueue();
+  }
   const saveStatus = (status: "saving" | "saved" | "error") => {
     if (disposed) return;
     find("[data-draft-save-status]").textContent =
@@ -1220,11 +1234,13 @@ export function mountDraftWorkspace(
               });
               groupIds = groupIds.filter((id) => id !== draft.id);
               rememberGroups();
-              if (!empty.title && !empty.description)
+              if (!empty.title && !empty.description) {
                 await draftAction("delete", {
                   draftId: empty.id,
                   expectedVersion: empty.version,
                 });
+                forgetDeletedDraft(empty.id);
+              }
               await reload();
               renderPool();
             } catch (error) {
@@ -2430,6 +2446,7 @@ export function mountDraftWorkspace(
   }
   function renderQueue() {
     if (disposed) return;
+    queuePanel.dataset.running = String(queue.running);
     if (bulk) find("[data-draft-heading]").textContent = "Your batch";
     try {
       if (queue.running || queue.remaining.length || queue.failed.size)
@@ -2515,7 +2532,7 @@ export function mountDraftWorkspace(
       if (queue.completed.includes(id) || queue.failed.has(id)) {
         const review = button(
           queue.failed.has(id) ? "Open" : "Review",
-          () => openDraft(id),
+          () => run(() => openDraft(id)),
           "draft-text-button",
         );
         review.setAttribute(
@@ -2934,9 +2951,7 @@ export function mountDraftWorkspace(
             draftId: draft.id,
             expectedVersion: draft.version,
           });
-          chosen.delete(draft.id);
-          groupIds = groupIds.filter((id) => id !== draft.id);
-          reviewIds = reviewIds.filter((id) => id !== draft.id);
+          forgetDeletedDraft(draft.id);
           try {
             sessionStorage.removeItem(key(draft.id));
           } catch {}
@@ -3098,8 +3113,7 @@ export function mountDraftWorkspace(
         sessionStorage.removeItem(key(d.id));
       } catch {}
       selected = null;
-      groupIds = groupIds.filter((id) => id !== d.id);
-      rememberGroups();
+      forgetDeletedDraft(d.id);
       await reload();
       renderEditor();
       rememberView();

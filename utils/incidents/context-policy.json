@@ -12,6 +12,13 @@
     "authRefreshOperationId",
     "batchId",
     "analyticsClientId",
+    "firstFailureObservedAt",
+    "firstFailureClientId",
+    "firstFailureVersion",
+    "firstFailureEvent",
+    "firstFailureErrorCode",
+    "firstFailureErrorName",
+    "firstFailurePhase",
     "webSessionId",
     "target",
     "method",
@@ -58,6 +65,7 @@
     "queueDroppedEventTypes"
   ],
   "numbers": [
+    "firstFailureStatusCode",
     "expectedTitleLength",
     "actualTitleLength",
     "expectedDescriptionLength",
@@ -116,6 +124,7 @@
     "expectedCount"
   ],
   "booleans": [
+    "firstFailureOnline",
     "signInRequired",
     "titleFieldPresent",
     "descriptionFieldPresent",

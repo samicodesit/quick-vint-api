@@ -132,6 +132,12 @@ globalThis.AutoListerEventRegistry = {
     stage: "authenticating",
     running: true,
   },
+  auth_action_result: {
+    kind: "business",
+  },
+  auth_session_result: {
+    kind: "business",
+  },
   token_refresh_start: {
     kind: "checkpoint",
     stage: "authenticating",
@@ -652,8 +658,17 @@ globalThis.AutoListerContextPolicy = {
     "lastConfirmedStage",
     "generationAttemptId",
     "operationId",
+    "parentOperationId",
+    "authRefreshOperationId",
     "batchId",
     "analyticsClientId",
+    "firstFailureObservedAt",
+    "firstFailureClientId",
+    "firstFailureVersion",
+    "firstFailureEvent",
+    "firstFailureErrorCode",
+    "firstFailureErrorName",
+    "firstFailurePhase",
     "webSessionId",
     "target",
     "method",
@@ -700,6 +715,7 @@ globalThis.AutoListerContextPolicy = {
     "queueDroppedEventTypes",
   ],
   numbers: [
+    "firstFailureStatusCode",
     "expectedTitleLength",
     "actualTitleLength",
     "expectedDescriptionLength",
@@ -758,6 +774,8 @@ globalThis.AutoListerContextPolicy = {
     "expectedCount",
   ],
   booleans: [
+    "firstFailureOnline",
+    "signInRequired",
     "titleFieldPresent",
     "descriptionFieldPresent",
     "titleMatches",

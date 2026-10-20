@@ -16,6 +16,29 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it("retains bounded first-failure facts on a recovery without retaining credentials", () => {
+    const facts = {
+      firstFailureObservedAt: "2026-10-03T09:58:00.000Z",
+      firstFailureClientId: "client-first",
+      firstFailureVersion: "1.4.22",
+      firstFailureEvent: "token_refresh_failed",
+      firstFailureErrorCode: "REFRESH_RETRIES_EXHAUSTED",
+      firstFailureErrorName: "AuthRetryableFetchError",
+      firstFailurePhase: "restore_session",
+      firstFailureStatusCode: 0,
+      firstFailureOnline: false,
+    };
+    const context = sanitizeContext(
+      {
+        ...facts,
+        firstFailureToken: "secret-must-not-be-retained",
+        firstFailureMessage: "secret-must-not-be-retained",
+      },
+      false,
+    );
+    expect(context).toEqual(facts);
+  });
+
   it.each([
     "batch_start",
     "batch_resume",

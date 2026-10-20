@@ -6,6 +6,9 @@
   const RETRY_MS = [60000, 300000, 900000, 1800000];
   const hasOwn = (value, key) =>
     Object.prototype.hasOwnProperty.call(value, key);
+  const authOutcome = (entry) =>
+    entry.event.event === "auth_session_result" ||
+    entry.event.event === "auth_action_result";
   function evidenceKey(entry) {
     const context = entry.event.context || {};
     // Periodic refresh attempts get a new operation ID even for the same
@@ -21,6 +24,7 @@
       context.errorName,
       context.statusCode,
       context.message,
+      ...(authOutcome(entry) ? [context.resultStatus] : []),
       ...(entry.event.event === "token_refresh_failed"
         ? []
         : [context.generationAttemptId, context.operationId, context.batchId]),
@@ -28,7 +32,10 @@
   }
   function capacityVictim(events) {
     const routine = events.findIndex(
-      (entry) => !entry.critical && !entry.event.context?.queueDropped,
+      (entry) =>
+        !entry.critical &&
+        !authOutcome(entry) &&
+        !entry.event.context?.queueDropped,
     );
     if (routine >= 0) return routine;
     const seen = new Set();
@@ -150,10 +157,21 @@
               a.createdAt - b.createdAt,
           );
           const owner = eligible[0]?.accountId;
+          // Freeze one unacknowledged carrier per owner. Repeated failed sends
+          // must not turn the whole queue into protected counter carriers.
+          // New totals remain durable in state until that carrier is accepted.
+          let hasDropCarrier = state.events.some(
+            (entry) =>
+              entry.accountId === owner && entry.event.context?.queueDropped,
+          );
           const selected = [];
           for (const entry of eligible) {
             if (entry.accountId !== owner) continue;
-            if (state.dropped > 0 && !entry.event.context?.queueDropped) {
+            if (
+              state.dropped > 0 &&
+              !hasDropCarrier &&
+              !entry.event.context?.queueDropped
+            ) {
               const counts = state.dropCounts || {};
               entry.event.context = {
                 ...entry.event.context,
@@ -183,6 +201,7 @@
               };
               state.dropped = 0;
               delete state.dropCounts;
+              hasDropCarrier = true;
             }
 
             if (

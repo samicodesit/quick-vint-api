@@ -395,3 +395,54 @@ it.each(["future", "receipt", "flag", "reason", "reference"])(
     );
   },
 );
+
+it("recognizes the nested source in a real SQL notification snapshot", () => {
+  const value = backgroundIncident();
+  delete value.source;
+  value.example.source = "extension_background";
+  const email = renderIncidentEmail(value, {
+    status: "silent_renewed",
+    checkedAt: "2026-10-19T17:38:08Z",
+    renewedAt: "2026-10-19T17:35:05Z",
+    signInRequired: false,
+  });
+  expect(email.subject).toBe("AutoLister: background renewal recovered");
+});
+
+it("enriches a legacy SQL claim before freezing its recovered email", async () => {
+  const value = backgroundIncident();
+  delete value.source;
+  value.example.source = "extension_background";
+  mocks.logs = [renewal()];
+  expect(await deliverPendingNotifications()).toEqual({ sent: 1, failed: 0 });
+  const email = mocks.send.mock.calls[0][0];
+  expect(email.subject).toBe("AutoLister: background renewal recovered");
+  expect(email.html).toContain("Recovered automatically");
+  expect(email.html).toContain("No sign-in requirement was recorded");
+  expect(
+    mocks.update.mock.calls.some(([value]) => value.status === "resolved"),
+  ).toBe(false);
+});
+
+it("keeps an unrecovered legacy SQL background failure visible", async () => {
+  const value = backgroundIncident();
+  delete value.source;
+  value.example.source = "extension_background";
+  expect(await deliverPendingNotifications()).toEqual({ sent: 1, failed: 0 });
+  const email = mocks.send.mock.calls[0][0];
+  expect(email.subject).toBe("AutoLister: background renewal failed");
+  expect(email.html).toContain(
+    "No matching renewal or fresh sign-in was found",
+  );
+  expect(email.html).toContain("Failed to fetch");
+  expect(email.html).not.toContain("Recovered automatically");
+});
+
+it("does not override an explicit source with a nested background source", () => {
+  const value = backgroundIncident();
+  value.source = "mobile_web";
+  value.example.source = "extension_background";
+  expect(renderIncidentEmail(value).subject).toBe(
+    "AutoLister issue: token_refresh_failed",
+  );
+});

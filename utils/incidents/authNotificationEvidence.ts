@@ -16,7 +16,7 @@ export function isBackgroundAuthFailure(payload: any): boolean {
     ["token_refresh_failed", "token_refresh_expired"].includes(
       payload?.event,
     ) &&
-    payload?.source === "extension_background" &&
+    (payload?.source || payload?.example?.source) === "extension_background" &&
     ["startup_restore", "scheduled_refresh", "sdk_refresh"].includes(
       context?.entryPoint,
     ) &&

@@ -38,7 +38,11 @@ import {
 } from "../utils/descriptionFooter";
 import { extractOpenAIRateLimitHeaders } from "../utils/openaiRateLimitHeaders";
 import { parseOpenAIListingOutput } from "../utils/openaiListingOutput";
-import { prepareOpenAIImageUrls } from "../utils/openaiImageUrls";
+import {
+  ImagePreparationError,
+  prepareOpenAIImageUrls,
+  summarizePhotoSourcesForLog,
+} from "../utils/openaiImageUrls";
 import { validateAiInstructions } from "../utils/aiInstructions";
 import { reportCriticalEndpointFailure } from "../utils/criticalEndpointAlert";
 import { shouldStoreDebugGenerationImages } from "../utils/debugGenerationImages";
@@ -1474,7 +1478,13 @@ Reply only in JSON: {"title":"...","description":"..."}
     // Log the detailed error (for admin)
     logData.responseStatus = statusCode;
     logData.processingDurationMs = Date.now() - startTime;
-    logData.flaggedReason = `OpenAI generation error: ${safeProviderError}`;
+    // Photo preparation runs before the AI call; never label it as OpenAI's.
+    const photoSources = summarizePhotoSourcesForLog(req.body?.imageMetadata);
+    logData.flaggedReason = `${
+      err instanceof ImagePreparationError
+        ? "Photo preparation failed"
+        : "OpenAI generation error"
+    }: ${safeProviderError}${photoSources ? ` | Photos: ${photoSources}` : ""}`;
     logData.openaiRateLimitInfo = extractOpenAIRateLimitHeaders(err.headers);
     if (
       !hasRetryProtection ||

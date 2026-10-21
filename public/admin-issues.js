@@ -41,7 +41,7 @@
             pause,
           ) => `<article style="margin-top:12px"><strong>${escape(reasons[pause.errorCode] || pause.message || "Batch paused; detailed cause not recorded")}</strong>
         <p>${escape(date(pause.occurredAt))} · Item ${number(pause.itemIndex)} · ${number(pause.completedCount)}/${number(pause.total)} ready<br>
-        Stage: ${escape(String(pause.phase || "not recorded").replace(/_/g, " "))} · Stage duration: ${escape(duration(pause.durationMs))} · Item duration: ${escape(duration(pause.itemDurationMs))}<br>
+        ${pause.phase || Number.isFinite(pause.durationMs) || Number.isFinite(pause.itemDurationMs) ? `Stage: ${escape(String(pause.phase || "not recorded").replace(/_/g, " "))} · Stage duration: ${escape(duration(pause.durationMs))} · Item duration: ${escape(duration(pause.itemDurationMs))}<br>` : ""}
         ${
           Number.isInteger(pause.expectedPhotoCount)
             ? `Photos confirmed: ${number(pause.confirmedPhotoCount)}/${number(pause.expectedPhotoCount)}<br>
@@ -51,9 +51,8 @@
         }</p></article>`,
         )
         .join("")}
-      ${!batch.evidenceAvailable ? "<p>Detailed batch events were not recorded or are no longer retained.</p>" : ""}
-      ${batch.incomplete ? "<p>Timeline incomplete. Missing events cannot establish recovery or lack of impact.</p>" : ""}
-      <p>Ready for review confirms draft preparation. Listing publication is not verified here.</p>
+      ${!batch.evidenceAvailable ? "<p>Batch history was not recorded or has expired.</p>" : batch.incomplete ? "<p>Some events are missing. Recovery cannot be fully verified.</p>" : ""}
+      ${done ? "<p>Draft preparation confirmed. Publication is not verified.</p>" : ""}
     </section>`;
   }
   function summary(issue, includeButton = true) {

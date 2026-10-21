@@ -17,6 +17,7 @@ import { suggestAiStyle } from "../../utils/aiStyleLearner";
 import { FREE_LIFETIME_LIMIT, getEffectiveTier } from "../../utils/tierConfig";
 import { ingestEnvelope } from "../../utils/incidents/ingestion";
 import { isRegisteredBusiness, redact } from "../../utils/incidents/contract";
+import { retainsBatchEvidence } from "../../utils/incidents/batchReport";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
@@ -377,6 +378,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     authenticatedUserId,
     (raw, context) => {
       const retained =
+        retainsBatchEvidence(raw) ||
         isRegisteredBusiness(raw.event) ||
         (raw.source === "mobile_web" && raw.event === "checkout_start") ||
         [
@@ -409,6 +411,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   key.startsWith("queueDropped"),
               ),
             ),
+          },
+        };
+      }
+      // Existing analytics retention keeps bounded outcome facts without photos,
+      // credentials, personal metadata or a separate tracking table.
+      if (retainsBatchEvidence(raw) && !dropCarrier) {
+        return {
+          endpoint: `/event/${raw.event}`,
+          request_method: "SYSTEM",
+          response_status: 204,
+          full_request_body: {
+            analyticsOnly: true,
+            event: raw.event,
+            source: redact(raw.source, 80),
+            extensionVersion: redact(raw.extensionVersion, 80),
+            transportEventId: raw.id,
+            occurredAt: raw.occurredAt,
+            context,
           },
         };
       }

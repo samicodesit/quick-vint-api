@@ -30,6 +30,105 @@ beforeEach(() => {
   vi.clearAllMocks();
   delete process.env.INCIDENT_PROCESSING_PAUSED;
 });
+it("adds bounded same-owner batch history without losing issue details if the history query fails", async () => {
+  const id = "a423926a-35a6-4bf5-8027-8ab335c71110";
+  const owner = "a423926a-35a6-4bf5-8027-8ab335c71111";
+  const batch = "a423926a-35a6-4bf5-8027-8ab335c71112";
+  let unavailable: boolean | "stall" = false;
+  let historySignal: AbortSignal;
+  const filters: any[] = [];
+  mocks.from.mockImplementation((table: string) => {
+    const q: any = {};
+    for (const method of ["select", "eq", "gt", "gte", "in", "order"])
+      q[method] = (...args: any[]) => {
+        filters.push([table, method, ...args]);
+        return q;
+      };
+    q.maybeSingle = async () => ({
+      data: {
+        id,
+        event: "batch_paused",
+        evidence_expires_at: "2099-01-01T00:00:00Z",
+      },
+    });
+    q.abortSignal = (signal: AbortSignal) => {
+      historySignal = signal;
+      return q;
+    };
+    q.limit = async () => {
+      if (table === "incident_flows")
+        return {
+          data: [
+            { operation_id: batch, user_id: owner, identity_verified: true },
+          ],
+        };
+      if (unavailable === "stall")
+        await new Promise((_resolve, reject) =>
+          historySignal.addEventListener(
+            "abort",
+            () => reject(new Error("request aborted")),
+            { once: true },
+          ),
+        );
+      if (unavailable) throw new Error("temporary history failure");
+      return {
+        data: [
+          {
+            id: "log-1",
+            user_id: owner,
+            created_at: "2026-10-21T10:01:00Z",
+            full_request_body: {
+              event: "batch_paused",
+              context: {
+                batchId: batch,
+                analyticsClientId: "client-a",
+                expectedPhotoCount: 10,
+                confirmedPhotoCount: 8,
+              },
+            },
+          },
+        ],
+      };
+    };
+    return q;
+  });
+  const res = response();
+  await handleIssues(
+    { method: "GET", query: { action: "issue-detail", id } } as any,
+    res,
+  );
+  expect(res.body.batches[0]).toMatchObject({
+    batchId: batch,
+    recoveryStatus: "unproven",
+    pauses: [{ expectedPhotoCount: 10, confirmedPhotoCount: 8 }],
+  });
+  expect(filters).toContainEqual(["api_logs", "in", "user_id", [owner]]);
+  expect(filters).toContainEqual([
+    "api_logs",
+    "in",
+    "full_request_body->context->>batchId",
+    [batch],
+  ]);
+  unavailable = true;
+  await handleIssues(
+    { method: "GET", query: { action: "issue-detail", id } } as any,
+    res,
+  );
+  expect(res.code).toBe(200);
+  expect(res.body).toMatchObject({
+    issue: { id },
+    batchEvidenceError: true,
+    batches: [{ incomplete: true, recoveryStatus: "unproven" }],
+  });
+  unavailable = "stall";
+  await handleIssues(
+    { method: "GET", query: { action: "issue-detail", id } } as any,
+    res,
+  );
+  expect(historySignal!.aborted).toBe(true);
+  expect(res.code).toBe(200);
+  expect(res.body.batchEvidenceError).toBe(true);
+});
 it("retrieves an owner's referenced refresh beyond the newest 50 group operations", async () => {
   const id = "a423926a-35a6-4bf5-8027-8ab335c71110";
   const owner = "a423926a-35a6-4bf5-8027-8ab335c71111";

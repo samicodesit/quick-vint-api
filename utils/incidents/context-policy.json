@@ -62,7 +62,10 @@
     "checkoutKind",
     "phoneSessionKey",
     "queueDropLastRejection",
-    "queueDroppedEventTypes"
+    "queueDroppedEventTypes",
+    "batchStartedAt",
+    "batchFinishedAt",
+    "resumeTrigger"
   ],
   "numbers": [
     "firstFailureStatusCode",
@@ -121,7 +124,17 @@
     "descriptionLength",
     "order",
     "nextAttempt",
-    "expectedCount"
+    "expectedCount",
+    "failedPhotoCount",
+    "previewPhotoCount",
+    "duplicatePhotoCount",
+    "unrecognizedPhotoCount",
+    "pauseDurationMs",
+    "activeDurationMs",
+    "pauseCount",
+    "resumeCount",
+    "automaticRecoveryCount",
+    "itemDurationMs"
   ],
   "booleans": [
     "firstFailureOnline",
@@ -145,7 +158,10 @@
     "useBulletPoints",
     "useHashtags",
     "useEmojis",
-    "includeSellerNote"
+    "includeSellerNote",
+    "photoGridPresent",
+    "timingComplete",
+    "recoveredFromPause"
   ],
   "imageStrings": [
     "sourceSelection",

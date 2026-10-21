@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../supabaseClient";
 import { recordServerIncident } from "./service";
 import { sanitizeContext } from "./contract";
+import { batchEvidenceEvents, batchReports } from "./batchReport";
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 
@@ -168,10 +169,76 @@ export async function handleIssues(req: VercelRequest, res: VercelResponse) {
       const { notification_payload: _payload, ...summary } = issue.data;
       if (Date.parse(summary.evidence_expires_at) <= Date.now())
         summary.examples = [];
+      let batches: ReturnType<typeof batchReports> = [];
+      let batchEvidenceError = false;
+      const linked = (flows.data || [])
+        .slice(0, 50)
+        .filter(
+          (flow: any) =>
+            flow.identity_verified &&
+            uuid.test(flow.user_id) &&
+            uuid.test(flow.operation_id),
+        );
+      if (String(summary.event).startsWith("batch_") && linked.length) {
+        const originalFailures = (summary.examples || [])
+          .filter(
+            (example: any) =>
+              example.identityVerified && uuid.test(example.userId),
+          )
+          .map((example: any) => ({
+            id: example.eventId,
+            user_id: example.userId,
+            created_at: example.occurredAt,
+            full_request_body: {
+              event: summary.event,
+              transportEventId: example.eventId,
+              occurredAt: example.occurredAt,
+              source: example.source,
+              extensionVersion: summary.release,
+              context: example.context,
+            },
+          }));
+        try {
+          const evidence = await supabase
+            .from("api_logs")
+            .select("id,user_id,created_at,full_request_body")
+            .in("user_id", [
+              ...new Set(linked.map((flow: any) => flow.user_id)),
+            ])
+            .in(
+              "endpoint",
+              [...batchEvidenceEvents, "batch_worker_progress"].map(
+                (event) => `/event/${event}`,
+              ),
+            )
+            .in(
+              "full_request_body->context->>batchId",
+              linked.map((flow: any) => flow.operation_id),
+            )
+            .gte(
+              "created_at",
+              new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+            )
+            .order("created_at", { ascending: false })
+            .abortSignal(AbortSignal.timeout(1500))
+            .limit(201);
+          batchEvidenceError = Boolean(evidence.error);
+          batches = batchReports(
+            linked,
+            [...(evidence.data || []).slice(0, 200), ...originalFailures],
+            Boolean(evidence.error) || (evidence.data || []).length > 200,
+          );
+        } catch {
+          batchEvidenceError = true;
+          batches = batchReports(linked, originalFailures, true);
+        }
+      }
       return res.status(200).json({
         issue: summary,
         operations: (flows.data || []).slice(0, 50),
         moreOperations: (flows.data || []).length > 50,
+        batches,
+        batchEvidenceError,
       });
     }
     if (action === "issue-state" && req.method === "POST") {

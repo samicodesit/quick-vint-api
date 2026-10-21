@@ -15,6 +15,47 @@
   const date = (value) =>
     value ? new Date(value).toLocaleString() : "Unknown";
   const uuid = /^[a-f\d-]{36}$/i;
+  const duration = (value) =>
+    Number.isFinite(value) && value >= 0
+      ? `${(value / 1000).toFixed(1)} s`
+      : "Not recorded";
+  const number = (value) =>
+    Number.isInteger(value) && value >= 0 ? String(value) : "?";
+  function batchView(batch) {
+    const done = batch.completion;
+    const reasons = {
+      HOST_PHOTO_CONFIRMATION_TIMEOUT: "Photo confirmation timed out",
+      HOST_PHOTO_FORM_ERROR: "Vinted showed a photo upload error",
+    };
+    const triggers = {
+      user_resume: "User clicked Resume",
+      automatic_worker_reattach: "Automatic worker reconnection",
+    };
+    return `<section class="card" data-batch-report style="padding:16px;margin:12px 0;overflow-wrap:anywhere">
+      <h3>${done ? `${number(done.completedCount)}/${number(done.total)} drafts ready for review` : "Batch recovery not verified"}</h3>
+      <p>Batch ${escape(batch.batchId)}${done ? `<br>Ready: ${escape(date(done.occurredAt))}` : ""}</p>
+      ${done ? `<p>Total elapsed: ${escape(duration(done.recoveryAgeMs))}<br>Running, including waits: ${escape(done.timingComplete ? duration(done.activeDurationMs) : "Not recorded")}<br>Paused: ${escape(done.timingComplete ? duration(done.pauseDurationMs) : "Not recorded")}<br>Recovery action: ${escape(triggers[done.resumeTrigger] || (done.timingComplete && done.pauseCount === 0 ? "No Resume action needed" : "Not recorded"))}<br>Resume actions: ${number(done.resumeCount)} · Automatic worker reconnections: ${number(done.automaticRecoveryCount ?? (done.timingComplete ? 0 : undefined))}</p>` : ""}
+      ${(batch.pauses || [])
+        .map(
+          (
+            pause,
+          ) => `<article style="margin-top:12px"><strong>${escape(reasons[pause.errorCode] || pause.message || "Batch paused; detailed cause not recorded")}</strong>
+        <p>${escape(date(pause.occurredAt))} · Item ${number(pause.itemIndex)} · ${number(pause.completedCount)}/${number(pause.total)} ready<br>
+        Stage: ${escape(String(pause.phase || "not recorded").replace(/_/g, " "))} · Stage duration: ${escape(duration(pause.durationMs))} · Item duration: ${escape(duration(pause.itemDurationMs))}<br>
+        ${
+          Number.isInteger(pause.expectedPhotoCount)
+            ? `Photos confirmed: ${number(pause.confirmedPhotoCount)}/${number(pause.expectedPhotoCount)}<br>
+        Image elements: ${number(pause.visiblePhotoCount)} · Loading: ${number(pause.pendingCount)} · Failed to load: ${number(pause.failedPhotoCount)} · Local previews: ${number(pause.previewPhotoCount)} · Duplicate confirmations: ${number(pause.duplicatePhotoCount)} · Unrecognized: ${number(pause.unrecognizedPhotoCount)}<br>
+        Tab: ${pause.documentVisible === true ? "visible" : pause.documentVisible === false ? "hidden" : "not recorded"} · Browser connection: ${pause.navigatorOnline === true ? "reported online" : pause.navigatorOnline === false ? "reported offline" : "not recorded"}`
+            : "Photo confirmation detail not recorded by this client."
+        }</p></article>`,
+        )
+        .join("")}
+      ${!batch.evidenceAvailable ? "<p>Detailed batch events were not recorded or are no longer retained.</p>" : ""}
+      ${batch.incomplete ? "<p>Timeline incomplete. Missing events cannot establish recovery or lack of impact.</p>" : ""}
+      <p>Ready for review confirms draft preparation. Listing publication is not verified here.</p>
+    </section>`;
+  }
   function summary(issue, includeButton = true) {
     return `<article class="card" style="margin-bottom:12px;padding:16px;overflow-wrap:anywhere">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>${escape(issue.event)}</strong><span>${escape(issue.severity)} · ${escape(issue.status)}</span></div>
@@ -149,6 +190,7 @@
       root.openModal(
         "Issue details",
         `<div id="issue-detail-content">${summary(issue, false)}
+        ${(data.batches || []).map(batchView).join("")}${data.batchEvidenceError ? '<p role="status">Batch history is temporarily unavailable.</p>' : ""}
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-secondary" data-state="acknowledged">Acknowledge</button><button class="btn-secondary" data-state="resolved">Resolve</button><button class="btn-secondary" data-state="open">Reopen</button></div>
         <p>${escape(issue.notification_error || "")}</p><h3>Evidence</h3>
         ${(issue.examples || []).map((example) => `<section class="card" style="padding:12px;margin:12px 0"><p>${escape(date(example.occurredAt))} · ${example.identityVerified ? "Verified identity" : example.trustedSource ? "Server context" : "Unverified correlation"} · ${escape(example.source)}</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${escape(JSON.stringify(example.context, null, 2))}</pre></section>`).join("") || "<p>Diagnostic evidence has expired.</p>"}

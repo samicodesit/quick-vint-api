@@ -174,6 +174,54 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
+  it("retains bounded batch outcome facts with original receipt correlation and no heavy customer payload", async () => {
+    const res = await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "d623926a-35a6-4bf5-8027-8ab335c71110",
+          event: "batch_complete",
+          occurredAt: "2026-10-21T10:05:00Z",
+          source: "extension_background",
+          extensionVersion: "1.4.24",
+          context: {
+            batchId: "a423926a-35a6-4bf5-8027-8ab335c71110",
+            analyticsClientId: "client-a",
+            completedCount: 4,
+            total: 4,
+            recoveryAgeMs: 300000,
+            pauseDurationMs: 120000,
+            activeDurationMs: 180000,
+            timingComplete: true,
+            resumeTrigger: "user_resume",
+          },
+        },
+      ],
+    });
+    expect(res.statusCode).toBe(200);
+    const args = rpcMock.mock.calls.find(
+      ([name]) => name === "incident_ingest",
+    )?.[1] as any;
+    expect(args.p_event.businessLog).toMatchObject({
+      endpoint: "/event/batch_complete",
+      full_request_body: {
+        analyticsOnly: true,
+        transportEventId: "d623926a-35a6-4bf5-8027-8ab335c71110",
+        occurredAt: "2026-10-21T10:05:00Z",
+        context: {
+          completedCount: 4,
+          total: 4,
+          recoveryAgeMs: 300000,
+          pauseDurationMs: 120000,
+          activeDurationMs: 180000,
+          resumeTrigger: "user_resume",
+        },
+      },
+    });
+    expect(args.p_event.businessLog).not.toHaveProperty("user_email");
+    expect(args.p_event.businessLog).not.toHaveProperty("ip_address");
+  });
+
   it.each(["auth_action_result", "auth_session_result"])(
     "persists %s correlation through the endpoint and native SQL",
     async (eventName) => {

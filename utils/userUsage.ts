@@ -2,6 +2,7 @@ import { isAccountPaused } from "../src/utils/accountPause";
 import { isGenerationSuspendedForPayment } from "../src/utils/subscriptionStatus";
 import {
   CREDIT_PACK_CONFIG,
+  CREDIT_PACK_CONFIGS,
   TIER_CONFIGS,
   getAllPaidTiers,
   getEffectiveTier,
@@ -65,6 +66,7 @@ export interface UsageResponse {
       { monthly: number; dailyLimit: number; monthlyLimit: number }
     >;
     creditPack: { credits: number; price: number };
+    creditPacks: Array<{ id: string; credits: number; price: number }>;
   };
 }
 
@@ -144,6 +146,11 @@ function pricingSummary() {
       credits: CREDIT_PACK_CONFIG.credits,
       price: CREDIT_PACK_CONFIG.priceEur,
     },
+    creditPacks: CREDIT_PACK_CONFIGS.map((pack) => ({
+      id: pack.id,
+      credits: pack.credits,
+      price: pack.priceEur,
+    })),
   };
 }
 

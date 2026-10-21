@@ -179,6 +179,11 @@ describe("authenticated mobile usage endpoint", () => {
           business: { monthly: 19.99 },
         },
         creditPack: { credits: 20, price: 5.99 },
+        creditPacks: [
+          { id: "credits_20", credits: 20, price: 5.99 },
+          { id: "credits_50", credits: 50, price: 9.99 },
+          { id: "credits_100", credits: 100, price: 16.99 },
+        ],
       },
     });
     expect(JSON.stringify(response)).not.toContain("stripe_customer_id");

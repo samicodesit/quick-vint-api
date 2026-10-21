@@ -1,6 +1,10 @@
 import { fetchMobileJson } from "./api.js";
 import { loadUsage, type MobileUsage } from "./generationClient.js";
 import { getMobileUtmParameters } from "./analytics.js";
+import {
+  getCreditPackConfig,
+  type CreditPackId,
+} from "../../../utils/tierConfig";
 
 export const MOBILE_BILLING_CLIENT = "mobile_web" as const;
 
@@ -153,6 +157,31 @@ export async function startMobileCheckout(
   return parseBillingSession(response);
 }
 
+/** Open credit checkout while retaining the current account ownership guard. */
+export async function startMobileCreditCheckout(
+  packId: CreditPackId,
+  expectedUserId?: string,
+): Promise<MobileBillingSession> {
+  if (!getCreditPackConfig(packId)) throw new Error("invalid_credit_pack");
+  const response = await fetchMobileJson<unknown>(
+    "/api/stripe/create-credit-checkout",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Autolister-Client": MOBILE_BILLING_CLIENT,
+      },
+      body: JSON.stringify({
+        packId,
+        source: MOBILE_BILLING_CLIENT,
+        utm: getMobileUtmParameters(),
+      }),
+    },
+    { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
+  );
+  return parseBillingSession(response);
+}
+
 /** Open the existing Stripe customer portal for the current bearer user. */
 export async function openMobilePortal(
   expectedUserId?: string,
@@ -191,22 +220,22 @@ export async function refreshAfterCheckout(
     : 4;
   const delays = options.delaysMs ?? [250, 750, 1500];
   let lastError: unknown;
+  let latestUsage: MobileUsage | null = null;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      const usage = await loadUsage();
-      if (usage.canGenerate !== false || attempt === attempts - 1) return usage;
+      latestUsage = await loadUsage();
     } catch (error) {
       lastError = error;
-      if (attempt === attempts - 1) break;
     }
     const delay = Math.max(
       0,
       delays[attempt] ?? delays[delays.length - 1] ?? 0,
     );
-    if (delay) await wait(delay);
+    if (attempt < attempts - 1 && delay) await wait(delay);
   }
 
+  if (latestUsage) return latestUsage;
   throw lastError instanceof Error
     ? lastError
     : new Error("usage_refresh_failed");

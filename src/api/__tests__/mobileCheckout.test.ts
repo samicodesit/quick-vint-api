@@ -130,6 +130,68 @@ function extensionRequest(body: Record<string, unknown> = {}) {
 }
 
 describe("bearer-owned mobile Stripe billing", () => {
+  it.each([
+    [undefined, "credits_20", 20, "price_1ThzPhP5rNq9hGDSVZZSnLqQ"],
+    ["credits_50", "credits_50", 50, "price_1USy3OP5rNq9hGDSeMkhzX64"],
+    ["credits_100", "credits_100", 100, "price_1USy40P5rNq9hGDS3O786Ald"],
+  ])(
+    "creates the selected credit pack %s for the bearer owner",
+    async (packId, expectedId, credits, priceId) => {
+      const { default: handler } =
+        await import("../../../api/stripe/create-credit-checkout.js");
+      const response = createResponse();
+      await (handler as any)(
+        mobileRequest({
+          packId,
+          email: "other@example.com",
+          credits: 9999,
+          priceId: "untrusted",
+        }) as any,
+        response as any,
+      );
+      expect(response.statusCode).toBe(200);
+      expect(authGetUserMock).toHaveBeenCalledWith("token");
+      expect(checkoutCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: "payment",
+          line_items: [{ price: priceId, quantity: 1 }],
+          success_url:
+            "https://autolister.app/app?checkout=success&session_id={CHECKOUT_SESSION_ID}",
+          metadata: expect.objectContaining({
+            profile_id: "bearer-user",
+            pack_id: expectedId,
+            credits: String(credits),
+          }),
+        }),
+      );
+      expect(customerCreateMock.mock.calls[0][0].email).toBe(
+        "owner@example.com",
+      );
+    },
+  );
+
+  it("rejects an unknown pack before creating a checkout", async () => {
+    const { default: handler } =
+      await import("../../../api/stripe/create-credit-checkout.js");
+    const response = createResponse();
+    await (handler as any)(
+      mobileRequest({ packId: "credits_999" }) as any,
+      response as any,
+    );
+    expect(response.statusCode).toBe(400);
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("requires a bearer token for mobile credit checkout even when email is supplied", async () => {
+    const { default: handler } =
+      await import("../../../api/stripe/create-credit-checkout.js");
+    const request = mobileRequest({ email: "other@example.com" });
+    delete (request.headers as any).authorization;
+    const response = createResponse();
+    await (handler as any)(request as any, response as any);
+    expect(response.statusCode).toBe(401);
+    expect(checkoutCreateMock).not.toHaveBeenCalled();
+  });
   afterEach(() => {
     if (originalAllowedOrigins === undefined) {
       delete process.env.VERCEL_APP_ALLOWED_ORIGINS;

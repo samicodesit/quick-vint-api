@@ -1447,6 +1447,113 @@ describe("Stripe webhook subscription usage reset", () => {
     expect(updateCalls).toHaveLength(0);
   });
 
+  it.each([
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+  ])(
+    "fulfills each pack from %s with the registered quantity",
+    async (type) => {
+      for (const quantity of [20, 50, 100]) {
+        constructEventMock.mockReturnValue({
+          type,
+          data: {
+            object: {
+              id: `cs_pack_${quantity}`,
+              mode: "payment",
+              payment_status: "paid",
+              customer: "cus_123",
+              customer_details: { email: "seller@example.com" },
+              metadata: {
+                purchase_type: "credit_pack",
+                profile_id: "profile_123",
+                pack_id: `credits_${quantity}`,
+                credits: String(quantity),
+              },
+            },
+          },
+        });
+        const { default: handler } =
+          await import("../../../api/stripe/webhook.js");
+        const res = createResponse();
+        await (handler as any)(createRequest() as any, res as any);
+        expect(res.statusCode).toBe(200);
+        expect(rpcMock).toHaveBeenCalledWith(
+          "grant_credit_pack",
+          expect.objectContaining({
+            p_user_id: "profile_123",
+            p_stripe_session_id: `cs_pack_${quantity}`,
+            p_credits: quantity,
+          }),
+        );
+      }
+    },
+  );
+
+  it.each([
+    ["unpaid", "credits_50", "50"],
+    ["paid", "credits_50", "9999"],
+    ["paid", "credits_999", "999"],
+  ])(
+    "does not grant an invalid or unpaid pack: %s %s %s",
+    async (payment_status, pack_id, credits) => {
+      constructEventMock.mockReturnValue({
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_invalid",
+            mode: "payment",
+            payment_status,
+            metadata: {
+              purchase_type: "credit_pack",
+              profile_id: "profile_123",
+              pack_id,
+              credits,
+            },
+          },
+        },
+      });
+      const { default: handler } =
+        await import("../../../api/stripe/webhook.js");
+      await (handler as any)(createRequest() as any, createResponse() as any);
+      expect(rpcMock).not.toHaveBeenCalledWith(
+        "grant_credit_pack",
+        expect.anything(),
+      );
+    },
+  );
+
+  it("audits delayed credit pack payments", async () => {
+    const audit = await import("../../../utils/billingEvents.js");
+    const spy = vi.spyOn(audit, "logStripeBillingEvent");
+    const event = {
+      id: "evt_delayed_pack",
+      type: "checkout.session.async_payment_succeeded",
+      data: {
+        object: {
+          id: "cs_delayed",
+          mode: "payment",
+          payment_status: "paid",
+          customer_details: { email: "seller@example.com" },
+          metadata: {
+            purchase_type: "credit_pack",
+            profile_id: "profile_123",
+            pack_id: "credits_50",
+            credits: "50",
+          },
+        },
+      },
+    };
+    constructEventMock.mockReturnValue(event);
+    try {
+      const { default: handler } =
+        await import("../../../api/stripe/webhook.js");
+      await (handler as any)(createRequest() as any, createResponse() as any);
+      expect(spy).toHaveBeenCalledWith({ event, email: "seller@example.com" });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("clears account pause after a successful credit pack purchase", async () => {
     constructEventMock.mockReturnValue({
       type: "checkout.session.completed",

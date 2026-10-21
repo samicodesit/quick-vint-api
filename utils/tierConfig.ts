@@ -32,6 +32,27 @@ export const CREDIT_PACK_CONFIG = {
 } as const;
 
 export type TierKey = "free" | "starter" | "pro" | "business";
+export const CREDIT_PACK_CONFIGS = [
+  { ...CREDIT_PACK_CONFIG, stripePriceId: "price_1ThzPhP5rNq9hGDSVZZSnLqQ" },
+  {
+    id: "credits_50",
+    credits: 50,
+    priceEur: 9.99,
+    displayName: "50 credits",
+    stripePriceId: "price_1USy3OP5rNq9hGDSeMkhzX64",
+  },
+  {
+    id: "credits_100",
+    credits: 100,
+    priceEur: 16.99,
+    displayName: "100 credits",
+    stripePriceId: "price_1USy40P5rNq9hGDS3O786Ald",
+  },
+] as const;
+export type CreditPackId = (typeof CREDIT_PACK_CONFIGS)[number]["id"];
+export function getCreditPackConfig(id: unknown = CREDIT_PACK_CONFIG.id) {
+  return CREDIT_PACK_CONFIGS.find((pack) => pack.id === id);
+}
 export type PricingLimitsMode = "legacy" | "current";
 export const CURRENT_LIMITS_MIN_EXTENSION_VERSION = "1.3.13";
 

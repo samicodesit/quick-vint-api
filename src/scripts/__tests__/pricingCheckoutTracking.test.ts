@@ -44,7 +44,7 @@ function fixture(outcome = "success") {
   const pending = { closed: false, location: { href: "" }, close: vi.fn() };
   const label = { textContent: "Buy credits" };
   const button = { disabled: false, querySelector: () => label };
-  const fetch = vi.fn(async () => {
+  const fetch = vi.fn(async (_url: string, _options: { body: string }) => {
     if (outcome === "network") throw new TypeError("Failed to fetch");
     return {
       ok: outcome === "success",
@@ -88,6 +88,15 @@ function fixture(outcome = "success") {
   context.pricingTest.signIn();
   return { context, events, fetch, pending, button, label };
 }
+
+it("sends the chosen one-time pack to checkout", async () => {
+  const f = fixture();
+  await f.context.pricingTest.credits("credits_100");
+  expect(JSON.parse(f.fetch.mock.calls[0][1].body)).toMatchObject({
+    packId: "credits_100",
+    email: "fixture@example.com",
+  });
+});
 
 it.each(["subscription", "credits", "portal"])(
   "correlates %s completion without waiting for telemetry or repeating checkout",

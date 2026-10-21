@@ -38,6 +38,7 @@ const ALLOWED_CONTEXT_KEYS = new Set([
   "field",
   "phase",
   "tier",
+  "packId",
   "countryCode",
   "language",
   "titleLanguageCode",

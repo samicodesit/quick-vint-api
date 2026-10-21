@@ -21,7 +21,7 @@ export function getMobilePaywall(
     "business",
     "credit_pack",
   ];
-  if (code === "plans" || code === "feature")
+  if (code === "plans" || code === "feature" || code === "credits")
     return {
       title: "Choose a plan",
       message: "Use your plan in the web app and extension.",

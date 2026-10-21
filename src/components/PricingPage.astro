@@ -1,5 +1,7 @@
 ---
 import type { PricingDisplayLabels } from "../utils/pricingDisplay.js";
+import { getBillingCopy, formatPrice, formatUnitPrice } from "../utils/billingDisplay";
+import { CREDIT_PACK_CONFIGS, TIER_CONFIGS, COMPATIBILITY_TIER_CONFIGS } from "../../utils/tierConfig";
 
 type PricingCopy = {
   heading: string;
@@ -92,6 +94,7 @@ type Plan = {
 };
 
 export interface Props {
+  locale?: string;
   copy: PricingCopy;
   extra: ExtraPricingCopy;
   limits: PricingLimits;
@@ -99,7 +102,9 @@ export interface Props {
   isCurrentPricing: boolean;
 }
 
-const { copy, extra, limits, creditPack, isCurrentPricing } = Astro.props;
+const { copy, extra, limits, isCurrentPricing, locale = "en" } = Astro.props;
+const billing = getBillingCopy(locale);
+const pricingTiers = isCurrentPricing ? TIER_CONFIGS : COMPATIBILITY_TIER_CONFIGS;
 
 const phoneUploadLabel = extra.phoneUpload.replace(/\s*\(.+\)\s*$/, "");
 const uploadFeatureLabel = `${phoneUploadLabel} + batch upload`;
@@ -244,13 +249,7 @@ const featureIconClass: Record<FeatureState, string> = {
   unavailable: "border-slate-200 bg-slate-50 text-slate-400",
 };
 
-const creditPackBody = extra.creditPackBody
-  .replace("{credits}", String(creditPack.credits))
-  .replace("{price}", creditPack.priceLabel);
-const creditPackCta = extra.creditPackCta.replace(
-  "{credits}",
-  String(creditPack.credits),
-);
+
 ---
 
 <section class="bg-slate-50 px-4 pb-10 pt-24 sm:px-6 lg:px-8 lg:pt-28">
@@ -288,6 +287,11 @@ const creditPackCta = extra.creditPackCta.replace(
     </div>
   </div>
 
+  <div class="billing-toggle mx-auto mt-5 flex w-fit max-w-full rounded-lg border border-slate-200 bg-white p-1" role="tablist" aria-label={billing.title}>
+    <button id="billing-tab-monthly" type="button" role="tab" aria-selected="true" aria-controls="billing-monthly" data-billing-mode="monthly">{billing.monthly}</button>
+    <button id="billing-tab-once" type="button" role="tab" aria-selected="false" aria-controls="billing-once" tabindex="-1" data-billing-mode="once">{billing.oneTime}</button>
+  </div>
+  <div id="billing-monthly" role="tabpanel" aria-labelledby="billing-tab-monthly" data-billing-panel="monthly">
   <div class="grid mx-auto mt-5 max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
     {
       plans.map((plan) => (
@@ -337,6 +341,7 @@ const creditPackCta = extra.creditPackCta.replace(
             </span>
             <span class="pb-1 text-sm text-slate-500">{plan.period}</span>
           </div>
+          {plan.id !== "free" && <p class="mt-1 text-sm leading-5 text-slate-600">≈{formatUnitPrice(pricingTiers[plan.id].monthlyPrice, pricingTiers[plan.id].limits.monthly, locale)} {billing.perListing}</p>}
 
           <div class="my-5 h-px bg-slate-100"></div>
 
@@ -398,23 +403,24 @@ const creditPackCta = extra.creditPackCta.replace(
     }
   </div>
 
-  <div class="mx-auto mt-5 max-w-2xl">
-    <div class="rounded-xl border border-slate-200 bg-white px-5 py-5 text-center shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-wide text-brand-600">
-        {extra.creditPackEyebrow}
-      </p>
-      <h2 class="mt-1 text-lg font-semibold text-slate-950">{extra.creditPackTitle}</h2>
-      <p class="mx-auto mt-1 max-w-xl text-sm leading-6 text-slate-600">
-        {creditPackBody}
-      </p>
-      <button
-        class="mt-4 inline-flex w-full min-w-[180px] cursor-pointer items-center justify-center rounded-lg bg-brand-50 px-5 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 active:scale-[0.99] sm:w-auto"
-        id="btn-credit-pack"
-      >
-        <span class="btn-text">{creditPackCta}</span>
-        <span class="btn-status ml-2 text-sm opacity-90"></span>
-      </button>
+  <p class="mx-auto mt-4 max-w-6xl text-center text-sm text-slate-600">{billing.qualifier}</p>
+  </div>
+  <div id="billing-once" role="tabpanel" aria-labelledby="billing-tab-once" data-billing-panel="once" hidden>
+    <div class="mx-auto mt-5 grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-3">
+      {CREDIT_PACK_CONFIGS.map((pack) => (
+        <div class="rounded-xl border border-slate-200 bg-white px-5 py-5 text-center shadow-sm">
+          <p class="text-xs font-semibold uppercase tracking-wide text-brand-600">{extra.creditPackEyebrow}</p>
+          <h2 class="mt-1 text-lg font-semibold text-slate-950">{billing.pack.replace("{credits}", String(pack.credits))}</h2>
+          <p class="mt-4 text-3xl font-semibold tracking-tight text-slate-950">{formatPrice(pack.priceEur, locale)} <span class="text-sm font-normal text-slate-500">{billing.oneTime}</span></p>
+          <p class="mt-1 text-sm leading-5 text-slate-600">≈{formatUnitPrice(pack.priceEur, pack.credits, locale)} {billing.perListing}</p>
+          <button class="mt-4 inline-flex w-full cursor-pointer items-center justify-center rounded-lg bg-brand-50 px-5 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 active:scale-[0.99]"
+            id={pack.id === "credits_20" ? "btn-credit-pack" : `btn-${pack.id}`} data-credit-pack={pack.id}>
+            <span class="btn-text">{billing.buy.replace("{credits}", String(pack.credits))}</span><span class="btn-status ml-2 text-sm opacity-90"></span>
+          </button>
+        </div>
+      ))}
     </div>
+    <p class="mx-auto mt-4 max-w-6xl text-center text-sm text-slate-600">{billing.terms}</p>
   </div>
 </section>
 
@@ -488,4 +494,11 @@ const creditPackCta = extra.creditPackCta.replace(
     cursor: not-allowed !important;
     pointer-events: none !important;
   }
+</style>
+<style>
+  [data-billing-panel][hidden] { display: none !important; }
+  .billing-toggle button { min-height: 44px; padding: 8px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .billing-toggle button[aria-selected="true"] { background: #4f46e5; color: white; }
+  .billing-toggle button:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+  @media (max-width: 380px) { .billing-toggle button { padding-inline: 12px; } }
 </style>

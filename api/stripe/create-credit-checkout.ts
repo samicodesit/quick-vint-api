@@ -1,136 +1,168 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { supabase } from "../../utils/supabaseClient";
-import { CREDIT_PACK_CONFIG } from "../../utils/tierConfig";
+import { getCreditPackConfig } from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import {
+  getMobileCheckoutUrls,
+  getMobileCustomerIdempotencyKey,
+  isConfirmedMissingStripeCustomerError,
+  isDeletedStripeCustomer,
+  MobileBillingRequestError,
+  resolveMobileBillingProfile,
+} from "../../utils/mobileCheckout";
+import {
+  isMobileWebEnabled,
+  MOBILE_WEB_DISABLED_RESPONSE,
+} from "../../utils/mobileWeb";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
-const SUCCESS_URL = process.env.STRIPE_SUCCESS_URL!;
-const CANCEL_URL = process.env.STRIPE_CANCEL_URL!;
-const CREDIT_PACK_PRICE_ID = process.env.STRIPE_CREDIT_PACK_PRICE_ID!;
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!(await handleCheckoutCors(req, res))) return;
-
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method Not Allowed" });
   }
-
-  let alertContext: {
-    source?: string;
-    profileId?: string;
-  } = {};
-
+  const isMobile = req.headers?.["x-autolister-client"] === "mobile_web";
+  if (isMobile && !isMobileWebEnabled())
+    return res.status(404).json(MOBILE_WEB_DISABLED_RESPONSE);
+  let alertContext: { source?: string; profileId?: string } = {};
   try {
-    const { email, source, utm } = req.body as {
-      email: string;
-      source?: string;
-      utm?: Record<string, string>;
-    };
+    const body = req.body || {};
+    const pack = getCreditPackConfig(body.packId);
+    if (!pack)
+      return res.status(400).json({ error: "Invalid credit pack specified." });
+    const source = isMobile
+      ? "mobile_web"
+      : typeof body.source === "string"
+        ? body.source
+        : "unknown";
     alertContext = { source };
-    if (!email || typeof email !== "string" || !email.includes("@")) {
-      return res.status(400).json({ error: "A valid email is required." });
+    let profile: {
+      id: string;
+      email: string;
+      stripe_customer_id: string | null;
+    };
+    if (isMobile) {
+      profile = await resolveMobileBillingProfile(req);
+    } else {
+      const email = body.email;
+      if (typeof email !== "string" || !email.includes("@"))
+        return res.status(400).json({ error: "A valid email is required." });
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, stripe_customer_id")
+        .ilike("email", email)
+        .single();
+      if (error || !data)
+        return res.status(404).json({ error: "User profile was not found." });
+      profile = { ...data, email };
     }
-
-    if (!CREDIT_PACK_PRICE_ID) {
-      reportCriticalEndpointFailure({
-        endpoint: "/api/stripe/create-credit-checkout",
-        status: 500,
-        details: {
-          source,
-          error: "Credit pack Stripe price is not configured.",
-        },
-      });
-      return res
-        .status(500)
-        .json({ error: "Credit pack Stripe price is not configured." });
-    }
-
-    let customerId: string | null = null;
-    const { data: profileRow, error: fetchErr } = await supabase
-      .from("profiles")
-      .select("id, stripe_customer_id")
-      .ilike("email", email)
-      .single();
-
-    if (fetchErr || !profileRow) {
-      console.error("Profile not found for credit checkout:", email, fetchErr);
-      return res.status(404).json({ error: "User profile was not found." });
-    }
-    alertContext.profileId = profileRow.id;
-
-    if (profileRow.stripe_customer_id) {
+    alertContext.profileId = profile.id;
+    let customerId = profile.stripe_customer_id;
+    let replacementForCustomerId: string | null = null;
+    if (customerId) {
       try {
-        await stripe.customers.retrieve(profileRow.stripe_customer_id);
-        customerId = profileRow.stripe_customer_id;
-      } catch (stripeErr: any) {
-        console.warn(
-          "Stored customer not found, will create new:",
-          stripeErr.message,
-        );
+        const customer = await stripe.customers.retrieve(customerId);
+        if (isDeletedStripeCustomer(customer)) {
+          replacementForCustomerId = customerId;
+          customerId = null;
+        }
+      } catch (error) {
+        if (isMobile && !isConfirmedMissingStripeCustomerError(error))
+          throw error;
+        replacementForCustomerId = customerId;
+        customerId = null;
       }
     }
-
     if (!customerId) {
-      const newCustomer = await stripe.customers.create({
-        email,
-        metadata: { source: "auto_lister_extension" },
-      });
-      customerId = newCustomer.id;
-
-      const { error: updateErr } = await supabase
+      const customer = await stripe.customers.create(
+        {
+          email: profile.email,
+          metadata: {
+            source: isMobile ? "mobile_web" : "auto_lister_extension",
+          },
+        },
+        isMobile
+          ? {
+              idempotencyKey: getMobileCustomerIdempotencyKey(
+                profile.id,
+                replacementForCustomerId,
+              ),
+            }
+          : undefined,
+      );
+      customerId = customer.id;
+      const { error } = await supabase
         .from("profiles")
         .update({ stripe_customer_id: customerId })
-        .eq("id", profileRow.id);
-
-      if (updateErr) {
-        console.error("Error saving new stripe_customer_id:", updateErr);
-      }
+        .eq("id", profile.id);
+      if (error)
+        throw new Error("Could not save the Stripe customer for this account.");
     }
-
+    const originHeader = req.headers?.origin;
+    const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader;
+    const utm = body.utm && typeof body.utm === "object" ? body.utm : {};
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [
         {
-          price: CREDIT_PACK_PRICE_ID,
+          price:
+            pack.id === "credits_20"
+              ? process.env.STRIPE_CREDIT_PACK_PRICE_ID || pack.stripePriceId
+              : pack.stripePriceId,
           quantity: 1,
         },
       ],
       customer: customerId,
-      success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: isMobile
+        ? getMobileCheckoutUrls({ origin, status: "success" })
+        : `${process.env.STRIPE_SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: isMobile
+        ? getMobileCheckoutUrls({ origin, status: "cancel" })
+        : `${process.env.STRIPE_CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
       allow_promotion_codes: true,
       metadata: {
         purchase_type: "credit_pack",
-        pack_id: CREDIT_PACK_CONFIG.id,
-        credits: String(CREDIT_PACK_CONFIG.credits),
-        profile_id: profileRow.id,
-        source: source || "unknown",
-        utm_source: utm?.utm_source || "",
-        utm_medium: utm?.utm_medium || "",
-        utm_campaign: utm?.utm_campaign || "",
-        utm_content: utm?.utm_content || "",
-        utm_term: utm?.utm_term || "",
+        pack_id: pack.id,
+        credits: String(pack.credits),
+        profile_id: profile.id,
+        source,
+        ...Object.fromEntries(
+          [
+            "utm_source",
+            "utm_medium",
+            "utm_campaign",
+            "utm_content",
+            "utm_term",
+          ].map((key) => [
+            key,
+            typeof utm[key] === "string" ? utm[key].slice(0, 500) : "",
+          ]),
+        ),
       },
     });
-
     return res.status(200).json({ url: session.url });
-  } catch (err: any) {
-    console.error("❌ create-credit-checkout error:", err);
+  } catch (error: any) {
+    if (error instanceof MobileBillingRequestError)
+      return res
+        .status(error.statusCode)
+        .json({ error: error.message, code: error.code });
     reportCriticalEndpointFailure({
-      error: err,
+      error,
       endpoint: "/api/stripe/create-credit-checkout",
       status: 500,
       userId: alertContext.profileId,
       details: {
         source: alertContext.source,
-        error: err?.message || String(err),
-        errorName: err?.name,
+        error: error?.message || String(error),
+        errorName: error?.name,
       },
     });
-    return res.status(500).json({ error: err.message });
+    return res
+      .status(500)
+      .json({ error: "Unable to open the payment page. Please try again." });
   }
 }

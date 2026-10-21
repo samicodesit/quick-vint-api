@@ -20,6 +20,43 @@ vi.mock("../generationClient.js", () => ({
 vi.mock("../../../scripts/attribution.js", () => attributionModule);
 
 describe("mobile result, billing, and analytics", () => {
+  it.each(["credits_20", "credits_50", "credits_100"] as const)(
+    "checks out %s with the current account guard",
+    async (packId) => {
+      const { startMobileCreditCheckout } = await import("../billing.js");
+      await startMobileCreditCheckout(packId, "current-user");
+      expect(fetchMobileJsonMock).toHaveBeenCalledWith(
+        "/api/stripe/create-credit-checkout",
+        expect.objectContaining({
+          body: JSON.stringify({ packId, source: "mobile_web", utm: {} }),
+        }),
+        { retryOn401: true, expectedUserId: "current-user" },
+      );
+    },
+  );
+
+  it("refreshes successful but stale pack balances after payment", async () => {
+    vi.useFakeTimers();
+    loadUsageMock
+      .mockResolvedValueOnce({
+        canGenerate: true,
+        remaining: { packCredits: 0 },
+      })
+      .mockResolvedValueOnce({
+        canGenerate: true,
+        remaining: { packCredits: 50 },
+      });
+    try {
+      const { refreshAfterCheckout } = await import("../billing.js");
+      const pending = refreshAfterCheckout({ attempts: 2, delaysMs: [10] });
+      await vi.advanceTimersByTimeAsync(10);
+      await expect(pending).resolves.toMatchObject({
+        remaining: { packCredits: 50 },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("keeps the paywall reason and exact entry point separate from acquisition source", async () => {
     const { trackMobileEvent } = await import("../analytics.js");
     await trackMobileEvent("web_paywall_view", {

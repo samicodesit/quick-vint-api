@@ -421,9 +421,42 @@ function bindPricingActions() {
   document
     .getElementById("btn-business")
     ?.addEventListener("click", () => handlePlanClick("business"));
-  document
-    .getElementById("btn-credit-pack")
-    ?.addEventListener("click", handleCreditPackClick);
+  document.querySelectorAll("[data-credit-pack]").forEach((button) => {
+    button.addEventListener("click", () =>
+      handleCreditPackClick(button.dataset.creditPack, button),
+    );
+  });
+  const tabs = Array.from(document.querySelectorAll("[data-billing-mode]"));
+  function selectBillingMode(mode) {
+    tabs.forEach((tab) => {
+      const selected = tab.dataset.billingMode === mode;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll("[data-billing-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.billingPanel !== mode;
+    });
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () =>
+      selectBillingMode(tab.dataset.billingMode),
+    );
+    tab.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+        return;
+      event.preventDefault();
+      const next =
+        event.key === "Home"
+          ? tabs[0]
+          : event.key === "End"
+            ? tabs[tabs.length - 1]
+            : tabs[(index + 1) % tabs.length];
+      selectBillingMode(next.dataset.billingMode);
+      next.focus();
+    });
+  });
+  if (new URLSearchParams(window.location.search).get("billing") === "once")
+    selectBillingMode("once");
 }
 
 // Handle button clicks
@@ -610,7 +643,10 @@ async function handlePaidPlanSelection(planName, options = {}) {
   }
 }
 
-async function handleCreditPackClick() {
+async function handleCreditPackClick(
+  packId = "credits_20",
+  triggerButton = null,
+) {
   trackEvent("credit_pack_click", {
     context: hasExtension
       ? currentUser
@@ -619,7 +655,7 @@ async function handleCreditPackClick() {
       : "no_extension",
   });
 
-  const button = document.getElementById("btn-credit-pack");
+  const button = triggerButton || document.getElementById("btn-credit-pack");
   const textSpan = button?.querySelector(".btn-text");
   const originalText = textSpan?.textContent || "Buy credits";
 
@@ -670,6 +706,7 @@ async function handleCreditPackClick() {
         },
         body: JSON.stringify({
           email: currentUser.email,
+          packId,
           source: "pricing_page",
           utm: getUtmParams(),
         }),

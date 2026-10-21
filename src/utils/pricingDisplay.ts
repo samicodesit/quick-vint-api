@@ -6,6 +6,7 @@ import {
 } from "../../utils/tierConfig.js";
 
 export type PublicPricingDisplayMode = "legacy" | "current";
+export { formatUnitPrice } from "./billingDisplay";
 
 export type PricingDisplayLabels = {
   listingsPerDay: string;

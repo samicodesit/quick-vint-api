@@ -8,6 +8,7 @@ import {
 } from "./styleOnboardingState";
 import type { DraftSettings } from "./draftContracts";
 import { mountMobilePaywall, type MobilePaywallEntryPoint } from "./paywall";
+import { getBillingCopy } from "../../utils/billingDisplay";
 import { mountExtensionSuggestion } from "./extensionSuggestion";
 import { getMobilePaywall } from "./paywallPolicy";
 import { initializeMobileTelemetry } from "./telemetry";
@@ -304,6 +305,7 @@ function getMobileVintedDestination(): {
 }
 
 function setBillingControls(root: ParentNode, usage: MobileUsage | null): void {
+  setHidden(root, '[data-mobile-web="buy-credits"]', !usage);
   const tier = usage?.plan?.tier;
   const isPaid =
     usage?.plan?.isPaid === true ||
@@ -1624,6 +1626,17 @@ export function mountMobileWebApp(
   bind(asElement(root, '[data-mobile-web="upgrade"]'), "click", (event) => {
     event.preventDefault();
     if (latestUsage) showPaywall(latestUsage, "plans", "profile_menu");
+  });
+  const buyCredits = asElement<HTMLElement>(
+    root,
+    '[data-mobile-web="buy-credits"]',
+  );
+  if (buyCredits)
+    buyCredits.textContent = getBillingCopy(
+      navigator.language || "en",
+    ).buyCredits;
+  bind(buyCredits, "click", () => {
+    if (latestUsage) showPaywall(latestUsage, "credits", "profile_menu");
   });
   bind(
     asElement(root, '[data-mobile-web="manage-billing"]'),

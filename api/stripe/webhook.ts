@@ -6,6 +6,7 @@ import { supabase } from "../../utils/supabaseClient";
 import { ApiLogger } from "../../utils/apiLogger";
 import {
   CREDIT_PACK_CONFIG,
+  getCreditPackConfig,
   getCustomBusinessEntitlementForStripePriceId,
   getTierByStripePriceId,
 } from "../../utils/tierConfig";
@@ -32,6 +33,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 const AUDITED_STRIPE_EVENT_TYPES = new Set([
   "checkout.session.completed",
+  "checkout.session.async_payment_succeeded",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
@@ -338,6 +340,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     switch (event.type) {
+      case "checkout.session.async_payment_succeeded":
       case "checkout.session.completed": {
         console.log("⏳ Handling checkout.session.completed");
         const session = event.data.object as Stripe.Checkout.Session;
@@ -350,11 +353,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           session.metadata?.purchase_type === "credit_pack"
         ) {
           const profileId = session.metadata.profile_id;
-          const credits = Number(
-            session.metadata.credits || CREDIT_PACK_CONFIG.credits,
+          const pack = getCreditPackConfig(
+            session.metadata.pack_id || CREDIT_PACK_CONFIG.id,
           );
+          const credits = Number(session.metadata.credits || pack?.credits);
 
-          if (!profileId || !Number.isFinite(credits) || credits <= 0) {
+          if (!profileId || !pack || credits !== pack.credits) {
             console.error("Invalid credit pack checkout metadata:", {
               sessionId: session.id,
               metadata: session.metadata,

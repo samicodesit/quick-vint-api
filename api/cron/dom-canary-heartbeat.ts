@@ -52,7 +52,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select("created_at,user_email,origin,full_request_body")
     .eq("endpoint", "/event/listing_tools_ready")
     .eq("response_status", 204)
-    .eq("origin", "https://www.vinted.nl")
+    // Background telemetry keeps the listing URL in the body, while its
+    // request Origin belongs to the extension. Preserve legacy direct posts.
+    .or(
+      "origin.eq.https://www.vinted.nl,and(full_request_body->>source.eq.extension_content,full_request_body->>page.like.https://www.vinted.nl/items/*)",
+    )
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: false })
     .limit(1);

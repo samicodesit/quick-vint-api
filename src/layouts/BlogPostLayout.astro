@@ -33,6 +33,7 @@ const { post, headings, relatedPosts, translations } = Astro.props;
 const locale = post.data.locale as BlogLocale;
 const descriptionEntry = post.data.translationKey === "vinted-descriptions-that-sell" && ["en", "de"].includes(locale);
 const batchEntry = locale === "en" && ["sell-many-items-at-once", "batch-generate-vinted-listings"].includes(post.data.translationKey);
+const beginnerEntry = locale === "en" && post.data.translationKey === "what-is-vinted-how-it-works";
 const copy = BLOG_COPY[locale];
 const canonicalUrl = new URL(getPostUrl(post), Astro.site || "https://autolister.app").toString();
 const readingTime = estimateReadingTime(post.body || "");
@@ -198,7 +199,7 @@ const faqSchema = post.data.faqItems?.length
           <div class="mt-8 lg:hidden">
             <ShareButtons title={post.data.title} url={canonicalUrl} locale={locale} />
           </div>
-          {descriptionEntry || batchEntry ? (
+          {descriptionEntry || batchEntry || beginnerEntry ? (
             <ListingDraftCTA
               locale={locale === "de" ? "de" : "en"}
               intent={batchEntry ? "batch" : "single"}

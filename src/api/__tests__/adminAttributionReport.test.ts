@@ -128,6 +128,7 @@ describe("GET /api/admin?action=attribution-report", () => {
             {
               user_id: "new-user",
               endpoint: "/api/generate",
+              request_method: "POST",
               response_status: 200,
               created_at: "2026-09-22T09:10:00.000Z",
             },
@@ -207,5 +208,195 @@ describe("GET /api/admin?action=attribution-report", () => {
 
     expect(response.statusCode).toBe(401);
     expect(from).not.toHaveBeenCalled();
+  });
+
+  function dataset(users = 2, logCount = 1001) {
+    const profiles = Array.from({ length: users }, (_, i) => ({
+      id: `user-${String(i).padStart(5, "0")}`,
+      created_at: "2026-09-22T09:00:00.000Z",
+      subscription_tier: "free",
+      subscription_status: "free",
+    }));
+    return {
+      profiles,
+      user_attributions: profiles.map((p) => ({
+        user_id: p.id,
+        source: "google",
+        medium: "search",
+        campaign: null,
+        captured_at: "2026-09-22T08:55:00.000Z",
+        claimed_at: "2026-09-22T09:05:00.000Z",
+      })),
+      api_logs: Array.from({ length: logCount }, (_, i) => ({
+        id: String(i).padStart(6, "0"),
+        user_id: profiles[i === logCount - 1 ? users - 1 : 0].id,
+        endpoint: "/api/generate",
+        request_method: "POST",
+        response_status: 200,
+        created_at: "2026-09-22T09:10:00.000Z",
+      })),
+    };
+  }
+
+  function mockDatabase(data: ReturnType<typeof dataset>, failLogPage = -1) {
+    const reads: Array<{
+      table: string;
+      start: number;
+      end: number;
+      ids: number;
+      orders: string[];
+    }> = [];
+    from.mockImplementation((table: keyof typeof data) => {
+      let selected = data[table] as any[];
+      let start = 0,
+        end = 999,
+        ids = 0;
+      const q: any = {};
+      const orders: string[] = [];
+      q.select = vi.fn(() => q);
+      q.range = vi.fn((a, b) => {
+        start = a;
+        end = b;
+        return q;
+      });
+      q.order = vi.fn((key, options) => {
+        expect(options).toEqual({ ascending: true });
+        orders.push(key);
+        return q;
+      });
+      q.eq = vi.fn((key, value) => {
+        selected = selected.filter((x) => x[key] === value);
+        return q;
+      });
+      q.in = vi.fn((key, values) => {
+        ids = values.length;
+        selected = selected.filter((x) => values.includes(x[key]));
+        return q;
+      });
+      q.gte = vi.fn((key, value) => {
+        selected = selected.filter((x) => x[key] >= value);
+        return q;
+      });
+      q.lte = vi.fn((key, value) => {
+        selected = selected.filter((x) => x[key] <= value);
+        return q;
+      });
+      q.then = (resolve: any, reject: any) => {
+        reads.push({ table, start, end, ids, orders });
+        return Promise.resolve(
+          table === "api_logs" && start === failLogPage
+            ? { data: null, error: { message: "page failed" } }
+            : {
+                data: selected.slice(start, Math.min(end + 1, start + 1000)),
+                error: null,
+              },
+        ).then(resolve, reject);
+      };
+      return q;
+    });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-22T12:00:00.000Z"));
+    return reads;
+  }
+
+  it("counts activation beyond the first 1000 matching logs", async () => {
+    const reads = mockDatabase(dataset());
+    const response = createResponse();
+    await handler(createRequest(), response as any);
+    expect(response.body.totals.activated).toBe(2);
+    expect(response.body.completeness.truncated).toBe(false);
+    expect(
+      reads.filter((x) => x.table === "api_logs").map((x) => x.start),
+    ).toEqual([0, 1000]);
+    for (const read of reads) {
+      expect(read.orders).toEqual([
+        read.table === "user_attributions" ? "user_id" : "id",
+      ]);
+    }
+  });
+
+  it("filters preflights, failures and unrelated events before fetching pages", async () => {
+    const data = dataset(2, 1);
+    data.api_logs = [
+      ...Array.from({ length: 1000 }, (_, i) => ({
+        ...data.api_logs[0],
+        id: String(i),
+        user_id: data.profiles[0].id,
+        request_method: "OPTIONS",
+      })),
+      {
+        ...data.api_logs[0],
+        user_id: data.profiles[0].id,
+        response_status: 500,
+      },
+      {
+        ...data.api_logs[0],
+        user_id: data.profiles[0].id,
+        endpoint: "/event/generate_click",
+      },
+      data.api_logs[0],
+    ];
+    const reads = mockDatabase(data);
+    const response = createResponse();
+    await handler(createRequest(), response as any);
+    expect(response.body.totals.activated).toBe(1);
+    expect(response.body.completeness.truncated).toBe(false);
+    expect(reads.filter((x) => x.table === "api_logs")).toHaveLength(1);
+  });
+
+  it("paginates claims at the server's 1000-row limit and bounds ID batches", async () => {
+    const reads = mockDatabase(dataset(1001, 0));
+    const response = createResponse();
+    await handler(createRequest(), response as any);
+    expect(response.body.totals.newSignups).toBe(1001);
+    expect(response.body.completeness.truncated).toBe(false);
+    expect(reads.every((x) => x.end - x.start < 1000 && x.ids <= 100)).toBe(
+      true,
+    );
+  });
+
+  it("marks capped generation reads incomplete and never reads without a bound", async () => {
+    const reads = mockDatabase(dataset(2, 10001));
+    const response = createResponse();
+    await handler(createRequest(), response as any);
+    expect(response.body.completeness.truncated).toBe(true);
+    expect(reads.filter((x) => x.table === "api_logs")).toHaveLength(10);
+    expect(response.body.completeness.queriesUsed).toBe(reads.length);
+    expect(reads.length).toBeLessThanOrEqual(40);
+  });
+
+  it("fails the request instead of returning a successful partial report on page error", async () => {
+    mockDatabase(dataset(), 1000);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const response = createResponse();
+      await handler(createRequest(), response as any);
+      expect(response.statusCode).toBe(500);
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it("stops all reads at the shared request budget across many account batches", async () => {
+    const reads = mockDatabase(dataset(4001, 0));
+    const response = createResponse();
+    await handler(createRequest(), response as any);
+    expect(reads).toHaveLength(40);
+    expect(response.body.completeness).toMatchObject({
+      truncated: true,
+      queriesUsed: 40,
+      maxQueries: 40,
+    });
+  });
+
+  it("does not query generation logs when there are no attribution claims", async () => {
+    const reads = mockDatabase(dataset(0, 0));
+    const response = createResponse();
+    await handler(createRequest(), response as any);
+    expect(reads.map((x) => x.table)).toEqual([
+      "user_attributions",
+      "profiles",
+    ]);
+    expect(response.body.completeness.truncated).toBe(false);
   });
 });

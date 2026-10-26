@@ -175,13 +175,14 @@ describe("events tracking endpoint", () => {
   }
 
   it("retains bounded batch outcome facts with original receipt correlation and no heavy customer payload", async () => {
+    const occurredAt = new Date().toISOString();
     const res = await postEvent({
       schemaVersion: 2,
       events: [
         {
           id: "d623926a-35a6-4bf5-8027-8ab335c71110",
           event: "batch_complete",
-          occurredAt: "2026-10-21T10:05:00Z",
+          occurredAt,
           source: "extension_background",
           extensionVersion: "1.4.24",
           context: {
@@ -207,7 +208,7 @@ describe("events tracking endpoint", () => {
       full_request_body: {
         analyticsOnly: true,
         transportEventId: "d623926a-35a6-4bf5-8027-8ab335c71110",
-        occurredAt: "2026-10-21T10:05:00Z",
+        occurredAt,
         context: {
           completedCount: 4,
           total: 4,

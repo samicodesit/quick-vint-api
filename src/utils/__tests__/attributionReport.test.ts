@@ -58,12 +58,14 @@ describe("attribution report", () => {
         {
           user_id: "new-user",
           endpoint: "/api/generate",
+          request_method: "POST",
           response_status: 200,
           created_at: "2026-09-22T09:10:00.000Z",
         },
         {
           user_id: "existing-user",
           endpoint: "/api/generate",
+          request_method: "POST",
           response_status: 500,
           created_at: "2026-09-22T09:10:00.000Z",
         },

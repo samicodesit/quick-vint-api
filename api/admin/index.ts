@@ -579,29 +579,66 @@ function attributionUnavailableResponse(
   };
 }
 
+const ATTRIBUTION_MAX_ROWS = 10000;
+const ATTRIBUTION_MAX_QUERIES = 40;
+type AttributionReadBudget = { used: number };
+
+async function fetchAttributionRows(
+  table: string,
+  columns: string,
+  buildQuery: (query: any) => any,
+  budget: AttributionReadBudget,
+  maxRows = ATTRIBUTION_MAX_ROWS,
+) {
+  const rows: any[] = [];
+  for (let from = 0; from < maxRows; from += 1000) {
+    if (budget.used >= ATTRIBUTION_MAX_QUERIES)
+      return { rows, truncated: true };
+    const size = Math.min(1000, maxRows - from);
+    // Stable ordering is required for offset pagination. Claims have user_id as PK.
+    const query = buildQuery(supabase.from(table).select(columns))
+      .order(table === "user_attributions" ? "user_id" : "id", {
+        ascending: true,
+      })
+      .range(from, from + size - 1);
+    budget.used += 1;
+    const { data, error } = await query;
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < size) return { rows, truncated: false };
+  }
+  // Conservatively incomplete at the cap, including an exactly full last page.
+  return { rows, truncated: true };
+}
+
 async function fetchAttributionRowsByIds(
   table: string,
   columns: string,
   column: string,
   ids: string[],
+  budget?: AttributionReadBudget,
   buildQuery?: (query: any) => any,
 ) {
   const rows: any[] = [];
-  let truncated = false;
-  for (let offset = 0; offset < ids.length; offset += 900) {
-    const chunk = ids.slice(offset, offset + 900);
-    let query = supabase
-      .from(table)
-      .select(columns)
-      .in(column, chunk)
-      .range(0, 999);
-    if (buildQuery) query = buildQuery(query);
-    const { data, error } = await query;
-    if (error) throw error;
-    rows.push(...(data || []));
-    if ((data || []).length >= 1000) truncated = true;
+  // Report UUID filters use small batches; preserve existing user-list batching.
+  const batchSize = budget ? 100 : 900;
+  const readBudget = budget || { used: 0 };
+  for (let offset = 0; offset < ids.length; offset += batchSize) {
+    const chunk = ids.slice(offset, offset + batchSize);
+    const result = await fetchAttributionRows(
+      table,
+      columns,
+      (query) => {
+        query = query.in(column, chunk);
+        return buildQuery ? buildQuery(query) : query;
+      },
+      readBudget,
+      ATTRIBUTION_MAX_ROWS - rows.length,
+    );
+    rows.push(...result.rows);
+    if (result.truncated) return { rows, truncated: true };
   }
-  return { rows, truncated };
+  return { rows, truncated: false };
 }
 
 async function handleAttributionReport(
@@ -612,18 +649,16 @@ async function handleAttributionReport(
   const window = getAttributionWindow(days);
 
   try {
-    const { data: rawClaims, error: claimsError } = await supabase
-      .from("user_attributions")
-      .select(
-        "user_id, source, medium, campaign, content, captured_at, claimed_at",
-      )
-      .gte("claimed_at", window.start)
-      .lte("claimed_at", window.end)
-      .order("claimed_at", { ascending: false })
-      .range(0, 9999);
-    if (claimsError) throw claimsError;
+    const budget: AttributionReadBudget = { used: 0 };
+    const claimResult = await fetchAttributionRows(
+      "user_attributions",
+      "user_id, source, medium, campaign, content, captured_at, claimed_at",
+      (query) =>
+        query.gte("claimed_at", window.start).lte("claimed_at", window.end),
+      budget,
+    );
 
-    const claims: AttributionClaimRow[] = (rawClaims || [])
+    const claims: AttributionClaimRow[] = claimResult.rows
       .filter((row: any) => row?.user_id && row?.captured_at && row?.claimed_at)
       .map((row: any) => ({
         userId: String(row.user_id),
@@ -638,13 +673,14 @@ async function handleAttributionReport(
     const claimUserIds = Array.from(
       new Set(claims.map((claim) => claim.userId).filter(Boolean)),
     );
-    const recentProfiles = await fetchAdminRows(
+    const recentProfileResult = await fetchAttributionRows(
       "profiles",
       "id, created_at, subscription_status, subscription_tier",
       (query) =>
         query.gte("created_at", window.start).lte("created_at", window.end),
-      10000,
+      budget,
     );
+    const recentProfiles = recentProfileResult.rows;
     const recentProfileIds = new Set(
       recentProfiles.map((profile) => profile.id),
     );
@@ -654,6 +690,7 @@ async function handleAttributionReport(
           "id, created_at, subscription_status, subscription_tier",
           "id",
           claimUserIds.filter((id) => !recentProfileIds.has(id)),
+          budget,
         )
       : { rows: [], truncated: false };
     const profiles = [
@@ -664,11 +701,17 @@ async function handleAttributionReport(
     const generationResult = claimUserIds.length
       ? await fetchAttributionRowsByIds(
           "api_logs",
-          "user_id, endpoint, response_status, created_at",
+          "user_id, endpoint, request_method, response_status, created_at",
           "user_id",
           claimUserIds,
+          budget,
           (query) =>
-            query.gte("created_at", window.start).lte("created_at", window.end),
+            query
+              .gte("created_at", window.start)
+              .lte("created_at", window.end)
+              .eq("endpoint", "/api/generate")
+              .eq("request_method", "POST")
+              .eq("response_status", 200),
         )
       : { rows: [], truncated: false };
     const generations = generationResult.rows as AttributionGeneration[];
@@ -771,11 +814,20 @@ async function handleAttributionReport(
       },
       completeness: {
         truncated:
-          claims.length >= 10000 ||
-          recentProfiles.length >= 10000 ||
+          claimResult.truncated ||
+          recentProfileResult.truncated ||
           olderClaimProfileResult.truncated ||
           generationResult.truncated,
-        note: "This report is bounded to the admin query row limits; a truncated result is labeled incomplete.",
+        queriesUsed: budget.used,
+        maxQueries: ATTRIBUTION_MAX_QUERIES,
+        maxRowsPerDataset: ATTRIBUTION_MAX_ROWS,
+        rowsRead: {
+          claims: claimResult.rows.length,
+          recentProfiles: recentProfiles.length,
+          olderClaimProfiles: olderClaimProfileResult.rows.length,
+          generations: generations.length,
+        },
+        note: "Paginated compact reads are capped per dataset and per request; a capped result is incomplete. Narrow the date window before retrying.",
       },
       notes: [
         "Counts come from an authenticated first-touch claim and are not independently verified by TikTok analytics.",

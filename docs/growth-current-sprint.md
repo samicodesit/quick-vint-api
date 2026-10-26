@@ -1,5 +1,12 @@
 # AutoLister AI Growth Current Sprint
 
+## Acquisition reporting repair, October 26, 2026
+
+- Repaired bounded acquisition reads in an isolated branch: stable pagination, successful generation POST filters, compact fields, 100-account report batches and explicit query/row caps. Existing user-list batching is preserved. No schema, background task, model call or new tracking service.
+- Read-only local execution of baseline and repaired handlers against the same production window changed attributed activation from 10 to 95 (Google 9 to 81), with 111 new attributed signups unchanged. Fixed run: five database GETs, 312,930 response bytes, 1,967ms, not truncated. These are generation and client-claim metrics; current paid entitlement is still not a payment conversion count.
+- Independent reviewer checked correctness and cost bounds. Targeted endpoint, helper and user-list tests pass. The full gate exposed a dated event-test fixture; reused the already-present fix from the active main checkout without changing product behavior. Release remains subject to final gate and owner deployment approval. [Evidence and scope](qa/acquisition-report-repair-2026-10-26.md).
+- Final gate passed: lint, type-check, build, format and 1,115 tests; 13 opt-in browser tests skipped. Independent reviewer accepted final changes. Ready for owner-approved deployment; not pushed to production.
+
 ## Stronger style CTA, October 19, 2026
 
 - Owner found the original static halo too faint. Use this style now has a stronger blue halo, a deeper blue fill and a light sweep that repeats every 4.2 seconds. The label stays above the decorative layer and the button does not move. Reduced-motion mode removes the sweep while retaining the stronger halo. The light overlay is capped at 20 percent so white text retains at least 4.6:1 calculated contrast across the fill.

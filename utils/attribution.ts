@@ -60,6 +60,7 @@ export type AttributionProfile = {
 export type AttributionGeneration = {
   user_id: string | null;
   endpoint: string;
+  request_method?: string | null;
   response_status: number | string | null;
   created_at: string;
 };
@@ -183,7 +184,9 @@ export function isNewAcquisition(input: {
 
 function isSuccessfulGeneration(log: AttributionGeneration) {
   return (
-    log.endpoint === "/api/generate" && Number(log.response_status) === 200
+    log.endpoint === "/api/generate" &&
+    log.request_method === "POST" &&
+    Number(log.response_status) === 200
   );
 }
 

@@ -34,6 +34,7 @@ const LOOKBACK_DAYS = 30;
 const LOG_LIMIT = 100;
 const INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS = new Set([
   "samicodesit@gmail.com",
+  "nadenickovao7@gmail.com",
 ]);
 
 function isInternalDuplicateIpExcludedEmail(email?: string | null) {

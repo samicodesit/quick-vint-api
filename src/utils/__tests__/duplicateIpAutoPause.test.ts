@@ -234,6 +234,42 @@ describe("detectAndPauseDuplicateIpAccount", () => {
     expect(fromMock).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["nadenickovao7@gmail.com", " NADENICKOVAO7@GMAIL.COM "])(
+    "does not auto-pause the permanently excluded account %s",
+    async (email) => {
+      queueSupabaseResults([
+        {
+          data: [
+            { user_id: "old-user", endpoint: "/event/generate_limit_hit" },
+          ],
+          error: null,
+        },
+        {
+          data: [
+            {
+              ...currentFreeProfile,
+              id: "old-user",
+              free_lifetime_generations_used: 5,
+            },
+          ],
+          error: null,
+        },
+        { data: null, error: null },
+      ]);
+      const result = await detectAndPauseDuplicateIpAccount({
+        userId: "excluded-user",
+        email,
+        ipAddress: "203.0.113.9",
+        source: "generate",
+        currentProfile: { ...currentFreeProfile, id: "excluded-user", email },
+      });
+
+      expect(result).toEqual({ paused: false });
+      expect(fromMock).not.toHaveBeenCalled();
+      expect(logRequestMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("does not pause when the same IP generated but has not used the free limit", async () => {
     queueSupabaseResults([
       { data: currentFreeProfile, error: null },

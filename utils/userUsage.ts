@@ -83,7 +83,7 @@ export class UsageRequestError extends Error {
 }
 
 const PROFILE_SELECT =
-  "id, api_calls_this_month, subscription_status, subscription_tier, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason";
+  "id, api_calls_this_month, subscription_status, subscription_tier, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, paid_access_expires_at";
 
 function nonNegativeNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -115,6 +115,7 @@ function normalizeProfile(data: Record<string, unknown>): UsageProfile {
         ? data.subscription_tier
         : "free",
     current_period_end: nullableString(data.current_period_end),
+    paid_access_expires_at: nullableString(data.paid_access_expires_at),
     is_legacy_plan:
       typeof data.is_legacy_plan === "boolean" ? data.is_legacy_plan : false,
     free_lifetime_generations_used: nonNegativeNumber(
@@ -185,7 +186,10 @@ function getPlanStatus(
   }
   if (
     capacity.reason === "payment_required" ||
-    isGenerationSuspendedForPayment(profile.subscription_status)
+    isGenerationSuspendedForPayment(
+      profile.subscription_status,
+      profile.paid_access_expires_at,
+    )
   ) {
     return "payment_required";
   }

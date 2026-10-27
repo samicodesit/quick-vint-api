@@ -19,6 +19,7 @@ const updateFilterCalls: Array<{
 }> = [];
 const singleCalls: string[] = [];
 const maybeSingleCalls: string[] = [];
+let interleavedProfile: Record<string, unknown> | null = null;
 const selectQueues = new Map<
   string,
   Array<{ data: unknown; error?: unknown }>
@@ -47,16 +48,20 @@ function popSelect(table: string) {
 
 function createQueryBuilder(table: string) {
   let isUpdate = false;
+  let valuesToWrite: Record<string, unknown> = {};
+  const predicates: Array<[string, unknown]> = [];
   const builder = {
     select: vi.fn(() => builder),
     insert: vi.fn(async () => ({ data: null, error: null })),
     update: vi.fn((values: Record<string, unknown>) => {
       isUpdate = true;
+      valuesToWrite = values;
       updateCalls.push({ table, values });
       return builder;
     }),
     eq: vi.fn((column: string, value: unknown) => {
       if (isUpdate) {
+        predicates.push([column, value]);
         updateFilterCalls.push({
           table,
           operator: "eq",
@@ -68,6 +73,7 @@ function createQueryBuilder(table: string) {
     }),
     is: vi.fn((column: string, value: unknown) => {
       if (isUpdate) {
+        predicates.push([column, value]);
         updateFilterCalls.push({
           table,
           operator: "is",
@@ -83,9 +89,33 @@ function createQueryBuilder(table: string) {
       return popSelect(table);
     }),
     maybeSingle: vi.fn(async () => {
+      if (isUpdate) {
+        const matches =
+          !interleavedProfile ||
+          predicates.every(
+            ([column, value]) =>
+              (interleavedProfile![column] ?? null) === value,
+          );
+        if (matches && interleavedProfile)
+          Object.assign(interleavedProfile, valuesToWrite);
+        return { data: matches ? { id: "profile_123" } : null, error: null };
+      }
       maybeSingleCalls.push(table);
       return popSelect(table);
     }),
+    then: (resolve: any, reject: any) => {
+      if (
+        isUpdate &&
+        table === "profiles" &&
+        interleavedProfile &&
+        predicates.every(
+          ([column, value]) => interleavedProfile![column] === value,
+        )
+      ) {
+        Object.assign(interleavedProfile, valuesToWrite);
+      }
+      return Promise.resolve({ error: null }).then(resolve, reject);
+    },
   };
 
   return builder;
@@ -176,12 +206,272 @@ describe("Stripe webhook subscription usage reset", () => {
     singleCalls.length = 0;
     maybeSingleCalls.length = 0;
     selectQueues.clear();
+    interleavedProfile = null;
     vi.clearAllMocks();
     rpcMock.mockResolvedValue({ data: null, error: null });
     sendSubscriptionWelcomeEmailOnceMock.mockResolvedValue({
       status: "sent",
       resendEmailId: "email_123",
     });
+  });
+
+  it("does not overwrite a same-tier renewal that settles while the upgrade invoice is being read", async () => {
+    const end = Math.floor(Date.now() / 1000) + 86400;
+    const nextEnd = new Date((end + 30 * 86400) * 1000).toISOString();
+    const snapshot = {
+      id: "profile_123",
+      stripe_subscription_id: "sub_current",
+      stripe_customer_id: "cus_123",
+      subscription_status: "active",
+      subscription_tier: "pro",
+      is_legacy_plan: true,
+      current_period_end: new Date(end * 1000).toISOString(),
+      last_usage_period_end: new Date(end * 1000).toISOString(),
+      paid_access_expires_at: null,
+    };
+    interleavedProfile = { ...snapshot };
+    const subscription = {
+      id: "sub_current",
+      customer: "cus_123",
+      status: "past_due",
+      latest_invoice: "in_upgrade",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96oFP5rNq9hGDSPZ1RpKHJ" },
+            current_period_end: end,
+          },
+        ],
+      },
+    };
+    constructEventMock.mockReturnValue({
+      type: "customer.subscription.updated",
+      data: { object: subscription },
+    });
+    retrieveSubscriptionMock.mockResolvedValue(subscription);
+    retrieveInvoiceMock.mockImplementationOnce(async () => {
+      Object.assign(interleavedProfile!, {
+        current_period_end: nextEnd,
+        last_usage_period_end: nextEnd,
+      });
+      return {
+        id: "in_upgrade",
+        status: "open",
+        billing_reason: "subscription_update",
+        subscription: "sub_current",
+        customer: "cus_123",
+      };
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", { data: { ...snapshot } });
+    const { default: handler } = await import("../../../api/stripe/webhook.js");
+    const res = createResponse();
+    await (handler as any)(createRequest(), res);
+    expect(res.statusCode).toBe(409);
+    expect(reportCriticalEndpointFailureMock).not.toHaveBeenCalled();
+    expect(interleavedProfile).toEqual({
+      ...snapshot,
+      current_period_end: nextEnd,
+      last_usage_period_end: nextEnd,
+    });
+  });
+
+  it("retries a paid notification instead of clearing a newer unpaid-upgrade protection", async () => {
+    const end = Math.floor(Date.now() / 1000) + 86400;
+    const date = new Date(end * 1000).toISOString();
+    const snapshot = {
+      id: "profile_123",
+      stripe_subscription_id: "sub_current",
+      stripe_customer_id: "cus_123",
+      subscription_tier: "pro",
+      subscription_status: "active",
+      is_legacy_plan: false,
+      current_period_end: date,
+      last_usage_period_end: date,
+      paid_access_expires_at: null,
+    };
+    interleavedProfile = { ...snapshot };
+    const invoice = {
+      id: "in_paid",
+      status: "paid",
+      subscription: "sub_current",
+      customer: "cus_123",
+      billing_reason: "subscription_cycle",
+      lines: {
+        data: [
+          {
+            type: "subscription",
+            proration: false,
+            period: { start: end - 30 * 86400, end },
+          },
+        ],
+      },
+    };
+    constructEventMock.mockReturnValue({
+      type: "invoice.paid",
+      data: { object: invoice },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_current",
+      customer: "cus_123",
+      status: "active",
+      latest_invoice: "in_paid",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96o0P5rNq9hGDStClke9za" },
+            current_period_end: end,
+          },
+        ],
+      },
+    });
+    retrieveInvoiceMock.mockImplementationOnce(async () => {
+      interleavedProfile!.paid_access_expires_at = date;
+      return invoice;
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", { data: { ...snapshot } });
+    const { default: handler } = await import("../../../api/stripe/webhook.js");
+    const res = createResponse();
+    await (handler as any)(createRequest(), res);
+    expect(res.statusCode).toBe(409);
+    expect(interleavedProfile).toEqual({
+      ...snapshot,
+      paid_access_expires_at: date,
+    });
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(reportCriticalEndpointFailureMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["active", "past_due"])(
+    "keeps the paid Pro period when an upgrade invoice is unpaid and Stripe is %s",
+    async (stripeStatus) => {
+      const end = Math.floor(Date.now() / 1000) + 86400;
+      const subscription = {
+        id: "sub_current",
+        customer: "cus_123",
+        status: stripeStatus,
+        latest_invoice: "in_upgrade",
+        items: {
+          data: [
+            {
+              price: { id: "price_1S96oFP5rNq9hGDSPZ1RpKHJ" },
+              current_period_end: end,
+            },
+          ],
+        },
+      };
+      constructEventMock.mockReturnValue({
+        type: "customer.subscription.updated",
+        data: { object: subscription },
+      });
+      retrieveSubscriptionMock.mockResolvedValue(subscription);
+      retrieveInvoiceMock.mockResolvedValue({
+        id: "in_upgrade",
+        status: "open",
+        billing_reason: "subscription_update",
+        subscription: "sub_current",
+        customer: "cus_123",
+      });
+      queueSelect("profiles", {
+        data: { id: "profile_123", email: "seller@example.com" },
+      });
+      queueSelect("profiles", {
+        data: {
+          stripe_subscription_id: "sub_current",
+          stripe_customer_id: "cus_123",
+          subscription_status: "active",
+          subscription_tier: "pro",
+          is_legacy_plan: true,
+          current_period_end: new Date(end * 1000).toISOString(),
+          last_usage_period_end: new Date(end * 1000).toISOString(),
+        },
+      });
+      const { default: handler } =
+        await import("../../../api/stripe/webhook.js");
+      const res = createResponse();
+      await (handler as any)(createRequest(), res);
+      expect(res.statusCode).toBe(200);
+      expect(updateCalls.at(-1)?.values).toMatchObject({
+        subscription_tier: "pro",
+        subscription_status: "active",
+        is_legacy_plan: true,
+      });
+      expect(updateCalls.at(-1)?.values).not.toHaveProperty(
+        "api_calls_this_month",
+      );
+      expect(updateCalls.at(-1)?.values).not.toHaveProperty("account_status");
+      expect(rpcMock).not.toHaveBeenCalled();
+      expect(updateFilterCalls).toContainEqual({
+        table: "profiles",
+        operator: "eq",
+        column: "last_usage_period_end",
+        value: new Date(end * 1000).toISOString(),
+      });
+    },
+  );
+
+  it("applies the current upgrade after a zero-due paid proration invoice, without resetting usage", async () => {
+    const end = Math.floor(Date.now() / 1000) + 86400;
+    const invoice = {
+      id: "in_upgrade",
+      status: "paid",
+      billing_reason: "subscription_update",
+      amount_paid: 0,
+      subscription: "sub_current",
+      customer: "cus_123",
+      lines: {
+        data: [
+          {
+            type: "subscription",
+            proration: true,
+            period: { start: end - 3600, end },
+          },
+        ],
+      },
+    };
+    constructEventMock.mockReturnValue({
+      type: "invoice.paid",
+      data: { object: invoice },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_current",
+      customer: "cus_123",
+      status: "active",
+      latest_invoice: "in_upgrade",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96oFP5rNq9hGDSPZ1RpKHJ" },
+            current_period_end: end,
+          },
+        ],
+      },
+    });
+    retrieveInvoiceMock.mockResolvedValue(invoice);
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: "sub_current",
+        stripe_customer_id: "cus_123",
+        subscription_status: "active",
+        subscription_tier: "pro",
+        is_legacy_plan: false,
+      },
+    });
+    const { default: handler } = await import("../../../api/stripe/webhook.js");
+    const res = createResponse();
+    await (handler as any)(createRequest(), res);
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].values.subscription_tier).toBe("business");
+    expect(rpcMock).not.toHaveBeenCalled();
   });
 
   it("does not reset monthly usage from checkout completion", async () => {
@@ -272,6 +562,147 @@ describe("Stripe webhook subscription usage reset", () => {
       limits: null,
       isCustomPlan: false,
     });
+  });
+
+  it("retries when Stripe changed before the profile snapshot was captured", async () => {
+    const end = Math.floor(Date.now() / 1000) + 86400;
+    const date = new Date(end * 1000).toISOString();
+    interleavedProfile = {
+      id: "profile_123",
+      stripe_subscription_id: "sub_current",
+      stripe_customer_id: "cus_123",
+      subscription_tier: "pro",
+      subscription_status: "active",
+      is_legacy_plan: false,
+      current_period_end: date,
+      last_usage_period_end: date,
+      paid_access_expires_at: null,
+    };
+    const invoice = {
+      id: "in_paid",
+      status: "paid",
+      subscription: "sub_current",
+      customer: "cus_123",
+      billing_reason: "subscription_cycle",
+      lines: {
+        data: [
+          {
+            type: "subscription",
+            proration: false,
+            period: { start: end - 30 * 86400, end },
+          },
+        ],
+      },
+    };
+    const oldStripe = {
+      id: "sub_current",
+      customer: "cus_123",
+      status: "active",
+      latest_invoice: "in_paid",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96o0P5rNq9hGDStClke9za" },
+            current_period_end: end,
+          },
+        ],
+      },
+    };
+    constructEventMock.mockReturnValue({
+      type: "invoice.paid",
+      data: { object: invoice },
+    });
+    retrieveSubscriptionMock
+      .mockImplementationOnce(async () => {
+        interleavedProfile!.paid_access_expires_at = date;
+        return oldStripe;
+      })
+      .mockResolvedValue({ ...oldStripe, latest_invoice: "in_unpaid_upgrade" });
+    retrieveInvoiceMock.mockResolvedValue(invoice);
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", { data: interleavedProfile });
+    const { default: handler } = await import("../../../api/stripe/webhook.js");
+    const res = createResponse();
+    await (handler as any)(createRequest(), res);
+    expect(res.statusCode).toBe(409);
+    expect(interleavedProfile!.paid_access_expires_at).toBe(date);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("honours a paid base renewal even when a newer upgrade is still unpaid", async () => {
+    const end = Math.floor(Date.now() / 1000) + 30 * 86400;
+    const invoice = {
+      id: "in_base",
+      status: "paid",
+      billing_reason: "subscription_cycle",
+      subscription: "sub_current",
+      customer: "cus_123",
+      lines: {
+        data: [
+          {
+            type: "subscription",
+            proration: false,
+            price: { id: "price_1S96o0P5rNq9hGDStClke9za" },
+            period: { start: end - 30 * 86400, end },
+          },
+        ],
+      },
+    };
+    constructEventMock.mockReturnValue({
+      type: "invoice.paid",
+      data: { object: invoice },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_current",
+      customer: "cus_123",
+      status: "past_due",
+      latest_invoice: "in_newer_upgrade",
+      items: {
+        data: [
+          {
+            price: { id: "price_1S96oFP5rNq9hGDSPZ1RpKHJ" },
+            current_period_end: end,
+          },
+        ],
+      },
+    });
+    retrieveInvoiceMock.mockResolvedValue({
+      id: "in_newer_upgrade",
+      status: "open",
+      billing_reason: "subscription_update",
+      subscription: "sub_current",
+      customer: "cus_123",
+    });
+    queueSelect("profiles", {
+      data: { id: "profile_123", email: "seller@example.com" },
+    });
+    queueSelect("profiles", {
+      data: {
+        stripe_subscription_id: "sub_current",
+        stripe_customer_id: "cus_123",
+        subscription_status: "past_due",
+        subscription_tier: "pro",
+        is_legacy_plan: false,
+        current_period_end: "2026-01-01T00:00:00Z",
+        last_usage_period_end: "2026-01-01T00:00:00Z",
+      },
+    });
+    const { default: handler } = await import("../../../api/stripe/webhook.js");
+    const res = createResponse();
+    await (handler as any)(createRequest(), res);
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls[0].values).toMatchObject({
+      subscription_tier: "pro",
+      subscription_status: "active",
+      current_period_end: new Date(end * 1000).toISOString(),
+      paid_access_expires_at: new Date(end * 1000).toISOString(),
+    });
+    expect(rpcMock).toHaveBeenCalledWith(
+      "reset_monthly_usage_for_paid_invoice",
+      expect.objectContaining({ p_stripe_invoice_id: "in_base" }),
+    );
   });
 
   it("does not send a welcome email for an unpaid async checkout", async () => {
@@ -819,6 +1250,7 @@ describe("Stripe webhook subscription usage reset", () => {
     });
     expect(updateCalls[0].values).not.toHaveProperty("custom_daily_limit");
     expect(updateCalls[0].values).not.toHaveProperty("custom_monthly_limit");
+    expect(updateCalls[0].values.paid_access_expires_at).toBeNull();
   });
 
   it("links an email-matched profile without sending before Checkout completes", async () => {
@@ -1012,9 +1444,7 @@ describe("Stripe webhook subscription usage reset", () => {
         ],
       },
     };
-    retrieveSubscriptionMock
-      .mockResolvedValueOnce(subscription)
-      .mockResolvedValueOnce(subscription);
+    retrieveSubscriptionMock.mockResolvedValue(subscription);
     retrieveInvoiceMock.mockResolvedValue({
       id: "in_race",
       amount_paid: 399,

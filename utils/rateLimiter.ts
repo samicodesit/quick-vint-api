@@ -63,6 +63,7 @@ type ReservationRpcResult = {
 };
 
 export interface UserProfile {
+  paid_access_expires_at?: string | null;
   subscription_status: string;
   subscription_tier: string;
   api_calls_this_month: number;
@@ -685,7 +686,12 @@ export class RateLimiter {
   ): Promise<RateLimitResult> {
     const tierKey = getEffectiveTier(profile);
 
-    if (isGenerationSuspendedForPayment(profile.subscription_status)) {
+    if (
+      isGenerationSuspendedForPayment(
+        profile.subscription_status,
+        profile.paid_access_expires_at,
+      )
+    ) {
       return {
         allowed: false,
         code: "payment_required",
@@ -977,7 +983,12 @@ export class RateLimiter {
       },
     };
 
-    if (isGenerationSuspendedForPayment(profile.subscription_status)) {
+    if (
+      isGenerationSuspendedForPayment(
+        profile.subscription_status,
+        profile.paid_access_expires_at,
+      )
+    ) {
       const monthlyLimit = getEffectiveMonthlyLimit(
         profile,
         tierConfig.limits.monthly,
@@ -1163,7 +1174,7 @@ export class RateLimiter {
       const { data: profile } = await supabase
         .from("profiles")
         .select(
-          "subscription_status, subscription_tier, api_calls_this_month, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at",
+          "subscription_status, subscription_tier, api_calls_this_month, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, paid_access_expires_at",
         )
         .eq("id", userId)
         .single();

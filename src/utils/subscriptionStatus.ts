@@ -18,8 +18,15 @@ export function hasPaidEntitlementStatus(status: SubscriptionStatusLike) {
 
 export function isGenerationSuspendedForPayment(
   status: SubscriptionStatusLike,
+  paidAccessExpiresAt?: string | null,
 ) {
-  return status === "past_due" || status === "unpaid";
+  return (
+    status === "past_due" ||
+    status === "unpaid" ||
+    Boolean(
+      paidAccessExpiresAt && Date.parse(paidAccessExpiresAt) <= Date.now(),
+    )
+  );
 }
 
 export function mapStripeSubscriptionStatusForProfile(

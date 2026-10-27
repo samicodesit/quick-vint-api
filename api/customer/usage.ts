@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select(
-        "id, email, api_calls_this_month, subscription_status, subscription_tier, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, custom_limit_reason",
+        "id, email, api_calls_this_month, subscription_status, subscription_tier, current_period_end, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, custom_limit_reason, paid_access_expires_at",
       )
       .ilike("email", usageLink.email)
       .single();
@@ -62,6 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userProfile: UserProfile = {
       api_calls_this_month: positiveNumber(profile.api_calls_this_month),
       subscription_status: profile.subscription_status || "free",
+      paid_access_expires_at: profile.paid_access_expires_at || null,
       subscription_tier: profile.subscription_tier || "free",
       is_legacy_plan: Boolean(profile.is_legacy_plan),
       free_lifetime_generations_used: positiveNumber(
@@ -100,6 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const monthlyLimit = capacity.limits.monthly;
     const paymentRequired = isGenerationSuspendedForPayment(
       profile.subscription_status,
+      profile.paid_access_expires_at,
     );
     const customActive = hasActiveCustomLimits(profile) && !paymentRequired;
     const tier = getEffectiveTier(profile);

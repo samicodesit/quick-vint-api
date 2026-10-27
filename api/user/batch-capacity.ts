@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "api_calls_this_month, subscription_status, subscription_tier, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason",
+      "api_calls_this_month, subscription_status, subscription_tier, is_legacy_plan, free_lifetime_generations_used, pack_credits, custom_daily_limit, custom_monthly_limit, custom_limit_expires_at, account_status, abuse_reason, paid_access_expires_at",
     )
     .eq("id", user.id)
     .single();
@@ -81,6 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userProfile: UserProfile = {
     api_calls_this_month: Number(profile?.api_calls_this_month || 0),
     subscription_status: profile?.subscription_status || "free",
+    paid_access_expires_at: profile?.paid_access_expires_at || null,
     subscription_tier: profile?.subscription_tier || "free",
     is_legacy_plan: Boolean(profile?.is_legacy_plan),
     free_lifetime_generations_used: Number(

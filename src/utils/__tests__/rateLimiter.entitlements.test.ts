@@ -106,6 +106,25 @@ describe("RateLimiter entitlement decisions", () => {
     delete process.env.PRICING_LIMITS_MODE;
   });
 
+  it("reports payment required when protected paid access expires without a new webhook", async () => {
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-expired-upgrade",
+      {
+        subscription_status: "active",
+        subscription_tier: "pro",
+        api_calls_this_month: 12,
+        paid_access_expires_at: new Date(Date.now() - 1000).toISOString(),
+      },
+    );
+    expect(result).toMatchObject({
+      allowed: false,
+      available: 0,
+      reason: "payment_required",
+    });
+    expect(fromCalls).toHaveLength(0);
+  });
+
   it("reports zero capacity while subscription payment is delinquent", async () => {
     const { RateLimiter } = await import("../../../utils/rateLimiter.js");
     const result = await RateLimiter.getGenerationCapacity("user-past-due", {

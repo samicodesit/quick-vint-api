@@ -11,6 +11,10 @@ import {
   getTierByStripePriceId,
 } from "../../utils/tierConfig";
 import { buildSubscriptionProfileUpdate } from "../../src/utils/subscriptionUsageReset";
+import {
+  getUnpaidPlanChangeUpdate,
+  type PaidProfileSnapshot,
+} from "../../src/utils/subscriptionPaymentGuard";
 import { mapStripeSubscriptionStatusForProfile } from "../../src/utils/subscriptionStatus";
 import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
@@ -140,7 +144,7 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
     ) {
       throw new Error(`Paid subscription invoice ${invoice.id} has no period`);
     }
-    return;
+    if (invoice.billing_reason !== "subscription_update") return;
   }
 
   const subscription = (await stripe.subscriptions.retrieve(
@@ -159,8 +163,21 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
 
   const status = mapStripeSubscriptionStatusForProfile(subscription, tier);
   const stripeCurrentPeriodEnd = getSubscriptionCurrentPeriodEnd(subscription);
-  if (stripeCurrentPeriodEnd && period.end !== stripeCurrentPeriodEnd) return;
-  const currentPeriodEnd = stripeCurrentPeriodEnd || period.end;
+  if (period && stripeCurrentPeriodEnd && period.end !== stripeCurrentPeriodEnd)
+    return;
+  if (
+    !period &&
+    (getStripeObjectId(subscription.latest_invoice) !== invoice.id ||
+      !stripeCurrentPeriodEnd ||
+      !invoice.lines?.data?.some(
+        (line: any) =>
+          typeof line.period?.end === "number" &&
+          new Date(line.period.end * 1000).toISOString() ===
+            stripeCurrentPeriodEnd,
+      ))
+  )
+    return;
+  const currentPeriodEnd = stripeCurrentPeriodEnd || period?.end || null;
 
   let { data: profileRow, error: profileLookupError } = await supabase
     .from("profiles")
@@ -193,7 +210,7 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
   const { data: existingProfile, error: existingProfileError } = await supabase
     .from("profiles")
     .select(
-      "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
+      "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan, current_period_end, last_usage_period_end, paid_access_expires_at",
     )
     .eq("id", profileRow.id)
     .single();
@@ -212,7 +229,7 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
     Boolean(existingProfile?.is_legacy_plan) &&
     existingSubscriptionId === subscriptionId &&
     existingProfile?.subscription_tier === tier;
-  const updateData = buildSubscriptionProfileUpdate({
+  let updateData = buildSubscriptionProfileUpdate({
     subscriptionId,
     stripeCustomerId: customerId,
     status,
@@ -224,6 +241,13 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
     updateData,
     buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
   );
+  const paymentGuard = await protectUnpaidPlanChange(
+    subscription,
+    existingProfile || {},
+    period ? invoice : undefined,
+  );
+  if (paymentGuard) updateData = paymentGuard;
+  else updateData.paid_access_expires_at = null;
 
   let updateQuery = supabase
     .from("profiles")
@@ -232,9 +256,11 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
   updateQuery = existingSubscriptionId
     ? updateQuery.eq("stripe_subscription_id", existingSubscriptionId)
     : updateQuery.is("stripe_subscription_id", null);
+  updateQuery = matchPaidProfileSnapshot(updateQuery, existingProfile || {});
+  await commitSubscriptionUpdate(updateQuery);
 
-  const { error: updateError } = await updateQuery;
-  if (updateError) throw updateError;
+  // A settled mid-cycle upgrade changes entitlement, never the usage counter.
+  if (!period) return;
 
   const { error: resetError } = await supabase.rpc(
     "reset_monthly_usage_for_paid_invoice",
@@ -246,6 +272,116 @@ async function handlePaidSubscriptionInvoice(invoice: any) {
     },
   );
   if (resetError) throw resetError;
+}
+
+async function protectUnpaidPlanChange(
+  subscription: any,
+  profile: PaidProfileSnapshot,
+  settledBaseInvoice?: any,
+) {
+  if (
+    profile.stripe_subscription_id !== subscription.id ||
+    !profile.subscription_tier ||
+    profile.subscription_tier === "free" ||
+    !subscription.latest_invoice
+  )
+    return null;
+  // The first Stripe read preceded the profile lookup. Validate it afterwards
+  // so a newer payment handler cannot be undone using that earlier snapshot.
+  const current = await stripe.subscriptions.retrieve(subscription.id);
+  const snapshot = (value: any) =>
+    JSON.stringify([
+      value.status,
+      Boolean(value.cancel_at_period_end),
+      getStripeObjectId(value.latest_invoice),
+      getSubscriptionCurrentPeriodEnd(value),
+      value.items?.data?.map((item: any) => [
+        item.id,
+        item.price?.id,
+        item.quantity,
+      ]),
+    ]);
+  if (snapshot(current) !== snapshot(subscription))
+    throw concurrentSubscriptionUpdate();
+  const invoice =
+    typeof subscription.latest_invoice === "string"
+      ? await stripe.invoices.retrieve(subscription.latest_invoice)
+      : subscription.latest_invoice;
+  if (!invoice) throw new Error("Could not verify subscription invoice");
+  if (
+    settledBaseInvoice &&
+    invoice.billing_reason === "subscription_update" &&
+    invoice.status !== "paid"
+  ) {
+    const period = getPaidSubscriptionPeriod(settledBaseInvoice);
+    const baseLine = settledBaseInvoice.lines?.data?.find((line: any) =>
+      line.parent?.subscription_item_details
+        ? line.parent.subscription_item_details.proration === false
+        : line.type === "subscription" && line.proration !== true,
+    );
+    const basePrice =
+      getStripeObjectId(baseLine?.price) ||
+      getStripeObjectId(baseLine?.pricing?.price_details?.price);
+    const baseTier = basePrice
+      ? getTierByStripePriceId(basePrice)?.name
+      : undefined;
+    if (!period || !baseTier || baseTier === "free")
+      throw new Error("Could not verify the settled base plan");
+    const paidProfile = {
+      ...profile,
+      subscription_tier: baseTier,
+      subscription_status: "active",
+      current_period_end: period.end,
+      last_usage_period_end: period.end,
+      is_legacy_plan: Boolean(
+        profile.is_legacy_plan && profile.subscription_tier === baseTier,
+      ),
+    };
+    const guard = getUnpaidPlanChangeUpdate(paidProfile, subscription, invoice);
+    return guard
+      ? {
+          ...buildSubscriptionProfileUpdate({
+            subscriptionId: subscription.id,
+            tier: baseTier,
+            status: "active",
+            currentPeriodEnd: period.end,
+            isLegacyPlan: paidProfile.is_legacy_plan,
+          }),
+          ...buildCustomBusinessLimitUpdate(basePrice || undefined, period.end),
+          ...guard,
+        }
+      : null;
+  }
+  return getUnpaidPlanChangeUpdate(profile, subscription, invoice);
+}
+
+function matchPaidProfileSnapshot(query: any, profile: PaidProfileSnapshot) {
+  for (const field of [
+    "subscription_tier",
+    "subscription_status",
+    "current_period_end",
+    "last_usage_period_end",
+    "is_legacy_plan",
+    "paid_access_expires_at",
+  ] as const) {
+    query =
+      profile[field] == null
+        ? query.is(field, null)
+        : query.eq(field, profile[field]);
+  }
+  return query;
+}
+
+async function commitSubscriptionUpdate(query: any) {
+  const { data, error } = await query.select("id").maybeSingle();
+  if (error) throw error;
+  if (!data) throw concurrentSubscriptionUpdate();
+}
+
+function concurrentSubscriptionUpdate() {
+  const error = new Error("Subscription changed concurrently; retry webhook");
+  error.name = "SubscriptionConcurrentUpdateError";
+  return error;
 }
 
 async function sendWelcomeForPaidSubscription(input: {
@@ -438,7 +574,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const { data: profileRow, error: profileError } = await supabase
             .from("profiles")
             .select(
-              "id, stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
+              "id, stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan, current_period_end, last_usage_period_end, paid_access_expires_at",
             )
             .ilike("email", email)
             .maybeSingle();
@@ -459,7 +595,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               Boolean(profileRow.is_legacy_plan) &&
               existingSubscriptionId === subscription.id &&
               profileRow.subscription_tier === tier;
-            const updateData = buildSubscriptionProfileUpdate({
+            let updateData = buildSubscriptionProfileUpdate({
               subscriptionId: subscription.id,
               stripeCustomerId: customerId,
               status,
@@ -471,6 +607,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               updateData,
               buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
             );
+            const paymentGuard = await protectUnpaidPlanChange(
+              subscription,
+              profileRow,
+            );
+            if (paymentGuard) updateData = paymentGuard;
+            else if (tier === "free") updateData.paid_access_expires_at = null;
 
             let updateQuery = supabase
               .from("profiles")
@@ -479,8 +621,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             updateQuery = existingSubscriptionId
               ? updateQuery.eq("stripe_subscription_id", existingSubscriptionId)
               : updateQuery.is("stripe_subscription_id", null);
-            const { error: updateError } = await updateQuery;
-            if (updateError) throw updateError;
+            updateQuery = matchPaidProfileSnapshot(updateQuery, profileRow);
+            await commitSubscriptionUpdate(updateQuery);
 
             if (
               session.payment_status === "paid" ||
@@ -589,7 +731,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             await supabase
               .from("profiles")
               .select(
-                "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan",
+                "stripe_subscription_id, stripe_customer_id, subscription_status, subscription_tier, is_legacy_plan, current_period_end, last_usage_period_end, paid_access_expires_at",
               )
               .eq("id", profileRow.id)
               .single();
@@ -616,7 +758,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             Boolean(existingProfile?.is_legacy_plan) &&
             existingSubscriptionId === subAny.id &&
             existingTier === tier;
-          const updateData = buildSubscriptionProfileUpdate({
+          let updateData = buildSubscriptionProfileUpdate({
             subscriptionId: subAny.id,
             stripeCustomerId: customerId,
             status,
@@ -628,6 +770,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             updateData,
             buildCustomBusinessLimitUpdate(priceId, currentPeriodEnd),
           );
+          const paymentGuard = await protectUnpaidPlanChange(
+            subscription,
+            existingProfile || {},
+          );
+          if (paymentGuard) updateData = paymentGuard;
+          else if (tier === "free") updateData.paid_access_expires_at = null;
 
           let updateQuery = supabase
             .from("profiles")
@@ -636,8 +784,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           updateQuery = existingSubscriptionId
             ? updateQuery.eq("stripe_subscription_id", existingSubscriptionId)
             : updateQuery.is("stripe_subscription_id", null);
-          const { error: updateError } = await updateQuery;
-          if (updateError) throw updateError;
+          updateQuery = matchPaidProfileSnapshot(
+            updateQuery,
+            existingProfile || {},
+          );
+          await commitSubscriptionUpdate(updateQuery);
 
           // Checkout-created subscriptions can emit this event before
           // checkout.session.completed. The invoice/Price currency can be
@@ -668,6 +819,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               subscription_tier: "free",
               current_period_end: null,
               is_legacy_plan: false,
+              paid_access_expires_at: null,
             })
             .eq("id", profileRow.id)
             .eq("stripe_subscription_id", subAny.id);
@@ -690,6 +842,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.json({ received: true });
   } catch (err: any) {
+    if (err?.name === "SubscriptionConcurrentUpdateError") {
+      return res.status(409).end();
+    }
     console.error("❌ Error handling Stripe webhook:", err);
     reportCriticalEndpointFailure({
       error: err,

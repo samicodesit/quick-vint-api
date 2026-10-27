@@ -3018,7 +3018,10 @@ export function mountDraftWorkspace(
     pause: () => queue.pause(),
     resume: async () => {
       await flush();
-      const available = draftGenerationAllowance(await options.onUsageChange());
+      const usage = await options.onUsageChange();
+      if (usage?.canGenerate === false && options.onGenerationBlocked?.(usage))
+        return;
+      const available = draftGenerationAllowance(usage);
       if (
         queue.remaining.length > available &&
         !window.confirm(

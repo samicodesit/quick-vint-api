@@ -1,5 +1,7 @@
 import type { MobileUsage } from "./generationClient";
 import type { MobileBillingTier } from "./billing";
+import { getBillingCopy } from "../../utils/billingDisplay";
+import { FREE_LIFETIME_LIMIT } from "../../../utils/tierConfig";
 
 export interface MobilePaywall {
   title: string;
@@ -13,6 +15,7 @@ export interface MobilePaywall {
 export function getMobilePaywall(
   usage: MobileUsage,
   requested?: string,
+  locale = "en",
 ): MobilePaywall | null {
   const code = requested || usage.blockedReason;
   const all: MobileBillingTier[] = [
@@ -48,13 +51,18 @@ export function getMobilePaywall(
       trust: "Manage your payment securely with Stripe.",
       support: true,
     };
-  if (code === "free_lifetime_limit")
+  if (code === "free_lifetime_limit") {
+    const copy = getBillingCopy(locale);
     return {
-      title: "Free listings used",
-      message: "Your photos stay here. Pick a plan to generate this listing.",
+      title: copy.freeLimitTitle.replace(
+        "{limit}",
+        String(FREE_LIFETIME_LIMIT),
+      ),
+      message: copy.freeLimitMessage,
       options: all,
-      trust: "Secure checkout by Stripe. Cancel anytime.",
+      trust: copy.subscriptionTrust,
     };
+  }
   if (code !== "daily_limit" && code !== "monthly_limit") return null;
   const tier = usage.plan?.tier;
   if (tier === "business")

@@ -86,10 +86,13 @@ export function mountMobilePaywall(
     return pack
       ? billingCopy.buy.replace("{credits}", String(pack.credits))
       : selectedTier === "credit_pack"
-        ? "Continue with one-time credits"
+        ? billingCopy.buyCredits
         : selectedTier
-          ? `Continue with ${names[selectedTier as MobileBillingTier]}`
-          : "Continue to checkout";
+          ? billingCopy.continueWith.replace(
+              "{plan}",
+              names[selectedTier as MobileBillingTier],
+            )
+          : "";
   };
   const restore = () => {
     if (dialog.open) return;
@@ -120,7 +123,7 @@ export function mountMobilePaywall(
     );
     busy = true;
     controls.forEach((control) => (control.disabled = true));
-    proceed.textContent = "Opening Stripe…";
+    proceed.textContent = billingCopy.openingCheckout;
     proceed.setAttribute("aria-busy", "true");
     const status = find("[data-paywall-status]");
     status.hidden = true;
@@ -148,8 +151,7 @@ export function mountMobilePaywall(
       }
     } catch {
       if (active()) {
-        status.textContent =
-          "Could not open checkout. Please try again. Your drafts are saved.";
+        status.textContent = billingCopy.checkoutError;
         status.hidden = false;
         status.scrollIntoView({ block: "nearest" });
       }
@@ -166,6 +168,7 @@ export function mountMobilePaywall(
     if (selectedTier) void checkout(selectedTier);
   });
   find("button").addEventListener("click", close);
+  find("button").setAttribute("aria-label", billingCopy.closePaywall);
   dialog.addEventListener("click", (event) => {
     const box = dialog.getBoundingClientRect();
     if (
@@ -187,7 +190,7 @@ export function mountMobilePaywall(
       requested?: string,
       entryPoint: MobilePaywallEntryPoint = "unknown",
     ): boolean {
-      const policy = getMobilePaywall(usage, requested);
+      const policy = getMobilePaywall(usage, requested, locale);
       if (!policy || disposed || busy) return false;
       paywallContext = {
         reason: requested || usage.blockedReason || "paid_options",
@@ -223,9 +226,7 @@ export function mountMobilePaywall(
         billingNote.textContent =
           mode === "once" ? billingCopy.terms : billingCopy.qualifier;
         find("[data-paywall-trust]").textContent =
-          mode === "once"
-            ? "Secure checkout by Stripe. One-time purchase."
-            : policy.trust;
+          mode === "once" ? billingCopy.oneTimeTrust : policy.trust;
         find("[data-paywall-status]").hidden = true;
         tabs.querySelectorAll<HTMLButtonElement>("button").forEach((tab) => {
           const selected = tab.dataset.billingMode === mode;
@@ -271,7 +272,7 @@ export function mountMobilePaywall(
               find("[data-paywall-trust]").textContent = getCreditPackConfig(
                 tier,
               )
-                ? "Secure checkout by Stripe. One-time purchase."
+                ? billingCopy.oneTimeTrust
                 : policy.trust;
             });
             button.classList.add("mobile-paywall-choice");
@@ -339,7 +340,7 @@ export function mountMobilePaywall(
           if (tier === "pro") {
             const badge = document.createElement("small");
             badge.className = "mobile-paywall-badge";
-            badge.textContent = "Popular";
+            badge.textContent = billingCopy.popular;
             copy.append(badge);
           }
           if (limits) {

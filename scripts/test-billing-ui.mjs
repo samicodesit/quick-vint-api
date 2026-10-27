@@ -153,7 +153,7 @@ try {
       await dialog.locator("[data-paywall-continue]").click();
       await dialog
         .getByRole("status")
-        .filter({ hasText: "Could not open checkout" })
+        .filter({ hasText: copy[language].checkoutError })
         .waitFor();
       assert.equal(purchases.at(-1).body.tier, tier);
     }
@@ -163,7 +163,7 @@ try {
       await dialog.locator("[data-paywall-continue]").click();
       await dialog
         .getByRole("status")
-        .filter({ hasText: "Could not open checkout" })
+        .filter({ hasText: copy[language].checkoutError })
         .waitFor();
       const purchase = purchases.at(-1);
       assert.equal(purchase.body.packId, pack);
@@ -187,7 +187,7 @@ try {
         fullPage: true,
       });
     await dialog.press("Escape");
-    assert.equal(await dialog.count(), 0);
+    assert.equal(await page.locator("dialog[open]").count(), 0);
     await page.locator('[data-mobile-web="profile-menu-trigger"]').click();
     await page.locator('[data-mobile-web="buy-credits"]').click();
     assert.equal(

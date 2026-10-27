@@ -22,6 +22,7 @@ const detailPhoto = await readFile(
 );
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
+  locale: process.env.DRAFT_BROWSER_LOCALE || "en",
   permissions: ["clipboard-read", "clipboard-write"],
 });
 await context.addInitScript(
@@ -471,7 +472,116 @@ async function checkActiveDeletionConflict() {
   assert.equal(errors.length, 0, errors.join("\n"));
 }
 
-if (process.env.DRAFT_BROWSER_DELETION_ONLY === "1") {
+if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
+  try {
+    await page.goto(`${base}/app`);
+    await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+    for (let item = 0; item < 2; item++) {
+      await click("new");
+      await upload(1);
+      await click("back");
+    }
+    const before = await snapshot();
+    const ids = before.drafts.map((draft) => draft.id);
+    const queueKey = `autolister:draft-queue:${userId}`;
+    await page.evaluate(
+      ({ queueKey, ids }) => {
+        sessionStorage.setItem(
+          queueKey,
+          JSON.stringify({
+            remaining: ids,
+            completed: [],
+            failed: [],
+            attempts: [],
+            total: 2,
+          }),
+        );
+      },
+      { queueKey, ids },
+    );
+    quota = true;
+    await page.reload();
+    await click("resume");
+    const dialog = page.locator("dialog.mobile-paywall[open]");
+    await dialog.waitFor({ timeout: 5000 });
+    const billingCopy = JSON.parse(await readFile(new URL("../src/data/billingCopy.json", import.meta.url), "utf8"));
+    const locale = (process.env.DRAFT_BROWSER_LOCALE || "en").split("-")[0];
+    const copy = billingCopy[locale === "cs" ? "cz" : locale] || billingCopy.en;
+    assert.equal(await dialog.locator("h2").textContent(), copy.freeLimitTitle.replace("{limit}", "5"));
+    assert.equal(await dialog.locator("[data-paywall-copy]").textContent(), copy.freeLimitMessage);
+    assert.equal(await dialog.locator("[data-paywall-continue]").textContent(), copy.continueWith.replace("{plan}", "Starter"));
+    assert.equal(generations, 0, "Blocked Resume consumes no generation");
+    assert.deepEqual((await snapshot()).drafts, before.drafts);
+    assert.deepEqual(
+      await page.evaluate(
+        (queueKey) => JSON.parse(sessionStorage.getItem(queueKey)).remaining,
+        queueKey,
+      ),
+      ids,
+    );
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      assert.equal(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
+      await page.screenshot({ path: `${output}/resume-free-limit-${width}.png` });
+    }
+    await dialog.getByRole("tab").nth(1).click();
+    assert.equal(await dialog.locator("[data-paywall-continue]").textContent(), copy.buy.replace("{credits}", "20"));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: `${output}/resume-free-limit-once-390.png` });
+    await dialog.locator(".mobile-paywall-heading button").click();
+
+    quotaCode = "burst_limit";
+    minute = true;
+    await click("resume");
+    await page.getByText(/Please wait before generating more items/).waitFor();
+    assert.equal(await page.locator("dialog.mobile-paywall[open]").count(), 0);
+    assert.equal(
+      generations,
+      0,
+      "A temporary limit never consumes quota or sells access",
+    );
+
+    quota = false;
+    minute = false;
+    await click("resume");
+    await page.waitForFunction(() => {
+      const items = [...document.querySelectorAll(".draft-item")];
+      return (
+        items.length === 2 &&
+        items.every((item) => item.textContent.includes("Ready to copy"))
+      );
+    });
+    assert.equal(
+      generations,
+      2,
+      "Resume continues the saved items after access returns",
+    );
+    assert.equal(
+      (await snapshot()).drafts.filter((draft) => draft.description).length,
+      2,
+    );
+    assert.equal(errors.length, 0, errors.join("\n"));
+    console.log(
+      JSON.stringify({
+        checks: [
+          "Blocked Resume opens paid options and preserves drafts and queue",
+          "Temporary limits do not sell access",
+          "Restored allowance resumes saved items",
+        ],
+        generations,
+        errors,
+      }),
+    );
+  } catch (error) {
+    console.error(await page.locator("body").innerText());
+    console.error(
+      JSON.stringify({ generations, errors, requests: requests.slice(-8) }),
+    );
+    throw error;
+  } finally {
+    await browser.close();
+  }
+} else if (process.env.DRAFT_BROWSER_DELETION_ONLY === "1") {
   try {
     for (let round = 0; round < 3; round++) {
       await checkDeletedQueueItem();
@@ -1301,7 +1411,7 @@ try {
   await upload(1);
   quota = true;
   await click("generate");
-  await page.getByRole("dialog", { name: "Free listings used" }).waitFor();
+  await page.getByRole("dialog", { name: "You’ve used all 5 free listings" }).waitFor();
   assert.equal(
     await page.evaluate(() => document.activeElement?.id),
     "mobile-paywall-title",

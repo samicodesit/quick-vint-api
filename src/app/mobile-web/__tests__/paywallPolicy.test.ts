@@ -13,9 +13,29 @@ describe("extension-compatible web paywall rules", () => {
     expect(
       getMobilePaywall(usage("free", "free_lifetime_limit")),
     ).toMatchObject({
-      title: "Free listings used",
+      title: "You’ve used all 5 free listings",
       options: ["starter", "pro", "business", "credit_pack"],
     });
+  });
+  it("uses the requested billing language for the free-limit explanation", () => {
+    expect(
+      getMobilePaywall(
+        usage("free", "free_lifetime_limit"),
+        undefined,
+        "fr-FR",
+      ),
+    ).toMatchObject({
+      title: "Vous avez utilisé vos 5 annonces gratuites",
+      message:
+        "Choisissez un forfait ou achetez des crédits sans abonnement pour continuer.",
+    });
+    expect(
+      getMobilePaywall(
+        usage("free", "free_lifetime_limit"),
+        undefined,
+        "unknown",
+      )?.title,
+    ).toBe("You’ve used all 5 free listings");
   });
   it.each(["daily_limit", "monthly_limit"])(
     "tailors %s to the current paid tier",

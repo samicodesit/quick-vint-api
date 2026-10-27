@@ -10,7 +10,17 @@
     "title": "Choose a plan or credits",
     "limits": "{daily}/day · {monthly}/month",
     "perMonth": "/month",
-    "buyCredits": "Buy credits"
+    "buyCredits": "Buy credits",
+    "freeLimitTitle": "You’ve used all {limit} free listings",
+    "freeLimitMessage": "Choose a plan or buy one-time credits to continue.",
+    "continueWith": "Continue with {plan}",
+    "openingCheckout": "Opening checkout...",
+    "checkoutError": "Could not open checkout. Please try again.",
+    "closePaywall": "Close paid options",
+    "comparePlans": "Compare all plans",
+    "popular": "Most popular",
+    "subscriptionTrust": "Secure checkout by Stripe. Cancel anytime.",
+    "oneTimeTrust": "Secure checkout by Stripe. One-time purchase."
   },
   "fr": {
     "monthly": "Mensuel",
@@ -23,7 +33,17 @@
     "title": "Choisir un forfait ou des crédits",
     "limits": "{daily}/jour · {monthly}/mois",
     "perMonth": "/mois",
-    "buyCredits": "Acheter des crédits"
+    "buyCredits": "Acheter des crédits",
+    "freeLimitTitle": "Vous avez utilisé vos {limit} annonces gratuites",
+    "freeLimitMessage": "Choisissez un forfait ou achetez des crédits sans abonnement pour continuer.",
+    "continueWith": "Continuer avec {plan}",
+    "openingCheckout": "Ouverture du paiement...",
+    "checkoutError": "Impossible d’ouvrir le paiement. Réessayez.",
+    "closePaywall": "Fermer les offres payantes",
+    "comparePlans": "Comparer les forfaits",
+    "popular": "Le plus populaire",
+    "subscriptionTrust": "Paiement sécurisé par Stripe. Résiliable à tout moment.",
+    "oneTimeTrust": "Paiement sécurisé par Stripe. Achat unique."
   },
   "de": {
     "monthly": "Monatlich",
@@ -36,7 +56,17 @@
     "title": "Tarif oder Credits wählen",
     "limits": "{daily}/Tag · {monthly}/Monat",
     "perMonth": "/Monat",
-    "buyCredits": "Credits kaufen"
+    "buyCredits": "Credits kaufen",
+    "freeLimitTitle": "Du hast alle {limit} kostenlosen Anzeigen genutzt",
+    "freeLimitMessage": "Wähle ein Abo oder kaufe einmalig Credits, um fortzufahren.",
+    "continueWith": "Weiter mit {plan}",
+    "openingCheckout": "Zahlung wird geöffnet...",
+    "checkoutError": "Zahlung konnte nicht geöffnet werden. Bitte erneut versuchen.",
+    "closePaywall": "Bezahloptionen schließen",
+    "comparePlans": "Alle Tarife vergleichen",
+    "popular": "Am beliebtesten",
+    "subscriptionTrust": "Sichere Zahlung über Stripe. Jederzeit kündbar.",
+    "oneTimeTrust": "Sichere Zahlung über Stripe. Einmalkauf."
   },
   "nl": {
     "monthly": "Maandelijks",
@@ -49,7 +79,17 @@
     "title": "Kies een abonnement of credits",
     "limits": "{daily}/dag · {monthly}/maand",
     "perMonth": "/maand",
-    "buyCredits": "Credits kopen"
+    "buyCredits": "Credits kopen",
+    "freeLimitTitle": "Je hebt alle {limit} gratis advertenties gebruikt",
+    "freeLimitMessage": "Kies een abonnement of koop eenmalig credits om door te gaan.",
+    "continueWith": "Doorgaan met {plan}",
+    "openingCheckout": "Betaling openen...",
+    "checkoutError": "Kan de betaling niet openen. Probeer het opnieuw.",
+    "closePaywall": "Betaalopties sluiten",
+    "comparePlans": "Alle abonnementen vergelijken",
+    "popular": "Populairst",
+    "subscriptionTrust": "Veilig betalen via Stripe. Altijd opzegbaar.",
+    "oneTimeTrust": "Veilig betalen via Stripe. Eenmalige aankoop."
   },
   "es": {
     "monthly": "Mensual",
@@ -62,7 +102,17 @@
     "title": "Elige un plan o créditos",
     "limits": "{daily}/día · {monthly}/mes",
     "perMonth": "/mes",
-    "buyCredits": "Comprar créditos"
+    "buyCredits": "Comprar créditos",
+    "freeLimitTitle": "Has usado tus {limit} anuncios gratuitos",
+    "freeLimitMessage": "Elige un plan o compra créditos sin suscripción para continuar.",
+    "continueWith": "Continuar con {plan}",
+    "openingCheckout": "Abriendo el pago...",
+    "checkoutError": "No se pudo abrir el pago. Inténtalo de nuevo.",
+    "closePaywall": "Cerrar opciones de pago",
+    "comparePlans": "Comparar todos los planes",
+    "popular": "Más popular",
+    "subscriptionTrust": "Pago seguro con Stripe. Cancela cuando quieras.",
+    "oneTimeTrust": "Pago seguro con Stripe. Compra única."
   },
   "it": {
     "monthly": "Mensile",
@@ -75,7 +125,17 @@
     "title": "Scegli un piano o dei crediti",
     "limits": "{daily}/giorno · {monthly}/mese",
     "perMonth": "/mese",
-    "buyCredits": "Acquista crediti"
+    "buyCredits": "Acquista crediti",
+    "freeLimitTitle": "Hai usato tutti i {limit} annunci gratuiti",
+    "freeLimitMessage": "Scegli un piano o acquista crediti senza abbonamento per continuare.",
+    "continueWith": "Continua con {plan}",
+    "openingCheckout": "Apertura del pagamento...",
+    "checkoutError": "Impossibile aprire il pagamento. Riprova.",
+    "closePaywall": "Chiudi le opzioni a pagamento",
+    "comparePlans": "Confronta tutti i piani",
+    "popular": "Il più popolare",
+    "subscriptionTrust": "Pagamento sicuro con Stripe. Disdici quando vuoi.",
+    "oneTimeTrust": "Pagamento sicuro con Stripe. Acquisto singolo."
   },
   "pt": {
     "monthly": "Mensal",
@@ -88,7 +148,17 @@
     "title": "Escolhe um plano ou créditos",
     "limits": "{daily}/dia · {monthly}/mês",
     "perMonth": "/mês",
-    "buyCredits": "Comprar créditos"
+    "buyCredits": "Comprar créditos",
+    "freeLimitTitle": "Usaste os teus {limit} anúncios gratuitos",
+    "freeLimitMessage": "Escolhe um plano ou compra créditos sem subscrição para continuar.",
+    "continueWith": "Continuar com {plan}",
+    "openingCheckout": "A abrir o pagamento...",
+    "checkoutError": "Não foi possível abrir o pagamento. Tenta novamente.",
+    "closePaywall": "Fechar opções pagas",
+    "comparePlans": "Comparar todos os planos",
+    "popular": "Mais popular",
+    "subscriptionTrust": "Pagamento seguro com Stripe. Cancela quando quiseres.",
+    "oneTimeTrust": "Pagamento seguro com Stripe. Compra única."
   },
   "pl": {
     "monthly": "Miesięcznie",
@@ -101,7 +171,17 @@
     "title": "Wybierz plan lub kredyty",
     "limits": "{daily}/dzień · {monthly}/miesiąc",
     "perMonth": "/miesiąc",
-    "buyCredits": "Kup kredyty"
+    "buyCredits": "Kup kredyty",
+    "freeLimitTitle": "Wykorzystano wszystkie darmowe ogłoszenia ({limit})",
+    "freeLimitMessage": "Wybierz plan lub kup kredyty bez subskrypcji, aby kontynuować.",
+    "continueWith": "Kontynuuj z {plan}",
+    "openingCheckout": "Otwieranie płatności...",
+    "checkoutError": "Nie udało się otworzyć płatności. Spróbuj ponownie.",
+    "closePaywall": "Zamknij opcje płatne",
+    "comparePlans": "Porównaj wszystkie plany",
+    "popular": "Najpopularniejszy",
+    "subscriptionTrust": "Bezpieczna płatność przez Stripe. Anuluj w dowolnej chwili.",
+    "oneTimeTrust": "Bezpieczna płatność przez Stripe. Zakup jednorazowy."
   },
   "cz": {
     "monthly": "Měsíčně",
@@ -114,7 +194,17 @@
     "title": "Vyberte tarif nebo kredity",
     "limits": "{daily}/den · {monthly}/měsíc",
     "perMonth": "/měsíc",
-    "buyCredits": "Koupit kredity"
+    "buyCredits": "Koupit kredity",
+    "freeLimitTitle": "Využili jste všech {limit} bezplatných inzerátů",
+    "freeLimitMessage": "Pro pokračování vyberte tarif nebo jednorázově kupte kredity.",
+    "continueWith": "Pokračovat s {plan}",
+    "openingCheckout": "Otevírání platby...",
+    "checkoutError": "Platbu se nepodařilo otevřít. Zkuste to znovu.",
+    "closePaywall": "Zavřít placené možnosti",
+    "comparePlans": "Porovnat všechny tarify",
+    "popular": "Nejoblíbenější",
+    "subscriptionTrust": "Bezpečná platba přes Stripe. Zrušení kdykoliv.",
+    "oneTimeTrust": "Bezpečná platba přes Stripe. Jednorázový nákup."
   },
   "da": {
     "monthly": "Månedligt",
@@ -127,7 +217,17 @@
     "title": "Vælg abonnement eller kreditter",
     "limits": "{daily}/dag · {monthly}/måned",
     "perMonth": "/måned",
-    "buyCredits": "Køb kreditter"
+    "buyCredits": "Køb kreditter",
+    "freeLimitTitle": "Du har brugt alle {limit} gratis annoncer",
+    "freeLimitMessage": "Vælg et abonnement eller køb kreditter med engangsbetaling for at fortsætte.",
+    "continueWith": "Fortsæt med {plan}",
+    "openingCheckout": "Åbner betaling...",
+    "checkoutError": "Kunne ikke åbne betalingen. Prøv igen.",
+    "closePaywall": "Luk betalingsmuligheder",
+    "comparePlans": "Sammenlign alle abonnementer",
+    "popular": "Mest populær",
+    "subscriptionTrust": "Sikker betaling via Stripe. Opsig når som helst.",
+    "oneTimeTrust": "Sikker betaling via Stripe. Engangskøb."
   },
   "el": {
     "monthly": "Μηνιαία",
@@ -140,7 +240,17 @@
     "title": "Επιλέξτε πρόγραμμα ή πιστώσεις",
     "limits": "{daily}/ημέρα · {monthly}/μήνα",
     "perMonth": "/μήνα",
-    "buyCredits": "Αγορά πιστώσεων"
+    "buyCredits": "Αγορά πιστώσεων",
+    "freeLimitTitle": "Χρησιμοποιήσατε και τις {limit} δωρεάν αγγελίες",
+    "freeLimitMessage": "Επιλέξτε πρόγραμμα ή αγοράστε πιστώσεις χωρίς συνδρομή για να συνεχίσετε.",
+    "continueWith": "Συνέχεια με {plan}",
+    "openingCheckout": "Άνοιγμα πληρωμής...",
+    "checkoutError": "Δεν ήταν δυνατό το άνοιγμα της πληρωμής. Δοκιμάστε ξανά.",
+    "closePaywall": "Κλείσιμο επιλογών πληρωμής",
+    "comparePlans": "Σύγκριση όλων των προγραμμάτων",
+    "popular": "Δημοφιλέστερο",
+    "subscriptionTrust": "Ασφαλής πληρωμή μέσω Stripe. Ακύρωση ανά πάσα στιγμή.",
+    "oneTimeTrust": "Ασφαλής πληρωμή μέσω Stripe. Εφάπαξ αγορά."
   },
   "hr": {
     "monthly": "Mjesečno",
@@ -153,7 +263,17 @@
     "title": "Odaberite paket ili kredite",
     "limits": "{daily}/dan · {monthly}/mjesec",
     "perMonth": "/mjesec",
-    "buyCredits": "Kupi kredite"
+    "buyCredits": "Kupi kredite",
+    "freeLimitTitle": "Iskoristili ste svih {limit} besplatnih oglasa",
+    "freeLimitMessage": "Odaberite pretplatu ili jednokratno kupite kredite za nastavak.",
+    "continueWith": "Nastavi s {plan}",
+    "openingCheckout": "Otvaranje plaćanja...",
+    "checkoutError": "Plaćanje se nije moglo otvoriti. Pokušajte ponovno.",
+    "closePaywall": "Zatvori opcije plaćanja",
+    "comparePlans": "Usporedi sve pakete",
+    "popular": "Najpopularniji",
+    "subscriptionTrust": "Sigurno plaćanje putem Stripea. Otkažite bilo kada.",
+    "oneTimeTrust": "Sigurno plaćanje putem Stripea. Jednokratna kupnja."
   },
   "fi": {
     "monthly": "Kuukausittain",
@@ -166,7 +286,17 @@
     "title": "Valitse tilaus tai krediitit",
     "limits": "{daily}/päivä · {monthly}/kuukausi",
     "perMonth": "/kuukausi",
-    "buyCredits": "Osta krediittejä"
+    "buyCredits": "Osta krediittejä",
+    "freeLimitTitle": "Olet käyttänyt kaikki {limit} ilmaista ilmoitusta",
+    "freeLimitMessage": "Valitse tilaus tai osta krediittejä kertamaksulla jatkaaksesi.",
+    "continueWith": "Jatka tilauksella {plan}",
+    "openingCheckout": "Avataan maksua...",
+    "checkoutError": "Maksua ei voitu avata. Yritä uudelleen.",
+    "closePaywall": "Sulje maksuvaihtoehdot",
+    "comparePlans": "Vertaa kaikkia tilauksia",
+    "popular": "Suosituin",
+    "subscriptionTrust": "Turvallinen maksu Stripen kautta. Peru milloin vain.",
+    "oneTimeTrust": "Turvallinen maksu Stripen kautta. Kertaosto."
   },
   "hu": {
     "monthly": "Havi",
@@ -179,7 +309,17 @@
     "title": "Válassz csomagot vagy krediteket",
     "limits": "{daily}/nap · {monthly}/hónap",
     "perMonth": "/hónap",
-    "buyCredits": "Kreditek vásárlása"
+    "buyCredits": "Kreditek vásárlása",
+    "freeLimitTitle": "Mind az {limit} ingyenes hirdetést felhasználtad",
+    "freeLimitMessage": "Válassz előfizetést vagy vásárolj krediteket egyszeri fizetéssel a folytatáshoz.",
+    "continueWith": "Folytatás ezzel: {plan}",
+    "openingCheckout": "Fizetés megnyitása...",
+    "checkoutError": "Nem sikerült megnyitni a fizetést. Próbáld újra.",
+    "closePaywall": "Fizetős lehetőségek bezárása",
+    "comparePlans": "Összes csomag összehasonlítása",
+    "popular": "Legnépszerűbb",
+    "subscriptionTrust": "Biztonságos fizetés a Stripe-on keresztül. Bármikor lemondható.",
+    "oneTimeTrust": "Biztonságos fizetés a Stripe-on keresztül. Egyszeri vásárlás."
   },
   "lt": {
     "monthly": "Kas mėnesį",
@@ -192,7 +332,17 @@
     "title": "Pasirinkite planą arba kreditus",
     "limits": "{daily}/dieną · {monthly}/mėnesį",
     "perMonth": "/mėnesį",
-    "buyCredits": "Pirkti kreditų"
+    "buyCredits": "Pirkti kreditų",
+    "freeLimitTitle": "Išnaudojote visus {limit} nemokamus skelbimus",
+    "freeLimitMessage": "Pasirinkite planą arba įsigykite kreditų be prenumeratos, kad galėtumėte tęsti.",
+    "continueWith": "Tęsti su {plan}",
+    "openingCheckout": "Atidaromas mokėjimas...",
+    "checkoutError": "Nepavyko atidaryti mokėjimo. Bandykite dar kartą.",
+    "closePaywall": "Uždaryti mokamas parinktis",
+    "comparePlans": "Palyginti visus planus",
+    "popular": "Populiariausias",
+    "subscriptionTrust": "Saugus mokėjimas per Stripe. Atšaukite bet kada.",
+    "oneTimeTrust": "Saugus mokėjimas per Stripe. Vienkartinis pirkimas."
   },
   "ro": {
     "monthly": "Lunar",
@@ -205,7 +355,17 @@
     "title": "Alege un plan sau credite",
     "limits": "{daily}/zi · {monthly}/lună",
     "perMonth": "/lună",
-    "buyCredits": "Cumpără credite"
+    "buyCredits": "Cumpără credite",
+    "freeLimitTitle": "Ai folosit toate cele {limit} anunțuri gratuite",
+    "freeLimitMessage": "Alege un plan sau cumpără credite fără abonament pentru a continua.",
+    "continueWith": "Continuă cu {plan}",
+    "openingCheckout": "Se deschide plata...",
+    "checkoutError": "Plata nu a putut fi deschisă. Încearcă din nou.",
+    "closePaywall": "Închide opțiunile plătite",
+    "comparePlans": "Compară toate planurile",
+    "popular": "Cel mai popular",
+    "subscriptionTrust": "Plată securizată prin Stripe. Anulezi oricând.",
+    "oneTimeTrust": "Plată securizată prin Stripe. Achiziție unică."
   },
   "sk": {
     "monthly": "Mesačne",
@@ -218,7 +378,17 @@
     "title": "Vyberte si program alebo kredity",
     "limits": "{daily}/deň · {monthly}/mesiac",
     "perMonth": "/mesiac",
-    "buyCredits": "Kúpiť kredity"
+    "buyCredits": "Kúpiť kredity",
+    "freeLimitTitle": "Využili ste všetkých {limit} bezplatných inzerátov",
+    "freeLimitMessage": "Ak chcete pokračovať, vyberte si program alebo jednorazovo kúpte kredity.",
+    "continueWith": "Pokračovať s {plan}",
+    "openingCheckout": "Otváranie platby...",
+    "checkoutError": "Platbu sa nepodarilo otvoriť. Skúste to znova.",
+    "closePaywall": "Zavrieť platené možnosti",
+    "comparePlans": "Porovnať všetky programy",
+    "popular": "Najobľúbenejší",
+    "subscriptionTrust": "Bezpečná platba cez Stripe. Zrušenie kedykoľvek.",
+    "oneTimeTrust": "Bezpečná platba cez Stripe. Jednorazový nákup."
   },
   "sv": {
     "monthly": "Månadsvis",
@@ -231,6 +401,16 @@
     "title": "Välj abonnemang eller krediter",
     "limits": "{daily}/dag · {monthly}/månad",
     "perMonth": "/månad",
-    "buyCredits": "Köp krediter"
+    "buyCredits": "Köp krediter",
+    "freeLimitTitle": "Du har använt alla {limit} gratisannonser",
+    "freeLimitMessage": "Välj ett abonnemang eller köp krediter med engångsbetalning för att fortsätta.",
+    "continueWith": "Fortsätt med {plan}",
+    "openingCheckout": "Öppnar betalning...",
+    "checkoutError": "Kunde inte öppna betalningen. Försök igen.",
+    "closePaywall": "Stäng betalalternativ",
+    "comparePlans": "Jämför alla abonnemang",
+    "popular": "Populärast",
+    "subscriptionTrust": "Säker betalning via Stripe. Avsluta när som helst.",
+    "oneTimeTrust": "Säker betalning via Stripe. Engångsköp."
   }
 }

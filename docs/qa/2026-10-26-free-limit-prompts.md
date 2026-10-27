@@ -2,6 +2,12 @@
 
 Prepared locally for user sign-off. No push, deployment, store upload or payment was performed.
 
+## October 27 release integration
+
+The owner approved deploying the web changes and preparing the extension without store submission. Web source was integrated onto production main after the upgrade payment safeguards, retaining those safeguards unchanged. Extension source was integrated onto its latest main and prepared as 1.4.26 using the release-version tool. The older verification below describes the initial preparation.
+
+Fresh web checks passed the Resume recovery fixture in English and French, all 18 billing locales with six checkout combinations each, narrow layouts, keyboard controls and 15 paywall-policy tests. The first local browser attempt used a feature-disabled build; rebuilding with the documented isolated fixture flags resolved that setup issue. No production flags or customer accounts changed. Release evidence is retained in the parent workspace at reports/free-limit-release-2026-10-27.
+
 ## Product changes
 
 - Web batch Resume now uses the same blocked-generation callback as a fresh generation. Exhausted free, daily and monthly quotas can open the existing paid-options dialog. Temporary throttling and unknown capacity keep the existing recovery message.

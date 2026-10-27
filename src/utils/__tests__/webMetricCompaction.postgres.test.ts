@@ -18,6 +18,12 @@ describe("web metric compaction in PostgreSQL", () => {
       await db.exec(
         readFileSync("migrations/2026-10-15_style_funnel_metrics.sql", "utf8"),
       );
+      await db.exec(
+        readFileSync(
+          "migrations/2026-10-27_checkout_funnel_metrics.sql",
+          "utf8",
+        ),
+      );
       const bodies = [
         [
           "/api/generate",
@@ -112,17 +118,31 @@ describe("web metric compaction in PostgreSQL", () => {
         "web_style_setup",
         "checkout_return",
         "subscription_started",
+        "checkout_start",
+        "checkout_opened",
+        "checkout_failed",
       ]) {
         const source =
           event === "subscription_started"
             ? "stripe_webhook"
-            : event.startsWith("home_") || event === "chrome_store_click"
-              ? "website"
-              : "mobile_web";
+            : ["checkout_start", "checkout_opened", "checkout_failed"].includes(
+                  event,
+                )
+              ? "extension_content"
+              : event.startsWith("home_") || event === "chrome_store_click"
+                ? "website"
+                : "mobile_web";
         const body = {
           event,
           source,
+          transportEventId: "checkout-event",
+          occurredAt: "2026-10-27T00:00:00Z",
           context: {
+            packId: "credits_50",
+            limitCode: "free_lifetime_limit",
+            checkoutType: "credit_pack",
+            operationId: "checkout-attempt",
+            target: "manage",
             heroExperiment: "mobile-entry-v1",
             heroVariant: "b",
             method: "batch",
@@ -176,6 +196,23 @@ describe("web metric compaction in PostgreSQL", () => {
           includeSellerNote: true,
         });
         expect(JSON.stringify(compacted)).not.toContain("private");
+        if (
+          ["checkout_start", "checkout_opened", "checkout_failed"].includes(
+            event,
+          )
+        ) {
+          expect(compacted).toMatchObject({
+            transportEventId: "checkout-event",
+            occurredAt: "2026-10-27T00:00:00Z",
+            context: {
+              packId: "credits_50",
+              limitCode: "free_lifetime_limit",
+              checkoutType: "credit_pack",
+              operationId: "checkout-attempt",
+              target: "manage",
+            },
+          });
+        }
         await db.query(
           "UPDATE api_logs SET created_at=now()-interval '31 days' WHERE id=$1",
           [inserted.rows[0].id],

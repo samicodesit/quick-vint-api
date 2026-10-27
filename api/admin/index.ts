@@ -1024,7 +1024,12 @@ async function handleGrowthStats(req: VercelRequest, res: VercelResponse) {
         }
       }
       if (event === "paywall_shown") bucket.paywallShown += 1;
-      if (event === "checkout_start") bucket.checkoutStart += 1;
+      if (
+        event === "checkout_start" &&
+        log.full_request_body?.context?.target !== "manage" &&
+        log.full_request_body?.context?.checkoutKind !== "portal"
+      )
+        bucket.checkoutStart += 1;
       if (event === "checkout_opened") bucket.checkoutOpened += 1;
       if (event === "chrome_store_click") bucket.chromeStoreClicks += 1;
       if (event === "magic_link_request") bucket.magicLinkRequests += 1;

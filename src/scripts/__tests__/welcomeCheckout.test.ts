@@ -134,7 +134,14 @@ async function runWelcomeCheckout(options: {
       storage.set(key, value);
     },
   };
+  const tracked: any[] = [];
   const context: Record<string, any> = {
+    AutoListerWebsiteTelemetry: {
+      track: (event: string, properties: unknown) => {
+        tracked.push({ event, properties });
+        return Promise.resolve({ queued: true });
+      },
+    },
     Date: class extends Date {
       static now() {
         return now;
@@ -196,6 +203,7 @@ async function runWelcomeCheckout(options: {
       now += ms;
     },
     assigned,
+    tracked,
     badge,
     cta,
     messages,
@@ -248,6 +256,11 @@ describe("welcome paid install checkout", () => {
       },
     ]);
     expect(result.assigned).toEqual(["https://checkout.stripe.com/c/pay"]);
+    expect(result.tracked.map(({ event }) => event)).toEqual([
+      "checkout_start",
+      "checkout_opened",
+    ]);
+    expect(JSON.stringify(result.tracked)).not.toContain("seller@example.com");
     expect(result.storage.has("autolister_pending_install_plan")).toBe(false);
   });
 
@@ -271,6 +284,10 @@ describe("welcome paid install checkout", () => {
     await result.cta.listeners.click({ preventDefault() {} });
 
     expect(result.assigned).toEqual([]);
+    expect(result.tracked.map(({ event }) => event)).toEqual([
+      "checkout_start",
+      "checkout_failed",
+    ]);
     expect(result.storage.has("autolister_pending_install_plan")).toBe(true);
     expect(result.cta.attributes.get("aria-busy")).toBe("false");
     expect(result.cta.textContent).toBe("Continue with Pro");

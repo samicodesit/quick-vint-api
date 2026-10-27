@@ -1644,7 +1644,6 @@ export function mountMobileWebApp(
     (event) => {
       const button = event.currentTarget as HTMLButtonElement;
       button.disabled = true;
-      void trackMobileEvent("checkout_start", { target: "manage" });
       void openMobilePortal()
         .then(({ url }) => window.location.assign(url))
         .catch(() => {

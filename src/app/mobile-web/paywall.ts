@@ -131,20 +131,16 @@ export function mountMobilePaywall(
       await options.flush();
       if (!active()) return;
       const pack = getCreditPackConfig(tier);
-      void trackMobileEvent("checkout_start", {
-        ...paywallContext,
-        ...(tier === "manage"
-          ? { target: "manage" }
-          : pack
-            ? { packId: pack.id }
-            : { tier }),
-      });
       const session =
         tier === "manage"
           ? await openMobilePortal(userId)
           : pack
-            ? await startMobileCreditCheckout(pack.id, userId)
-            : await startMobileCheckout(tier as MobileBillingTier, userId);
+            ? await startMobileCreditCheckout(pack.id, userId, paywallContext)
+            : await startMobileCheckout(
+                tier as MobileBillingTier,
+                userId,
+                paywallContext,
+              );
       if (active()) {
         rememberMobileBillingReturn(userId);
         window.location.assign(session.url);

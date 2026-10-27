@@ -20,6 +20,86 @@ vi.mock("../generationClient.js", () => ({
 vi.mock("../../../scripts/attribution.js", () => attributionModule);
 
 describe("mobile result, billing, and analytics", () => {
+  it.each(["subscription", "credits", "portal"])(
+    "records %s start and handoff without waiting for analytics",
+    async (kind) => {
+      const billing = await import("../billing.js");
+      telemetryTrack.mockImplementation(() => new Promise(() => {}));
+      const context = {
+        reason: "free_lifetime_limit",
+        entryPoint: "generation_limit",
+      };
+      if (kind === "subscription")
+        await billing.startMobileCheckout("starter", "current-user", context);
+      else if (kind === "credits")
+        await billing.startMobileCreditCheckout(
+          "credits_50",
+          "current-user",
+          context,
+        );
+      else await billing.openMobilePortal("current-user");
+      const prefix = kind === "portal" ? "billing_portal" : "checkout";
+      expect(telemetryTrack.mock.calls.map(([name]) => name)).toEqual([
+        `${prefix}_start`,
+        `${prefix}_opened`,
+      ]);
+      const start = telemetryTrack.mock.calls[0][1].context;
+      expect(start.operationId).toEqual(expect.any(String));
+      expect(telemetryTrack.mock.calls[1][1].context.operationId).toBe(
+        start.operationId,
+      );
+      if (kind !== "portal") expect(start).toMatchObject(context);
+      if (kind === "credits") expect(start.packId).toBe("credits_50");
+      expect(fetchMobileJsonMock).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(telemetryTrack.mock.calls)).not.toContain(
+        "checkout.stripe.com",
+      );
+    },
+  );
+
+  it.each(["network", "invalid_response"])(
+    "records checkout failure on %s without leaking the error payload",
+    async (outcome) => {
+      const { startMobileCheckout } = await import("../billing.js");
+      if (outcome === "network")
+        fetchMobileJsonMock.mockRejectedValueOnce(
+          new Error("private payment URL and email"),
+        );
+      else
+        fetchMobileJsonMock.mockResolvedValueOnce({
+          url: "https://private.test/session",
+        });
+      await expect(
+        startMobileCheckout("starter", "current-user"),
+      ).rejects.toThrow();
+      expect(telemetryTrack.mock.calls.map(([name]) => name)).toEqual([
+        "checkout_start",
+        "checkout_failed",
+      ]);
+      expect(telemetryTrack.mock.calls[1][1].context).toMatchObject({
+        operationId: telemetryTrack.mock.calls[0][1].context.operationId,
+        checkoutKind: "subscription",
+        errorCode: "checkout_unavailable",
+      });
+      expect(JSON.stringify(telemetryTrack.mock.calls)).not.toContain(
+        "private",
+      );
+    },
+  );
+
+  it("records an existing-subscriber portal redirect as a portal handoff", async () => {
+    const { startMobileCheckout } = await import("../billing.js");
+    fetchMobileJsonMock.mockResolvedValueOnce({
+      url: "https://billing.stripe.com/session",
+      mode: "portal",
+    });
+    await startMobileCheckout("pro");
+    expect(telemetryTrack.mock.calls.map(([name]) => name)).toEqual([
+      "checkout_start",
+      "billing_portal_opened",
+    ]);
+  });
+
   it.each(["credits_20", "credits_50", "credits_100"] as const)(
     "checks out %s with the current account guard",
     async (packId) => {

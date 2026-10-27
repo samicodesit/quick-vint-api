@@ -385,6 +385,58 @@ describe("events tracking endpoint", () => {
     },
   );
 
+  it.each(
+    ["extension_content", "extension_popup", "website", "mobile_web"].flatMap(
+      (source) =>
+        ["checkout_start", "checkout_opened", "checkout_failed"].map(
+          (event) => [source, event],
+        ),
+    ),
+  )(
+    "retains %s %s checkout evidence with safe attribution",
+    async (source, event) => {
+      const occurredAt = new Date(Date.now() - 60000).toISOString();
+      const id = "c423926a-35a6-4bf5-8027-8ab335c72224";
+      const context = {
+        operationId: "checkout-attempt",
+        checkoutType: "credit_pack",
+        packId: "credits_50",
+        limitCode: "free_lifetime_limit",
+        errorCode: "checkout_unavailable",
+      };
+      await postEvent({
+        schemaVersion: 2,
+        events: [
+          {
+            id,
+            occurredAt,
+            event,
+            source,
+            context: {
+              ...context,
+              checkoutUrl: "https://checkout.stripe.com/private",
+              token: "private",
+            },
+          },
+        ],
+      });
+      const write = rpcMock.mock.calls.find(
+        ([name]) => name === "incident_ingest",
+      )![1].p_event;
+      expect(write.businessLog?.full_request_body).toMatchObject({
+        event,
+        source,
+        transportEventId: id,
+        occurredAt,
+        context,
+      });
+      expect(JSON.stringify(write.businessLog)).not.toContain("private");
+      expect(write.definition.kind).toBe(
+        event === "checkout_failed" ? "incident" : "checkpoint",
+      );
+    },
+  );
+
   it("persists anonymous and verified web events once across response-loss retries", async () => {
     const db = new PGlite();
     try {
@@ -477,6 +529,21 @@ describe("events tracking endpoint", () => {
         transportEventId: checkout.id,
         context: { tier: "starter" },
       });
+      const extensionCheckout = {
+        ...checkout,
+        id: "c423926a-35a6-4bf5-8027-8ab335c72225",
+        source: "extension_content",
+      };
+      await postEvent({ schemaVersion: 2, events: [extensionCheckout] });
+      await postEvent({ schemaVersion: 2, events: [extensionCheckout] });
+      expect(
+        (
+          await db.query<any>(
+            "SELECT id FROM api_logs WHERE full_request_body->>'transportEventId'=$1",
+            [extensionCheckout.id],
+          )
+        ).rows,
+      ).toHaveLength(1);
       expect(
         (await db.query<any>("SELECT id FROM incident_flows WHERE running"))
           .rows,

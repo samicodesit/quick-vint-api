@@ -64,6 +64,24 @@ function trackEvent(event, plan) {
   } catch {}
 }
 
+function trackCheckout(event, plan) {
+  try {
+    void globalThis.AutoListerWebsiteTelemetry?.track(event, {
+      source: "website",
+      page: window.location.pathname,
+      plan,
+      context: {
+        source: "install_welcome",
+        tier: plan,
+        checkoutKind: "subscription",
+        ...(event === "checkout_failed"
+          ? { errorCode: "checkout_unavailable", stage: "checkout_requested" }
+          : {}),
+      },
+    })?.catch(() => {});
+  } catch {}
+}
+
 function format(template, plan) {
   return template.replace("{plan}", plan);
 }
@@ -153,6 +171,7 @@ function initializeWelcomeCheckout() {
     primaryCta.textContent = primaryCta.dataset.openingSignIn;
     status.hidden = true;
     trackEvent("welcome_paid_continue_click", plan);
+    let checkoutStarted = false;
 
     try {
       let userData = await sendExtensionMessage({ type: "GET_USER_PROFILE" });
@@ -169,6 +188,8 @@ function initializeWelcomeCheckout() {
         return;
       }
       primaryCta.textContent = primaryCta.dataset.openingCheckout;
+      checkoutStarted = true;
+      trackCheckout("checkout_start", plan);
       const response = await fetch("/api/stripe/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -187,11 +208,13 @@ function initializeWelcomeCheckout() {
       }
 
       trackEvent("welcome_paid_checkout_opened", plan);
+      trackCheckout("checkout_opened", plan);
       window.location.assign(data.url);
       if (isCurrentIntent(readInstallPlanIntent(storage))) {
         clearInstallPlanIntent(storage);
       }
     } catch {
+      if (checkoutStarted) trackCheckout("checkout_failed", plan);
       showStatus(primaryCta.dataset.checkoutError);
       primaryCta.textContent = continueLabel;
       primaryCta.setAttribute("aria-busy", "false");

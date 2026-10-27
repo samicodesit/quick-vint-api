@@ -380,7 +380,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const retained =
         retainsBatchEvidence(raw) ||
         isRegisteredBusiness(raw.event) ||
-        (raw.source === "mobile_web" && raw.event === "checkout_start") ||
+        [
+          "checkout_start",
+          "checkout_opened",
+          "checkout_failed",
+          "billing_portal_start",
+          "billing_portal_opened",
+        ].includes(raw.event) ||
         [
           "generate_request",
           "generate_success",
@@ -478,6 +484,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "web_app_click",
             "home_hero_exposure",
             "chrome_store_click",
+            "checkout_start",
+            "checkout_opened",
+            "checkout_failed",
+            "billing_portal_start",
+            "billing_portal_opened",
           ].includes(raw.event)
             ? { transportEventId: raw.id, occurredAt: raw.occurredAt }
             : {}),

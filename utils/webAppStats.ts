@@ -168,7 +168,13 @@ export function buildWebAppStats(
       copies++;
       if (day) day.copies++;
     }
-    if (log.user_id && body.event === "checkout_start") checkoutStarts++;
+    if (
+      log.user_id &&
+      body.event === "checkout_start" &&
+      context.target !== "manage" &&
+      context.checkoutKind !== "portal"
+    )
+      checkoutStarts++;
   }
   let generations = 0,
     failedGenerations = 0;

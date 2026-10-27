@@ -1,6 +1,6 @@
 import { fetchMobileJson } from "./api.js";
 import { loadUsage, type MobileUsage } from "./generationClient.js";
-import { getMobileUtmParameters } from "./analytics.js";
+import { getMobileUtmParameters, trackMobileEvent } from "./analytics.js";
 import {
   getCreditPackConfig,
   type CreditPackId,
@@ -128,6 +128,40 @@ function assertBillingTier(tier: string): asserts tier is MobileBillingTier {
   }
 }
 
+/** Track API handoff, not proof that Stripe loaded or a payment succeeded. */
+async function trackedBillingRequest(
+  checkoutKind: "subscription" | "credits" | "portal",
+  context: Record<string, unknown>,
+  request: () => Promise<unknown>,
+): Promise<MobileBillingSession> {
+  const tracking = {
+    ...context,
+    checkoutKind,
+    operationId: crypto.randomUUID(),
+  };
+  void trackMobileEvent(
+    checkoutKind === "portal" ? "billing_portal_start" : "checkout_start",
+    tracking,
+  );
+  try {
+    const session = parseBillingSession(await request());
+    void trackMobileEvent(
+      checkoutKind === "portal" || session.mode === "portal"
+        ? "billing_portal_opened"
+        : "checkout_opened",
+      tracking,
+    );
+    return session;
+  } catch (error) {
+    void trackMobileEvent("checkout_failed", {
+      ...tracking,
+      stage: "checkout_requested",
+      errorCode: "checkout_unavailable",
+    });
+    throw error;
+  }
+}
+
 /**
  * Ask the bearer-owned API to create checkout. The browser never sends an
  * email, profile ID, Stripe ID, or return URL. The API derives ownership and
@@ -136,65 +170,73 @@ function assertBillingTier(tier: string): asserts tier is MobileBillingTier {
 export async function startMobileCheckout(
   tier: MobileBillingTier,
   expectedUserId?: string,
+  context: Record<string, unknown> = {},
 ): Promise<MobileBillingSession> {
   assertBillingTier(tier);
-  const response = await fetchMobileJson<unknown>(
-    "/api/stripe/create-checkout",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Autolister-Client": MOBILE_BILLING_CLIENT,
-      },
-      body: JSON.stringify({
-        tier,
-        source: MOBILE_BILLING_CLIENT,
-        utm: getMobileUtmParameters(),
-      }),
-    },
-    { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
+  return trackedBillingRequest(
+    tier === "credit_pack" ? "credits" : "subscription",
+    { ...context, tier },
+    () =>
+      fetchMobileJson<unknown>(
+        "/api/stripe/create-checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Autolister-Client": MOBILE_BILLING_CLIENT,
+          },
+          body: JSON.stringify({
+            tier,
+            source: MOBILE_BILLING_CLIENT,
+            utm: getMobileUtmParameters(),
+          }),
+        },
+        { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
+      ),
   );
-  return parseBillingSession(response);
 }
 
 /** Open credit checkout while retaining the current account ownership guard. */
 export async function startMobileCreditCheckout(
   packId: CreditPackId,
   expectedUserId?: string,
+  context: Record<string, unknown> = {},
 ): Promise<MobileBillingSession> {
   if (!getCreditPackConfig(packId)) throw new Error("invalid_credit_pack");
-  const response = await fetchMobileJson<unknown>(
-    "/api/stripe/create-credit-checkout",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Autolister-Client": MOBILE_BILLING_CLIENT,
+  return trackedBillingRequest("credits", { ...context, packId }, () =>
+    fetchMobileJson<unknown>(
+      "/api/stripe/create-credit-checkout",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Autolister-Client": MOBILE_BILLING_CLIENT,
+        },
+        body: JSON.stringify({
+          packId,
+          source: MOBILE_BILLING_CLIENT,
+          utm: getMobileUtmParameters(),
+        }),
       },
-      body: JSON.stringify({
-        packId,
-        source: MOBILE_BILLING_CLIENT,
-        utm: getMobileUtmParameters(),
-      }),
-    },
-    { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
+      { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
+    ),
   );
-  return parseBillingSession(response);
 }
 
 /** Open the existing Stripe customer portal for the current bearer user. */
 export async function openMobilePortal(
   expectedUserId?: string,
 ): Promise<MobileBillingSession> {
-  const response = await fetchMobileJson<unknown>(
-    "/api/stripe/create-portal",
-    {
-      method: "POST",
-      headers: { "X-Autolister-Client": MOBILE_BILLING_CLIENT },
-    },
-    { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
+  return trackedBillingRequest("portal", { target: "manage" }, () =>
+    fetchMobileJson<unknown>(
+      "/api/stripe/create-portal",
+      {
+        method: "POST",
+        headers: { "X-Autolister-Client": MOBILE_BILLING_CLIENT },
+      },
+      { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },
+    ),
   );
-  return parseBillingSession(response);
 }
 
 export interface RefreshAfterCheckoutOptions {

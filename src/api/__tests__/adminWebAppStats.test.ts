@@ -152,6 +152,12 @@ describe("web app admin endpoint", () => {
       event("checkout1", "checkout_start", "new", "2026-10-10", {
         tier: "starter",
       }),
+      event("portal-legacy", "checkout_start", "new", "2026-10-10", {
+        target: "manage",
+      }),
+      event("portal-new", "billing_portal_start", "new", "2026-10-10", {
+        target: "manage",
+      }),
       event("copy1", "copy", "new", "2026-10-10", { field: "title" }),
       {
         id: "g1",

@@ -1812,7 +1812,7 @@ try {
     const runtime = globalThis.AutoListerWebsiteTelemetry;
     const original = runtime.track;
     runtime.track = (event, properties, immediate) => {
-      if (event === "checkout_start" && properties.context.target === "manage")
+      if (event === "billing_portal_start" && properties.context.target === "manage")
         return new Promise((resolve) => {
           globalThis.releaseFixtureTelemetry = () => {
             runtime.track = original;

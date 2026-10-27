@@ -807,7 +807,7 @@ describe("events tracking endpoint", () => {
         "ReferenceError: Can't find variable: __firefox__",
       ];
       for (let n = 0; n < 4; n++) {
-        const message = messages[n] || "Cannot read upload state";
+        const message = messages[n] || "La";
         const response = await postEvent({
           schemaVersion: 2,
           events: [
@@ -817,9 +817,29 @@ describe("events tracking endpoint", () => {
               event: "own_context_exception",
               source: "phone_upload_page",
               context: {
-                errorName: n === 2 ? "ReferenceError" : "TypeError",
+                errorName:
+                  n === 3 ? "Error" : n === 2 ? "ReferenceError" : "TypeError",
                 message,
                 stack: "global code@[url]",
+                ...(n === 3
+                  ? {
+                      exceptionProvenance: {
+                        version: 1,
+                        capture: "error",
+                        location: {
+                          source: "phone_page",
+                          line: 726,
+                          column: 18,
+                          token: "private",
+                        },
+                        frames: [
+                          { source: "phone_page", line: 726, column: 18 },
+                        ],
+                        filename:
+                          "https://autolister.app/phone-upload?s=private",
+                      },
+                    }
+                  : {}),
               },
             },
           ],
@@ -849,6 +869,15 @@ describe("events tracking endpoint", () => {
       expect(
         rows.find((row) => row.event === "own_context_exception"),
       ).toMatchObject({ severity: "blocking", notification_status: "pending" });
+      const retained = rows.find((row) => row.event === "own_context_exception")
+        .examples[0].context;
+      expect(retained.exceptionProvenance).toEqual({
+        version: 1,
+        capture: "error",
+        location: { source: "phone_page", line: 726, column: 18 },
+        frames: [{ source: "phone_page", line: 726, column: 18 }],
+      });
+      expect(JSON.stringify(retained)).not.toContain("private");
     } finally {
       rpcMock.mockReset();
       await db.close();

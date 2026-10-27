@@ -143,6 +143,21 @@ Existing Vinted edit pages normally have only Vinted-hosted DOM photos. The exte
 
 ## Phone Upload Logs
 
+Phone-page `own_context_exception` records can include
+`context.exceptionProvenance` version 1 in issue/log detail. It preserves the
+`error` or `unhandledrejection` handler, an ErrorEvent location when available,
+and the first three stack locations before URL redaction. Locations contain
+only fixed script categories and positive integer line/column values up to
+10,000,000. No URLs, query strings, arbitrary filenames or function names are
+retained in this field. The existing redacted stack remains available.
+
+Compare the primary location with the ordered frames. An owned caller can
+admit an exception whose throw site is external or opaque. A captured event
+alone does not establish an application defect. Older clients have no
+provenance field; a server capture release does not establish the phone's
+loaded asset version. This diagnostic does not reconstruct historical locations
+or prove native iOS behavior, photo receipt or generation recovery.
+
 `/api/phone-upload` currently writes admin logs for failures, not successful uploads. A successful upload can exist in Vercel request logs without a matching admin `api_logs` row.
 
 Use Vercel for endpoint-hit proof:

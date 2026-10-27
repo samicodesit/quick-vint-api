@@ -16,6 +16,52 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it("bounds exception provenance independently of untrusted client payloads", () => {
+    const input = {
+      version: 1,
+      capture: "error",
+      filename: "https://private.invalid/?token=secret",
+      location: {
+        source: "phone_page",
+        line: 1e8,
+        column: -1,
+        token: "secret",
+      },
+      frames: [
+        {
+          source: "telemetry_website",
+          line: 12,
+          column: 3,
+          function: "private",
+        },
+        { source: "https://private.invalid", line: 1 },
+        { source: "opaque", line: 1.5, column: Infinity },
+        { source: "phone_recovery", line: 50 },
+      ],
+    };
+    expect(sanitizeContext({ exceptionProvenance: input }, true)).toEqual({
+      exceptionProvenance: {
+        version: 1,
+        capture: "error",
+        location: { source: "phone_page" },
+        frames: [
+          { source: "telemetry_website", line: 12, column: 3 },
+          { source: "opaque" },
+        ],
+      },
+    });
+    expect(sanitizeContext({ exceptionProvenance: input }, false)).toEqual({});
+    for (const invalid of [
+      null,
+      {},
+      { ...input, version: 2 },
+      { ...input, capture: "secret" },
+    ])
+      expect(sanitizeContext({ exceptionProvenance: invalid }, true)).toEqual(
+        {},
+      );
+  });
+
   it("retains bounded first-failure facts on a recovery without retaining credentials", () => {
     const facts = {
       firstFailureObservedAt: "2026-10-03T09:58:00.000Z",

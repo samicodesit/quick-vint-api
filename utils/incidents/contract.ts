@@ -161,6 +161,31 @@ export function sanitizeContext(
     output.imageSources = source.imageSources.slice(0, 3).map(imageContext);
   if (trace && typeof source.stack === "string")
     output.stack = redact(source.stack, 2000);
+  const provenance = source.exceptionProvenance as any;
+  if (
+    trace &&
+    provenance?.version === 1 &&
+    ["error", "unhandledrejection"].includes(provenance.capture)
+  ) {
+    const location = (value: any) => {
+      if (!policy.exceptionSources.includes(value?.source)) return;
+      const result: Record<string, string | number> = { source: value.source };
+      for (const key of ["line", "column"])
+        if (Number.isInteger(value[key]) && value[key] > 0 && value[key] <= 1e7)
+          result[key] = value[key];
+      return result;
+    };
+    output.exceptionProvenance = {
+      version: 1,
+      capture: provenance.capture,
+      ...(location(provenance.location)
+        ? { location: location(provenance.location) }
+        : {}),
+      frames: Array.isArray(provenance.frames)
+        ? provenance.frames.slice(0, 3).map(location).filter(Boolean)
+        : [],
+    };
+  }
   if (trace && Array.isArray(source.breadcrumbs)) {
     output.breadcrumbs = source.breadcrumbs
       .slice(-LIMITS.breadcrumbs)

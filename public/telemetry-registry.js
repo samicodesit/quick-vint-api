@@ -649,6 +649,18 @@ globalThis.AutoListerEventRegistry = {
   },
 };
 globalThis.AutoListerContextPolicy = {
+  exceptionSources: [
+    "phone_page",
+    "phone_recovery",
+    "telemetry_registry",
+    "telemetry_core",
+    "telemetry_client",
+    "telemetry_website",
+    "dng_preview",
+    "same_origin_other",
+    "external",
+    "opaque",
+  ],
   strings: [
     "errorCode",
     "message",
@@ -710,6 +722,9 @@ globalThis.AutoListerContextPolicy = {
     "selectedTier",
     "targetTier",
     "checkoutKind",
+    "checkoutType",
+    "packId",
+    "limitCode",
     "phoneSessionKey",
     "queueDropLastRejection",
     "queueDroppedEventTypes",

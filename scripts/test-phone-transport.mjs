@@ -9,6 +9,7 @@ const Busboy = require("busboy");
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const mode = process.env.PHONE_TRANSPORT_CASE || "disconnect";
 const productPath = process.env.PHONE_PRODUCT_PATH || "batch";
+const exceptionDiagnostics = process.env.PHONE_EXCEPTION_DIAGNOSTICS === "1";
 const output = process.env.PHONE_TRANSPORT_OUTPUT || "/tmp/autolister-phone-transport";
 await mkdir(output, { recursive: true });
 const html = await readFile(new URL("../src/pages/phone-upload.html", import.meta.url));
@@ -54,6 +55,10 @@ const server = http.createServer(async (req, res) => {
     return json({ files: [], complete: false });
   }
   if (url.pathname === "/api/events/track") {
+    if (exceptionDiagnostics && !connected) {
+      res.writeHead(503, { "Content-Type": "application/json", "Retry-After": "1" });
+      return res.end(JSON.stringify({ acknowledgedIds: [] }));
+    }
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const body = JSON.parse(Buffer.concat(chunks));
@@ -82,6 +87,20 @@ async function until(predicate, timeout = 15000) {
 try {
   await page.goto(`${base}/phone-upload?v=2${productPath === "batch" ? "&mode=batch" : ""}&s=550e8400-e29b-41d4-a716-446655440099`);
   let files = await Promise.all(["sample-front.png", "sample-detail.png"].map(async name => ({ name, mimeType: "image/png", buffer: await readFile(new URL(`../docs/qa/browser-drafts/${name}`, import.meta.url)) })));
+  if (exceptionDiagnostics) {
+    const images = await page.evaluate(() => Array.from({ length: 3 }, (_, photo) => {
+      const canvas = document.createElement("canvas"); canvas.width = 900; canvas.height = 1000;
+      const drawing = canvas.getContext("2d"); const image = drawing.createImageData(900, 1000);
+      let seed = 1701 + photo;
+      for (let index = 0; index < image.data.length; index += 4) {
+        for (let color = 0; color < 3; color++) { seed = (1664525 * seed + 1013904223) >>> 0; image.data[index + color] = seed >>> 24; }
+        image.data[index + 3] = 255;
+      }
+      drawing.putImageData(image, 0, 0);
+      return canvas.toDataURL("image/jpeg", 0.85);
+    }));
+    files = images.map((data, index) => ({ name: `diagnostic-${index}.jpg`, mimeType: "image/jpeg", buffer: Buffer.from(data.split(",")[1], "base64") }));
+  }
   if (["idle", "expired", "slow"].includes(mode)) files = files.slice(0, 1);
   if (mode === "slow") {
     const dataUrl = await page.evaluate(() => {
@@ -106,6 +125,15 @@ try {
     await new Promise(resolve => setTimeout(resolve, 3000));
     assert.equal(await page.locator("#mainBtn").isDisabled(), true, "brief connection loss remains active without a retry click");
     assert.match(await page.locator("#pageCopy").innerText(), /connection|reconnect/i);
+    if (exceptionDiagnostics) {
+      // Controlled runtime errors exercise capture, not the historical La trigger.
+      // sourceURL gives actual ErrorEvent and V8 stack locations without a live service.
+      await page.addScriptTag({ content: `setTimeout(() => { throw new Error("La"); }, 0);\n//# sourceURL=${base}/phone-upload?diagnostic=private-fixture` });
+      await until(() => errors.length === 1);
+      await page.addScriptTag({ content: `Promise.reject(new Error("La"));\n//# sourceURL=${base}/phone-upload-recovery.js?diagnostic=private-fixture` });
+      await until(() => errors.length === 2);
+      assert.equal(events.some(event => event.event === "own_context_exception"), false, "collector outage must retain unacknowledged diagnostics");
+    }
     await page.screenshot({ path: `${output}/${productPath}-${mode}-waiting.png`, fullPage: true });
     if (mode === "cancel") {
       await page.locator("#cancelBtn").click();
@@ -132,16 +160,34 @@ try {
     assert.equal(await page.locator('#cancelBtn').isVisible(), false, "expired uploads must not revive a cancellation action");
     assert.doesNotMatch(await page.locator('#toast').innerText(), /retry when ready/i);
   }
-  assert.deepEqual(errors, []);
+  assert.deepEqual(errors, exceptionDiagnostics ? ["La", "La"] : []);
   if (mode === "slow") assert.ok(Date.now() - started > 45000, "real progressing transfer must survive longer than the idle deadline");
   await page.evaluate(() => globalThis.AutoListerWebsiteTelemetry?.flush());
+  if (exceptionDiagnostics) {
+    await until(async () => {
+      await page.evaluate(() => globalThis.AutoListerWebsiteTelemetry.flush());
+      return events.filter(event => event.event === "own_context_exception").length === 2;
+    }, 75000); // The shipped durable queue retries after 60 seconds.
+    const exceptions = events.filter(event => event.event === "own_context_exception");
+    assert.equal(new Set(exceptions.map(event => event.id)).size, 2);
+    assert.deepEqual(exceptions.map(event => event.context.exceptionProvenance.capture).sort(), ["error", "unhandledrejection"]);
+    for (const event of exceptions) {
+      const provenance = event.context.exceptionProvenance;
+      assert.equal(provenance.version, 1);
+      assert.ok(provenance.frames.length > 0 && provenance.frames.length <= 3);
+      assert.ok(provenance.frames[0].line > 0);
+      assert.ok(["phone_page", "phone_recovery"].includes(provenance.frames[0].source));
+      assert.doesNotMatch(JSON.stringify(event.context), /private-fixture|127\.0\.0\.1|diagnostic=/);
+    }
+  }
   if (["disconnect", "idle"].includes(mode)) {
     assert.equal(events.some(event => event.event === 'phone_upload_file_error'), false, "recovered transport must not produce terminal file failure");
     assert.ok(events.filter(event => event.event === 'phone_upload_transfer_error').length <= files.length, "network retries must not flood critical evidence");
   }
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
   await page.screenshot({ path: `${output}/${mode}.png`, fullPage: true });
-  const result = { productPath, mode, passed: true, elapsedMs: Date.now() - started, attempts, dropped, uploadedOrders: [...uploads.keys()], cleanup,
+  const result = { productPath, mode, exceptionDiagnostics, passed: true, elapsedMs: Date.now() - started, attempts, dropped, uploadedOrders: [...uploads.keys()], cleanup,
+    exceptionProvenance: exceptionDiagnostics ? events.filter(event => event.event === "own_context_exception").map(event => event.context.exceptionProvenance) : undefined,
     scope: "Actual Chromium file selection, compression, multipart XHR and loopback HTTP. Real socket termination or held response; local API metadata and storage. No paid/live services." };
   await writeFile(`${output}/${mode}.json`, JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result));

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import vm from "node:vm";
 import { beforeAll, expect, it } from "vitest";
+import { normalizeIncidentEvent } from "../../../utils/incidents/contract";
 let IDBFactory: any;
 beforeAll(async () => {
   IDBFactory = (await import("fake-indexeddb")).IDBFactory;
@@ -38,6 +39,69 @@ function browser(
     );
   return sandbox.AutoListerWebsiteTelemetry;
 }
+
+it.each(["error", "unhandledrejection"])(
+  "retains safe throw-site and caller locations before %s stack redaction",
+  async (capture) => {
+    const listeners: Record<string, (event: any) => void> = {};
+    const received: any[] = [];
+    const telemetry = browser(
+      new IDBFactory(),
+      async (body) => {
+        received.push(...body.events);
+        return {
+          status: 200,
+          headers: new Headers(),
+          json: async () => ({
+            acknowledgedIds: body.events.map((e: any) => e.id),
+          }),
+        };
+      },
+      listeners,
+    );
+    const error = {
+      name: "Error",
+      message: "La",
+      stack:
+        "@https://external.invalid/private-script.js?token=private:20:4\nLi@https://autolister.app/phone-upload?s=private:726:18\n@https://autolister.app/phone-upload-recovery.js:12:3",
+    };
+    telemetry.setContextProvider(async () => ({ source: "phone_upload_page" }));
+    listeners[capture](
+      capture === "error"
+        ? {
+            filename:
+              "https://external.invalid/private-script.js?token=private",
+            lineno: 20,
+            colno: 4,
+            message: "Error: La",
+            error,
+          }
+        : { reason: error },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await telemetry.flush();
+    expect(received).toHaveLength(1);
+    const expected = {
+      version: 1,
+      capture,
+      ...(capture === "error"
+        ? { location: { source: "external", line: 20, column: 4 } }
+        : {}),
+      frames: [
+        { source: "external", line: 20, column: 4 },
+        { source: "phone_page", line: 726, column: 18 },
+        { source: "phone_recovery", line: 12, column: 3 },
+      ],
+    };
+    expect(received[0].context.exceptionProvenance).toEqual(expected);
+    expect(received[0].context.stack).toBe("@[url]\nLi@[url]\n@[url]");
+    const retained = normalizeIncidentEvent(received[0], Date.now()).value!;
+    expect(retained.context.exceptionProvenance).toEqual(expected);
+    expect(retained.event).toBe("own_context_exception");
+    expect(retained.definition.severity).toBe("blocking");
+    expect(JSON.stringify(received[0])).not.toMatch(/private|external.invalid/);
+  },
+);
 
 it("delivers final style choices and paywall origin through the shipped browser transport", async () => {
   const received: any[] = [];
@@ -181,6 +245,92 @@ it.each([
     );
   },
 );
+
+it("bounds shipped client provenance and identifies Chromium and opaque frames", async () => {
+  const listeners: Record<string, (event: any) => void> = {};
+  const received: any[] = [];
+  const telemetry = browser(
+    new IDBFactory(),
+    async (body) => {
+      received.push(...body.events);
+      return {
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          acknowledgedIds: body.events.map((e: any) => e.id),
+        }),
+      };
+    },
+    listeners,
+  );
+  telemetry.setContextProvider(async () => ({ source: "phone_upload_page" }));
+  listeners.error({
+    filename: "https://autolister.app/phone-upload?s=private",
+    lineno: 1e8,
+    colno: -1,
+    message: "Error: La",
+    error: {
+      name: "Error",
+      stack:
+        "Error: La\n at fn (blob:https://autolister.app/private:5:2)\n at run (https://autolister.app/telemetry-website.js?token=private:12:3)\n at app (https://autolister.app/private.js:13:4)\n at fourth (https://autolister.app/phone-upload:88:9)",
+    },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  await telemetry.flush();
+  expect(received[0].context.exceptionProvenance).toEqual({
+    version: 1,
+    capture: "error",
+    location: { source: "phone_page" },
+    frames: [
+      { source: "opaque", line: 5, column: 2 },
+      { source: "telemetry_website", line: 12, column: 3 },
+      { source: "same_origin_other", line: 13, column: 4 },
+    ],
+  });
+  expect(JSON.stringify(received[0])).not.toContain("private");
+});
+
+it("allowlists website provenance before transport and keeps it off other paths", async () => {
+  const received: any[] = [];
+  const telemetry = browser(new IDBFactory(), async (body) => {
+    received.push(...body.events);
+    return {
+      status: 200,
+      headers: new Headers(),
+      json: async () => ({
+        acknowledgedIds: body.events.map((e: any) => e.id),
+      }),
+    };
+  });
+  const exceptionProvenance = {
+    version: 1,
+    capture: "error",
+    filename: "private",
+    location: { source: "phone_page", line: -1, column: 1e8 },
+    frames: [
+      { source: "external", line: 1, column: 2, function: "private" },
+      { source: "private" },
+      { source: "opaque" },
+      { source: "phone_page" },
+    ],
+  };
+  await telemetry.track("own_context_exception", {
+    source: "phone_upload_page",
+    context: { exceptionProvenance },
+  });
+  await telemetry.track("own_context_exception", {
+    source: "mobile_web",
+    context: { exceptionProvenance },
+  });
+  expect(received[0].context.exceptionProvenance).toEqual({
+    version: 1,
+    capture: "error",
+    location: { source: "phone_page" },
+    frames: [{ source: "external", line: 1, column: 2 }, { source: "opaque" }],
+  });
+  expect(JSON.stringify(received[0])).not.toContain("private");
+  expect(received[1].context).not.toHaveProperty("exceptionProvenance");
+});
 
 it("keeps offline evidence across page recreation and confirms only server acceptance", async () => {
   const indexedDB = new IDBFactory();

@@ -19,6 +19,78 @@ vi.mock("resend", () => ({
 import { getWelcomeBillingDetails } from "../../../api/stripe/webhook";
 
 describe("Stripe welcome billing details", () => {
+  it("retains a discounted contract confirmation after immediate cancellation without a statement name", () => {
+    const result = getWelcomeBillingDetails({
+      status: "canceled",
+      subscription: {
+        status: "canceled",
+        canceled_at: 1793192400,
+        discounts: [{ coupon: { percent_off: 20, duration: "once" } }],
+        items: {
+          data: [
+            {
+              quantity: 1,
+              price: {
+                unit_amount: 999,
+                currency: "eur",
+                recurring: { interval: "month", interval_count: 1 },
+              },
+            },
+          ],
+        },
+      },
+      checkoutSession: {
+        metadata: { billing_policy_version: "2026-10-28" },
+        amount_total: 799,
+        currency: "eur",
+        total_details: { amount_discount: 200 },
+      },
+    });
+    expect(result).toMatchObject({
+      initialCharge: { amountMinor: 799, currency: "eur" },
+      recurringBase: { amountMinor: 999, currency: "eur" },
+      renewalStopped: true,
+      statementDescriptor: null,
+      policyVersion: "2026-10-28",
+    });
+  });
+  it("separates a localized introductory payment from the base monthly price and discount duration", () => {
+    const result = getWelcomeBillingDetails({
+      status: "active",
+      subscription: {
+        discounts: [{ coupon: { percent_off: 20, duration: "once" } }],
+        items: {
+          data: [
+            {
+              quantity: 1,
+              price: {
+                unit_amount: 999,
+                currency: "eur",
+                recurring: { interval: "month", interval_count: 1 },
+              },
+              current_period_end: 1784592000,
+            },
+          ],
+        },
+      },
+      checkoutSession: {
+        metadata: { billing_policy_version: "2026-10-28" },
+        amount_total: 799,
+        currency: "eur",
+        presentment_details: {
+          presentment_amount: 704,
+          presentment_currency: "gbp",
+        },
+        total_details: { amount_discount: 200 },
+      },
+    });
+    expect(result).toMatchObject({
+      amountMinor: null,
+      initialCharge: { amountMinor: 704, currency: "gbp" },
+      recurringBase: { amountMinor: 999, currency: "eur" },
+      discountDescription: "20% off the first invoice.",
+    });
+  });
   it("prefers the checkout amount and currency for an active subscription", () => {
     expect(
       getWelcomeBillingDetails({
@@ -42,7 +114,7 @@ describe("Stripe welcome billing details", () => {
       amountMinor: 1999,
       currency: "usd",
       nextRenewalAt: "2026-07-21T00:00:00.000Z",
-      statementDescriptor: "AUTOLISTER AI",
+      statementDescriptor: null,
       source: "checkout",
     });
   });
@@ -74,7 +146,7 @@ describe("Stripe welcome billing details", () => {
       amountMinor: 2199,
       currency: "usd",
       nextRenewalAt: "2026-07-21T00:00:00.000Z",
-      statementDescriptor: "AUTOLISTER AI",
+      statementDescriptor: null,
       source: "checkout",
     });
   });
@@ -99,7 +171,7 @@ describe("Stripe welcome billing details", () => {
       amountMinor: null,
       currency: null,
       nextRenewalAt: "2026-07-21T00:00:00.000Z",
-      statementDescriptor: "AUTOLISTER AI",
+      statementDescriptor: null,
       source: undefined,
     });
   });

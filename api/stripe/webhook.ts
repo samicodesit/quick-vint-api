@@ -19,6 +19,11 @@ import { mapStripeSubscriptionStatusForProfile } from "../../src/utils/subscript
 import { buildClearAccountPauseUpdate } from "../../src/utils/accountPause";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 import { logStripeBillingEvent } from "../../utils/billingEvents";
+import {
+  cancellationNotice,
+  queueBillingNotice,
+  deliverBillingNotice,
+} from "../../utils/billingNotices";
 import { sendSubscriptionWelcomeEmailOnce } from "../../utils/subscriptionWelcomeEmail";
 import {
   hasCustomerFacingWelcomeBilling,
@@ -397,10 +402,12 @@ async function sendWelcomeForPaidSubscription(input: {
   customLimits?: { daily: number; monthly: number } | null;
   isCustomPlan?: boolean;
 }) {
+  const contractConfirmation =
+    input.checkoutSession?.metadata?.billing_policy_version === "2026-10-28";
   if (
     input.tier === "free" ||
-    input.status !== "active" ||
-    !isSendableWelcomeSubscription(input.subscription)
+    (!contractConfirmation && input.status !== "active") ||
+    !isSendableWelcomeSubscription(input.subscription, contractConfirmation)
   ) {
     return;
   }
@@ -409,11 +416,11 @@ async function sendWelcomeForPaidSubscription(input: {
     const billing = await resolveWelcomeBillingDetails({
       stripe,
       subscription: input.subscription,
-      status: "active",
+      status: input.subscription.status,
       checkoutSession: input.checkoutSession,
     });
     if (!hasCustomerFacingWelcomeBilling(billing)) {
-      return;
+      throw new Error("Customer-facing confirmation details unavailable");
     }
 
     await sendSubscriptionWelcomeEmailOnce({
@@ -432,6 +439,7 @@ async function sendWelcomeForPaidSubscription(input: {
       "Subscription welcome email scheduling failed:",
       welcomeError,
     );
+    throw welcomeError;
   }
 }
 
@@ -469,10 +477,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 2) Handle event types
   try {
-    try {
-      await logWebhookBillingEvent(event);
-    } catch (auditError) {
-      console.error("Failed to audit Stripe billing event:", auditError);
+    await logWebhookBillingEvent(event);
+
+    const cancellation = event.data.object as any;
+    const previous = event.data.previous_attributes as any;
+    if (
+      event.type === "customer.subscription.updated" &&
+      cancellation.cancel_at_period_end &&
+      previous?.cancel_at_period_end === false
+    ) {
+      const current = await stripe.subscriptions.retrieve(cancellation.id);
+      // Do not send an obsolete cancellation after a later reactivation.
+      if (
+        current.cancel_at_period_end &&
+        current.canceled_at === cancellation.canceled_at
+      ) {
+        const customer = await stripe.customers.retrieve(
+          getStripeObjectId(current.customer)!,
+        );
+        if (!("deleted" in customer && customer.deleted) && customer.email) {
+          const notice = cancellationNotice(event, customer.email);
+          if (notice) {
+            await queueBillingNotice(notice);
+            await deliverBillingNotice(notice.key);
+          }
+        } else {
+          throw new Error("Cancellation acknowledgment has no customer email");
+        }
+      }
     }
 
     switch (event.type) {
@@ -589,6 +621,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 profileRow.stripe_customer_id,
               ))
             ) {
+              // A paid contract still needs its confirmation even when a
+              // canceled or superseded subscription must not gain entitlements.
+              if (
+                session.metadata?.billing_policy_version === "2026-10-28" &&
+                session.payment_status === "paid" &&
+                getStripeObjectId(subscription.customer) === customerId &&
+                profileRow.stripe_customer_id === customerId
+              ) {
+                const custom =
+                  getCustomBusinessEntitlementForStripePriceId(priceId);
+                await sendWelcomeForPaidSubscription({
+                  profileId: profileRow.id,
+                  email,
+                  tier,
+                  status,
+                  stripeSubscriptionId: subscription.id,
+                  stripeCheckoutSessionId: session.id,
+                  subscription,
+                  checkoutSession: session,
+                  isLegacyPlan: false,
+                  customLimits: custom
+                    ? { daily: custom.dailyLimit, monthly: custom.monthlyLimit }
+                    : null,
+                  isCustomPlan: Boolean(custom),
+                });
+              }
               break;
             }
             const keepLegacy =

@@ -11,6 +11,72 @@ vi.mock("../../../utils/supabaseClient", () => ({
 }));
 
 describe("billing events", () => {
+  it("preserves actual consent and presentment without retroactively inventing acceptance", async () => {
+    const { buildStripeBillingEventRow } =
+      await import("../../../utils/billingEvents.js");
+    const event: any = {
+      id: "evt_checkout",
+      type: "checkout.session.completed",
+      created: 1784660000,
+      data: {
+        object: {
+          id: "cs_123",
+          object: "checkout.session",
+          customer: "cus_123",
+          subscription: "sub_123",
+          amount_total: 999,
+          currency: "eur",
+          presentment_details: {
+            presentment_amount: 881,
+            presentment_currency: "gbp",
+          },
+          consent: { terms_of_service: "accepted" },
+          custom_text: { submit: { message: "Actual old notice" } },
+          metadata: {
+            billing_policy_version: "old-version",
+            unrelated_secret: "must-not-archive",
+          },
+          client_secret: "must-not-archive",
+        },
+      },
+    };
+    const row = buildStripeBillingEventRow({ event });
+    expect(row.raw_event).toMatchObject({
+      consent: { terms_of_service: "accepted" },
+      custom_text: { submit: { message: "Actual old notice" } },
+      policy: { version: "old-version" },
+      presentment_details: {
+        presentment_amount: 881,
+        presentment_currency: "gbp",
+      },
+    });
+    expect(JSON.stringify(row)).not.toContain("must-not-archive");
+    delete event.data.object.consent;
+    delete event.data.object.metadata;
+    expect(buildStripeBillingEventRow({ event }).raw_event).toMatchObject({
+      consent: null,
+      policy: { version: null },
+    });
+  });
+
+  it("retries failed durable webhook writes but accepts duplicate event deliveries", async () => {
+    const { logStripeBillingEvent } =
+      await import("../../../utils/billingEvents.js");
+    const event: any = {
+      id: "evt_1",
+      type: "customer.subscription.updated",
+      created: 1784660000,
+      data: { object: { id: "sub_1", object: "subscription" } },
+    };
+    insertMock.mockResolvedValueOnce({
+      error: { code: "XX000", message: "database unavailable" },
+    });
+    await expect(logStripeBillingEvent({ event })).rejects.toMatchObject({
+      code: "XX000",
+    });
+    insertMock.mockResolvedValueOnce({ error: { code: "23505" } });
+    await expect(logStripeBillingEvent({ event })).resolves.toBeUndefined();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     insertMock.mockResolvedValue({ data: null, error: null });

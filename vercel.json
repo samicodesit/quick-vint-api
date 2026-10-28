@@ -44,6 +44,10 @@
   ],
   "crons": [
     {
+      "path": "/api/cron/billing-notices",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/reset-counts",
       "schedule": "0 5 * * *"
     },

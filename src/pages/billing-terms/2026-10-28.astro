@@ -1,0 +1,13 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import policy from "../../data/subscription-policy-2026-10-28.json";
+---
+<SiteLayout title="Subscription terms - AutoLister AI">
+  <main class="mx-auto max-w-3xl px-6 pt-32 pb-20 text-gray-800">
+    <h1 class="text-3xl font-bold mb-6">Subscription terms</h1>
+    <p class="mb-6">Version {policy.version}. These terms apply to subscriptions purchased with this version shown at checkout.</p>
+    <p class="mb-6">{policy.seller}<br />{policy.address}<br /><a href={`mailto:${policy.email}`} class="underline">Email support</a> · <a href="tel:+31619942565" class="underline">{policy.phone}</a></p>
+    <p class="mb-8"><a class="underline" href="https://billing.stripe.com/p/login/eVqfZj3so5PE3lwcmdenS00">Manage subscription or cancel renewal</a> · <a class="underline" href="/withdraw">Withdraw from your contract</a></p>
+    {policy.sections.map(section => <section class="mb-8"><h2 class="text-xl font-semibold mb-2">{section.title}</h2><p class="leading-relaxed whitespace-pre-line">{section.text}</p></section>)}
+  </main>
+</SiteLayout>

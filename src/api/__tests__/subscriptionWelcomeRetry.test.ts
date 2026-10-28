@@ -141,7 +141,7 @@ describe("subscription welcome retry", () => {
         amountMinor: 3499,
         currency: "usd",
         nextRenewalAt: "2026-10-19T00:00:00.000Z",
-        statementDescriptor: "AUTOLISTER AI",
+        statementDescriptor: null,
         source: "checkout",
       },
       limits: { daily: 120, monthly: 1200 },
@@ -197,6 +197,56 @@ describe("subscription welcome retry", () => {
         checked: 1,
         results: [{ status: expectedStatus }],
       });
+    },
+  );
+
+  it.each([
+    { status: "active", cancel_at_period_end: true },
+    { status: "canceled", ended_at: 1792368000 },
+  ])(
+    "preserves the new contract confirmation after immediate cancellation: %o",
+    async (state) => {
+      retrieveSubscriptionMock.mockResolvedValue({
+        id: "sub_123",
+        ...state,
+        items: {
+          data: [
+            {
+              price: {
+                id: "price_custom_business",
+                unit_amount: 3499,
+                currency: "usd",
+                recurring: { interval: "month", interval_count: 1 },
+              },
+              current_period_end: 1792368000,
+            },
+          ],
+        },
+      });
+      retrieveCheckoutSessionMock.mockResolvedValue({
+        id: "cs_123",
+        amount_total: 3499,
+        currency: "usd",
+        metadata: { billing_policy_version: "2026-10-28" },
+      });
+      const module =
+        await import("../../../api/cron/subscription-welcome-retry.js");
+      const response = createResponse();
+      await (module.default as unknown as Handler)(
+        { headers: { authorization: "Bearer cron_test" } },
+        response,
+      );
+      expect(response.statusCode).toBe(200);
+      expect(sendWelcomeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          billing: expect.objectContaining({
+            policyVersion: "2026-10-28",
+            renewalStopped: true,
+            nextRenewalAt: null,
+            initialCharge: { amountMinor: 3499, currency: "usd" },
+          }),
+        }),
+      );
     },
   );
 

@@ -8,6 +8,74 @@ type WelcomeBillingInput = {
   allowPriceFallback?: boolean;
 };
 
+function confirmationPricing(
+  input: WelcomeBillingInput,
+): Partial<PaidWelcomeBilling> {
+  if (input.checkoutSession?.metadata?.billing_policy_version !== "2026-10-28")
+    return {};
+  const session = input.checkoutSession;
+  const amount =
+    session.presentment_details?.presentment_amount ?? session.amount_total;
+  const currency = getValidCurrency(
+    session.presentment_details?.presentment_currency ?? session.currency,
+  );
+  const items = input.subscription?.items?.data;
+  const item = items?.[0];
+  const price = item?.price;
+  const baseAmount = price?.unit_amount * (item?.quantity ?? 1);
+  if (
+    !Number.isInteger(amount) ||
+    amount < 0 ||
+    !currency ||
+    items?.length !== 1 ||
+    !Number.isInteger(baseAmount) ||
+    baseAmount < 0 ||
+    !getValidCurrency(price?.currency) ||
+    price?.recurring?.interval !== "month" ||
+    price?.recurring?.interval_count !== 1
+  ) {
+    throw new Error("Incomplete subscription confirmation pricing");
+  }
+  const discounts = input.subscription.discounts?.length
+    ? input.subscription.discounts
+    : input.subscription.discount
+      ? [input.subscription.discount]
+      : [];
+  const descriptions = discounts.map((discount: any) => {
+    const coupon = discount?.coupon;
+    if (!coupon || typeof coupon !== "object")
+      throw new Error(
+        "Expand subscription discount coupon before confirmation",
+      );
+    const formatter = coupon.currency
+      ? new Intl.NumberFormat("en-GB", {
+          style: "currency",
+          currency: coupon.currency,
+        })
+      : null;
+    const reduction =
+      coupon.percent_off != null
+        ? `${coupon.percent_off}% off`
+        : coupon.amount_off != null && formatter
+          ? `${formatter.format(coupon.amount_off / 10 ** (formatter.resolvedOptions().maximumFractionDigits || 0))} off`
+          : null;
+    if (!reduction) throw new Error("Discount amount unavailable");
+    if (coupon.duration === "once") return `${reduction} the first invoice.`;
+    if (coupon.duration === "forever")
+      return `${reduction} each invoice while this discount remains applicable.`;
+    if (coupon.duration === "repeating" && discount.end)
+      return `${reduction} until ${new Date(discount.end * 1000).toISOString().slice(0, 10)}.`;
+    throw new Error("Discount duration unavailable");
+  });
+  if (!discounts.length && session.total_details?.amount_discount > 0)
+    throw new Error("Checkout discount terms unavailable");
+  return {
+    initialCharge: { amountMinor: amount, currency },
+    recurringBase: { amountMinor: baseAmount, currency: price.currency },
+    discountDescription: descriptions.join(" ") || "No introductory discount.",
+  };
+}
+
 function hasStripeDiscount(value: any): boolean {
   if (!value) return false;
   if (value.discount) return true;
@@ -62,7 +130,17 @@ function getSubscriptionCurrentPeriodEnd(subscription: any): string | null {
 export function getWelcomeBillingDetails(
   input: WelcomeBillingInput,
 ): PaidWelcomeBilling | undefined {
-  if (input.status !== "active" || input.subscription?.cancel_at_period_end) {
+  const confirmation =
+    input.checkoutSession?.metadata?.billing_policy_version === "2026-10-28";
+  if (
+    (!confirmation &&
+      (input.status !== "active" ||
+        input.subscription?.cancel_at_period_end)) ||
+    (confirmation &&
+      !["active", "canceled"].includes(
+        input.subscription?.status || input.status,
+      ))
+  ) {
     return undefined;
   }
 
@@ -114,13 +192,20 @@ export function getWelcomeBillingDetails(
     }
   }
 
-  const nextRenewalAt = input.subscription?.cancel_at_period_end
+  const renewalStopped = Boolean(
+    input.subscription?.cancel_at_period_end ||
+    input.subscription?.cancel_at ||
+    input.subscription?.status === "canceled",
+  );
+  const endedAt =
+    input.subscription?.ended_at || input.subscription?.canceled_at;
+  const nextRenewalAt = renewalStopped
     ? null
     : getSubscriptionCurrentPeriodEnd(input.subscription);
-  const statementDescriptor =
-    process.env.STRIPE_STATEMENT_DESCRIPTOR || "AUTOLISTER AI";
+  const statementDescriptor = process.env.STRIPE_STATEMENT_DESCRIPTOR || null;
 
-  if (!amountMinor && !nextRenewalAt && !statementDescriptor) return undefined;
+  if (!confirmation && !amountMinor && !nextRenewalAt && !statementDescriptor)
+    return undefined;
 
   return {
     amountMinor,
@@ -128,6 +213,25 @@ export function getWelcomeBillingDetails(
     nextRenewalAt,
     statementDescriptor,
     source,
+    ...confirmationPricing(input),
+    ...(confirmation
+      ? {
+          renewalStopped,
+          accessEndsAt:
+            input.subscription.status === "canceled"
+              ? typeof endedAt === "number"
+                ? new Date(endedAt * 1000).toISOString()
+                : null
+              : input.subscription.cancel_at
+                ? new Date(input.subscription.cancel_at * 1000).toISOString()
+                : getSubscriptionCurrentPeriodEnd(input.subscription),
+        }
+      : {}),
+    ...(input.checkoutSession?.metadata?.billing_policy_version
+      ? {
+          policyVersion: input.checkoutSession.metadata.billing_policy_version,
+        }
+      : {}),
   };
 }
 
@@ -137,13 +241,26 @@ export function getWelcomeBillingDetails(
  * currency that differs from the customer-facing charge.
  */
 export async function resolveWelcomeBillingDetails(input: {
-  stripe: { invoices?: { retrieve: (id: string) => Promise<any> } };
+  stripe: {
+    invoices?: { retrieve: (id: string) => Promise<any> };
+    subscriptions?: { retrieve: (id: string, params?: any) => Promise<any> };
+  };
   subscription: any;
   status: string;
   checkoutSession?: any;
   allowPriceFallback?: boolean;
 }): Promise<PaidWelcomeBilling | undefined> {
   if (input.checkoutSession) {
+    if (
+      input.checkoutSession.metadata?.billing_policy_version === "2026-10-28" &&
+      input.stripe.subscriptions?.retrieve
+    ) {
+      const subscription = await input.stripe.subscriptions.retrieve(
+        input.subscription.id,
+        { expand: ["discounts.coupon"] },
+      );
+      return getWelcomeBillingDetails({ ...input, subscription });
+    }
     return getWelcomeBillingDetails(input);
   }
 
@@ -172,7 +289,12 @@ export async function resolveWelcomeBillingDetails(input: {
   return undefined;
 }
 
-export function isSendableWelcomeSubscription(subscription: any): boolean {
+export function isSendableWelcomeSubscription(
+  subscription: any,
+  contractConfirmation = false,
+): boolean {
+  if (contractConfirmation)
+    return ["active", "canceled"].includes(subscription?.status);
   return (
     subscription?.status === "active" &&
     subscription?.cancel_at_period_end !== true

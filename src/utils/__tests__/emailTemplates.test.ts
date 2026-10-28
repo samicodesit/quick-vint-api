@@ -8,6 +8,79 @@ import {
 } from "../../../utils/emailTemplates";
 
 describe("email templates", () => {
+  it("omits an unknown statement name and shows an explicitly supplied one", () => {
+    const billing = { policyVersion: "2026-10-28" };
+    expect(getPaidWelcomeTemplate("pro", { billing }).body).not.toContain(
+      "On your statement:",
+    );
+    expect(
+      getPaidWelcomeTemplate("pro", {
+        billing: { ...billing, statementDescriptor: "SAMISOFT" },
+      }).body,
+    ).toContain("On your statement: SAMISOFT");
+  });
+  it("keeps new confirmations useful first and preserves concise dated billing and withdrawal terms", () => {
+    const template = getPaidWelcomeTemplate("pro", {
+      billing: {
+        policyVersion: "2026-10-28",
+        initialCharge: { amountMinor: 999, currency: "eur" },
+        recurringBase: { amountMinor: 999, currency: "eur" },
+        discountDescription: "No introductory discount.",
+        nextRenewalAt: "2026-11-28T12:00:00Z",
+      },
+    });
+    expect(template.subject).toBe("Welcome to AutoLister Pro");
+    expect(template.body.indexOf("25 listings per day")).toBeLessThan(
+      template.body.indexOf("Amount paid"),
+    );
+    expect(template.body).toContain("Subscription details");
+    expect(template.body).toContain("Next renewal");
+    expect(template.body).toContain("€9.99/month");
+    expect(template.body).toContain(`href="${BRAND.billingPortalUrl}"`);
+    expect(template.body).toContain("Manage or cancel");
+    expect(template.body).toContain("attached");
+    expect(template.body).toContain('href="mailto:support@autolister.app"');
+    expect(template.body).not.toContain("Model withdrawal form");
+    for (const phrase of [
+      "No introductory discount",
+      "Base subscription price",
+      "when this confirmation was prepared",
+      "I'm here to help",
+      "upgrade options",
+    ])
+      expect(template.body).not.toContain(phrase);
+  });
+  it("shows genuine discounts and conversion qualifications only when relevant", () => {
+    const template = getPaidWelcomeTemplate("pro", {
+      billing: {
+        policyVersion: "2026-10-28",
+        initialCharge: { amountMinor: 704, currency: "gbp" },
+        recurringBase: { amountMinor: 999, currency: "eur" },
+        discountDescription: "20% off the first invoice.",
+        nextRenewalAt: "2026-11-28T12:00:00Z",
+      },
+    });
+    expect(template.body).toContain("£7.04");
+    expect(template.body).toContain("20% off the first invoice.");
+    expect(template.body).toContain("before discounts");
+    expect(template.body).toContain("exchange rate");
+  });
+  it("does not invite an already-canceled subscriber to start using an active plan", () => {
+    const template = getPaidWelcomeTemplate("pro", {
+      billing: {
+        policyVersion: "2026-10-28",
+        renewalStopped: true,
+        accessEndsAt: "2026-10-28T12:00:00Z",
+      },
+    });
+    expect(template.subject).toBe("Your AutoLister Pro subscription details");
+    expect(template.body).not.toContain("click Generate");
+    expect(template.body).not.toContain("plan is active");
+    expect(template.body).toContain("Renewal stopped");
+    expect(template.body).toContain(
+      "Plan purchased: 25 listings per day and 250 per month",
+    );
+  });
   it("renders concise tier-specific paid welcome emails", () => {
     expect(getTemplateIndex().map((template) => template.key)).toContain(
       "starter_welcome_v1",
@@ -23,7 +96,6 @@ describe("email templates", () => {
     });
     expect(starter.subject).toBe("Your AutoLister AI Starter plan is active");
     expect(starter.body).toContain("10 listings per day and 75 per month");
-    expect(starter.body).toContain("AI-generated titles and descriptions");
     expect(starter.body).toContain("€3.99/month");
     expect(starter.body).toContain("Next renewal: 13 Oct 2026");
     expect(starter.body).toContain("On your card statement: AUTOLISTER AI");
@@ -38,7 +110,6 @@ describe("email templates", () => {
     const pro = getPaidWelcomeTemplate("pro");
     expect(pro.subject).toBe("Your AutoLister AI Pro plan is active");
     expect(pro.body).toContain("25 listings per day and 250 per month");
-    expect(pro.body).toContain("Phone and batch upload");
     expect(pro.body).toContain("Manage your subscription");
     expect(pro.body).toContain("upgrade options");
 
@@ -56,7 +127,6 @@ describe("email templates", () => {
     expect(business.subject).toBe("Your AutoLister AI Business plan is active");
     expect(business.body).toContain("Your Business plan is active.");
     expect(business.body).toContain("60 listings per day and 600 per month");
-    expect(business.body).toContain("Phone and batch upload");
     expect(business.body).toContain("Want listings to sound like your shop?");
     expect(business.body).toContain(
       "Email me an example or the details you want included.",

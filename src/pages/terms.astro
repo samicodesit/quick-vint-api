@@ -1,6 +1,7 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getPricingTermsCopy } from "../utils/pricingDisplay.js";
+import subscriptionPolicy from "../data/subscription-policy-2026-10-28.json";
 
 const termsPricing = getPricingTermsCopy(
   import.meta.env.PUBLIC_PRICING_DISPLAY_MODE,
@@ -88,7 +89,8 @@ const termsPricing = getPricingTermsCopy(
 
   <div class="container">
     <h1>Terms of Service</h1>
-    <p class="last-updated">Last updated: February 6, 2026</p>
+    <p class="last-updated">Last updated: October 28, 2026</p>
+    <p>{subscriptionPolicy.seller}. {subscriptionPolicy.address}. <a href="mailto:support@autolister.app">Email support</a>.</p>
 
     <div class="warning">
       By using AutoLister AI, you agree to these terms. If you don't agree,
@@ -153,8 +155,7 @@ const termsPricing = getPricingTermsCopy(
 
     <h2>4. Fair Use Policy</h2>
     <div class="warning">
-      VIOLATION OF THESE TERMS MAY RESULT IN IMMEDIATE ACCOUNT TERMINATION
-      WITHOUT REFUND.
+      Serious misuse may result in account suspension or termination, subject to your statutory rights.
     </div>
     <ul>
       <li>
@@ -188,19 +189,16 @@ const termsPricing = getPricingTermsCopy(
     <ul>
       <li>
         <strong>Termination for Cause:</strong> We may terminate accounts immediately
-        for violations without refund.
+        for serious violations, subject to applicable law and your statutory rights.
       </li>
       <li>
-        <strong>Regular Cancellation:</strong> You may cancel anytime. No refunds
-        for partial months.
+        <strong>Regular Cancellation:</strong> Cancel before your next renewal to stop future charges. Access continues until the paid period ends. Unused time and partial months are not refunded except where statutory rights apply. See the <a href="/billing-terms/2026-10-28">subscription terms and consumer withdrawal information</a>.
       </li>
       <li>
-        <strong>Data Deletion:</strong> Upon termination, your data will be deleted
-        within 30 days, except for abuse prevention records.
+        <strong>Data Deletion:</strong> Account deletion is handled under our <a href="/privacy">privacy policy</a>. Limited billing, consent and support records may be retained where needed for legal obligations or claims.
       </li>
       <li>
-        <strong>Chargeback Policy:</strong> Fraudulent chargebacks result in permanent
-        account termination and potential legal action.
+        <strong>Payment Disputes:</strong> We respond with relevant transaction and service records. Nothing in these terms prevents you from using your lawful complaint or payment-dispute rights.
       </li>
     </ul>
 
@@ -221,6 +219,7 @@ const termsPricing = getPricingTermsCopy(
     </ul>
 
     <h2>7. Limitation of Liability</h2>
+    <p>Nothing in these terms excludes or restricts mandatory consumer rights or liability that cannot lawfully be excluded. The limitations below apply only to the extent permitted by law.</p>
     <div class="highlight">
       <strong>IMPORTANT LEGAL NOTICE:</strong>
     </div>
@@ -254,12 +253,10 @@ const termsPricing = getPricingTermsCopy(
         Netherlands.
       </li>
       <li>
-        <strong>Arbitration:</strong> Disputes will be resolved through binding arbitration
-        in Amsterdam, Netherlands.
+        <strong>Consumer Protections:</strong> Choosing Dutch law does not remove mandatory protections available under the law of your country of habitual residence where they apply.
       </li>
       <li>
-        <strong>No Class Actions:</strong> You waive the right to participate in class
-        action lawsuits.
+        <strong>Courts:</strong> Consumers may bring proceedings in the courts available to them under applicable law.
       </li>
     </ul>
 

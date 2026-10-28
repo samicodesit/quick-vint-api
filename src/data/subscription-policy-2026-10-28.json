@@ -1,0 +1,29 @@
+{
+  "version": "2026-10-28",
+  "seller": "Ahmed Sami Ibrahim Mohamed Shata, trading as AutoLister AI",
+  "address": "Galvanistraat 853, 3029 AD Rotterdam, Netherlands",
+  "email": "support@autolister.app",
+  "phone": "+31 6 19942565",
+  "sections": [
+    {
+      "title": "Monthly subscription",
+      "text": "AutoLister AI provides AI-generated listing drafts, with the features and usage limits of your selected plan. Your subscription starts when your purchase completes and renews automatically each month under the pricing and discount terms shown at checkout. If you choose a converted payment currency, renewal amounts in that currency may vary with Stripe's exchange rate. By subscribing, you request that access starts immediately; this does not waive your statutory withdrawal rights. Charges continue even if you do not use the service. There is no minimum commitment beyond the current paid month. Optional credit packs are separate one-time purchases."
+    },
+    {
+      "title": "Stop future renewals",
+      "text": "Cancel before your next renewal through Manage subscription or tell us clearly by email. Cancellation stops future renewals; access continues until the end of the paid period. Uninstalling the extension does not cancel the subscription. Outside statutory rights, we do not refund unused time or partial months."
+    },
+    {
+      "title": "Consumer withdrawal rights",
+      "text": "Consumers in the EEA and UK can withdraw from this subscription within 14 days after the day the contract is entered into, without giving a reason. To withdraw, use the online withdrawal form or send a clear statement to support@autolister.app or our address below. You may use the model withdrawal form, but it is not compulsory. Sending your statement before the deadline is sufficient. We do not ask you to give up this right because you start using AutoLister. We will reimburse payments due under your statutory rights without undue delay and within 14 days after receiving your withdrawal, using the original payment method unless you expressly agree otherwise, without a refund fee. Longer periods and your other statutory rights remain unaffected."
+    },
+    {
+      "title": "Problems and refunds",
+      "text": "Contact support if the service does not work as agreed or a charge is incorrect. Your statutory rights are not limited by these terms. We will confirm the decision and the amount and date of any refund."
+    },
+    {
+      "title": "Model withdrawal form (optional)",
+      "text": "To: Ahmed Sami Ibrahim Mohamed Shata, AutoLister AI, Galvanistraat 853, 3029 AD Rotterdam, Netherlands; support@autolister.app. I hereby give notice that I withdraw from my contract for the AutoLister AI subscription. Ordered on: ____. Name: ____. Address: ____. Account email or invoice reference: ____. Date: ____. Signature (only if sent on paper): ____."
+    }
+  ]
+}

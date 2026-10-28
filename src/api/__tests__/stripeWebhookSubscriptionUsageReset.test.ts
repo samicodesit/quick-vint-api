@@ -194,6 +194,61 @@ function createRequest() {
 }
 
 describe("Stripe webhook subscription usage reset", () => {
+  it("returns an error for a failed confirmation reservation so the same checkout can retry", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_confirm",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_confirm",
+          mode: "subscription",
+          payment_status: "paid",
+          subscription: "sub_new",
+          customer: "cus_123",
+          customer_details: { email: "seller@example.com" },
+          amount_total: 399,
+          currency: "eur",
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_new",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+            },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    sendSubscriptionWelcomeEmailOnceMock
+      .mockRejectedValueOnce(new Error("reservation unavailable"))
+      .mockResolvedValueOnce({ status: "sent", resendEmailId: "once" });
+    const { default: handler } = await import("../../../api/stripe/webhook.js");
+    for (const expected of [500, 200]) {
+      queueSelect("profiles", {
+        data: {
+          id: "profile_123",
+          stripe_subscription_id: "sub_new",
+          subscription_status: "active",
+          subscription_tier: "starter",
+        },
+      });
+      const res = createResponse();
+      await (handler as unknown as WebhookHandler)(
+        createRequest() as any,
+        res as any,
+      );
+      expect(res.statusCode).toBe(expected);
+    }
+    expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledTimes(2);
+  });
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = "sk_test";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
@@ -556,7 +611,7 @@ describe("Stripe webhook subscription usage reset", () => {
         amountMinor: 399,
         currency: "eur",
         nextRenewalAt: "2026-07-21T00:00:00.000Z",
-        statementDescriptor: "AUTOLISTER AI",
+        statementDescriptor: null,
         source: "checkout",
       },
       limits: null,
@@ -951,6 +1006,68 @@ describe("Stripe webhook subscription usage reset", () => {
       expect(updateCalls).toHaveLength(expectedUpdates);
     },
   );
+
+  it("confirms a paid new-policy contract canceled before adoption without replacing the profile subscription", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_fast_cancel",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_fast_cancel",
+          mode: "subscription",
+          subscription: "sub_new_canceled",
+          customer: "cus_123",
+          payment_status: "paid",
+          amount_total: 399,
+          currency: "eur",
+          metadata: { billing_policy_version: "2026-10-28" },
+          customer_details: { email: "seller@example.com" },
+        },
+      },
+    });
+    retrieveSubscriptionMock.mockResolvedValue({
+      id: "sub_new_canceled",
+      customer: "cus_123",
+      status: "canceled",
+      ended_at: 1784592000,
+      items: {
+        data: [
+          {
+            price: {
+              id: "price_1S96n6P5rNq9hGDSjEHrJV5g",
+              unit_amount: 399,
+              currency: "eur",
+              recurring: { interval: "month", interval_count: 1 },
+            },
+            current_period_end: 1784592000,
+          },
+        ],
+      },
+    });
+    queueSelect("profiles", {
+      data: {
+        id: "profile_123",
+        stripe_subscription_id: "sub_old",
+        stripe_customer_id: "cus_123",
+        subscription_status: "canceled",
+        subscription_tier: "free",
+      },
+    });
+    const module = await import("../../../api/stripe/webhook.js");
+    const res = createResponse();
+    await (module.default as unknown as WebhookHandler)(createRequest(), res);
+    expect(res.statusCode).toBe(200);
+    expect(updateCalls).toHaveLength(0);
+    expect(sendSubscriptionWelcomeEmailOnceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stripeSubscriptionId: "sub_new_canceled",
+        billing: expect.objectContaining({
+          policyVersion: "2026-10-28",
+          renewalStopped: true,
+        }),
+      }),
+    );
+  });
 
   it("ignores a delayed checkout for a replaced subscription", async () => {
     constructEventMock.mockReturnValue({

@@ -65,6 +65,79 @@ function getInvoiceSubscriptionId(object: Record<string, any>) {
   );
 }
 
+function priceEvidence(item: Record<string, any>) {
+  const price = item.price || item.pricing?.price_details || {};
+  return {
+    id: item.id || null,
+    price_id: getStripeId(price.price) || price.id || null,
+    product_id: getStripeId(price.product),
+    quantity: item.quantity ?? null,
+    unit_amount: price.unit_amount ?? null,
+    amount: item.amount ?? null,
+    currency: price.currency || item.currency || null,
+    recurring: price.recurring
+      ? {
+          interval: price.recurring.interval,
+          interval_count: price.recurring.interval_count,
+        }
+      : null,
+    period: item.period || null,
+    current_period_start: item.current_period_start ?? null,
+    current_period_end: item.current_period_end ?? null,
+  };
+}
+
+// Only signed event data belongs here. Never backfill current copy or infer consent.
+function buildBillingEvidence(
+  event: Stripe.Event,
+  object: Record<string, any>,
+) {
+  const previous = event.data.previous_attributes as
+    | Record<string, any>
+    | undefined;
+  return {
+    schema_version: 1,
+    stripeEventId: event.id,
+    objectId: object.id || null,
+    objectType: object.object || null,
+    api_version: event.api_version || null,
+    livemode: event.livemode,
+    stripe_request_id: event.request?.id || null,
+    consent: object.consent || null,
+    consent_collection: object.consent_collection || null,
+    custom_text: object.custom_text || null,
+    policy: {
+      version: object.metadata?.billing_policy_version || null,
+      url: object.metadata?.billing_policy_url || null,
+      sha256: object.metadata?.billing_policy_sha256 || null,
+    },
+    amount_total: object.amount_total ?? null,
+    amount_paid: object.amount_paid ?? null,
+    amount_refunded: object.amount_refunded ?? null,
+    currency: object.currency || null,
+    presentment_details: object.presentment_details || null,
+    total_details: object.total_details || null,
+    payment_status: object.payment_status || null,
+    invoice_id: getStripeId(object.invoice),
+    payment_intent_id: getStripeId(object.payment_intent),
+    invoice_number: object.number || null,
+    period_start: object.period_start ?? null,
+    period_end: object.period_end ?? null,
+    items: (object.items?.data || object.lines?.data || []).map(priceEvidence),
+    cancellation: {
+      cancel_at_period_end: object.cancel_at_period_end ?? null,
+      canceled_at: object.canceled_at ?? null,
+      cancel_at: object.cancel_at ?? null,
+      ended_at: object.ended_at ?? null,
+      reason: object.cancellation_details?.reason || null,
+      feedback: object.cancellation_details?.feedback || null,
+      comment: object.cancellation_details?.comment || null,
+      previous_cancel_at_period_end: previous?.cancel_at_period_end ?? null,
+      previous_cancel_at: previous?.cancel_at ?? null,
+    },
+  };
+}
+
 export function buildStripeBillingEventRow({
   event,
   profileId,
@@ -110,11 +183,7 @@ export function buildStripeBillingEventRow({
     attempt_count: isInvoice ? (object.attempt_count ?? null) : null,
     next_payment_attempt: timestampToIso(object.next_payment_attempt),
     billing_reason: isInvoice ? object.billing_reason || null : null,
-    raw_event: {
-      stripeEventId: event.id,
-      objectId: object.id || null,
-      objectType: object.object || null,
-    },
+    raw_event: buildBillingEvidence(event, object),
   };
 }
 
@@ -134,7 +203,11 @@ export async function logStripeBillingEvent(input: {
   profileId?: string | null;
   email?: string | null;
 }) {
-  await logBillingEvent(buildStripeBillingEventRow(input));
+  const { error } = await supabase
+    .from("billing_events")
+    .insert([buildStripeBillingEventRow(input)]);
+  // Stripe retries the signed event if persistence fails. Duplicate delivery is safe.
+  if (error && error.code !== "23505") throw error;
 }
 
 export async function logAdminBillingAction({

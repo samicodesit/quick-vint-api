@@ -1,6 +1,7 @@
 // api/stripe/create-checkout.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { getSubscriptionCheckoutDisclosure } from "../../utils/subscriptionDisclosure";
 import { supabase } from "../../utils/supabaseClient";
 import { CREDIT_PACK_CONFIG, TIER_CONFIGS } from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
@@ -328,6 +329,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const session = await stripe.checkout.sessions.create({
+        ...(creditPack ? {} : getSubscriptionCheckoutDisclosure()),
         mode: creditPack ? "payment" : "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
         customer: customerId,
@@ -343,6 +345,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ? { discounts: [{ promotion_code: promotionCodeId }] }
           : { allow_promotion_codes: true }),
         metadata: {
+          ...(creditPack ? {} : getSubscriptionCheckoutDisclosure().metadata),
           source: "mobile_web",
           tier,
           ...(creditPack
@@ -523,6 +526,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 6) Create Stripe Checkout Session using priceId and the validated customerId
     const session = await stripe.checkout.sessions.create({
+      ...getSubscriptionCheckoutDisclosure(),
       mode: "subscription",
       line_items: [
         {
@@ -537,6 +541,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ? { discounts: [{ promotion_code: promotionCodeId }] }
         : { allow_promotion_codes: true }),
       metadata: {
+        ...getSubscriptionCheckoutDisclosure().metadata,
         source: source || "unknown",
         tier,
         utm_source: utm?.utm_source || "",

@@ -60,9 +60,15 @@ async function getRetryBillingContext(row: WelcomeEmailRow) {
     row.stripe_subscription_id,
   )) as any;
 
-  if (!isSendableWelcomeSubscription(subscription)) {
+  const checkoutSession = row.stripe_checkout_session_id
+    ? await stripe.checkout.sessions.retrieve(row.stripe_checkout_session_id)
+    : undefined;
+  const contractConfirmation =
+    checkoutSession?.metadata?.billing_policy_version === "2026-10-28";
+  if (!isSendableWelcomeSubscription(subscription, contractConfirmation)) {
     return {
       subscription,
+      contractConfirmation,
       billing: undefined,
       isLegacyPlan: null,
       customLimits: null,
@@ -70,9 +76,6 @@ async function getRetryBillingContext(row: WelcomeEmailRow) {
     };
   }
 
-  const checkoutSession = row.stripe_checkout_session_id
-    ? await stripe.checkout.sessions.retrieve(row.stripe_checkout_session_id)
-    : undefined;
   const billing = await resolveWelcomeBillingDetails({
     stripe,
     subscription,
@@ -120,6 +123,7 @@ async function getRetryBillingContext(row: WelcomeEmailRow) {
 
   return {
     subscription,
+    contractConfirmation,
     billing,
     isLegacyPlan: profile?.is_legacy_plan ?? null,
     customLimits,
@@ -144,7 +148,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const row of rows) {
       try {
         const context = await getRetryBillingContext(row);
-        if (!isSendableWelcomeSubscription(context.subscription)) {
+        if (
+          !isSendableWelcomeSubscription(
+            context.subscription,
+            context.contractConfirmation,
+          )
+        ) {
           results.push({
             email: row.email,
             stripeSubscriptionId: row.stripe_subscription_id,

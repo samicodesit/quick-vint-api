@@ -1,4 +1,6 @@
 import { LEGACY_TIER_CONFIGS, TIER_CONFIGS } from "./tierConfig";
+import subscriptionTerms from "../src/data/subscription-terms-2026-10-28.json";
+import subscriptionPolicy from "../src/data/subscription-policy-2026-10-28.json";
 
 /**
  * Email layout & templates for campaigns.
@@ -21,11 +23,23 @@ export interface EmailTemplate {
   layout?: "campaign" | "direct";
   /** Inner HTML content — inserted inside the layout wrapper */
   body: string;
+  /** Exact attachment bytes, archived with the email before sending. */
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    contentType: string;
+  }>;
 }
 
 export type PaidWelcomeTier = "starter" | "pro" | "business";
 
 export type PaidWelcomeBilling = {
+  policyVersion?: string;
+  renewalStopped?: boolean;
+  accessEndsAt?: string | null;
+  initialCharge?: { amountMinor: number; currency: string };
+  recurringBase?: { amountMinor: number; currency: string };
+  discountDescription?: string;
   amountMinor?: number | null;
   currency?: string | null;
   nextRenewalAt?: string | null;
@@ -57,8 +71,7 @@ const BRAND = {
   billingPortalUrl:
     process.env.STRIPE_BILLING_PORTAL_URL ||
     "https://billing.stripe.com/p/login/eVqfZj3so5PE3lwcmdenS00",
-  statementDescriptor:
-    process.env.STRIPE_STATEMENT_DESCRIPTOR || "AUTOLISTER AI",
+  statementDescriptor: process.env.STRIPE_STATEMENT_DESCRIPTOR || "",
 } as const;
 
 export { BRAND };
@@ -308,7 +321,7 @@ function formatBillingAmount(billing?: PaidWelcomeBilling): string | null {
   if (
     !billing ||
     !Number.isInteger(billing.amountMinor) ||
-    (billing.amountMinor as number) <= 0 ||
+    (billing.amountMinor as number) < 0 ||
     !billing.currency
   ) {
     return null;
@@ -397,6 +410,61 @@ function renderPaidWelcomeHelp(tier: PaidWelcomeTier): string {
     </table>`;
 }
 
+function renderSubscriptionSummary(billing: PaidWelcomeBilling): string {
+  const initial = billing.initialCharge
+    ? formatBillingAmount(billing.initialCharge)
+    : null;
+  const monthly = billing.recurringBase
+    ? formatBillingAmount(billing.recurringBase)
+    : null;
+  const discount =
+    billing.discountDescription &&
+    billing.discountDescription !== "No introductory discount."
+      ? billing.discountDescription
+      : null;
+  const rows: Array<[string, string | null]> = [
+    ["Amount paid", initial],
+    [
+      discount ? "Monthly price before discounts" : "Monthly price",
+      monthly ? `${monthly}/month` : null,
+    ],
+    billing.renewalStopped
+      ? ["Access ends", formatRenewalDate(billing.accessEndsAt)]
+      : ["Next renewal", formatRenewalDate(billing.nextRenewalAt)],
+  ];
+  const converted =
+    billing.initialCharge &&
+    billing.recurringBase &&
+    billing.initialCharge.currency !== billing.recurringBase.currency;
+  const details = [
+    discount,
+    converted
+      ? "Payments in your chosen currency may vary with the exchange rate."
+      : null,
+    billing.renewalStopped
+      ? "Renewal stopped."
+      : "Renews monthly until canceled.",
+  ]
+    .filter(Boolean)
+    .map((line) => escapeHtml(line!))
+    .join("<br />");
+  return `<section aria-label="Subscription details" style="border-top:1px solid #e5e7eb;padding-top:20px;margin:24px 0;">
+    <p class="autolister-direct-muted" style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#4b5563;">Subscription details${billing.sample ? " (SAMPLE)" : ""}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${rows
+        .filter(([, value]) => value !== null)
+        .map(
+          ([label, value]) =>
+            `<tr><td class="autolister-direct-muted" style="padding:5px 12px 5px 0;font-size:14px;line-height:1.5;color:#4b5563;vertical-align:top;">${label}</td><td class="autolister-direct-strong" align="right" style="padding:5px 0;font-size:14px;line-height:1.5;color:#111827;font-weight:600;vertical-align:top;white-space:nowrap;">${escapeHtml(value!)}</td></tr>`,
+        )
+        .join("")}
+    </table>
+    <p class="autolister-direct-muted" style="margin:12px 0;font-size:13px;line-height:1.6;color:#4b5563;">${details}</p>
+    <p style="margin:0;font-size:14px;line-height:1.5;"><a class="autolister-direct-link" href="${BRAND.billingPortalUrl}" style="color:${BRAND.color};text-decoration:underline;font-weight:600;">Manage or cancel</a></p>
+    ${billing.statementDescriptor ? `<p class="autolister-direct-muted" style="margin:10px 0 0;font-size:12px;line-height:1.5;color:#4b5563;">On your statement: ${escapeHtml(billing.statementDescriptor)}</p>` : ""}
+  </section>`;
+}
+
 export function getPaidWelcomeTemplate(
   tier: PaidWelcomeTier,
   options: PaidWelcomeOptions = {},
@@ -406,14 +474,41 @@ export function getPaidWelcomeTemplate(
   ];
   const displayName = config.displayName;
   const limits = options.limits || config.limits;
-  const capability =
-    tier === "starter"
-      ? "AI-generated titles and descriptions."
-      : "phone and batch upload.";
   const limitsCopy =
     options.isCustomPlan && !options.limits
-      ? "Your custom Business limits are active. Phone and batch upload included."
-      : `${formatLimit(limits.daily)} listings per day and ${formatLimit(limits.monthly)} per month. ${capability[0].toUpperCase()}${capability.slice(1, -1)} included.`;
+      ? "Your custom Business limits are active."
+      : `${formatLimit(limits.daily)} listings per day and ${formatLimit(limits.monthly)} per month.`;
+  const confirmation =
+    options.billing?.policyVersion === subscriptionPolicy.version;
+  if (confirmation) {
+    const stopped = options.billing!.renewalStopped;
+    const purchasedPlan =
+      options.isCustomPlan && !options.limits
+        ? "Custom Business plan."
+        : limitsCopy;
+    return {
+      subject: stopped
+        ? `Your AutoLister ${displayName} subscription details`
+        : `Welcome to AutoLister ${displayName}`,
+      preheader: stopped
+        ? "Your purchase and cancellation details."
+        : `Your ${displayName} plan, ready for your next listing.`,
+      layout: "direct",
+      attachments: [{ ...subscriptionTerms.attachment }],
+      body: [
+        `<h2 class="autolister-direct-heading" style="margin:0 0 18px;font-size:24px;line-height:1.25;color:#111827;font-weight:700;letter-spacing:-0.2px;">${stopped ? `Your ${displayName} subscription` : `Welcome to ${displayName}`}</h2>`,
+        `<p class="autolister-direct-muted" style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">${stopped ? `Plan purchased: ${purchasedPlan}` : limitsCopy}</p>`,
+        stopped
+          ? ""
+          : `<p class="autolister-direct-muted" style="margin:0;font-size:15px;line-height:1.6;color:#374151;">Thanks,<br />Sami</p>`,
+        renderSubscriptionSummary(options.billing!),
+        `<p class="autolister-direct-muted" style="margin:0;font-size:13px;line-height:1.6;color:#4b5563;">Your subscription terms, including cancellation and refund rights, are attached for your records. <a class="autolister-direct-link" href="mailto:${BRAND.supportEmail}" style="color:${BRAND.color};text-decoration:underline;">Contact support</a>.</p>`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    };
+  }
+  const heading = `Your ${displayName} plan is active.`;
 
   return {
     subject: `Your AutoLister AI ${displayName} plan is active`,
@@ -421,7 +516,7 @@ export function getPaidWelcomeTemplate(
     layout: "direct",
     body: [
       `
-      <h2 class="autolister-direct-heading" style="margin: 0 0 18px 0; font-size: 24px; line-height: 1.25; color: #111827; font-weight: 700; letter-spacing: -0.2px;">Your ${displayName} plan is active.</h2>`,
+      <h2 class="autolister-direct-heading" style="margin: 0 0 18px 0; font-size: 24px; line-height: 1.25; color: #111827; font-weight: 700; letter-spacing: -0.2px;">${heading}</h2>`,
       renderPaidWelcomeBilling(options.billing),
       `<p class="autolister-direct-muted" style="margin: 0 0 22px 0; font-size: 15px; line-height: 1.65; color: #374151;">${limitsCopy}</p>`,
       renderPaidWelcomeHelp(tier),

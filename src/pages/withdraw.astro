@@ -1,0 +1,57 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+---
+<SiteLayout title="Withdraw from your contract - AutoLister AI">
+  <main class="mx-auto max-w-xl px-6 pt-32 pb-20 text-gray-800">
+    <h1 class="text-3xl font-bold mb-5">Withdraw from your contract</h1>
+    <p class="mb-5">Use this form to exercise your consumer cooling-off right. To stop future renewals while keeping your paid access, <a class="underline" href="https://billing.stripe.com/p/login/eVqfZj3so5PE3lwcmdenS00">cancel renewal</a>.</p>
+    <form id="withdraw-form" class="space-y-5">
+      <label class="block">Your full name<input name="name" required maxlength="160" autocomplete="name" class="mt-2 block w-full rounded border border-gray-400 p-3" /></label>
+      <label class="block">Email for your acknowledgment<input name="email" type="email" required maxlength="254" autocomplete="email" class="mt-2 block w-full rounded border border-gray-400 p-3" /></label>
+      <label class="block">Contract to withdraw from<textarea name="contract" required maxlength="1000" rows="3" placeholder="Your AutoLister account email and subscription or invoice details" class="mt-2 block w-full rounded border border-gray-400 p-3"></textarea></label>
+      <button type="submit" id="review-button" class="rounded bg-indigo-700 text-white px-5 py-3 font-semibold">Review withdrawal</button>
+      <section id="withdraw-review" hidden class="border rounded p-5 space-y-4">
+        <h2 class="text-xl font-semibold">Confirm your withdrawal</h2>
+        <p id="review-details" class="whitespace-pre-line break-words"></p>
+        <p>I hereby give notice that I withdraw from the AutoLister contract identified above.</p>
+        <button type="button" id="confirm-button" class="rounded bg-indigo-700 text-white px-5 py-3 font-semibold">Confirm withdrawal</button>
+        <button type="button" id="edit-button" class="underline ml-3">Edit details</button>
+      </section>
+    </form>
+    <div id="withdraw-result" role="status" aria-live="polite" class="my-5 whitespace-pre-line break-words"></div>
+    <p class="mt-6 text-sm">You can also <a class="underline" href="mailto:support@autolister.app">email your withdrawal statement</a>. <a class="underline" href="/billing-terms/2026-10-28">Withdrawal rights and model form</a>.</p>
+    <noscript><p>JavaScript is needed for this form. You can withdraw by email or post using the details linked above.</p></noscript>
+  </main>
+</SiteLayout>
+<script>
+  const form = document.querySelector<HTMLFormElement>("#withdraw-form")!;
+  const review = document.querySelector<HTMLElement>("#withdraw-review")!;
+  const reviewButton = document.querySelector<HTMLButtonElement>("#review-button")!;
+  const confirm = document.querySelector<HTMLButtonElement>("#confirm-button")!;
+  const edit = document.querySelector<HTMLButtonElement>("#edit-button")!;
+  const result = document.querySelector<HTMLElement>("#withdraw-result")!;
+  let snapshot: { name: string; email: string; contract: string; requestId: string } | null = null;
+  const inputs = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input,textarea"));
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    const data = new FormData(form);
+    snapshot = { name: String(data.get("name")).trim(), email: String(data.get("email")).trim(), contract: String(data.get("contract")).trim(), requestId: crypto.randomUUID() };
+    document.querySelector("#review-details")!.textContent = `${snapshot.name}\n${snapshot.email}\n${snapshot.contract}`;
+    inputs.forEach(input => input.readOnly = true);
+    review.hidden = false; reviewButton.hidden = true; result.textContent = ""; confirm.focus();
+  });
+  edit.addEventListener("click", () => { snapshot = null; review.hidden = true; reviewButton.hidden = false; inputs.forEach(input => input.readOnly = false); inputs[0].focus(); });
+  confirm.addEventListener("click", async () => {
+    if (!snapshot) return;
+    confirm.disabled = true; edit.disabled = true;
+    try {
+      const response = await fetch("/api/customer/withdraw", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...snapshot, confirmed: true }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to confirm receipt.");
+      form.hidden = true;
+      result.textContent = `Withdrawal statement received.\n${snapshot.name}\n${snapshot.email}\n${snapshot.contract}\n${data.statement}\nReceived: ${data.receivedAt}\nReference: ${data.reference}\nAn email acknowledgment has been queued. Save this confirmation for your records.`;
+    } catch (error) { result.textContent = error instanceof Error ? error.message : "Connection failed. Retry or email support@autolister.app."; }
+    finally { confirm.disabled = false; edit.disabled = false; }
+  });
+</script>

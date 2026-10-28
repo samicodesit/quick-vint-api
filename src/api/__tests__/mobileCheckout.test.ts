@@ -154,6 +154,8 @@ describe("bearer-owned mobile Stripe billing", () => {
       expect(checkoutCreateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: "payment",
+          branding_settings: { display_name: "AutoLister AI" },
+          payment_intent_data: { statement_descriptor_suffix: "AUTOLISTER" },
           line_items: [{ price: priceId, quantity: 1 }],
           success_url:
             "https://autolister.app/app?checkout=success&session_id={CHECKOUT_SESSION_ID}",
@@ -325,6 +327,8 @@ describe("bearer-owned mobile Stripe billing", () => {
     expect(checkoutCreateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: "payment",
+        branding_settings: { display_name: "AutoLister AI" },
+        payment_intent_data: { statement_descriptor_suffix: "AUTOLISTER" },
         customer: "cus_existing",
         line_items: [{ price: "price_credit_fixture", quantity: 1 }],
         success_url:
@@ -541,6 +545,7 @@ describe("bearer-owned mobile Stripe billing", () => {
     expect(checkoutCreateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         consent_collection: { terms_of_service: "required" },
+        branding_settings: { display_name: "AutoLister AI" },
         metadata: expect.objectContaining({
           source: "mobile_web",
           billing_policy_version: "2026-10-28",
@@ -724,6 +729,53 @@ describe("bearer-owned mobile Stripe billing", () => {
       expect.objectContaining({
         idempotencyKey:
           "mobile-web-customer:bearer-user:replacement:cus_missing",
+      }),
+    );
+  });
+
+  it.each(["mobile", "extension"])(
+    "brands %s subscriptions without payment-only parameters",
+    async (client) => {
+      const { default: handler } =
+        await import("../../../api/stripe/create-checkout.js");
+      const response = createResponse();
+      await (handler as any)(
+        client === "mobile"
+          ? mobileRequest()
+          : extensionRequest({ email: "owner@example.com" }),
+        response,
+      );
+      expect(response.statusCode).toBe(200);
+      const params = checkoutCreateMock.mock.calls[0][0];
+      expect(params.mode).toBe("subscription");
+      expect(params.branding_settings).toEqual({
+        display_name: "AutoLister AI",
+      });
+      expect(params.payment_intent_data).toBeUndefined();
+    },
+  );
+
+  it("brands extension credit payments without changing their pack or ownership", async () => {
+    const { default: handler } =
+      await import("../../../api/stripe/create-credit-checkout.js");
+    const response = createResponse();
+    await (handler as any)(
+      extensionRequest({ email: "owner@example.com", packId: "credits_50" }),
+      response,
+    );
+    expect(response.statusCode).toBe(200);
+    expect(authGetUserMock).not.toHaveBeenCalled();
+    expect(checkoutCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "payment",
+        branding_settings: { display_name: "AutoLister AI" },
+        payment_intent_data: { statement_descriptor_suffix: "AUTOLISTER" },
+        line_items: [{ price: "price_1USy3OP5rNq9hGDSeMkhzX64", quantity: 1 }],
+        metadata: expect.objectContaining({
+          profile_id: "bearer-user",
+          pack_id: "credits_50",
+          credits: "50",
+        }),
       }),
     );
   });

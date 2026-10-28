@@ -1,5 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import {
+  AUTOLISTER_CHECKOUT_BRANDING,
+  AUTOLISTER_CREDIT_PAYMENT_DATA,
+} from "../../utils/stripeCheckoutBranding";
 import { supabase } from "../../utils/supabaseClient";
 import { getCreditPackConfig } from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
@@ -106,6 +110,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader;
     const utm = body.utm && typeof body.utm === "object" ? body.utm : {};
     const session = await stripe.checkout.sessions.create({
+      ...AUTOLISTER_CHECKOUT_BRANDING,
+      payment_intent_data: AUTOLISTER_CREDIT_PAYMENT_DATA,
       mode: "payment",
       line_items: [
         {

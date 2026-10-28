@@ -1,6 +1,10 @@
 // api/stripe/create-checkout.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import {
+  AUTOLISTER_CHECKOUT_BRANDING,
+  AUTOLISTER_CREDIT_PAYMENT_DATA,
+} from "../../utils/stripeCheckoutBranding";
 import { getSubscriptionCheckoutDisclosure } from "../../utils/subscriptionDisclosure";
 import { supabase } from "../../utils/supabaseClient";
 import { CREDIT_PACK_CONFIG, TIER_CONFIGS } from "../../utils/tierConfig";
@@ -329,6 +333,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const session = await stripe.checkout.sessions.create({
+        ...AUTOLISTER_CHECKOUT_BRANDING,
+        ...(creditPack
+          ? { payment_intent_data: AUTOLISTER_CREDIT_PAYMENT_DATA }
+          : {}),
         ...(creditPack ? {} : getSubscriptionCheckoutDisclosure()),
         mode: creditPack ? "payment" : "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
@@ -526,6 +534,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 6) Create Stripe Checkout Session using priceId and the validated customerId
     const session = await stripe.checkout.sessions.create({
+      ...AUTOLISTER_CHECKOUT_BRANDING,
       ...getSubscriptionCheckoutDisclosure(),
       mode: "subscription",
       line_items: [

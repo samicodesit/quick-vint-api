@@ -11,6 +11,15 @@ This repo is mostly operated by AI agents. Treat `main` as the production backen
 
 ## Email
 
+- Explicit owner approval (2026-10-28): the reviewed billing release's fixed
+  welcome, cancellation and withdrawal receipt/notification templates may send
+  automatically through Resend with validated customer, contract and billing
+  fields. Exact-message visual inspection is not required for each such send.
+  Changes to the approved copy, links, attachments or renderer require renewed
+  desktop/mobile visual and link review. This exception does not authorize
+  marketing, unrelated support messages, or historical evidence fabrication.
+  See docs/billing-evidence-release.md and its approval record.
+
 Send every AutoLister email through Resend. This includes customer support,
 replies, follow-ups, alerts, and internal test emails. This rule applies even
 when the user says only "send an email" without naming Resend.

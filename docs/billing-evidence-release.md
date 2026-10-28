@@ -97,6 +97,13 @@ The updated local production gate passed 915 tests, with three opt-in live tests
 
 ## Current release candidate
 
+Owner approval received on 28 October 2026: production rollout, four reviewed
+database migrations, Resend delivery webhook and signing secret, automatic
+reviewed welcome/cancellation/withdrawal emails with validated variable fields,
+and one clearly labeled test to the owner's Stripe email. This overrides the
+per-message visual-inspection requirement for these fixed transactional
+templates only. No marketing or Stripe account restructuring is authorized.
+
 Integrated the billing-evidence commit onto origin/main 4cbf0e2. Preserved current one-time credit checkout behavior: recurring consent and policy metadata apply only to subscription purchases. Added endpoint assertions for this distinction. Installed the exact current lockfile into the isolated worktree, leaving the primary dirty checkout untouched. Final full gate passed lint, types, build, formatting and 1,195 tests; 13 opt-in tests skipped. Independent integration review returned no release-blocking code findings.
 
 Live read-only checks confirm successful-payment receipts ON and default portal bpc_1S96HxP5rNq9hGDS697qxbnq cancellation ON at the end of the billing period. Its login URL matches the email. Production Supabase is jqloiovdwjaornnfvmyu; read-only Management API access succeeded. All four new migrations are still pending. Vercel production does not yet have RESEND_WEBHOOK_SECRET. Resend has no registered webhook. No existing account setting, credential, production table or email was changed.

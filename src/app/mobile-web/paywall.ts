@@ -192,6 +192,12 @@ export function mountMobilePaywall(
         reason: requested || usage.blockedReason || "paid_options",
         entryPoint,
       };
+      dialog.querySelector<HTMLImageElement>(
+        ".mobile-paywall-heading img",
+      )!.src =
+        paywallContext.reason === "account_paused"
+          ? "/account-paused-paywall.webp"
+          : "/favicon-96x96.png";
       revision++;
       proceed.hidden = true;
       find("h2").textContent = policy.title;

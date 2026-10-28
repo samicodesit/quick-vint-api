@@ -1,0 +1,1294 @@
+// prettier-ignore
+(() => {
+            const API_UPLOAD = '/api/phone-upload';
+            const API_PREPARE = '/api/phone-upload?action=prepare';
+            const API_COMPLETE = '/api/phone-upload?action=complete';
+            const BATCH_UPLOAD_CONCURRENCY = 2;
+            const COMPRESSION_RETRY_DELAYS_MS = [250];
+            const UPLOAD_RETRY_DELAYS_MS = [700, 1500, 3000, 5000];
+            const UPLOAD_IDLE_TIMEOUT_MS = 45000;
+            const UPLOAD_RECOVERY_WINDOW_MS = 120000;
+            const STATUS_POLL_MS = 3000;
+
+            const sessionCodeEl = document.getElementById('sessionCode');
+            const pageTitle = document.getElementById('pageTitle');
+            const pageCopy = document.getElementById('pageCopy');
+            const fileInput = document.getElementById('fileInput');
+            const mainBtn = document.getElementById('mainBtn');
+            const sendBtn = document.getElementById('sendBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const fileList = document.getElementById('fileList');
+            const toastEl = document.getElementById('toast');
+            const sessionFooter = document.getElementById('sessionFooter');
+            const rawFileDialog = document.getElementById('rawFileDialog');
+            const rawFileChooseAgain = document.getElementById('rawFileChooseAgain');
+
+            const state = {
+                sessionId: null,
+                uploaderId: null,
+                files: [],
+                isSending: false,
+                nextOrder: 0,
+                completeSent: false,
+                completeFailed: false,
+                metadataRetryAt: 0,
+                metadataRecovering: false,
+                draftLocked: false,
+                cancelled: false,
+                activeRequests: new Set(),
+                wakeLock: null,
+                statusPollTimer: null,
+                statusCheckPromise: null,
+                terminal: false
+            };
+
+            function createSessionId() {
+                const url = new URL(window.location.href);
+                const existing = url.searchParams.get('s') || url.searchParams.get('session');
+                if (existing) return existing;
+                return 'sess_' + Math.random().toString(36).slice(2, 10);
+            }
+
+            function createUploaderId() {
+                if (crypto.randomUUID) return crypto.randomUUID();
+                const bytes = crypto.getRandomValues(new Uint8Array(16));
+                bytes[6] = (bytes[6] & 0x0f) | 0x40;
+                bytes[8] = (bytes[8] & 0x3f) | 0x80;
+                const value = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+                return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+            }
+
+            function getUploaderId(sessionId) {
+                const key = `quickvint-phone-uploader:${sessionId}`;
+                try {
+                    let uploaderId = sessionStorage.getItem(key);
+                    if (!uploaderId) {
+                        uploaderId = createUploaderId();
+                        sessionStorage.setItem(key, uploaderId);
+                    }
+                    return uploaderId;
+                } catch (error) {
+                    return createUploaderId();
+                }
+            }
+
+            function isBatchMode() {
+                const url = new URL(window.location.href);
+                return url.searchParams.get('mode') === 'batch';
+            }
+
+            function isV2() {
+                return new URL(window.location.href).searchParams.get('v') === '2';
+            }
+
+            function isRawFilePreview() {
+                return new URL(window.location.href).searchParams.get('preview') === 'raw-empty';
+            }
+
+            function isEmptyDng(file) {
+                const type = String(file?.type || '').toLowerCase();
+                const name = String(file?.name || '').toLowerCase();
+                return file?.size === 0 && (type === 'image/x-adobe-dng' || type === 'image/dng' || name.endsWith('.dng'));
+            }
+
+            function showRawFileDialog() {
+                if (!rawFileDialog.open) rawFileDialog.showModal();
+            }
+
+            function getTrackingMode() {
+                return isBatchMode() ? 'batch' : 'single';
+            }
+
+            let phoneSessionKey;
+            async function getPhoneSessionKey() {
+                if (!state.sessionId) return null;
+                if (!phoneSessionKey) phoneSessionKey = crypto.subtle.digest('SHA-256', new TextEncoder().encode(state.sessionId)).then(hash => Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join(''));
+                return phoneSessionKey;
+            }
+            globalThis.AutoListerWebsiteTelemetry?.setContextProvider(async () => ({ source: 'phone_upload_page', phoneSessionKey: await getPhoneSessionKey() }));
+            function trackUploadEvent(event, context = {}) {
+                getPhoneSessionKey().then(key => globalThis.AutoListerWebsiteTelemetry.track(event, {
+                    source: 'phone_upload_page', phoneSessionKey: key,
+                    context: { mode: getTrackingMode(), ...context }
+                })).catch(() => {});
+            }
+
+            function getBrowserTelemetry() {
+                try {
+                    const deviceMemory = Number(navigator?.deviceMemory);
+                    return {
+                        userAgent: navigator?.userAgent || null,
+                        platform: navigator?.platform || null,
+                        deviceMemory: Number.isFinite(deviceMemory) ? deviceMemory : null,
+                        viewport: `${window?.innerWidth || 0}x${window?.innerHeight || 0}`
+                    };
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function getCompressionSummary(items) {
+                try {
+                    const safeSize = (value) => {
+                        if (value === null || value === undefined || value === '') return null;
+                        const size = Number(value);
+                        return Number.isFinite(size) && size >= 0 ? size : null;
+                    };
+                    const summarizeBytes = (values) => {
+                        const sizes = values.map(safeSize).filter((size) => size !== null);
+                        return {
+                            count: sizes.length,
+                            min: sizes.length ? Math.min(...sizes) : null,
+                            max: sizes.length ? Math.max(...sizes) : null,
+                            total: sizes.reduce((sum, size) => sum + size, 0)
+                        };
+                    };
+                    const originalTypes = {};
+                    const compressionRoutes = {};
+                    items.forEach((item) => {
+                        const type = String(item.telemetryOriginalType || 'unknown').slice(0, 80);
+                        const route = String(item.compressionRoute || 'not_started').slice(0, 40);
+                        originalTypes[type] = (originalTypes[type] || 0) + 1;
+                        compressionRoutes[route] = (compressionRoutes[route] || 0) + 1;
+                    });
+
+                    return {
+                        originalTypes,
+                        originalBytesAtSelection: summarizeBytes(items.map((item) => item.originalSizeAtSelection)),
+                        originalBytesBeforeCompression: summarizeBytes(items.map((item) => item.originalSizeBeforeCompression)),
+                        uploadedBytes: summarizeBytes(items.map((item) => item.uploadedSizeBytes)),
+                        serverReceivedBytes: summarizeBytes(items.map((item) => item.serverReceivedSizeBytes)),
+                        zeroBytesAtSelection: items.filter((item) => item.originalSizeAtSelection === 0).length,
+                        zeroBytesBeforeCompression: items.filter((item) => item.originalSizeBeforeCompression === 0).length,
+                        compressionRoutes,
+                        browser: getBrowserTelemetry()
+                    };
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function flushUploadEvents() {
+                void globalThis.AutoListerWebsiteTelemetry.flush();
+            }
+
+            function syncPageCopy() {
+                if (isV2()) {
+                    document.body.classList.add('v2-mode');
+                    pageCopy.textContent = 'Choose photos. They will appear on your computer after upload.';
+                    mainBtn.lastChild.textContent = 'Choose photos';
+                    sendBtn.style.display = 'none';
+                }
+                if (isBatchMode()) {
+                    document.body.classList.add('batch-mode');
+                    pageTitle.textContent = 'Upload Batch Photos';
+                    if (!isV2()) {
+                        pageCopy.innerHTML = 'Select photos once. Upload starts immediately in your phone gallery order.';
+                        mainBtn.lastChild.textContent = 'Select Photos';
+                    }
+                }
+            }
+
+            function showToast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                setTimeout(() => toastEl.classList.remove('show'), 2000);
+            }
+
+            function renderFile(item) {
+                if (isBatchMode() && !isV2()) return null;
+
+                const el = document.createElement('div');
+                el.className = 'file-item';
+                const reorderActions = isV2() ? '' : `
+                <button type="button" class="move-up">Up</button>
+                <button type="button" class="move-down">Down</button>`;
+                const completionAction = isV2()
+                    ? '<span class="upload-state" role="status" aria-label="Waiting">•</span>'
+                    : '<button type="button" class="remove-photo" aria-label="Remove photo">×</button>';
+                el.innerHTML = `
+            <div class="file-order"></div>
+            <img src="${item.preview}" class="file-preview">
+            <div class="file-info">
+                <div class="file-name">${item.name}</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                <div class="file-status">Waiting...</div>
+            </div>
+            <div class="file-actions">
+                ${reorderActions}
+                ${completionAction}
+            </div>
+        `;
+                fileList.appendChild(el);
+                item.el = el;
+                el.querySelector('.move-up')?.addEventListener('click', () => moveItem(item, -1));
+                el.querySelector('.move-down')?.addEventListener('click', () => moveItem(item, 1));
+                el.querySelector('.remove-photo')?.addEventListener('click', () => removeItem(item));
+                updateBatchOrderUI();
+                return {
+                    el,
+                    fill: el.querySelector('.progress-fill'),
+                    status: el.querySelector('.file-status')
+                };
+            }
+
+            function renderBatchProgress() {
+                if (state.terminal) return;
+                if (!isBatchMode() && !isV2()) {
+                    // Keep the individual legacy photo cards, including previews.
+                    sendBtn.style.display = state.completeFailed ? 'flex' : 'none';
+                    sendBtn.disabled = state.isSending || Date.now() < state.metadataRetryAt;
+                    sendBtn.textContent = state.metadataRecovering ? 'Connection interrupted. Retrying…' : 'Retry confirmation';
+                    return;
+                }
+
+                const total = state.files.length;
+                const sent = state.files.filter((item) => item.done).length;
+                const failed = state.files.filter((item) => item.failed && !item.done).length;
+                const failureMessage = state.files.find((item) => item.failureMessage)?.failureMessage;
+                const preparing = state.files.filter((item) => item.preparing && !item.done).length;
+                const uploading = state.files.filter((item) => item.uploading && !item.done).length;
+                const active = Math.min(total, sent + preparing + uploading);
+                const pct = total ? Math.round((sent / total) * 100) : 0;
+                let title = 'Ready to send';
+                let detail = 'Choose photos from your phone gallery.';
+
+                if (state.isSending) {
+                    title = `Sending ${Math.min(sent + preparing + uploading, total)} of ${total}`;
+                    detail = preparing > 0
+                        ? 'Compressing photos before upload. Keep this page open.'
+                        : 'Uploading compressed photos. Keep this page open.';
+                } else if (state.completeSent) {
+                    title = `${sent} photos sent`;
+                    detail = 'Return to your desktop to group photos into listings.';
+                } else if (state.completeFailed) {
+                    title = 'Desktop handoff failed';
+                    detail = 'Tap retry to notify your desktop again.';
+                } else if (failed > 0) {
+                    title = `${failed} photo${failed === 1 ? '' : 's'} failed`;
+                    detail = failureMessage || 'Retry the failed photos when your connection is stable.';
+                } else if (total > 0) {
+                    title = `${sent} of ${total} photos sent`;
+                    detail = sent === total ? 'Finalizing desktop handoff...' : 'Upload is paused.';
+                }
+                if (state.metadataRecovering) detail = 'Connection interrupted. Retrying…';
+
+                if (!isV2()) fileList.innerHTML = `
+                    <div class="batch-progress">
+                        <div class="batch-progress-main">
+                            <span>${title}</span>
+                            <span>${pct}%</span>
+                        </div>
+                        <div class="batch-progress-sub">${detail}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
+                    </div>
+                `;
+
+                if (isV2()) {
+                    sendBtn.style.display = 'none';
+                    mainBtn.style.display = 'flex';
+                    mainBtn.disabled = state.isSending || state.completeSent || Date.now() < state.metadataRetryAt;
+                    mainBtn.classList.toggle('is-uploading', state.isSending);
+                    mainBtn.classList.toggle('is-error', failed > 0 && !state.isSending);
+                    mainBtn.classList.toggle('is-ready', total > 0 && !state.isSending && failed === 0);
+                    pageCopy.classList.toggle('is-ready', total > 0 && !state.isSending && failed === 0);
+                    if (state.isSending) {
+                        mainBtn.lastChild.textContent = `Adding ${active} of ${total}…`;
+                        pageCopy.textContent = state.metadataRecovering || state.files.some(item => item.connectionWaiting) ? 'Waiting for your connection. Your photos are kept here.' : 'Keep this page open while your photos are added.';
+                    } else if (failed > 0) {
+                        mainBtn.lastChild.textContent = `Retry ${failed} failed photo${failed === 1 ? '' : 's'}`;
+                        pageCopy.textContent = failureMessage || `${failed} photo${failed === 1 ? '' : 's'} need another try.`;
+                    } else if (total > 0) {
+                        mainBtn.lastChild.textContent = 'Add more photos';
+                        pageCopy.textContent = `${total} photos ready on your computer`;
+                    } else {
+                        mainBtn.lastChild.textContent = 'Choose photos';
+                    }
+                    cancelBtn.style.display = total > 0 && !state.completeSent ? 'flex' : 'none';
+                    return;
+                }
+
+                sendBtn.style.display = state.isSending || ((failed > 0 || state.completeFailed) && !state.completeSent) ? 'flex' : 'none';
+                sendBtn.disabled = state.isSending || state.completeSent || state.files.length === 0 || Date.now() < state.metadataRetryAt;
+                if (state.isSending) {
+                    sendBtn.textContent = `Sending ${sent} / ${total}`;
+                } else if (state.completeSent) {
+                    sendBtn.textContent = 'Sent to Desktop';
+                } else if (failed > 0 || state.completeFailed) {
+                    sendBtn.textContent = failed > 0 ? 'Retry Failed Photos' : 'Retry confirmation';
+                }
+                mainBtn.disabled = state.isSending || state.completeSent || (isV2() && state.draftLocked);
+            }
+
+            function wait(ms) {
+                return new Promise((resolve) => setTimeout(resolve, ms));
+            }
+
+            function isRetryableUploadStatus(status) {
+                if (isV2() && (status === 409 || status === 410)) return false;
+                return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+            }
+
+            function uploadFileOnce(item, ui, attempt = 0) {
+                return new Promise((resolve, reject) => {
+                    const form = new FormData();
+                    form.append('sessionId', state.sessionId);
+                    form.append('uploadOrder', String(item.order));
+                    form.append('file', item.file);
+
+                    const xhr = new XMLHttpRequest();
+                    const uploadUrl = isV2()
+                        ? `${API_UPLOAD}?v=2&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}`
+                        : API_UPLOAD;
+                    xhr.open('POST', uploadUrl, true);
+                    const telemetryAttemptId = item.telemetryOperationId ||= crypto.randomUUID();
+                    let idleTimer;
+                    let idleExpired = false;
+                    let lastProgressBytes = 0;
+                    const armIdleDeadline = () => {
+                        clearTimeout(idleTimer);
+                        idleTimer = setTimeout(() => { idleExpired = true; xhr.abort(); }, UPLOAD_IDLE_TIMEOUT_MS);
+                    };
+                    let lastTelemetryProgressAt = 0;
+                    let lastTelemetryBytes = -1;
+                    trackUploadEvent('phone_upload_transfer_start', { operationId: telemetryAttemptId, itemIndex: item.order, attempt });
+                    state.activeRequests.add(xhr);
+                    item.failed = false;
+                    item.uploading = true;
+                    if (ui) {
+                        ui.fill.style.width = '0%';
+                        ui.fill.style.background = '';
+                        ui.status.classList.remove('status-done', 'status-error');
+                        ui.status.textContent = attempt > 0 ? 'Retrying...' : 'Starting...';
+                    }
+                    renderBatchProgress();
+
+                    xhr.upload.onprogress = (e) => {
+                        if (e.loaded > lastProgressBytes) {
+                            lastProgressBytes = e.loaded;
+                            item.connectionWaiting = false;
+                            armIdleDeadline();
+                            renderBatchProgress();
+                        }
+                        if (e.lengthComputable) {
+                            if (e.loaded !== lastTelemetryBytes && Date.now() - lastTelemetryProgressAt >= 30000) {
+                                lastTelemetryProgressAt = Date.now();
+                                lastTelemetryBytes = e.loaded;
+                                trackUploadEvent('upload_progress', { operationId: telemetryAttemptId, itemIndex: item.order, loadedBytes: e.loaded, totalBytes: e.total });
+                            }
+                            const pct = Math.round((e.loaded / e.total) * 100);
+                            if (ui) {
+                                ui.fill.style.width = pct + '%';
+                                ui.status.textContent = pct === 100 ? 'Processing...' : 'Uploading...';
+                            }
+                        }
+                    };
+
+                    xhr.onload = () => {
+                        clearTimeout(idleTimer);
+                        state.activeRequests.delete(xhr);
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const result = JSON.parse(xhr.responseText || 'null');
+                                const receivedBytes = Number(result?.files?.[0]?.size);
+                                item.serverReceivedSizeBytes = Number.isFinite(receivedBytes) ? receivedBytes : null;
+                            } catch (error) {
+                                item.serverReceivedSizeBytes = null;
+                            }
+                            if (ui) {
+                                ui.fill.style.width = '100%';
+                                ui.fill.style.background = '#10b981';
+                                ui.status.textContent = 'Sent';
+                                ui.status.classList.add('status-done');
+                            }
+                            trackUploadEvent('phone_upload_ready', { operationId: telemetryAttemptId, itemIndex: item.order, uploadedCount: 1 });
+                            item.connectionWaiting = false;
+                            item.done = true;
+                            item.failed = false;
+                            item.uploading = false;
+                            const uploadState = item.el?.querySelector('.upload-state');
+                            if (uploadState) {
+                                uploadState.textContent = '✓';
+                                uploadState.classList.add('upload-complete');
+                                uploadState.setAttribute('aria-label', 'Photo ready');
+                            }
+                            renderBatchProgress();
+                            resolve();
+                        } else {
+                            if (isV2() && xhr.status === 410) {
+                                state.terminal = true;
+                                if (state.statusPollTimer) clearInterval(state.statusPollTimer);
+                                state.statusPollTimer = null;
+                                state.activeRequests.forEach(request => request.abort());
+                                pageTitle.textContent = 'Upload Expired';
+                                pageCopy.textContent = 'This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.';
+                                setDraftControlsLocked(true);
+                                mainBtn.style.display = sendBtn.style.display = cancelBtn.style.display = 'none';
+                            }
+                            if (ui) {
+                                ui.status.textContent = 'Failed';
+                                ui.status.classList.add('status-error');
+                                ui.fill.style.background = '#ef4444';
+                            }
+                            item.failed = true;
+                            item.uploading = false;
+                            renderBatchProgress();
+                            let message = 'Upload failed';
+                            try {
+                                message = JSON.parse(xhr.responseText || 'null')?.error || message;
+                            } catch (error) {
+                                // Keep the generic message when the response is not JSON.
+                            }
+                            const error = new Error(message);
+                            error.status = xhr.status;
+                            error.retryAfterMs = globalThis.AutoListerPhoneRecovery.retryAfterMs(xhr.getResponseHeader('Retry-After'), Date.now());
+                            trackUploadEvent(xhr.status === 410 ? 'phone_session_expired' : 'phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: `UPLOAD_HTTP_${xhr.status}`, statusCode: xhr.status, message });
+                            reject(error);
+                        }
+                    };
+
+                    xhr.onerror = () => {
+                        clearTimeout(idleTimer);
+                        state.activeRequests.delete(xhr);
+                        if (ui) {
+                            ui.status.textContent = 'Error';
+                            ui.status.classList.add('status-error');
+                        }
+                        item.failed = true;
+                        item.uploading = false;
+                        renderBatchProgress();
+                        if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_NETWORK_ERROR', statusCode: 0, message: 'Upload error' });
+                        reject(new Error('Upload error'));
+                    };
+
+                    xhr.onabort = () => {
+                        clearTimeout(idleTimer);
+                        state.activeRequests.delete(xhr);
+                        item.uploading = false;
+                        if (idleExpired) {
+                            if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_IDLE_TIMEOUT', statusCode: 0, message: 'Upload stopped making progress' });
+                            reject(Object.assign(new Error('Upload stopped making progress'), { status: 0 }));
+                        } else reject(Object.assign(new Error('Upload cancelled'), { code: 'PHONE_OPERATION_CANCELLED' }));
+                    };
+
+                    armIdleDeadline();
+                    xhr.send(form);
+                });
+            }
+
+            async function uploadFile(item, ui) {
+                let lastError = null;
+                let attempts = 0;
+                let interruptedAt = null;
+                const sessionId = state.sessionId;
+                const active = () => !state.cancelled && !state.terminal && state.sessionId === sessionId;
+                for (let attempt = 0; ; attempt += 1) {
+                    if (!active()) throw Object.assign(new Error('Upload cancelled'), { code: 'PHONE_OPERATION_CANCELLED' });
+                    attempts += 1;
+                    try {
+                        return await uploadFileOnce(item, ui, attempt);
+                    } catch (error) {
+                        lastError = error;
+                        if (!active() || error.code === 'PHONE_OPERATION_CANCELLED') throw error;
+                        interruptedAt ??= Date.now();
+                        const status = Number(error?.status);
+                        const retryable = !status || isRetryableUploadStatus(status);
+                        const delayMs = Math.max(UPLOAD_RETRY_DELAYS_MS[Math.min(attempt, UPLOAD_RETRY_DELAYS_MS.length - 1)], error.retryAfterMs || 0);
+                        if (!retryable || Date.now() + delayMs - interruptedAt >= UPLOAD_RECOVERY_WINDOW_MS) break;
+                        if (attempt === 0 || ((attempt + 1) & attempt) === 0) trackUploadEvent('phone_upload_file_retry', {
+                            operationId: item.telemetryOperationId,
+                            order: item.order, attempt: attempt + 1, nextAttempt: attempt + 2,
+                            status: Number.isFinite(status) ? status : null,
+                            retryable, message: error?.message || String(error)
+                        });
+                        item.failed = false;
+                        item.uploading = false;
+                        item.connectionWaiting = true;
+                        if (ui) {
+                            ui.status.classList.remove('status-error');
+                            ui.status.textContent = 'Waiting for connection…';
+                        }
+                        renderBatchProgress();
+                        const retryAt = Date.now() + delayMs;
+                        while (Date.now() < retryAt && active()) await wait(Math.min(250, retryAt - Date.now()));
+                    }
+                }
+                item.connectionWaiting = false;
+                trackUploadEvent('phone_upload_file_error', {
+                    operationId: item.telemetryOperationId, order: item.order, attempts,
+                    status: Number.isFinite(Number(lastError?.status)) ? Number(lastError.status) : null,
+                    message: lastError?.message || String(lastError || 'Upload failed')
+                });
+                throw lastError || new Error('Upload failed');
+            }
+
+            function loadImageElementForCompression(url) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+
+                    img.onload = () => resolve({
+                        image: img,
+                        width: img.width,
+                        height: img.height,
+                        close: () => {},
+                        decoder: 'image_element'
+                    });
+
+                    img.onerror = () => reject(new Error('Image decode failed'));
+                    img.src = url;
+                });
+            }
+
+            async function loadImageForCompression(file, url) {
+                if ('createImageBitmap' in window) {
+                    try {
+                        const image = await createImageBitmap(file);
+                        return {
+                            image,
+                            width: null,
+                            height: null,
+                            close: (bitmap) => bitmap.close?.(),
+                            decoder: 'createImageBitmap'
+                        };
+                    } catch (error) {
+                        // Some mobile JPEGs fail one browser decoder but pass the other.
+                    }
+                }
+                return loadImageElementForCompression(url);
+            }
+
+            function compressImageOnce(file, orientation = 1) {
+                return new Promise((resolve, reject) => {
+                    const url = URL.createObjectURL(file);
+
+                    loadImageForCompression(file, url).then(({ image, width: loadedWidth, height: loadedHeight, close }) => {
+                        URL.revokeObjectURL(url);
+                        const canvas = document.createElement('canvas');
+                        let width = loadedWidth || image.width;
+                        let height = loadedHeight || image.height;
+
+                        // Match prompt size; bigger just increases transfer.
+                        const MAX_SIZE = 1280;
+                        if (width > height) {
+                            if (width > MAX_SIZE) {
+                                height *= MAX_SIZE / width;
+                                width = MAX_SIZE;
+                            }
+                        } else {
+                            if (height > MAX_SIZE) {
+                                width *= MAX_SIZE / height;
+                                height = MAX_SIZE;
+                            }
+                        }
+
+                        const swapsDimensions = orientation >= 5 && orientation <= 8;
+                        canvas.width = swapsDimensions ? height : width;
+                        canvas.height = swapsDimensions ? width : height;
+                        const ctx = canvas.getContext('2d');
+                        if (orientation === 2) ctx.transform(-1, 0, 0, 1, width, 0);
+                        if (orientation === 3) ctx.transform(-1, 0, 0, -1, width, height);
+                        if (orientation === 4) ctx.transform(1, 0, 0, -1, 0, height);
+                        if (orientation === 5) ctx.transform(0, 1, 1, 0, 0, 0);
+                        if (orientation === 6) ctx.transform(0, 1, -1, 0, height, 0);
+                        if (orientation === 7) ctx.transform(0, -1, -1, 0, height, width);
+                        if (orientation === 8) ctx.transform(0, -1, 1, 0, 0, width);
+                        ctx.drawImage(image, 0, 0, width, height);
+                        close(image);
+
+                        // Compress to JPEG before Supabase storage.
+                        canvas.toBlob((blob) => {
+                            if (!blob) {
+                                return reject(new Error('Compression failed'));
+                            }
+                            // Create new file with same name but .jpg extension if needed
+                            // Add timestamp to avoid duplicate filename errors on server
+                            const timestamp = Date.now();
+                            const originalName = file.name.replace(/\.[^/.]+$/, "");
+                            const newName = `${originalName}_${timestamp}.jpg`;
+
+                            const newFile = new File([blob], newName, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(newFile);
+                        }, 'image/jpeg', 0.8);
+                    }).catch(() => {
+                        URL.revokeObjectURL(url);
+                        reject(new Error('Image decode failed'));
+                    });
+                });
+            }
+
+            async function compressImage(file) {
+                const fileType = String(file.type || '').toLowerCase();
+                const fileName = String(file.name || '').toLowerCase();
+                if (fileType === 'image/x-adobe-dng' || fileType === 'image/dng' || fileName.endsWith('.dng')) {
+                    try {
+                        const { convertDngPreview } = await import('/dng-preview.js');
+                        const compressed = await convertDngPreview(file, (candidate, orientation) => {
+                            const originalName = file.name.replace(/\.[^/.]+$/, '') || 'proraw';
+                            return compressImageOnce(new File([candidate], `${originalName}-preview.jpg`, {
+                                type: 'image/jpeg',
+                                lastModified: file.lastModified || Date.now()
+                            }), orientation);
+                        });
+                        trackUploadEvent('phone_upload_dng_preview_used', {
+                            fileSizeBytes: file.size,
+                            compressedSizeBytes: compressed.size
+                        });
+                        return compressed;
+                    } catch (error) {
+                        trackUploadEvent('phone_upload_dng_preview_error', {
+                            fileSizeBytes: file.size,
+                            message: error?.message || String(error)
+                        });
+                        throw error;
+                    }
+                }
+
+                // If not an image, return as is
+                if (!file.type.startsWith('image/')) return file;
+
+                let lastError = null;
+                for (let attempt = 0; attempt <= COMPRESSION_RETRY_DELAYS_MS.length; attempt += 1) {
+                    try {
+                        return await compressImageOnce(file);
+                    } catch (error) {
+                        lastError = error;
+                        const delayMs = COMPRESSION_RETRY_DELAYS_MS[attempt];
+                        if (!delayMs) break;
+                        await wait(delayMs);
+                    }
+                }
+                console.warn('AutoLister upload compression failed', lastError);
+                trackUploadEvent('phone_upload_compression_fallback', {
+                    attempts: COMPRESSION_RETRY_DELAYS_MS.length + 1,
+                    fileType: file?.type || null,
+                    fileSizeBytes: Number.isFinite(Number(file?.size)) ? Number(file.size) : null,
+                    fileLastModified: Number.isFinite(Number(file?.lastModified)) ? Number(file.lastModified) : null,
+                    decodersTried: 'createImageBitmap' in window ? 'createImageBitmap,image_element' : 'image_element',
+                    userAgent: navigator.userAgent || null,
+                    platform: navigator.platform || null,
+                    deviceMemory: Number.isFinite(Number(navigator.deviceMemory)) ? Number(navigator.deviceMemory) : null,
+                    viewport: `${window.innerWidth || 0}x${window.innerHeight || 0}`,
+                    message: lastError?.message || String(lastError || 'unknown')
+                });
+                return file;
+            }
+
+            function updateBatchOrderUI() {
+                if (!isBatchMode() && !isV2()) return;
+
+                state.files.forEach((item, index) => {
+                    item.order = index;
+                    const orderEl = item.el?.querySelector('.file-order');
+                    const upBtn = item.el?.querySelector('.move-up');
+                    const downBtn = item.el?.querySelector('.move-down');
+                    const removeBtn = item.el?.querySelector('.remove-photo');
+                    if (orderEl) orderEl.textContent = String(index + 1);
+                    if (upBtn) upBtn.disabled = state.isSending || state.draftLocked || index === 0;
+                    if (downBtn) downBtn.disabled = state.isSending || state.draftLocked || index === state.files.length - 1;
+                    if (removeBtn) removeBtn.disabled = state.isSending || state.draftLocked;
+                });
+
+                const allDone = state.files.length > 0 && state.files.every((item) => item.done);
+                if (isV2()) {
+                    renderBatchProgress();
+                    return;
+                }
+                sendBtn.disabled = state.isSending || state.files.length === 0 || (allDone && state.completeSent) || Date.now() < state.metadataRetryAt;
+                if (!state.isSending && state.files.some((item) => item.failed && !item.done)) {
+                    sendBtn.textContent = 'Retry Failed Photos';
+                } else if (allDone && state.completeSent) {
+                    sendBtn.textContent = 'Sent to Desktop';
+                } else if (state.completeFailed) {
+                    sendBtn.textContent = 'Retry confirmation';
+                } else {
+                    sendBtn.textContent = `Send ${state.files.length} photo${state.files.length === 1 ? '' : 's'}`;
+                }
+                if (isV2()) {
+                    mainBtn.lastChild.textContent = state.files.length > 0 ? 'Add more photos' : 'Choose photos';
+                }
+            }
+
+            function removeItem(item) {
+                if (state.isSending || state.draftLocked || item.done) return;
+                const index = state.files.indexOf(item);
+                if (index < 0) return;
+                state.files.splice(index, 1);
+                if (item.preview) URL.revokeObjectURL(item.preview);
+                item.el?.remove();
+                updateBatchOrderUI();
+                renderBatchProgress();
+            }
+
+            function setDraftControlsLocked(locked) {
+                state.draftLocked = locked;
+                const expiryHint = document.querySelector('.session-expiry-hint');
+                if (expiryHint) expiryHint.style.display = state.terminal || state.cancelled ? 'none' : '';
+                fileInput.disabled = locked;
+                mainBtn.disabled = locked;
+                fileList.querySelectorAll('.move-up, .move-down, .remove-photo').forEach((control) => {
+                    control.disabled = locked;
+                });
+                cancelBtn.style.display = locked && !state.completeSent && !state.terminal && !state.cancelled ? 'flex' : 'none';
+            }
+
+            function moveItem(item, direction) {
+                if (state.isSending || state.draftLocked) return;
+                const currentIndex = state.files.indexOf(item);
+                const nextIndex = currentIndex + direction;
+                if (currentIndex < 0 || nextIndex < 0 || nextIndex >= state.files.length) return;
+
+                const [moved] = state.files.splice(currentIndex, 1);
+                state.files.splice(nextIndex, 0, moved);
+                state.files.forEach((fileItem) => fileList.appendChild(fileItem.el));
+                updateBatchOrderUI();
+            }
+
+            async function prepareAndUploadItem(item, ui) {
+                if (ui) ui.status.textContent = 'Compressing...';
+                try {
+                    if (!item.compressed) {
+                        item.preparing = true;
+                        item.failureMessage = null;
+                        renderBatchProgress();
+                        const originalFile = item.originalFile || item.file;
+                        item.originalSizeBeforeCompression = Number.isFinite(Number(originalFile?.size))
+                            ? Number(originalFile.size)
+                            : null;
+                        const compressedFile = await compressImage(originalFile);
+                        if (state.cancelled) throw new Error('Upload cancelled');
+                        const originalType = String(originalFile.type || '').toLowerCase();
+                        const originalName = String(originalFile.name || '').toLowerCase();
+                        const originalIsDng =
+                            originalType === 'image/x-adobe-dng' ||
+                            originalType === 'image/dng' ||
+                            originalName.endsWith('.dng');
+                        item.compressionRoute = compressedFile === originalFile
+                            ? (originalType.startsWith('image/') ? 'fallback' : 'unchanged')
+                            : (originalIsDng ? 'dng_preview' : 'normal');
+                        item.uploadedSizeBytes = Number.isFinite(Number(compressedFile?.size))
+                            ? Number(compressedFile.size)
+                            : null;
+                        if (isV2() && compressedFile.size > 4 * 1024 * 1024) {
+                            throw new Error('Photo is too large to upload. Choose a smaller copy.');
+                        }
+                        item.file = compressedFile;
+                        if (
+                            originalIsDng
+                        ) {
+                            const preview = item.el?.querySelector('.file-preview');
+                            if (preview) {
+                                if (item.preview) URL.revokeObjectURL(item.preview);
+                                item.preview = URL.createObjectURL(compressedFile);
+                                preview.src = item.preview;
+                            }
+                        }
+                        item.compressed = true;
+                        item.preparing = false;
+                    }
+                    if (ui) ui.status.textContent = 'Uploading...';
+                    renderBatchProgress();
+                    await uploadFile(item, ui);
+                    return true;
+                } catch (e) {
+                    console.error(e);
+                    item.preparing = false;
+                    item.uploading = false;
+                    if (!item.compressionRoute) item.compressionRoute = 'failed';
+                    if (!item.done) {
+                        const message = e?.message || '';
+                        item.failureMessage = message.startsWith('RAW photo') || message.startsWith('This RAW photo')
+                            ? message
+                            : null;
+                        if (ui) {
+                            ui.status.textContent = item.failureMessage ? 'RAW unavailable' : 'Failed';
+                            ui.status.classList.add('status-error');
+                        }
+                        item.failed = true;
+                    }
+                    renderBatchProgress();
+                    return false;
+                }
+            }
+
+            async function requestWakeLock() {
+                if (!isBatchMode() || state.wakeLock || !('wakeLock' in navigator)) return;
+                try {
+                    state.wakeLock = await navigator.wakeLock.request('screen');
+                    state.wakeLock.addEventListener('release', () => {
+                        state.wakeLock = null;
+                    });
+                } catch (error) {
+                    state.wakeLock = null;
+                }
+            }
+
+            async function releaseWakeLock() {
+                if (!state.wakeLock) return;
+                try {
+                    await state.wakeLock.release();
+                } catch (error) {
+                    // Wake lock may already be released by the browser.
+                }
+                state.wakeLock = null;
+            }
+
+            async function recoverMetadata(stage, url, options, settling = false) {
+                const sessionId = state.sessionId;
+                if (Date.now() < state.metadataRetryAt) throw new Error('Please wait a moment before retrying.');
+                const deadline = Date.now() + UPLOAD_RECOVERY_WINDOW_MS;
+                const operationId = crypto.randomUUID();
+                let metadataAttempts = 0;
+                const active = () => !state.cancelled && !state.terminal && state.sessionId === sessionId;
+                try {
+                    for (;;) {
+                        try {
+                            const result = await globalThis.AutoListerPhoneRecovery.run({
+                                settling, active,
+                                request: async ({ signal }) => {
+                                    metadataAttempts++;
+                                    const response = await fetch(url, { ...options, signal });
+                                    const data = await response.json().catch(() => null);
+                                    return { ok: response.ok, status: response.status, data, retryAfter: response.headers.get('Retry-After') };
+                                },
+                                onRetry: () => { state.metadataRecovering = true; renderBatchProgress(); },
+                            });
+                            if (metadataAttempts > 1) trackUploadEvent('phone_upload_metadata_recovered', { operationId, stage, attempts: metadataAttempts });
+                            return result;
+                        } catch (error) {
+                            const delayMs = Math.max(700, (error.retryAt || 0) - Date.now());
+                            if (!active() || error.code === 'PHONE_OPERATION_CANCELLED' || error.retryable === false ||
+                                (error.status && !isRetryableUploadStatus(error.status)) || Date.now() + delayMs >= deadline) throw error;
+                            state.metadataRecovering = true;
+                            renderBatchProgress();
+                            const retryAt = Date.now() + delayMs;
+                            while (Date.now() < retryAt && active()) await wait(Math.min(250, retryAt - Date.now()));
+                        }
+                    }
+                } catch (error) {
+                    if (error.status === 410) {
+                        state.terminal = true;
+                        if (state.statusPollTimer) clearInterval(state.statusPollTimer);
+                        state.statusPollTimer = null;
+                        pageTitle.textContent = 'Upload Expired';
+                        pageCopy.textContent = 'This upload is no longer available. Start a new phone upload from your desktop.';
+                        setDraftControlsLocked(true);
+                        mainBtn.style.display = sendBtn.style.display = cancelBtn.style.display = 'none';
+                    }
+                    if (error.retryAt) {
+                        state.metadataRetryAt = error.retryAt;
+                        setTimeout(() => { if (state.sessionId === sessionId && !state.terminal) renderBatchProgress(); }, Math.min(2147483647, Math.max(0, error.retryAt - Date.now())));
+                    }
+                    if (error.code !== 'PHONE_OPERATION_CANCELLED' && ![400, 401, 403, 409, 410].includes(error.status)) trackUploadEvent('phone_upload_transfer_error', {
+                        stage, errorCode: error.code, statusCode: error.status, attempts: error.attempts, retryable: error.retryable,
+                    });
+                    throw error;
+                } finally {
+                    state.metadataRecovering = false;
+                }
+            }
+
+            async function prepareExpectedCount() {
+                if ((!isV2() && isBatchMode()) || state.files.length === 0) return;
+                try {
+                    await recoverMetadata('phone_prepare',
+                        `${API_PREPARE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}${isV2() ? `&v=2&uploaderId=${encodeURIComponent(state.uploaderId)}` : ''}`,
+                        { method: 'POST' },
+                    );
+                } catch (error) {
+                    if (error.status === 410) {
+                        pageTitle.textContent = 'Upload Expired';
+                        pageCopy.textContent = 'This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.';
+                    }
+                    if (isV2()) throw error;
+                    // Progress count is helpful, but upload must continue without it.
+                }
+            }
+
+            async function completeUpload() {
+                try {
+                    await recoverMetadata('phone_complete',
+                        `${API_COMPLETE}&sessionId=${encodeURIComponent(state.sessionId)}&expectedCount=${state.files.length}${isV2() ? '&v=2' : ''}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                expectedCount: state.files.length,
+                                orders: state.files.map((item) => item.order),
+                            }),
+                        },
+                        true,
+                    );
+                } catch (error) {
+                    if (error.code !== 'PHONE_OPERATION_CANCELLED') {
+                        state.completeFailed = true;
+                        if (!state.terminal) renderBatchProgress();
+                    }
+                    throw error;
+                }
+
+                state.completeSent = true;
+                state.completeFailed = false;
+                if (isV2()) {
+                    cancelBtn.style.display = 'none';
+                    mainBtn.style.display = 'none';
+                    sendBtn.disabled = true;
+                }
+                if (isBatchMode()) {
+                    pageTitle.textContent = 'Photos Sent';
+                    pageCopy.innerHTML =
+                        'Return to your desktop to group photos into listings.';
+                }
+                renderBatchProgress();
+                showToast('Sent to desktop');
+            }
+
+            async function sendBatchFiles() {
+                if ((!isBatchMode() && !isV2()) || state.isSending || state.files.length === 0) return;
+                state.isSending = true;
+                setDraftControlsLocked(true);
+                state.completeSent = false;
+                state.completeFailed = false;
+                renderBatchProgress();
+                await requestWakeLock();
+                try {
+                    const retryCount = state.files.filter((item) => item.failed && !item.done).length;
+                    const startedAt = Date.now();
+
+                    let failedCount = 0;
+                    let cursor = 0;
+                    const pendingItems = state.files.filter((item) => !item.done);
+                    state.files.forEach((item, index) => {
+                        item.order = index;
+                    });
+
+                    if (isV2()) {
+                        try {
+                            await prepareExpectedCount();
+                        } catch (error) {
+                            if (state.cancelled || state.terminal || error.code === 'PHONE_OPERATION_CANCELLED') return;
+                            if (await checkSessionStatus()) return;
+                            pendingItems.forEach((item) => {
+                                item.failed = true;
+                            });
+                            showToast(error?.message || 'Could not start upload');
+                            renderBatchProgress();
+                            return;
+                        }
+                    }
+
+                    async function runNextUpload() {
+                        while (cursor < pendingItems.length) {
+                            const item = pendingItems[cursor];
+                            cursor += 1;
+                            const ok = await prepareAndUploadItem(item, item.ui);
+                            if (!ok) failedCount += 1;
+                        }
+                    }
+
+                    const workerCount = Math.min(BATCH_UPLOAD_CONCURRENCY, pendingItems.length);
+                    await Promise.all(
+                        Array.from({ length: workerCount }, () => runNextUpload())
+                    );
+
+                    if (state.cancelled || state.terminal) {
+                        return;
+                    }
+
+                    if (!isV2() && state.files.every((item) => item.done)) {
+                        try {
+                            await completeUpload();
+                        } catch (error) {
+                            console.error(error);
+                            showToast('Upload finished, but desktop was not notified. Tap retry.');
+                            failedCount = 1;
+                        }
+                    } else if (failedCount > 0) {
+                        const failureMessage = pendingItems.find((item) => item.failureMessage)?.failureMessage;
+                        showToast(failureMessage || `${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Retry when ready.`);
+                    }
+
+                    trackUploadEvent('phone_upload_send_summary', {
+                        fileCount: state.files.length,
+                        sentCount: state.files.filter((item) => item.done).length,
+                        failedCount,
+                        completeSent: state.completeSent,
+                        retryCount,
+                        durationMs: Date.now() - startedAt,
+                        compression: getCompressionSummary(state.files)
+                    });
+
+                    flushUploadEvents();
+                } finally {
+                    state.isSending = false;
+                    if (isV2()) setDraftControlsLocked(state.terminal || state.cancelled);
+                    else if (!state.completeSent) mainBtn.disabled = false;
+                    await releaseWakeLock();
+                    if (!state.terminal && !state.cancelled) { renderBatchProgress(); updateBatchOrderUI(); }
+                }
+            }
+
+            async function retryConfirmation() {
+                if (state.isSending || state.cancelled || state.terminal || Date.now() < state.metadataRetryAt) return;
+                state.isSending = true;
+                setDraftControlsLocked(true);
+                renderBatchProgress();
+                try { await completeUpload(); }
+                catch (error) { if (error.code !== 'PHONE_OPERATION_CANCELLED') showToast(error.message || 'Could not notify your desktop. Tap retry.'); }
+                finally { state.isSending = false; setDraftControlsLocked(state.terminal || state.cancelled); if (!state.terminal) renderBatchProgress(); }
+            }
+
+            async function sendSingleFiles(items) {
+                if (!items.length || state.isSending) return;
+                state.isSending = true;
+                setDraftControlsLocked(true);
+                try {
+                    await prepareExpectedCount();
+                    const startedAt = Date.now();
+
+                    let failedCount = 0;
+                    await Promise.all(items.map(async (item) => {
+                        const ok = await prepareAndUploadItem(item, item.ui);
+                        if (!ok) failedCount += 1;
+                    }));
+
+                    if (state.files.length > 0 && state.files.every((item) => item.done)) {
+                        try {
+                            await completeUpload();
+                        } catch (error) {
+                            console.error(error);
+                            showToast('Upload finished, but desktop was not notified. Try again.');
+                            failedCount = Math.max(failedCount, 1);
+                        }
+                    } else if (failedCount > 0) {
+                        const failureMessage = items.find((item) => item.failureMessage)?.failureMessage;
+                        showToast(failureMessage || `${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Try again.`);
+                    }
+
+                    trackUploadEvent('phone_upload_send_summary', {
+                        fileCount: state.files.length,
+                        sentCount: state.files.filter((item) => item.done).length,
+                        failedCount,
+                        completeSent: state.completeSent,
+                        retryCount: 0,
+                        durationMs: Date.now() - startedAt,
+                        compression: getCompressionSummary(state.files)
+                    });
+                    flushUploadEvents();
+                } finally {
+                    state.isSending = false;
+                    setDraftControlsLocked(false);
+                    renderBatchProgress();
+                }
+            }
+
+            function handleFiles(files) {
+                if (isV2() && (state.isSending || state.draftLocked || state.completeSent || state.cancelled)) return;
+                const emptyDngFiles = Array.from(files).filter(isEmptyDng);
+                if (emptyDngFiles.length) {
+                    trackUploadEvent('phone_upload_empty_dng_selected', {
+                        fileCount: emptyDngFiles.length,
+                        browser: getBrowserTelemetry()
+                    });
+                    flushUploadEvents();
+                    showRawFileDialog();
+                    return;
+                }
+                const singleItems = [];
+                Array.from(files).forEach((originalFile) => {
+                    const order = state.nextOrder++;
+
+                    const item = {
+                        file: originalFile, // Will be replaced by compressed
+                        originalFile,
+                        name: originalFile.name,
+                        preview: isBatchMode() && !isV2() ? '' : URL.createObjectURL(originalFile),
+                        order,
+                        done: false,
+                        failed: false,
+                        compressed: false,
+                        preparing: false,
+                        uploading: false,
+                        failureMessage: null,
+                        telemetryOriginalType: String(originalFile.type || (String(originalFile.name || '').toLowerCase().endsWith('.dng') ? 'image/dng' : 'unknown')).toLowerCase(),
+                        originalSizeAtSelection: Number.isFinite(Number(originalFile.size)) ? Number(originalFile.size) : null,
+                        originalSizeBeforeCompression: null,
+                        uploadedSizeBytes: null,
+                        serverReceivedSizeBytes: null,
+                        compressionRoute: null
+                    };
+
+                    state.files.push(item);
+                    state.completeSent = false;
+                    const ui = renderFile(item);
+                    item.ui = ui;
+
+                    if (isV2()) return;
+
+                    if (isBatchMode()) {
+                        renderBatchProgress();
+                        return;
+                    }
+
+                    singleItems.push(item);
+                });
+
+                if (isV2()) {
+                    updateBatchOrderUI();
+                    renderBatchProgress();
+                    if (files.length > 0) setTimeout(sendBatchFiles, 0);
+                } else if (isBatchMode() && files.length > 0) {
+                    setTimeout(sendBatchFiles, 0);
+                } else if (singleItems.length > 0) {
+                    setTimeout(async () => {
+                        await sendSingleFiles(singleItems);
+                    }, 0);
+                }
+            }
+
+            function handleFileInputChange(e) {
+                const files = Array.from(e.target.files || []);
+                e.target.value = '';
+                if (!files.length) return;
+                let didStart = false;
+                const startHandling = () => {
+                    if (didStart) return;
+                    didStart = true;
+                    setTimeout(() => handleFiles(files), 0);
+                };
+
+                requestAnimationFrame(startHandling);
+                setTimeout(startHandling, 120);
+            }
+
+            function renderTerminalSuccess() {
+                if (state.terminal) return;
+                state.terminal = true;
+                state.completeSent = true;
+                state.isSending = false;
+                if (state.statusPollTimer) clearInterval(state.statusPollTimer);
+                state.statusPollTimer = null;
+                state.activeRequests.forEach((request) => request.abort());
+                state.activeRequests.clear();
+                fileInput.disabled = true;
+                document.body.classList.remove('v2-mode', 'batch-mode');
+                document.body.classList.add('terminal-mode');
+                document.querySelector('.container').innerHTML = `
+                    <div class="terminal-success" role="status">
+                        <div class="terminal-success-icon" aria-hidden="true">✓</div>
+                        <h1>Photos added on your computer</h1>
+                        <p>You can close this page.</p>
+                    </div>
+                `;
+            }
+
+            async function checkSessionStatus() {
+                if (!isV2() || state.terminal) return state.terminal;
+                if (state.statusCheckPromise) return state.statusCheckPromise;
+                state.statusCheckPromise = fetch(
+                    `${API_UPLOAD}?action=status&v=2&sessionId=${encodeURIComponent(state.sessionId)}`,
+                    { cache: 'no-store' },
+                )
+                    .then(async (response) => {
+                        const result = await response.json().catch(() => null);
+                        if (response.ok && result?.status === 'complete') {
+                            renderTerminalSuccess();
+                            return true;
+                        }
+                        return false;
+                    })
+                    .catch(() => false)
+                    .finally(() => {
+                        state.statusCheckPromise = null;
+                    });
+                return state.statusCheckPromise;
+            }
+
+            function syncStatusPolling() {
+                if (!isV2() || state.terminal) return;
+                if (state.statusPollTimer) clearInterval(state.statusPollTimer);
+                state.statusPollTimer = null;
+                if (document.visibilityState !== 'visible') return;
+                checkSessionStatus();
+                state.statusPollTimer = setInterval(checkSessionStatus, STATUS_POLL_MS);
+            }
+
+            // Init
+            state.sessionId = createSessionId();
+            if (isV2()) state.uploaderId = getUploaderId(state.sessionId);
+            sessionCodeEl.textContent = state.sessionId;
+            syncPageCopy();
+            mainBtn.addEventListener('click', async () => {
+                if (state.files.some((item) => item.failed && !item.done)) {
+                    if (isV2() || isBatchMode()) sendBatchFiles();
+                    else sendSingleFiles(state.files.filter((item) => !item.done));
+                    return;
+                }
+                if (await checkSessionStatus()) return;
+                fileInput.click();
+            });
+            sendBtn.addEventListener('click', () => {
+                if (state.completeFailed && state.files.every((item) => item.done)) retryConfirmation();
+                else if (isV2() || isBatchMode()) sendBatchFiles();
+            });
+            cancelBtn.addEventListener('click', async () => {
+                if (!isV2()) return;
+                if (!window.confirm('Cancel this upload and discard its temporary photos?')) return;
+                state.cancelled = true;
+                state.activeRequests.forEach((request) => request.abort());
+                state.activeRequests.clear();
+                await fetch(
+                    `${API_UPLOAD}?action=cleanup&v=2&reason=cancelled&sessionId=${encodeURIComponent(state.sessionId)}`,
+                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+                ).catch(() => null);
+                state.files.forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
+                state.files = [];
+                state.isSending = false;
+                pageTitle.textContent = 'Upload Cancelled';
+                pageCopy.textContent = 'Start a new phone upload from your desktop.';
+                fileList.replaceChildren();
+                setDraftControlsLocked(true);
+                sendBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+            });
+            fileInput.addEventListener('change', handleFileInputChange);
+            rawFileChooseAgain.addEventListener('click', () => {
+                rawFileDialog.close();
+                fileInput.click();
+            });
+            if (isRawFilePreview()) showRawFileDialog();
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && state.isSending) {
+                    requestWakeLock();
+                }
+                syncStatusPolling();
+            });
+            window.addEventListener('focus', syncStatusPolling);
+            syncStatusPolling();
+            window.addEventListener('pagehide', flushUploadEvents);
+            window.addEventListener('beforeunload', (event) => {
+                if (!isV2() || state.completeSent || !state.isSending) return;
+                event.preventDefault();
+                event.returnValue = '';
+            });
+
+            sessionFooter.addEventListener('click', () => {
+                const modeParam = isBatchMode() ? '&mode=batch' : '';
+                const link = `${location.origin}${location.pathname}?s=${state.sessionId}${modeParam}`;
+                navigator.clipboard.writeText(link).then(() => showToast('Link copied'));
+            });
+
+            // Drag drop support on the whole container
+            const container = document.querySelector('.container');
+            container.addEventListener('dragover', e => { e.preventDefault(); container.style.transform = 'scale(0.98)'; });
+            container.addEventListener('dragleave', e => { e.preventDefault(); container.style.transform = 'scale(1)'; });
+            container.addEventListener('drop', e => {
+                e.preventDefault();
+                container.style.transform = 'scale(1)';
+                handleFiles(e.dataTransfer.files);
+            });
+
+        })();

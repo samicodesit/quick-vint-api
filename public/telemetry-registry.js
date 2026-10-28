@@ -651,6 +651,7 @@ globalThis.AutoListerEventRegistry = {
 globalThis.AutoListerContextPolicy = {
   exceptionSources: [
     "phone_page",
+    "phone_runtime",
     "phone_recovery",
     "telemetry_registry",
     "telemetry_core",

@@ -178,6 +178,7 @@ export function sanitizeContext(
     output.exceptionProvenance = {
       version: 1,
       capture: provenance.capture,
+      ...(provenance.pageRuntime === 1 ? { pageRuntime: 1 } : {}),
       ...(location(provenance.location)
         ? { location: location(provenance.location) }
         : {}),

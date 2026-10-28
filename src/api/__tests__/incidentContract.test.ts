@@ -16,6 +16,30 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it("bounds the phone runtime marker without accepting arbitrary versions", () => {
+    for (const pageRuntime of [1, 2, "1", "private", null]) {
+      expect(
+        sanitizeContext(
+          {
+            exceptionProvenance: {
+              version: 1,
+              capture: "unhandledrejection",
+              pageRuntime,
+              frames: [{ source: "phone_runtime", line: 3, column: 7 }],
+            },
+          },
+          true,
+        ),
+      ).toEqual({
+        exceptionProvenance: {
+          version: 1,
+          capture: "unhandledrejection",
+          ...(pageRuntime === 1 ? { pageRuntime: 1 } : {}),
+          frames: [{ source: "phone_runtime", line: 3, column: 7 }],
+        },
+      });
+    }
+  });
   it("bounds exception provenance independently of untrusted client payloads", () => {
     const input = {
       version: 1,

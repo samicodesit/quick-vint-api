@@ -26,6 +26,7 @@
     return {
       version: 1,
       capture: value.capture,
+      ...(value.pageRuntime === 1 ? { pageRuntime: 1 } : {}),
       ...(primary ? { location: primary } : {}),
       frames: Array.isArray(value.frames)
         ? value.frames.slice(0, 3).map(location).filter(Boolean)
@@ -224,6 +225,7 @@
     try {
       const known = {
         "/phone-upload": "phone_page",
+        "/phone-upload-runtime.js": "phone_runtime",
         "/phone-upload-recovery.js": "phone_recovery",
         "/telemetry-registry.js": "telemetry_registry",
         "/telemetry-core.js": "telemetry_core",
@@ -259,6 +261,11 @@
       return {
         version: 1,
         capture,
+        ...(root.document?.querySelector?.(
+          'script[data-autolister-phone-runtime="1"]',
+        )
+          ? { pageRuntime: 1 }
+          : {}),
         ...(capture === "error"
           ? { location: location(event.filename, event.lineno, event.colno) }
           : {}),

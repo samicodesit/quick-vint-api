@@ -825,6 +825,7 @@ describe("events tracking endpoint", () => {
                   ? {
                       exceptionProvenance: {
                         version: 1,
+                        pageRuntime: 1,
                         capture: "error",
                         location: {
                           source: "phone_page",
@@ -833,7 +834,7 @@ describe("events tracking endpoint", () => {
                           token: "private",
                         },
                         frames: [
-                          { source: "phone_page", line: 726, column: 18 },
+                          { source: "phone_runtime", line: 726, column: 18 },
                         ],
                         filename:
                           "https://autolister.app/phone-upload?s=private",
@@ -873,9 +874,10 @@ describe("events tracking endpoint", () => {
         .examples[0].context;
       expect(retained.exceptionProvenance).toEqual({
         version: 1,
+        pageRuntime: 1,
         capture: "error",
         location: { source: "phone_page", line: 726, column: 18 },
-        frames: [{ source: "phone_page", line: 726, column: 18 }],
+        frames: [{ source: "phone_runtime", line: 726, column: 18 }],
       });
       expect(JSON.stringify(retained)).not.toContain("private");
     } finally {

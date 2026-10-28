@@ -158,6 +158,15 @@ provenance field; a server capture release does not establish the phone's
 loaded asset version. This diagnostic does not reconstruct historical locations
 or prove native iOS behavior, photo receipt or generation recovery.
 
+The separately loaded `/phone-upload-runtime.js` identifies the owned upload
+code as `phone_runtime`. `exceptionProvenance.pageRuntime: 1` identifies HTML
+that loads that script. `phone_page` still means a frame attributed to the
+document URL, which can include injected code. Check the actual script URL and
+loaded HTML before assigning ownership. An inline sourceURL comment was tested
+and rejected because Linux WebKit kept attributing it to the document URL.
+Neither the marker nor a `phone_page` frame identifies an external injector or
+proves the cause of Error La. Absence of the marker can mean older cached HTML.
+
 `/api/phone-upload` currently writes admin logs for failures, not successful uploads. A successful upload can exist in Vercel request logs without a matching admin `api_logs` row.
 
 Use Vercel for endpoint-hit proof:

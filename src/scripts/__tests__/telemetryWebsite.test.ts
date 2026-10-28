@@ -12,6 +12,7 @@ function browser(
   indexedDB: any,
   send: (body: any) => any,
   listeners: Record<string, (event: any) => void> = {},
+  taggedPhoneRuntime = false,
 ) {
   const sandbox: any = {
     indexedDB,
@@ -21,7 +22,10 @@ function browser(
     crypto: { randomUUID },
     location: new URL("https://autolister.app/phone-upload"),
     navigator: { userAgent: "Chrome" },
-    document: { visibilityState: "visible" },
+    document: {
+      visibilityState: "visible",
+      querySelector: () => (taggedPhoneRuntime ? {} : null),
+    },
     addEventListener(name: string, listener: (event: any) => void) {
       listeners[name] = listener;
     },
@@ -102,6 +106,53 @@ it.each(["error", "unhandledrejection"])(
     expect(JSON.stringify(received[0])).not.toMatch(/private|external.invalid/);
   },
 );
+
+it("distinguishes the owned inline runtime from page-URL attributed code", async () => {
+  const listeners: Record<string, (event: any) => void> = {};
+  const received: any[] = [];
+  const telemetry = browser(
+    new IDBFactory(),
+    async (body) => {
+      received.push(...body.events);
+      return {
+        status: 200,
+        json: async () => ({
+          acknowledgedIds: body.events.map((e: any) => e.id),
+        }),
+      };
+    },
+    listeners,
+    true,
+  );
+  telemetry.setContextProvider(async () => ({ source: "phone_upload_page" }));
+  for (const stack of [
+    "Error: diagnostic\n at https://autolister.app/phone-upload-runtime.js:515:344",
+    "@https://autolister.app/phone-upload?s=private:515:344\nLi@https://autolister.app/phone-upload?s=private:196:221",
+  ]) {
+    listeners.unhandledrejection({
+      reason: { name: "Error", message: "diagnostic", stack },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await telemetry.flush();
+  }
+  expect(received).toHaveLength(2);
+  expect(received[0].context.exceptionProvenance).toMatchObject({
+    pageRuntime: 1,
+    frames: [{ source: "phone_runtime", line: 515, column: 344 }],
+  });
+  expect(received[1].context.exceptionProvenance).toMatchObject({
+    pageRuntime: 1,
+    frames: [
+      { source: "phone_page", line: 515, column: 344 },
+      { source: "phone_page", line: 196, column: 221 },
+    ],
+  });
+  for (const event of received)
+    expect(
+      normalizeIncidentEvent(event, Date.now()).value?.context
+        .exceptionProvenance,
+    ).toEqual(event.context.exceptionProvenance);
+});
 
 it("delivers final style choices and paywall origin through the shipped browser transport", async () => {
   const received: any[] = [];

@@ -2,12 +2,23 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const html = readFileSync(
+const markup = readFileSync(
   join(process.cwd(), "src/pages/phone-upload.html"),
   "utf8",
 );
+const runtime = readFileSync(
+  join(process.cwd(), "public/phone-upload-runtime.js"),
+  "utf8",
+);
+const html = markup + runtime;
 
 describe("phone upload page v2 contract", () => {
+  it("loads the owned runtime once from a separately attributable script URL", () => {
+    expect(markup.match(/src="\/phone-upload-runtime\.js"/g)).toHaveLength(1);
+    expect(markup).toContain('data-autolister-phone-runtime="1"');
+    expect(markup).not.toContain("const API_UPLOAD");
+    expect(runtime).toContain("const API_UPLOAD = '/api/phone-upload'");
+  });
   it("terminates the exact failed transfer before retrying a network error", () => {
     const handler = html.match(
       /xhr\.onerror = \(\) => \{([\s\S]*?)\n                    \};/,

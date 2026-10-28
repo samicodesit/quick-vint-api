@@ -1,5 +1,11 @@
 # AutoLister AI Growth Current Sprint
 
+## Phone information production release, October 28, 2026
+
+- Owner authorized deployment and live verification. Commit `9cfabe4` was pushed to `main` through `npm run push:production`; the full gate passed with 1,198 tests and 13 opt-in skips. Production's newer paywall change was preserved. Vercel automatic deployment was triggered.
+- The broad live-link audit also found inherited Spanish, Italian, Polish and Portuguese navigation links to nonexistent blog routes. The shared navigation now uses the existing blog locale/path helper, which falls back to the English blog for unsupported languages. Existing localized blog routes remain unchanged. This is a link-only correction with no new URLs or SEO metadata edits.
+- Final deployment and live verification evidence will be recorded in `/home/mests/projects/autolister/reports/ai-visibility-2026-10-28/live-release.txt` and `live-verification.json`. No signup, generation, checkout or marketplace publishing is part of this content release check.
+
 ## Comparison claims and rating correction, October 28, 2026
 
 - Owner-approved follow-up to the independent review, in the same `codex/phone-product-information` worktree. No deployment or push. This entry supersedes the earlier decision to retain the global rating.

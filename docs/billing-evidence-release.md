@@ -1,6 +1,6 @@
 # Subscription disclosures and evidence, 28 October 2026
 
-Status: integrated with current production source, local gate and independent code review passed. Production execution and acceptance checks remain pending. No production changes or customer sends. This work cannot establish an 80% dispute win rate.
+Status: deployed to production on 28 October 2026 with explicit owner approval. Four migrations, delivery webhook, fixed transactional email automation and live acceptance checks are complete. The approved owner test was delivered and its signed sent/delivered events were persisted. Earlier sections below are the chronological preparation record; the production acceptance section supersedes their pending status. This work cannot establish an 80% dispute win rate.
 
 ## What changes
 
@@ -109,3 +109,19 @@ Integrated the billing-evidence commit onto origin/main 4cbf0e2. Preserved curre
 Live read-only checks confirm successful-payment receipts ON and default portal bpc_1S96HxP5rNq9hGDS697qxbnq cancellation ON at the end of the billing period. Its login URL matches the email. Production Supabase is jqloiovdwjaornnfvmyu; read-only Management API access succeeded. All four new migrations are still pending. Vercel production does not yet have RESEND_WEBHOOK_SECRET. Resend has no registered webhook. No existing account setting, credential, production table or email was changed.
 
 Execution order: apply the four reviewed migrations and verify private grants/RLS; register the Resend delivery endpoint and securely install its signing secret; deploy the approved source using push:production from a clean main checkout; verify deployed terms/withdrawal links and endpoint behavior; exercise a provider-signed delivery event and verify the stored result. Customer welcome, cancellation and withdrawal receipt automation requires the stated exact-renderer approval exception. Do not describe preparation or a successful build as production acceptance.
+
+## Production acceptance, 28 October 2026
+
+The owner approved the rollout and fixed automatic emails explicitly. All four migrations were applied transactionally at 17:46 UTC. Readback verified RLS and service-role-only table/RPC permissions. No historical consent, request or customer evidence was fabricated.
+
+Resend delivery webhook registration and the sensitive production signing secret are installed. The main-branch production push passed lint, types, build, formatting and 1,195 tests (13 opt-in tests skipped). Vercel deployment dpl_8D2m9vGVfJALimQeM2EWnQcSYowf is READY, serves autolister.app, and reports application commit 16f1e82f761e32b46ee0413b19468887dbb67d75. The five-minute billing-notices cron is in the deployed configuration.
+
+Live terms, versioned policy, withdrawal and support pages returned 200. The withdrawal page was visually inspected. Unsigned delivery events return 400, GET delivery returns 405, unconfirmed withdrawal returns 400, and unauthenticated cron access returns 401. No live withdrawal was submitted; transactional receipt persistence and notification failure handling were exercised in the local database/endpoint suite. No live purchase was made.
+
+Hosted sandbox checkout was inspected with the exact disclosure helper for the base EUR price and a 20% first-month discount localized to GBP. It displayed GBP 3.47 due today, GBP 4.34 monthly thereafter, the exchange-rate variability notice, and unchecked required recurring consent with the correct live policy links. These are sandbox fixture amounts, not live plan prices. No payment, subscription or customer was created. Existing live portal cancellation and successful-payment receipt settings were inspected without changes.
+
+The exact owner-approved Pro HTML and PDF matched their reviewed hashes. One clearly labeled [TEST] message was sent to the approved owner inbox at 17:52 UTC. Resend message 01a183a4-a4bc-7b6c-8c0c-b2aea3fe8ac5 has genuine signed email.sent and email.delivered rows in production. Delivered means the receiving server accepted the message, not proof of human reading. No synthetic subscription record was inserted for the test.
+
+Private acceptance evidence is in the parent workspace ops/evidence/billing-hardening-20261028: migration-result.json, database-acceptance.json, delivery-setup-result.json, live-acceptance.json, approved-test-result.json and delivery-acceptance.json. The cancellation-after-attempt reconciliation hold was independently accepted before release. The approved short email copy is unchanged.
+
+The existing seller/payment-account arrangement remains a separate unresolved issue. No Stripe setup inquiry, ownership change, refund or dispute submission was made by this rollout. New terms and evidence collection do not retroactively strengthen old transactions.

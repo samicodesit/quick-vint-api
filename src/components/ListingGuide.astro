@@ -4,8 +4,9 @@ import ListingGuideLinks from "./ListingGuideLinks.astro";
 import { LISTING_GUIDE_COPY } from "../i18n/listingGuides.js";
 import type { ListingGuideSlug } from "../i18n/listingGuides.js";
 import { localizedPath } from "../i18n/routing.js";
-import { SITE_COPY, SUPPORTED_SITE_LOCALES } from "../i18n/site.js";
+import { SUPPORTED_SITE_LOCALES } from "../i18n/site.js";
 import type { SiteLocale } from "../i18n/site.js";
+import { WEB_ENTRY_COPY } from "../i18n/webEntry";
 
 interface Props {
   locale: SiteLocale;
@@ -22,6 +23,8 @@ const home = localizedPath(locale, "/");
 const setup = `/welcome/${locale}`;
 const chromeHref = "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 const primarySection = page.examples.length ? "templates" : "checklist";
+const isPhotoGuide = slug === "vinted-photo-to-listing";
+const entry = WEB_ENTRY_COPY[locale];
 const progressText = ui.progress.replace("{done}", "0").replace("{total}", String(page.checks.length));
 const structuredData = {
   "@context": "https://schema.org",
@@ -58,7 +61,7 @@ const structuredData = {
 };
 ---
 
-<SiteLayout title={page.title} description={page.description} canonical={canonical} ogUrl={canonical} htmlLang={locale} currentLocale={locale} localeBasePath={basePath}>
+<SiteLayout title={page.title} description={page.description} canonical={canonical} ogUrl={canonical} htmlLang={locale} currentLocale={locale} localeBasePath={basePath} includeWebApplication>
   <Fragment slot="head">
     {SUPPORTED_SITE_LOCALES.map((language) => (
       <link rel="alternate" hreflang={language} href={`${origin}${localizedPath(language, basePath)}`} />
@@ -83,17 +86,22 @@ const structuredData = {
           <h2 class="text-sm font-bold text-slate-900">{ui.answer}</h2>
           <p class="mt-3 text-lg leading-relaxed text-slate-600">{page.answer}</p>
           <nav aria-label={ui.contents} class="mt-6 flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold">
-            <a href={`#${primarySection}`} class="text-brand-700 underline underline-offset-4">{page.examples.length ? ui.examples : ui.checks}</a>
+            <a href={`#${primarySection}`} class="text-brand-700 underline underline-offset-4">{page.examples.length ? ui.examples : isPhotoGuide ? ui.workflow : ui.checks}</a>
             <a href="#guide" class="text-brand-700 underline underline-offset-4">{page.sections[0].heading}</a>
             <a href="#faq" class="text-brand-700 underline underline-offset-4">{ui.faq}</a>
           </nav>
         </div>
         <aside class="rounded-2xl border border-brand-100 bg-brand-50 p-6">
           <h2 class="text-xl font-bold tracking-tight text-slate-900">{ui.ctaTitle}</h2>
-          <p class="mt-3 text-sm leading-relaxed text-slate-600">{ui.ctaBody}</p>
-          <a href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context={`guide_${slug}_hero`} class="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-center text-sm font-bold text-white no-underline hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600">{SITE_COPY[locale].nav.cta}</a>
-          <p class="mt-3 text-xs leading-relaxed text-slate-600">{ui.freeNote}</p>
-          <p class="mt-4 text-xs leading-relaxed text-slate-600">{ui.setupNote} <a href={setup} class="font-semibold text-brand-700 underline underline-offset-2">{ui.setup}</a></p>
+          <a href="/app" data-track-event="web_app_click" data-track-context={`guide_${slug}_web`} class="mt-5 flex min-h-12 items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-center text-sm font-bold text-white no-underline hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600">{ui.webAction}</a>
+          <p class="mt-2 text-sm leading-relaxed text-slate-600">{ui.webDetail}</p>
+          <div class="mt-5 border-t border-brand-200 pt-5">
+            <a href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context={`guide_${slug}_hero`} class="flex min-h-12 items-center justify-center rounded-xl border border-brand-300 px-5 py-3 text-center text-sm font-bold text-brand-700 no-underline hover:bg-brand-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600">{ui.extensionAction}</a>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">{ui.extensionDetail}</p>
+            <a href="/vinted-extension-iphone-orion" class="mt-2 inline-block text-xs font-semibold leading-relaxed text-brand-700 underline underline-offset-2">{ui.orionLabel}</a>
+            <a href={setup} class="mt-2 block text-xs font-semibold text-brand-700 underline underline-offset-2">{ui.setup}</a>
+          </div>
+          <p class="mt-4 text-xs leading-relaxed text-slate-600">{ui.freeNote}</p>
         </aside>
       </div>
     </header>
@@ -126,6 +134,20 @@ const structuredData = {
         </figure>
       )}
 
+      {isPhotoGuide ? (
+        <section id="checklist" class="scroll-mt-28 py-10 sm:py-12" aria-labelledby="checklist-heading">
+          <h2 id="checklist-heading" class="text-2xl font-extrabold tracking-tight sm:text-3xl">{ui.workflow}</h2>
+          <ol class="mt-6 grid gap-6 sm:grid-cols-3">
+            {[entry.steps[0], entry.steps[1], ui.workflowReview].map((step, index) => (
+              <li>
+                <span aria-hidden="true" class="text-sm font-bold text-brand-700">{index + 1}</span>
+                <h3 class="mt-2 text-lg font-bold text-slate-900">{step}</h3>
+                <p class="mt-2 text-sm leading-relaxed text-slate-600">{[ui.workflowPhotosBody, entry.stepBodies[1], ui.workflowReviewBody][index]}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : (
       <section id="checklist" class="scroll-mt-28 py-10 sm:py-12" aria-labelledby="checklist-heading" data-listing-checklist data-progress-template={ui.progress}>
         <div class="flex flex-wrap items-baseline justify-between gap-3">
           <h2 id="checklist-heading" class="text-2xl font-extrabold tracking-tight sm:text-3xl">{ui.checks}</h2>
@@ -142,6 +164,7 @@ const structuredData = {
           ))}
         </ul>
       </section>
+      )}
 
       <div id="guide" class="scroll-mt-28 space-y-10 border-t border-slate-200 pt-10">
         {page.sections.map((section, index) => (

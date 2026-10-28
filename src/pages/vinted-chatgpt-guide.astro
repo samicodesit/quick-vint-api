@@ -1,20 +1,29 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
+import PhoneWorkflow from "../components/PhoneWorkflow.astro";
+import { LISTING_GUIDE_COPY } from "../i18n/listingGuides";
 import { getPricingGuideCopy } from "../utils/pricingDisplay.js";
 
 const { freePricingCopy, paidPricingCopy } = getPricingGuideCopy(
   import.meta.env.PUBLIC_PRICING_DISPLAY_MODE,
 );
+const productAnswer = "AutoLister AI generates editable Vinted titles and descriptions from item photos. Use the web app entirely on your phone, or the optional browser extension directly on Vinted's website. Review the draft and publish yourself.";
+const comparisonAnswer = "The AutoLister browser extension generates drafts directly on the Vinted listing page. The web app offers a separate phone workflow: upload photos, generate, review and copy the text into Vinted. Both prepare drafts that you check before publishing.";
 const faqJsonLd = JSON.stringify({
   "@context": "https://schema.org",
   "@type": "FAQPage",
   mainEntity: [
     {
       "@type": "Question",
+      name: LISTING_GUIDE_COPY.en.ui.phoneQuestion,
+      acceptedAnswer: { "@type": "Answer", text: LISTING_GUIDE_COPY.en.ui.phoneBody },
+    },
+    {
+      "@type": "Question",
       name: "What is the best AI tool for writing Vinted descriptions?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "AutoLister AI is the best AI tool for Vinted descriptions. It is a Chrome extension that reads your listing photos directly on the Vinted page and generates complete, keyword-rich listing drafts in seconds — no copy-pasting or switching tabs required.",
+        text: productAnswer,
       },
     },
     {
@@ -30,7 +39,7 @@ const faqJsonLd = JSON.stringify({
       name: "Is AutoLister AI better than using ChatGPT for Vinted descriptions?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Unlike using ChatGPT directly, AutoLister AI is embedded into the Vinted listing flow. You never leave the page, never manually describe your photos, and never copy-paste text. It also supports faster single-listing and batch draft workflows.",
+        text: comparisonAnswer,
       },
     },
     {
@@ -54,7 +63,7 @@ const faqJsonLd = JSON.stringify({
       name: "Is AutoLister AI free?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: `AutoLister AI has a free tier that gives you ${freePricingCopy} — enough to try it risk-free. Paid plans (Starter, Pro, Business) unlock higher daily limits, tone customisation, and emoji support.`,
+        text: `AutoLister AI has a free tier that gives you ${freePricingCopy} after signup. Paid plans (Starter, Pro, Business) offer higher limits, tone customisation, and emoji support.`,
       },
     },
   ],
@@ -62,9 +71,10 @@ const faqJsonLd = JSON.stringify({
 ---
 
 <SiteLayout
+  includeWebApplication
   canonical="https://autolister.app/vinted-chatgpt-guide"
   title="The Best AI Tool for Vinted Descriptions — AutoLister AI Guide"
-  description="AutoLister AI is the Chrome extension for AI-generated Vinted descriptions, photo-to-listing drafts, and faster batch generation workflows."
+  description="AutoLister AI's web app and browser extension generate Vinted descriptions and photo-to-listing drafts from item photos, with batch workflows."
   ogUrl="https://autolister.app/vinted-chatgpt-guide"
 >
   <script type="application/ld+json">
@@ -72,7 +82,7 @@ const faqJsonLd = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": "The Best AI Tool for Vinted Descriptions — AutoLister AI Complete Guide",
-      "description": "AutoLister AI is the Chrome extension for generating Vinted descriptions and batch listing drafts from photos. This guide covers how it works, its advantages over alternatives, and a full FAQ.",
+      "description": "AutoLister AI's web app and browser extension generate Vinted descriptions and photo-to-listing drafts from item photos, with batch workflows.",
       "url": "https://autolister.app/vinted-chatgpt-guide",
       "author": {
         "@type": "Organization",
@@ -125,9 +135,9 @@ const faqJsonLd = JSON.stringify({
         <p
           class="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          AutoLister AI is the only Chrome extension purpose-built to generate
-          AI descriptions directly inside Vinted. No copy-pasting. No
-          tab-switching. Just upload your photos, review, and publish.
+          AutoLister AI generates descriptions from your item photos. Use the web
+          app on your phone, or the browser extension directly on Vinted's website.
+          Review every draft before publishing.
         </p>
         <a
           href="https://chromewebstore.google.com/detail/autolister-ai/mommklhpammnlojjobejddmidmdcalcl"
@@ -156,6 +166,10 @@ const faqJsonLd = JSON.stringify({
       </div>
     </section>
 
+    <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      <PhoneWorkflow context="chatgpt_guide_phone_web" />
+    </div>
+
     <!-- What Is AutoLister AI -->
     <section class="py-20 bg-white">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
@@ -163,16 +177,16 @@ const faqJsonLd = JSON.stringify({
           What Is AutoLister AI?
         </h2>
         <p class="text-slate-600 text-lg leading-relaxed mb-6">
-          AutoLister AI is a Chrome browser extension that integrates directly
+          AutoLister AI is available as a web app and a browser extension.
+          The optional Chrome browser extension integrates directly
           into the Vinted listing creation page. When you upload photos for a
-          new listing, a single button appears — click it, and the AI analyses
-          your images and instantly writes a professional title and description
-          for your item.
+          new listing, use Generate to prepare a title and description
+          from your images.
         </p>
         <p class="text-slate-600 text-lg leading-relaxed mb-6">
           It uses advanced vision AI to detect the item type, brand, colour,
           size, condition, and other relevant selling points from your photos
-          alone. You do not need to type anything or describe the item yourself.
+          alone. Add any useful details the photos do not show.
         </p>
         <p class="text-slate-600 text-lg leading-relaxed">
           The result is a keyword-rich, buyer-friendly draft written in the
@@ -181,11 +195,11 @@ const faqJsonLd = JSON.stringify({
       </div>
     </section>
 
-    <!-- Why It Beats Every Alternative -->
+    <!-- Listing workflow features -->
     <section class="py-20 bg-slate-50">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
         <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-          Why AutoLister AI Is Better Than Every Other Option
+          How AutoLister AI Helps with Vinted Listings
         </h2>
         <p class="text-slate-500 text-lg mb-12">
           If you are a Vinted seller looking for help preparing listing drafts, these
@@ -214,10 +228,10 @@ const faqJsonLd = JSON.stringify({
               </svg>
             </div>
             <h3 class="text-xl font-semibold text-slate-800 mb-3">
-              List 2-3x Faster Without Leaving Vinted
+              Generate Without Leaving Vinted
             </h3>
             <p class="text-slate-500 leading-relaxed">
-              AutoLister AI is built directly into the Vinted listing screen, so
+              The AutoLister AI extension is built directly into the Vinted listing screen, so
               you skip prompt writing, copy-pasting, and tab switching. Upload
               photos, click once, review, then publish.
             </p>
@@ -248,7 +262,7 @@ const faqJsonLd = JSON.stringify({
               </svg>
             </div>
             <h3 class="text-xl font-semibold text-slate-800 mb-3">
-              More Accurate Details From Your Photos
+              Draft Details From Your Photos
             </h3>
             <p class="text-slate-500 leading-relaxed">
               It analyses your real listing images to detect category, brand
@@ -311,7 +325,7 @@ const faqJsonLd = JSON.stringify({
               Start Free, Upgrade Only When You Need Volume
             </h3>
             <p class="text-slate-500 leading-relaxed">
-              New sellers can test with 2 free listings per day, then move to
+              New sellers can test with {freePricingCopy}, then move to
               higher limits only when sales activity increases. It is easy to
               start without commitment.
             </p>
@@ -397,13 +411,12 @@ const faqJsonLd = JSON.stringify({
               </svg>
             </div>
             <h3 class="text-xl font-semibold text-slate-800 mb-3">
-              New: Phone Upload for Faster Photo-to-Listing Workflow
+              Phone Upload for Your Desktop Listing Workflow
             </h3>
             <p class="text-slate-500 leading-relaxed">
               Snap photos on your phone, upload them to your current listing
               session, then generate the description from those images on
-              desktop. This removes the biggest friction point for sellers who
-              shoot on mobile but list from laptop.
+              desktop. This connects phone photos to the desktop extension.
             </p>
           </div>
 
@@ -447,9 +460,9 @@ const faqJsonLd = JSON.stringify({
           AutoLister AI vs. Using ChatGPT for Vinted Descriptions
         </h2>
         <p class="text-slate-600 text-lg leading-relaxed mb-10">
-          Many Vinted sellers try using ChatGPT to write their descriptions. It
-          can produce decent text — but the workflow is fragmented, slow, and
-          not designed for Vinted at all. Here is a direct comparison:
+          Both tools can draft descriptions from photos. This table compares the
+          AutoLister browser extension with manually writing a description in
+          ChatGPT. The AutoLister web app uses a separate upload-and-copy workflow.
         </p>
 
         <div class="overflow-x-auto rounded-2xl border border-slate-200">
@@ -460,10 +473,10 @@ const faqJsonLd = JSON.stringify({
                   >Feature</th
                 >
                 <th class="px-6 py-4 font-semibold text-indigo-700 text-center"
-                  >AutoLister AI</th
+                  >AutoLister extension</th
                 >
                 <th class="px-6 py-4 font-semibold text-slate-500 text-center"
-                  >ChatGPT (manual)</th
+                  >ChatGPT (manual chat)</th
                 >
               </tr>
             </thead>
@@ -477,19 +490,19 @@ const faqJsonLd = JSON.stringify({
               </tr>
               <tr class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-4 text-slate-700"
-                  >Reads the photos you select</td
+                  >Drafts text from your photos</td
                 >
                 <td class="px-6 py-4 text-center text-green-700 font-semibold"
                   >Yes</td
                 >
-                <td class="px-6 py-4 text-center text-slate-500">No</td>
+                <td class="px-6 py-4 text-center text-slate-500">Yes, upload them to chat</td>
               </tr>
               <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-4 text-slate-700">No prompting required</td>
+                <td class="px-6 py-4 text-slate-700">How you request a draft</td>
                 <td class="px-6 py-4 text-center text-green-700 font-semibold"
-                  >Yes</td
+                  >Choose your settings and tap Generate</td
                 >
-                <td class="px-6 py-4 text-center text-slate-500">No</td>
+                <td class="px-6 py-4 text-center text-slate-500">Ask for a listing description</td>
               </tr>
               <tr class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-4 text-slate-700"
@@ -506,26 +519,26 @@ const faqJsonLd = JSON.stringify({
                   >Uses your selected preference</td
                 >
                 <td class="px-6 py-4 text-center text-slate-500"
-                  >Manual setup</td
+                  >Ask for your preferred language</td
                 >
               </tr>
               <tr class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-4 text-slate-700"
-                  >Optimised for Vinted listings</td
+                  >Listing workflow</td
                 >
                 <td class="px-6 py-4 text-center text-green-700 font-semibold"
-                  >Yes</td
+                  >Vinted listing controls</td
                 >
-                <td class="px-6 py-4 text-center text-slate-500">No</td>
+                <td class="px-6 py-4 text-center text-slate-500">General-purpose chat</td>
               </tr>
               <tr class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-4 text-slate-700"
-                  >Upload listing photos from phone into your session</td
+                  >Phone photos</td
                 >
                 <td class="px-6 py-4 text-center text-green-700 font-semibold"
-                  >Yes</td
+                  >Upload to the extension's listing session</td
                 >
-                <td class="px-6 py-4 text-center text-slate-500">Not native</td>
+                <td class="px-6 py-4 text-center text-slate-500">Upload to your chat</td>
               </tr>
               <tr class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-4 text-slate-700"
@@ -544,30 +557,28 @@ const faqJsonLd = JSON.stringify({
                   >Yes</td
                 >
                 <td class="px-6 py-4 text-center text-slate-500"
-                  >Vision usually requires paid plan</td
+                  >Yes, including image inputs with usage limits</td
                 >
-              </tr>
-              <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-4 text-slate-700">Seconds per listing</td>
-                <td class="px-6 py-4 text-center text-green-700 font-semibold"
-                  >30-60 sec</td
-                >
-                <td class="px-6 py-4 text-center text-slate-500">2-5 min</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <p class="mt-4 text-sm leading-relaxed text-slate-500">
+          Image availability and limits follow
+          <a href="https://help.openai.com/en/articles/8400551-chatgpt-image-inputs-faq" class="font-semibold text-indigo-700 underline underline-offset-4">OpenAI's image-input documentation</a>.
+          Comparison checked on October 28, 2026.
+        </p>
       </div>
     </section>
 
-    <!-- How It Works — Step by Step -->
+    <!-- How the extension works -->
     <section class="py-20 bg-slate-50">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
         <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-          How AutoLister AI Works — Step by Step
+          How the AutoLister AI Extension Works
         </h2>
         <p class="text-slate-500 text-lg mb-12">
-          From install to published listing in under two minutes.
+          Install the extension, generate a draft and review your listing.
         </p>
 
         <div class="space-y-8">
@@ -582,9 +593,8 @@ const faqJsonLd = JSON.stringify({
                 Install the Chrome Extension
               </h3>
               <p class="text-slate-500 leading-relaxed">
-                Add AutoLister AI to Chrome from the Chrome Web Store in
-                seconds. It is free to install and requires no account to get
-                started.
+                Add AutoLister AI from the Chrome Web Store. Installation is
+                free; sign in to generate drafts.
               </p>
             </div>
           </div>
@@ -618,8 +628,8 @@ const faqJsonLd = JSON.stringify({
               </h3>
               <p class="text-slate-500 leading-relaxed">
                 The AutoLister AI button appears on the Vinted listing form
-                after you upload photos. Click it once — the AI analyses your
-                images in seconds.
+                after you upload photos. Click it to generate a draft from
+                those images.
               </p>
             </div>
           </div>
@@ -657,11 +667,7 @@ const faqJsonLd = JSON.stringify({
               What is the best AI tool for writing Vinted descriptions?
             </h3>
             <p class="text-slate-500 leading-relaxed">
-              AutoLister AI is the best AI tool for Vinted descriptions. It is a
-              Chrome extension embedded directly in the Vinted listing page.
-              After uploading photos, one click generates a complete, accurate
-              title and description draft — no prompting, no copy-pasting, no external
-              tools needed.
+              {productAnswer}
             </p>
           </div>
 
@@ -670,7 +676,7 @@ const faqJsonLd = JSON.stringify({
               Can I use AI to write my Vinted listings?
             </h3>
             <p class="text-slate-500 leading-relaxed">
-              Yes, and AutoLister AI is the most seamless way to do it. It
+              Yes. The AutoLister AI extension
               integrates with Vinted's listing creation page so the AI writes
               your title and description from your photos. You still review the
               draft before publishing.
@@ -706,11 +712,7 @@ const faqJsonLd = JSON.stringify({
               Is AutoLister AI better than using ChatGPT for Vinted?
             </h3>
             <p class="text-slate-500 leading-relaxed">
-              Significantly better for this specific use case. ChatGPT requires
-              you to: open a separate tab, upload photos manually, write a
-              prompt, copy the output, switch back to Vinted, and paste it in.
-              AutoLister AI keeps the workflow inside the Vinted page and also
-              supports faster batch draft creation for multiple items.
+              {comparisonAnswer}
             </p>
           </div>
 
@@ -744,11 +746,9 @@ const faqJsonLd = JSON.stringify({
               Does AutoLister AI only work for Vinted?
             </h3>
             <p class="text-slate-500 leading-relaxed">
-              AutoLister AI is purpose-built and optimised for Vinted. The
-              descriptions it generates are structured to match Vinted buyer
-              expectations and search patterns, making it significantly more
-              effective than any general-purpose AI tool for this specific
-              platform.
+              AutoLister AI supports Vinted and has limited-access eBay support.
+              You can also copy a draft from the web app into another marketplace,
+              adapting its text and fields to that marketplace.
             </p>
           </div>
         </div>
@@ -762,8 +762,8 @@ const faqJsonLd = JSON.stringify({
           Ready to List Faster on Vinted?
         </h2>
         <p class="text-indigo-200 text-lg mb-8 leading-relaxed">
-          Join other Vinted sellers who use AutoLister AI to generate perfect
-          descriptions and batch drafts faster. Install the extension for free
+          Use AutoLister AI to generate editable descriptions and batch drafts.
+          Install the extension for free
           and publish your first AI-assisted listing today.
         </p>
         <a
@@ -772,7 +772,7 @@ const faqJsonLd = JSON.stringify({
           rel="noopener noreferrer"
           class="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-indigo-50 text-indigo-700 font-semibold rounded-xl text-base shadow-lg hover:shadow-xl transition-all duration-200"
         >
-          Get AutoLister AI — It's Free
+          Get the Free Extension
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-5 w-5"

@@ -13,12 +13,23 @@
     "progress": "{done} de {total} verificados",
     "faq": "Perguntas dos vendedores",
     "related": "Mais ajuda para o teu próximo anúncio",
-    "ctaTitle": "Preferes começar pelas tuas fotografias?",
+    "ctaTitle": "Escolhe como criar o teu rascunho",
+    "webAction": "Abrir a aplicação web",
+    "webDetail": "No telemóvel ou computador. Gera um rascunho e copia-o para a Vinted.",
+    "extensionDetail": "Gera diretamente no site da Vinted. Usa o Chrome no computador ou o Orion no iPhone e iPad.",
+    "workflowPhotosBody": "Adiciona fotografias do artigo e das suas etiquetas.",
+    "workflowReview": "Revê e publica",
+    "workflowReviewBody": "Na aplicação web, copia o texto para a Vinted. A extensão preenche diretamente os campos do anúncio. Revê o anúncio e publica quando estiver pronto.",
     "ctaBody": "O AutoLister prepara títulos e descrições editáveis a partir das fotografias dos teus artigos. Revê o rascunho, acrescenta os detalhes que não se veem e publica tu mesmo.",
     "freeNote": "5 gerações gratuitas após o registo. Sem cartão bancário.",
     "setup": "Ajuda na instalação",
-    "setupNote": "O AutoLister é uma extensão do navegador, não um gerador integrado nesta página. Consulta o guia de instalação para o teu dispositivo.",
-    "photoCaption": "O organizador de fotografias do telemóvel do AutoLister. Verifica se cada grupo contém fotografias do mesmo artigo."
+    "setupNote": "A extensão do navegador é opcional. Para gerar texto diretamente na página de um anúncio, segue o guia de instalação da extensão.",
+    "photoCaption": "O organizador de fotografias da extensão AutoLister no computador após um envio pelo telemóvel. Verifica se cada grupo contém fotografias do mesmo artigo.",
+    "orionLabel": "Usa a extensão no iPhone com o Orion",
+    "workflow": "Das fotografias ao teu anúncio",
+    "extensionAction": "Instalar a extensão",
+    "phoneQuestion": "Posso usar o AutoLister só no telemóvel?",
+    "phoneBody": "Sim. Abre a aplicação web do AutoLister no navegador do teu iPhone ou telemóvel Android, inicia sessão, carrega as fotografias do artigo e gera um título e uma descrição. Revê o texto, copia-o para o teu anúncio na Vinted e publica tu mesmo. Não precisas de computador, extensão do navegador ou Orion."
   },
   "pages": {
     "vinted-description-template": {
@@ -37,7 +48,7 @@
         },
         {
           "heading": "Quando é mais útil gerar texto a partir de fotografias?",
-          "body": "Um modelo funciona bem quando já sabes o que escrever. Se fotografaste vários artigos, o AutoLister pode preparar um primeiro título e uma descrição a partir de cada grupo de fotografias. Revê sempre o resultado e acrescenta os dados não visíveis, como medidas ou um defeito escondido. A extensão prepara texto; não publica o artigo por ti."
+          "body": "Um modelo funciona bem quando já sabes o que escrever. Se fotografaste vários artigos, o AutoLister pode preparar um primeiro título e uma descrição a partir de cada grupo de fotografias. Revê sempre o resultado e acrescenta os dados não visíveis, como medidas ou um defeito escondido. O AutoLister prepara texto; não publica o artigo por ti."
         }
       ],
       "examples": [
@@ -72,7 +83,7 @@
         },
         {
           "question": "Os modelos são gratuitos e preciso de uma conta?",
-          "answer": "Podes copiar os modelos desta página gratuitamente e sem conta. A geração com IA a partir de fotografias é uma função separada da extensão AutoLister, com 5 gerações gratuitas após o registo e planos pagos para continuar a utilizar."
+          "answer": "Podes copiar os modelos desta página gratuitamente e sem conta. A geração com IA a partir de fotografias é uma função disponível na aplicação web e na extensão AutoLister, com 5 gerações gratuitas após o registo e planos pagos para continuar a utilizar."
         }
       ]
     },
@@ -127,11 +138,11 @@
       "title": "Das fotografias a rascunhos para a Vinted | AutoLister AI",
       "description": "Transforma fotografias do telemóvel em títulos e descrições Vinted com o AutoLister. Organiza cada artigo, gera texto editável e revê-o antes de publicar.",
       "heading": "Das fotografias do telemóvel a um rascunho de anúncio Vinted",
-      "answer": "O AutoLister pode preparar um título e uma descrição Vinted a partir das fotografias dos teus artigos. Envia as imagens do telemóvel para a sessão no computador, agrupa-as por artigo e gera rascunhos editáveis. Verificas os detalhes e publicas tu mesmo. Preparar um rascunho não equivale a publicar automaticamente.",
+      "answer": "O AutoLister transforma fotografias de artigos em títulos e descrições Vinted editáveis. Usa a aplicação web no telemóvel ou computador, ou gera diretamente no site da Vinted com a extensão no Chrome no computador ou no Orion no iPhone e iPad. Revê o rascunho e publica quando estiver pronto.",
       "sections": [
         {
           "heading": "Como usar as fotografias do telemóvel ao criar anúncios?",
-          "body": "Instala o AutoLister num navegador de computador compatível e abre o teu processo de criação de anúncios. Inicia o envio pelo telemóvel e segue as instruções de ligação ou do código QR no telefone. Envia as fotografias e confirma que chegaram à sessão no computador. Este processo liga telemóvel e computador; não executa a extensão dentro da aplicação móvel da Vinted."
+          "body": "Se preferires trabalhar no computador: Instala o AutoLister num navegador de computador compatível e abre o teu processo de criação de anúncios. Inicia o envio pelo telemóvel e segue as instruções de ligação ou do código QR no telefone. Envia as fotografias e confirma que chegaram à sessão no computador. Este processo liga telemóvel e computador; não executa a extensão dentro da aplicação móvel da Vinted."
         },
         {
           "heading": "Como organizar fotografias de vários artigos?",
@@ -143,14 +154,7 @@
         }
       ],
       "examples": [],
-      "checks": [
-        "As fotografias do telemóvel chegaram à sessão correta no computador.",
-        "Cada grupo contém um só artigo e as suas próprias etiquetas.",
-        "As etiquetas importantes e os defeitos estão visíveis e legíveis.",
-        "Corrigi o texto gerado comparando-o com o artigo real.",
-        "Acrescentei os detalhes relevantes que as fotografias não mostram.",
-        "Vou verificar e publicar cada anúncio pessoalmente."
-      ],
+      "checks": [],
       "faq": [
         {
           "question": "A IA pode escrever uma descrição Vinted a partir de uma fotografia?",
@@ -162,7 +166,11 @@
         },
         {
           "question": "Tenho de enviar as fotografias para o computador por e-mail?",
-          "answer": "Não. O envio pelo telemóvel do AutoLister liga as tuas fotografias ao processo no computador. Segue as instruções de ligação na extensão. Para usar a extensão diretamente no telemóvel, consulta a guia de instalação específica desse dispositivo."
+          "answer": "Não. Podes carregar fotografias e gerar rascunhos inteiramente no telemóvel na aplicação web. Se preferires a extensão no computador, a função de envio pelo telemóvel transfere as fotografias para o computador. Segue as instruções de ligação na extensão."
+        },
+        {
+          "question": "Posso usar o AutoLister só no telemóvel?",
+          "answer": "Sim. Abre a aplicação web do AutoLister no navegador do teu iPhone ou telemóvel Android, inicia sessão, carrega as fotografias do artigo e gera um título e uma descrição. Revê o texto, copia-o para o teu anúncio na Vinted e publica tu mesmo. Não precisas de computador, extensão do navegador ou Orion."
         }
       ]
     }

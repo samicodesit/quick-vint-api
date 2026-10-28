@@ -1,8 +1,9 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
+import PhoneWorkflow from "../components/PhoneWorkflow.astro";
 ---
 
-<SiteLayout>
+<SiteLayout includeWebApplication>
   <main
     class="bg-gray-50 py-24 mt-8 pb-24 transition-all duration-[360ms] ease-[cubic-bezier(0.2,0.9,0.2,1)] origin-top"
   >
@@ -18,6 +19,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       </div>
 
       <div class="grid grid-cols-1 gap-6 max-w-[900px] mx-auto mb-16">
+        <PhoneWorkflow context="support_phone_web" />
         <div
           class="bg-white p-8 rounded-2xl border border-gray-200 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-gray-300"
         >
@@ -25,7 +27,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
             How do I install AutoLister AI?
           </h3>
           <p class="text-gray-500 leading-relaxed">
-            AutoLister AI is a browser extension distributed through the
+            AutoLister's optional browser extension is distributed through the
             <a
               href="https://chromewebstore.google.com/detail/autolister-ai-listing-ass/mommklhpammnlojjobejddmidmdcalcl"
               class="font-medium text-indigo-700 underline underline-offset-4"
@@ -43,6 +45,10 @@ import SiteLayout from "../layouts/SiteLayout.astro";
           <h3 class="text-xl font-semibold text-gray-800 mb-3">
             Using an iPhone or iPad with Orion
           </h3>
+          <p class="mb-4 text-gray-600 leading-relaxed">
+            These steps are for the optional extension. To generate drafts on your
+            phone without installing Orion, use the <a href="/app" class="font-medium text-indigo-700 underline underline-offset-4">AutoLister web app</a>.
+          </p>
           <ol class="list-decimal pl-5 space-y-3 text-gray-600 leading-relaxed">
             <li>
               Install
@@ -118,7 +124,8 @@ import SiteLayout from "../layouts/SiteLayout.astro";
               href="/pricing"
               class="font-medium underline decoration-indigo-200 hover:decoration-indigo-600 transition-colors"
               >Pricing page</a
-            >. To manage an active subscription, click on the AutoLister AI
+            >. In the web app, open your profile menu and choose Manage plan.
+            If you use the extension, click on the AutoLister AI
             extension icon in your browser toolbar and click Manage
             Subscription.
           </p>

@@ -114,6 +114,7 @@ const faqSchema = post.data.faqItems?.length
 ---
 
 <SiteLayout
+  includeWebApplication={descriptionEntry || batchEntry || beginnerEntry}
   title={`${post.data.title} - AutoLister AI`}
   description={post.data.description}
   canonical={canonicalUrl}

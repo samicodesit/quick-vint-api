@@ -13,12 +13,23 @@
     "progress": "{done} of {total} checked",
     "faq": "Questions sellers ask",
     "related": "More help with your next listing",
-    "ctaTitle": "Prefer to start from your photos?",
+    "ctaTitle": "Choose how to create your draft",
+    "webAction": "Open web app",
+    "webDetail": "On your phone or computer. Generate a draft, then copy it into Vinted.",
+    "extensionDetail": "Generate directly on Vinted's website. Use Chrome on a computer or Orion on iPhone and iPad.",
+    "workflowPhotosBody": "Add photos of your item and its labels.",
+    "workflowReview": "Review and publish",
+    "workflowReviewBody": "In the web app, copy the text into Vinted. The extension fills the listing fields directly. Review your listing and publish when ready.",
     "ctaBody": "AutoLister prepares editable titles and descriptions from your item photos. Review the draft, add details the photos cannot show, and publish yourself.",
     "freeNote": "5 free generations after signup. No card required.",
     "setup": "Installation help",
-    "setupNote": "AutoLister is a browser extension, not a generator embedded on this page. Check the setup guide for your device.",
-    "photoCaption": "AutoLister's phone-photo organizer. Check that each group contains photos of the same item."
+    "setupNote": "The browser extension is optional. For generating directly on a marketplace listing page, follow the extension setup guide.",
+    "photoCaption": "AutoLister's desktop extension photo organizer after a phone upload. Check that each group contains photos of the same item.",
+    "orionLabel": "Use the extension on iPhone with Orion",
+    "workflow": "From photos to your listing",
+    "extensionAction": "Get browser extension",
+    "phoneQuestion": "Can I use AutoLister entirely on my phone?",
+    "phoneBody": "Yes. Open the AutoLister web app in your iPhone or Android browser, sign in, upload item photos and generate a title and description. Review and copy the text into your Vinted listing, then publish it yourself. No computer, browser extension or Orion installation is required."
   },
   "pages": {
     "vinted-description-template": {
@@ -37,7 +48,7 @@
         },
         {
           "heading": "When is generating from photos more useful?",
-          "body": "A template works well when you already know what to write. When you have several photographed items, AutoLister can prepare the first title and description from each photo set instead. You still need to check the result and add facts that are not visible, such as measurements or a defect hidden from the camera. The extension drafts text; it does not publish the item for you."
+          "body": "A template works well when you already know what to write. When you have several photographed items, AutoLister can prepare the first title and description from each photo set instead. You still need to check the result and add facts that are not visible, such as measurements or a defect hidden from the camera. AutoLister drafts text; it does not publish the item for you."
         }
       ],
       "examples": [
@@ -72,7 +83,7 @@
         },
         {
           "question": "Are these templates free, and do I need an account?",
-          "answer": "The templates on this page are free to copy without an account. AutoLister's photo-based AI generation is a separate browser-extension feature, with 5 free generations after signup and paid plans for further use."
+          "answer": "The templates on this page are free to copy without an account. AutoLister's photo-based AI generation is available in the web app and browser extension, with 5 free generations after signup and paid plans for further use."
         }
       ]
     },
@@ -127,11 +138,11 @@
       "title": "Turn Photos into Vinted Listing Drafts | AutoLister AI",
       "description": "Learn how to turn phone photos into Vinted title and description drafts with AutoLister. Organize each item, generate editable text and review before publishing.",
       "heading": "From phone photos to a Vinted listing draft",
-      "answer": "AutoLister can prepare a Vinted title and description from your item photos. Use its phone-upload workflow to send photos to your desktop session, organize them into items and generate editable drafts. You check the details and publish yourself. Preparing a draft is not the same as automatically posting a listing.",
+      "answer": "AutoLister turns item photos into editable Vinted titles and descriptions. Use the web app on your phone or computer, or generate directly on Vinted's website with the extension in Chrome on a computer or Orion on iPhone and iPad. Review your draft and publish when ready.",
       "sections": [
         {
           "heading": "How do I get phone photos into my listing workflow?",
-          "body": "Install AutoLister in a supported desktop browser and open your listing workflow. Start the phone-upload feature and follow its connection or QR instructions on your phone. Send the item photos, then check that they have arrived in your desktop session. This is a phone-to-desktop workflow; it does not mean the extension runs inside the Vinted mobile app."
+          "body": "If you prefer to work on a computer, install AutoLister in a supported desktop browser and open your listing workflow. Start the phone-upload feature and follow its connection or QR instructions on your phone. Send the item photos, then check that they have arrived in your desktop session. This is a phone-to-desktop workflow; it does not mean the extension runs inside the Vinted mobile app."
         },
         {
           "heading": "How do I organize photos of several items?",
@@ -143,14 +154,7 @@
         }
       ],
       "examples": [],
-      "checks": [
-        "My phone photos have arrived in the intended desktop session.",
-        "Each photo group contains only one item and its own labels.",
-        "Important labels and any flaws are visible and readable.",
-        "I have corrected the generated text against the actual item.",
-        "I have added relevant details the photos cannot show.",
-        "I will review and publish each listing myself."
-      ],
+      "checks": [],
       "faq": [
         {
           "question": "Can AI write a Vinted description from a photo?",
@@ -162,7 +166,11 @@
         },
         {
           "question": "Do I have to email photos to my computer?",
-          "answer": "No. AutoLister's phone-upload feature connects your phone photos to your desktop workflow. Follow the connection instructions shown in the extension. For running the extension on a phone itself, use the separate device-specific installation guide."
+          "answer": "No. You can upload photos and generate drafts entirely on your phone in the web app. If you prefer the desktop extension, its phone-upload feature sends photos to your computer. Follow the connection instructions shown in the extension."
+        },
+        {
+          "question": "Can I use AutoLister entirely on my phone?",
+          "answer": "Yes. Open the AutoLister web app in your iPhone or Android browser, sign in, upload item photos and generate a title and description. Review and copy the text into your Vinted listing, then publish it yourself. No computer, browser extension or Orion installation is required."
         }
       ]
     }

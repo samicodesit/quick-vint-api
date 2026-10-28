@@ -13,12 +13,23 @@
     "progress": "{done} van {total} gecontroleerd",
     "faq": "Vragen van verkopers",
     "related": "Meer hulp bij je volgende advertentie",
-    "ctaTitle": "Liever beginnen met je foto's?",
+    "ctaTitle": "Kies hoe je je concept maakt",
+    "webAction": "Webapp openen",
+    "webDetail": "Op je telefoon of computer. Maak een concept en kopieer het naar Vinted.",
+    "extensionDetail": "Maak tekst direct op de website van Vinted. Gebruik Chrome op je computer of Orion op iPhone en iPad.",
+    "workflowPhotosBody": "Voeg foto's van je artikel en de labels toe.",
+    "workflowReview": "Controleer en publiceer",
+    "workflowReviewBody": "In de webapp kopieer je de tekst naar Vinted. De extensie vult de advertentievelden direct in. Controleer je advertentie en publiceer wanneer deze klaar is.",
     "ctaBody": "AutoLister maakt bewerkbare titels en beschrijvingen op basis van je artikelfoto's. Controleer het concept, voeg onzichtbare details toe en publiceer zelf.",
     "freeNote": "5 gratis generaties na registratie. Geen betaalkaart nodig.",
     "setup": "Hulp bij installeren",
-    "setupNote": "AutoLister is een browserextensie, geen generator op deze pagina. Bekijk de installatiehandleiding voor je apparaat.",
-    "photoCaption": "De foto-organisator van AutoLister. Controleer of elke groep alleen foto's van hetzelfde artikel bevat."
+    "setupNote": "De browserextensie is optioneel. Wil je direct op een advertentiepagina tekst genereren, volg dan de installatiehandleiding voor de extensie.",
+    "photoCaption": "De foto-organisator in de AutoLister-desktopextensie na een telefoonupload. Controleer of elke groep alleen foto's van hetzelfde artikel bevat.",
+    "orionLabel": "Gebruik de extensie op iPhone met Orion",
+    "workflow": "Van foto's naar je advertentie",
+    "extensionAction": "Browserextensie installeren",
+    "phoneQuestion": "Kan ik AutoLister volledig op mijn telefoon gebruiken?",
+    "phoneBody": "Ja. Open de AutoLister-webapp in de browser op je iPhone of Android-telefoon, log in, upload artikelfoto's en maak een titel en beschrijving. Controleer de tekst, kopieer deze naar je Vinted-advertentie en publiceer zelf. Je hebt geen computer, browserextensie of Orion nodig."
   },
   "pages": {
     "vinted-description-template": {
@@ -37,7 +48,7 @@
         },
         {
           "heading": "Wanneer is genereren vanuit foto's handiger?",
-          "body": "Een sjabloon werkt goed wanneer je al weet wat je wilt schrijven. Heb je meerdere artikelen gefotografeerd, dan kan AutoLister per fotogroep een eerste titel en beschrijving maken. Controleer het resultaat en voeg feiten toe die niet zichtbaar zijn, zoals afmetingen of een verborgen gebrek. De extensie maakt concepttekst; je publiceert het artikel zelf."
+          "body": "Een sjabloon werkt goed wanneer je al weet wat je wilt schrijven. Heb je meerdere artikelen gefotografeerd, dan kan AutoLister per fotogroep een eerste titel en beschrijving maken. Controleer het resultaat en voeg feiten toe die niet zichtbaar zijn, zoals afmetingen of een verborgen gebrek. AutoLister maakt concepttekst; je publiceert het artikel zelf."
         }
       ],
       "examples": [
@@ -72,7 +83,7 @@
         },
         {
           "question": "Zijn deze sjablonen gratis en heb ik een account nodig?",
-          "answer": "De sjablonen op deze pagina zijn gratis te kopiëren zonder account. AI-generatie vanuit foto's is een aparte functie van de AutoLister-browserextensie, met 5 gratis generaties na registratie en betaalde abonnementen voor verder gebruik."
+          "answer": "De sjablonen op deze pagina zijn gratis te kopiëren zonder account. AI-generatie vanuit foto's is beschikbaar in de AutoLister-webapp en browserextensie, met 5 gratis generaties na registratie en betaalde abonnementen voor verder gebruik."
         }
       ]
     },
@@ -127,11 +138,11 @@
       "title": "Van foto's naar Vinted-advertentieconcepten | AutoLister AI",
       "description": "Maak met AutoLister Vinted-titels en beschrijvingen vanuit telefoonfoto's. Groepeer foto's per artikel, genereer bewerkbare tekst en controleer voor publicatie.",
       "heading": "Van telefoonfoto's naar een Vinted-advertentieconcept",
-      "answer": "AutoLister kan een Vinted-titel en beschrijving maken op basis van je artikelfoto's. Stuur foto's van je telefoon naar je desktopsessie, groepeer ze per artikel en genereer bewerkbare concepten. Je controleert de details en publiceert zelf. Een concept voorbereiden is niet hetzelfde als automatisch een advertentie plaatsen.",
+      "answer": "AutoLister maakt bewerkbare Vinted-titels en beschrijvingen van artikelfoto's. Gebruik de webapp op je telefoon of computer, of maak tekst direct op de website van Vinted met de extensie in Chrome op je computer of Orion op iPhone en iPad. Controleer je concept en publiceer wanneer het klaar is.",
       "sections": [
         {
           "heading": "Hoe krijg ik telefoonfoto's in mijn advertentieworkflow?",
-          "body": "Installeer AutoLister in een ondersteunde desktopbrowser en open je advertentieworkflow. Start de telefoonupload en volg de verbindings- of QR-instructies op je telefoon. Verstuur de foto's en controleer of ze in de desktopsessie zijn aangekomen. Dit werkt van telefoon naar desktop; het betekent niet dat de extensie in de mobiele Vinted-app draait."
+          "body": "Werk je liever op een computer? Installeer AutoLister in een ondersteunde desktopbrowser en open je advertentieworkflow. Start de telefoonupload en volg de verbindings- of QR-instructies op je telefoon. Verstuur de foto's en controleer of ze in de desktopsessie zijn aangekomen. Dit werkt van telefoon naar desktop; het betekent niet dat de extensie in de mobiele Vinted-app draait."
         },
         {
           "heading": "Hoe organiseer ik foto's van meerdere artikelen?",
@@ -143,14 +154,7 @@
         }
       ],
       "examples": [],
-      "checks": [
-        "Mijn telefoonfoto's zijn in de bedoelde desktopsessie aangekomen.",
-        "Elke fotogroep bevat één artikel met de bijbehorende labels.",
-        "Belangrijke labels en gebreken zijn zichtbaar en leesbaar.",
-        "Ik heb de gegenereerde tekst met het echte artikel vergeleken en gecorrigeerd.",
-        "Ik heb relevante details toegevoegd die foto's niet laten zien.",
-        "Ik controleer en publiceer elke advertentie zelf."
-      ],
+      "checks": [],
       "faq": [
         {
           "question": "Kan AI een Vinted-beschrijving schrijven op basis van een foto?",
@@ -162,7 +166,11 @@
         },
         {
           "question": "Moet ik foto's naar mijn computer e-mailen?",
-          "answer": "Nee. Met de telefoonupload van AutoLister komen je telefoonfoto's in je desktopworkflow terecht. Volg de verbindingsinstructies in de extensie. Wil je de extensie op de telefoon zelf gebruiken, bekijk dan de aparte installatiehandleiding voor dat apparaat."
+          "answer": "Nee. Je kunt in de webapp foto's uploaden en concepten maken, volledig op je telefoon. Gebruik je liever de desktopextensie, dan verstuurt de telefoonupload je foto's naar je computer. Volg de verbindingsinstructies in de extensie."
+        },
+        {
+          "question": "Kan ik AutoLister volledig op mijn telefoon gebruiken?",
+          "answer": "Ja. Open de AutoLister-webapp in de browser op je iPhone of Android-telefoon, log in, upload artikelfoto's en maak een titel en beschrijving. Controleer de tekst, kopieer deze naar je Vinted-advertentie en publiceer zelf. Je hebt geen computer, browserextensie of Orion nodig."
         }
       ]
     }

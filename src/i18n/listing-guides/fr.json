@@ -13,12 +13,23 @@
     "progress": "{done} sur {total} vérifiés",
     "faq": "Les questions des vendeurs",
     "related": "Pour préparer votre prochaine annonce",
-    "ctaTitle": "Vous préférez partir de vos photos ?",
+    "ctaTitle": "Choisissez comment créer votre brouillon",
+    "webAction": "Ouvrir l'application web",
+    "webDetail": "Sur téléphone ou ordinateur. Générez un brouillon, puis copiez-le dans Vinted.",
+    "extensionDetail": "Générez directement sur le site Vinted. Utilisez Chrome sur ordinateur ou Orion sur iPhone et iPad.",
+    "workflowPhotosBody": "Ajoutez des photos de l'article et de ses étiquettes.",
+    "workflowReview": "Vérifiez et publiez",
+    "workflowReviewBody": "Dans l'application web, copiez le texte dans Vinted. L'extension remplit directement les champs de l'annonce. Vérifiez votre annonce, puis publiez quand elle est prête.",
     "ctaBody": "AutoLister prépare des titres et descriptions modifiables à partir des photos de vos articles. Vérifiez le brouillon, ajoutez les détails invisibles sur les photos et publiez vous-même.",
     "freeNote": "5 générations gratuites après inscription. Sans carte bancaire.",
     "setup": "Aide à l'installation",
-    "setupNote": "AutoLister est une extension de navigateur, pas un générateur intégré à cette page. Consultez le guide adapté à votre appareil.",
-    "photoCaption": "L'organisateur de photos de téléphone d'AutoLister. Vérifiez que chaque groupe contient les photos d'un seul article."
+    "setupNote": "L'extension de navigateur est facultative. Pour générer directement sur la page d'une annonce, suivez le guide d'installation de l'extension.",
+    "photoCaption": "L'organisateur de photos de l'extension AutoLister sur ordinateur après un envoi depuis le téléphone. Vérifiez que chaque groupe contient les photos d'un seul article.",
+    "orionLabel": "Utiliser l'extension sur iPhone avec Orion",
+    "workflow": "Des photos à votre annonce",
+    "extensionAction": "Installer l'extension",
+    "phoneQuestion": "Puis-je utiliser AutoLister uniquement sur mon téléphone ?",
+    "phoneBody": "Oui. Ouvrez l'application web AutoLister dans le navigateur de votre iPhone ou téléphone Android, connectez-vous, ajoutez les photos de l'article et générez un titre et une description. Vérifiez et copiez le texte dans votre annonce Vinted, puis publiez vous-même. Aucun ordinateur, aucune extension ni installation d'Orion ne sont nécessaires."
   },
   "pages": {
     "vinted-description-template": {
@@ -37,7 +48,7 @@
         },
         {
           "heading": "Quand vaut-il mieux générer le texte depuis les photos ?",
-          "body": "Un modèle convient lorsque vous savez déjà quoi écrire. Pour plusieurs articles photographiés, AutoLister peut préparer un premier titre et une description à partir de chaque groupe de photos. Vous devez toujours vérifier le résultat et ajouter les faits invisibles, comme les mesures ou un défaut caché. L'extension prépare le texte ; elle ne publie pas l'article à votre place."
+          "body": "Un modèle convient lorsque vous savez déjà quoi écrire. Pour plusieurs articles photographiés, AutoLister peut préparer un premier titre et une description à partir de chaque groupe de photos. Vous devez toujours vérifier le résultat et ajouter les faits invisibles, comme les mesures ou un défaut caché. AutoLister prépare le texte ; elle ne publie pas l'article à votre place."
         }
       ],
       "examples": [
@@ -72,7 +83,7 @@
         },
         {
           "question": "Ces modèles sont-ils gratuits et faut-il un compte ?",
-          "answer": "Les modèles de cette page sont gratuits et copiables sans compte. La génération IA depuis les photos est une fonction distincte de l'extension AutoLister, avec 5 générations gratuites après inscription puis des offres payantes."
+          "answer": "Les modèles de cette page sont gratuits et copiables sans compte. La génération IA depuis les photos est disponible dans l'application web et l'extension AutoLister, avec 5 générations gratuites après inscription puis des offres payantes."
         }
       ]
     },
@@ -127,11 +138,11 @@
       "title": "Des photos au brouillon d'annonce Vinted | AutoLister AI",
       "description": "Transformez les photos de votre téléphone en titres et descriptions Vinted avec AutoLister. Regroupez les articles, générez un brouillon et vérifiez avant de publier.",
       "heading": "Des photos du téléphone à un brouillon d'annonce Vinted",
-      "answer": "AutoLister peut préparer un titre et une description Vinted à partir des photos de votre article. Envoyez les photos du téléphone à votre session sur ordinateur, regroupez-les par article et générez des brouillons modifiables. Vous vérifiez les détails et publiez vous-même. Préparer un brouillon n'est pas publier automatiquement.",
+      "answer": "AutoLister transforme les photos d'articles en titres et descriptions Vinted modifiables. Utilisez l'application web sur téléphone ou ordinateur, ou générez directement sur le site Vinted avec l'extension dans Chrome sur ordinateur ou Orion sur iPhone et iPad. Vérifiez votre brouillon, puis publiez quand il est prêt.",
       "sections": [
         {
           "heading": "Comment utiliser les photos de mon téléphone ?",
-          "body": "Installez AutoLister dans un navigateur compatible sur ordinateur et ouvrez votre espace de création d'annonce. Lancez l'envoi depuis le téléphone et suivez les instructions de connexion ou de QR code sur votre téléphone. Envoyez les photos, puis vérifiez leur arrivée dans la session sur ordinateur. Ce fonctionnement téléphone-ordinateur ne signifie pas que l'extension s'exécute dans l'application mobile Vinted."
+          "body": "Si vous préférez travailler sur ordinateur, installez AutoLister dans un navigateur compatible sur ordinateur et ouvrez votre espace de création d'annonce. Lancez l'envoi depuis le téléphone et suivez les instructions de connexion ou de QR code sur votre téléphone. Envoyez les photos, puis vérifiez leur arrivée dans la session sur ordinateur. Ce fonctionnement téléphone-ordinateur ne signifie pas que l'extension s'exécute dans l'application mobile Vinted."
         },
         {
           "heading": "Comment organiser les photos de plusieurs articles ?",
@@ -143,14 +154,7 @@
         }
       ],
       "examples": [],
-      "checks": [
-        "Les photos du téléphone sont arrivées dans la bonne session sur ordinateur.",
-        "Chaque groupe contient un seul article et ses propres étiquettes.",
-        "Les étiquettes importantes et les défauts sont visibles et lisibles.",
-        "J'ai corrigé le texte généré en le comparant à l'article réel.",
-        "J'ai ajouté les détails utiles que les photos ne montrent pas.",
-        "Je vérifierai et publierai chaque annonce moi-même."
-      ],
+      "checks": [],
       "faq": [
         {
           "question": "Une IA peut-elle écrire une description Vinted depuis une photo ?",
@@ -162,7 +166,11 @@
         },
         {
           "question": "Dois-je envoyer mes photos à l'ordinateur par e-mail ?",
-          "answer": "Non. La fonction d'envoi depuis le téléphone relie vos photos au travail sur ordinateur. Suivez les instructions de connexion de l'extension. Pour utiliser l'extension directement sur un téléphone, consultez le guide d'installation propre à cet appareil."
+          "answer": "Non. Vous pouvez ajouter vos photos et générer des brouillons entièrement sur votre téléphone dans l'application web. Si vous préférez l'extension sur ordinateur, sa fonction d'envoi depuis le téléphone transfère les photos à votre ordinateur. Suivez les instructions de connexion de l'extension."
+        },
+        {
+          "question": "Puis-je utiliser AutoLister uniquement sur mon téléphone ?",
+          "answer": "Oui. Ouvrez l'application web AutoLister dans le navigateur de votre iPhone ou téléphone Android, connectez-vous, ajoutez les photos de l'article et générez un titre et une description. Vérifiez et copiez le texte dans votre annonce Vinted, puis publiez vous-même. Aucun ordinateur, aucune extension ni installation d'Orion ne sont nécessaires."
         }
       ]
     }

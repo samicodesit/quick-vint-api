@@ -13,12 +13,23 @@
     "progress": "{done} von {total} geprüft",
     "faq": "Häufige Fragen von Verkäufern",
     "related": "Weitere Hilfe für dein nächstes Angebot",
-    "ctaTitle": "Lieber mit deinen Fotos beginnen?",
+    "ctaTitle": "Wähle, wie du deinen Entwurf erstellst",
+    "webAction": "Web-App öffnen",
+    "webDetail": "Auf dem Handy oder Computer. Erstelle einen Entwurf und kopiere ihn in Vinted.",
+    "extensionDetail": "Erstelle Texte direkt auf der Vinted-Website. Nutze Chrome am Computer oder Orion auf dem iPhone und iPad.",
+    "workflowPhotosBody": "Füge Fotos des Artikels und seiner Etiketten hinzu.",
+    "workflowReview": "Prüfen und veröffentlichen",
+    "workflowReviewBody": "In der Web-App kopierst du den Text in Vinted. Die Erweiterung füllt die Angebotsfelder direkt aus. Prüfe dein Angebot und veröffentliche es, wenn es fertig ist.",
     "ctaBody": "AutoLister erstellt bearbeitbare Titel und Beschreibungen aus deinen Artikelfotos. Prüfe den Entwurf, ergänze nicht sichtbare Details und veröffentliche selbst.",
     "freeNote": "5 kostenlose Generierungen nach der Anmeldung. Keine Kreditkarte nötig.",
     "setup": "Hilfe bei der Installation",
-    "setupNote": "AutoLister ist eine Browser-Erweiterung, kein Generator auf dieser Seite. Prüfe die Installationsanleitung für dein Gerät.",
-    "photoCaption": "AutoListers Organizer für Handyfotos. Prüfe, ob jede Gruppe nur Fotos desselben Artikels enthält."
+    "setupNote": "Die Browser-Erweiterung ist optional. Wenn du direkt auf einer Angebotsseite Text erstellen möchtest, folge der Installationsanleitung für die Erweiterung.",
+    "photoCaption": "Der Foto-Organizer der AutoLister-Desktop-Erweiterung nach einem Handy-Upload. Prüfe, ob jede Gruppe nur Fotos desselben Artikels enthält.",
+    "orionLabel": "Die Erweiterung auf dem iPhone mit Orion nutzen",
+    "workflow": "Von Fotos zu deinem Angebot",
+    "extensionAction": "Browser-Erweiterung installieren",
+    "phoneQuestion": "Kann ich AutoLister vollständig auf meinem Handy nutzen?",
+    "phoneBody": "Ja. Öffne die AutoLister-Web-App im Browser deines iPhones oder Android-Handys, melde dich an, lade Artikelfotos hoch und erstelle einen Titel und eine Beschreibung. Prüfe den Text, kopiere ihn in dein Vinted-Angebot und veröffentliche selbst. Du brauchst weder einen Computer noch eine Browser-Erweiterung oder Orion."
   },
   "pages": {
     "vinted-description-template": {
@@ -37,7 +48,7 @@
         },
         {
           "heading": "Wann ist das Erstellen aus Fotos sinnvoller?",
-          "body": "Eine Vorlage hilft, wenn du bereits weißt, was du schreiben möchtest. Bei mehreren fotografierten Artikeln kann AutoLister aus jeder Fotogruppe einen ersten Titel und eine Beschreibung erstellen. Prüfe das Ergebnis und ergänze nicht sichtbare Fakten wie gemessene Maße oder verdeckte Mängel. Die Erweiterung entwirft Texte; sie veröffentlicht den Artikel nicht für dich."
+          "body": "Eine Vorlage hilft, wenn du bereits weißt, was du schreiben möchtest. Bei mehreren fotografierten Artikeln kann AutoLister aus jeder Fotogruppe einen ersten Titel und eine Beschreibung erstellen. Prüfe das Ergebnis und ergänze nicht sichtbare Fakten wie gemessene Maße oder verdeckte Mängel. AutoLister entwirft Texte; es veröffentlicht den Artikel nicht für dich."
         }
       ],
       "examples": [
@@ -72,7 +83,7 @@
         },
         {
           "question": "Sind diese Vorlagen kostenlos und brauche ich ein Konto?",
-          "answer": "Die Vorlagen auf dieser Seite kannst du kostenlos und ohne Konto kopieren. Die KI-Erstellung aus Fotos ist eine separate Funktion der AutoLister-Erweiterung, mit 5 kostenlosen Generierungen nach Anmeldung und kostenpflichtigen Tarifen für weitere Nutzung."
+          "answer": "Die Vorlagen auf dieser Seite kannst du kostenlos und ohne Konto kopieren. Die KI-Erstellung aus Fotos ist in der AutoLister-Web-App und der Browser-Erweiterung verfügbar, mit 5 kostenlosen Generierungen nach Anmeldung und kostenpflichtigen Tarifen für weitere Nutzung."
         }
       ]
     },
@@ -127,11 +138,11 @@
       "title": "Aus Fotos Vinted-Angebotsentwürfe erstellen | AutoLister AI",
       "description": "Erstelle mit AutoLister Vinted-Titel und Beschreibungen aus Handyfotos. Gruppiere die Artikel, erzeuge bearbeitbare Entwürfe und prüfe sie vor dem Veröffentlichen.",
       "heading": "Von Handyfotos zum Vinted-Angebotsentwurf",
-      "answer": "AutoLister kann aus Artikelfotos einen Vinted-Titel und eine Beschreibung vorbereiten. Sende Handyfotos an deine Desktop-Sitzung, gruppiere sie nach Artikel und erstelle bearbeitbare Entwürfe. Du prüfst die Angaben und veröffentlichst selbst. Ein vorbereiteter Entwurf ist keine automatische Veröffentlichung.",
+      "answer": "AutoLister erstellt aus Artikelfotos bearbeitbare Vinted-Titel und Beschreibungen. Nutze die Web-App auf dem Handy oder Computer oder erstelle Texte direkt auf der Vinted-Website mit der Erweiterung in Chrome am Computer oder Orion auf dem iPhone und iPad. Prüfe deinen Entwurf und veröffentliche ihn, wenn er fertig ist.",
       "sections": [
         {
           "heading": "Wie nutze ich Handyfotos beim Erstellen eines Angebots?",
-          "body": "Installiere AutoLister in einem unterstützten Desktop-Browser und öffne deinen Angebotsablauf. Starte den Handy-Upload und folge auf dem Smartphone den Verbindungs- oder QR-Anweisungen. Sende die Artikelfotos und prüfe, ob sie in deiner Desktop-Sitzung angekommen sind. Dieser Ablauf verbindet Handy und Computer; die Erweiterung läuft dadurch nicht innerhalb der mobilen Vinted-App."
+          "body": "Wenn du lieber am Computer arbeitest: Installiere AutoLister in einem unterstützten Desktop-Browser und öffne deinen Angebotsablauf. Starte den Handy-Upload und folge auf dem Smartphone den Verbindungs- oder QR-Anweisungen. Sende die Artikelfotos und prüfe, ob sie in deiner Desktop-Sitzung angekommen sind. Dieser Ablauf verbindet Handy und Computer; die Erweiterung läuft dadurch nicht innerhalb der mobilen Vinted-App."
         },
         {
           "heading": "Wie organisiere ich Fotos mehrerer Artikel?",
@@ -143,14 +154,7 @@
         }
       ],
       "examples": [],
-      "checks": [
-        "Meine Handyfotos sind in der richtigen Desktop-Sitzung angekommen.",
-        "Jede Fotogruppe enthält nur einen Artikel und dessen Etiketten.",
-        "Wichtige Etiketten und Mängel sind sichtbar und lesbar.",
-        "Ich habe den generierten Text mit dem echten Artikel abgeglichen.",
-        "Ich habe relevante, auf Fotos nicht sichtbare Details ergänzt.",
-        "Ich prüfe und veröffentliche jedes Angebot selbst."
-      ],
+      "checks": [],
       "faq": [
         {
           "question": "Kann KI aus einem Foto eine Vinted-Beschreibung schreiben?",
@@ -162,7 +166,11 @@
         },
         {
           "question": "Muss ich Fotos per E-Mail an meinen Computer senden?",
-          "answer": "Nein. AutoListers Handy-Upload verbindet deine Smartphone-Fotos mit dem Desktop-Ablauf. Folge den Verbindungsanweisungen in der Erweiterung. Möchtest du die Erweiterung direkt auf dem Handy nutzen, lies die gesonderte Installationsanleitung für das Gerät."
+          "answer": "Nein. Du kannst Fotos direkt in der Web-App auf deinem Handy hochladen und dort Entwürfe erstellen. Wenn du die Desktop-Erweiterung bevorzugst, sendet der Handy-Upload die Fotos an deinen Computer. Folge den Verbindungsanweisungen in der Erweiterung."
+        },
+        {
+          "question": "Kann ich AutoLister vollständig auf meinem Handy nutzen?",
+          "answer": "Ja. Öffne die AutoLister-Web-App im Browser deines iPhones oder Android-Handys, melde dich an, lade Artikelfotos hoch und erstelle einen Titel und eine Beschreibung. Prüfe den Text, kopiere ihn in dein Vinted-Angebot und veröffentliche selbst. Du brauchst weder einen Computer noch eine Browser-Erweiterung oder Orion."
         }
       ]
     }

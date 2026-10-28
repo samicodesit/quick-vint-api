@@ -13,12 +13,23 @@
     "progress": "Sprawdzono {done} z {total}",
     "faq": "Pytania sprzedających",
     "related": "Więcej pomocy przy kolejnym ogłoszeniu",
-    "ctaTitle": "Wolisz zacząć od zdjęć?",
+    "ctaTitle": "Wybierz sposób tworzenia szkicu",
+    "webAction": "Otwórz aplikację internetową",
+    "webDetail": "Na telefonie lub komputerze. Wygeneruj szkic i skopiuj go do Vinted.",
+    "extensionDetail": "Generuj bezpośrednio na stronie Vinted. Używaj Chrome na komputerze lub Orion na iPhonie i iPadzie.",
+    "workflowPhotosBody": "Dodaj zdjęcia przedmiotu i jego metek.",
+    "workflowReview": "Sprawdź i opublikuj",
+    "workflowReviewBody": "W aplikacji internetowej skopiuj tekst do Vinted. Rozszerzenie wypełnia pola ogłoszenia bezpośrednio. Sprawdź ogłoszenie i opublikuj je, gdy będzie gotowe.",
     "ctaBody": "AutoLister przygotowuje edytowalne tytuły i opisy na podstawie zdjęć przedmiotów. Sprawdź szkic, dodaj szczegóły niewidoczne na zdjęciach i opublikuj samodzielnie.",
     "freeNote": "5 bezpłatnych generacji po rejestracji. Bez karty płatniczej.",
     "setup": "Pomoc w instalacji",
-    "setupNote": "AutoLister to rozszerzenie przeglądarki, a nie generator na tej stronie. Sprawdź instrukcję instalacji dla swojego urządzenia.",
-    "photoCaption": "Organizer zdjęć z telefonu w AutoLister. Sprawdź, czy każda grupa zawiera zdjęcia tego samego przedmiotu."
+    "setupNote": "Rozszerzenie przeglądarki jest opcjonalne. Aby generować tekst bezpośrednio na stronie ogłoszenia, skorzystaj z instrukcji instalacji rozszerzenia.",
+    "photoCaption": "Organizator zdjęć w rozszerzeniu AutoLister na komputerze po przesłaniu zdjęć z telefonu. Sprawdź, czy każda grupa zawiera zdjęcia tego samego przedmiotu.",
+    "orionLabel": "Używaj rozszerzenia na iPhonie z przeglądarką Orion",
+    "workflow": "Od zdjęć do ogłoszenia",
+    "extensionAction": "Zainstaluj rozszerzenie",
+    "phoneQuestion": "Czy mogę korzystać z AutoLister wyłącznie na telefonie?",
+    "phoneBody": "Tak. Otwórz aplikację internetową AutoLister w przeglądarce na iPhonie lub telefonie z Androidem, zaloguj się, dodaj zdjęcia przedmiotu i wygeneruj tytuł oraz opis. Sprawdź tekst, skopiuj go do ogłoszenia na Vinted i opublikuj samodzielnie. Nie potrzebujesz komputera, rozszerzenia przeglądarki ani przeglądarki Orion."
   },
   "pages": {
     "vinted-description-template": {
@@ -37,7 +48,7 @@
         },
         {
           "heading": "Kiedy lepiej wygenerować tekst ze zdjęć?",
-          "body": "Szablon sprawdza się, gdy już wiesz, co chcesz napisać. Przy kilku sfotografowanych przedmiotach AutoLister może przygotować pierwszy tytuł i opis z każdej grupy zdjęć. Nadal trzeba sprawdzić wynik i dodać niewidoczne informacje, takie jak zmierzone wymiary czy ukryta wada. Rozszerzenie tworzy szkic tekstu; nie publikuje przedmiotu za Ciebie."
+          "body": "Szablon sprawdza się, gdy już wiesz, co chcesz napisać. Przy kilku sfotografowanych przedmiotach AutoLister może przygotować pierwszy tytuł i opis z każdej grupy zdjęć. Nadal trzeba sprawdzić wynik i dodać niewidoczne informacje, takie jak zmierzone wymiary czy ukryta wada. AutoLister tworzy szkic tekstu; nie publikuje przedmiotu za Ciebie."
         }
       ],
       "examples": [
@@ -72,7 +83,7 @@
         },
         {
           "question": "Czy szablony są bezpłatne i czy potrzebuję konta?",
-          "answer": "Szablony na tej stronie można kopiować bezpłatnie i bez konta. Generowanie tekstu ze zdjęć przez AI to osobna funkcja rozszerzenia AutoLister: 5 bezpłatnych generacji po rejestracji, a następnie płatne plany."
+          "answer": "Szablony na tej stronie można kopiować bezpłatnie i bez konta. Generowanie tekstu ze zdjęć przez AI to funkcja dostępna w aplikacji internetowej i rozszerzeniu AutoLister: 5 bezpłatnych generacji po rejestracji, a następnie płatne plany."
         }
       ]
     },
@@ -127,11 +138,11 @@
       "title": "Od zdjęć do szkicu ogłoszenia Vinted | AutoLister AI",
       "description": "Twórz tytuły i opisy Vinted ze zdjęć z telefonu w AutoLister. Pogrupuj zdjęcia przedmiotów, wygeneruj edytowalny tekst i sprawdź go przed publikacją.",
       "heading": "Od zdjęć z telefonu do szkicu ogłoszenia na Vinted",
-      "answer": "AutoLister może przygotować tytuł i opis Vinted na podstawie zdjęć przedmiotu. Wyślij zdjęcia z telefonu do sesji na komputerze, pogrupuj je według przedmiotów i wygeneruj edytowalne szkice. Sprawdzasz szczegóły i publikujesz samodzielnie. Przygotowanie szkicu nie oznacza automatycznej publikacji.",
+      "answer": "AutoLister zamienia zdjęcia przedmiotów w edytowalne tytuły i opisy na Vinted. Korzystaj z aplikacji internetowej na telefonie lub komputerze albo generuj bezpośrednio na stronie Vinted z rozszerzeniem w Chrome na komputerze lub Orion na iPhonie i iPadzie. Sprawdź szkic i opublikuj go, gdy będzie gotowy.",
       "sections": [
         {
           "heading": "Jak wykorzystać zdjęcia z telefonu przy tworzeniu ogłoszenia?",
-          "body": "Zainstaluj AutoLister w obsługiwanej przeglądarce na komputerze i otwórz proces tworzenia ogłoszenia. Uruchom przesyłanie z telefonu i postępuj zgodnie z instrukcjami połączenia lub kodu QR na smartfonie. Wyślij zdjęcia i sprawdź ich obecność w sesji na komputerze. Ten sposób łączy telefon z komputerem; nie uruchamia rozszerzenia wewnątrz mobilnej aplikacji Vinted."
+          "body": "Jeśli wolisz pracować na komputerze: Zainstaluj AutoLister w obsługiwanej przeglądarce na komputerze i otwórz proces tworzenia ogłoszenia. Uruchom przesyłanie z telefonu i postępuj zgodnie z instrukcjami połączenia lub kodu QR na smartfonie. Wyślij zdjęcia i sprawdź ich obecność w sesji na komputerze. Ten sposób łączy telefon z komputerem; nie uruchamia rozszerzenia wewnątrz mobilnej aplikacji Vinted."
         },
         {
           "heading": "Jak uporządkować zdjęcia kilku przedmiotów?",
@@ -143,14 +154,7 @@
         }
       ],
       "examples": [],
-      "checks": [
-        "Zdjęcia z telefonu trafiły do właściwej sesji na komputerze.",
-        "Każda grupa zdjęć zawiera jeden przedmiot i jego własne metki.",
-        "Ważne metki i wady są widoczne oraz czytelne.",
-        "Wygenerowany tekst został poprawiony po porównaniu z przedmiotem.",
-        "Dodano istotne informacje niewidoczne na zdjęciach.",
-        "Każde ogłoszenie sprawdzę i opublikuję samodzielnie."
-      ],
+      "checks": [],
       "faq": [
         {
           "question": "Czy AI potrafi napisać opis Vinted na podstawie zdjęcia?",
@@ -162,7 +166,11 @@
         },
         {
           "question": "Czy muszę wysyłać zdjęcia na komputer e-mailem?",
-          "answer": "Nie. Funkcja przesyłania z telefonu łączy Twoje zdjęcia z pracą na komputerze. Postępuj zgodnie z instrukcjami połączenia w rozszerzeniu. Aby uruchomić rozszerzenie bezpośrednio na telefonie, sprawdź osobną instrukcję dla tego urządzenia."
+          "answer": "Nie. W aplikacji internetowej możesz dodawać zdjęcia i generować szkice wyłącznie na telefonie. Jeśli wolisz rozszerzenie na komputerze, funkcja przesyłania z telefonu przeniesie zdjęcia na komputer. Postępuj zgodnie z instrukcjami połączenia w rozszerzeniu."
+        },
+        {
+          "question": "Czy mogę korzystać z AutoLister wyłącznie na telefonie?",
+          "answer": "Tak. Otwórz aplikację internetową AutoLister w przeglądarce na iPhonie lub telefonie z Androidem, zaloguj się, dodaj zdjęcia przedmiotu i wygeneruj tytuł oraz opis. Sprawdź tekst, skopiuj go do ogłoszenia na Vinted i opublikuj samodzielnie. Nie potrzebujesz komputera, rozszerzenia przeglądarki ani przeglądarki Orion."
         }
       ]
     }

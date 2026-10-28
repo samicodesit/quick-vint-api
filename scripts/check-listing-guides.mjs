@@ -16,6 +16,7 @@ for (const locale of locales) {
   const copy = JSON.parse(readFileSync(path.join(directory, `${locale}.json`), 'utf8'));
   assert.deepEqual(Object.keys(copy.pages).sort(), [...slugs].sort(), `${locale}: exactly three distinct pages`);
   for (const key of ['resources', 'home', 'answer', 'contents', 'examples', 'exampleNote', 'copy', 'copied', 'copyError', 'checks', 'progress', 'faq', 'related', 'ctaTitle', 'ctaBody', 'freeNote', 'setup', 'setupNote', 'photoCaption']) text(copy.ui[key], `${locale}.${key}`);
+  for (const key of ['phoneQuestion', 'phoneBody', 'orionLabel', 'extensionAction', 'webAction', 'webDetail', 'extensionDetail', 'workflow', 'workflowPhotosBody', 'workflowReview', 'workflowReviewBody']) text(copy.ui[key], `${locale}.${key}`);
   assert.ok(copy.ui.progress.includes('{done}') && copy.ui.progress.includes('{total}'), `${locale}: progress placeholders`);
   for (const slug of slugs) {
     const page = copy.pages[slug];
@@ -31,9 +32,10 @@ for (const locale of locales) {
       text(section.heading, `${locale}/${slug}: section ${index}`);
       text(section.body, `${locale}/${slug}: section ${index} body`);
     });
-    assert.ok(page.checks.length >= 5, `${locale}/${slug}: a practical checklist`);
+    if (slug === 'vinted-photo-to-listing') assert.equal(page.checks.length, 0, `${locale}/${slug}: the photo guide uses a simple workflow`);
+    else assert.ok(page.checks.length >= 5, `${locale}/${slug}: a practical checklist`);
     page.checks.forEach(check => text(check, `${locale}/${slug}: checklist item`));
-    assert.equal(page.faq.length, 3, `${locale}/${slug}: three answered questions`);
+    assert.equal(page.faq.length, slug === 'vinted-photo-to-listing' ? 4 : 3, `${locale}/${slug}: complete FAQ including the phone workflow`);
     page.faq.forEach(item => {
       text(item.question, `${locale}/${slug}: FAQ question`);
       text(item.answer, `${locale}/${slug}: FAQ answer`);
@@ -72,6 +74,13 @@ if (process.argv.includes('--built')) {
         assert.ok(html.includes(`hreflang="${alternate}" href="${origin}${altPrefix}/${slug}"`), `${url}: missing alternate ${alternate}`);
       }
       const schemas = [...html.matchAll(/<script\b[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map(match => JSON.parse(match[1]));
+      const applications = schemas.flatMap(schema => schema['@graph'] || [schema]);
+      const webApp = applications.find(item => item['@type'] === 'WebApplication');
+      assert.ok(webApp, `${url}: missing web application structured data`);
+      assert.ok(!webApp.aggregateRating, `${url}: extension ratings must not be assigned to the web app`);
+      assert.ok(html.includes('href="/app"') && html.includes('data-track-event="web_app_click"'), `${url}: accessible phone workflow entry`);
+      assert.ok(html.includes('href="/vinted-extension-iphone-orion"'), `${url}: retain an explicit iPhone extension path`);
+      assert.equal(/<section\b[^>]*\bdata-listing-checklist(?:\s|=|>)/.test(html), slug !== 'vinted-photo-to-listing', `${url}: interactive checklist belongs on checklist/template pages only`);
       const graph = schemas.find(schema => Array.isArray(schema['@graph']))?.['@graph'];
       assert.ok(graph, `${url}: page-specific structured data`);
       assert.equal(graph.find(item => item['@type'] === 'WebPage')?.url, url);
@@ -81,6 +90,23 @@ if (process.argv.includes('--built')) {
       assert.ok(homepage.includes(`href="${prefix}/${slug}"`), `${url}: orphaned from localized home`);
       assert.ok(html.includes('data-track-event="chrome_store_click"'), `${url}: missing conversion tracking`);
     }
+  }
+  for (const route of ['index.html', 'support/index.html', 'vinted-description-generator/index.html', 'vinted-chatgpt-guide/index.html', 'vinted-extension-iphone-orion/index.html', 'welcome/en/index.html']) {
+    const html = readFileSync(path.join(root, 'dist', route), 'utf8');
+    const schemas = [...html.matchAll(/<script\b[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map(match => JSON.parse(match[1]));
+    const applications = schemas.flatMap(schema => schema['@graph'] || [schema]);
+    const webApp = applications.find(item => item['@type'] === 'WebApplication');
+    assert.equal(Boolean(webApp), !route.startsWith('welcome/'), `${route}: web app schema must follow the visible product explanation`);
+    if (webApp) {
+      assert.equal(webApp.url, `${origin}/app`);
+      assert.ok(!webApp.aggregateRating, `${route}: do not transfer Chrome ratings to the web app`);
+      assert.ok(html.includes('href="/app'), `${route}: visible app entry`);
+    }
+    const extension = applications.find(item => item['@id'] === `${origin}/#browser-extension`);
+    assert.ok(extension?.url.startsWith('https://chromewebstore.google.com/'), `${route}: retain the separate extension entity`);
+    assert.ok(!extension.aggregateRating, `${route}: no unverified site-wide rating`);
+    assert.notEqual(extension.operatingSystem, 'Chrome', `${route}: browsers are not operating systems`);
+    assert.ok(extension.softwareRequirements?.includes('Orion'), `${route}: describe the supported iPhone extension browser`);
   }
 }
 console.log(`Verified ${slugs.length * locales.length} translated listing guides${process.argv.includes('--built') ? ', rendered HTML, hreflang, JSON-LD, internal links and sitemap' : ' and source contracts'}.`);

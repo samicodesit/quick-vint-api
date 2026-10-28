@@ -13,12 +13,23 @@
     "progress": "{done} di {total} controllati",
     "faq": "Le domande dei venditori",
     "related": "Altri consigli per il tuo prossimo annuncio",
-    "ctaTitle": "Preferisci partire dalle tue foto?",
+    "ctaTitle": "Scegli come creare la tua bozza",
+    "webAction": "Apri l'app web",
+    "webDetail": "Dal telefono o dal computer. Genera una bozza e copiala in Vinted.",
+    "extensionDetail": "Genera direttamente sul sito Vinted. Usa Chrome sul computer o Orion su iPhone e iPad.",
+    "workflowPhotosBody": "Aggiungi foto dell'articolo e delle sue etichette.",
+    "workflowReview": "Controlla e pubblica",
+    "workflowReviewBody": "Nell'app web, copia il testo in Vinted. L'estensione compila direttamente i campi dell'annuncio. Controlla l'annuncio e pubblicalo quando è pronto.",
     "ctaBody": "AutoLister prepara titoli e descrizioni modificabili dalle foto dei tuoi articoli. Controlla la bozza, aggiungi i dettagli non visibili e pubblica personalmente.",
     "freeNote": "5 generazioni gratuite dopo la registrazione. Nessuna carta richiesta.",
     "setup": "Guida all'installazione",
-    "setupNote": "AutoLister è un'estensione del browser, non un generatore incorporato in questa pagina. Consulta la guida per il tuo dispositivo.",
-    "photoCaption": "L'organizzatore di foto dal telefono di AutoLister. Verifica che ogni gruppo contenga foto dello stesso articolo."
+    "setupNote": "L'estensione del browser è facoltativa. Per generare testo direttamente sulla pagina di un annuncio, segui la guida di installazione dell'estensione.",
+    "photoCaption": "L'organizzatore di foto dell'estensione AutoLister sul computer dopo un caricamento dal telefono. Verifica che ogni gruppo contenga foto dello stesso articolo.",
+    "orionLabel": "Usa l'estensione su iPhone con Orion",
+    "workflow": "Dalle foto al tuo annuncio",
+    "extensionAction": "Installa l'estensione",
+    "phoneQuestion": "Posso usare AutoLister solo dal telefono?",
+    "phoneBody": "Sì. Apri l'app web di AutoLister nel browser del tuo iPhone o telefono Android, accedi, carica le foto dell'articolo e genera un titolo e una descrizione. Controlla il testo, copialo nel tuo annuncio Vinted e pubblica personalmente. Non servono un computer, un'estensione del browser o Orion."
   },
   "pages": {
     "vinted-description-template": {
@@ -37,7 +48,7 @@
         },
         {
           "heading": "Quando conviene generare il testo dalle foto?",
-          "body": "Un modello funziona bene quando sai già cosa scrivere. Se hai fotografato più articoli, AutoLister può preparare un primo titolo e una descrizione da ciascun gruppo di foto. Controlla comunque il risultato e aggiungi i dati non visibili, come misure o difetti nascosti. L'estensione prepara il testo; non pubblica l'articolo al posto tuo."
+          "body": "Un modello funziona bene quando sai già cosa scrivere. Se hai fotografato più articoli, AutoLister può preparare un primo titolo e una descrizione da ciascun gruppo di foto. Controlla comunque il risultato e aggiungi i dati non visibili, come misure o difetti nascosti. AutoLister prepara il testo; non pubblica l'articolo al posto tuo."
         }
       ],
       "examples": [
@@ -72,7 +83,7 @@
         },
         {
           "question": "I modelli sono gratuiti e serve un account?",
-          "answer": "Puoi copiare gratuitamente i modelli di questa pagina senza account. La generazione IA dalle foto è una funzione separata dell'estensione AutoLister, con 5 generazioni gratuite dopo la registrazione e piani a pagamento per continuare."
+          "answer": "Puoi copiare gratuitamente i modelli di questa pagina senza account. La generazione IA dalle foto è disponibile nell'app web e nell'estensione AutoLister, con 5 generazioni gratuite dopo la registrazione e piani a pagamento per continuare."
         }
       ]
     },
@@ -127,11 +138,11 @@
       "title": "Dalle foto alle bozze di annunci Vinted | AutoLister AI",
       "description": "Trasforma foto dal telefono in titoli e descrizioni Vinted con AutoLister. Organizza ogni articolo, genera testo modificabile e controllalo prima di pubblicare.",
       "heading": "Dalle foto del telefono a una bozza di annuncio Vinted",
-      "answer": "AutoLister può preparare un titolo e una descrizione Vinted dalle foto dei tuoi articoli. Invia le foto dal telefono alla sessione sul computer, raggruppale per articolo e genera bozze modificabili. Controlli i dettagli e pubblichi personalmente. Preparare una bozza non equivale a pubblicare automaticamente.",
+      "answer": "AutoLister trasforma le foto degli articoli in titoli e descrizioni Vinted modificabili. Usa l'app web dal telefono o dal computer, oppure genera direttamente sul sito Vinted con l'estensione in Chrome sul computer o Orion su iPhone e iPad. Controlla la bozza e pubblicala quando è pronta.",
       "sections": [
         {
           "heading": "Come usare le foto del telefono nella creazione dell'annuncio?",
-          "body": "Installa AutoLister in un browser desktop supportato e apri il tuo flusso di creazione degli annunci. Avvia il caricamento dal telefono e segui le istruzioni di connessione o del codice QR sullo smartphone. Invia le foto e verifica che siano arrivate nella sessione sul computer. Questo flusso collega telefono e computer; non esegue l'estensione dentro l'app mobile di Vinted."
+          "body": "Se preferisci lavorare al computer: Installa AutoLister in un browser desktop supportato e apri il tuo flusso di creazione degli annunci. Avvia il caricamento dal telefono e segui le istruzioni di connessione o del codice QR sullo smartphone. Invia le foto e verifica che siano arrivate nella sessione sul computer. Questo flusso collega telefono e computer; non esegue l'estensione dentro l'app mobile di Vinted."
         },
         {
           "heading": "Come organizzare le foto di più articoli?",
@@ -143,14 +154,7 @@
         }
       ],
       "examples": [],
-      "checks": [
-        "Le foto del telefono sono arrivate nella sessione desktop corretta.",
-        "Ogni gruppo contiene un solo articolo e le sue etichette.",
-        "Le etichette importanti e i difetti sono visibili e leggibili.",
-        "Ho corretto il testo generato confrontandolo con l'articolo reale.",
-        "Ho aggiunto i dettagli utili che le foto non mostrano.",
-        "Controllerò e pubblicherò ogni annuncio personalmente."
-      ],
+      "checks": [],
       "faq": [
         {
           "question": "L'IA può scrivere una descrizione Vinted da una foto?",
@@ -162,7 +166,11 @@
         },
         {
           "question": "Devo mandare le foto al computer via e-mail?",
-          "answer": "No. Il caricamento dal telefono di AutoLister collega le foto al flusso sul computer. Segui le istruzioni di connessione nell'estensione. Per usare l'estensione direttamente sul telefono, consulta la guida di installazione specifica del dispositivo."
+          "answer": "No. Puoi caricare foto e generare bozze interamente dal telefono nell'app web. Se preferisci l'estensione sul computer, la funzione di caricamento dal telefono invia le foto al computer. Segui le istruzioni di connessione nell'estensione."
+        },
+        {
+          "question": "Posso usare AutoLister solo dal telefono?",
+          "answer": "Sì. Apri l'app web di AutoLister nel browser del tuo iPhone o telefono Android, accedi, carica le foto dell'articolo e genera un titolo e una descrizione. Controlla il testo, copialo nel tuo annuncio Vinted e pubblica personalmente. Non servono un computer, un'estensione del browser o Orion."
         }
       ]
     }

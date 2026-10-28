@@ -340,6 +340,10 @@ describe("bearer-owned mobile Stripe billing", () => {
       }),
     );
     expect(portalCreateMock).not.toHaveBeenCalled();
+    const creditCheckout = checkoutCreateMock.mock.calls[0][0];
+    expect(creditCheckout.consent_collection).toBeUndefined();
+    expect(creditCheckout.custom_text).toBeUndefined();
+    expect(creditCheckout.metadata.billing_policy_version).toBeUndefined();
   });
 
   it("uses fixed approved app checkout URLs and falls back from an unapproved origin", async () => {
@@ -536,7 +540,11 @@ describe("bearer-owned mobile Stripe billing", () => {
     );
     expect(checkoutCreateMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: expect.objectContaining({ source: "mobile_web" }),
+        consent_collection: { terms_of_service: "required" },
+        metadata: expect.objectContaining({
+          source: "mobile_web",
+          billing_policy_version: "2026-10-28",
+        }),
         success_url:
           "https://autolister.app/app?checkout=success&session_id={CHECKOUT_SESSION_ID}",
         cancel_url:

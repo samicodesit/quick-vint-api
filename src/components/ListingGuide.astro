@@ -7,6 +7,7 @@ import { localizedPath } from "../i18n/routing.js";
 import { SUPPORTED_SITE_LOCALES } from "../i18n/site.js";
 import type { SiteLocale } from "../i18n/site.js";
 import { WEB_ENTRY_COPY } from "../i18n/webEntry";
+import PhonePhotoTransfer from "./PhonePhotoTransfer.astro";
 
 interface Props {
   locale: SiteLocale;
@@ -133,6 +134,7 @@ const structuredData = {
           <figcaption class="border-t border-slate-200 p-4 text-sm leading-relaxed text-slate-600">{ui.photoCaption}</figcaption>
         </figure>
       )}
+      {isPhotoGuide && <PhonePhotoTransfer locale={locale} />}
 
       {isPhotoGuide ? (
         <section id="checklist" class="scroll-mt-28 py-10 sm:py-12" aria-labelledby="checklist-heading">

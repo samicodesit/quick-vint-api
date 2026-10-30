@@ -37,8 +37,8 @@ describe("HomeLanding performance", () => {
   });
 
   it("does not eagerly request the heavy hero video before first paint", () => {
-    expect(source).not.toMatch(/\s+src="\/vid-promo\.mp4"/);
-    expect(source).toContain('data-video-src="/vid-promo.mp4"');
+    expect(source).not.toMatch(/\s+src="\/vid-promo(?:-optimized)?\.mp4"/);
+    expect(source).toContain('data-video-src="/vid-promo-optimized.mp4"');
     expect(source).toContain("scheduleHeroVideoLoad();");
   });
 

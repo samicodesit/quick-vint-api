@@ -2,6 +2,8 @@
 import type { SiteCopy, SiteExtraHomeCopy } from "../i18n/site.js";
 import { normalizeSiteLocale } from "../i18n/site.js";
 import { WEB_ENTRY_COPY } from "../i18n/webEntry";
+import { PHONE_TRANSFER_COPY } from "../i18n/phoneTransfer";
+import HomePromoGallery from "./HomePromoGallery.astro";
 import { Images, Laptop, Smartphone } from "@lucide/astro";
 
 interface Props {
@@ -20,9 +22,8 @@ const { copy, extra, locale = "en", heroTitleAccent, heroSubtitleEmphasis } = As
 
 const chromeHref =
   "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
-const pricingHref = locale === "en" ? "/pricing" : `/${locale}/pricing`;
-const tierProofValues = JSON.stringify(extra.tierProof.tiers);
 const entry = WEB_ENTRY_COPY[normalizeSiteLocale(locale)];
+const transfer = PHONE_TRANSFER_COPY[normalizeSiteLocale(locale)];
 const iphoneHelpLabels: Record<string, string> = {
   en: "iPhone or iPad? Set up with Orion",
   fr: "iPhone ou iPad ? Installer avec Orion",
@@ -332,7 +333,7 @@ const subtitleParts =
       </div>
 
       <div
-        class="home-hero-media lg:col-span-7 relative"
+        class="home-hero-media lg:col-span-7 relative min-w-0"
       >
         <div
           class="absolute -top-12 -right-12 w-72 h-72 bg-brand-100 rounded-full mix-blend-multiply filter blur-[60px] opacity-60"
@@ -351,7 +352,7 @@ const subtitleParts =
           <div class="aspect-video relative">
             <video
               data-hero-video
-              data-video-src="/vid-promo.mp4"
+              data-video-src="/vid-promo-optimized.mp4"
               class="hero-demo-video w-full h-full object-cover"
               poster="/video-draft-poster.webp"
               width="1920"
@@ -400,158 +401,13 @@ const subtitleParts =
         </div>
         </div>
 
-        <div class="home-hero-screenshots mt-5 max-w-md mx-auto">
-          <div class="mb-2 flex items-center justify-between gap-3 px-1">
-            <p class="text-xs font-bold uppercase tracking-wider text-slate-600">
-              {extra.screenshotPreviewLabel}
-            </p>
-            <p class="text-xs font-medium text-slate-400">
-              {extra.screenshotPreviewHint}
-            </p>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              data-screenshot-preview-open
-              data-screenshot-src="/cws-screenshot-main.png"
-              data-screenshot-alt={extra.screenshotPreviewPrimary}
-              data-track-event="store_screenshot_open"
-              data-track-context="home_hero_screenshot_main"
-              class="group relative block overflow-hidden rounded-xl border border-white/70 bg-white p-0 text-left shadow-lg shadow-slate-900/10 ring-1 ring-slate-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:ring-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label={extra.screenshotPreviewPrimary}
-            >
-              <img
-                src="/cws-screenshot-main-thumb.webp"
-                alt={extra.screenshotPreviewPrimary}
-                width="320"
-                height="200"
-                loading="lazy"
-                decoding="async"
-                fetchpriority="low"
-                class="aspect-[8/5] h-auto w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-              />
-              <span
-                class="absolute left-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm"
-              >
-                {extra.screenshotPreviewBadge}
-              </span>
-              <span
-                class="absolute inset-x-0 bottom-0 bg-slate-950/70 px-2 py-1 text-left text-[11px] font-semibold text-white backdrop-blur-sm"
-              >
-                {extra.screenshotPreviewPrimary}
-              </span>
-            </button>
-            <button
-              type="button"
-              data-screenshot-preview-open
-              data-screenshot-src="/cws-screenshot-secondary.png"
-              data-screenshot-alt={extra.screenshotPreviewSecondary}
-              data-track-event="store_screenshot_open"
-              data-track-context="home_hero_screenshot_secondary"
-              class="group relative block overflow-hidden rounded-xl border border-white/70 bg-white p-0 text-left shadow-lg shadow-slate-900/10 ring-1 ring-slate-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:ring-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label={extra.screenshotPreviewSecondary}
-            >
-              <img
-                src="/cws-screenshot-secondary-thumb.webp"
-                alt={extra.screenshotPreviewSecondary}
-                width="320"
-                height="200"
-                loading="lazy"
-                decoding="async"
-                fetchpriority="low"
-                class="aspect-[8/5] h-auto w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-              />
-              <span
-                class="absolute left-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm"
-              >
-                {extra.screenshotPreviewBadge}
-              </span>
-              <span
-                class="absolute inset-x-0 bottom-0 bg-slate-950/70 px-2 py-1 text-left text-[11px] font-semibold text-white backdrop-blur-sm"
-              >
-                {extra.screenshotPreviewSecondary}
-              </span>
-            </button>
-          </div>
+        <div class="home-hero-screenshots mt-5 w-full min-w-0">
+          <HomePromoGallery locale={normalizeSiteLocale(locale)} heading={transfer.previews} />
         </div>
       </div>
     </div>
 
-    <div class="home-tier-proof-slot">
-      <section
-        class="home-tier-proof-rail"
-        data-home-proof-rail
-        data-tier-values={tierProofValues}
-        data-pricing-href={pricingHref}
-        aria-label={extra.tierProof.ariaLabel}
-      >
-        <div
-          class="home-tier-toggle"
-          role="tablist"
-          aria-label={extra.tierProof.tierLabel}
-        >
-          {
-            (Object.keys(extra.tierProof.tiers) as Array<
-              keyof typeof extra.tierProof.tiers
-            >).map((tier, index) => (
-              <button
-                type="button"
-                role="tab"
-                class:list={["home-tier-option", { "is-active": index === 0 }]}
-                aria-selected={index === 0 ? "true" : "false"}
-                data-home-tier-option={tier}
-              >
-                {extra.tierProof.tiers[tier].name}
-              </button>
-            ))
-          }
-        </div>
 
-        <div class="home-tier-proof-card">
-          <ul class="home-tier-proof-grid">
-            <li>
-              <strong data-home-tier-proof="priceValue">
-                {extra.tierProof.tiers.starter.priceValue}
-              </strong>
-              <span>{extra.tierProof.priceLabel}</span>
-            </li>
-            <li>
-              <strong data-home-tier-proof="comparisonValue">
-                {extra.tierProof.tiers.starter.comparisonValue}
-              </strong>
-              <span>{extra.tierProof.comparisonLabel}</span>
-            </li>
-            <li>
-              <strong data-home-tier-proof="listingsValue">
-                {extra.tierProof.tiers.starter.listingsValue}
-              </strong>
-              <span>{extra.tierProof.listingsLabel}</span>
-            </li>
-            <li>
-              <strong data-home-tier-proof="speedValue">
-                {extra.tierProof.tiers.starter.speedValue}
-              </strong>
-              <span>{extra.tierProof.speedLabel}</span>
-            </li>
-          </ul>
-          <a
-            class="home-tier-proof-link"
-            href={`${pricingHref}?plan=starter#pricing`}
-            data-home-tier-link
-            data-track-event="pricing_view"
-            data-track-context="home_tier_proof"
-            data-track-plan="starter"
-          >
-            <span class="home-tier-proof-link-title">
-              {extra.tierProof.chooseTier}
-            </span>
-            <span class="home-tier-proof-link-note">
-              {extra.tierProof.noCardRequired}
-            </span>
-          </a>
-        </div>
-      </section>
-    </div>
   </div>
 </div>
 
@@ -574,7 +430,7 @@ const subtitleParts =
           id="screenshot-preview-title"
           class="text-sm font-black uppercase tracking-wider text-brand-600"
         >
-          {extra.screenshotModalEyebrow}
+          {transfer.previews}
         </p>
         <p class="mt-0.5 text-sm font-medium text-slate-500">
           {extra.screenshotModalHint}
@@ -603,8 +459,9 @@ const subtitleParts =
       <img
         data-screenshot-preview-image
         alt=""
-        class="mx-auto h-auto w-full max-w-[1280px] rounded-2xl bg-white shadow-xl ring-1 ring-slate-200"
+        class="mx-auto h-auto max-h-[65vh] w-auto max-w-full rounded-2xl bg-white object-contain shadow-xl ring-1 ring-slate-200"
       />
+      <p data-screenshot-preview-caption class="mt-3 hidden text-center text-sm text-slate-600"></p>
     </div>
 
     <div
@@ -911,6 +768,7 @@ const subtitleParts =
   ) as HTMLImageElement | null;
 
   let lastScreenshotPreviewTrigger: HTMLElement | null = null;
+  const screenshotPreviewCaption = document.querySelector<HTMLElement>("[data-screenshot-preview-caption]");
 
   function closeScreenshotPreview() {
     if (!screenshotPreviewModal || !screenshotPreviewImage) return;
@@ -931,11 +789,15 @@ const subtitleParts =
       lastScreenshotPreviewTrigger = trigger;
       screenshotPreviewImage.src = src;
       screenshotPreviewImage.alt = trigger.dataset.screenshotAlt || "";
+      if (screenshotPreviewCaption) {
+        screenshotPreviewCaption.textContent = trigger.dataset.screenshotCaption || "";
+        screenshotPreviewCaption.classList.toggle("hidden", !trigger.dataset.screenshotCaption);
+      }
       screenshotPreviewModal.classList.remove("hidden");
       screenshotPreviewModal.classList.add("flex");
       document.body.style.overflow = "hidden";
       screenshotPreviewModal
-        .querySelector<HTMLElement>("[data-screenshot-preview-close]")
+        .querySelector<HTMLElement>("button[data-screenshot-preview-close]")
         ?.focus();
     });
   });
@@ -945,6 +807,18 @@ const subtitleParts =
   });
 
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Tab" && screenshotPreviewModal && !screenshotPreviewModal.classList.contains("hidden")) {
+      const controls = Array.from(screenshotPreviewModal.querySelectorAll<HTMLElement>("button, a[href]"));
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
     if (
       event.key === "Escape" &&
       screenshotPreviewModal &&
@@ -957,57 +831,6 @@ const subtitleParts =
   const publicStatsRoot = document.querySelector(
     "[data-public-stats]",
   ) as HTMLElement | null;
-  const homeProofRail = document.querySelector(
-    "[data-home-proof-rail]",
-  ) as HTMLElement | null;
-
-  if (homeProofRail) {
-    const tierOptions = Array.from(
-      homeProofRail.querySelectorAll<HTMLElement>("[data-home-tier-option]"),
-    );
-    const tierLink = homeProofRail.querySelector<HTMLAnchorElement>(
-      "[data-home-tier-link]",
-    );
-    const pricingHref = homeProofRail.dataset.pricingHref || "/pricing";
-    let tierValues: Record<string, Record<string, string>> = {};
-
-    try {
-      tierValues = JSON.parse(homeProofRail.dataset.tierValues || "{}");
-    } catch {
-      tierValues = {};
-    }
-
-    function selectHomeProofTier(tier: string) {
-      const values = tierValues[tier];
-      if (!values) return;
-
-      homeProofRail
-        ?.querySelectorAll<HTMLElement>("[data-home-tier-proof]")
-        .forEach((element) => {
-          const key = element.dataset.homeTierProof;
-          if (key && values[key]) element.textContent = values[key];
-        });
-
-      tierOptions.forEach((option) => {
-        const active = option.dataset.homeTierOption === tier;
-        option.classList.toggle("is-active", active);
-        option.setAttribute("aria-selected", String(active));
-      });
-
-      if (tierLink) {
-        tierLink.href = `${pricingHref}?plan=${tier}#pricing`;
-        tierLink.dataset.trackPlan = tier;
-      }
-    }
-
-    tierOptions.forEach((option) => {
-      option.addEventListener("click", () => {
-        const tier = option.dataset.homeTierOption;
-        if (tier) selectHomeProofTier(tier);
-      });
-    });
-  }
-
   function formatPublicStat(value: unknown) {
     const number = Number(value);
     if (!Number.isFinite(number) || number <= 0) {
@@ -1110,159 +933,6 @@ const subtitleParts =
     display: inline-block;
   }
 
-  .home-tier-proof-slot {
-    position: relative;
-    margin-top: 28px;
-  }
-
-  .home-tier-proof-rail {
-    position: relative;
-    z-index: 45;
-    isolation: isolate;
-    width: 100%;
-  }
-
-  .home-tier-toggle {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: min(100%, 280px);
-    margin: 0 auto -1px;
-    padding: 3px;
-    border: 1px solid rgb(226 232 240 / 0.96);
-    border-radius: 13px 13px 0 0;
-    background: rgb(248 250 252 / 0.98);
-    box-shadow: 0 10px 24px rgb(15 23 42 / 0.08);
-  }
-
-  .home-tier-option {
-    min-height: 32px;
-    border: 0;
-    border-radius: 9px;
-    background: transparent;
-    color: #64748b;
-    cursor: pointer;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 800;
-  }
-
-  .home-tier-option:hover,
-  .home-tier-option:focus-visible {
-    color: #0f172a;
-    outline: none;
-  }
-
-  .home-tier-option:focus-visible {
-    box-shadow: inset 0 0 0 2px #6366f1;
-  }
-
-  .home-tier-option.is-active {
-    background: #fff;
-    color: #0f172a;
-    box-shadow: 0 5px 14px rgb(15 23 42 / 0.1);
-  }
-
-  .home-tier-proof-card {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    overflow: hidden;
-    border: 1px solid rgb(226 232 240 / 0.96);
-    border-radius: 18px;
-    background: rgb(255 255 255 / 0.96);
-    box-shadow: 0 18px 48px rgb(15 23 42 / 0.12);
-    backdrop-filter: blur(16px);
-  }
-
-  .home-tier-proof-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .home-tier-proof-grid li {
-    display: grid;
-    min-width: 0;
-    min-height: 76px;
-    align-content: center;
-    gap: 5px;
-    padding: 12px 18px;
-    border-left: 1px solid rgb(226 232 240 / 0.9);
-    text-align: center;
-  }
-
-  .home-tier-proof-grid li:first-child {
-    border-left: 0;
-    background: linear-gradient(120deg, #ecfdf5, #fff 72%);
-  }
-
-  .home-tier-proof-grid strong {
-    color: #0f172a;
-    font-size: clamp(16px, 1.35vw, 21px);
-    font-weight: 900;
-    line-height: 1.05;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .home-tier-proof-grid li:first-child strong {
-    color: #059669;
-  }
-
-  .home-tier-proof-grid span {
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-
-  .home-tier-proof-link {
-    display: inline-flex;
-    min-width: 184px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 10px 18px 9px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    border-radius: 14px;
-    background: linear-gradient(135deg, #6258f4 0%, #4338ca 100%);
-    color: #fff;
-    box-shadow: 0 9px 22px rgba(79, 70, 229, 0.24);
-    text-align: center;
-    text-decoration: none;
-    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
-  }
-
-  .home-tier-proof-link-title {
-    font-size: 13px;
-    font-weight: 900;
-    line-height: 1.15;
-  }
-
-  .home-tier-proof-link-note {
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 9px;
-    font-weight: 750;
-    line-height: 1.15;
-  }
-
-  .home-tier-proof-link:hover,
-  .home-tier-proof-link:focus-visible {
-    box-shadow: 0 12px 28px rgba(79, 70, 229, 0.32);
-    filter: brightness(1.04);
-    transform: translateY(-1px);
-  }
-
-  .home-tier-proof-link:focus-visible {
-    outline: 3px solid rgba(99, 102, 241, 0.25);
-    outline-offset: 3px;
-  }
-
   @media (min-width: 1024px) and (min-height: 801px) and (max-height: 950px) {
     .home-hero-subtitle {
       margin-bottom: 12px;
@@ -1330,52 +1000,12 @@ const subtitleParts =
     .home-hero-mobile-proof { order: 3; margin-top: 8px; }
     .home-hero-screenshots { order: 4; width: 100%; }
     .home-hero-media > .absolute { display: none; }
-    .home-tier-proof-slot {
-      min-height: 0;
-      margin-top: 36px;
-    }
 
-    .home-tier-proof-card {
-      grid-template-columns: 1fr;
-    }
 
-    .home-tier-proof-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 
-    .home-tier-proof-grid li {
-      border-top: 1px solid rgb(226 232 240 / 0.9);
-    }
 
-    .home-tier-proof-grid li:nth-child(odd) {
-      border-left: 0;
-    }
 
-    .home-tier-proof-grid li:nth-child(-n + 2) {
-      border-top: 0;
-    }
 
-    .home-tier-proof-link {
-      min-height: 48px;
-    }
   }
 
-  @media (max-width: 639px) {
-    .home-tier-proof-slot {
-      margin-top: 28px;
-    }
-
-    .home-tier-proof-grid li {
-      min-height: 72px;
-      padding: 11px 9px;
-    }
-
-    .home-tier-proof-grid strong {
-      font-size: 16px;
-    }
-
-    .home-tier-proof-grid span {
-      font-size: 10px;
-    }
-  }
 </style>

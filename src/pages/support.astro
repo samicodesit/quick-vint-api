@@ -1,6 +1,7 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
 import PhoneWorkflow from "../components/PhoneWorkflow.astro";
+import PhonePhotoTransfer from "../components/PhonePhotoTransfer.astro";
 ---
 
 <SiteLayout includeWebApplication>
@@ -20,6 +21,7 @@ import PhoneWorkflow from "../components/PhoneWorkflow.astro";
 
       <div class="grid grid-cols-1 gap-6 max-w-[900px] mx-auto mb-16">
         <PhoneWorkflow context="support_phone_web" />
+        <PhonePhotoTransfer />
         <div
           class="bg-white p-8 rounded-2xl border border-gray-200 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-gray-300"
         >

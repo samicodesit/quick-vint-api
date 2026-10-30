@@ -1,0 +1,130 @@
+---
+import { ChevronLeft, ChevronRight } from "@lucide/astro";
+import type { SiteLocale } from "../i18n/site";
+
+interface Props {
+  locale: SiteLocale;
+  heading: string;
+}
+const { locale, heading } = Astro.props;
+const labels = {
+  en: ["Previous image", "Next image", "Listing drafts from photos", "Phone photos to your computer", "Batch listing drafts", "Saved seller notes"],
+  fr: ["Image précédente", "Image suivante", "Brouillons d’annonces à partir de photos", "Photos du téléphone vers l’ordinateur", "Brouillons d’annonces par lot", "Notes vendeur enregistrées"],
+  de: ["Vorheriges Bild", "Nächstes Bild", "Anzeigenentwürfe aus Fotos", "Handyfotos auf den Computer übertragen", "Mehrere Anzeigenentwürfe erstellen", "Gespeicherte Verkäufernotizen"],
+  nl: ["Vorige afbeelding", "Volgende afbeelding", "Advertentieconcepten uit foto’s", "Telefoonfoto’s naar je computer", "Advertentieconcepten in batches", "Opgeslagen verkopersnotities"],
+  pl: ["Poprzedni obraz", "Następny obraz", "Szkice ogłoszeń ze zdjęć", "Zdjęcia z telefonu na komputer", "Szkice wielu ogłoszeń", "Zapisane notatki sprzedawcy"],
+  es: ["Imagen anterior", "Imagen siguiente", "Borradores de anuncios a partir de fotos", "Fotos del móvil al ordenador", "Borradores de anuncios por lotes", "Notas del vendedor guardadas"],
+  it: ["Immagine precedente", "Immagine successiva", "Bozze di annunci dalle foto", "Foto dal telefono al computer", "Bozze di annunci in serie", "Note del venditore salvate"],
+  pt: ["Imagem anterior", "Imagem seguinte", "Rascunhos de anúncios a partir de fotos", "Fotos do telemóvel para o computador", "Rascunhos de anúncios em lote", "Notas do vendedor guardadas"],
+}[locale];
+const promos = ["listing-drafts", "phone-qr", "batch-listing", "saved-notes"];
+---
+
+<section class="promo-gallery" data-promo-gallery aria-label={heading}>
+  <div class="promo-header">
+    <div class="promo-controls" data-promo-controls hidden>
+      <span class="promo-position" data-promo-position aria-live="polite" aria-atomic="true">1 / 4</span>
+      <button type="button" data-promo-previous aria-label={labels[0]} aria-controls="home-promo-track" disabled>
+        <ChevronLeft size={20} aria-hidden="true" />
+      </button>
+      <button type="button" data-promo-next aria-label={labels[1]} aria-controls="home-promo-track">
+        <ChevronRight size={20} aria-hidden="true" />
+      </button>
+    </div>
+  </div>
+  <div id="home-promo-track" class="promo-track" data-promo-track>
+    {promos.map((name, index) => (
+      <button
+        type="button"
+        class="promo-card"
+        data-screenshot-preview-open
+        data-screenshot-src={`/promos/${name}.webp`}
+        data-screenshot-alt={labels[index + 2]}
+        data-track-event="store_screenshot_open"
+        data-track-context={`home_promo_${name}`}
+        aria-label={labels[index + 2]}
+      >
+        <picture>
+        <source
+          type="image/avif"
+          srcset={`/promos/${name}-480.avif 480w, /promos/${name}-800.avif 800w, /promos/${name}-960.avif 960w`}
+          sizes="(min-width: 1280px) 440px, (min-width: 1024px) 32vw, (min-width: 640px) 440px, 88vw"
+        />
+        <img
+          src={`/promos/${name}-800.webp`}
+          srcset={`/promos/${name}-480.webp 480w, /promos/${name}-800.webp 800w, /promos/${name}-960.webp 960w`}
+          sizes="(min-width: 1280px) 440px, (min-width: 1024px) 32vw, (min-width: 640px) 440px, 88vw"
+          alt={labels[index + 2]}
+          width="1600"
+          height="1000"
+          loading="lazy"
+          decoding="async"
+          fetchpriority="low"
+        />
+        </picture>
+      </button>
+    ))}
+  </div>
+</section>
+
+<style>
+  .promo-gallery { min-width: 0; width: 100%; }
+  .promo-header { display: flex; align-items: center; justify-content: flex-end; min-height: 44px; margin-bottom: 10px; }
+  .promo-controls { display: flex; align-items: center; gap: 6px; }
+  .promo-controls[hidden] { display: flex; visibility: hidden; }
+  .promo-position { min-width: 36px; margin-right: 4px; color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .promo-controls button { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #cbd5e1; border-radius: 50%; background: white; color: #334155; cursor: pointer; }
+  .promo-controls button:hover:not(:disabled) { border-color: #4f46e5; color: #4f46e5; }
+  .promo-controls button:disabled { opacity: .35; cursor: default; }
+  .promo-track { display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #c7c2f8 transparent; padding: 3px 3px 12px; scroll-padding-inline: 3px; }
+  .promo-card { flex: 0 0 92%; min-width: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: #4f46e5; cursor: zoom-in; scroll-snap-align: start; }
+  .promo-card:last-child { scroll-snap-align: end; }
+  .promo-card img { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; object-fit: contain; }
+  .promo-card:focus-visible, .promo-controls button:focus-visible { outline: 3px solid #4f46e5; outline-offset: 2px; }
+  @media (min-width: 640px) { .promo-card { flex-basis: 72%; max-width: 440px; } }
+  @media (min-width: 1024px) { .promo-card { flex-basis: 60%; } }
+  @media (prefers-reduced-motion: no-preference) { .promo-track { scroll-behavior: smooth; } }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-promo-gallery]").forEach((gallery) => {
+    const track = gallery.querySelector<HTMLElement>("[data-promo-track]");
+    const cards = Array.from(gallery.querySelectorAll<HTMLButtonElement>(".promo-card"));
+    const previous = gallery.querySelector<HTMLButtonElement>("[data-promo-previous]");
+    const next = gallery.querySelector<HTMLButtonElement>("[data-promo-next]");
+    const position = gallery.querySelector<HTMLElement>("[data-promo-position]");
+    if (!track || !previous || !next || !position || !cards.length) return;
+    let current = 0;
+    let frame = 0;
+    let offsets: number[] = [];
+    let max = 0;
+    const update = () => {
+      const left = track.scrollLeft;
+      const distances = offsets.map((offset) => Math.abs(Math.min(offset, max) - left));
+      current = distances.indexOf(Math.min(...distances));
+      previous.disabled = left <= 2;
+      next.disabled = left >= max - 2;
+      const text = `${current + 1} / ${cards.length}`;
+      if (position.textContent !== text) position.textContent = text;
+    };
+    const measure = () => {
+      const left = track.getBoundingClientRect().left;
+      offsets = cards.map((card) => card.getBoundingClientRect().left - left + track.scrollLeft - 3);
+      max = track.scrollWidth - track.clientWidth;
+      update();
+    };
+    const move = (direction: number) => {
+      update();
+      track.scrollTo({ left: offsets[Math.max(0, Math.min(cards.length - 1, current + direction))] });
+    };
+    previous.addEventListener("click", () => move(-1));
+    next.addEventListener("click", () => move(1));
+    track.addEventListener("scroll", () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    }, { passive: true });
+    new ResizeObserver(measure).observe(track);
+    measure();
+    gallery.querySelector<HTMLElement>("[data-promo-controls]")?.removeAttribute("hidden");
+  });
+</script>

@@ -988,12 +988,13 @@ Follow this behavior while respecting the safeguards and concrete request-settin
 Analyze the image(s) and generate a Vinted title and description.
 
 Use these rules:
-- Build the listing only from visible or readable photo evidence. Never fill gaps with likely, common, or nice-sounding details.
+- Ground item-specific claims in visible or readable photo evidence; use the separate knowledge-enrichment scope below for non-fashion product knowledge. Never fill gaps with likely, common, or nice-sounding details.
 - Read labels/tags for exact brand, size, model/product name, and material composition.
 - Keep size wording natural; do not write forms like "T34" unless the label says "T34".
 - If a label shows multiple regional sizes, preserve the readable useful sizes together when possible. Include the visible EU/EUR size when present, for example "EU 42 / UK 14". Never convert or invent sizes.
-- For item type, choose the most specific accurate name clearly supported by the photos or readable text. If the exact subtype is ambiguous, use a broader safe item type instead of guessing. Use visual evidence for color, pattern, shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
-- Do not infer material, fabric blend, texture, feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, or wear history.
+- For item type, choose the most specific accurate name clearly supported by the photos or readable text. If the exact subtype is ambiguous, use a broader safe item type instead of guessing. Use visual evidence for color, pattern, fabric construction and texture (such as denim, knit or corduroy), shape, closure, sleeves, neckline, pockets, straps, set contents, and packaging.
+- For fashion materials, name fibres, blends, percentages, leather or suede only when readable item evidence identifies that composition for the specific part. Appearance or branding alone is not composition evidence, including on patches, trim or lining. When the look is clear but the material is unverified, use "leather-look" or "suede-look"; otherwise describe color or texture. Preserve readable composition.
+- Do not infer feel, comfort, fit, measurements, condition, authenticity, price, rarity, age, gender, or wear history.
 - Do not mention country of origin, product codes, care instructions, or secondary program/campaign text unless it is clearly useful to the buyer as a product name or model.
 - Do not say how you know a fact or where it appears. Avoid phrases like "label shows", "as shown on the label", "visible on the box", or "as seen in the photos".
 - Do not mention defects or negative condition details for now; the seller will handle those separately.

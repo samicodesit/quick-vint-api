@@ -512,7 +512,7 @@ describe("/api/generate remote image handling", () => {
       "Follow the factual safeguards and knowledge-enrichment scope in the user prompt; never invent",
     );
     expect(userPrompt).toContain(
-      "Build the listing only from visible or readable photo evidence.",
+      "Ground item-specific claims in visible or readable photo evidence; use the separate knowledge-enrichment scope below for non-fashion product knowledge.",
     );
     expect(userPrompt).toContain(
       "Do not mention defects or negative condition details for now",

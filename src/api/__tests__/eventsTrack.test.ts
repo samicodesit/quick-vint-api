@@ -174,6 +174,116 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
+  it("keeps seller edit text through ingestion without leaking it into diagnostics", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (_name, args) => {
+        const result = await db.query<any>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result };
+      });
+      const event = {
+        id: "d623926a-35a6-4bf5-8027-8ab335c71111",
+        occurredAt: new Date().toISOString(),
+        event: "generation_output_edited",
+        source: "extension_content",
+        extensionVersion: "1.4.28",
+        context: {
+          generationAttemptId: "gen-edit",
+          editSequence: 2,
+          titleChanged: true,
+          descriptionChanged: true,
+          generatedTitle: "Czarna kurtka",
+          finalTitle: "Czarna kurtka M",
+          generatedDescription: "Bardzo dobra kurtka.\nRozmiar M",
+          finalDescription: "Rozmiar M",
+          previousDescription: "redundant",
+          imageSources: [{ sourceUrl: "https://private.test/photo" }],
+          access_token: "secret",
+        },
+      };
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [event] })).body,
+      ).toMatchObject({ acknowledgedIds: [event.id] });
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [event] })).body,
+      ).toMatchObject({ duplicateIds: [event.id] });
+      const rows = (await db.query<any>("SELECT * FROM api_logs")).rows;
+      expect(rows).toHaveLength(1);
+      expect(rows[0].full_request_body.context).toMatchObject({
+        generatedTitle: "Czarna kurtka",
+        finalTitle: "Czarna kurtka M",
+        generatedDescription: "Bardzo dobra kurtka.\nRozmiar M",
+        finalDescription: "Rozmiar M",
+      });
+      expect(rows[0].user_id).toBe(USER_ID);
+      expect(rows[0].user_email).toBeNull();
+      expect(rows[0].user_agent).toBeNull();
+      expect(JSON.stringify(rows)).not.toContain("redundant");
+      expect(JSON.stringify(rows)).not.toContain("private.test");
+      const args = rpcMock.mock.calls[0][1];
+      expect(args.p_event.context).not.toHaveProperty("generatedTitle");
+      expect(
+        (await db.query("SELECT id FROM incident_groups")).rows,
+      ).toHaveLength(0);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
+
+  it("bounds and redacts edit text, preserves intentional empty strings, and excludes it from other events", async () => {
+    const context = {
+      generatedTitle: "Contact seller@example.com",
+      finalTitle: "",
+      generatedDescription: "🧥".repeat(2000),
+      finalDescription: "Bearer private-token",
+      previousTitle: "unneeded",
+    };
+    await postEvent({
+      event: "generation_output_edited",
+      source: "extension_content",
+      context: { ...context, queueDropped: 2, queueDroppedCapacity: 2 },
+    });
+    const saved =
+      rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context;
+    expect(saved.finalTitle).toBe("");
+    expect(saved.generatedTitle).toContain("[email]");
+    expect(saved.finalDescription).toBe("[credential]");
+    expect(
+      Buffer.byteLength(JSON.stringify(saved.generatedDescription)),
+    ).toBeLessThanOrEqual(3074);
+    expect(saved.textTruncatedFields).toContain("generatedDescription");
+    expect(saved.textRedacted).toBe(true);
+    expect(saved.queueDroppedCapacity).toBe(2);
+    expect(saved).not.toHaveProperty("previousTitle");
+    rpcMock.mockClear();
+    await postEvent(
+      {
+        event: "generation_output_edited",
+        source: "extension_content",
+        context,
+      },
+      false,
+    );
+    expect(
+      rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context,
+    ).not.toHaveProperty("generatedTitle");
+    rpcMock.mockClear();
+    await postEvent({ event: "generate_click", context });
+    expect(
+      rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context,
+    ).not.toHaveProperty("generatedTitle");
+  });
+
   it("retains bounded batch outcome facts with original receipt correlation and no heavy customer payload", async () => {
     const occurredAt = new Date().toISOString();
     const res = await postEvent({

@@ -3477,7 +3477,7 @@
         }
 
         function getEditedOutputContextFromLog(log) {
-            const body = log?.full_request_body || {};
+            const body = parseLogMetadata(log);
             if ((body.event || '').toString() !== 'generation_output_edited' && log?.endpoint !== '/event/generation_output_edited') {
                 return null;
             }
@@ -3493,6 +3493,8 @@
             const after = normalizeDiffLines(afterText);
             const rows = before.length + 1;
             const cols = after.length + 1;
+            // Bound work for newline-heavy seller text and old uncapped records.
+            if (rows * cols > 250000) return null;
             const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
 
             for (let i = before.length - 1; i >= 0; i -= 1) {
@@ -3551,26 +3553,30 @@
             `;
         }
 
-        function renderTextDiffSection(label, beforeText, afterText) {
+        function renderTextDiffSection(label, beforeText, afterText, truncated = false, reportedChanged = false) {
+            if (typeof beforeText !== 'string' || typeof afterText !== 'string') {
+                return `<div class="edit-diff-section"><div class="edit-diff-section-head"><div class="edit-diff-section-title">${escapeHtml(label)}</div><div class="edit-diff-section-meta">Text unavailable</div></div></div>`;
+            }
             const beforeValue = String(beforeText ?? '');
             const afterValue = String(afterText ?? '');
             const diff = buildLineDiff(beforeValue, afterValue);
-            const summary = summarizeDiff(diff);
+            const summary = diff && summarizeDiff(diff);
             const changed = beforeValue !== afterValue;
+            const equalLabel = reportedChanged || truncated ? 'No difference in captured text' : 'No change';
 
             return `
                 <div class="edit-diff-section">
                     <div class="edit-diff-section-head">
                         <div class="edit-diff-section-title">${escapeHtml(label)}</div>
                         <div class="edit-diff-section-meta">
-                            ${changed
-                                ? `${summary.added} added · ${summary.removed} removed · ${summary.same} unchanged`
-                                : 'No change'}
+                            ${truncated ? 'Text truncated · excerpt comparison' : changed
+                                ? (summary ? `${summary.added} added · ${summary.removed} removed · ${summary.same} unchanged` : 'Compare below')
+                                : equalLabel}
                         </div>
                     </div>
-                    ${changed
+                    ${!diff ? '' : changed
                         ? `<div class="edit-diff-lines">${diff.map(renderDiffLine).join('')}</div>`
-                        : `<div class="edit-diff-lines"><div class="edit-diff-line same"><span class="edit-diff-sign"> </span><span class="edit-diff-text">No changes</span></div></div>`}
+                        : `<div class="edit-diff-lines"><div class="edit-diff-line same"><span class="edit-diff-sign"> </span><span class="edit-diff-text">${equalLabel}</span></div></div>`}
                     <div class="edit-before-after">
                         <div class="edit-before-after-block">
                             <div class="edit-before-after-label">Before</div>
@@ -3586,10 +3592,10 @@
         }
 
         function renderEditedOutputDiff(context = {}) {
-            const titleBefore = context.appliedTitle ?? context.generatedTitle ?? '';
-            const titleAfter = context.currentTitle ?? '';
-            const descriptionBefore = context.appliedDescription ?? context.generatedDescription ?? '';
-            const descriptionAfter = context.currentDescription ?? '';
+            const titleBefore = context.appliedTitle ?? context.generatedTitle;
+            const titleAfter = context.currentTitle ?? context.finalTitle;
+            const descriptionBefore = context.appliedDescription ?? context.generatedDescription;
+            const descriptionAfter = context.currentDescription ?? context.finalDescription;
             const titleChanged = Boolean(context.titleChanged || titleBefore !== titleAfter);
             const descriptionChanged = Boolean(context.descriptionChanged || descriptionBefore !== descriptionAfter);
             const changedParts = [];
@@ -3597,6 +3603,7 @@
             if (descriptionChanged) changedParts.push('description');
             const delay = formatDurationMs(context.editDelayMs);
             const chips = [
+                context.textRedacted ? '<span class="edit-diff-chip">Sensitive text redacted</span>' : '',
                 `<span class="edit-diff-chip changed">Edited ${escapeHtml(changedParts.join(' + ') || 'output')}</span>`,
                 context.editSequence ? `<span class="edit-diff-chip">Snapshot ${escapeHtml(String(context.editSequence))}</span>` : '',
                 context.editSnapshotReason ? `<span class="edit-diff-chip">${escapeHtml(String(context.editSnapshotReason).replace(/_/g, ' '))}</span>` : '',
@@ -3612,17 +3619,18 @@
             ].filter(Boolean).join('');
 
             const sections = [];
-            if (context.editSequence > 1 && (context.previousTitle !== undefined || context.currentTitle !== undefined) && context.previousTitle !== context.currentTitle) {
+            const truncatedFields = Array.isArray(context.textTruncatedFields) ? context.textTruncatedFields : [];
+            if (context.editSequence > 1 && typeof context.previousTitle === 'string' && typeof context.currentTitle === 'string' && context.previousTitle !== context.currentTitle) {
                 sections.push(renderTextDiffSection('Title since previous snapshot', context.previousTitle ?? '', context.currentTitle ?? ''));
             }
-            if (context.editSequence > 1 && (context.previousDescription !== undefined || context.currentDescription !== undefined) && context.previousDescription !== context.currentDescription) {
+            if (context.editSequence > 1 && typeof context.previousDescription === 'string' && typeof context.currentDescription === 'string' && context.previousDescription !== context.currentDescription) {
                 sections.push(renderTextDiffSection('Description since previous snapshot', context.previousDescription ?? '', context.currentDescription ?? ''));
             }
             if (titleChanged || titleBefore || titleAfter) {
-                sections.push(renderTextDiffSection('Title', titleBefore, titleAfter));
+                sections.push(renderTextDiffSection('Title', titleBefore, titleAfter, truncatedFields.some(key => /Title$/.test(key)), context.titleChanged));
             }
             if (descriptionChanged || descriptionBefore || descriptionAfter) {
-                sections.push(renderTextDiffSection('Description', descriptionBefore, descriptionAfter));
+                sections.push(renderTextDiffSection('Description', descriptionBefore, descriptionAfter, truncatedFields.some(key => /Description$/.test(key)), context.descriptionChanged));
             }
 
             return `
@@ -3630,7 +3638,7 @@
                     <div class="edit-diff-head">
                         <div>
                             <div class="edit-diff-title">Generated Output Edit Diff</div>
-                            <div class="edit-diff-subtitle">Exactly what the seller changed after applying the generated listing.</div>
+                            <div class="edit-diff-subtitle">Generated copy compared with the seller's edit.</div>
                         </div>
                         <div class="edit-diff-chips">${chips}</div>
                     </div>

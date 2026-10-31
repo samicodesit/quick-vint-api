@@ -554,6 +554,52 @@ function buildAdminHarness() {
   };
 }
 
+describe("seller output diff evidence", () => {
+  it("renders the current generated/final contract and escapes seller text", () => {
+    const { context } = buildAdminHarness();
+    const html = (context as any).renderEditedOutputDiff({
+      generatedTitle: "Kurtka",
+      finalTitle: "Kurtka M",
+      generatedDescription: "Nice <script>bad()</script>",
+      finalDescription: "",
+      titleChanged: true,
+      descriptionChanged: true,
+    });
+    expect(html).toContain("Kurtka M");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toContain("<script>bad()");
+    expect(html).toContain("(empty)");
+    expect(html).not.toContain("Text unavailable");
+  });
+  it("never presents missing historical text as no change", () => {
+    const { context } = buildAdminHarness();
+    const html = (context as any).renderEditedOutputDiff({
+      titleChanged: true,
+      descriptionChanged: true,
+      titleLengthDelta: 15,
+      descriptionLengthDelta: -15,
+    });
+    expect(html).toContain("Text unavailable");
+    expect(html).not.toContain("No change");
+    expect(html).not.toContain("(empty)");
+  });
+  it("labels bounded excerpts instead of claiming exact unchanged full text", () => {
+    const { context } = buildAdminHarness();
+    const html = (context as any).renderEditedOutputDiff({
+      generatedTitle: "Same",
+      finalTitle: "Same",
+      generatedDescription: "prefix",
+      finalDescription: "prefix",
+      descriptionChanged: true,
+      textTruncatedFields: ["generatedDescription", "finalDescription"],
+      textRedacted: true,
+    });
+    expect(html).toContain("Text truncated");
+    expect(html).toContain("Sensitive text redacted");
+    expect(html).not.toContain("Exactly what");
+  });
+});
+
 describe("admin HTML", () => {
   it("defaults to useful activity and can request the full background stream", async () => {
     const { context, content } = buildAdminHarness();

@@ -225,6 +225,8 @@ export class ApiLogger {
     // Customer feedback is support history, not disposable request evidence.
     const compactableEndpoints =
       "endpoint.is.null,endpoint.neq./event/listing_report_submitted";
+    // A short review window for bounded before/after copy. No permanent history.
+    const editCutoffIso = new Date(Date.now() - 7 * 86400000).toISOString();
     for (const field of heavyFields) {
       const remaining = safeBatchSize - ids.size;
       if (remaining <= 0) break;
@@ -237,6 +239,10 @@ export class ApiLogger {
         .not(field, "is", null)
         .order("created_at", { ascending: true });
       if (field === "full_request_body") {
+        // These SYSTEM rows have no other heavy fields. Leave the other eight scans unchanged.
+        query = query.or(
+          `endpoint.is.null,endpoint.neq./event/generation_output_edited,full_request_body->context->>textCaptureVersion.is.null,created_at.lt.${editCutoffIso}`,
+        );
         const metricCutoff = new Date(Date.now() - 30 * 86400000).toISOString();
         query = query.or(
           `full_request_body->>analyticsOnly.is.null,created_at.lt.${metricCutoff}`,

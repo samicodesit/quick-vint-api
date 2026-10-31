@@ -18,6 +18,7 @@ import { FREE_LIFETIME_LIMIT, getEffectiveTier } from "../../utils/tierConfig";
 import { ingestEnvelope } from "../../utils/incidents/ingestion";
 import { isRegisteredBusiness, redact } from "../../utils/incidents/contract";
 import { retainsBatchEvidence } from "../../utils/incidents/batchReport";
+import { outputEditEvidence } from "../../utils/outputEditEvidence";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
@@ -417,6 +418,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   key.startsWith("queueDropped"),
               ),
             ),
+          },
+        };
+      }
+      if (
+        authenticatedUserId &&
+        raw.source === "extension_content" &&
+        raw.event === "generation_output_edited"
+      ) {
+        return {
+          endpoint: "/event/generation_output_edited",
+          request_method: "SYSTEM",
+          response_status: 204,
+          full_request_body: {
+            event: raw.event,
+            source: redact(raw.source, 80),
+            extensionVersion: redact(raw.extensionVersion, 80),
+            transportEventId: raw.id,
+            occurredAt: raw.occurredAt,
+            context: outputEditEvidence(raw.context, context),
           },
         };
       }

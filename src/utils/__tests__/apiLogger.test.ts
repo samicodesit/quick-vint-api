@@ -236,11 +236,9 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     expect(fromCalls).toEqual(["api_logs"]);
     expect(selectCalls).toEqual(["id"]);
     expect(ltCalls[0]).toEqual(["created_at", "2026-06-27T06:00:00.000Z"]);
-    expect(orCalls).toEqual(
-      Array(1).fill(
-        "endpoint.is.null,endpoint.neq./event/listing_report_submitted",
-      ),
-    );
+    expect(orCalls).toEqual([
+      "endpoint.is.null,endpoint.neq./event/listing_report_submitted",
+    ]);
     expect(notCalls[0]).toEqual(["image_urls", "is", null]);
     expect(orderCalls[0]).toEqual(["created_at", { ascending: true }]);
     expect(limitCalls).toEqual([2]);
@@ -420,6 +418,28 @@ describe("ApiLogger.detectSuspiciousActivity", () => {
     } finally {
       from.mockImplementation(original!);
       rpc.mockImplementation(originalRpc!);
+    }
+  });
+
+  it("keeps bounded edit bodies eligible for review for seven days without changing other field scans", async () => {
+    const { ApiLogger } = await import("../../../utils/apiLogger.js");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-31T12:00:00Z"));
+    try {
+      await ApiLogger.compactOldLogs({ cutoffHours: 6 });
+      const retentionFilters = orCalls.filter((value) =>
+        value.includes("generation_output_edited"),
+      );
+      expect(retentionFilters).toHaveLength(1);
+      expect(
+        retentionFilters.every(
+          (value) =>
+            value ===
+            "endpoint.is.null,endpoint.neq./event/generation_output_edited,full_request_body->context->>textCaptureVersion.is.null,created_at.lt.2026-10-24T12:00:00.000Z",
+        ),
+      ).toBe(true);
+    } finally {
+      vi.useRealTimers();
     }
   });
 });

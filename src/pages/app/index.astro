@@ -52,6 +52,17 @@ const contentSecurityPolicy = [
     <link rel="preload" href={brandFont} as="font" type="font/woff2" crossorigin="anonymous" />
   </head>
   <body>
+    <script is:inline>
+      if (window.opener) {
+        const key = "autolister:chat-import-start";
+        try {
+          if (location.hash === "#import-chatgpt-item") sessionStorage.setItem(key, String(Date.now()));
+          else if (!location.hash && Date.now() - Number(sessionStorage.getItem(key)) < 180000) {
+            history.replaceState(history.state, "", location.pathname + location.search + "#import-chatgpt-item");
+          }
+        } catch {}
+      }
+    </script>
     {
       buildConfig.enabled ? (
         <WorkspaceShell />

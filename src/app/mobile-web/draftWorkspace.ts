@@ -3555,6 +3555,30 @@ export function mountDraftWorkspace(
           await handlers.new();
         rememberView();
       }
+      if (window.opener && location.hash === "#import-chatgpt-item") {
+        const { listenForChatItem } = await import("./chatItemImport.js");
+        if (!disposed)
+          listeners.push(
+            listenForChatItem(
+              options.userId,
+              async () => {
+                const usage = await options.onUsageChange();
+                if (!usage)
+                  throw new Error("Sign in to AutoLister to open this draft.");
+                return permittedDraftSettings(loadDefaults(), settingsAccess);
+              },
+              async (id) => {
+                await reload();
+                await openDraft(id);
+              },
+              (message) => {
+                run(async () => {
+                  throw new Error(message);
+                });
+              },
+            ),
+          );
+      }
     } finally {
       if (!disposed) {
         root.hidden = false;

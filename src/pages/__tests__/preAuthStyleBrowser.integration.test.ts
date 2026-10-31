@@ -776,3 +776,77 @@ it.skipIf(!enabled)(
   },
   60000,
 );
+
+it.skipIf(!enabled)(
+  "imports ChatGPT photos into the signed-in editor with that seller's saved note",
+  async () => {
+    const { context, page } = await fixture(390, 844, {
+      existing: true,
+      authenticated: true,
+    });
+    const plugin =
+      "https://autolister-one-item-prototype.samicodesit.chatgpt.site";
+    try {
+      await page.evaluate(
+        ({ account, chosen }: any) => {
+          localStorage.setItem(
+            "autolister:listing-defaults:" + account,
+            JSON.stringify(chosen),
+          );
+          localStorage.setItem("autolister:style-setup:v1:" + account, "done");
+        },
+        { account, chosen },
+      );
+      await context.route(plugin + "/test", (route: any) =>
+        route.fulfill({
+          contentType: "text/html",
+          body: '<button id="open">Open draft in AutoLister</button>',
+        }),
+      );
+      const sender = await context.newPage();
+      await sender.goto(plugin + "/test");
+      await sender.evaluate((base: string) => {
+        document.querySelector("button")!.onclick = () => {
+          window.open(base + "/app/#import-chatgpt-item", "_blank");
+        };
+        window.addEventListener("message", async (e) => {
+          if (e.origin !== base || e.data.type !== "autolister.ready") return;
+          const canvas = document.createElement("canvas");
+          canvas.width = canvas.height = 50;
+          const blob = await new Promise<Blob>((r) =>
+            canvas.toBlob((b) => r(b!), "image/jpeg"),
+          );
+          (e.source as Window).postMessage(
+            {
+              type: "autolister.item",
+              nonce: e.data.nonce,
+              item: {
+                id: "a006e938-459f-4da7-a69f-177ef9a78653",
+                title: "Blue mug",
+                description: "Blue mug with a round handle.",
+                photos: [blob],
+              },
+            },
+            base,
+          );
+        });
+      }, base);
+      const opened = context.waitForEvent("page");
+      await sender.click("#open");
+      const target = await opened;
+      await expect(target.locator('[data-draft-field="title"]')).toHaveValue(
+        "Blue mug",
+        { timeout: 15000 },
+      );
+      await expect(
+        target.locator('[data-draft-field="description"]'),
+      ).toHaveValue(
+        "Blue mug with a round handle.\n\n" + chosen.descriptionFooterText,
+      );
+      expect(new URL(target.url()).hash).toBe("");
+    } finally {
+      await context.close();
+    }
+  },
+  30000,
+);

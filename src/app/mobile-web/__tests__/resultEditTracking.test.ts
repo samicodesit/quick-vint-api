@@ -10,6 +10,10 @@ it("coalesces typing, reports a full undo, and keeps the last slot for the termi
     "attempt",
     emit,
   );
+  vi.advanceTimersByTime(6 * 60000);
+  expect(emit).not.toHaveBeenCalled();
+  expect(t.expose()).toBe(true);
+  expect(t.expose()).toBe(false);
   for (let i = 0; i < 100; i++) t.edit("title", "Coat " + i);
   expect(emit).not.toHaveBeenCalled();
   vi.advanceTimersByTime(20001);
@@ -42,6 +46,7 @@ it("discards pending copy on account change, including its timer", () => {
     "attempt",
     emit,
   );
+  t.expose();
   t.edit("description", "private change");
   t.close("account_changed");
   vi.runAllTimers();

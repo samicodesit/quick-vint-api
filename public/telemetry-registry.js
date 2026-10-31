@@ -481,6 +481,9 @@ globalThis.AutoListerEventRegistry = {
   generation_offer_dismissed: {
     kind: "business",
   },
+  generation_output_visible: {
+    kind: "business",
+  },
   generation_output_edited: {
     kind: "business",
   },
@@ -670,6 +673,7 @@ globalThis.AutoListerContextPolicy = {
     "stage",
     "lastConfirmedStage",
     "generationAttemptId",
+    "generationRequestId",
     "operationId",
     "parentOperationId",
     "authRefreshOperationId",

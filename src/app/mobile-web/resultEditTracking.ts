@@ -3,13 +3,16 @@ import { fetchMobileJson } from "./api";
 export async function sendResultEdit(
   owner: string,
   context: Record<string, unknown>,
+  name:
+    | "generation_output_edited"
+    | "generation_output_visible" = "generation_output_edited",
 ) {
   // Refresh the identity from the session store on every checkpoint. Analytics
   // must never sign a seller out or persist private copy for a future login.
   const event = {
     id: crypto.randomUUID(),
     occurredAt: new Date().toISOString(),
-    event: "generation_output_edited",
+    event: name,
     accountId: owner,
     source: "mobile_web",
     page: "/app",
@@ -80,10 +83,16 @@ export function trackResultEdits(
     if (reason !== "account_changed") flush(reason, true);
     closed = true;
   };
-  const expiry = setTimeout(() => close("expired"), 5 * 60000);
+  let expiry: ReturnType<typeof setTimeout> | undefined;
+  const expose = () => {
+    if (closed || expiry !== undefined) return false;
+    expiry = setTimeout(() => close("expired"), 5 * 60000);
+    return true;
+  };
   return {
+    expose,
     edit(field: keyof Copy, value: string) {
-      if (closed || current[field] === value) return;
+      if (closed || expiry === undefined || current[field] === value) return;
       current[field] = value;
       clearTimeout(idle);
       idle = setTimeout(() => flush("idle"), 20000);

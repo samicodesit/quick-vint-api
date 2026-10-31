@@ -240,6 +240,19 @@ describe("events tracking endpoint", () => {
     }
   }, 15000);
 
+  it.each(["extension_content", "mobile_web"])("keeps the request identity and occurrence time on %s form exposure", async source => {
+    const occurredAt = new Date(Date.now() - 3600000).toISOString();
+    const event = {
+      id: "d623926a-35a6-4bf5-8027-8ab335c71122", occurredAt, source,
+      accountId: USER_ID, event: "generation_output_visible", page: source === "mobile_web" ? "/app" : "/items/new",
+      context: { generationAttemptId: "attempt", generationRequestId: "request" },
+    };
+    await postEvent({ schemaVersion: 2, events: [event] });
+    expect(rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body).toMatchObject({
+      occurredAt, context: { generationAttemptId: "attempt", generationRequestId: "request" },
+    });
+  });
+
   it("retains mobile result edit text only on the authenticated result path", async () => {
     const ev = {
       id: "d623926a-35a6-4bf5-8027-8ab335c71119",

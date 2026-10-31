@@ -933,6 +933,7 @@ export function mountMobileWebApp(
   let activeController: AbortController | null = null;
   let requestId: string | undefined;
   let resultEdits: ReturnType<typeof trackResultEdits> | undefined;
+  let exposeResult: (() => void) | undefined;
   let canGenerate: boolean | null = null;
   let cancellationRequested = false;
   let language = safeLanguagePreferences();
@@ -1368,6 +1369,43 @@ export function mountMobileWebApp(
               void sendResultEdit(owner, context).catch(() => {});
             })
           : undefined;
+      exposeResult = () => {
+        if (
+          !resultEdits ||
+          !attempt ||
+          session?.user.id !== owner ||
+          document.visibilityState !== "visible"
+        )
+          return;
+        const ready = (["title", "description"] as const).every((field) => {
+          const node = asElement<HTMLInputElement | HTMLTextAreaElement>(
+            root,
+            `[data-mobile-web="result-${field}"]`,
+          );
+          return (
+            node &&
+            !node.matches(":disabled") &&
+            !node.readOnly &&
+            node.value === result[field] &&
+            node.getClientRects().length &&
+            (!node.checkVisibility ||
+              node.checkVisibility({ visibilityProperty: true }))
+          );
+        });
+        if (ready && resultEdits.expose()) {
+          exposeResult = undefined;
+          void sendResultEdit(
+            owner,
+            {
+              generationAttemptId: attempt,
+              generationRequestId: attempt,
+              mode: "mobile_result",
+            },
+            "generation_output_visible",
+          ).catch(() => {});
+        }
+      };
+      exposeResult();
       void trackMobileEvent("generation_success", {
         generationAttemptId: resultEdits ? attempt : undefined,
         imageCount: photos.length,
@@ -1604,6 +1642,7 @@ export function mountMobileWebApp(
   }
   bind(document, "visibilitychange", () => {
     if (document.visibilityState === "hidden") resultEdits?.flush("hidden");
+    else exposeResult?.();
   });
   bind(window, "pagehide", () => resultEdits?.close("pagehide"));
   const vintedAction = asElement<HTMLAnchorElement>(

@@ -20,6 +20,7 @@
     "stage",
     "lastConfirmedStage",
     "generationAttemptId",
+    "generationRequestId",
     "operationId",
     "parentOperationId",
     "authRefreshOperationId",

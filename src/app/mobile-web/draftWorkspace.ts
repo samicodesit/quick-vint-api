@@ -100,6 +100,8 @@ export function mountDraftWorkspace(
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let scrollY = 0;
   let generationCount = 0;
+  let editExposureFrame = 0;
+  let observedEditor: { id: string; operationId: string | null } | undefined;
   let startingGenerationId: string | null = null;
   let allowance: number | null = null;
   const defaultsKey = `autolister:listing-defaults:${options.userId}`;
@@ -1523,6 +1525,35 @@ export function mountDraftWorkspace(
   }
   function renderEditor() {
     if (disposed) return;
+    cancelAnimationFrame(editExposureFrame);
+    editExposureFrame = requestAnimationFrame(() => {
+      if (disposed) return;
+      const draft = selected?.value;
+      if (
+        observedEditor &&
+        (observedEditor.id !== draft?.id ||
+          observedEditor.operationId !== draft?.operation_id)
+      ) {
+        client.flushDraftEdits(observedEditor.id);
+        observedEditor = undefined;
+      }
+      const fields = ["title", "description"].map((name) =>
+        find<HTMLInputElement | HTMLTextAreaElement>(
+          `[data-draft-field="${name}"]`,
+        ),
+      );
+      if (
+        !draft ||
+        document.hidden ||
+        root.hidden ||
+        fields.some(
+          (el) => el.disabled || el.readOnly || !el.getClientRects().length,
+        )
+      )
+        return;
+      observedEditor = { id: draft.id, operationId: draft.operation_id };
+      client.observeDraft(draft);
+    });
     schedulePhotoViewport();
     if (batchSettingsItem) {
       const draft = batchSettingsItem.value;
@@ -3454,7 +3485,15 @@ export function mountDraftWorkspace(
     }
   });
   bind(document, "visibilitychange", () => {
-    if (document.hidden && selected?.dirty) run(() => flush());
+    if (document.hidden) {
+      const id = selected?.value.id;
+      if (selected?.dirty)
+        run(async () => {
+          await flush();
+          if (id) client.flushDraftEdits(id);
+        });
+      else if (id) client.flushDraftEdits(id);
+    } else renderEditor();
   });
   bind(document, "keydown", (event) => {
     if ((event as KeyboardEvent).key !== "Escape") return;
@@ -3617,13 +3656,17 @@ export function mountDraftWorkspace(
       renderGlobalSettings();
     },
     hasUnsaved,
-    flush,
+    async flush() {
+      await flush();
+      if (selected) client.flushDraftEdits(selected.value.id);
+    },
     dispose(clearRecovery = false) {
       remember();
       photoEditor?.close();
       const dialog = find<HTMLDialogElement>("[data-draft-delete-dialog]");
       if (dialog.open) dialog.close("cancel");
       disposed = true;
+      cancelAnimationFrame(editExposureFrame);
       client.dispose();
       queue.pause();
       clearTimeout(saveTimer);

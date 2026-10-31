@@ -13,7 +13,19 @@ import type {
   MobileGenerationResult,
 } from "./generationClient";
 
-type Row = Omit<Draft, "photos"> & { created_at: string };
+type EditEvidence = {
+  operationId: string;
+  generatedAt: number;
+  original: { title: string; description: string };
+  previous: { title: string; description: string };
+  sequence: number;
+  exposed: boolean;
+  batch: boolean;
+};
+type Row = Omit<Draft, "photos"> & {
+  created_at: string;
+  editEvidence?: EditEvidence;
+};
 export interface LocalDraftAttempt {
   draftId: string;
   operationId: string;
@@ -317,7 +329,7 @@ export class LocalDraftStore {
       .put({ ...photo, group_key: photo.draft_id || "" });
   }
   private view(data: Snapshot, row: Row): Draft {
-    const { created_at: _, ...draft } = row;
+    const { created_at: _, editEvidence: _evidence, ...draft } = row;
     return {
       ...draft,
       photos: [...data.photos.values()]
@@ -751,6 +763,7 @@ export class LocalDraftStore {
           createdAt: Date.now(),
         };
         row.operation_id = attempt.operationId;
+        delete row.editEvidence;
         row.operation_state = "running";
         this.saveRow(data, row, true);
         data.tx.objectStore("attempts").put(saved);
@@ -803,11 +816,99 @@ export class LocalDraftStore {
             );
           row.title = result.title;
           row.description = result.description;
+          if (state === "succeeded")
+            row.editEvidence = {
+              operationId,
+              generatedAt: Date.now(),
+              original: {
+                title: result.title,
+                description: result.description,
+              },
+              previous: {
+                title: result.title,
+                description: result.description,
+              },
+              sequence: 0,
+              exposed: false,
+              batch: data.attempts.get(draftId)?.batch || false,
+            };
         }
         row.operation_state = state;
         this.saveRow(data, row);
         if (state !== "pending")
           data.tx.objectStore("attempts").delete(draftId);
+      },
+      { draftIds: [draftId], noPhotos: true, attemptId: draftId },
+    );
+  }
+  /** Atomic across tabs/reopens. Claims are best effort, never retried with private text. */
+  async claimEditObservation(
+    draftId: string,
+    kind: "visible" | "idle" | "leave",
+  ) {
+    return this.transact(
+      "readwrite",
+      (data) => {
+        const row = this.row(data, draftId);
+        const evidence = row.editEvidence;
+        if (
+          !evidence ||
+          evidence.operationId !== row.operation_id ||
+          row.operation_state !== "succeeded"
+        )
+          return null;
+        if (Date.now() - evidence.generatedAt > 7 * 86400000) {
+          delete row.editEvidence;
+          data.tx.objectStore("drafts").put(row);
+          return null;
+        }
+        const context: Record<string, unknown> = {
+          generationAttemptId: evidence.operationId,
+          generationRequestId: evidence.operationId,
+          mode: evidence.batch ? "saved_draft_batch" : "saved_draft",
+          titleLanguageCode: row.settings.titleLanguageCode,
+          descriptionLanguageCode: row.settings.descriptionLanguageCode,
+        };
+        if (kind === "visible") {
+          if (evidence.exposed) return null;
+          evidence.exposed = true;
+        } else {
+          if (
+            !evidence.exposed ||
+            evidence.sequence >= (kind === "leave" ? 3 : 2) ||
+            (row.title === evidence.previous.title &&
+              row.description === evidence.previous.description)
+          )
+            return null;
+          Object.assign(context, {
+            editSequence: ++evidence.sequence,
+            editSnapshotReason: kind,
+            editDelayMs: Math.max(0, Date.now() - evidence.generatedAt),
+            summaryLimit: 3,
+          });
+          for (const field of ["title", "description"] as const) {
+            const original = evidence.original[field];
+            const changed = row[field] !== original;
+            context[field + "Changed"] = changed;
+            context[field + "LengthDelta"] =
+              row[field].length - original.length;
+            if (
+              changed &&
+              original.length <= 6000 &&
+              row[field].length <= 6000
+            ) {
+              const name = field === "title" ? "Title" : "Description";
+              context["generated" + name] = original;
+              context["final" + name] = row[field];
+            }
+          }
+          evidence.previous = {
+            title: row.title,
+            description: row.description,
+          };
+        }
+        data.tx.objectStore("drafts").put(row);
+        return context;
       },
       { draftIds: [draftId], noPhotos: true },
     );

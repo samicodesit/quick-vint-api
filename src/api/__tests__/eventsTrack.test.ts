@@ -269,7 +269,7 @@ describe("events tracking endpoint", () => {
     },
   );
 
-  it("retains mobile result edit text only on the authenticated result path", async () => {
+  it("retains mobile saved-draft text and its request link only on the authenticated app path", async () => {
     const ev = {
       id: "d623926a-35a6-4bf5-8027-8ab335c71119",
       occurredAt: new Date().toISOString(),
@@ -279,6 +279,8 @@ describe("events tracking endpoint", () => {
       page: "/app",
       context: {
         generationAttemptId: "attempt",
+        generationRequestId: "request",
+        mode: "saved_draft",
         titleChanged: true,
         generatedTitle: "Coat",
         finalTitle: "Coat size S",
@@ -289,7 +291,12 @@ describe("events tracking endpoint", () => {
     await send(ev);
     expect(
       rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context,
-    ).toMatchObject({ textCaptureVersion: 1, finalTitle: "Coat size S" });
+    ).toMatchObject({
+      textCaptureVersion: 1,
+      finalTitle: "Coat size S",
+      generationRequestId: "request",
+      mode: "saved_draft",
+    });
     rpcMock.mockClear();
     await send({ ...ev, page: "/other" });
     expect(

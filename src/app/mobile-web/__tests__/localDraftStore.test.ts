@@ -27,6 +27,136 @@ const photo = async (draftId?: string) => {
   });
 };
 
+it("captures saved text across reopening, caps snapshots across tabs and preserves full undo", async () => {
+  let draft = await create();
+  await photo(draft.id);
+  draft = await first.action("detail", { draftId: draft.id });
+  const operationId = id();
+  await first.beginAttempt(
+    draft.id,
+    { operationId, inputVersion: draft.input_version },
+    true,
+  );
+  await first.finishAttempt(draft.id, operationId, "succeeded", {
+    title: "Blue coat",
+    description: "Wool coat",
+  } as any);
+  draft = await first.action("detail", { draftId: draft.id });
+  expect(draft).not.toHaveProperty("editEvidence");
+  expect(await first.claimEditObservation(draft.id, "idle")).toBeNull();
+  expect(await first.claimEditObservation(draft.id, "visible")).toMatchObject({
+    generationAttemptId: operationId,
+    generationRequestId: operationId,
+    mode: "saved_draft_batch",
+  });
+  const reopened = new LocalDraftStore("account-one");
+  expect(await reopened.claimEditObservation(draft.id, "visible")).toBeNull();
+  draft = await reopened.action("save", {
+    draftId: draft.id,
+    expectedVersion: draft.version,
+    title: "Blue coat size M",
+  });
+  const claims = await Promise.all([
+    first.claimEditObservation(draft.id, "idle"),
+    reopened.claimEditObservation(draft.id, "idle"),
+  ]);
+  expect(claims.filter(Boolean)).toHaveLength(1);
+  expect(claims.find(Boolean)).toMatchObject({
+    editSequence: 1,
+    titleChanged: true,
+    generatedTitle: "Blue coat",
+    finalTitle: "Blue coat size M",
+    descriptionChanged: false,
+  });
+  await expect(
+    reopened.action("save", {
+      draftId: draft.id,
+      expectedVersion: draft.version - 1,
+      title: "wrong",
+    }),
+  ).rejects.toMatchObject({ code: "draft_conflict" });
+  expect(await first.claimEditObservation(draft.id, "idle")).toBeNull();
+  draft = await reopened.action("save", {
+    draftId: draft.id,
+    expectedVersion: draft.version,
+    description: "Wool coat with pockets",
+  });
+  expect(await first.claimEditObservation(draft.id, "idle")).toMatchObject({
+    editSequence: 2,
+    descriptionChanged: true,
+    generatedDescription: "Wool coat",
+    finalDescription: "Wool coat with pockets",
+  });
+  draft = await reopened.action("save", {
+    draftId: draft.id,
+    expectedVersion: draft.version,
+    title: "Blue coat",
+    description: "Wool coat",
+  });
+  expect(await first.claimEditObservation(draft.id, "idle")).toBeNull();
+  expect(await first.claimEditObservation(draft.id, "leave")).toMatchObject({
+    editSequence: 3,
+    titleChanged: false,
+    descriptionChanged: false,
+  });
+  draft = await reopened.action("save", {
+    draftId: draft.id,
+    expectedVersion: draft.version,
+    title: "Blue coat L",
+  });
+  expect(await reopened.claimEditObservation(draft.id, "leave")).toBeNull();
+  await expect(
+    new LocalDraftStore("someone-else").claimEditObservation(
+      draft.id,
+      "visible",
+    ),
+  ).rejects.toMatchObject({ code: "draft_not_found" });
+  const next = id();
+  await first.beginAttempt(
+    draft.id,
+    { operationId: next, inputVersion: draft.input_version },
+    false,
+  );
+  await first.finishAttempt(draft.id, next, "succeeded", {
+    title: "New output",
+    description: "New details",
+  } as any);
+  expect(await first.claimEditObservation(draft.id, "visible")).toMatchObject({
+    generationAttemptId: next,
+    mode: "saved_draft",
+  });
+  reopened.dispose();
+});
+
+it("does not invent originals for old drafts or retain an expired baseline in a new snapshot", async () => {
+  let draft = await create();
+  draft = await first.action("save", {
+    draftId: draft.id,
+    expectedVersion: draft.version,
+    title: "Manual or old text",
+  });
+  expect(await first.claimEditObservation(draft.id, "visible")).toBeNull();
+  await photo(draft.id);
+  draft = await first.action("detail", { draftId: draft.id });
+  const operationId = id();
+  await first.beginAttempt(
+    draft.id,
+    { operationId, inputVersion: draft.input_version },
+    false,
+  );
+  await first.finishAttempt(draft.id, operationId, "succeeded", {
+    title: "Generated",
+    description: "Details",
+  } as any);
+  const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 8 * 86400000);
+  try {
+    expect(await first.claimEditObservation(draft.id, "visible")).toBeNull();
+  } finally {
+    now.mockRestore();
+  }
+  expect(await first.claimEditObservation(draft.id, "visible")).toBeNull();
+});
+
 it("edits only one photo and preserves its original, text, order and fresh preview across connections", async () => {
   let draft = await create();
   const a = await photo(draft.id);

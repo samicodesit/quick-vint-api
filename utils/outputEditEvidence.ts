@@ -6,6 +6,7 @@ export function outputEditEvidence(raw: any, safe: Record<string, any>) {
   const context: Record<string, any> = {};
   for (const key of [
     "generationAttemptId",
+    "generationRequestId",
     "operationId",
     "outputTrackingId",
     "analyticsClientId",

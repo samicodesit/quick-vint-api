@@ -1,4 +1,5 @@
 import { fetchMobileJson } from "./api";
+import { trackSavedDrafts } from "./savedDraftTracking";
 import { getBrowserSession } from "./auth";
 import {
   permittedDraftSettings,
@@ -39,6 +40,7 @@ type Recovery = {
 /** One account and lifetime per workspace, never a global mutable account binding. */
 export function createDraftClient(userId: string) {
   const store = new LocalDraftStore(userId);
+  const edits = trackSavedDrafts(store);
   const controller = new AbortController();
   const active = new Map<string, Promise<unknown>>();
   const results = new Map<string, MobileGenerationResult>();
@@ -212,13 +214,18 @@ export function createDraftClient(userId: string) {
     }
   }
   return {
-    draftAction: <T = Draft>(
+    observeDraft: edits.observe,
+    flushDraftEdits: edits.leave,
+    draftAction: async <T = Draft>(
       action: string,
       input: Record<string, unknown> = {},
-    ): Promise<T> =>
-      (action === "recover"
+    ): Promise<T> => {
+      const result = await (action === "recover"
         ? recover(String(input.draftId))
-        : store.action(action, input)) as Promise<T>,
+        : store.action(action, input));
+      if (action === "save") edits.saved(result);
+      return result as T;
+    },
     listDrafts: (state: "draft" | "done" = "draft", cursor?: string) =>
       store.list(state, cursor),
     uploadDraftPhoto: (
@@ -247,6 +254,7 @@ export function createDraftClient(userId: string) {
     },
     dispose: () => {
       disposed = true;
+      edits.dispose();
       controller.abort();
       store.dispose();
       results.clear();

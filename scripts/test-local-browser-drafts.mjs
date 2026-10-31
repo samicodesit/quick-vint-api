@@ -59,7 +59,8 @@ await context.addInitScript(
     createdAt: process.env.DRAFT_BROWSER_INTERACTIVE === "1" ? new Date().toISOString() : "2026-10-01T00:00:00Z",
   },
 );
-if (process.env.DRAFT_BROWSER_INTERACTIVE === "1") {
+// Fixture runs must never send synthetic activity to production services.
+{
   await context.route("**/*", (route) => {
     const url = new URL(route.request().url());
     return url.origin === new URL(base).origin || ["blob:", "data:"].includes(url.protocol)
@@ -1261,6 +1262,10 @@ try {
     "Generate and Mark as listed keep the same height",
   );
   checks.push("Generation stays in place and saves its result locally");
+  const trackedOperation = (await snapshot()).drafts[0].operation_id;
+  await page.waitForTimeout(100);
+  assert.equal(telemetryEvents.filter(e => e.event === "generation_output_visible" && e.context?.generationAttemptId === trackedOperation).length, 1,
+    "A real visible editor has one exposure event");
   await page
     .locator('[data-draft-field="description"]')
     .fill(
@@ -1290,6 +1295,12 @@ try {
     .fill("Saved before returning through the logo");
   await page.locator(".mobile-workspace-brand").click();
   await waitForDrafts(1);
+  for (let n=0;n<100 && !telemetryEvents.some(e => e.event === "generation_output_edited" && e.context?.generationAttemptId === trackedOperation);n++) await page.waitForTimeout(20);
+  const savedEdit = telemetryEvents.filter(e => e.event === "generation_output_edited" && e.context?.generationAttemptId === trackedOperation).at(-1);
+  assert.ok(savedEdit, "Leaving records saved text through the real client transport");
+  assert.equal(savedEdit.context.finalTitle,"Saved before returning through the logo");
+  assert.equal(savedEdit.context.generationRequestId,trackedOperation);
+  assert.match(savedEdit.context.generatedTitle,/^Dress /);
   assert.equal(new URL(page.url()).pathname, "/app");
   assert.equal(
     await page.locator("html").getAttribute("data-logo-navigation-test"),
@@ -1326,6 +1337,16 @@ try {
   checks.push(
     "Reload preserves text and ten local JPEGs without downloading cloud drafts",
   );
+  assert.equal(telemetryEvents.filter(e => e.event === "generation_output_visible" && e.context?.generationAttemptId === trackedOperation).length,1,
+    "Reloading does not duplicate exposure");
+  checks.push("Saved edit tracking keeps the AI original across navigation/reload without duplicate exposure");
+
+  if (process.env.DRAFT_BROWSER_TRACKING_ONLY === "1") {
+    assert.deepEqual(errors, [], "No browser errors in the saved-draft tracking journey");
+    console.log(JSON.stringify({checks,trackingOnly:true}, null, 2));
+    await browser.close();
+    process.exit(0);
+  }
 
   // Editing needs no server round-trip once the app has loaded.
   await context.setOffline(true);

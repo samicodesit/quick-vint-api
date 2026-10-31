@@ -423,7 +423,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (
         authenticatedUserId &&
-        raw.source === "extension_content" &&
+        (raw.source === "extension_content" ||
+          (raw.source === "mobile_web" && raw.page === "/app")) &&
         raw.event === "generation_output_edited"
       ) {
         return {

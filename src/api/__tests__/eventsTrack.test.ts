@@ -240,6 +240,37 @@ describe("events tracking endpoint", () => {
     }
   }, 15000);
 
+  it("retains mobile result edit text only on the authenticated result path", async () => {
+    const ev = {
+      id: "d623926a-35a6-4bf5-8027-8ab335c71119",
+      occurredAt: new Date().toISOString(),
+      accountId: USER_ID,
+      event: "generation_output_edited",
+      source: "mobile_web",
+      page: "/app",
+      context: {
+        generationAttemptId: "attempt",
+        titleChanged: true,
+        generatedTitle: "Coat",
+        finalTitle: "Coat size S",
+      },
+    };
+    const send = (event: typeof ev, auth = true) =>
+      postEvent({ schemaVersion: 2, events: [event] }, auth);
+    await send(ev);
+    expect(
+      rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context,
+    ).toMatchObject({ textCaptureVersion: 1, finalTitle: "Coat size S" });
+    rpcMock.mockClear();
+    await send({ ...ev, page: "/other" });
+    expect(
+      rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context,
+    ).not.toHaveProperty("finalTitle");
+    rpcMock.mockClear();
+    await send(ev, false);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
   it("bounds and redacts edit text, preserves intentional empty strings, and excludes it from other events", async () => {
     const context = {
       generatedTitle: "Contact seller@example.com",

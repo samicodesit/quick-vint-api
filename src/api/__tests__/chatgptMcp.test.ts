@@ -18,6 +18,19 @@ beforeEach(() => {
   vi.clearAllMocks();
   delete process.env.CHATGPT_PLUGIN_ENABLED;
 });
+it.each(["GET", "HEAD"])(
+  "advertises OAuth before method rejection for %s discovery",
+  async (method) => {
+    process.env.CHATGPT_PLUGIN_ENABLED = "true";
+    const res = response();
+    await handler({ method, headers: {} } as any, res as any);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "WWW-Authenticate",
+      expect.stringContaining("oauth-protected-resource"),
+    );
+  },
+);
 it("fails closed before activation", async () => {
   const res = response();
   await handler({ method: "POST", headers: {}, body: {} } as any, res as any);

@@ -18,7 +18,6 @@ export async function hostedPluginRequest(
   res.setHeader("X-Content-Type-Options", "nosniff");
   if (process.env.CHATGPT_PLUGIN_ENABLED !== "true")
     return res.status(404).json({ error: "Not available." });
-  if (req.method !== "POST") return res.status(405).end();
   const unauthorized = () => {
     res.setHeader("WWW-Authenticate", challenge);
     return res.status(401).json({ error: "Connect your AutoLister account." });
@@ -54,6 +53,10 @@ export async function hostedPluginRequest(
     }
   } catch {
     return unauthorized();
+  }
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).end();
   }
   const body = JSON.stringify(req.body);
   if (!body || Buffer.byteLength(body) > 96 * 1024)

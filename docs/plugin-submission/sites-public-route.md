@@ -1,0 +1,112 @@
+# Sites public submission investigation
+
+## Update: 2026-11-01
+
+Individual verification cleared. The portable MCP ZIP was accepted into Platform
+as a draft under Sami Shata. It created submission App
+`asdk_app_6ae70020f5508191a44f9b7ee36ba3c5`; it did not rebind the original Sites
+App. No review submission, public publication or audience change occurred.
+The connection dialog selected OAuth and requested the domain challenge at the
+existing Sites hostname. The response was deployed privately on 2026-11-01.
+Deployment `appgdep_6ae70179f6a08191b99a83e6cd038e65` succeeded from commit
+`b8b90fca29a0629ef41f0f26fccfab5b742d2bf8`.
+Authenticated Chrome reads the exact plain-text token, but an unauthenticated
+IAB request reaches the Sites sign-in screen before our Worker. Verify Domain
+does not clear the portal's Domain not verified status. Authorization remains
+unavailable. This is a platform access boundary, not a missing Worker route.
+The installed Sites references describe the automatically connected private
+App, but supply no route-level anonymous exception or public promotion procedure.
+Do not weaken the Site audience or add a bypass token to the portal.
+This confirms draft creation, not successful Sites OAuth connection or review
+eligibility. The original private plugin remains unchanged.
+
+The updated private plugin was exercised through its installed tool using one
+real item photo. The returned link opened the deployed handoff, and clicking
+Open in AutoLister transferred the photo, title and description to the existing
+signed-in AutoLister editor, which showed Saved. Desktop and 390x844 mobile
+screenshots were captured. This is the canonical private plugin and current
+production receiver, not the separate portal candidate or the local account-switch
+patch. No enabled seller note was present in this live run. No full ChatGPT-host
+demo video was recorded. Browser tools expose screenshots, not recording.
+
+## Earlier investigation: 2026-10-31
+
+At this stage no upload, submission, deployment or audience change had occurred.
+
+## Finding
+
+The general public route is OpenAI Platform > Plugins > Upload new or existing
+plugin, using a verified individual identity and a portable MCP package. Review
+and publication are separate steps. This does not establish that a personal
+Sites-generated App can be transferred into that route unchanged.
+
+No supported self-service promotion path for this specific Sites App was found
+in the current documentation or the account's visible controls. Do not label
+promotion impossible, or assume identity verification alone will make it work.
+
+## Evidence from this account
+
+- The canonical plugin remains USER-scoped and PRIVATE, version 1.0.0, release
+  `PluginRelease_c7c3be38807c81918cf8015e5edd47e5`.
+- Its archive contains `.app.json` and `.codex-plugin/plugin.json`. The latter
+  points to the former. Public author-uploaded archives reject App references.
+- ChatGPT > Plugins > Personal > Created by you shows AutoLister. Its menu
+  offers download, update and deletion, with no public submission action.
+- Manage shows the same App ID, OAuth supported and used, and DEVELOPMENT
+  review status. Its editable controls cover name, description and tool refresh.
+- OpenAI Platform is on Personal / quick-vint. Its plugin page has no existing
+  AutoLister submission; Upload is blocked by developer identity verification.
+- Sites reports owner access, custom access mode and zero external visitors.
+  The exact connected MCP URL remains
+  `https://autolister-one-item-prototype.samicodesit.chatgpt.site/mcp`.
+- An anonymous command-line endpoint probe was rejected by Cloudflare browser
+  signature filtering. It did not establish MCP OAuth discovery behavior. No
+  bypass was attempted, and no endpoint authentication conclusion follows.
+
+Canonical identities to preserve:
+
+- Site: `appgprj_6ae607ee96588191ac1ad7fb86701aa2`
+- Plugin: `plugin_asdk_app_sites_6a8d7d35e5488191819b20e6e4651604`
+- App: `asdk_app_sites_6a8d7d35e5488191819b20e6e4651604`
+
+## Next decision after verification
+
+Use the existing canonical App if OpenAI supplies a supported ownership binding
+or promotion path. Confirm the saved draft refers to the same App and preserves
+Sites OAuth and per-user identity before any review submission. An archive
+download or a successful ZIP upload alone would not establish this.
+
+If OpenAI confirms that this type of Sites App cannot enter public review,
+prepare a separately authorized migration to a supported hosted MCP endpoint.
+That requires real OAuth validation and renewed isolation, cap and cost checks.
+Do not reuse trusted Sites headers on an exposed raw server. Do not mark the
+tool no-auth, add a shared bypass token, or make the Site public as a workaround.
+
+There is no reason established here to buy a Business workspace.
+
+## Technical support question, prepared but not sent
+
+We own a personal, private AutoLister plugin generated by ChatGPT Sites. What is
+the supported route to submit its existing canonical App for public directory
+review under a verified individual developer? The private export uses `.app.json`,
+which public uploads reject. Can OpenAI Platform bind the existing Sites App and
+retain its OAuth connection and caller identity, or is a separately hosted MCP
+server required? Please confirm the exact supported steps before we change hosting
+or access. The Site, plugin and App IDs are listed above.
+
+## Reviewer access
+
+The current public submission guide requires a dedicated test account that works
+without owner intervention or email-code/magic-link dependencies. The older
+installed skill suggests a reviewer email for magic links. Treat the current
+portal requirement as authoritative; ask support to resolve any Sites-specific
+exception. Do not weaken ordinary user authentication or include credentials in
+the package. Account setup remains incomplete until the reviewer can actually
+complete the full flow.
+
+## Sources
+
+- https://developers.openai.com/plugins/deploy/submission
+- https://developers.openai.com/plugins/deploy/submission-errors
+- https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites
+- Current authenticated ChatGPT and OpenAI Platform screens described above.

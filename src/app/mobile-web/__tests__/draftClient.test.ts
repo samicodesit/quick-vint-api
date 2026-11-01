@@ -51,6 +51,75 @@ async function item() {
   );
   return client.draftAction("detail", { draftId: draft.id });
 }
+it("sends bounded edit evidence only after saved changes, and cancels pending work on disposal", async () => {
+  let draft = await item();
+  const operationId = id();
+  await client.executeDraftAttempt(
+    draft,
+    { operationId, inputVersion: draft.input_version },
+    false,
+  );
+  draft = await client.draftAction("detail", { draftId: draft.id });
+  const settle = async () => {
+    for (let n = 0; n < 20; n++)
+      await new Promise<void>((resolve) => setImmediate(resolve));
+  };
+  const events = () =>
+    mocks.api.mock.calls.filter(([path]) => path === "/api/events/track");
+  client.observeDraft(draft);
+  client.observeDraft(draft);
+  await settle();
+  expect(events()).toHaveLength(1);
+  expect(JSON.parse(events()[0][1].body).events[0]).toMatchObject({
+    event: "generation_output_visible",
+    context: { generationAttemptId: operationId, mode: "saved_draft" },
+  });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    for (let n = 0; n < 8; n++)
+      draft = await client.draftAction("save", {
+        draftId: draft.id,
+        expectedVersion: draft.version,
+        title: "Dress size " + n,
+      });
+    expect(events()).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(20000);
+    await settle();
+    expect(events()).toHaveLength(2);
+    expect(JSON.parse(events()[1][1].body).events[0]).toMatchObject({
+      event: "generation_output_edited",
+      context: {
+        generatedTitle: "Dress",
+        finalTitle: "Dress size 7",
+        editSequence: 1,
+      },
+    });
+    expect(events()[1][2]).toMatchObject({
+      expectedUserId: "owner",
+      retryOn401: false,
+    });
+    draft = await client.draftAction("save", {
+      draftId: draft.id,
+      expectedVersion: draft.version,
+      title: "Dress final",
+    });
+    client.flushDraftEdits(draft.id);
+    await settle();
+    expect(events()).toHaveLength(3);
+    draft = await client.draftAction("save", {
+      draftId: draft.id,
+      expectedVersion: draft.version,
+      title: "Never send after logout",
+    });
+    client.dispose();
+    await vi.advanceTimersByTimeAsync(20000);
+    await settle();
+    expect(events()).toHaveLength(3);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("generates through existing uploads, saves locally, and sends all settings without a cloud draft ID", async () => {
   const draft = await item();
   const attempt = { operationId: id(), inputVersion: draft.input_version };

@@ -1,5 +1,6 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
+import ListingDraftExample from "../components/ListingDraftExample.astro";
 import PhoneWorkflow from "../components/PhoneWorkflow.astro";
 import { LISTING_GUIDE_COPY } from "../i18n/listingGuides";
 import { getPricingGuideCopy } from "../utils/pricingDisplay.js";
@@ -568,6 +569,7 @@ const faqJsonLd = JSON.stringify({
           <a href="https://help.openai.com/en/articles/8400551-chatgpt-image-inputs-faq" class="font-semibold text-indigo-700 underline underline-offset-4">OpenAI's image-input documentation</a>.
           Comparison checked on October 28, 2026.
         </p>
+        <ListingDraftExample />
       </div>
     </section>
 

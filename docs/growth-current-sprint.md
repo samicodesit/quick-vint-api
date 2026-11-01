@@ -1,5 +1,31 @@
 # AutoLister AI Growth Current Sprint
 
+## Private ChatGPT plugin submission preparation, October 31, 2026
+
+Prepared a local listing and minimal support/privacy/terms additions. No homepage,
+pricing or canonical URL changes. All new copy rendered at desktop and 390px
+mobile widths; no horizontal document overflow. The listing uses existing brand
+art, accurate browser-scoped notes and no promised marketplace publishing.
+
+Fixed stale-account and disposed-receiver import paths. Production gate: 1,215
+passed, 14 opt-in skipped; lint, types, build and formatting passed. Independent
+reviewer: 22/22 receiver/storage tests passed, no further actionable packet issues.
+Local browser imports and account-change rejection passed at both widths, with
+zero generation calls. Authentication and transfer data were fixtures. Isolated
+cap tests passed, but PGlite does not establish multi-session PostgreSQL races.
+
+Public launch stays blocked on verified publisher identity, supported canonical
+Sites App publication/authentication, reviewer access and real ChatGPT review
+cases/demo. No upload, deployment, invitation, send or spend. Details:
+[submission preparation](plugin-submission/README.md). Evidence in parent workspace
+`reports/ai-visibility-2026-10-28/comparison-v2/plugin-public-independent-review-2026-10-31.json`
+and `plugin-public-gate.log`. Final rendered before/after sheets are in the task
+visualization directory's `plugin-public-preparation` folder.
+
+## Vinted ChatGPT guide comparison, October 31, 2026
+
+Checked the three listing drafts against the original outputs for the Damart top. Desktop and mobile previews passed placement, disclosure and overflow checks. The title, canonical URL, structured data and existing comparison table match the prior page. This single example does not measure recommendation changes.
+
 ## Homepage video and pricing strip, October 29, 2026
 
 - Local draft only. Removed the entire homepage plan/comparison strip and its unused script/styles at the owner's request. Pricing navigation and the pricing page remain available. No new helper copy.
@@ -347,3 +373,67 @@ Compact subscription confirmation completed locally on 2026-10-28: full terms mo
 Final owner-reviewed copy now omits selected feature highlights and product-surface links, uses Amount paid and Next renewal, and retains actual plan allowances. Checked against Paddle's published example and Mastercard confirmation guidance. Exact final desktop and 390px mobile renders inspected, links checked, and all 23 targeted email/attachment tests pass. The final captures are final-welcome-desktop.jpg and final-welcome-mobile.jpg in the task visualization directory. At this preparation stage there was no send or deployment. The cancellation-before-welcome-retry concern was subsequently fixed and independently accepted, as recorded below.
 
 Production acceptance on 28 October 2026: explicitly approved rollout is live at application commit 16f1e82. Four migrations and private database grants verified; Resend signing secret/webhook installed; live terms/withdrawal/support and rejection-path checks passed. Hosted sandbox base and discounted GBP checkout disclosures were inspected without a purchase. The exact approved email HTML/PDF was sent once as a labeled owner test; genuine signed sent/delivered events are persisted. Full production gate passed 1,195 tests with 13 opt-in skips. No filler or extra product CTA was added. See the final production acceptance section in [the release record](billing-evidence-release.md). No live purchase or live withdrawal submission was performed; local endpoint/database tests cover receipt persistence. The existing Stripe account/seller arrangement remains unresolved separately. No conversion or dispute win rate is established.
+
+### Private plugin final preparation, 2026-10-31
+
+Contacted OpenAI Support with owner authorization about Persona failure versus
+Individual Identity in review. Human specialist escalation confirmed. No new
+verification attempt, publication, submission, invitations or deployment.
+
+Polished the local transfer screen with larger uncropped photos, one full-width
+CTA, responsive grid and accessible fallback picker. Existing independent reviewer
+confirmed presentation-only changes with no actionable source issues. Worker build
+and artifact validation pass; account-import tests pass 8/8. Actual local receiver
+opened the fixture draft, retained the enabled note once and made zero generation
+calls. Desktop and phone-width renders, four-photo layout, cap fallback, expiry
+and sign-in screen checked. Local fixtures are not a real ChatGPT host walkthrough.
+
+Evidence: `reports/ai-visibility-2026-10-28/comparison-v2/public-preparation/final-local-prep-2026-10-31.json`
+in the parent workspace. Public gates remain: verification, supported canonical
+Sites submission path, approved deployment, dedicated reviewer access and actual
+ChatGPT demo recording. No claim of submission readiness.
+
+### Sites submission route checked, 2026-10-31
+
+Read the current official submission and Sites hosting guides; inspected the
+canonical private plugin export, Personal plugin details and management controls,
+and Platform Personal / quick-vint submission page. No self-service public
+promotion action was found for this Sites App. Public ZIP uploads reject the
+current App binding; the portal is also identity-gated. The connected private
+App uses OAuth. No raw-server/no-auth workaround, duplicate plugin, access change,
+upload or deployment was attempted. Canonical identity remains PRIVATE with
+zero external Site visitors. See `docs/plugin-submission/sites-public-route.md`.
+
+Prepared a concrete support question without sending it, plus a reviewer run
+sheet. A fresh local preflight passed 25 metadata, icon and actual worker tool
+contract checks. Real host cases, dedicated reviewer access and final recording
+remain unverified. The four-photo label fixture is explicitly missing.
+
+### Individual verified and private portal draft, 2026-11-01
+
+Confirmed Verified in organization settings and Individual: Sami Shata in the
+upload dialog. The inspected portable candidate ZIP was accepted as draft
+`plugin_asdk_app_6ae70020f5508191a44f9b7ee36ba3c5`, version
+`appsub_6ae70020f5748191b5d8584bdd1ce9c8`. The portal created a separate submission
+App, not a replacement for the working private Sites App. Not submitted and not
+published. Countries and 5 positive / 3 negative cases imported correctly.
+
+OAuth is selected in the connection dialog; domain verification is required.
+Prepared only the exact ownership-proof GET locally. Regression checks passed
+for its response, continuing authentication on app/handoff requests, and unchanged
+MCP discovery. Worker build and artifact validation passed. No deployment or
+external audience/access change. Actual Sites edge access and OAuth remain
+untested. Non-blocking metadata findings concern category/privacy assessment.
+Supporting-content demo URL and MCP connection remain incomplete. Evidence:
+`reports/ai-visibility-2026-10-28/comparison-v2/public-preparation/portal-draft-2026-11-01.json`
+in the parent workspace; portal screenshot is saved in plugin-public-path.
+
+### 2026-11-01: private deployment and public connection blocker
+
+- Owner authorized necessary private deployments, full-flow tests and a demo, but no submission.
+- Sites deployment appgdep_6ae70179f6a08191b99a83e6cd038e65 succeeded from b8b90fca29a0629ef41f0f26fccfab5b742d2bf8. Audience unchanged.
+- Ownership token is correct for signed-in Chrome. Anonymous IAB sees Sites login; the portal remains Domain not verified and Authorization unavailable. No bypass or audience change attempted.
+- Real installed private tool, one photo: handoff opened current production AutoLister editor with matching photo/title/description and Saved status. Desktop and 390x844 mobile evidence saved under plugin-public-path. No saved note enabled in this run.
+- Local receiver account-switch protection and additive policy pages remain undeployed. This test does not validate those changes or the separate portal App.
+- Full ChatGPT-host demo video remains incomplete. Available browser capture capability is screenshots only. Do not substitute a screenshot montage as a recording.
+- Public submission blocked pending supported Sites verification/OAuth route. See docs/plugin-submission/sites-public-route.md for exact identities and evidence.

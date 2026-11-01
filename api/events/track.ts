@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
+import { getDirectUser } from "../../utils/directUser";
 import {
   continueIncidentWork,
   captureAcceptedException,
@@ -332,7 +333,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = authHeader.slice("Bearer ".length);
     const {
       data: { user },
-    } = await supabase.auth.getUser(token);
+    } = await getDirectUser(token);
     authenticatedUserId = user?.id;
     userId = authenticatedUserId;
     userEmail = user?.email;
@@ -423,7 +424,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (
         authenticatedUserId &&
-        raw.source === "extension_content" &&
+        (raw.source === "extension_content" ||
+          (raw.source === "mobile_web" && raw.page === "/app")) &&
         raw.event === "generation_output_edited"
       ) {
         return {
@@ -499,6 +501,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ...(dropCarrier ||
           raw.source === "mobile_web" ||
           [
+            "generation_output_visible",
             "auth_action_result",
             "auth_session_result",
             "web_app_click",

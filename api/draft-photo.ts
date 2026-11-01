@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getDirectUser } from "../utils/directUser";
 import { supabase } from "../utils/supabaseClient";
 import { isAllowedAppOrigin } from "../utils/allowedOrigins";
 import {
@@ -42,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(token);
+    } = await getDirectUser(token);
     if (error || !user)
       return res.status(401).json({ error: "Sign in again to upload photos." });
     if (

@@ -1,0 +1,81 @@
+{
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "AutoLister",
+        "shortDescription": "Photos to a Vinted draft",
+        "longDescription": "Turn photos of one item into a Vinted draft and open it in AutoLister. Select up to four photos in ChatGPT, describe any details the photos cannot show, and ask for a title and description. Open the draft in AutoLister to review the text and photos. AutoLister applies the enabled seller note saved for your account in that browser. Works on a phone or computer. You stay in control of publishing to Vinted.",
+        "category": "Productivity",
+        "defaultPrompt": [
+          "Prepare a Vinted draft from these photos.",
+          "Write this item's Vinted title and description in French.",
+          "Open this item as an AutoLister draft."
+        ],
+        "websiteURL": "https://autolister.app/support/#chatgpt-plugin",
+        "supportURL": "https://autolister.app/support/",
+        "privacyPolicyURL": "https://autolister.app/privacy",
+        "termsOfServiceURL": "https://autolister.app/terms",
+        "logo": "assets/autolister.png",
+        "composerIcon": "assets/autolister.png"
+      },
+      "review": {
+        "prompts": [
+          "Prepare a Vinted draft from these photos.",
+          "Open this draft in AutoLister, where I already have a saved seller note."
+        ],
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Attach one photo of one item. Use a dedicated reviewer account with no customer data. Verify the actual ChatGPT result and open the returned link.",
+              "prompt": "Prepare a Vinted draft from this photo.",
+              "tools_triggered": "prepare_item",
+              "expected_behavior": "Call prepare_item with one supplied image descriptor, a nonempty title of at most 150 characters and description of at most 4000 characters. Return the actual tool's AutoLister draft link. Opening it imports the photo and draft into the signed-in AutoLister browser workspace without calling AutoLister's generation API. Do not claim the item was published."
+            },
+            {
+              "description": "Attach front, back, detail and readable label photos of the same item. This exercises the four-photo boundary.",
+              "prompt": "Use all four photos for this item's Vinted draft. Include the size shown on the label.",
+              "tools_triggered": "prepare_item",
+              "expected_behavior": "Pass all four supplied image descriptors. Use only label details actually legible in the supplied photo. The returned draft opens with four photos; no unsupported material composition or condition claims are added."
+            },
+            {
+              "description": "Attach one item photo. The title and description language is a user-selected variation of the same workflow.",
+              "prompt": "Write a short Vinted title and description for this item in French, then open it in AutoLister.",
+              "tools_triggered": "prepare_item",
+              "expected_behavior": "Pass a French title and short French description with the supplied photo to prepare_item. The same French text must appear in the opened AutoLister draft, apart from an enabled seller note."
+            },
+            {
+              "description": "Before the test, save and enable the note 'Happy to combine postage.' in the dedicated AutoLister reviewer account on the same browser. Attach one item photo. Never supply a real customer's notes.",
+              "prompt": "Prepare this item in AutoLister. Use my saved seller note there.",
+              "tools_triggered": "prepare_item",
+              "expected_behavior": "Do not claim to read AutoLister notes inside ChatGPT and do not fabricate a note. After opening the returned link, the actual AutoLister receiver appends its enabled saved note once. The note is not present in prepare_item arguments or the transfer response."
+            },
+            {
+              "description": "Prepare one item, open the returned link and edit its title in AutoLister. Reopen the same link within 15 minutes. This is a repeated-handoff test, not a new generation.",
+              "prompt": "Prepare this item as a Vinted draft that I can edit in AutoLister.",
+              "tools_triggered": "prepare_item",
+              "expected_behavior": "The first import saves one draft. Reopening the exact same link preserves the seller's edited title and does not append the seller note again or duplicate photos."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Batch preparation is unsupported. Ask the user to choose one item; do not invoke prepare_item with several different items.",
+              "prompt": "These photos show six different items. Make a separate listing for each in one go."
+            },
+            {
+              "description": "The plugin cannot publish to a marketplace. Explain that the seller must review and publish; do not call prepare_item solely to perform a publish request or claim publication.",
+              "prompt": "Publish my saved draft directly to my Vinted account now."
+            },
+            {
+              "description": "The plugin cannot read a Vinted wardrobe or manage listings. Do not request Vinted credentials or invoke prepare_item for account scraping or relisting.",
+              "prompt": "Read my Vinted wardrobe and relist everything that has not sold."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Prepare a draft from up to four photos of one item in ChatGPT and open it in AutoLister. Includes account-bound transfers, expiry, shared usage caps and account-change protection during import.",
+        "countries": []
+      }
+    }
+  }
+}

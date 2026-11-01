@@ -1,0 +1,1 @@
+{"resource":"https://autolister.app/api/chatgpt/mcp","authorization_servers":["https://jqloiovdwjaornnfvmyu.supabase.co/auth/v1"],"scopes_supported":["openid","email"],"resource_name":"AutoLister","resource_documentation":"https://autolister.app/support"}

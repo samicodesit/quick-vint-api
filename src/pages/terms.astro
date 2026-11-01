@@ -87,7 +87,7 @@ const termsPricing = getPricingTermsCopy(
 
   <div class="container">
     <h1>Terms of Service</h1>
-    <p class="last-updated">Last updated: October 28, 2026</p>
+    <p class="last-updated">Last updated: October 31, 2026</p>
     <p>{subscriptionPolicy.seller}. {subscriptionPolicy.address}. <a href="mailto:support@autolister.app">Email support</a>.</p>
 
     <div class="warning">
@@ -97,7 +97,7 @@ const termsPricing = getPricingTermsCopy(
 
     <h2>1. Acceptance of Terms</h2>
     <p>
-      By installing, accessing, or using the AutoLister AI Chrome extension
+      By installing, accessing, or using the AutoLister AI extension, web app, or ChatGPT plugin
       ("Service"), you agree to be bound by these Terms of Service ("Terms").
       These Terms apply to all users of the Service.
     </p>
@@ -105,9 +105,21 @@ const termsPricing = getPricingTermsCopy(
     <h2>2. Service Description</h2>
     <p>
       AutoLister AI provides AI-generated titles and descriptions for Vinted
-      listings through a Chrome browser extension. The Service operates on a
-      subscription basis with usage limits based on your plan tier.
+      listings through a browser extension and web app. The ChatGPT plugin
+      transfers a draft prepared in ChatGPT into the web app. Subscription
+      features have usage limits based on your plan tier.
     </p>
+
+    <section id="chatgpt-plugin">
+      <h3>ChatGPT drafts</h3>
+      <p>
+        The plugin prepares one item at a time and does not publish to Vinted.
+        Review the photos and text before using a draft. Transfer links expire
+        after 15 minutes, and per-user and shared limits may restrict transfers.
+        Opening a ChatGPT draft does not use an AutoLister AI generation credit;
+        choosing to regenerate it in AutoLister follows your plan's limits.
+      </p>
+    </section>
 
     <h2>3. Subscription Plans and Usage Limits</h2>
     <div class="highlight">
@@ -161,8 +173,9 @@ const termsPricing = getPricingTermsCopy(
         is prohibited.
       </li>
       <li>
-        <strong>No Automation:</strong> Use of bots, scripts, or automated tools to
-        generate requests is strictly forbidden.
+        <strong>Authorized Access:</strong> Use AutoLister through our supported
+        interfaces, including our official ChatGPT plugin. Unauthorized bots,
+        scripts, or automated requests are prohibited.
       </li>
       <li>
         <strong>Rate Limit Compliance:</strong> Attempting to circumvent usage limits

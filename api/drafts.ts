@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabase } from "../utils/supabaseClient";
+import { getDirectUser } from "../utils/directUser";
 import { isAllowedAppOrigin } from "../utils/allowedOrigins";
 import { handleDraftAction, DraftError } from "../utils/listingDrafts";
 import { validateDraftAction } from "../src/app/mobile-web/draftContracts";
@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(token);
+    } = await getDirectUser(token);
     if (error || !user)
       return res
         .status(401)

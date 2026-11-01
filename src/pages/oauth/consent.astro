@@ -1,0 +1,67 @@
+---
+import Layout from "../../layouts/ChatGPTConnection.astro";
+---
+<Layout title="Connect ChatGPT">
+  <h1>Connect ChatGPT to AutoLister</h1>
+  <p id="status" role="status">Checking your account…</p>
+  <div id="permissions" hidden>
+    <p>ChatGPT can prepare drafts from the photos you share and identify your AutoLister account by email.</p>
+    <p>Your saved seller note is added when you open the draft in AutoLister.</p>
+    <button id="approve">Connect ChatGPT</button>
+    <button id="deny" class="secondary">Cancel</button>
+  </div>
+  <a id="signin" class="primary" href="/app" hidden>Sign in to AutoLister</a>
+  <a id="reviewer" href="/oauth/reviewer" hidden>Reviewer sign-in</a>
+</Layout>
+<script>
+import { createBrowserSupabaseClient, getBrowserSession } from "../../app/mobile-web/auth";
+import { safeOAuthRedirect } from "../../app/mobile-web/oauthRedirect";
+const status = document.querySelector<HTMLParagraphElement>("#status")!;
+const signin = document.querySelector<HTMLAnchorElement>("#signin")!;
+const controls = document.querySelector<HTMLDivElement>("#permissions")!;
+const approve = document.querySelector<HTMLButtonElement>("#approve")!;
+const deny = document.querySelector<HTMLButtonElement>("#deny")!;
+const authorizationId = new URL(location.href).searchParams.get("authorization_id");
+try {
+  if (!authorizationId || !/^[a-zA-Z0-9_-]{1,200}$/.test(authorizationId)) throw Error("Open the connection from ChatGPT to continue.");
+  const session = await getBrowserSession();
+  if (!session) {
+    sessionStorage.setItem("autolister:chatgpt:return", location.pathname + location.search);
+    status.textContent = "Sign in to choose which account to connect."; signin.hidden = false;
+    document.querySelector<HTMLAnchorElement>("#reviewer")!.hidden=false;
+  } else {
+    const response = await fetch("/api/chatgpt/connection", { method:"POST", headers:{Authorization:"Bearer " + session.access_token} });
+    if (!response.ok) throw Error("This private test is not enabled for your account.");
+    const { clientId, redirectUris } = await response.json();
+    function redirect(value: string) {
+      const target = safeOAuthRedirect(value, redirectUris);
+      if (!target) throw Error("Open a fresh connection from ChatGPT to continue.");
+      location.assign(target);
+    }
+    const client = createBrowserSupabaseClient();
+    const { data, error } = await client.auth.oauth.getAuthorizationDetails(authorizationId);
+    if (error || !data) throw Error("Open a fresh connection from ChatGPT to continue.");
+    if ("redirect_url" in data) {
+      redirect(data.redirect_url);
+    } else {
+    if (data.client.id !== clientId || data.user.id !== session.user.id) throw Error("Open a fresh connection from ChatGPT to continue.");
+    // The submission portal includes offline_access for the existing refresh-token flow.
+    if (data.scope.split(" ").some(scope => !["openid","email","offline_access"].includes(scope))) throw Error("This connection requests unsupported permissions.");
+    status.textContent = data.user.email;
+    controls.hidden = false;
+    async function decide(accept: boolean) {
+      approve.disabled = deny.disabled = true;
+      try {
+        const current = await getBrowserSession();
+        if (current?.user.id !== session!.user.id) throw Error("Your account changed. Reload to continue.");
+        const result = accept ? await client.auth.oauth.approveAuthorization(authorizationId!, { skipBrowserRedirect: true }) : await client.auth.oauth.denyAuthorization(authorizationId!, { skipBrowserRedirect: true });
+        if (result.error || !result.data) throw result.error;
+        redirect(result.data.redirect_url);
+      } catch { status.textContent = "Could not connect. Open a fresh connection from ChatGPT."; }
+      finally { approve.disabled = deny.disabled = false; }
+    }
+    approve.onclick = () => decide(true); deny.onclick = () => decide(false);
+    }
+  }
+} catch(e) { status.textContent = e instanceof Error ? e.message : "Could not open this connection."; }
+</script>

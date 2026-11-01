@@ -240,6 +240,73 @@ describe("events tracking endpoint", () => {
     }
   }, 15000);
 
+  it.each(["extension_content", "mobile_web"])(
+    "keeps the request identity and occurrence time on %s form exposure",
+    async (source) => {
+      const occurredAt = new Date(Date.now() - 3600000).toISOString();
+      const event = {
+        id: "d623926a-35a6-4bf5-8027-8ab335c71122",
+        occurredAt,
+        source,
+        accountId: USER_ID,
+        event: "generation_output_visible",
+        page: source === "mobile_web" ? "/app" : "/items/new",
+        context: {
+          generationAttemptId: "attempt",
+          generationRequestId: "request",
+        },
+      };
+      await postEvent({ schemaVersion: 2, events: [event] });
+      expect(
+        rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body,
+      ).toMatchObject({
+        occurredAt,
+        context: {
+          generationAttemptId: "attempt",
+          generationRequestId: "request",
+        },
+      });
+    },
+  );
+
+  it("retains mobile saved-draft text and its request link only on the authenticated app path", async () => {
+    const ev = {
+      id: "d623926a-35a6-4bf5-8027-8ab335c71119",
+      occurredAt: new Date().toISOString(),
+      accountId: USER_ID,
+      event: "generation_output_edited",
+      source: "mobile_web",
+      page: "/app",
+      context: {
+        generationAttemptId: "attempt",
+        generationRequestId: "request",
+        mode: "saved_draft",
+        titleChanged: true,
+        generatedTitle: "Coat",
+        finalTitle: "Coat size S",
+      },
+    };
+    const send = (event: typeof ev, auth = true) =>
+      postEvent({ schemaVersion: 2, events: [event] }, auth);
+    await send(ev);
+    expect(
+      rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context,
+    ).toMatchObject({
+      textCaptureVersion: 1,
+      finalTitle: "Coat size S",
+      generationRequestId: "request",
+      mode: "saved_draft",
+    });
+    rpcMock.mockClear();
+    await send({ ...ev, page: "/other" });
+    expect(
+      rpcMock.mock.calls[0][1].p_event.businessLog.full_request_body.context,
+    ).not.toHaveProperty("finalTitle");
+    rpcMock.mockClear();
+    await send(ev, false);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
   it("bounds and redacts edit text, preserves intentional empty strings, and excludes it from other events", async () => {
     const context = {
       generatedTitle: "Contact seller@example.com",

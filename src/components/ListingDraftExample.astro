@@ -1,0 +1,48 @@
+---
+const drafts = [
+  {
+    "tool": "AutoLister",
+    "title": "Damart beige embroidered knit top UK 26 / F 52",
+    "description": "Damart beige knit top in size F 52 / B 52 / S 50 / GB 26. Short-sleeved style with a round neckline and tonal floral embroidery on the front. 100% cotton.",
+    "fields": ""
+  },
+  {
+    "tool": "ChatGPT",
+    "title": "Damart Beige Cotton Short Sleeve Top with Floral Embroidery",
+    "description": "Beige short sleeve top by Damart with delicate tonal floral embroidery on the front. Features a round neckline, ribbed trims and a relaxed fit. Made from 100% cotton. Size label shows FR 52, BE 52, ES 50 and GB 26.",
+    "fields": ""
+  },
+  {
+    "tool": "SortdAI",
+    "title": "Damart Beige Short Sleeve Top Size L",
+    "description": "Damart short-sleeve top in beige, size L. Very good condition, worn a few times. 100% cotton with a relaxed fit and crew neckline. Features tonal embroidered floral detail across the front and sleeves. Comfortable everyday piece.",
+    "fields": "Damart · L · Beige · Very good · £8.00"
+  }
+];
+---
+
+<section id="listing-draft-example" aria-labelledby="draft-example-title" class="mt-12 scroll-mt-24">
+  <h3 id="draft-example-title" class="text-2xl font-bold tracking-tight text-slate-900">Three Vinted drafts from the same photos</h3>
+  <p class="my-5 border-l-4 border-indigo-500 bg-indigo-50 px-4 py-3 text-slate-700">
+    <strong class="text-slate-900">Damart embroidered top</strong><br />
+    Size label: F 52 / B 52 / S 50 / GB 26. Fabric label: 100% cotton.
+  </p>
+  <div class="grid gap-4 md:grid-cols-3">
+    {drafts.map(({ tool, title, description, fields }) => (
+      <article class="min-w-0 overflow-hidden rounded-xl border border-slate-200">
+        <h4 class="border-b border-slate-200 px-4 py-3 font-semibold text-slate-900">{tool}</h4>
+        <div class="space-y-3 p-4">
+          <p class="text-lg font-bold leading-snug text-slate-900">{title}</p>
+          <p class="leading-relaxed text-slate-700">{description}</p>
+          {fields && <p class="text-sm text-slate-600">Additional fields: {fields}</p>}
+        </div>
+      </article>
+    ))}
+  </div>
+  <p class="my-5 leading-relaxed text-slate-700">All three identified the cotton. AutoLister put the size in its title. ChatGPT kept all four sizes in the description. SortdAI suggested size L and said the top had been worn a few times. The photos establish neither detail.</p>
+  <details class="border-t border-slate-200 pt-3 text-sm leading-relaxed text-slate-600">
+    <summary class="cursor-pointer font-semibold text-slate-800">How we tested</summary>
+    <p class="mt-3">AutoLister ran this comparison on 31 October 2026. This was the only item we tested across all three tools. We chose it for its readable labels before seeing SortdAI’s draft and also used it to refine AutoLister’s prompt.</p>
+    <p class="mt-2">Each tool received the same three photos. AutoLister used its released prompt in a direct GPT-5.4 API test with English, Standard tone, short paragraphs and no extras. In a temporary ChatGPT chat, we asked for a concise English listing using visible facts only. In SortdAI, we selected the women’s category and left the smoke-free and pet-free options off.</p>
+  </details>
+</section>

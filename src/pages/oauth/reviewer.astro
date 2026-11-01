@@ -1,0 +1,37 @@
+---
+import Layout from "../../layouts/ChatGPTConnection.astro";
+---
+<Layout title="Reviewer sign-in">
+  <h1>Reviewer sign-in</h1>
+  <form id="reviewer">
+    <label for="email">Email</label>
+    <input id="email" type="email" value="chatgpt-review@autolister.app" autocomplete="username" readonly />
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" required />
+    <button id="submit" type="submit">Sign in</button>
+  </form>
+  <p id="status" role="status"></p>
+</Layout>
+<style>label{display:block;margin:18px 0 6px;font-weight:600}input{width:100%;padding:12px;border:1px solid #cbd0c8;border-radius:8px}input[readonly]{background:#f7f7f5;color:#62665f}</style>
+<script>
+import {createBrowserSupabaseClient} from "../../app/mobile-web/auth";
+import {signInReviewer} from "../../app/mobile-web/reviewerAuth";
+import {safeChatGPTReturn} from "../../app/mobile-web/chatgptReturn";
+const form=document.querySelector<HTMLFormElement>("#reviewer")!;
+const button=document.querySelector<HTMLButtonElement>("#submit")!;
+const password=document.querySelector<HTMLInputElement>("#password")!;
+const status=document.querySelector<HTMLParagraphElement>("#status")!;
+form.onsubmit=async(event)=>{
+ event.preventDefault();button.disabled=true;status.textContent="";
+ try {
+  const session=await signInReviewer(createBrowserSupabaseClient(),password.value);
+  password.value="";
+  const allowed=await fetch("/api/chatgpt/connection",{method:"POST",headers:{Authorization:"Bearer "+session.access_token}});
+  if(!allowed.ok)throw Error("Reviewer access is not enabled. Contact AutoLister support.");
+  const next=safeChatGPTReturn(sessionStorage.getItem("autolister:chatgpt:return"));
+  sessionStorage.removeItem("autolister:chatgpt:return");
+  location.assign(next || "/app/");
+ }catch(error){status.textContent=error instanceof Error?error.message:"Could not sign in. Try again.";}
+ finally{button.disabled=false;}
+};
+</script>

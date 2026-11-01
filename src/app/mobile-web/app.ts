@@ -1,3 +1,4 @@
+import { trackResultEdits, sendResultEdit } from "./resultEditTracking";
 import { mountDraftWorkspace } from "./draftWorkspace";
 import { mountUserModels } from "./userModels";
 import {
@@ -933,6 +934,8 @@ export function mountMobileWebApp(
   let uploadedPhotoIds: string[] = [];
   let activeController: AbortController | null = null;
   let requestId: string | undefined;
+  let resultEdits: ReturnType<typeof trackResultEdits> | undefined;
+  let exposeResult: (() => void) | undefined;
   let canGenerate: boolean | null = null;
   let cancellationRequested = false;
   let language = safeLanguagePreferences();
@@ -1344,7 +1347,9 @@ export function mountMobileWebApp(
       if (disposed || cancellationRequested) return;
       state = { status: "generating" };
       applyGenerationState();
+      const owner = session.user.id;
       const input: MobileGenerationInput = {
+        expectedUserId: owner,
         imageUrls: uploadedPhotos.map((photo) => photo.url),
         titleLanguageCode: language.titleLanguageCode,
         descriptionLanguageCode: language.descriptionLanguageCode,
@@ -1354,13 +1359,61 @@ export function mountMobileWebApp(
         signal: activeController.signal,
       };
       generationStarted = true;
+      const attempt = requestId;
       const result = await generateListing(input);
-      if (disposed || cancellationRequested) return;
+      if (disposed || cancellationRequested || session?.user.id !== owner)
+        return;
       requestId = undefined;
       state = { status: "success", result };
       applyGenerationState();
       renderResult(result);
+      resultEdits?.close("new_generation");
+      resultEdits =
+        attempt && session?.user.id === owner
+          ? trackResultEdits(result, attempt, (context) => {
+              if (session?.user.id !== owner) return;
+              void sendResultEdit(owner, context).catch(() => {});
+            })
+          : undefined;
+      exposeResult = () => {
+        if (
+          !resultEdits ||
+          !attempt ||
+          session?.user.id !== owner ||
+          document.visibilityState !== "visible"
+        )
+          return;
+        const ready = (["title", "description"] as const).every((field) => {
+          const node = asElement<HTMLInputElement | HTMLTextAreaElement>(
+            root,
+            `[data-mobile-web="result-${field}"]`,
+          );
+          return (
+            node &&
+            !node.matches(":disabled") &&
+            !node.readOnly &&
+            node.value === result[field] &&
+            node.getClientRects().length &&
+            (!node.checkVisibility ||
+              node.checkVisibility({ visibilityProperty: true }))
+          );
+        });
+        if (ready && resultEdits.expose()) {
+          exposeResult = undefined;
+          void sendResultEdit(
+            owner,
+            {
+              generationAttemptId: attempt,
+              generationRequestId: attempt,
+              mode: "mobile_result",
+            },
+            "generation_output_visible",
+          ).catch(() => {});
+        }
+      };
+      exposeResult();
       void trackMobileEvent("generation_success", {
+        generationAttemptId: resultEdits ? attempt : undefined,
         imageCount: photos.length,
         titleLanguageCode: language.titleLanguageCode,
         descriptionLanguageCode: language.descriptionLanguageCode,
@@ -1519,6 +1572,7 @@ export function mountMobileWebApp(
     },
   );
   bind(asElement(root, '[data-mobile-web="new-item"]'), "click", () => {
+    resultEdits?.close("new_item");
     setHidden(root, '[data-mobile-web="listing-result"]', true);
     copiedTitle = false;
     copiedDescription = false;
@@ -1582,12 +1636,22 @@ export function mountMobileWebApp(
     );
     updateResultCompletion();
   };
-  bind(asElement(root, '[data-mobile-web="result-title"]'), "input", () =>
-    markResultEdited("title"),
-  );
-  bind(asElement(root, '[data-mobile-web="result-description"]'), "input", () =>
-    markResultEdited("description"),
-  );
+  for (const field of ["title", "description"] as const) {
+    const node = asElement<HTMLInputElement | HTMLTextAreaElement>(
+      root,
+      `[data-mobile-web="result-${field}"]`,
+    );
+    bind(node, "input", (event) => {
+      if (node && event.isTrusted) resultEdits?.edit(field, node.value);
+      markResultEdited(field);
+    });
+    bind(node, "focusout", () => resultEdits?.flush("focusout"));
+  }
+  bind(document, "visibilitychange", () => {
+    if (document.visibilityState === "hidden") resultEdits?.flush("hidden");
+    else exposeResult?.();
+  });
+  bind(window, "pagehide", () => resultEdits?.close("pagehide"));
   const vintedAction = asElement<HTMLAnchorElement>(
     root,
     '[data-mobile-web="vinted-action"]',
@@ -1749,6 +1813,8 @@ export function mountMobileWebApp(
     void verifyEmailOtp(email, input.value)
       .then((nextSession) => {
         if (disposed) return;
+        if (session?.user.id !== nextSession?.user.id)
+          resultEdits?.close("account_changed");
         session = nextSession;
         void claimFirstTouchAfterAuth(session);
         void trackMobileAuthComplete(session.user.id, "email");
@@ -1784,6 +1850,7 @@ export function mountMobileWebApp(
     button.disabled = true;
     const status = asElement(root, '[data-mobile-web="account-status"]');
     if (status) status.textContent = "";
+    resultEdits?.close("account_changed");
     void signOutBrowser()
       .then(() => {
         if (disposed) return;
@@ -1949,6 +2016,7 @@ export function mountMobileWebApp(
 
   const cleanup = (): void => {
     if (disposed) return;
+    resultEdits?.close("unmount");
     disposed = true;
     userModels.dispose();
     draftWorkspace?.dispose();

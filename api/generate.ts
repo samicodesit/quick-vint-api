@@ -7,6 +7,7 @@ import type {
 } from "openai/resources/chat/completions";
 import Cors from "cors";
 import { startListingPhotos } from "../utils/listingPhotoJobs";
+import { getDirectUser } from "../utils/directUser";
 import { supabase } from "../utils/supabaseClient";
 import {
   getGenerationReservationParams,
@@ -379,7 +380,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser(token);
+  } = await getDirectUser(token);
   if (userError || !user) {
     logData.responseStatus = 401;
     logData.processingDurationMs = Date.now() - startTime;

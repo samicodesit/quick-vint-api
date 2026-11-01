@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getDirectUser } from "../../utils/directUser";
 import { supabase } from "../../utils/supabaseClient";
 import { sanitizeAttribution, type Attribution } from "../../utils/attribution";
 
@@ -62,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser(token);
+  } = await getDirectUser(token);
   if (authError || !user?.id) {
     return res.status(401).json({ error: "Authentication required" });
   }

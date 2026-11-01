@@ -44,6 +44,7 @@ const ALLOWED_CONTEXT_KEYS = new Set([
   "tier",
   "packId",
   "operationId",
+  "generationAttemptId",
   "checkoutKind",
   "stage",
   "countryCode",

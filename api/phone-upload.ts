@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Busboy from "busboy";
 import Cors from "cors";
+import { getDirectUser } from "../utils/directUser";
 import { registerPhoneEvidenceOwner } from "../utils/incidents/phone";
 import { continueIncidentWork } from "../utils/incidents/service";
 import { supabase } from "../utils/supabaseClient";
@@ -387,7 +388,7 @@ async function authorizeV2Session(
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(authHeader.slice("Bearer ".length));
+    } = await getDirectUser(authHeader.slice("Bearer ".length));
     if (error || !user) {
       res.status(401).json({ error: "Invalid or expired token" });
       return false;
@@ -557,7 +558,7 @@ async function handleOpenV2(req: VercelRequest, res: VercelResponse) {
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser(authHeader.slice("Bearer ".length));
+  } = await getDirectUser(authHeader.slice("Bearer ".length));
   if (userError || !user) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }

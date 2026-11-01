@@ -72,11 +72,11 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 
   <div class="privacy-container">
     <h1>Privacy Policy</h1>
-    <p>Last updated: October 14, 2026</p>
+    <p>Last updated: October 31, 2026</p>
     <p>
       AutoLister AI ("we", "our", or "us") values your privacy. This Privacy
       Policy explains how we collect, use, disclose, and safeguard your
-      information when you use our Chrome extension or web app ("Product"). By using the
+      information when you use our Chrome extension, web app, or ChatGPT plugin ("Product"). By using the
       Product, you consent to the practices described in this policy. If you do
       not agree with any term, please do not use the Product.
     </p>
@@ -185,6 +185,36 @@ import SiteLayout from "../layouts/SiteLayout.astro";
         DOM temporarily.
       </li>
     </ul>
+
+    <section id="chatgpt-plugin">
+      <h3>Drafts from ChatGPT</h3>
+      <p>
+        When you prepare an item with our ChatGPT plugin, ChatGPT supplies the
+        draft title, description, and references to the photos you selected.
+        ChatGPT Sites authenticates the request and supplies a plugin-specific
+        identifier. We use a hash of that identifier to separate drafts and
+        enforce transfer limits. We do not receive your ChatGPT password.
+      </p>
+      <p>
+        Encrypted transfer records are stored in Supabase. Links expire after
+        15 minutes; scheduled cleanup runs every 15 minutes to delete expired
+        records, even if you do not return. Selected photos pass through the
+        transfer service when you open the draft. Imported photos and text are
+        then stored in your AutoLister browser workspace. Your enabled seller
+        note is applied there, without sending the saved note to ChatGPT.
+      </p>
+      <p>
+        Per-seller usage counters are kept for the current and previous UTC day;
+        shared monthly counters are kept for the current and previous month.
+        ChatGPT conversations, original attachments, and hosting logs follow
+        their providers' policies, not the transfer link's expiry. For removal
+        of AutoLister records, contact <a href="mailto:privacy@autolister.app"
+          >our privacy team</a
+        >. See <a href="https://openai.com/policies/privacy-policy/"
+          >OpenAI's Privacy Policy</a
+        > and <a href="https://supabase.com/privacy">Supabase's Privacy Policy</a>.
+      </p>
+    </section>
 
     <h2>3. How We Use Your Information</h2>
     <ul>

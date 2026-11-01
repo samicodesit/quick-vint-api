@@ -1,4 +1,5 @@
 import type { VercelRequest } from "@vercel/node";
+import { getDirectUser } from "./directUser";
 import { isAllowedMobileRedirectOrigin } from "./mobileWeb";
 import { supabase } from "./supabaseClient";
 
@@ -106,7 +107,7 @@ export async function resolveMobileBillingProfile(
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser(token);
+  } = await getDirectUser(token);
 
   if (userError || !user?.id) {
     throw new MobileBillingRequestError(

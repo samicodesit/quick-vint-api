@@ -5,6 +5,7 @@ import {
 } from "@supabase/supabase-js";
 import { getMobileWebBuildConfig, type MobileWebBuildEnv } from "./config";
 import type { MobileWebRuntimeConfig } from "./types";
+import { safeChatGPTReturn } from "./chatgptReturn";
 
 const MOBILE_MAGIC_LINK_ENDPOINT = "/api/auth/magic-link";
 const MOBILE_CALLBACK_PATH = "/app/auth/callback";
@@ -69,6 +70,19 @@ function getCallbackRedirectUrl(): string {
 }
 
 function cleanCallbackUrl() {
+  let destination: string | null = null;
+  try {
+    destination = safeChatGPTReturn(
+      sessionStorage.getItem("autolister:chatgpt:return"),
+    );
+    sessionStorage.removeItem("autolister:chatgpt:return");
+  } catch {
+    /* A blocked storage area must not break ordinary sign-in. */
+  }
+  if (destination) {
+    window.location.replace(destination);
+    return;
+  }
   window.history.replaceState({}, "", "/app");
 }
 

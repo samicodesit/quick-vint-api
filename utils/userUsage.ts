@@ -1,3 +1,4 @@
+import { getDirectUser } from "./directUser";
 import { isAccountPaused } from "../src/utils/accountPause";
 import { isGenerationSuspendedForPayment } from "../src/utils/subscriptionStatus";
 import {
@@ -291,7 +292,7 @@ export async function getUsageForBearer(token: string): Promise<UsageResponse> {
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser(token);
+  } = await getDirectUser(token);
 
   if (userError || !user?.id) {
     throw new UsageRequestError(

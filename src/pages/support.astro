@@ -22,6 +22,26 @@ import PhonePhotoTransfer from "../components/PhonePhotoTransfer.astro";
       <div class="grid grid-cols-1 gap-6 max-w-[900px] mx-auto mb-16">
         <PhoneWorkflow context="support_phone_web" />
         <PhonePhotoTransfer />
+        <section
+          id="chatgpt-plugin"
+          class="bg-white p-8 rounded-2xl border border-gray-200 text-left"
+        >
+          <h3 class="text-xl font-semibold text-gray-800 mb-3">
+            Open a ChatGPT draft in AutoLister
+          </h3>
+          <p class="text-gray-500 leading-relaxed">
+            With the AutoLister plugin in ChatGPT, select up to four photos of
+            one item and ask for a Vinted draft. Open the returned link, then
+            choose Open in AutoLister and sign in if needed. AutoLister applies
+            the enabled seller note saved for that account in this browser.
+            Review and edit the draft before publishing it yourself.
+          </p>
+          <p class="mt-4 text-gray-500 leading-relaxed">
+            Links expire after 15 minutes. If yours has expired, prepare the
+            item again in ChatGPT. If automatic photo transfer is unavailable,
+            select the same photos on the transfer page.
+          </p>
+        </section>
         <div
           class="bg-white p-8 rounded-2xl border border-gray-200 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-gray-300"
         >

@@ -1,0 +1,83 @@
+---
+import Layout from "../../layouts/ChatGPTConnection.astro";
+---
+<Layout title="Open draft">
+  <h1>Your ChatGPT draft</h1>
+  <div id="photos" aria-label="Item photos"></div>
+  <p id="status" role="status">Loading photos…</p>
+  <input id="picker" type="file" aria-label="Choose the same item photos" multiple accept="image/jpeg,image/png,image/webp" hidden />
+  <button id="open" hidden>Open in AutoLister</button>
+  <a id="signin" class="primary" href="/app" hidden>Sign in to AutoLister</a>
+</Layout>
+<script>
+import { getBrowserSession } from "../../app/mobile-web/auth";
+const id = new URL(location.href).searchParams.get("item");
+const status = document.querySelector<HTMLParagraphElement>("#status")!;
+const button = document.querySelector<HTMLButtonElement>("#open")!;
+const picker = document.querySelector<HTMLInputElement>("#picker")!;
+const signin = document.querySelector<HTMLAnchorElement>("#signin")!;
+let child: Window | null = null, nonce: string | null = null, timer: ReturnType<typeof setTimeout>;
+let item: {id:string; owner:string; title:string; description:string; photos:Blob[]} | null = null;
+try {
+  if (!id || !/^[a-f0-9-]{36}$/i.test(id)) throw Error("Open a draft from ChatGPT to continue.");
+  const session = await getBrowserSession();
+  if (!session) {
+    sessionStorage.setItem("autolister:chatgpt:return", location.pathname + location.search);
+    status.textContent = "Sign in to open your draft."; signin.hidden = false;
+  } else {
+    const owner = session.user.id;
+    async function read(index?: number) {
+      const current = await getBrowserSession();
+      if (!current || current.user.id !== owner) throw Error("Your account changed. Open the draft again.");
+      const response = await fetch("/api/chatgpt/handoff", {method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+current.access_token},body:JSON.stringify({id,index})});
+      if (!response.ok) {
+        const failure = await response.json().catch(() => null);
+        throw Object.assign(Error(failure?.error || "Could not open this draft."), {usePicker:failure?.usePicker===true});
+      }
+      return response;
+    }
+    const data = await (await read()).json();
+    if (data.id !== id) throw Error("Open the original draft link from ChatGPT.");
+    function ready(photos: Blob[]) {
+      item = {id:id!,owner,title:data.title,description:data.description,photos};
+      document.querySelector("h1")!.textContent = data.title;
+      const container = document.querySelector("#photos")!; container.replaceChildren();
+      for (const blob of photos) { const image = new Image(); image.src = URL.createObjectURL(blob); image.alt = "Item photo"; container.append(image); }
+      status.textContent = ""; button.hidden = false;
+    }
+    function choose(message = "Select the same item photos to finish opening your draft.") {
+      picker.hidden = false; status.textContent = message;
+      picker.onchange = () => {
+        const photos = Array.from(picker.files || []);
+        if (photos.length !== data.count || photos.some(p => p.size > 8*1024*1024 || !["image/jpeg","image/png","image/webp"].includes(p.type))) { status.textContent = "Choose the original photos, up to 8 MB each."; return; }
+        ready(photos); picker.hidden = true;
+      };
+    }
+    if (data.reselect) choose();
+    else {
+      try { const photos:Blob[] = []; for(let index=0;index<data.count;index++) photos.push(await (await read(index)).blob()); ready(photos); }
+      catch(e) { if (!(e && typeof e === "object" && "usePicker" in e && e.usePicker)) throw e; choose(); }
+    }
+  }
+} catch(e) { status.textContent = e instanceof Error ? e.message : "Could not open this draft."; }
+window.addEventListener("message", async e => {
+  if (!child || e.source !== child || e.origin !== location.origin || !item) return;
+  const session = await getBrowserSession();
+  if (session?.user.id !== item.owner) { status.textContent = "Your account changed. Open the draft again."; return; }
+  if(e.data?.type === "autolister.ready" && typeof e.data.nonce === "string") {
+    nonce = e.data.nonce; child.postMessage({type:"autolister.item",nonce,item},location.origin);
+  }
+  if(!nonce || e.data?.nonce !== nonce) return;
+  if(["autolister.opened","autolister.import-error"].includes(e.data.type)) {
+    clearTimeout(timer); button.disabled = false;
+    status.textContent = e.data.type === "autolister.opened" ? "Draft opened in AutoLister." : "Could not open this draft. Try again.";
+  }
+});
+button.onclick = () => {
+  clearTimeout(timer); nonce = null;
+  child = window.open("/app/#import-chatgpt-item", "_blank");
+  if (!child) { status.textContent = "Allow a new tab to open your draft."; return; }
+  button.disabled = true; status.textContent = "Opening your draft…";
+  timer = setTimeout(() => { button.disabled = false; status.textContent = "If you just signed in, tap Open in AutoLister again."; },45000);
+};
+</script>

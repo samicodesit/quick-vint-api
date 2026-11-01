@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
+import { getDirectUser } from "../../utils/directUser";
 import {
   continueIncidentWork,
   captureAcceptedException,
@@ -332,7 +333,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = authHeader.slice("Bearer ".length);
     const {
       data: { user },
-    } = await supabase.auth.getUser(token);
+    } = await getDirectUser(token);
     authenticatedUserId = user?.id;
     userId = authenticatedUserId;
     userEmail = user?.email;

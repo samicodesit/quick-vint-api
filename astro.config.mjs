@@ -16,6 +16,8 @@ export default defineConfig({
           "/admin",
           "/app",
           "/app/auth/callback",
+          "/app/chatgpt",
+          "/oauth/consent",
           "/auth/callback",
           "/cancel",
           "/customer-usage",
@@ -38,6 +40,7 @@ export default defineConfig({
   ],
 
   vite: {
+    cacheDir: ".astro/vite",
     plugins: [tailwindcss()],
   },
 });

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
-import { supabase } from "../../../utils/supabaseClient";
+import { getDirectUser } from "../../../utils/directUser";
 import { claimGenerationOffer } from "../../../utils/generationOffers";
 import { reportCriticalEndpointFailure } from "../../../utils/criticalEndpointAlert";
 
@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser(token);
+  } = await getDirectUser(token);
 
   if (userError || !user) {
     return res.status(401).json({ error: "Invalid or expired token" });

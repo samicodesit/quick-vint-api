@@ -1,6 +1,6 @@
 # Listing model photos: 1.4.30 release candidate
 
-Status: local candidate prepared. Nothing pushed, deployed or submitted to the store. Model-photo flags remain off in production. The owner's Vinted approval decision is settled.
+Status: feature branch backed up and deployed staging checks passed. Production rollout and the refreshed extension package are pending. Model-photo flags remain off in production. The owner's Vinted approval decision is settled.
 
 ## What changed during release preparation
 
@@ -12,6 +12,12 @@ Status: local candidate prepared. Nothing pushed, deployed or submitted to the s
 - The real existing-listing test now exercises the exact minified release package without adding hooks to product files.
 
 ## Verification
+
+Latest staging acceptance: both migrations were exercised against the production schema definitions in an isolated Supabase branch, without copying customer data. Fixed a real admission/claim failure caused by comparing the text `daily_stats.date` column to a date; both regression fixtures now use the production text type. The database regression suite passes all nine cases. Existing idempotency unique indexes were also copied into the staging baseline after their absence blocked the legacy text check; production already has those indexes.
+
+The deployed API and private storage passed authenticated reads, cross-account denial, immutable saved models, cached reuse, signed URL expiry, a real generated pair, failed-view-only retry, retry limits, attachment receipts without provider calls, actual children-item classification, expired sources, interrupted-call fencing and deletion tombstones. Both-flags-off and saved-model-only deployments generated text successfully without image calls. Cleanup removed front and rear assets after test-account deletion while both flags were off. The disposable branch and its 15 preview-only environment overrides were removed after verification.
+
+Tracking is implemented before go-live. Seven representative model/tutorial events passed authenticated deployed ingestion, account attribution, delivery deduplication and payload redaction. Local browser checks verified one summary per photo import, including partial failure, with three concurrent workers unchanged. See [tracking coverage and interpretation](model-feature-tracking.md). Parent workspace evidence: reports/model-rollout-20261101.
 
 - API production gate: lint, type checking, build, formatting and 1,351 tests passed; 14 opt-in skips.
 - Extension: 168 unit tests passed. The fresh complete browser run passed 380 tests with 13 opt-in skips, including the corrected associated-field language assertions.
@@ -32,7 +38,9 @@ Expected API cost is approximately $0.09 to $0.11 per eligible pair plus text, d
 
 The fresh held-out mixed-panel jacket took 18.86 seconds for classification, concurrent generation and checks, before upload. It cost $0.09746075. Both automated checks accepted it. Human review found plausible phone and arm poses and preserved major material panels, but an apparent extra small lapel snap on the front. The checker did not flag that detail. This remains a garment-fidelity limitation, not evidence of exact reproduction.
 
-New authorized $3 testing cap: $0.72250765 used; $2.27749235 remains. The earlier separate budget is excluded. No additional paid tests are needed for this candidate.
+New authorized $3 testing cap: $0.86489165 provider spend after staging checks. Disposable database compute is estimated at $0.01344; retain a $0.10 infrastructure allowance until billed. More than $2 remains under that conservative allowance. The earlier separate budget is excluded. No additional paid tests are planned.
+
+The deployed pair cost $0.08976775. Image generation took 11.4 and 12.0 seconds concurrently; the checks took 3.5 and 4.2 seconds. The external polling harness observed readiness after 23.3 seconds, including CLI and polling overhead. Text-only compatibility requests took 3.45 and 3.55 seconds on the server. A failed rear-view retry cost $0.043469 and did not repeat the front. The real children-item exclusion cost $0.00122925 with no image calls. Visual inspection found plausible hands/phone and a plain inferred back; the rear crop was wider than the requested top crop. Framing is best effort, not a guaranteed matched zoom.
 
 ## Fresh UI and UX pass
 
@@ -44,7 +52,7 @@ Fresh evidence: parent workspace reports/release-fresh-pass-20261101. These are 
 
 ## Rollout, after explicit approval
 
-The AI-output legal copy update is documented in [AI outputs, complaints and refund wording](ai-output-terms-20261101.md). Before applying material terms amendments to existing customers, deliver the required notice and preserve the applicable historical terms. A deployment does not itself establish acceptance or remove existing refund rights. No customer notice has been sent.
+The AI-output legal copy update is documented in [AI outputs, complaints and refund wording](ai-output-terms-20261101.md). This release applies the revision prospectively to new agreements. Existing agreements retain their applicable agreed terms. No blanket amendment email is planned, sent or scheduled. The prepared notice is an inactive draft only. If existing agreements are amended in a later release, separately review the required disclosure, notice and consent. A deployment does not itself establish acceptance or remove existing refund rights.
 
 1. Confirm the exact target Supabase/Vercel project and deployment commit, take the normal database backup, and export the current definition of reserve_generation_request_for_current_status. Verify deployed paid-access expiry protection before replacing that function.
 2. With USER_MODELS_ENABLED and LISTING_MODEL_PHOTOS_ENABLED off, apply migrations/2026-11-01_user_models.sql, then migrations/2026-11-01_listing_model_photos.sql to staging first. If the saved-model migration is already recorded, do not run its CREATE TABLE statements again.

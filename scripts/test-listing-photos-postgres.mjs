@@ -19,7 +19,7 @@ try {
   console.log("PostgreSQL " + query("show server_version").trim());
   // Supabase-owned roles and storage metadata are represented locally.
   query("DO $$ BEGIN CREATE ROLE service_role; EXCEPTION WHEN duplicate_object THEN NULL; END $$; DO $$ BEGIN CREATE ROLE anon; EXCEPTION WHEN duplicate_object THEN NULL; END $$; DO $$ BEGIN CREATE ROLE authenticated; EXCEPTION WHEN duplicate_object THEN NULL; END $$;");
-  query("CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); CREATE TABLE daily_stats(date date primary key,estimated_cost numeric); CREATE TABLE profiles(id uuid primary key,subscription_status text,subscription_tier text,paid_access_expires_at timestamptz);");
+  query("CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); CREATE TABLE daily_stats(date text primary key,estimated_cost numeric); CREATE TABLE profiles(id uuid primary key,subscription_status text,subscription_tier text,paid_access_expires_at timestamptz);");
   // PostgreSQL 12 lacks the core UUID helper. This local-only fixture is not deployed.
   if (query("select to_regprocedure('gen_random_uuid()')").trim() === "") {
     query("CREATE FUNCTION public.gen_random_uuid() RETURNS uuid LANGUAGE sql VOLATILE AS $$ SELECT md5(random()::text || clock_timestamp()::text)::uuid $$");

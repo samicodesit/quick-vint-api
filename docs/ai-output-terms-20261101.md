@@ -16,6 +16,8 @@ The privacy policy no longer promises automatic forfeiture of all unused payment
 
 ## Consistency and acceptance boundaries
 
+- Release decision, November 1: this revision is prospective. Existing agreements retain their applicable agreed terms; publishing the page or renewing automatically does not establish acceptance of this revision. No blanket terms-amendment email is part of this release. The optional notice is an unsent draft only, not an active send plan. If existing agreements are amended later, separately review disclosure, notice and any required consent before applying the amendment.
+
 - Public terms, support and privacy pages were updated together. Existing pricing, checkout disclosure and subscription-confirmation wording were searched for conflicting refund promises.
 - The released subscription policy, PDF attachment, checkout wording and automatic email renderer were not rewritten. Their October 28 version and hashes remain unchanged. Existing cancellation and withdrawal processing remain unchanged.
 - The current checkout already links to the public Terms and records affirmative recurring acceptance. This update does not create new historical proof of acceptance of the AI clauses. Existing records must not be backfilled or presented as assent to terms that did not exist at purchase.

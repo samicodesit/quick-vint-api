@@ -10,30 +10,32 @@ const termsPricing = getPricingTermsCopy(
 
 <SiteLayout
   title="Terms of Service - AutoLister AI"
-  description="Read the Terms of Service for AutoLister AI, the Chrome extension that helps you create Vinted listings with AI-generated titles and descriptions."
+  description="AutoLister AI terms covering listing drafts, generated model photos, review responsibilities, subscriptions and consumer rights."
 >
   <style>
     body {
       font-family: var(--autolister-font-ui, system-ui, sans-serif);
       margin: 0;
-      padding: 20px;
+      padding: 0;
       color: #333;
       background-color: #f9fafb;
       line-height: 1.6;
     }
 
-    .container {
+    .terms-container {
       max-width: 800px;
       margin: 0 auto;
       margin-top: 120px;
       margin-bottom: 60px;
       background: white;
-      padding: 40px;
+      padding: 32px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     h1 {
+      font-size: 2rem;
+      font-weight: 650;
       color: #4f46e5;
       text-align: center;
       margin-bottom: 10px;
@@ -46,9 +48,20 @@ const termsPricing = getPricingTermsCopy(
     }
 
     h2 {
+      font-size: 1.375rem;
+      font-weight: 600;
+      margin-top: 28px;
       color: #374151;
       border-bottom: 2px solid #e5e7eb;
       padding-bottom: 5px;
+    }
+
+    h3 { font-size: 1.125rem; font-weight: 600; margin: 20px 0 10px; }
+    p { margin: 12px 0; }
+    a { color: #4338ca; text-decoration: underline; text-underline-offset: 3px; }
+    section, h2 { scroll-margin-top: 100px; }
+    @media (max-width: 600px) {
+      .terms-container { margin: 100px 16px 40px; padding: 24px 20px; }
     }
 
     ul {
@@ -85,15 +98,12 @@ const termsPricing = getPricingTermsCopy(
     }
   </style>
 
-  <div class="container">
+  <main class="terms-container">
     <h1>Terms of Service</h1>
-    <p class="last-updated">Last updated: October 31, 2026</p>
+    <p class="last-updated">Last updated: November 1, 2026</p>
     <p>{subscriptionPolicy.seller}. {subscriptionPolicy.address}. <a href="mailto:support@autolister.app">Email support</a>.</p>
 
-    <div class="warning">
-      By using AutoLister AI, you agree to these terms. If you don't agree,
-      don't use our service.
-    </div>
+    <p><a href="#ai-output">AI text and photos</a> · <a href="#refunds">Cancellation and refunds</a> · <a href="#liability">Responsibility</a></p>
 
     <h2>1. Acceptance of Terms</h2>
     <p>
@@ -101,14 +111,57 @@ const termsPricing = getPricingTermsCopy(
       ("Service"), you agree to be bound by these Terms of Service ("Terms").
       These Terms apply to all users of the Service.
     </p>
+    <p>
+      The subscription terms shown when you purchased also apply and take
+      priority for subscription billing and withdrawal rights. Changes to
+      these Terms apply as described in section 10, not retrospectively.
+    </p>
 
     <h2>2. Service Description</h2>
     <p>
       AutoLister AI provides AI-generated titles and descriptions for Vinted
-      listings through a browser extension and web app. The ChatGPT plugin
+      listings through a browser extension and web app. Where available,
+      optional model features create a saved AI model and generated photos
+      showing that model wearing or carrying an eligible item. The ChatGPT plugin
       transfers a draft prepared in ChatGPT into the web app. Subscription
       features have usage limits based on your plan tier.
     </p>
+
+    <section id="ai-output" aria-labelledby="ai-output-heading">
+      <h3 id="ai-output-heading">AI-generated text and photos</h3>
+      <p>
+        Outputs are drafts for your review, not verified statements or real
+        photographs of someone wearing your item. AI can make mistakes even
+        when an output looks convincing or passes an automated check.
+      </p>
+      <ul>
+        <li><strong>Text:</strong> Titles, descriptions, categories and suggestions
+          may misidentify the brand, materials, size, condition, authenticity
+          or other details. Check them against the actual item and its labels.</li>
+        <li><strong>Photos:</strong> Generated images may change colour, texture,
+          proportions, patterns, logos, fastenings, wear or other details.
+          They may contain unnatural anatomy. A view missing from your source
+          photos, including the back, may be inferred and may be wrong.</li>
+        <li><strong>Fit and appearance:</strong> Model images are illustrations,
+          not measurements, fitting advice or proof of how an item will look
+          on you or a buyer. We do not promise a particular appearance,
+          unique output, sale, selling price or sales improvement.</li>
+        <li><strong>Review before publishing:</strong> You decide which text and
+          photos to use. Correct inaccurate text, remove misleading images,
+          keep original product photos available and accurately disclose the
+          item's condition. Do not present generated images as real fitting
+          photos or use them to hide flaws. Clearly identify synthetic images
+          where required by applicable law.</li>
+      </ul>
+      <p>
+        A saved model cannot currently be changed after creation. You can
+        disable its use and remove generated listing photos. Availability,
+        suitability checks and processing times vary; displayed time estimates
+        are not guaranteed deadlines unless expressly agreed. These limitations
+        do not excuse us from supplying the service as agreed or with the care
+        required by law, and do not remove the remedies in section 5.
+      </p>
+    </section>
 
     <section id="chatgpt-plugin">
       <h3>ChatGPT drafts</h3>
@@ -186,17 +239,17 @@ const termsPricing = getPricingTermsCopy(
         listing creation, not spam or abuse.
       </li>
       <li>
-        <strong>Prohibited Email Providers:</strong> Disposable email addresses are
-        not allowed. If you have previously used or attempt to use one, you risk legal
-        action. Contact us for appeal, or if you believe this is a mistake.
+        <strong>Account Security:</strong> Disposable email addresses are not
+        allowed. Contact support if you believe an account restriction is a mistake.
       </li>
       <li>
-        <strong>No Resale:</strong> You may not resell, redistribute, or commercialize
-        our AI-generated content without permission.
+        <strong>No Resale of the Service:</strong> You may not resell access to
+        our software or accounts without permission. This does not prevent
+        you from using generated content in your own commercial listings.
       </li>
     </ul>
 
-    <h2>5. Account Termination and Refunds</h2>
+    <h2 id="refunds">5. Cancellation, complaints and refunds</h2>
     <ul>
       <li>
         <strong>Termination for Cause:</strong> We may terminate accounts immediately
@@ -206,10 +259,40 @@ const termsPricing = getPricingTermsCopy(
         <strong>Regular Cancellation:</strong> Cancel before your next renewal to stop future charges. Access continues until the paid period ends. Unused time and partial months are not refunded except where statutory rights apply. See the <a href="/billing-terms/2026-10-28">subscription terms and consumer withdrawal information</a>.
       </li>
       <li>
+        <strong>AI quality complaints:</strong> If text or photos are inaccurate,
+        remove or correct them before publishing and <a href="mailto:support@autolister.app">contact support</a>.
+        Tell us what went wrong and, where available, include the draft or
+        generation reference. We assess the service against what was promised
+        and what you are legally entitled to expect. An output you dislike
+        does not by itself establish entitlement to a full subscription refund;
+        equally, describing a fault as an AI error does not remove your rights.
+      </li>
+      <li>
+        <strong>Service faults:</strong> Where the service does not conform to
+        the agreement, consumers are entitled to the remedies required by law.
+        These may include correction or repeat performance without charge and
+        within a reasonable time, an appropriate price reduction, or termination
+        and a refund where the legal conditions are met. Serious faults or
+        other legal grounds may entitle you to an immediate remedy. A credit
+        or retry does not replace a refund you are legally entitled to unless
+        you freely agree where the law permits.
+      </li>
+      <li>
+        <strong>Withdrawal:</strong> Eligible consumers retain their statutory
+        cooling-off rights. Creating a model, generating content or using
+        credits does not by itself waive them. Use the <a href="/withdraw">withdrawal form</a>
+        or send a clear statement to support. No complaint investigation is
+        required before exercising that right.
+      </li>
+      <li>
         <strong>Data Deletion:</strong> Account deletion is handled under our <a href="/privacy">privacy policy</a>. Limited billing, consent and support records may be retained where needed for legal obligations or claims.
       </li>
       <li>
-        <strong>Payment Disputes:</strong> We respond with relevant transaction and service records. Nothing in these terms prevents you from using your lawful complaint or payment-dispute rights.
+        <strong>Payment Disputes:</strong> We respond with relevant, accurate
+        transaction and service records. You do not have to contact us first
+        to exercise a lawful complaint, payment-dispute or court remedy.
+        Exercising those rights in good faith is not abuse and does not incur
+        a penalty under these Terms.
       </li>
     </ul>
 
@@ -220,41 +303,49 @@ const termsPricing = getPricingTermsCopy(
         technology.
       </li>
       <li>
-        AI-generated content becomes your property upon generation, subject to
-        fair use compliance.
+        You retain your rights in the content you upload and must have the
+        rights or permissions needed to use it. As between you and AutoLister,
+        you may use and edit generated outputs for your listings. We do not
+        promise that AI outputs are unique or eligible for copyright protection;
+        third-party rights still apply.
       </li>
       <li>
-        You grant us the right to use anonymized usage data for service
-        improvement.
+        Our processing of uploaded images, generated content and usage data
+        is described in the <a href="/privacy">privacy policy</a>.
       </li>
     </ul>
 
-    <h2>7. Limitation of Liability</h2>
-    <p>Nothing in these terms excludes or restricts mandatory consumer rights or liability that cannot lawfully be excluded. The limitations below apply only to the extent permitted by law.</p>
-    <div class="highlight">
-      <strong>IMPORTANT LEGAL NOTICE:</strong>
-    </div>
+    <h2 id="liability">7. Responsibility and liability</h2>
+    <p>We are responsible for supplying the service as agreed and for the
+      duties imposed on us by applicable law. The AI limitations in section 2
+      explain how the service works; they are not a blanket exclusion of our
+      responsibility for defects.</p>
     <ul>
-      <li>Service is provided "AS IS" without warranties of any kind.</li>
-      <li>
-        We are not liable for any damages arising from use of the service,
-        including lost profits or business interruption.
-      </li>
-      <li>
-        Our total liability is limited to the amount you paid in the last 12
-        months.
-      </li>
-      <li>
-        We are not responsible for AI-generated content quality or Vinted
-        account consequences.
-      </li>
+      <li><strong>All users:</strong> Nothing excludes or restricts mandatory
+        consumer rights, fraud, intentional misconduct, gross negligence,
+        death or personal injury caused by negligence, or any liability that
+        cannot lawfully be excluded or limited.</li>
+      <li><strong>Consumers:</strong> Your statutory rights and remedies remain
+        intact. The business-only limits below do not apply to you. A plan
+        named Business does not by itself make you a business customer.</li>
+      <li><strong>Business customers only:</strong> If you use the service in
+        the course of your trade, business or profession, and to the extent
+        permitted by law, we exclude liability for indirect or consequential
+        loss, lost profits, lost revenue and business interruption. Our total
+        liability arising from the service is limited to the fees you paid
+        us for it during the 12 months before the event giving rise to the
+        claim. The exceptions above still apply.</li>
     </ul>
 
-    <h2>8. Indemnification</h2>
+    <h2>8. Your listings and misuse</h2>
     <p>
-      You agree to indemnify and hold AutoLister AI harmless from any claims,
-      damages, or expenses arising from your use of the Service or violation of
-      these Terms.
+      You are responsible for your decision to publish a listing and for
+      fulfilling your obligations to buyers. AutoLister is not a party to
+      your sale. This does not transfer our own legal responsibilities to you.
+      You may be responsible under applicable law for loss caused by your
+      fraud, unlawful uploads or deliberate misuse. These Terms do not impose
+      a blanket obligation on consumers to reimburse all claims or expenses
+      arising from use of the service.
     </p>
 
     <h2>9. Dispute Resolution</h2>
@@ -273,15 +364,20 @@ const termsPricing = getPricingTermsCopy(
 
     <h2>10. Changes to Terms</h2>
     <p>
-      We may update these Terms with 30 days notice. Continued use constitutes
-      acceptance of new terms. Material changes affecting pricing or usage
-      rights will be communicated via email.
+      We may propose updates for changes in the law, security or service
+      features. For existing customers, material changes will be communicated
+      on a durable medium, such as email, at least 30 days before they are
+      intended to take effect. We will explain the change, its effective date
+      and any right to reject it or end the agreement without an additional
+      charge. Where the law requires consent, we will obtain it. A change
+      cannot remove accrued rights or apply retrospectively to a purchase or
+      dispute. Mandatory legal changes apply as required by law.
     </p>
 
     <h2>11. Contact Information</h2>
-    <p>For legal matters, contact: <strong>legal@autolister.app</strong></p>
-    <p>For support matters, contact: <strong>support@autolister.app</strong></p>
+    <p>For legal matters: <a href="mailto:legal@autolister.app">Email legal enquiries</a>.</p>
+    <p>For support matters: <a href="mailto:support@autolister.app">Contact support</a>.</p>
 
     <footer>&copy; 2026 AutoLister AI · All rights reserved</footer>
-  </div>
+  </main>
 </SiteLayout>

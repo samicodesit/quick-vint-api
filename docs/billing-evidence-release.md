@@ -44,6 +44,8 @@ Status: deployed to production on 28 October 2026 with explicit owner approval. 
 
 ## Operator handling
 
+- For inaccurate AI text or model-photo complaints, also follow [AI-output complaint handling](ai-output-terms-20261101.md). Keep ordinary non-use cancellation separate from withdrawal and service-defect remedies. Do not deny a valid claim merely because the result was AI-generated or passed an automated check.
+
 - Review new withdrawal statements promptly. Their receipt time is preserved even if email fails. Check the customer and contract before altering an account; an unverified submission must not let someone cancel another person's subscription. Preserve the legal effect of a timely statement while doing proportionate identity checks.
 - Stop future charges when appropriate, decide statutory eligibility from the actual contract and notice record, and issue any due refund within the applicable deadline. Record decision, evidence, Stripe IDs and date in `billing_withdrawals.resolution`, then mark resolved with `resolved_at`. Do not ask the consumer to submit the statement again.
 - A staff email and a one-day unresolved-request alert prevent requests from disappearing. Monitor critical endpoint alerts and the notice cron. Acknowledgment alone is not closure.

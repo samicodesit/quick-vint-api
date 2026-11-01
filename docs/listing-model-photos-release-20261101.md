@@ -44,6 +44,8 @@ Fresh evidence: parent workspace reports/release-fresh-pass-20261101. These are 
 
 ## Rollout, after explicit approval
 
+The AI-output legal copy update is documented in [AI outputs, complaints and refund wording](ai-output-terms-20261101.md). Before applying material terms amendments to existing customers, deliver the required notice and preserve the applicable historical terms. A deployment does not itself establish acceptance or remove existing refund rights. No customer notice has been sent.
+
 1. Confirm the exact target Supabase/Vercel project and deployment commit, take the normal database backup, and export the current definition of reserve_generation_request_for_current_status. Verify deployed paid-access expiry protection before replacing that function.
 2. With USER_MODELS_ENABLED and LISTING_MODEL_PHOTOS_ENABLED off, apply migrations/2026-11-01_user_models.sql, then migrations/2026-11-01_listing_model_photos.sql to staging first. If the saved-model migration is already recorded, do not run its CREATE TABLE statements again.
 3. Deploy the reviewed backend, privacy copy and web assets with flags off. Verify the private user-models and listing-model-photos buckets, service-role-only access, signed URL expiry, CRON_SECRET authorization and minute recovery schedule.

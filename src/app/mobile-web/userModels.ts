@@ -38,7 +38,7 @@ export function mountUserModels(
         if (button.hasAttribute("data-model-compact")) {
           const ui = window.AutoListerModelUI!;
           button.innerHTML =
-            ui.mirrorIcon +
+            '<img class="um-toolbar-photo" src="/images/user-model-female.webp" width="28" height="36" alt="" decoding="async">' +
             "<span>" +
             ui.t("Your model") +
             "</span>" +

@@ -11,7 +11,9 @@ const id = '11111111-2222-4333-8444-555555555555';
 let state = 'preparing', retryCalls = 0, downloads = 0, generationInputs = [];
 const primary = await readFile(process.env.MODEL_PHOTO_PRIMARY || new URL('../docs/qa/browser-drafts/sample-front.png',import.meta.url));
 const secondary = await readFile(process.env.MODEL_PHOTO_SECONDARY || new URL('../docs/qa/browser-drafts/sample-detail.png',import.meta.url));
-await context.route(`${base}/api/user/model`, route => route.fulfill({json:{enabled:true,listingPhotosAvailable:true,invitationState:'dismissed',model:{state:'ready',imageUrl:'/images/user-model-female.webp'}}}));
+const modelUrl = process.env.MODEL_REFERENCE ? 'https://drafts-test.supabase.co/models/saved.jpg' : '/images/user-model-female.webp';
+if(process.env.MODEL_REFERENCE) await context.route(modelUrl,async route=>route.fulfill({contentType:'image/jpeg',body:await readFile(process.env.MODEL_REFERENCE)}));
+await context.route(`${base}/api/user/model`, route => route.fulfill({json:{enabled:true,listingPhotosAvailable:true,invitationState:'dismissed',model:{state:'ready',imageUrl:modelUrl}}}));
 await context.route(`${base}/api/generate`,route=>{
  generationInputs.push(route.request().postDataJSON());
  return route.fulfill({json:{title:'Textured cropped jacket',description:'Textured jacket with a zip fastening. See original photos for condition.',modelPhotos:{jobId:id,status:'queued'}}});
@@ -35,7 +37,8 @@ try{
  await click('new');
  if(process.env.MODEL_PHOTO_ORIGINAL){
   const original=await readFile(process.env.MODEL_PHOTO_ORIGINAL);
-  await page.locator('[data-draft-input="item"]').first().setInputFiles([{name:'jacket-front.jpg',mimeType:'image/jpeg',buffer:original},{name:'jacket-detail.jpg',mimeType:'image/jpeg',buffer:original}]);
+  const detail=process.env.MODEL_PHOTO_DETAIL ? await readFile(process.env.MODEL_PHOTO_DETAIL) : original;
+  await page.locator('[data-draft-input="item"]').first().setInputFiles([{name:'jacket-front.jpg',mimeType:'image/jpeg',buffer:original},{name:'jacket-detail.jpg',mimeType:'image/jpeg',buffer:detail}]);
   await page.waitForFunction(()=>!document.querySelector('.draft-upload')&&!document.querySelector('[data-draft-action="generate"]').disabled);
  }else await upload(2);
  await screens('before');
@@ -59,6 +62,16 @@ try{
  await page.reload();await page.waitForFunction(()=>document.querySelectorAll('[data-draft-item-photos] .draft-photo').length===4);
  assert.equal(downloads,2,'reload uses local blobs');
  await page.locator('[data-model-compact]').click();await page.getByRole('dialog',{name:'Your model',exact:true}).waitFor();await screens('model-settings');
+ const closeButton=page.getByRole('button',{name:'Close',exact:true});
+ assert.equal(await closeButton.count(),1);
+ await closeButton.click();
+ assert.equal(await page.locator('dialog.um-modal[open]').count(),0);
+ assert.equal(await page.locator('[data-model-compact]').evaluate(e=>e===document.activeElement),true,'closing returns focus to model entry');
+ assert.equal(await page.locator('.um-toolbar-photo').evaluate(e=>e.complete&&e.naturalWidth>0),true,'model entry image loads');
+ await page.locator('[data-model-compact]').press('Enter');
+ await page.getByRole('dialog',{name:'Your model',exact:true}).waitFor();
+ await page.keyboard.press('Escape');
+ assert.equal(await page.locator('dialog.um-modal[open]').count(),0);
  assert.equal(h.stats().errors.length,0,h.stats().errors.join('\n'));
  await writeFile(`${output}/result.json`,JSON.stringify({local:true,checks:['text copy available during photos','localized preparation/generation/upload/failure','single explicit retry','two outputs ahead of originals','local blob reload','reduced motion','desktop/mobile layout'],downloads,retryCalls,generatedId},null,2));
  console.log('Model-photo browser journey passed. Screens: '+output);

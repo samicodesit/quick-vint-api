@@ -551,6 +551,45 @@ button.um-model-entry:hover {
   height: 20px;
   flex: none;
 }
+.mobile-workspace-header .um-toolbar-entry {
+  padding: 4px 10px 4px 4px;
+}
+.um-toolbar-photo {
+  width: 28px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex: none;
+}
+/* A standalone dialog closes; the nested settings view keeps its back control. */
+.um-modal .um-header .um-back {
+  order: 1;
+  margin-left: auto;
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 0;
+}
+.um-modal .um-header .um-back::before,
+.um-modal .um-header .um-back::after {
+  content: "";
+  position: absolute;
+  top: 21px;
+  left: 13px;
+  width: 18px;
+  height: 1.5px;
+  margin: 0;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+.um-modal .um-header .um-back::after {
+  transform: rotate(-45deg);
+}
+.um-modal .um-header .um-back:hover {
+  background: var(--um-soft);
+}
 #quickvint-model-btn {
   min-height: 34px;
   padding: 6px 9px;
@@ -594,6 +633,7 @@ button.um-model-entry:hover {
   .mobile-workspace-header .um-toolbar-entry {
     position: relative;
     gap: 4px;
+    padding: 4px 8px;
   }
   .mobile-workspace-header .um-toolbar-entry .um-entry-new {
     position: absolute;

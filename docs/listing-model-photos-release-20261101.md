@@ -14,7 +14,7 @@ Status: local candidate prepared. Nothing pushed, deployed or submitted to the s
 ## Verification
 
 - API production gate: lint, type checking, build, formatting and 1,351 tests passed; 14 opt-in skips.
-- Extension: 168 unit tests passed. Full browser run: 379 passed, 13 skipped and one obsolete placement assertion failed. The assertion expected a button inside a host label, while the selected layout correctly places it beside that label. Updated associated-field assertions and all three focused language checks passed. The existing desktop/mobile geometry test also passed.
+- Extension: 168 unit tests passed. The fresh complete browser run passed 380 tests with 13 opt-in skips, including the corrected associated-field language assertions.
 - Exact ZIP: 60 files, 646,530 bytes. Eight focused tests passed against its minified content, including native ordering, partial upload, unsupported ordering, separate language controls and the model switch.
 - Optional saved-model web journey: 10 passed. Photo web journey passed text-before-photos, recovery, insertion, local-blob reload, reduced motion and desktop/mobile layout checks.
 - Real Vinted existing listing: exact candidate attached the two cached model photos first in 4,290 ms. Three originals, title and description were preserved. A host rerender retained order; reload discarded changes and proved the published listing unchanged. Zero provider calls and zero save/publish clicks.
@@ -30,7 +30,17 @@ Final replay checker median: 3.15 seconds per view; both views run concurrently.
 
 Expected API cost is approximately $0.09 to $0.11 per eligible pair plus text, depending on image tokens, caching and output reasoning. The fresh bag generation/check test cost $0.094378 including one rear-pose recheck, without classification. Unknown outcomes retain conservative reservations; explicit retries can add cost. The original $0.08 to $0.09 estimate used the smaller checker.
 
-New authorized $3 testing cap: $0.62504690 used; $2.37495310 remains. The earlier separate budget is excluded. No additional paid tests are needed for this candidate.
+The fresh held-out mixed-panel jacket took 18.86 seconds for classification, concurrent generation and checks, before upload. It cost $0.09746075. Both automated checks accepted it. Human review found plausible phone and arm poses and preserved major material panels, but an apparent extra small lapel snap on the front. The checker did not flag that detail. This remains a garment-fidelity limitation, not evidence of exact reproduction.
+
+New authorized $3 testing cap: $0.72250765 used; $2.27749235 remains. The earlier separate budget is excluded. No additional paid tests are needed for this candidate.
+
+## Fresh UI and UX pass
+
+The selected layout was reviewed in rendered screens, including real Vinted at 1440, 1280, 1024 and 375 pixels wide. Laptop captures use 768-pixel height. Generate remains the primary action, language controls stay beside their fields, the model uses a real thumbnail and its own switch, and style/help/tour panels fit the shorter viewport. No listing was published or saved.
+
+Web review covered onboarding, invitations, nested settings, preparation, generation, upload, recovery and completion on desktop/mobile. Two web-only details were corrected: the header model entry now uses the existing compressed photo instead of the old small icon; the standalone model dialog now has a close control at the upper right while nested settings retain their back control. Keyboard opening, Escape, focus restoration, image loading and reduced motion passed in the browser journey. These edits do not change the extension ZIP.
+
+Fresh evidence: parent workspace reports/release-fresh-pass-20261101. These are local web renders and the local packaged extension on real Vinted, not deployed web UI. Actual screen-reader behavior and Orion/Safari were not exercised; responsive Chromium checks do not establish browser-engine coverage.
 
 ## Rollout, after explicit approval
 

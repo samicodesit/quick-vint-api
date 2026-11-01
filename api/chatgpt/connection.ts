@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDirectUser } from "../../utils/directUser";
+import { supabase } from "../../utils/supabaseClient";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "private, no-store");
   if (req.method !== "POST" || req.headers.origin !== "https://autolister.app")
@@ -14,5 +15,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .map((x) => x.trim());
   if (error || !data.user || !users.includes(data.user.id))
     return res.status(403).end();
-  return res.json({ clientId: process.env.CHATGPT_OAUTH_CLIENT_ID || "" });
+  const clientId = process.env.CHATGPT_OAUTH_CLIENT_ID || "";
+  if (!clientId) return res.status(503).end();
+  try {
+    const client = await supabase.auth.admin.oauth.getClient(clientId);
+    if (client.error || !client.data) return res.status(503).end();
+    return res.json({ clientId, redirectUris: client.data.redirect_uris });
+  } catch {
+    return res.status(503).end();
+  }
 }

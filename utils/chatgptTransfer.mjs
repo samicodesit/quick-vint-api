@@ -148,8 +148,11 @@ function check(args) {
         !u.username &&
         !u.password &&
         /^oaisdmntpr[a-z0-9]+\.blob\.core\.windows\.net$/.test(u.hostname)
-      )
+      ) {
+        // Host-only diagnostics: never log signed URLs, file IDs or seller data.
+        console.warn("chatgpt_attachment_host_unrecognized", u.hostname);
         return { id: p.file_id, reselect: true };
+      }
       throw error;
     }
   });

@@ -1,3 +1,5 @@
+@import "../../public/typography.css";
+
 :root {
   --mobile-bg: #faf9f6;
   --mobile-surface: #ffffff;
@@ -28,14 +30,7 @@
   --app-display-font: "Newsreader Variable", Georgia, serif;
   --mobile-panel-fade: var(--mobile-bg);
   color-scheme: light;
-  font-family:
-    "Geist Variable",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--autolister-font-ui, system-ui, sans-serif);
   background: var(--mobile-bg);
   color: var(--mobile-ink);
 }
@@ -1775,13 +1770,48 @@ textarea:focus-visible {
   grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
 }
-.mobile-paywall-tabs { display: flex; gap: 4px; padding: 4px; margin: 10px 0; border-radius: 8px; background: #f1f3f7; }
-.mobile-paywall-tabs[hidden] { display: none; }
-.mobile-paywall-tabs button { flex: 1; min-width: 0; min-height: 44px; padding: 8px; border: 0; border-radius: 6px; color: #374151; background: transparent; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
-.mobile-paywall-tabs button[aria-selected="true"] { background: white; color: #4338ca; box-shadow: 0 1px 3px #0001; }
-.mobile-paywall-tabs button:disabled { opacity: .6; cursor: wait; }
-.mobile-paywall .mobile-paywall-unit-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; }
-.mobile-paywall-option-side { min-width: 0; }
+.mobile-paywall-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 10px 0;
+  border-radius: 8px;
+  background: #f1f3f7;
+}
+.mobile-paywall-tabs[hidden] {
+  display: none;
+}
+.mobile-paywall-tabs button {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  color: #374151;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mobile-paywall-tabs button[aria-selected="true"] {
+  background: white;
+  color: #4338ca;
+  box-shadow: 0 1px 3px #0001;
+}
+.mobile-paywall-tabs button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.mobile-paywall .mobile-paywall-unit-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.mobile-paywall-option-side {
+  min-width: 0;
+}
 .mobile-paywall-choice input {
   width: 18px;
   height: 18px;

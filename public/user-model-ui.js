@@ -439,9 +439,11 @@
   }
   function invitation() {
     return (
-      '<header class="um-header"><h2>' +
+      '<header class="um-header um-invitation-header"><h2>' +
       t("Create your model") +
-      "</h2></header>" +
+      '</h2><span class="um-invitation-new">' +
+      t("New") +
+      "</span></header>" +
       examples() +
       '<p class="um-message">' +
       t("Choose your look. Create once. Keep it in your account.") +

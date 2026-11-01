@@ -622,6 +622,7 @@ const copy = {
 <!doctype html>
 <html lang="en">
   <head>
+    <link rel="stylesheet" href="/typography.css" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
@@ -654,9 +655,7 @@ const copy = {
           linear-gradient(315deg, rgba(79, 70, 229, 0.14), transparent 30%),
           linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
         color: var(--text);
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif;
+        font-family: var(--autolister-font-ui, system-ui, sans-serif);
         display: grid;
         place-items: center;
         padding: 28px;

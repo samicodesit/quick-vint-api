@@ -5,7 +5,14 @@
   --um-line: var(--mobile-border, #dce0eb);
   --um-soft: var(--mobile-brand-soft, #f2f3fc);
   color: var(--um-ink);
-  font-family: inherit;
+  font-family: var(
+    --autolister-font-ui,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif
+  );
   max-width: 520px;
   width: 100%;
   margin: 0 auto;
@@ -25,12 +32,34 @@
   gap: 16px;
   margin: 0 0 20px;
 }
+.um-view .um-header h2 {
+  font-family: inherit;
+}
 .um-header h2 {
   font-size: 24px;
   letter-spacing: -0.6px;
   font-weight: 650;
   margin: 0;
   line-height: 1.2;
+}
+.um-invitation-header h2 {
+  flex: 1;
+  min-width: 0;
+}
+.um-invitation-new {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--um-accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.um-view input,
+.um-view select,
+.um-view textarea {
+  font-family: inherit;
 }
 .um-view button {
   font: inherit;

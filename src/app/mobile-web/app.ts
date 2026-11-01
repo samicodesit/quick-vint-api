@@ -1,4 +1,5 @@
 import { mountDraftWorkspace } from "./draftWorkspace";
+import { mountUserModels } from "./userModels";
 import {
   shouldOfferStyleOnboarding,
   saveOnboardingStyle,
@@ -925,6 +926,7 @@ export function mountMobileWebApp(
   if (!shell) return () => undefined;
   let disposed = false;
   let session: Awaited<ReturnType<typeof getBrowserSession>> = null;
+  const userModels = mountUserModels(root, () => session?.user.id);
   let photos: SelectedPhoto[] = [];
   let uploadSession: MobileUploadSession | null = null;
   let uploadedPhotos: UploadedMobilePhoto[] = [];
@@ -1087,6 +1089,7 @@ export function mountMobileWebApp(
       startWithNewItem: Boolean(chosenStyle),
     });
     if (latestUsage) draftWorkspace.updateUsage(latestUsage);
+    void userModels.offer(session.user.id);
   };
   const setSignInRoute = (signIn: boolean) => {
     const url = new URL(window.location.href);
@@ -1143,11 +1146,13 @@ export function mountMobileWebApp(
             styleSetupCleanup?.();
             styleSetupCleanup = undefined;
             delete shell.dataset.styleSetup;
-            showAuth(root);
-            asElement<HTMLElement>(
-              root,
-              '[data-mobile-web="google-sign-in"]',
-            )?.focus({ preventScroll: true });
+            userModels.preferences(() => {
+              showAuth(root);
+              asElement<HTMLElement>(
+                root,
+                '[data-mobile-web="google-sign-in"]',
+              )?.focus({ preventScroll: true });
+            });
           },
         );
       })
@@ -1204,6 +1209,7 @@ export function mountMobileWebApp(
     } catch (error) {
       if (disposed) return null;
       if (errorDetails(error).status === 401) {
+        userModels.reset();
         session = null;
         styleSetupCleanup?.();
         styleSetupCleanup = undefined;
@@ -1369,6 +1375,7 @@ export function mountMobileWebApp(
       const details = errorDetails(error);
       if (disposed) return;
       if (details.status === 401) {
+        userModels.reset();
         session = null;
         await cleanupServerSession("cancelled");
         clearPreviews();
@@ -1784,6 +1791,7 @@ export function mountMobileWebApp(
         draftWorkspace = undefined;
         cancellationRequested = true;
         activeController?.abort();
+        userModels.reset();
         session = null;
         void cleanupServerSession("cancelled");
         clearPreviews();
@@ -1942,6 +1950,7 @@ export function mountMobileWebApp(
   const cleanup = (): void => {
     if (disposed) return;
     disposed = true;
+    userModels.dispose();
     draftWorkspace?.dispose();
     cancellationRequested = true;
     activeController?.abort();

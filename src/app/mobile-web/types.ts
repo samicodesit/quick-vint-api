@@ -18,6 +18,7 @@ export interface MobileWebRuntimeConfig {
   supabaseUrl: string;
   supabaseAnonKey: string;
   draftsEnabled?: boolean;
+  userModelsEnabled?: boolean;
 }
 
 declare global {

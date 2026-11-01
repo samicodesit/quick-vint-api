@@ -36,6 +36,10 @@
     }
   ],
   "regions": ["fra1"],
+  "functions": {
+    "api/user/model.ts": { "maxDuration": 180 },
+    "api/cron/user-models.ts": { "maxDuration": 180 }
+  },
   "rewrites": [
     {
       "source": "/admin/:view",
@@ -43,6 +47,7 @@
     }
   ],
   "crons": [
+    { "path": "/api/cron/user-models", "schedule": "* * * * *" },
     {
       "path": "/api/cron/billing-notices",
       "schedule": "*/5 * * * *"

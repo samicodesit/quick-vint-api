@@ -16,8 +16,8 @@
   max-width: 520px;
   width: 100%;
   margin: 0 auto;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 0.875rem;
+  line-height: 1.5;
   box-sizing: border-box;
 }
 .um-view * {
@@ -36,7 +36,7 @@
   font-family: inherit;
 }
 .um-header h2 {
-  font-size: 24px;
+  font-size: 1.5rem;
   letter-spacing: -0.6px;
   font-weight: 650;
   margin: 0;
@@ -71,7 +71,7 @@
   border: 1px solid var(--um-line);
   border-radius: 9px;
   padding: 11px 16px;
-  min-height: 42px;
+  min-height: 44px;
   background: white;
   color: var(--um-ink);
   font-weight: 550;
@@ -113,7 +113,7 @@
   min-width: 0;
 }
 .um-form legend {
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 8px;
   padding: 0;
@@ -185,9 +185,11 @@
   height: 48px;
 }
 .um-choice-name {
-  font-size: 11px;
+  font-size: 0.8125rem;
   text-align: center;
-  line-height: 1.15;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .um-gender .um-choice {
   flex-direction: row;
@@ -195,7 +197,7 @@
   min-height: 68px;
 }
 .um-gender .um-choice-name {
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 .um-skinTone .um-choice {
   min-height: 56px;
@@ -237,6 +239,8 @@
 }
 .um-height input[type="number"] {
   font: inherit;
+  font-size: 1rem;
+  min-height: 44px;
   color: inherit;
   width: 60px;
   padding: 7px;
@@ -245,7 +249,7 @@
   background: white;
 }
 .um-consequence {
-  font-size: 12px;
+  font-size: 0.8125rem;
   color: #62736a;
   margin: 0;
 }
@@ -259,7 +263,7 @@
 }
 .um-actions .um-secondary {
   border: 0;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .um-preview {
   display: block;
@@ -528,7 +532,7 @@ button.um-model-entry:hover {
     margin-bottom: 16px;
   }
   .um-header h2 {
-    font-size: 22px;
+    font-size: 1.375rem;
   }
   .um-preauth {
     padding: 20px 16px;

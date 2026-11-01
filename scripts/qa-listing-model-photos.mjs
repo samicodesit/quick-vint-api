@@ -9,8 +9,9 @@ if (!process.argv.includes("--confirmed-budget"))
   throw new Error("Explicit budget authorization required");
 const out = resolve(arg("--out"));
 mkdirSync(out, { recursive: true });
-const prior = 1.59862125,
+const prior = process.argv.includes("--spent-usd") ? Number(arg("--spent-usd")) : 1.59862125,
   cap = 3;
+if (!Number.isFinite(prior) || prior < 0 || prior >= cap) throw Error("Invalid prior spend");
 if (!process.env.VERCEL_APP_OPENAI_API_KEY) {
   const env = readFileSync(arg("--env-file"), "utf8");
   const line = env
@@ -67,7 +68,7 @@ globalThis.fetch = async (...args) => {
     const data = await response.clone().json();
     if (data.usage) {
       row.usage = data.usage;
-      row.costUsd = api.photoCost(row.kind, data.usage);
+      row.costUsd = api.photoCost(row.kind, data.usage, row.model);
     }
     row.providerStatus = data.status || response.status;
     row.responseText = data.output
@@ -82,12 +83,13 @@ globalThis.fetch = async (...args) => {
 async function call(name, kind, fn) {
   if (ledger.calls.some((c) => c.name === name))
     throw new Error("Refusing duplicate/unknown operation " + name);
-  const reservedUsd = kind === "image" ? 0.12 : 0.02;
+  const reservedUsd = kind === "image" ? 0.12 : 0.06;
   if (total() + reservedUsd > cap - 0.1)
     throw new Error("Testing budget guard");
   const row = {
     name,
     kind,
+    model: kind === "check" && !name.endsWith("-classify") ? api.LISTING_PHOTO_CHECK_MODEL : undefined,
     reservedUsd,
     status: "dispatched",
     startedAt: new Date().toISOString(),
@@ -96,7 +98,7 @@ async function call(name, kind, fn) {
   persist();
   try {
     const r = await activeCall.run(row, fn);
-    row.costUsd = api.photoCost(kind, r.usage);
+    row.costUsd = api.photoCost(kind, r.usage, row.model);
     row.usage = r.usage;
     row.durationMs = r.durationMs;
     row.status = "completed";

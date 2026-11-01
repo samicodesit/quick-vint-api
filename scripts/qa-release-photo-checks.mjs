@@ -28,7 +28,7 @@ globalThis.fetch = async (...args) => {
     const data = await response.clone().json();
     active.httpStatus = response.status;
     active.usage = data.usage;
-    if (data.usage) active.costUsd = api.photoCost("check", data.usage);
+    if (data.usage) active.costUsd = api.photoCost("check", data.usage, api.LISTING_PHOTO_CHECK_MODEL);
     save();
   }
   return response;
@@ -42,15 +42,15 @@ const selections = [
 ];
 for (let repeat = 1; repeat <= 2; repeat++) {
   for (const [name, slot, expectedAccepted] of selections) {
-    if (total() + 0.03 > ledger.budgetUsd - 0.1) throw Error("Budget guard");
+    if (total() + 0.06 > ledger.budgetUsd - 0.1) throw Error("Budget guard");
     const c = prior.cases.find(c => c.name === name), view = c.views.find(v => v.slot === slot);
     const bytes = readFileSync(view.path);
-    active = { name, slot, repeat, expectedAccepted, reservedUsd: 0.03, status: "dispatched", startedAt: new Date().toISOString(), imagePath: view.path, sha256: createHash("sha256").update(bytes).digest("hex") };
+    active = { name, slot, repeat, expectedAccepted, model: api.LISTING_PHOTO_CHECK_MODEL, reservedUsd: 0.06, status: "dispatched", startedAt: new Date().toISOString(), imagePath: view.path, sha256: createHash("sha256").update(bytes).digest("hex") };
     ledger.calls.push(active); save();
     const started = Date.now();
     try {
       const r = await api.checkListingPhoto(image(slot === "secondary" || c.plan.category === "backpack" ? c.rear : c.model), bytes, c.plan, slot, false, view.indices.map(i => image(c.sources[i])));
-      Object.assign(active, { status: "completed", accepted: r.accepted, quality: r.quality, durationMs: Date.now() - started, costUsd: api.photoCost("check", r.usage) });
+      Object.assign(active, { status: "completed", accepted: r.accepted, quality: r.quality, durationMs: Date.now() - started, costUsd: api.photoCost("check", r.usage, api.LISTING_PHOTO_CHECK_MODEL) });
     } catch(e) { Object.assign(active, {status:"unknown_or_failed", error: e.message, durationMs:Date.now()-started}); }
     save();
     console.log(JSON.stringify({name, slot, repeat, accepted:active.accepted, expectedAccepted, error:active.error, costUsd:active.costUsd, durationMs:active.durationMs}));

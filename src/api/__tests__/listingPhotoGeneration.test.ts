@@ -47,12 +47,21 @@ describe("listing photo recipes", () => {
       plan,
       "secondary",
       false,
-      ["original-back"],
+      ["original-back", "front-detail"],
     );
     expect(result.accepted).toBe(false);
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({
+      model: "gpt-5.4-2026-03-05",
+      reasoning: { effort: "low" },
+    });
     expect(
       JSON.parse(fetcher.mock.calls[0][1].body).input[0].content.at(-1),
     ).toMatchObject({ type: "input_image", image_url: "original-back" });
+    expect(
+      JSON.parse(fetcher.mock.calls[0][1].body).input[0].content.filter(
+        (part: any) => part.type === "input_image",
+      ),
+    ).toHaveLength(3);
   });
   it("bounds classifier indices to input files even when a source contains collage panels", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
@@ -80,6 +89,9 @@ describe("listing photo recipes", () => {
       (await classifyListingPhotos(["data:image/jpeg;base64,collage"])).plan,
     ).toEqual(result);
     const schema = JSON.parse(fetcher.mock.calls[0][1].body).text.format.schema;
+    expect(JSON.parse(fetcher.mock.calls[0][1].body).model).toBe(
+      "gpt-5.4-mini-2026-03-17",
+    );
     for (const key of ["frontIndex", "backIndex", "detailIndex"])
       expect(schema.properties[key].enum).toEqual([-1, 0]);
     expect(() =>
@@ -127,6 +139,17 @@ describe("listing photo recipes", () => {
         output_tokens: 100,
       }),
     ).toBeCloseTo(0.0011325);
+    expect(
+      photoCost(
+        "check",
+        {
+          input_tokens: 1000,
+          input_tokens_details: { cached_tokens: 100 },
+          output_tokens: 100,
+        },
+        "gpt-5.4-2026-03-05",
+      ),
+    ).toBeCloseTo(0.003775);
   });
   it("uses parallel-safe single-view edits and treats malformed checker output as failure", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";

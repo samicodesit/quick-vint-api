@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { IMAGE_MODEL, CHECK_MODEL } from "./userModelGeneration";
+export const LISTING_PHOTO_CHECK_MODEL = "gpt-5.4-2026-03-05";
 export const PHOTO_BUCKET = "listing-model-photos";
 export const PHOTO_CATEGORIES = [
   "top",
@@ -59,13 +60,17 @@ export function photoPrompt(plan: PhotoPlan, slot: PhotoSlot) {
     bottom: "Frame waist through feet, entire sale garment visible.",
     shoes:
       "Crop below knees through floor with BOTH complete shoes visible and large. Upper body and phone are outside the crop; do not introduce hands or phones into it.",
-    bag: "Frame head through upper thighs. Carry the bag naturally on the free-arm side so its entire shape and straps are visible.",
+    bag: "Frame the head through the entire carried bag. Choose hand carry or the crook of the free elbow for short handles; shoulder carry only if PRODUCT actually has long shoulder straps. Never lengthen handles to fit a shoulder. Keep the full bag, its opening, handles and hardware visible. The free arm may bend naturally to carry it; preserve the phone arm and grip.",
     backpack:
       "Keep backpack on both shoulders, its entire outward panel visible; frame head through upper thighs.",
   };
   return `OUTPUT FRAMING, higher priority than retaining the reference canvas: ${crop[plan.category] || crop.full_body} Crop/zoom to this framing; do not retain extra body areas or empty floor from image 1.\nEdit image 1 by changing ONLY the sale item using the other ORIGINAL PRODUCT references. Preserve the exact adult person, proportions, hair, skin, room, mirror, lighting, phone orientation, grip and two arm paths within the chosen crop. Image 1 alone defines the body: preserve its waist, hip, thigh and arm thickness, even when product photos show a different person. Never copy the product-reference person, pose or accessories. Transfer only the sale item. Image 2 defines the target surface; later detail images explain material only. Never copy front-only logos or decorations onto a back or side that does not show them in image 2. Replace base garments that conflict with it: a dress replaces both the base tee and trousers, with bare shoulders/arms if sleeveless. Keep only compatible unrelated clothing and the reference shoes. Preserve the item's color, texture, stitching, seams, cut, closures, pockets, straps, logos and wear. Do not redesign or beautify it. One person and ONE view only, no collage or overlays. Ordinary realistic mirror selfie. Keep recognizable facial features obscured or turned away; peripheral fragments are acceptable. Phone screen, if visible, stays dim and subtly reflects the resulting outfit.\n${rear ? "Rear view: preserve the reference's relaxed free arm and bent phone arm, SCREEN facing the mirror. Never add a second hanging arm on the phone side." : "Front view: preserve the reference's phone covering the central face and relaxed free arm."}\n${plan.category === "backpack" && slot === "secondary" ? "Show a slight rear three-quarter angle exposing the side, without changing the comfortable phone grip." : ""}${plan.category === "bag" && slot === "secondary" ? "Show the other useful side of the carried bag; keep it visible rather than hidden behind the body." : ""}${slot === "secondary" && plan.backIndex < 0 && !["shoes", "bag", "backpack"].includes(plan.category) ? "\nNo back reference exists. Infer a conservative undecorated back of the same material; do not copy front embroidery, prints or logos onto the back and do not invent closures." : ""}`;
 }
-export function photoCost(kind: "image" | "check", usage: any) {
+export function photoCost(
+  kind: "image" | "check",
+  usage: any,
+  model = CHECK_MODEL,
+) {
   if (!usage) return null;
   if (kind === "image") {
     const d = usage.input_tokens_details || {};
@@ -77,10 +82,12 @@ export function photoCost(kind: "image" | "check", usage: any) {
     );
   }
   const cached = usage.input_tokens_details?.cached_tokens || 0;
+  const rates =
+    model === LISTING_PHOTO_CHECK_MODEL ? [2.5, 0.25, 15] : [0.75, 0.075, 4.5];
   return (
-    (((usage.input_tokens || 0) - cached) * 0.75 +
-      cached * 0.075 +
-      (usage.output_tokens || 0) * 4.5) /
+    (((usage.input_tokens || 0) - cached) * rates[0] +
+      cached * rates[1] +
+      (usage.output_tokens || 0) * rates[2]) /
     1e6
   );
 }
@@ -106,12 +113,13 @@ async function structured(
   detail = "high",
   imageLabels?: string[],
   reasoningEffort: "none" | "low" = "none",
+  model = CHECK_MODEL,
 ) {
   const started = Date.now();
   const response = await provider(
     "responses",
     {
-      model: CHECK_MODEL,
+      model,
       store: false,
       reasoning: { effort: reasoningEffort },
       max_output_tokens: reasoningEffort === "low" ? 1600 : 450,
@@ -234,7 +242,7 @@ export async function checkListingPhoto(
       : "front or front-side";
   const prompt = `Evaluate only CANDIDATE, a ${view} mirror photo. ${rear ? "Require the full adult and both shoes." : `Sale category: ${plan.category}. MODEL gives the person's identity, build, scene and phone pose, NOT the sale clothing. PRODUCT gives the sale item. The candidate MUST change MODEL's clothing/bag to PRODUCT; this intended change is never a defect.`}
 Return only clear visible defects, each with concrete evidence in CANDIDATE. Empty defects means usable. Count actual limbs: one phone arm plus one relaxed arm is two, not three. A bag strap is not an arm. Allow natural rotation, clothing drape and crop changes. Do not require pixel-identical pose. Front selfies show rear phone lenses; rear selfies show phone screen. Covered central face or back of head is valid. For shoes/bottoms the head, phone and arms can be outside frame. Wider framing is acceptable if the sale item is entirely visible.
-${originals.length ? "For garment fidelity compare CANDIDATE ONLY to PRODUCT, never to MODEL's old outfit. A handbag/backpack being added is the intended sale item, not an unrelated accessory. Flag a clear wrong main color, added/missing construction or invented decoration on the target surface. Supplemental detail does not authorize front logos on a plain back. An unrelated accessory means something OTHER than the sale item copied from PRODUCT. Ignore tiny unreadable lettering, unseen features, uncertain shades, perspective and normal folds. Compare build to MODEL only for obvious anatomical slimming/enlargement, not drape." : "Do not speculate about unseen product features."}
+${originals.length ? "For garment fidelity compare CANDIDATE ONLY to PRODUCT, never to MODEL's old outfit. A handbag/backpack being added is the intended sale item, not an unrelated accessory. Flag a clear wrong main color, added/missing construction or invented decoration on the target surface. The target surface alone determines its visible features; do not require front hardware on a plain back. For short-handled bags, flag handles elongated into shoulder straps. When PRODUCT is a sleeveless dress, a visible base T-shirt neckline or sleeves under it is an unwanted retained garment, even when the dress itself matches. An unrelated accessory means something OTHER than the sale item copied from PRODUCT. Ignore tiny unreadable lettering, unseen features, uncertain shades, perspective and normal folds. Compare build to MODEL only for obvious anatomical slimming/enlargement, not drape." : "Do not speculate about unseen product features."}
 Report actual evidence, not uncertainty or changed styling. Never list a code whose evidence only describes the intended try-on change.`;
   const result = await structured(
     prompt,
@@ -243,7 +251,7 @@ Report actual evidence, not uncertainty or changed styling. Never list a code wh
       : [
           pose,
           "data:image/jpeg;base64," + bytes.toString("base64"),
-          ...originals,
+          ...originals.slice(0, 1),
         ],
     {
       defects: {
@@ -265,13 +273,14 @@ Report actual evidence, not uncertainty or changed styling. Never list a code wh
       : [
           "MODEL: identity, build and pose only. Its old clothes are NOT the sale item.",
           "CANDIDATE: generated try-on photo to inspect.",
-          ...originals.map((_, i) =>
-            i === 0
-              ? "PRODUCT: actual sale item, target surface. Compare item details to this."
-              : "PRODUCT DETAIL: material/detail evidence only.",
-          ),
+          ...(originals.length
+            ? [
+                "PRODUCT: actual sale item, target surface. Compare item details to this.",
+              ]
+            : []),
         ],
     "low",
+    LISTING_PHOTO_CHECK_MODEL,
   );
   const quality = JSON.parse(result.text);
   if (

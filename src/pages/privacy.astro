@@ -12,7 +12,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       background-color: #f9fafb;
       color: #111827;
       margin: 0;
-      padding: 40px;
+      padding: 0;
       line-height: 1.6;
     }
 
@@ -28,6 +28,8 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       font-size: 2rem;
       text-align: center;
     }
+    h2 { font-size: 1.375rem; font-weight: 600; }
+    h3 { font-size: 1.125rem; font-weight: 600; }
 
     p {
       margin-bottom: 1em;
@@ -61,16 +63,17 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     }
 
     .privacy-container {
-      max-width: 800px;
+      max-width: 848px;
+      padding: 0 24px;
       margin: 0 auto;
-      margin-top: 80px;
+      margin-top: 120px;
       margin-bottom: 60px;
     }
   </style>
 
   <div class="privacy-container">
     <h1>Privacy Policy</h1>
-    <p>Last updated: October 31, 2026</p>
+    <p>Last updated: November 1, 2026</p>
     <p>
       AutoLister AI ("we", "our", or "us") values your privacy. This Privacy
       Policy explains how we collect, use, disclose, and safeguard your
@@ -145,7 +148,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
     <p>
       Web app draft photos and text are saved in this browser on this device.
       They are not synced between devices. Photos selected for generation are
-      temporarily uploaded to prepare the requested text and follow our existing
+      temporarily uploaded to prepare the requested text or model photos and follow our existing
       upload cleanup. Clearing this site's browser data also removes local drafts.
     </p>
     <p>
@@ -178,11 +181,41 @@ import SiteLayout from "../layouts/SiteLayout.astro";
       </li>
       <li>
         <strong>Content Scripts:</strong> When you click “Generate” on a Vinted item
-        page, our content script reads the item’s title/description fields and inserts
-        AI-generated text. This requires permission to view and modify the page’s
-        DOM temporarily.
+        page, our content script reads the selected item photos and listing fields
+        to prepare the requested text. If you enable Your model, it can also upload
+        generated photos into the listing form. You can review and remove those
+        photos before submitting the listing.
       </li>
     </ul>
+
+    <section id="model-photos">
+      <h3>Your model and listing photos</h3>
+      <p>
+        If you create a model, we save your appearance choices and generated
+        front and rear model images to your account. These private images let you
+        reuse the same model across listings.
+      </p>
+      <p>
+        When Your model is enabled and you request generation, we send the relevant
+        original item photos and saved model images to OpenAI to check suitability,
+        create model photos and check the results. Generated photos are added to
+        your editable listing. Turning the setting off stops new model-photo work;
+        it does not delete your saved model or photos already added.
+      </p>
+      <p>
+        Temporary item-photo copies expire after 24 hours. Generated listing photos
+        on our servers expire after 30 days and are removed by scheduled cleanup.
+        Your saved model and reusable rear image remain private in your account
+        until account deletion. Downloaded web app draft photos stay in this
+        browser until you delete the draft or clear the site's browser data.
+      </p>
+      <p>
+        We keep job status, quality-check results and provider usage to recover
+        interrupted work and account for costs. Private image links expire.
+        To request deletion of account-held model data, contact
+        <a href="mailto:privacy@autolister.app">our privacy team</a>.
+      </p>
+    </section>
 
     <section id="chatgpt-plugin">
       <h3>Drafts from ChatGPT</h3>
@@ -252,11 +285,12 @@ import SiteLayout from "../layouts/SiteLayout.astro";
         <ul>
           <li>
             <strong>Purpose:</strong> Authentication, storing user profiles, subscription
-            status, API call counters, and Stripe customer IDs.
+            status, API call counters, Stripe customer IDs, private saved models
+            and temporary generation assets.
           </li>
           <li>
             <strong>Data Shared:</strong> Email addresses, session tokens, subscription
-            fields, usage counts, Stripe IDs.
+            fields, usage counts, Stripe IDs, model preferences and image assets.
           </li>
           <li>
             <strong>Location:</strong> Supabase servers (hosted in EU region). See
@@ -290,12 +324,13 @@ import SiteLayout from "../layouts/SiteLayout.astro";
         <ul>
           <li>
             <strong>Purpose:</strong> The extension injects AI-generated text into
-            Vinted item pages. We need temporary access to the page’s DOM but do not
+            Vinted item pages and uploads requested model photos. We need temporary access to the page’s DOM but do not
             store any Vinted account credentials or PII beyond public listing data.
           </li>
           <li>
-            <strong>Data Shared:</strong> No personal data is sent to Vinted; only
-            DOM manipulation occurs locally in your browser.
+            <strong>Data Shared:</strong> Photos uploaded through the listing form
+            are sent to Vinted. Text is filled in locally until you submit the form.
+            AutoLister does not publish the listing for you.
           </li>
         </ul>
       </li>
@@ -365,14 +400,13 @@ import SiteLayout from "../layouts/SiteLayout.astro";
         > for details.
       </li>
       <li>
-        <strong>OpenAI (Backend):</strong> Used to generate AI-based titles and descriptions.
-        The user-provided listing text (e.g., item details from Vinted) and metadata
-        (e.g., user email) are sent to our secure backend on Vercel, which in turn
-        calls the OpenAI API. OpenAI processes prompts according to their <a
+        <strong>OpenAI (Backend):</strong> Used to prepare listing text, create saved
+        models and generate and check model photos. Our backend sends the relevant
+        item photos, model preferences, model images and generation instructions
+        needed for your request. Image generation uses a hashed account identifier
+        for abuse prevention. OpenAI processes these inputs according to its <a
           href="https://openai.com/policies/privacy-policy">Privacy Policy</a
-        >. We do not store conversation logs long-term; only transient
-        request/response data is held to fulfill generation requests and enforce
-        usage limits.
+        >. Our retention for model images and listing photos is described above.
       </li>
     </ul>
     <p>

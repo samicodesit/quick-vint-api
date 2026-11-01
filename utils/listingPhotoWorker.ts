@@ -2,6 +2,7 @@ import {
   photoPrompt,
   rearPosePrompt,
   photoCost,
+  LISTING_PHOTO_CHECK_MODEL,
   type PhotoPlan,
   type PhotoSlot,
 } from "./listingPhotoGeneration";
@@ -70,12 +71,18 @@ export async function runPhotoJob(
     });
     if (!attempt) throw new Error("photo_cancelled");
     const result = await work();
+    const model =
+      kind === "image"
+        ? IMAGE_MODEL
+        : name === "classify"
+          ? CHECK_MODEL
+          : LISTING_PHOTO_CHECK_MODEL;
     await deps.mutate(user, "metrics", {
       ...input,
       attemptId: attempt.id,
-      cost: photoCost(kind, result.usage),
+      cost: photoCost(kind, result.usage, model),
       metrics: {
-        model: kind === "image" ? IMAGE_MODEL : CHECK_MODEL,
+        model,
         usage: result.usage,
         durationMs: result.durationMs,
         quality: result.quality,

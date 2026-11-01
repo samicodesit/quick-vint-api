@@ -39,6 +39,14 @@ Provider usage, duration, retries and client-reported attachment outcomes are re
 
 ## Release gates and estimates
 
+Update from release preparation: the checker blocker described below has been
+investigated and the targeted regression now passes with GPT-5.4, target-surface
+references and corrected carry instructions. The latest integration, quality,
+cost, package and rollout evidence is in
+[the 1.4.30 release candidate report](listing-model-photos-release-20261101.md).
+The historical results below are retained for context and do not describe the
+current checker. Deployed staging/API/storage smoke checks still precede enablement.
+
 Follow-up on 2026-11-01: real existing-listing `/edit` attachment also passed with unchanged text/originals, retained host ordering, and discard/reload verification. No save or publish. The expanded garment QA corrected dress layering/accessory copying and a rear bag logo, but the automatic checker still falsely rejects a visibly strapped dress. **Keep the release flag off.** Final local API verification passed 1,255 tests, with 13 opt-in skips. The detailed evidence and budget ledger are in workspace `reports/model-garment-qa-20261101/QA.md` and `ledger.json`. Budget accounted is $2.58573275 of the authorized $3, including $0.04 reserved for unknown classifier usage.
 
 Live Vinted upload and persistent native ordering are verified for the tested create and edit forms. The migration has been exercised in PGlite, not applied to staging or production. Keep the flag off until staging migration, the quality-guard blocker and monitoring are accepted. These checks do not establish exhaustive garment or marketplace coverage.

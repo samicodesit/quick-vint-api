@@ -50,6 +50,10 @@ it("attaches a generated pair atomically before ten originals and never reattach
     true,
   );
   expect(draft.title).toBe("Saved text");
+  expect(await first.claimEditObservation(draft.id, "visible")).toMatchObject({
+    generationAttemptId: operationId,
+    mode: "saved_draft",
+  });
   await first.action("removePhoto", { photoId: draft.photos[0].id });
   await first.attachModelPhotos(draft.id, jobId, [jpeg(), jpeg()]);
   expect(

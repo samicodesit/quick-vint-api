@@ -135,15 +135,6 @@
   top: 6px;
   right: 6px;
 }
-.um-choice:has(input:checked)::after {
-  content: "✓";
-  position: absolute;
-  top: 3px;
-  right: 5px;
-  font-size: 11px;
-  color: var(--um-accent);
-  font-weight: 700;
-}
 .um-choice-art {
   display: flex;
   align-items: center;
@@ -151,8 +142,18 @@
   height: 43px;
 }
 .um-choice-art svg {
-  height: 46px;
-  width: 46px;
+  height: 48px;
+  width: 48px;
+}
+.um-build .um-choice-art,
+.um-build .um-choice-art svg {
+  height: 62px;
+}
+.um-build .um-choice {
+  min-height: 94px;
+}
+.um-gender .um-choice-art {
+  height: 48px;
 }
 .um-choice-name {
   font-size: 11px;
@@ -324,6 +325,124 @@
   font: inherit;
   font-size: 13px;
 }
+.um-examples {
+  margin: 0 0 18px;
+}
+.um-example-pair {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  background: #f3f0eb;
+  border-radius: 12px;
+}
+.um-example-pair img {
+  display: block;
+  height: 252px;
+  width: auto;
+  max-width: calc(50% - 5px);
+  object-fit: contain;
+  border-radius: 7px;
+}
+.um-examples figcaption {
+  color: #736d66;
+  font-size: 11px;
+  text-align: center;
+  margin-top: 7px;
+}
+/* Higher specificity than the host settings dialog's generic button rules. */
+button.um-model-entry,
+.draft-settings-grid > button.um-model-entry {
+  grid-column: 1 / -1;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cdd2ee;
+  border-radius: 12px;
+  background: var(--mobile-brand-soft, #f2f1fc);
+  color: var(--mobile-ink, #292633);
+  font: inherit;
+  cursor: pointer;
+}
+button.um-model-entry[hidden] {
+  display: none;
+}
+.um-model-entry .um-entry-photo {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.um-entry-copy {
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.um-entry-copy strong {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+.um-entry-copy > span {
+  font-size: 12px;
+  color: #666775;
+  line-height: 1.35;
+}
+.um-entry-new {
+  align-self: flex-start;
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 10px;
+  font-weight: 650;
+  background: var(--mobile-brand, #5b50c6);
+  color: white;
+}
+.um-model-entry .um-entry-arrow {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+}
+button.um-model-entry:focus-visible {
+  outline: 2px solid var(--mobile-brand, #5b50c6);
+  outline-offset: 3px;
+}
+button.um-model-entry:hover {
+  border-color: var(--mobile-brand, #5b50c6);
+}
+.um-discover::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -1px;
+  border: 2px solid var(--mobile-brand, #5b50c6);
+  border-radius: inherit;
+  opacity: 0;
+  animation: um-discover-pulse 3.6s ease-out infinite;
+}
+@keyframes um-discover-pulse {
+  0%,
+  65%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  15% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1.025, 1.08);
+  }
+}
 .um-settings-entry svg {
   width: 18px;
   height: 23px;
@@ -356,6 +475,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .um-discover::before {
+    animation: none;
+  }
   .um-pending svg {
     animation: none;
   }
@@ -364,6 +486,9 @@
   }
 }
 @media (max-width: 430px) {
+  .um-example-pair img {
+    height: 210px;
+  }
   .um-modal {
     padding: 22px 18px;
   }

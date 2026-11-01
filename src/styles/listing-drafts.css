@@ -1560,8 +1560,10 @@ html:has([data-drafts-enabled="true"]) {
 .draft-group-generation .draft-queue p {
   margin-bottom: 0;
 }
-.draft-generation-actions:has(.draft-queue[data-running="true"]:not([hidden])) > .draft-generate,
-.draft-generation-actions:has(.draft-queue[data-running="true"]:not([hidden])) > .draft-help {
+.draft-generation-actions:has(.draft-queue[data-running="true"]:not([hidden]))
+  > .draft-generate,
+.draft-generation-actions:has(.draft-queue[data-running="true"]:not([hidden]))
+  > .draft-help {
   display: none;
 }
 .draft-generation-actions .draft-queue {
@@ -1788,7 +1790,30 @@ html:has([data-drafts-enabled="true"]) {
 }
 @media (max-width: 767px) {
   .draft-language-fields {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+  .draft-language-fields .draft-control-label {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .draft-workspace .draft-language-fields .draft-select-trigger {
+    padding-inline: 8px;
+    gap: 6px;
+    font-size: 14px;
+  }
+  .draft-language-fields .draft-select-trigger > [data-draft-select-art],
+  .draft-language-fields .draft-select-trigger > svg {
+    flex-shrink: 0;
+  }
+  .draft-language-fields .draft-select-options {
+    min-width: 200px;
+    max-width: calc(100vw - 72px);
+  }
+  .draft-language-fields .draft-select:last-child .draft-select-options {
+    left: auto;
+    right: 0;
   }
   .draft-language-fields select {
     font-size: 16px;

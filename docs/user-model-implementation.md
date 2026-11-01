@@ -8,7 +8,23 @@ One immutable, fictional adult model per authenticated account. One free creatio
 
 Preferences: gender male/female; hair black/blonde/brown/red; height 130 to 210 cm (default 170); build slim/average/plus_size; six skin tones. Explicit choices except height. Creation cannot be edited after success.
 
-Web: listing style, optional model preferences, sign-in, review and explicit creation. Existing users get a deferred invitation. Extension: first eligible authenticated new/edit listing page observed after release, deferred during other active work. Invitation dismissal is shared across surfaces. Settings include Your model beside Seller note, a contained full-body preview, enabled toggle and back navigation preserving existing settings.
+Web: listing style, optional model preferences, sign-in, review and explicit creation. Existing users get a deferred invitation. Extension: first eligible authenticated new/edit listing page observed after release, deferred during other active work. Invitation dismissal is shared across surfaces. Settings begin with a full-width model card, a contained full-body preview, enabled toggle and back navigation preserving existing settings.
+
+## Visual revision, 2026-11-01
+
+The invitation uses the existing generated female and male examples, clearly captioned as examples, instead of an enlarged icon. Both static 280 by 420 WebP assets together total 14,246 bytes. No additional image generation, external image service or runtime dependency is needed. The extension packages both files and declares them as web-accessible resources for its listing-page invitation.
+
+Gender and hair choices share one portrait illustration style. Build choices use the same full-body stance and separate slim, average and plus-size contours. All illustrations are inline SVG, with radio labels retained for clarity and accessibility.
+
+The model entry moves from the seller-note row to the first position in web and extension settings. It uses a photographic thumbnail, explicit Create your model / Your model label and a chevron. Accounts with an unseen or merely displayed invitation get a New badge and a CSS border pulse every 3.6 seconds. Opening preferences or dismissing the invitation stops the pulse and records the existing account-wide dismissal. Existing models never pulse. Reduced-motion preferences disable the animation. No JavaScript animation loop or animation library is added. The card title and subtitle are left-aligned, and the web language selectors share one row on mobile with wider dropdown menus kept inside the viewport.
+
+The shared model copy catalogue covers all 18 languages supported by style onboarding and the extension language resolver, including labels, actions, status/recovery messages and accessible names. Web follows browser languages. The extension follows its existing explicit preference/domain/browser precedence. Czech `cs` maps to the existing `cz` key. The English hair label is Red; the API value remains `red`. No translation service or model call runs in the browser.
+
+Selected options use a border and background tint only. Visible checkmarks and radio dots were removed following review. Keyboard operation and native radio semantics are retained.
+
+Revision verification: backend production gate passed with 1,227 tests; extension unit suite passed with 163 tests; both builds passed. The full browser run passed 338 checks and skipped three. Eight failures during active edits and concurrent browser runs were rechecked: the final 16 model-flow checks and the two isolated MV3 regressions passed, covering all eight failures and three additional localization checks. This gives 349 distinct browser checks passing across the runs. Four visual checks were repeated after removing the selection symbols. All 18 translated preference forms were exercised at 320 px, including unchanged API enum values; French and German previews were inspected alongside English. Evidence and actual rendered local fixture screenshots are in `reports/model-ui-revision-20261101/` in the parent workspace.
+
+Settings availability loads even if the settings dialog is already open; only the automatic invitation waits for idle UI. Existing unsaved seller notes remain intact when entering and leaving the model view.
 
 ## Generation and data
 
@@ -37,7 +53,7 @@ UI direction: preserve AutoLister's existing type, colors and compact controls. 
 | Field    | Stored value              | Prompt meaning                                                    |
 | -------- | ------------------------- | ----------------------------------------------------------------- |
 | gender   | male, female              | Adult gender presentation                                         |
-| hair     | black, blonde, brown, red | Hair color (red is shown as Redhead)                              |
+| hair     | black, blonde, brown, red | Hair color (red is shown as Red)                                  |
 | heightCm | integer 130 through 210   | Approximate adult height, default 170                             |
 | build    | slim, average, plus_size  | Natural body proportions                                          |
 | skinTone | tone_1 through tone_6     | Very fair, fair, medium tan, medium brown, dark brown, deep brown |

@@ -11,6 +11,11 @@ declare global {
     AutoListerModelUI?: {
       mount(container: HTMLElement, options: any): () => void;
       mirrorIcon: string;
+      examples(): string;
+      invitation(): string;
+      t(key: string): string;
+      locale(): string;
+      entry(button: HTMLElement, state: any, attention: boolean): void;
       validPreferences(p: unknown): boolean;
     };
   }
@@ -24,6 +29,31 @@ export function mountUserModels(
     offerTimer: ReturnType<typeof setTimeout> | undefined,
     checking = false,
     offeredOwner: string | undefined;
+  const interacted = new Set<string>();
+  function updateEntries(owner: string, state: any) {
+    if (getOwner() !== owner || !window.AutoListerModelUI) return;
+    root
+      .querySelectorAll<HTMLElement>("[data-user-model-open]")
+      .forEach((button) => {
+        window.AutoListerModelUI!.entry(
+          button,
+          state,
+          !interacted.has(owner) &&
+            ["unseen", "seen"].includes(state.invitationState),
+        );
+        button.hidden = false;
+      });
+  }
+  function acknowledge(owner: string) {
+    if (interacted.has(owner)) return;
+    interacted.add(owner);
+    root.querySelectorAll(".um-discover").forEach((button) => {
+      button.classList.remove("um-discover");
+      button.querySelector(".um-entry-new")?.remove();
+    });
+    // Opening the preferences counts as interacting with the invitation on every client.
+    void request(owner)("POST", { action: "dismiss" }).catch(() => {});
+  }
   const enabled = () =>
     window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.userModelsEnabled &&
     window.AutoListerModelUI;
@@ -47,6 +77,7 @@ export function mountUserModels(
         close();
         throw new Error("Your account changed. Reopen your model.");
       }
+      if (result && "invitationState" in result) updateEntries(owner, result);
       return result;
     };
   function close() {
@@ -62,7 +93,10 @@ export function mountUserModels(
     close();
     const dialog = document.createElement("dialog");
     dialog.className = "um-modal";
-    dialog.setAttribute("aria-label", "Your model");
+    dialog.setAttribute(
+      "aria-label",
+      window.AutoListerModelUI!.t("Your model"),
+    );
     const view = document.createElement("div");
     dialog.append(view);
     document.body.append(dialog);
@@ -80,6 +114,7 @@ export function mountUserModels(
       end();
     };
     const form = () => {
+      acknowledge(owner);
       dispose();
       dispose = window.AutoListerModelUI!.mount(view, {
         request: request(owner),
@@ -91,10 +126,8 @@ export function mountUserModels(
     };
     if (invite && !initialPreferences) {
       view.className = "um-view";
-      view.innerHTML =
-        '<header class="um-header"><h2>Create your model</h2></header><div class="um-pending">' +
-        window.AutoListerModelUI!.mirrorIcon +
-        '</div><p class="um-message">Create once. Keep it in your account.</p><div class="um-actions"><button type="button" class="um-primary">Create my model</button><button type="button" class="um-secondary">Not now</button></div>';
+      view.lang = window.AutoListerModelUI!.locale();
+      view.innerHTML = window.AutoListerModelUI!.invitation();
       view.querySelector(".um-primary")!.addEventListener("click", form);
       view.querySelector(".um-secondary")!.addEventListener("click", leave);
     } else form();
@@ -114,6 +147,7 @@ export function mountUserModels(
     event.stopPropagation();
     const owner = getOwner();
     if (!owner) return;
+    acknowledge(owner);
     const panel = button.closest<HTMLElement>(".draft-popover-panel");
     if (!panel) {
       open(owner);
@@ -174,11 +208,8 @@ export function mountUserModels(
       getOwner() !== owner
     )
       return;
-    if (isBusy()) {
-      clearTimeout(offerTimer);
-      offerTimer = setTimeout(() => void offer(owner), 3000);
-      return;
-    }
+    // Load the settings entry even while settings are open. Only the automatic
+    // invitation below is deferred by other work or an open dialog.
     checking = true;
     try {
       const state = await request(owner)();
@@ -264,6 +295,11 @@ export function mountUserModels(
       close();
       clearTimeout(offerTimer);
       offeredOwner = undefined;
+      root
+        .querySelectorAll<HTMLElement>("[data-user-model-open]")
+        .forEach((button) => {
+          button.hidden = true;
+        });
     },
     dispose() {
       stopped = true;

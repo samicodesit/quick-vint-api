@@ -72,8 +72,43 @@ This is pre-rotation evidence, not a claim that ECC issuance has been tested.
 After owner rotation, repeat with both the retained HS256 token and newly issued
 ECC tokens before enabling any plugin authentication configuration.
 
+Post-rotation verification: the owner completed rotation on 2026-11-01.
+The retained pre-rotation HS256 access token still passed Auth getUser, the live
+AutoLister usage API and its own-profile RLS read. A fresh test login issued an
+ES256 token and passed the same checks. The pre-rotation refresh token successfully
+obtained an ES256 session, and another refresh passed as well. These tests used
+the exact bundled extension SDK and the existing dedicated test account, with
+no customer mutation, email, generation or sign-out. This verifies the exercised
+authentication paths; it does not constitute every device or product-flow test.
+
 Local PGlite execution of the hosted-transfer SQL passed service-role denial,
 account isolation, settlement ownership and replay, global byte/prepare/read
 caps and expiry. Production catalog inspection confirmed the existing shared
 budget table and scheduled cleanup are present. Actual hosted RPC/provider flow,
 OAuth refresh/revocation and the recorded ChatGPT demo remain unfinished.
+
+### Latest setup state
+
+The own-host domain challenge is live at commit afff0f4 and the portal reports
+Domain verified. The own-host draft is still not submitted or published.
+The two plugin SQL migrations are now installed. Execute is denied to anon and
+authenticated for the hosted RPC, allowed to service_role, and the authenticator
+is not a member of the delegated database role. The initial transaction attempting
+SET ROLE supabase_auth_admin was rejected by Supabase and rolled back completely;
+the subsequent installation checked function permissions without broadening role
+membership. No customer data was modified.
+
+OAuth server and the token-isolation hook are enabled. Dynamic registration is
+disabled. The authorization path is /oauth/consent. A dedicated ordinary test
+session refreshed successfully afterward, retained sub/role/aud/issuer/email,
+had no client_id, and accessed the live usage API successfully. No OAuth client
+has been registered yet. CHATGPT_PLUGIN_ENABLED remains unset/disabled, so no
+plugin draft requests are accepted. ChatGPT connection, its exact callback,
+delegated-token isolation tests and the real demo remain pending.
+
+Vercel marked deployment dpl_9ZWnCsKaT2b8JqHV4Cz16yTf5AUx Ready on production.
+Its function compilation emitted TypeScript diagnostics (including getUser's
+inherited type and existing incident/admin/phone-upload types) despite successful
+deployment. The exercised live authentication endpoints work; these diagnostics
+have not yet been classified against the preceding release. Do not represent the
+remote build as free of diagnostics or the whole plugin as verified.

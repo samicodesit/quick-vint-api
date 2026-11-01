@@ -1,6 +1,6 @@
 # Listing model photos: 1.4.30 release candidate
 
-Status: staging checks, production migrations and deployed smoke checks passed. Saved models and listing photos are enabled on the backend and web app. The refreshed extension release gate and CWS disclosure review/submission remain separate. The owner's Vinted approval decision is settled.
+Status: staging checks, production migrations and deployed smoke checks passed. Saved models and listing photos are enabled on the backend and web app. The refreshed extension production gate passed: 168 unit tests and 382 browser tests, with 13 opt-in checks skipped. Chrome Web Store disclosures, listing copy and reviewer instructions are saved. Version 1.4.30 submission is tracked in workflow 41343698335; do not infer Google approval from local checks or workflow dispatch. The owner's Vinted approval decision is settled.
 
 ## What changed during release preparation
 
@@ -80,7 +80,9 @@ Release notes: Create a reusable private model and add two model photos to suita
 
 Privacy disclosure changes: user-provided item images, appearance preferences and generated model images are processed to provide the requested feature. Saved models are tied to the signed-in account. Supabase stores private assets; OpenAI processes selected inputs. Temporary sources expire after 24 hours and server listing outputs after 30 days. Local browser drafts remain until removed. Update the store's user-content/privacy answers to match the final privacy policy during submission. No added extension permissions or host access.
 
-Remaining external gate: approved staging and production migration/deployment verification. Local tests do not replace it. No publication is authorized by this document.
+Staging and production migration/deployment verification is complete. The owner separately authorized the production rollout and Chrome Web Store submission after verification. The remaining external release outcome is Chrome Web Store processing/review, tracked in [workflow 41343698335](https://github.com/samicodesit/quick-vint-frontend/actions/runs/41343698335).
+
+Store review on November 1: existing storage, tabs, alarms and host permissions were preserved. Explanations now cover requested model photos and first-party feature events. Existing user-activity and website-content disclosures were already checked. Location was added to disclose existing IP-address logging, not GPS access. Personally identifiable information, authentication and financial/payment categories remain disclosed; health information, personal communications and web history remain unchecked. The privacy URL remains https://autolister.app/privacy. Reviewer instructions cover free initial sign-in, model creation, enabled generation, the separate edit-page action and no marketplace publication. No customer credentials were supplied.
 
 Submission references checked on November 1, 2026:
 [Chrome Web Store privacy disclosures](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq)

@@ -4,6 +4,8 @@ import { getWebAnalyticsContext } from "../../scripts/webAnalyticsContext";
 
 export interface MobileGenerationInput {
   imageUrls: string[];
+  modelPhotoSourceKey?: string;
+  modelPhotosEligible?: boolean;
   titleLanguageCode: string;
   descriptionLanguageCode: string;
   descriptionLength: DescriptionLength;
@@ -19,6 +21,7 @@ export interface MobileGenerationInput {
 }
 
 export interface MobileGenerationResult {
+  modelPhotos?: { jobId: string; status: string };
   title: string;
   description: string;
   measurementAdvice?: unknown;
@@ -72,6 +75,17 @@ function parseGenerationResponse(value: unknown): MobileGenerationResult {
   return {
     title: value.title,
     description: value.description,
+    ...(isRecord(value.modelPhotos) &&
+    typeof value.modelPhotos.jobId === "string" &&
+    /^[0-9a-f-]{36}$/i.test(value.modelPhotos.jobId) &&
+    typeof value.modelPhotos.status === "string"
+      ? {
+          modelPhotos: {
+            jobId: value.modelPhotos.jobId,
+            status: value.modelPhotos.status,
+          },
+        }
+      : {}),
     ...(Object.prototype.hasOwnProperty.call(value, "measurementAdvice")
       ? { measurementAdvice: value.measurementAdvice }
       : {}),
@@ -96,6 +110,12 @@ export async function generateListing(
   const body = {
     analyticsClientId: getWebAnalyticsContext().analyticsClientId,
     imageUrls: input.imageUrls,
+    ...(input.modelPhotosEligible === false
+      ? { modelPhotosEligible: false }
+      : {}),
+    ...(input.modelPhotoSourceKey
+      ? { modelPhotoSourceKey: input.modelPhotoSourceKey }
+      : {}),
     titleLanguageCode: input.titleLanguageCode,
     descriptionLanguageCode: input.descriptionLanguageCode,
     descriptionLength: input.descriptionLength,

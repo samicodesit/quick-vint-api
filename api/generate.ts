@@ -6,6 +6,7 @@ import type {
   ChatCompletionCreateParamsNonStreaming,
 } from "openai/resources/chat/completions";
 import Cors from "cors";
+import { startListingPhotos } from "../utils/listingPhotoJobs";
 import { supabase } from "../utils/supabaseClient";
 import {
   getGenerationReservationParams,
@@ -959,6 +960,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
   }
+  // Admission is independent of the text prompt and does not wait for images.
+  const photoAdmission =
+    req.body?.modelPhotosEligible === false ||
+    typeof req.body?.modelPhotoSourceKey !== "string"
+      ? Promise.resolve(undefined)
+      : startListingPhotos(
+          user.id,
+          generationReservationId || "",
+          imageUrls,
+          req.body?.modelPhotoSourceKey,
+        );
   if (shouldStoreDebugGenerationImages()) {
     try {
       const debugImages = await storeDebugGenerationImages(imageUrls);
@@ -1235,11 +1247,13 @@ Reply only in JSON: {"title":"...","description":"..."}
     };
     const messages = messagesMap[descriptionLanguageCodeStr] || messagesEn;
     const isClothing = isClothingItem(title, finalDescription);
+    const modelPhotos = await photoAdmission;
     const measurementAdvice = getMeasurementAdvice(isClothing, messages);
 
     const mobileResponse = {
       title,
       description: finalDescription,
+      ...(modelPhotos ? { modelPhotos } : {}),
       measurementAdvice,
       offers: undefined as unknown,
     };
@@ -1378,6 +1392,7 @@ Reply only in JSON: {"title":"...","description":"..."}
       const responseBody = {
         title,
         description: finalDescription,
+        ...(modelPhotos ? { modelPhotos } : {}),
         measurementAdvice,
         offers,
       };
@@ -1435,6 +1450,7 @@ Reply only in JSON: {"title":"...","description":"..."}
       return res.status(200).json({
         title,
         description: finalDescription,
+        ...(modelPhotos ? { modelPhotos } : {}),
         measurementAdvice,
         offers,
       });

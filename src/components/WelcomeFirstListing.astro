@@ -1,0 +1,132 @@
+---
+import {ImagePlus,ChevronDown,WandSparkles} from "@lucide/astro";
+const {locale="en"}=Astro.props;
+const copy:Record<string,string[]>={
+  "en": [
+    "Your first listing",
+    "On the Vinted listing page",
+    "Add your item photos",
+    "Use Upload photos in Vinted, or send them from your phone or computer with AutoLister.",
+    "Add photos",
+    "Phone or computer",
+    "Create your listing",
+    "Click Generate, then review your title and description.",
+    "Generate",
+    "A brief, optional tour is available on your first listing."
+  ],
+  "nl": [
+    "Je eerste advertentie",
+    "Op de advertentiepagina van Vinted",
+    "Voeg je artikelfoto’s toe",
+    "Gebruik Upload photos in Vinted of verstuur ze vanaf je telefoon of computer met AutoLister.",
+    "Foto’s toevoegen",
+    "Telefoon of computer",
+    "Maak je advertentie",
+    "Klik op Genereren en controleer je titel en beschrijving.",
+    "Genereren",
+    "Bij je eerste advertentie is een korte, optionele rondleiding beschikbaar."
+  ],
+  "fr": [
+    "Votre première annonce",
+    "Sur la page de création d’annonce Vinted",
+    "Ajoutez les photos de l’article",
+    "Utilisez l’ajout de photos de Vinted ou envoyez-les depuis votre téléphone ou ordinateur avec AutoLister.",
+    "Ajouter des photos",
+    "Téléphone ou ordinateur",
+    "Créez votre annonce",
+    "Cliquez sur Générer, puis vérifiez le titre et la description.",
+    "Générer",
+    "Une courte visite facultative est disponible pour votre première annonce."
+  ],
+  "de": [
+    "Dein erstes Inserat",
+    "Auf der Vinted-Seite zum Erstellen eines Inserats",
+    "Füge deine Artikelfotos hinzu",
+    "Lade Fotos direkt bei Vinted hoch oder sende sie mit AutoLister vom Handy oder Computer.",
+    "Fotos hinzufügen",
+    "Handy oder Computer",
+    "Erstelle dein Inserat",
+    "Klicke auf Generieren und prüfe Titel und Beschreibung.",
+    "Generieren",
+    "Beim ersten Inserat steht eine kurze, freiwillige Einführung bereit."
+  ],
+  "es": [
+    "Tu primer anuncio",
+    "En la página para crear anuncios de Vinted",
+    "Añade las fotos del artículo",
+    "Sube fotos directamente a Vinted o envíalas desde el móvil u ordenador con AutoLister.",
+    "Añadir fotos",
+    "Móvil u ordenador",
+    "Crea tu anuncio",
+    "Haz clic en Generar y revisa el título y la descripción.",
+    "Generar",
+    "Tendrás una guía breve y opcional en tu primer anuncio."
+  ],
+  "it": [
+    "Il tuo primo annuncio",
+    "Nella pagina di creazione annunci di Vinted",
+    "Aggiungi le foto dell’articolo",
+    "Carica le foto su Vinted o inviale dal telefono o dal computer con AutoLister.",
+    "Aggiungi foto",
+    "Telefono o computer",
+    "Crea il tuo annuncio",
+    "Fai clic su Genera, poi controlla titolo e descrizione.",
+    "Genera",
+    "Al primo annuncio è disponibile una breve guida facoltativa."
+  ],
+  "pl": [
+    "Twoje pierwsze ogłoszenie",
+    "Na stronie tworzenia ogłoszenia w Vinted",
+    "Dodaj zdjęcia przedmiotu",
+    "Prześlij zdjęcia w Vinted lub wyślij je z telefonu albo komputera przez AutoLister.",
+    "Dodaj zdjęcia",
+    "Telefon lub komputer",
+    "Utwórz ogłoszenie",
+    "Kliknij Generuj, a następnie sprawdź tytuł i opis.",
+    "Generuj",
+    "Przy pierwszym ogłoszeniu dostępny jest krótki, opcjonalny przewodnik."
+  ],
+  "pt": [
+    "O teu primeiro anúncio",
+    "Na página de criação de anúncios do Vinted",
+    "Adiciona as fotos do artigo",
+    "Carrega fotos no Vinted ou envia-as do telemóvel ou computador com o AutoLister.",
+    "Adicionar fotos",
+    "Telemóvel ou computador",
+    "Cria o teu anúncio",
+    "Clica em Gerar e revê o título e a descrição.",
+    "Gerar",
+    "No primeiro anúncio tens um guia breve e opcional."
+  ]
+};
+const c=copy[locale]||copy.en;
+---
+<section class="first-listing" aria-labelledby="first-listing-title">
+ <h2 id="first-listing-title">{c[0]}</h2>
+ <p class="location">{c[1]}</p>
+ <div class="steps">
+  <div><h3>1. {c[2]}</h3><p>{c[3]}</p>
+   <span class="example" aria-hidden="true"><ImagePlus size={16}/><span><strong>{c[4]}</strong><small>{c[5]}</small></span><ChevronDown size={16}/></span>
+  </div>
+  <div><h3>2. {c[6]}</h3><p>{c[7]}</p>
+   <span class="example generate" aria-hidden="true"><WandSparkles size={18}/>{c[8]}</span>
+  </div>
+ </div>
+ <p class="tour-note">{c[9]}</p>
+</section>
+<style>
+.first-listing{width:100%;max-width:896px;background:white;border:1px solid #dce0e8;border-radius:14px;padding:28px;margin:0 auto 28px;color:#283044;text-align:left}
+h2{font-size:22px;line-height:1.3;letter-spacing:-.4px;font-weight:650;margin:0 0 10px}
+p{font-size:14px;line-height:1.55;color:#647084;margin:0 0 16px}
+.location{font-size:13px;margin-bottom:24px}
+.steps{display:grid;grid-template-columns:1.4fr 1fr;gap:32px}
+.steps>div{display:flex;flex-direction:column;align-items:flex-start}
+.steps>div+div{border-left:1px solid #e8eaf0;padding-left:28px}
+h3{font-size:16px;font-weight:600;margin:0 0 8px}
+.example{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;border:1px solid #cbcfe0;background:#fafaff;border-radius:7px;padding:0 12px;font-size:13px;color:#283044;font-weight:500;line-height:1.4;margin-top:auto}
+.example>span{display:flex;flex-direction:column}
+.example strong{font-size:13px;font-weight:550}.example small{font-size:12px;color:#647084;font-weight:400}
+.generate{background:#5143df;border-color:#5143df;color:white;padding:0 22px;font-weight:600}
+.tour-note{font-size:13px;border-top:1px solid #e8eaf0;padding-top:18px;margin:22px 0 0}
+@media(max-width:640px){.first-listing{padding:22px;margin-bottom:24px}.steps{grid-template-columns:1fr;gap:24px}.steps>div+div{border-left:0;padding-left:0;border-top:1px solid #e8eaf0;padding-top:22px}}
+</style>

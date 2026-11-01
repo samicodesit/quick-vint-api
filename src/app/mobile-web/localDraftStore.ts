@@ -7,6 +7,9 @@ import {
   type DraftLibrary,
   type DraftPhoto,
   validDraftId,
+  sourcePhotos,
+  sourcePhotoSignature,
+  type DraftModelPhotos,
 } from "./draftContracts";
 import type {
   MobileGenerationInput,
@@ -511,6 +514,16 @@ export class LocalDraftStore {
               "photo_not_found",
               "One of these photos is no longer available.",
             );
+          if (
+            photos.some(
+              (p) => p?.origin === "model" && p.draft_id !== row.id,
+            ) ||
+            sourcePhotos(photos as DraftPhoto[]).length > DRAFT_LIMITS.photos
+          )
+            throw localDraftError(
+              "photo_limit",
+              "Choose this item's original photos.",
+            );
           const sources = new Set(
             photos.map((p) => p!.draft_id).filter((id) => id && id !== row.id),
           );
@@ -524,6 +537,13 @@ export class LocalDraftStore {
           }
           for (const p of data.photos.values())
             if (p.draft_id === row.id && !ids.includes(p.id)) {
+              if (p.origin === "model") {
+                data.tx.objectStore("photos").delete(p.id);
+                data.tx.objectStore("blobs").delete(p.id);
+                data.photos.delete(p.id);
+                removed.push(p.id);
+                continue;
+              }
               p.draft_id = null;
               this.putPhoto(data, p);
             }
@@ -610,7 +630,7 @@ export class LocalDraftStore {
           const photos = [...data.photos.values()].filter(
             (p) => p.draft_id === row.id,
           );
-          if (photos.length >= DRAFT_LIMITS.photos)
+          if (sourcePhotos(photos).length >= DRAFT_LIMITS.photos)
             throw localDraftError(
               "photo_limit",
               "One item can have up to 10 photos.",
@@ -739,7 +759,11 @@ export class LocalDraftStore {
         }
         editable(row);
         if (row.input_version !== attempt.inputVersion) throw conflict();
-        if (![...data.photos.values()].some((p) => p.draft_id === draftId))
+        if (
+          ![...data.photos.values()].some(
+            (p) => p.draft_id === draftId && p.origin !== "model",
+          )
+        )
           throw localDraftError(
             "photos_not_ready",
             "Add a photo before generating.",
@@ -803,13 +827,127 @@ export class LocalDraftStore {
             );
           row.title = result.title;
           row.description = result.description;
+          if (result.modelPhotos) {
+            const signature = sourcePhotoSignature(
+              [...data.photos.values()].filter((p) => p.draft_id === draftId),
+            );
+            if (
+              row.modelPhotos?.jobId !== result.modelPhotos.jobId ||
+              row.modelPhotos.sourceSignature !== signature
+            )
+              row.modelPhotos = {
+                ...result.modelPhotos,
+                sourceSignature: signature,
+              };
+          }
         }
         row.operation_state = state;
         this.saveRow(data, row);
         if (state !== "pending")
           data.tx.objectStore("attempts").delete(draftId);
       },
+      { draftIds: [draftId], itemPhotos: draftId },
+    );
+  }
+  async updateModelPhotos(
+    draftId: string,
+    jobId: string,
+    patch: Partial<DraftModelPhotos>,
+  ) {
+    await this.transact(
+      "readwrite",
+      (data) => {
+        const row = this.row(data, draftId);
+        if (row.modelPhotos?.jobId !== jobId || row.state !== "draft") return;
+        // Progress is independent of text revisions and must not conflict with typing.
+        row.modelPhotos = {
+          ...row.modelPhotos,
+          status: patch.status || row.modelPhotos.status,
+          ...(patch.eligible !== undefined ? { eligible: patch.eligible } : {}),
+          ...(patch.canRetry !== undefined ? { canRetry: patch.canRetry } : {}),
+        };
+        data.tx.objectStore("drafts").put(row);
+      },
       { draftIds: [draftId], noPhotos: true },
+    );
+  }
+  async attachModelPhotos(draftId: string, jobId: string, images: Blob[]) {
+    if (
+      images.length !== 2 ||
+      images.some(
+        (b) =>
+          b.type !== "image/jpeg" ||
+          !b.size ||
+          b.size > DRAFT_LIMITS.uploadBytes,
+      )
+    )
+      throw localDraftError(
+        "invalid_model_photos",
+        "Couldn’t add model photos.",
+      );
+    await this.transact(
+      "readwrite",
+      (data) => {
+        const row = this.row(data, draftId);
+        if (row.modelPhotos?.jobId !== jobId || row.state !== "draft")
+          throw localDraftError("photo_source_changed", "This item changed.");
+        if (row.modelPhotos.attached) return;
+        const existing = [...data.photos.values()].filter(
+          (p) => p.draft_id === draftId,
+        );
+        if (sourcePhotoSignature(existing) !== row.modelPhotos.sourceSignature)
+          throw localDraftError(
+            "photo_source_changed",
+            "This item's photos changed.",
+          );
+        const total = [...data.photos.values()]
+          .filter((p) => !(p.draft_id === draftId && p.origin === "model"))
+          .reduce((sum, p) => sum + p.bytes + (p.original_bytes || 0), 0);
+        if (
+          total + images.reduce((sum, b) => sum + b.size, 0) >
+          DRAFT_LIMITS.storageBytes
+        )
+          throw localDraftError(
+            "storage_limit",
+            "This browser's storage is full.",
+          );
+        existing
+          .filter((p) => p.origin === "model")
+          .forEach((p) => {
+            data.tx.objectStore("photos").delete(p.id);
+            data.tx.objectStore("blobs").delete(p.id);
+          });
+        sourcePhotos(existing)
+          .sort((a, b) => a.position - b.position)
+          .forEach((p, i) => {
+            p.position = i + 2;
+            this.putPhoto(data, p);
+          });
+        images.forEach((blob, position) => {
+          const photo: DraftPhoto = {
+            id: crypto.randomUUID(),
+            import_id: jobId,
+            draft_id: draftId,
+            position,
+            bytes: blob.size,
+            status: "ready",
+            origin: "model",
+            modelJobId: jobId,
+            modelSlot: position === 0 ? "primary" : "secondary",
+            created_at: new Date().toISOString(),
+          };
+          this.putPhoto(data, photo);
+          data.tx.objectStore("blobs").put({ id: photo.id, blob });
+        });
+        row.modelPhotos = {
+          ...row.modelPhotos,
+          status: "attached",
+          attached: true,
+        };
+        // No text or input revision changes: source images and editable text are untouched.
+        data.tx.objectStore("drafts").put(row);
+      },
+      { draftIds: [draftId] },
     );
   }
   dispose() {

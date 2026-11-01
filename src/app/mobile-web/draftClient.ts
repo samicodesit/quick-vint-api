@@ -2,6 +2,8 @@ import { fetchMobileJson } from "./api";
 import { getBrowserSession } from "./auth";
 import {
   permittedDraftSettings,
+  sourcePhotos,
+  sourcePhotoSignature,
   type Draft,
   type DraftSettingsAccess,
 } from "./draftContracts";
@@ -43,8 +45,195 @@ export function createDraftClient(userId: string) {
   const active = new Map<string, Promise<unknown>>();
   const results = new Map<string, MobileGenerationResult>();
   let disposed = false;
+  const photoTasks = new Map<string, Promise<void>>();
+  const photoListeners = new Set<() => void>();
+  const notifyPhotos = () => photoListeners.forEach((listener) => listener());
+  const photoRequest = (id: string, action?: string) =>
+    fetchMobileJson<any>(
+      action
+        ? "/api/listing-model-photos"
+        : `/api/listing-model-photos?id=${encodeURIComponent(id)}`,
+      {
+        method: action ? "POST" : "GET",
+        signal: controller.signal,
+        ...(action
+          ? {
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id, action }),
+            }
+          : {}),
+      },
+      { expectedUserId: userId },
+    );
+  async function pollPhotos(draftId: string) {
+    let failures = 0;
+    const started = Date.now();
+    while (!disposed && Date.now() - started < 15 * 60 * 1000) {
+      const draft: Draft = await store.action("detail", { draftId });
+      const job = draft.modelPhotos;
+      if (
+        !job ||
+        job.attached ||
+        [
+          "attached",
+          "skipped",
+          "cancelled",
+          "failed",
+          "attachment_failed",
+          "connection_failed",
+        ].includes(job.status) ||
+        draft.state !== "draft"
+      )
+        return;
+      if (sourcePhotoSignature(draft.photos) !== job.sourceSignature) {
+        await store.updateModelPhotos(draftId, job.jobId, {
+          status: "cancelled",
+        });
+        notifyPhotos();
+        return;
+      }
+      try {
+        const state = await photoRequest(job.jobId);
+        failures = 0;
+        if (disposed) return;
+        if (state.status === "ready") {
+          await store.updateModelPhotos(draftId, job.jobId, {
+            status: "adding",
+            eligible: true,
+          });
+          notifyPhotos();
+          try {
+            if (!Array.isArray(state.photos) || state.photos.length !== 2)
+              throw new Error("invalid_photo_pair");
+            const photos = await Promise.all(
+              state.photos.map(async (photo: any) => {
+                const url = new URL(photo.url);
+                if (url.protocol !== "https:")
+                  throw new Error("invalid_photo_url");
+                const response = await fetch(url, {
+                  signal: controller.signal,
+                });
+                if (!response.ok) throw new Error("photo_download_failed");
+                const blob = await response.blob();
+                if (blob.size > 4 * 1024 * 1024)
+                  throw new Error("photo_too_large");
+                return blob;
+              }),
+            );
+            if ((await getBrowserSession())?.user.id !== userId || disposed)
+              return;
+            // Recheck the server-side enable/ownership fence after downloading.
+            if (disposed) return;
+            if ((await photoRequest(job.jobId)).status !== "ready") {
+              await store.updateModelPhotos(draftId, job.jobId, {
+                status: "cancelled",
+              });
+              notifyPhotos();
+              return;
+            }
+            await store.attachModelPhotos(draftId, job.jobId, photos);
+            void photoRequest(job.jobId, "attached").catch(() => {});
+          } catch (error: any) {
+            if (disposed) return;
+            if (
+              ![401, 403, 404].includes(error?.status) &&
+              error?.code !== "photo_source_changed"
+            )
+              void photoRequest(job.jobId, "attachment_failed").catch(() => {});
+            await store.updateModelPhotos(draftId, job.jobId, {
+              status:
+                error?.code === "photo_source_changed" ||
+                [401, 403, 404].includes(error?.status)
+                  ? "cancelled"
+                  : "attachment_failed",
+              canRetry: true,
+            });
+          }
+          notifyPhotos();
+          return;
+        }
+        if (
+          job.status !== state.status ||
+          job.eligible !== state.eligible ||
+          job.canRetry !== state.canRetry
+        ) {
+          await store.updateModelPhotos(draftId, job.jobId, {
+            status: state.status,
+            eligible: state.eligible,
+            canRetry: state.canRetry,
+          });
+          notifyPhotos();
+        }
+        if (["skipped", "failed", "cancelled"].includes(state.status)) return;
+        // A durable queued job may need resuming after a server interruption.
+        await photoRequest(job.jobId, "resume");
+      } catch (error: any) {
+        if (disposed) return;
+        if ([401, 403, 404].includes(error?.status)) {
+          await store.updateModelPhotos(draftId, job.jobId, {
+            status: "cancelled",
+          });
+          notifyPhotos();
+          return;
+        }
+        if (++failures >= 3) {
+          await store.updateModelPhotos(draftId, job.jobId, {
+            status: "connection_failed",
+            canRetry: true,
+          });
+          notifyPhotos();
+          return;
+        }
+      }
+      await new Promise<void>((resolve) => {
+        const done = () => {
+          clearTimeout(timer);
+          controller.signal.removeEventListener("abort", done);
+          resolve();
+        };
+        const timer = setTimeout(done, 2000);
+        controller.signal.addEventListener("abort", done, { once: true });
+        if (controller.signal.aborted) done();
+      });
+    }
+    if (!disposed) {
+      const draft = await store.action("detail", { draftId });
+      if (draft.modelPhotos)
+        await store.updateModelPhotos(draftId, draft.modelPhotos.jobId, {
+          status: "connection_failed",
+          canRetry: true,
+        });
+      notifyPhotos();
+    }
+  }
+  function watchPhotos(draft: Draft) {
+    if (
+      disposed ||
+      !draft.modelPhotos ||
+      draft.modelPhotos.attached ||
+      photoTasks.has(draft.id) ||
+      [
+        "skipped",
+        "cancelled",
+        "failed",
+        "attachment_failed",
+        "connection_failed",
+      ].includes(draft.modelPhotos.status)
+    )
+      return;
+    const work = pollPhotos(draft.id)
+      .catch(() => {})
+      .finally(() => photoTasks.delete(draft.id));
+    photoTasks.set(draft.id, work);
+  }
   async function cleanup(attempt: LocalDraftAttempt) {
     if (!attempt.upload) return;
+    // Source snapshots may still be copying while text finishes. The existing
+    // upload-session TTL cleans these sources safely after the photo worker.
+    const draft = await store
+      .action("detail", { draftId: attempt.draftId })
+      .catch(() => null);
+    if (draft?.modelPhotos) return;
     const session = await getBrowserSession().catch(() => null);
     if (session?.user.id !== userId) return;
     await cleanupUploadSession(
@@ -149,7 +338,7 @@ export function createDraftClient(userId: string) {
       };
       await store.updateAttempt(saved);
       const blobs = await store.photoFiles(
-        current.photos.map((photo) => photo.id),
+        sourcePhotos(current.photos).map((photo) => photo.id),
       );
       const files = blobs.map(
         (blob, index) =>
@@ -163,6 +352,12 @@ export function createDraftClient(userId: string) {
       const settings = permittedDraftSettings(current.settings, access);
       saved.input = {
         imageUrls,
+        modelPhotoSourceKey: sourcePhotoSignature(current.photos),
+        modelPhotosEligible: !(
+          current.modelPhotos?.attached &&
+          current.modelPhotos.sourceSignature ===
+            sourcePhotoSignature(current.photos)
+        ),
         titleLanguageCode: settings.titleLanguageCode,
         descriptionLanguageCode: settings.descriptionLanguageCode,
         descriptionLength: settings.descriptionLength,
@@ -191,6 +386,7 @@ export function createDraftClient(userId: string) {
         result,
       );
       results.delete(current.id);
+      watchPhotos(await store.action("detail", { draftId: current.id }));
       void cleanup(saved);
       return result;
     } catch (error) {
@@ -219,8 +415,28 @@ export function createDraftClient(userId: string) {
       (action === "recover"
         ? recover(String(input.draftId))
         : store.action(action, input)) as Promise<T>,
-    listDrafts: (state: "draft" | "done" = "draft", cursor?: string) =>
-      store.list(state, cursor),
+    listDrafts: async (state: "draft" | "done" = "draft", cursor?: string) => {
+      const library = await store.list(state, cursor);
+      if (state === "draft") library.drafts.forEach(watchPhotos);
+      return library;
+    },
+    onModelPhotosChange: (callback: () => void) => {
+      photoListeners.add(callback);
+      return () => photoListeners.delete(callback);
+    },
+    retryModelPhotos: async (draftId: string) => {
+      await photoTasks.get(draftId);
+      const draft = await store.action("detail", { draftId });
+      const job = draft.modelPhotos;
+      if (!job) return;
+      if (job.status === "failed") await photoRequest(job.jobId, "retry");
+      await store.updateModelPhotos(draftId, job.jobId, {
+        status: "queued",
+        canRetry: false,
+      });
+      watchPhotos(await store.action("detail", { draftId }));
+      notifyPhotos();
+    },
     uploadDraftPhoto: (
       file: File,
       input: { photoId: string; importId: string; draftId?: string },
@@ -248,6 +464,7 @@ export function createDraftClient(userId: string) {
     dispose: () => {
       disposed = true;
       controller.abort();
+      photoListeners.clear();
       store.dispose();
       results.clear();
     },

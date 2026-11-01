@@ -1,6 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase } from "../../utils/supabaseClient";
 import {
+  recoverListingPhotos,
+  cleanListingPhotos,
+  listingPhotosEnabled,
+} from "../../utils/listingPhotoJobs";
+import {
   processUserModel,
   cleanUserModelObjects,
 } from "../../utils/userModels";
@@ -30,6 +35,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         throw new Error("model_recovery_failed");
       recovered = outcomes.length;
     }
+    if (listingPhotosEnabled()) {
+      await recoverListingPhotos();
+    }
+    await cleanListingPhotos();
     return res.json({ recovered, cleaned: await cleanUserModelObjects() });
   } catch {
     return res

@@ -10,6 +10,7 @@ import {
   normalizeDraftSettings,
   permittedDraftSettings,
   validateDraftSettings,
+  sourcePhotos,
 } from "./draftContracts";
 import {
   batchInheritingItems,
@@ -55,6 +56,25 @@ export function mountDraftWorkspace(
   },
 ) {
   const client = createDraftClient(options.userId);
+  const photoUI = () => (window as any).AutoListerPhotoUI;
+  client.onModelPhotosChange(() => {
+    void (async () => {
+      if (disposed) return;
+      if (selected) {
+        const latest = await client
+          .draftAction("detail", { draftId: selected.value.id })
+          .catch(() => null);
+        if (latest && !disposed && selected?.value.id === latest.id) {
+          // Update only independent photo state. Never replace text being typed.
+          selected.value.modelPhotos = latest.modelPhotos;
+          selected.value.photos = latest.photos;
+          upsert(latest);
+          renderEditor();
+        }
+      }
+      if (!disposed) await reload();
+    })().catch(() => {});
+  });
   const { draftAction, executeDraftAttempt, listDrafts, uploadDraftPhoto } =
     client;
   const find = <T extends HTMLElement = HTMLElement>(selector: string) =>
@@ -702,7 +722,7 @@ export function mountDraftWorkspace(
   });
   const photoCount = (draft: Draft) =>
     new Set([
-      ...draft.photos.map((p) => p.id),
+      ...sourcePhotos(draft.photos).map((p) => p.id),
       ...uploads.filter((p) => p.draftId === draft.id).map((p) => p.id),
     ]).size;
   const busy = (draft?: Draft) =>
@@ -906,7 +926,10 @@ export function mountDraftWorkspace(
                     draft.operation_state === "pending"
                   ? "Check result"
                   : draft.description
-                    ? "Ready to copy"
+                    ? draft.modelPhotos?.eligible &&
+                      photoUI()?.statusKey(draft.modelPhotos)
+                      ? photoUI().text(photoUI().statusKey(draft.modelPhotos))
+                      : "Ready to copy"
                     : draft.photos.length
                       ? `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Uploading"}`
                       : "No photos yet";
@@ -1171,9 +1194,12 @@ export function mountDraftWorkspace(
             : "Waiting"
           : busy(draft)
             ? "Preparing…"
-            : draft.description
-              ? "Ready to copy"
-              : `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${sameSettings(draft.settings, defaultSettings) ? "Uses batch settings" : "Custom settings"}`;
+            : draft.modelPhotos?.eligible &&
+                photoUI()?.statusKey(draft.modelPhotos)
+              ? photoUI().text(photoUI().statusKey(draft.modelPhotos))
+              : draft.description
+                ? "Ready to copy"
+                : `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${sameSettings(draft.settings, defaultSettings) ? "Uses batch settings" : "Custom settings"}`;
       statusLabel(
         status,
         status.textContent || "",
@@ -1830,11 +1856,13 @@ export function mountDraftWorkspace(
     hide("[data-draft-conflict]", !conflict);
     const rail = find("[data-draft-item-photos]");
     const targets = library.drafts.filter(
-      (d) => d.id !== draft.id && !busy(d) && d.photos.length < 10,
+      (d) =>
+        d.id !== draft.id && !busy(d) && sourcePhotos(d.photos).length < 10,
     );
     const signature = JSON.stringify([
       draft.id,
       draft.photos,
+      draft.modelPhotos,
       locked,
       uploads
         .filter((p) => p.draftId === draft.id)
@@ -1849,6 +1877,13 @@ export function mountDraftWorkspace(
     const restoreFocus = preserveFocus(rail);
     closeContainedPopovers(rail);
     rail.replaceChildren();
+    if (draft.modelPhotos && draft.state === "draft" && photoUI()) {
+      const progress = document.createElement("div");
+      photoUI().render(progress, draft.modelPhotos, () =>
+        client.retryModelPhotos(draft.id),
+      );
+      rail.append(progress);
+    }
     for (const photo of draft.photos) {
       if (uploads.some((p) => p.id === photo.id)) continue;
       const wrap = thumbnail(photo, false);
@@ -1973,15 +2008,18 @@ export function mountDraftWorkspace(
               ),
             ),
           );
-        controls.append(
-          button("Ungroup", () =>
-            run(() =>
-              regroup(
-                draft.photos.filter((p) => p.id !== photo.id).map((p) => p.id),
+        if (photo.origin !== "model")
+          controls.append(
+            button("Ungroup", () =>
+              run(() =>
+                regroup(
+                  draft.photos
+                    .filter((p) => p.id !== photo.id)
+                    .map((p) => p.id),
+                ),
               ),
             ),
-          ),
-        );
+          );
         controls.append(
           button("Delete photo", () =>
             run(async () => {
@@ -1999,7 +2037,7 @@ export function mountDraftWorkspace(
             }),
           ),
         );
-        if (targets.length) {
+        if (targets.length && photo.origin !== "model") {
           const move = document.createElement("select");
           move.setAttribute("aria-label", "Move photo to another item");
           move.append(new Option("Move to item…", ""));
@@ -2466,11 +2504,28 @@ export function mountDraftWorkspace(
       else sessionStorage.removeItem(queueKey);
     } catch {}
     updateQueueVisibility();
-    const queueTitle = queue.running
-      ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
-      : queue.remaining.length
-        ? `Paused · ${queue.completed.length} of ${generationCount} ready`
-        : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} failed` : ""}`;
+    const photosPending = library.drafts.some(
+      (d) =>
+        queue.completed.includes(d.id) &&
+        d.modelPhotos &&
+        !d.modelPhotos.attached &&
+        ![
+          "skipped",
+          "cancelled",
+          "failed",
+          "attachment_failed",
+          "connection_failed",
+        ].includes(d.modelPhotos.status),
+    );
+    const queueTitle =
+      photosPending && !queue.running && !queue.remaining.length
+        ? photoUI()?.text("Text ready · Model photos pending") ||
+          "Text ready · Model photos pending"
+        : queue.running
+          ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
+          : queue.remaining.length
+            ? `Paused · ${queue.completed.length} of ${generationCount} ready`
+            : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} failed` : ""}`;
     statusLabel(
       find("[data-draft-queue-title]"),
       queueTitle,

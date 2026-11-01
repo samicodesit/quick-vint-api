@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createCompletion = vi.fn();
+const photoAdmission = vi.hoisted(() => vi.fn());
+vi.mock("../../../utils/listingPhotoJobs", () => ({
+  startListingPhotos: photoAdmission,
+}));
 const getUser = vi.fn();
 const profileSingle = vi.fn();
 const logRequest = vi.fn();
@@ -168,6 +172,32 @@ const body = {
 };
 
 describe("mobile web generation idempotency", () => {
+  it("returns photo job identity with text without waiting for photo generation", async () => {
+    photoAdmission.mockResolvedValueOnce({
+      jobId: requestId,
+      status: "queued",
+    });
+    const module = await import("../../../api/generate.js");
+    const res = createResponse();
+    await (module as any).default(
+      {
+        method: "POST",
+        headers: mobileHeaders,
+        body: { ...body, modelPhotoSourceKey: "original-photo-revision" },
+      } as any,
+      res as any,
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.modelPhotos).toEqual({
+      jobId: requestId,
+      status: "queued",
+    });
+    expect(res.body.title).toBeTruthy();
+    expect(
+      completeMobileGenerationIdempotency.mock.calls[0][0].response.modelPhotos
+        .jobId,
+    ).toBe(requestId);
+  });
   it("refunds instead of committing when the draft is deleted while the provider runs", async () => {
     prepareDraftGeneration.mockResolvedValue({
       body,

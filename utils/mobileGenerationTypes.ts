@@ -4,6 +4,8 @@ export type MobileGenerationMode = "manual" | "phone_upload" | "batch";
 
 export type MobileGenerationRequestBody = {
   imageUrls: string[];
+  modelPhotoSourceKey?: string;
+  modelPhotosEligible?: boolean;
   languageCode?: string;
   titleLanguageCode?: string;
   descriptionLanguageCode?: string;
@@ -18,6 +20,7 @@ export type MobileGenerationRequestBody = {
 };
 
 export type MobileGenerationResponse = {
+  modelPhotos?: { jobId: string; status: string };
   title: string;
   description: string;
   measurementAdvice?: unknown;

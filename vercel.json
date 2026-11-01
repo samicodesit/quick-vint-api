@@ -37,6 +37,8 @@
   ],
   "regions": ["fra1"],
   "functions": {
+    "api/generate.ts": { "maxDuration": 180 },
+    "api/listing-model-photos.ts": { "maxDuration": 180 },
     "api/user/model.ts": { "maxDuration": 180 },
     "api/cron/user-models.ts": { "maxDuration": 180 }
   },

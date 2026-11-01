@@ -95,6 +95,8 @@ export function normalizeMobileGenerationRequest(
     descriptionLength: body.descriptionLength,
     descriptionFooterText: body.descriptionFooterText,
     generationMode: body.generationMode,
+    modelPhotoSourceKey: body.modelPhotoSourceKey,
+    modelPhotosEligible: body.modelPhotosEligible,
   };
   const canonical = normalizeValue({
     ...normalizedFields,
@@ -134,6 +136,17 @@ export function validateStoredResponse(
   }
   if (Object.prototype.hasOwnProperty.call(response, "offers")) {
     boundedResponse.offers = response.offers;
+  }
+  if (
+    response.modelPhotos &&
+    typeof response.modelPhotos.jobId === "string" &&
+    /^[0-9a-f-]{36}$/i.test(response.modelPhotos.jobId) &&
+    typeof response.modelPhotos.status === "string"
+  ) {
+    boundedResponse.modelPhotos = {
+      jobId: response.modelPhotos.jobId,
+      status: response.modelPhotos.status.slice(0, 30),
+    };
   }
 
   let serialized: string;

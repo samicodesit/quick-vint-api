@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { waitUntil } from "@vercel/functions";
+import { warmRearModel } from "../../utils/listingPhotoJobs";
 import { supabase } from "../../utils/supabaseClient";
 import {
   isAllowedAppOrigin,
@@ -126,6 +127,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     const state = await getUserModel(user.id);
+    if (
+      req.method === "PATCH" &&
+      req.body?.enabled === true &&
+      state.enabled &&
+      state.model?.state === "ready"
+    )
+      warmRearModel(user.id);
     const operationId = job?.operation_id || state.model?.operationId;
     if (
       operationId &&

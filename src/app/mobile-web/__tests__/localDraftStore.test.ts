@@ -27,6 +27,83 @@ const photo = async (draftId?: string) => {
   });
 };
 
+it("attaches a generated pair atomically before ten originals and never reattaches a removed model photo", async () => {
+  let draft = await create();
+  for (let n = 0; n < 10; n++) await photo(draft.id);
+  draft = await first.action("detail", { draftId: draft.id });
+  const operationId = id(),
+    jobId = id();
+  await first.beginAttempt(
+    draft.id,
+    { operationId, inputVersion: draft.input_version },
+    false,
+  );
+  await first.finishAttempt(draft.id, operationId, "succeeded", {
+    title: "Saved text",
+    description: "Saved description",
+    modelPhotos: { jobId, status: "queued" },
+  } as any);
+  await first.attachModelPhotos(draft.id, jobId, [jpeg(), jpeg()]);
+  draft = await first.action("detail", { draftId: draft.id });
+  expect(draft.photos).toHaveLength(12);
+  expect(draft.photos.slice(0, 2).every((p) => p.origin === "model")).toBe(
+    true,
+  );
+  expect(draft.title).toBe("Saved text");
+  await first.action("removePhoto", { photoId: draft.photos[0].id });
+  await first.attachModelPhotos(draft.id, jobId, [jpeg(), jpeg()]);
+  expect(
+    (await first.action("detail", { draftId: draft.id })).photos,
+  ).toHaveLength(11);
+});
+it("rejects stale photo attachments and never moves generated photos into the source pool", async () => {
+  let draft = await create();
+  await photo(draft.id);
+  draft = await first.action("detail", { draftId: draft.id });
+  const operationId = id(),
+    jobId = id();
+  await first.beginAttempt(
+    draft.id,
+    { operationId, inputVersion: draft.input_version },
+    false,
+  );
+  await first.finishAttempt(draft.id, operationId, "succeeded", {
+    title: "Text",
+    description: "Description",
+    modelPhotos: { jobId, status: "queued" },
+  } as any);
+  await photo(draft.id);
+  await expect(
+    first.attachModelPhotos(draft.id, jobId, [jpeg(), jpeg()]),
+  ).rejects.toMatchObject({ code: "photo_source_changed" });
+  const next = id();
+  draft = await first.action("detail", { draftId: draft.id });
+  await first.beginAttempt(
+    draft.id,
+    { operationId: next, inputVersion: draft.input_version },
+    false,
+  );
+  await first.finishAttempt(draft.id, next, "succeeded", {
+    title: "Text",
+    description: "Description",
+    modelPhotos: { jobId: id(), status: "queued" },
+  } as any);
+  draft = await first.action("detail", { draftId: draft.id });
+  await first.attachModelPhotos(draft.id, draft.modelPhotos!.jobId, [
+    jpeg(),
+    jpeg(),
+  ]);
+  draft = await first.action("detail", { draftId: draft.id });
+  await first.action("group", {
+    draftId: draft.id,
+    expectedVersion: draft.version,
+    photoIds: draft.photos.filter((p) => p.origin !== "model").map((p) => p.id),
+  });
+  expect((await first.list()).imports.some((p) => p.origin === "model")).toBe(
+    false,
+  );
+});
+
 it("edits only one photo and preserves its original, text, order and fresh preview across connections", async () => {
   let draft = await create();
   const a = await photo(draft.id);

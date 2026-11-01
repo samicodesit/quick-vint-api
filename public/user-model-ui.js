@@ -401,10 +401,51 @@
           } finally {
             busy = false;
             input.disabled = false;
+            const add = container.querySelector("[data-add-model-photos]");
+            if (add) add.disabled = !state.enabled;
           }
         });
         toggle.append(input);
         container.append(toggle);
+        if (state.listingPhotosAvailable && options.onAddPhotos) {
+          const add = document.createElement("button");
+          add.type = "button";
+          add.className = "um-primary";
+          add.dataset.addModelPhotos = "true";
+          add.textContent = root.AutoListerPhotoUI.text("Add model photos");
+          add.disabled = !state.enabled;
+          input.addEventListener("change", () => {
+            add.disabled = true;
+          });
+          add.addEventListener("click", async () => {
+            add.disabled = true;
+            try {
+              await options.onAddPhotos();
+            } catch (e) {
+              error(e);
+              add.disabled = !state.enabled;
+            }
+          });
+          container.append(add);
+          const cost = document.createElement("p");
+          cost.className = "um-note";
+          cost.textContent = root.AutoListerPhotoUI.text(
+            "Uses 1 listing from your allowance.",
+          );
+          container.append(cost);
+        }
+        if (
+          state.listingPhotosAvailable &&
+          root.AutoListerPhotoUI &&
+          !options.onAddPhotos
+        ) {
+          const explanation = document.createElement("p");
+          explanation.className = "um-note";
+          explanation.textContent = root.AutoListerPhotoUI.text(
+            "Adds two model photos to eligible listings.",
+          );
+          container.append(explanation);
+        }
       } else if (["queued", "running"].includes(model.state)) {
         const art = document.createElement("div");
         art.className = "um-pending";

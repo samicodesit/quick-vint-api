@@ -26,6 +26,9 @@ export interface DraftSettingsAccess {
   extras: boolean;
 }
 export interface DraftPhoto {
+  origin?: "upload" | "model";
+  modelJobId?: string;
+  modelSlot?: "primary" | "secondary";
   id: string;
   import_id: string;
   draft_id: string | null;
@@ -38,6 +41,7 @@ export interface DraftPhoto {
   created_at: string;
 }
 export interface Draft {
+  modelPhotos?: DraftModelPhotos;
   id: string;
   title: string;
   description: string;
@@ -50,6 +54,22 @@ export interface Draft {
   updated_at: string;
   photos: DraftPhoto[];
 }
+export interface DraftModelPhotos {
+  jobId: string;
+  status: string;
+  sourceSignature: string;
+  eligible?: boolean;
+  canRetry?: boolean;
+  attached?: boolean;
+}
+export const sourcePhotos = (photos: DraftPhoto[]) =>
+  photos.filter((p) => p.origin !== "model");
+export const sourcePhotoSignature = (photos: DraftPhoto[]) =>
+  JSON.stringify(
+    sourcePhotos(photos)
+      .map((p) => `${p.id}:${p.revision || 0}`)
+      .sort(),
+  );
 export interface DraftLibrary {
   drafts: Draft[];
   imports: DraftPhoto[];
@@ -196,7 +216,8 @@ export function validateDraftAction(
   if (
     input.photoIds !== undefined &&
     (!Array.isArray(input.photoIds) ||
-      input.photoIds.length > DRAFT_LIMITS.photos ||
+      input.photoIds.length >
+        DRAFT_LIMITS.photos + (action === "group" ? 2 : 0) ||
       !input.photoIds.every(validDraftId) ||
       new Set(input.photoIds).size !== input.photoIds.length)
   )

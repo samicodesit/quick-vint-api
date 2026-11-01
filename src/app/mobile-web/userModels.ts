@@ -35,6 +35,22 @@ export function mountUserModels(
     root
       .querySelectorAll<HTMLElement>("[data-user-model-open]")
       .forEach((button) => {
+        if (button.hasAttribute("data-model-compact")) {
+          const ui = window.AutoListerModelUI!;
+          button.innerHTML =
+            ui.mirrorIcon +
+            "<span>" +
+            ui.t("Your model") +
+            "</span>" +
+            (!interacted.has(owner) &&
+            !localStorage.getItem("autolister.model-toolbar.seen." + owner)
+              ? '<span class="um-entry-new">' + ui.t("New") + "</span>"
+              : "");
+          button.setAttribute("aria-label", ui.t("Your model"));
+          button.title = ui.t("Your model");
+          button.hidden = false;
+          return;
+        }
         window.AutoListerModelUI!.entry(
           button,
           state,
@@ -47,6 +63,10 @@ export function mountUserModels(
   function acknowledge(owner: string) {
     if (interacted.has(owner)) return;
     interacted.add(owner);
+    localStorage.setItem("autolister.model-toolbar.seen." + owner, "1");
+    root
+      .querySelectorAll(".um-toolbar-entry .um-entry-new")
+      .forEach((badge) => badge.remove());
     root.querySelectorAll(".um-discover").forEach((button) => {
       button.classList.remove("um-discover");
       button.querySelector(".um-entry-new")?.remove();

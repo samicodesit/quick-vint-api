@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { warmRearModel, listingPhotosEnabled } from "./listingPhotoJobs";
 import { supabase } from "./supabaseClient";
 import {
   MODEL_CATALOG_VERSION,
@@ -89,6 +90,7 @@ export async function getUserModel(user: string) {
     imageUrl = data.signedUrl;
   }
   return {
+    listingPhotosAvailable: listingPhotosEnabled(),
     invitationState: result.invitationState,
     enabled: result.enabled,
     model: row
@@ -114,13 +116,14 @@ export async function getUserModel(user: string) {
       : null,
   };
 }
-export function processUserModel(user: string, operationId: string) {
-  return runModelOperation(user, operationId, {
+export async function processUserModel(user: string, operationId: string) {
+  await runModelOperation(user, operationId, {
     mutate: modelMutate,
     generate: generateModelImage,
     check: checkModelImage,
     upload: uploadModelImage,
   });
+  warmRearModel(user);
 }
 export async function cleanUserModelObjects() {
   const { data, error } = await supabase

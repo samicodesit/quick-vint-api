@@ -1,5 +1,6 @@
 ---
 import LanguageSwitcher from "../../components/LanguageSwitcher.astro";
+import WelcomeFirstListing from "../../components/WelcomeFirstListing.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import {
   DEFAULT_WELCOME_LOCALE,
@@ -175,6 +176,7 @@ const canonical = `${baseUrl}${welcomePath}`;
         </figure>
       </div>
 
+      <WelcomeFirstListing locale={locale} />
       <div
         class="welcome-tips animate-enter delay-500 grid w-full max-w-4xl grid-cols-1 items-stretch gap-6 md:grid-cols-2 2xl:max-w-6xl"
       >

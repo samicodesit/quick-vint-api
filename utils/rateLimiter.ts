@@ -343,7 +343,13 @@ export class RateLimiter {
       }
 
       const currentCost = data?.estimated_cost || 0;
-      return currentCost < GLOBAL_DAILY_BUDGET_USD;
+      let imageCost = 0;
+      if (process.env.LISTING_MODEL_PHOTOS_ENABLED === "true") {
+        const result = await supabase.rpc("listing_photo_daily_cost");
+        if (result.error) return false;
+        imageCost = Number(result.data || 0);
+      }
+      return currentCost + imageCost < GLOBAL_DAILY_BUDGET_USD;
     } catch (err) {
       console.error("Error in checkGlobalBudget:", err);
       return true; // Allow on error

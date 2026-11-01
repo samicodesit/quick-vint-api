@@ -594,6 +594,8 @@ if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
   } finally {
     await browser.close();
   }
+} else if (process.env.DRAFT_BROWSER_HARNESS_ONLY === "1") {
+  // Keep the initialized fixture available to focused browser journeys.
 } else if (process.env.DRAFT_BROWSER_INTERACTIVE === "1") {
   await page.goto(`${base}/app`);
 } else {

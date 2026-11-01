@@ -1,6 +1,6 @@
 # Listing model photos: 1.4.30 release candidate
 
-Status: staging checks, production migrations and the flags-off backend deployment passed. Production feature flags are configured for the next automatic deployment. The refreshed extension release gate and CWS disclosure review/submission remain separate. The owner's Vinted approval decision is settled.
+Status: staging checks, production migrations and deployed smoke checks passed. Saved models and listing photos are enabled on the backend and web app. The refreshed extension release gate and CWS disclosure review/submission remain separate. The owner's Vinted approval decision is settled.
 
 ## What changed during release preparation
 
@@ -17,7 +17,11 @@ Latest staging acceptance: both migrations were exercised against the production
 
 Production: the required main-branch push gate passed lint, types, build, formatting and 1,357 tests (14 opt-in skips). Both additive migrations were installed with feature flags off, preserving paid-access expiry protection. The private buckets and service-only permissions were verified. Deployment dpl_EPxm5Kfksc2uYdSdM6iR2YbW8yQf serves commit 2ae36f6. Public legal/app routes, disabled model endpoints, unauthenticated cron denial and three actual successful scheduled cron requests passed. The production cron secret is sensitive; its protection was preserved and actual scheduler requests supplied the success evidence. Final flag/deployment evidence is kept in the parent rollout report.
 
-Coordinated extension checks must set AUTOLISTER_API_PATH to this release's backend checkout. The workspace's legacy quick-vint-api sibling points at an unrelated Orion checkout; it caused six phone-upload test failures. Those six pass against the release backend. Do not alter that unrelated symlink or treat its old phone page as this release.
+Enabled deployment dpl_Eqj94KoWDB5ZnpW26cDrez76Ux96 serves commit 1fa7a4d. Public routes, authenticated endpoint protection and actual scheduled cleanup passed with both features enabled. No production models or listings were created by this rollout, and no Vinted listing was saved or published.
+
+Coordinated extension checks must set AUTOLISTER_API_PATH to this release's backend checkout. The workspace's legacy quick-vint-api sibling points at an unrelated Orion checkout; it caused 12 phone-upload/network/socket test failures. All 12 pass against the release backend. Do not alter that unrelated symlink or treat its old phone page as this release.
+
+The timing report now measures admission to the last provider result, explicitly as a proxy. It does not use job updated_at, which changes when attachment receipts arrive later. Both report SQL files executed successfully against the production schema; a synthetic delayed-attachment check retained a 15-second provider interval rather than reporting one hour.
 
 The deployed API and private storage passed authenticated reads, cross-account denial, immutable saved models, cached reuse, signed URL expiry, a real generated pair, failed-view-only retry, retry limits, attachment receipts without provider calls, actual children-item classification, expired sources, interrupted-call fencing and deletion tombstones. Both-flags-off and saved-model-only deployments generated text successfully without image calls. Cleanup removed front and rear assets after test-account deletion while both flags were off. The disposable branch and its 15 preview-only environment overrides were removed after verification.
 
@@ -25,7 +29,7 @@ Tracking is implemented before go-live. Seven representative model/tutorial even
 
 - API production gate: lint, type checking, build, formatting and 1,351 tests passed; 14 opt-in skips.
 - Extension: 168 unit tests passed. The fresh complete browser run passed 380 tests with 13 opt-in skips, including the corrected associated-field language assertions.
-- Exact ZIP: 60 files, 646,530 bytes. Eight focused tests passed against its minified content, including native ordering, partial upload, unsupported ordering, separate language controls and the model switch.
+- Refreshed ZIP: version 1.4.30, 647,688 bytes, SHA-256 146f7b697156920c144fb7c3a27a5d69035cafcfb497cc04a991e0ae7c5da4de. Twelve focused tests passed against its minified content, including native keyboard/pointer ordering, partial upload, unsupported ordering, separate language controls, model switches, competing originals and photo capacity. Only five tracking-related library files changed from the earlier real-Vinted-verified ZIP; its content script, background and attachment implementation are byte-identical. The refreshed ZIP itself has not been loaded into the live Vinted browser in this pass because the owner requested background-only work.
 - Optional saved-model web journey: 10 passed. Photo web journey passed text-before-photos, recovery, insertion, local-blob reload, reduced motion and desktop/mobile layout checks.
 - Real Vinted existing listing: exact candidate attached the two cached model photos first in 4,290 ms. Three originals, title and description were preserved. A host rerender retained order; reload discarded changes and proved the published listing unchanged. Zero provider calls and zero save/publish clicks.
 - Disposable PostgreSQL 12.22 rehearsal passed both migrations, role restrictions, concurrent two-job limit, duplicate leases, unknown-outcome fencing, billing-expiry checks, shared spending protection, refunds, cleanup and account-deletion tombstones. UUID and Supabase storage metadata were local fixtures. The existing PGlite suite provides additional current-engine coverage. This is not a deployed Supabase storage/API smoke test.

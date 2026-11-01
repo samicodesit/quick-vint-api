@@ -18,6 +18,7 @@ export default defineConfig({
           "/app/auth/callback",
           "/app/chatgpt",
           "/oauth/consent",
+          "/oauth/reviewer",
           "/auth/callback",
           "/cancel",
           "/customer-usage",

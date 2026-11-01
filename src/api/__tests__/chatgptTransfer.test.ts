@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { Writable } from "node:stream";
+vi.mock("../../../utils/chatgptPhotoFetch", () => ({
+  fetchChatGPTPhoto: (url: string, init: RequestInit) => fetch(url, init),
+}));
 const auth = vi.hoisted(() => ({ getClaims: vi.fn(), getUser: vi.fn() }));
 vi.mock("../../../utils/supabaseClient", () => ({ supabase: { auth } }));
 import handler from "../../../api/chatgpt/mcp";
@@ -32,17 +36,27 @@ beforeEach(() => {
 });
 
 function mockResponse() {
-  return {
-    code: 200,
-    setHeader: vi.fn(),
-    status: vi.fn(function (this: any, code: number) {
-      this.code = code;
-      return this;
+  const chunks: Buffer[] = [];
+  return Object.assign(
+    new Writable({
+      write(chunk, _encoding, done) {
+        chunks.push(Buffer.from(chunk));
+        done();
+      },
     }),
-    send: vi.fn(),
-    json: vi.fn(),
-    end: vi.fn(),
-  };
+    {
+      chunks,
+      flushHeaders: vi.fn(),
+      code: 200,
+      setHeader: vi.fn(),
+      status: vi.fn(function (this: any, code: number) {
+        this.code = code;
+        return this;
+      }),
+      send: vi.fn(),
+      json: vi.fn(),
+    },
+  );
 }
 async function prepare(url: string) {
   const res = mockResponse();
@@ -112,6 +126,7 @@ it.each([
   "oaisdmntprsoutheastus3.blob.core.windows.net",
   "oaisdmntprdenmarkeast.blob.core.windows.net",
   "oaisdmntprukwest.blob.core.windows.net",
+  "oaisdmntprnewregion.blob.core.windows.net",
 ])("transfers the photo automatically from %s", async (host) => {
   const { downloads, operations } = transferHarness(() => new Response(jpeg));
   const result = await prepare(`https://${host}/photo?sig=private`);
@@ -123,7 +138,7 @@ it.each([
   );
   const photo = await open({ id, index: 0 });
   expect(photo.code).toBe(200);
-  expect(photo.send.mock.calls[0][0]).toEqual(Buffer.from(jpeg));
+  expect(Buffer.concat(photo.chunks)).toEqual(Buffer.from(jpeg));
   expect(downloads).toHaveBeenCalledExactlyOnceWith(
     `https://${host}/photo?sig=private`,
     expect.objectContaining({ redirect: "manual", credentials: "omit" }),
@@ -157,7 +172,7 @@ it.each(["redirect", "oversized", "not-image"])(
           })
         : kind === "oversized"
           ? new Response(jpeg, {
-              headers: { "content-length": String(5 * 1024 * 1024) },
+              headers: { "content-length": String(9 * 1024 * 1024) },
             })
           : new Response("not an image"),
     );
@@ -177,7 +192,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-it("reports only the unknown attachment hostname, without fetching it or logging file secrets", async () => {
+it("prepares a regional attachment without fetching it or logging file secrets", async () => {
   const fetcher = vi.fn(async (_url: string) => Response.json({}));
   vi.stubGlobal("fetch", fetcher);
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -223,8 +238,49 @@ it("reports only the unknown attachment hostname, without fetching it or logging
   expect(fetcher.mock.calls[0][0]).toBe(
     "https://example.supabase.co/rest/v1/rpc/autolister_hosted_handoff",
   );
-  expect(warn).toHaveBeenCalledExactlyOnceWith(
-    "chatgpt_attachment_host_unrecognized",
-    "oaisdmntprtestregion.blob.core.windows.net",
+  expect(warn).not.toHaveBeenCalled();
+});
+
+it("streams a validated 6 MiB photo and settles the actual bytes", async () => {
+  const bytes = new Uint8Array(6 * 1024 * 1024);
+  bytes.set(jpeg);
+  const { operations } = transferHarness(() => new Response(bytes));
+  const result = await prepare(
+    "https://oaisdmntprnewregion.blob.core.windows.net/photo",
   );
+  const id = result.content[0].text.match(/item=([a-f0-9-]+)/)[1];
+  const photo = await open({ id, index: 0 });
+  expect(photo.code).toBe(200);
+  expect(photo.send).not.toHaveBeenCalled();
+  expect(Buffer.concat(photo.chunks).equals(Buffer.from(bytes))).toBe(true);
+  expect(photo.chunks.length).toBeGreaterThan(1);
+  expect(operations.at(-1)).toMatchObject({
+    op: "settle",
+    amount: bytes.length,
+  });
+});
+
+it("handles a client disconnect without writing a second JSON response", async () => {
+  const bytes = new Uint8Array(6 * 1024 * 1024);
+  bytes.set(jpeg);
+  transferHarness(() => new Response(bytes));
+  const result = await prepare("https://files.openai.com/photo");
+  const id = result.content[0].text.match(/item=([a-f0-9-]+)/)[1];
+  const res = mockResponse();
+  res._write = (_chunk, _encoding, done) =>
+    done(new Error("Client disconnected"));
+  await handoff(
+    {
+      method: "POST",
+      headers: {
+        authorization: "Bearer ordinary-session",
+        origin: "https://autolister.app",
+      },
+      body: { id, index: 0 },
+    } as any,
+    res as any,
+  );
+  expect(res.destroyed).toBe(true);
+  expect(res.json).not.toHaveBeenCalled();
+  expect(res.send).not.toHaveBeenCalled();
 });

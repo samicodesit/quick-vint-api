@@ -69,7 +69,7 @@ async function cipher(env) {
     ["encrypt", "decrypt"],
   );
 }
-function fileURL(value) {
+function fileURL(value, guardedRegions = false) {
   const url = new URL(value);
   if (
     url.protocol !== "https:" ||
@@ -84,6 +84,10 @@ function fileURL(value) {
         "oaisdmntprdenmarkeast.blob.core.windows.net",
         "oaisdmntprukwest.blob.core.windows.net",
       ].includes(url.hostname) ||
+      (guardedRegions &&
+        /^oaisdmntpr[a-z0-9]{1,15}\.blob\.core\.windows\.net$/.test(
+          url.hostname,
+        )) ||
       url.hostname === "files.openai.com" ||
       url.hostname.endsWith(".oaiusercontent.com") ||
       url.hostname === "oaiusercontent.com" ||
@@ -96,7 +100,7 @@ function fileURL(value) {
   }
   return url.href;
 }
-function check(args) {
+function check(args, env) {
   if (
     typeof args.title !== "string" ||
     !args.title.trim() ||
@@ -141,7 +145,7 @@ function check(args) {
     )
       throw Error("Choose JPEG, PNG or WebP photos.");
     try {
-      return { id: p.file_id, url: fileURL(p.download_url) };
+      return { id: p.file_id, url: fileURL(p.download_url, !!env.PHOTO_FETCH) };
     } catch (error) {
       // Unknown regional blob accounts never receive an outbound request.
       const u = new URL(p.download_url);
@@ -371,12 +375,15 @@ async function ledger(env, op, seller, id, payload = null, amount = null) {
   if (result.error) throw new HandoffError("Could not open this draft.", 503);
   return result;
 }
-async function photo(ref, budget) {
-  const res = await fetch(fileURL(ref.url), {
-    redirect: "manual",
-    credentials: "omit",
-    signal: AbortSignal.timeout(18000),
-  });
+async function photo(ref, budget, env) {
+  const res = await (env.PHOTO_FETCH || fetch)(
+    fileURL(ref.url, !!env.PHOTO_FETCH),
+    {
+      redirect: "manual",
+      credentials: "omit",
+      signal: AbortSignal.timeout(18000),
+    },
+  );
   if (!res.ok || !res.body) {
     await res.body?.cancel().catch(() => {});
     throw new HandoffError(
@@ -386,10 +393,9 @@ async function photo(ref, budget) {
     );
   }
   let blob;
-  // Vercel buffers responses and caps payloads at 4.5 MB. Fall back to the
-  // local original file rather than degrading image quality or exceeding it.
+  // Validate the full bounded original before the hosted adapter streams it.
   try {
-    blob = await readBounded(res, Math.min(budget, 4 * 1024 * 1024));
+    blob = await readBounded(res, budget);
   } catch (e) {
     if (e.status === 413)
       throw new HandoffError(
@@ -489,7 +495,7 @@ export default {
         return error(-32601, "Unknown method or tool.");
       try {
         if (!user) throw Error("Sign in to connect AutoLister.");
-        const item = check(rpc.params.arguments || {}),
+        const item = check(rpc.params.arguments || {}, env),
           { id, token } = await seal(item, user, env);
         await ledger(env, "put", await sellerKey(user), id, token);
         const link = url.origin + "/app/chatgpt?item=" + id;
@@ -567,7 +573,7 @@ export default {
             );
           }
           // Keep the full reservation on a failed, interrupted or unaccounted upstream fetch.
-          const result = await photo(item.photos[index], grant.budget);
+          const result = await photo(item.photos[index], grant.budget, env);
           await ledger(
             env,
             "settle",

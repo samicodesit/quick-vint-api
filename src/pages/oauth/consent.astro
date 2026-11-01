@@ -11,6 +11,7 @@ import Layout from "../../layouts/ChatGPTConnection.astro";
     <button id="deny" class="secondary">Cancel</button>
   </div>
   <a id="signin" class="primary" href="/app" hidden>Sign in to AutoLister</a>
+  <a id="reviewer" href="/oauth/reviewer" hidden>Reviewer sign-in</a>
 </Layout>
 <script>
 import { createBrowserSupabaseClient, getBrowserSession } from "../../app/mobile-web/auth";
@@ -27,6 +28,7 @@ try {
   if (!session) {
     sessionStorage.setItem("autolister:chatgpt:return", location.pathname + location.search);
     status.textContent = "Sign in to choose which account to connect."; signin.hidden = false;
+    document.querySelector<HTMLAnchorElement>("#reviewer")!.hidden=false;
   } else {
     const response = await fetch("/api/chatgpt/connection", { method:"POST", headers:{Authorization:"Bearer " + session.access_token} });
     if (!response.ok) throw Error("This private test is not enabled for your account.");

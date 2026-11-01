@@ -1,6 +1,9 @@
 /* global Request */
 import { createHash } from "node:crypto";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchChatGPTPhoto } from "./chatgptPhotoFetch";
 import { supabase } from "./supabaseClient";
 import { getDirectUser } from "./directUser";
 import { validatePluginClaims } from "./chatgptAuth";
@@ -83,6 +86,7 @@ export async function hostedPluginRequest(
         LEDGER_ORIGIN: origin,
         LEDGER_ANON_KEY: serviceKey,
         LEDGER_WORKER_KEY: "",
+        PHOTO_FETCH: fetchChatGPTPhoto,
         HANDOFF_KEY: createHash("sha256")
           .update("autolister-hosted-handoff:v1:")
           .update(secret)
@@ -90,10 +94,34 @@ export async function hostedPluginRequest(
       },
     );
     result.headers.forEach((value, key) => res.setHeader(key, value));
+    if (
+      mode === "handoff" &&
+      result.ok &&
+      result.headers.get("content-type")?.startsWith("image/") &&
+      result.body
+    ) {
+      res.status(result.status);
+      res.flushHeaders();
+      // pipeline honors backpressure and destroys the source on disconnect.
+      const source = Readable.fromWeb(result.body as any);
+      async function* chunks() {
+        for await (const chunk of source) {
+          for (let offset = 0; offset < chunk.length; offset += 64 * 1024) {
+            yield chunk.subarray(offset, offset + 64 * 1024);
+          }
+        }
+      }
+      await pipeline(Readable.from(chunks()), res);
+      return;
+    }
     return res
       .status(result.status)
       .send(Buffer.from(await result.arrayBuffer()));
   } catch {
+    if (res.headersSent || res.destroyed) {
+      res.destroy();
+      return;
+    }
     return res
       .status(503)
       .json({ error: "Could not prepare this draft. Try again." });

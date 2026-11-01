@@ -21,7 +21,9 @@ async function consent(scope: string, allowed = true, clientId = "expected") {
   const approveAuthorization = vi.fn();
   await runInNewContext(`(async () => {${script}})()`, {
     document: { querySelector: (id: string) => elements[id] },
-    location: { href: "https://autolister.app/oauth/consent?authorization_id=test" },
+    location: {
+      href: "https://autolister.app/oauth/consent?authorization_id=test",
+    },
     URL,
     getBrowserSession: async () => ({
       access_token: "test",

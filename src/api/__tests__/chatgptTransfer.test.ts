@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 it("reports only the unknown attachment hostname, without fetching it or logging file secrets", async () => {
-  const fetcher = vi.fn(async () => Response.json({}));
+  const fetcher = vi.fn(async (_url: string) => Response.json({}));
   vi.stubGlobal("fetch", fetcher);
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   const res: any = {

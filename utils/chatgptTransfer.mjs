@@ -80,6 +80,9 @@ function fileURL(value) {
       [
         "oaisdmntprnortheu.blob.core.windows.net",
         "oaisdmntprsoutheastus3.blob.core.windows.net",
+        // Observed in actual ChatGPT fileParams requests on 2026-11-01.
+        "oaisdmntprdenmarkeast.blob.core.windows.net",
+        "oaisdmntprukwest.blob.core.windows.net",
       ].includes(url.hostname) ||
       url.hostname === "files.openai.com" ||
       url.hostname.endsWith(".oaiusercontent.com") ||
@@ -150,7 +153,10 @@ function check(args) {
         /^oaisdmntpr[a-z0-9]+\.blob\.core\.windows\.net$/.test(u.hostname)
       ) {
         // Host-only diagnostics: never log signed URLs, file IDs or seller data.
-        console.warn("chatgpt_attachment_host_unrecognized", u.hostname);
+        console.warn(
+          "chatgpt_attachment_host_unrecognized",
+          u.hostname.slice(0, 120),
+        );
         return { id: p.file_id, reselect: true };
       }
       throw error;

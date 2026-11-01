@@ -18,7 +18,7 @@ const tool = {
   name: "prepare_item",
   title: "Prepare one Vinted draft",
   description:
-    "Prepare one editable AutoLister draft from 1 to 4 attached photos of the same item, taken together. If photos show several items, ask the seller which group to use. Inspect the images to write a concise title and description from readable labels and visible features. Omit guessed composition, size, condition and wear history. Do not include a seller note in these fields: the signed-in AutoLister editor applies the saved note when opened. Return the exact Open draft in AutoLister link from the tool result to the seller.",
+    "Prepare one editable AutoLister draft from 1 to 4 attached photos of the same item, taken together. Handle only one item per seller request. If a request or its photos contains multiple items, do not call this tool: ask the seller to choose one item first. Do not split the request into multiple drafts or loop tool calls over different items. Inspect the images to write a concise title and description from readable labels and visible features. Omit guessed composition, size, condition and wear history. Do not include a seller note in these fields: the signed-in AutoLister editor applies the saved note when opened. Return the exact Open draft in AutoLister link from the tool result to the seller.",
   inputSchema: {
     type: "object",
     $defs: { OpenAIFile: FILE },

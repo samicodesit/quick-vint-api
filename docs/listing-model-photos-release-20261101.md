@@ -1,6 +1,6 @@
 # Listing model photos: 1.4.30 release candidate
 
-Status: feature branch backed up and deployed staging checks passed. Production rollout and the refreshed extension package are pending. Model-photo flags remain off in production. The owner's Vinted approval decision is settled.
+Status: staging checks, production migrations and the flags-off backend deployment passed. Production feature flags are configured for the next automatic deployment. The refreshed extension release gate and CWS disclosure review/submission remain separate. The owner's Vinted approval decision is settled.
 
 ## What changed during release preparation
 
@@ -14,6 +14,10 @@ Status: feature branch backed up and deployed staging checks passed. Production 
 ## Verification
 
 Latest staging acceptance: both migrations were exercised against the production schema definitions in an isolated Supabase branch, without copying customer data. Fixed a real admission/claim failure caused by comparing the text `daily_stats.date` column to a date; both regression fixtures now use the production text type. The database regression suite passes all nine cases. Existing idempotency unique indexes were also copied into the staging baseline after their absence blocked the legacy text check; production already has those indexes.
+
+Production: the required main-branch push gate passed lint, types, build, formatting and 1,357 tests (14 opt-in skips). Both additive migrations were installed with feature flags off, preserving paid-access expiry protection. The private buckets and service-only permissions were verified. Deployment dpl_EPxm5Kfksc2uYdSdM6iR2YbW8yQf serves commit 2ae36f6. Public legal/app routes, disabled model endpoints, unauthenticated cron denial and three actual successful scheduled cron requests passed. The production cron secret is sensitive; its protection was preserved and actual scheduler requests supplied the success evidence. Final flag/deployment evidence is kept in the parent rollout report.
+
+Coordinated extension checks must set AUTOLISTER_API_PATH to this release's backend checkout. The workspace's legacy quick-vint-api sibling points at an unrelated Orion checkout; it caused six phone-upload test failures. Those six pass against the release backend. Do not alter that unrelated symlink or treat its old phone page as this release.
 
 The deployed API and private storage passed authenticated reads, cross-account denial, immutable saved models, cached reuse, signed URL expiry, a real generated pair, failed-view-only retry, retry limits, attachment receipts without provider calls, actual children-item classification, expired sources, interrupted-call fencing and deletion tombstones. Both-flags-off and saved-model-only deployments generated text successfully without image calls. Cleanup removed front and rear assets after test-account deletion while both flags were off. The disposable branch and its 15 preview-only environment overrides were removed after verification.
 

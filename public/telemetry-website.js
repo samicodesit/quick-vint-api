@@ -109,6 +109,11 @@
     try {
       properties = { ...(await contextProvider()), ...properties };
       const current = await identityProvider();
+      if (
+        properties.expectedAccountId !== undefined &&
+        properties.expectedAccountId !== (current?.id || null)
+      )
+        return { queued: false, reason: "account_changed" };
       root.AutoListerTelemetry.setAccount(current?.id || null);
       const prepared = root.AutoListerTelemetry.prepare(
         event,

@@ -601,6 +601,28 @@ describe("seller output diff evidence", () => {
 });
 
 describe("admin HTML", () => {
+  it("distinguishes local photo imports from uploads and shows one result summary", () => {
+    const { context } = buildAdminHarness();
+    const log = {
+      id: "import",
+      endpoint: "/event/upload_complete",
+      response_status: 204,
+      event_target: "draft_workspace",
+      event_image_count: 3,
+      event_failed_photo_count: 0,
+    };
+    expect(context.renderActivityFeed([log])).toContain(
+      "3 photos added to drafts",
+    );
+    expect(
+      context.renderActivityFeed([
+        { ...log, event_image_count: 2, event_failed_photo_count: 1 },
+      ]),
+    ).toContain("Photo import: 2 added, 1 failed");
+    expect(
+      context.renderActivityFeed([{ ...log, event_target: "upload" }]),
+    ).toContain("Photo upload completed");
+  });
   it("defaults to useful activity and can request the full background stream", async () => {
     const { context, content } = buildAdminHarness();
     context.state.currentView = "logs";

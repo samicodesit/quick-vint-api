@@ -20,7 +20,7 @@ async function rpc(
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(
-    "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); CREATE TABLE daily_stats(date date primary key,estimated_cost numeric);",
+    "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); CREATE TABLE daily_stats(date text primary key,estimated_cost numeric);",
   );
   await db.query("insert into auth.users values($1)", [owner]);
   await db.exec(readFileSync("migrations/2026-11-01_user_models.sql", "utf8"));

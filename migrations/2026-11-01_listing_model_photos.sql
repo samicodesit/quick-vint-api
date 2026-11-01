@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION public.reserve_generation_request_for_current_status(
 DECLARE profile_status text; profile_tier text; protected_access_end timestamptz; text_cost numeric;
 BEGIN
  PERFORM pg_advisory_xact_lock(901129);
- SELECT coalesce(estimated_cost,0) INTO text_cost FROM daily_stats WHERE date=current_date;
+ SELECT coalesce(estimated_cost,0) INTO text_cost FROM daily_stats WHERE date=current_date::text;
  IF coalesce(text_cost,0)+listing_photo_daily_cost()+0.0201>100 THEN
   RETURN jsonb_build_object('allowed',false,'code','service_unavailable','limitScope','service');
  END IF;
@@ -144,7 +144,7 @@ BEGIN
   IF j.state<>'queued' THEN RETURN NULL; END IF;
   IF j.kind='listing' AND (SELECT count(*) FROM listing_photo_jobs WHERE user_id=p_user_id AND kind='listing' AND state='running' AND lease_until>now())>=2 THEN RETURN NULL; END IF;
   PERFORM pg_advisory_xact_lock(901129);
-  SELECT coalesce(estimated_cost,0) INTO current_text_cost FROM daily_stats WHERE date=current_date;
+  SELECT coalesce(estimated_cost,0) INTO current_text_cost FROM daily_stats WHERE date=current_date::text;
   SELECT listing_photo_daily_cost() INTO spent;
   amount:=CASE WHEN j.budget_date=current_date AND j.budget_attempt=j.retry_count THEN 0 WHEN j.kind='rear' THEN 0.08 ELSE 0.20 END;
   IF coalesce(current_text_cost,0)+spent+amount>100 THEN RAISE EXCEPTION 'photo_budget'; END IF;

@@ -1,6 +1,7 @@
 import { fetchMobileJson } from "./api";
 import { trackSavedDrafts } from "./savedDraftTracking";
 import { getBrowserSession } from "./auth";
+import { trackMobileEvent } from "./analytics";
 import {
   permittedDraftSettings,
   sourcePhotos,
@@ -380,6 +381,15 @@ export function createDraftClient(userId: string) {
         expectedUserId: userId,
         signal: controller.signal,
       });
+      if (!disposed && result.modelPhotos?.jobId)
+        void trackMobileEvent(
+          "model_photos_requested",
+          {
+            operationId: result.modelPhotos.jobId,
+            mode: batch ? "batch" : "single",
+          },
+          userId,
+        );
       results.set(current.id, result);
       await store.finishAttempt(
         current.id,

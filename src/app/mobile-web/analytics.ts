@@ -10,6 +10,20 @@ import {
 export const MOBILE_REF_STORAGE_KEY = "autolister.mobile_web.ref.v1";
 
 export const MOBILE_ANALYTICS_EVENTS = [
+  "model_invitation_shown",
+  "model_invitation_opened",
+  "model_invitation_dismissed",
+  "model_view_opened",
+  "model_setup_started",
+  "model_setup_skipped",
+  "model_preferences_saved",
+  "model_creation_requested",
+  "model_creation_accepted",
+  "model_creation_completed",
+  "model_creation_failed",
+  "model_enabled",
+  "model_disabled",
+  "model_photos_requested",
   "web_app_view",
   "web_style_setup",
   "auth_complete",
@@ -35,9 +49,12 @@ export type MobileAnalyticsEvent = (typeof MOBILE_ANALYTICS_EVENTS)[number];
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
 const ALLOWED_CONTEXT_KEYS = new Set([
+  "mode",
   "target",
   "method",
   "imageCount",
+  "totalCount",
+  "failedPhotoCount",
   "resultStatus",
   "field",
   "phase",
@@ -180,7 +197,15 @@ function sanitizeContext(
       if (status && CHECKOUT_RETURN_STATUSES.has(status)) context[key] = status;
       continue;
     }
-    if (key === "imageCount" || key === "status" || key === "count") {
+    if (
+      [
+        "imageCount",
+        "totalCount",
+        "failedPhotoCount",
+        "status",
+        "count",
+      ].includes(key)
+    ) {
       const numeric = numericValue(item);
       if (numeric !== null) context[key] = numeric;
       continue;
@@ -215,12 +240,14 @@ function isMobileAnalyticsEvent(value: string): value is MobileAnalyticsEvent {
 export async function trackMobileEvent(
   event: MobileAnalyticsEvent | string,
   context: Record<string, unknown> = {},
+  expectedAccountId?: string | null,
 ): Promise<boolean> {
   if (!isMobileAnalyticsEvent(event)) return false;
   try {
     const runtime = (globalThis as any).AutoListerWebsiteTelemetry;
     if (!runtime) return false;
     const result = await runtime.track(event, {
+      ...(expectedAccountId !== undefined ? { expectedAccountId } : {}),
       source: "mobile_web",
       page: "/app",
       context: {

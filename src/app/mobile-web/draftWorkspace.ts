@@ -2341,13 +2341,23 @@ export function mountDraftWorkspace(
     if (processing || disposed) return;
     processing = true;
     renderSelection();
+    const importResults = new Map<
+      string,
+      { completed: number; failed: number }
+    >();
     const worker = async () => {
       while (!disposed) {
         const upload = uploads.find((p) => p.state === "waiting");
         if (!upload) break;
         upload.state = "uploading";
+        const result = importResults.get(upload.importId) || {
+          completed: 0,
+          failed: 0,
+        };
+        importResults.set(upload.importId, result);
         renderPool();
         renderEditor();
+        let saved = false;
         try {
           if (!upload.prepared) {
             const prepared = await prepareMobileImage(upload.file);
@@ -2363,14 +2373,13 @@ export function mountDraftWorkspace(
             importId: upload.importId,
             ...(upload.draftId ? { draftId: upload.draftId } : {}),
           });
-          void trackMobileEvent("upload_complete", {
-            imageCount: 1,
-            target: "draft_workspace",
-          });
+          result.completed++;
+          saved = true;
           removeUpload(upload);
           await reload();
           await reloadSelected();
         } catch (error) {
+          if (!saved) result.failed++;
           upload.state = "error";
           upload.error =
             error instanceof Error ? error.message : "Upload failed";
@@ -2382,6 +2391,26 @@ export function mountDraftWorkspace(
     try {
       await Promise.all([worker(), worker(), worker()]);
     } finally {
+      if (!disposed)
+        for (const [importId, result] of importResults) {
+          void trackMobileEvent(
+            "upload_complete",
+            {
+              operationId: importId,
+              phase: "local_import",
+              imageCount: result.completed,
+              totalCount: result.completed + result.failed,
+              failedPhotoCount: result.failed,
+              resultStatus: result.failed
+                ? result.completed
+                  ? "partial"
+                  : "failed"
+                : "completed",
+              target: "draft_workspace",
+            },
+            options.userId,
+          );
+        }
       await reloadSelected().catch(() => undefined);
       processing = false;
       renderPool();

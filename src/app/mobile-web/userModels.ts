@@ -1,5 +1,6 @@
 import { fetchMobileJson } from "./api";
 import { getBrowserSession } from "./auth";
+import { trackMobileEvent } from "./analytics";
 import {
   MODEL_PENDING_KEY,
   claimPendingModel,
@@ -30,6 +31,13 @@ export function mountUserModels(
     checking = false,
     offeredOwner: string | undefined;
   const interacted = new Set<string>();
+  const exposed = new Set<string>();
+  function tracker(owner: string | undefined, entryPoint: string) {
+    return (event: string, context: Record<string, unknown> = {}) => {
+      if (getOwner() !== owner) return;
+      return trackMobileEvent(event, { entryPoint, ...context }, owner || null);
+    };
+  }
   function updateEntries(owner: string, state: any) {
     if (getOwner() !== owner || !window.AutoListerModelUI) return;
     root
@@ -59,6 +67,19 @@ export function mountUserModels(
         );
         button.hidden = false;
       });
+    if (
+      !interacted.has(owner) &&
+      !exposed.has(owner) &&
+      !document.hidden &&
+      Array.from(
+        root.querySelectorAll<HTMLElement>(
+          "[data-user-model-open] .um-entry-new",
+        ),
+      ).some((el) => el.getClientRects().length)
+    ) {
+      exposed.add(owner);
+      void tracker(owner, "toolbar")("model_invitation_shown");
+    }
   }
   function acknowledge(owner: string) {
     if (interacted.has(owner)) return;
@@ -98,6 +119,11 @@ export function mountUserModels(
         throw new Error("Your account changed. Reopen your model.");
       }
       if (result && "invitationState" in result) updateEntries(owner, result);
+      if (method === "PATCH" && typeof result?.enabled === "boolean")
+        void tracker(
+          owner,
+          "settings",
+        )(result.enabled ? "model_enabled" : "model_disabled");
       return result;
     };
   function close() {
@@ -121,6 +147,7 @@ export function mountUserModels(
     dialog.append(view);
     document.body.append(dialog);
     let dispose = () => {};
+    let invitationOpen = invite && !initialPreferences;
     const end = () => {
       dispose();
       dialog.close();
@@ -129,14 +156,26 @@ export function mountUserModels(
     };
     activeCleanup = end;
     const leave = () => {
+      if (invitationOpen) {
+        invitationOpen = false;
+        void tracker(owner, "invitation")("model_invitation_dismissed");
+      }
       void request(owner)("POST", { action: "dismiss" }).catch(() => {});
       localStorage.removeItem(MODEL_PENDING_KEY);
       end();
     };
     const form = () => {
+      if (invitationOpen) {
+        invitationOpen = false;
+        void tracker(owner, "invitation")("model_invitation_opened");
+      }
       acknowledge(owner);
       dispose();
       dispose = window.AutoListerModelUI!.mount(view, {
+        track: tracker(
+          owner,
+          invite ? "invitation" : initialPreferences ? "onboarding" : "toolbar",
+        ),
         request: request(owner),
         initialPreferences,
         onClose: leave,
@@ -156,6 +195,8 @@ export function mountUserModels(
       leave();
     });
     dialog.showModal();
+    if (invitationOpen)
+      void tracker(owner, "invitation")("model_invitation_shown");
     dialog.querySelector<HTMLElement>("button,input")?.focus();
   }
   function settings(event: Event) {
@@ -194,6 +235,7 @@ export function mountUserModels(
     activeCleanup = back;
     details?.addEventListener("toggle", toggle);
     dispose = window.AutoListerModelUI!.mount(view, {
+      track: tracker(owner, "settings"),
       request: request(owner),
       onClose: back,
       backLabel: "Settings",
@@ -291,6 +333,7 @@ export function mountUserModels(
         .querySelector<HTMLElement>('[data-mobile-web="auth-card"]')
         ?.setAttribute("hidden", "");
       const dispose = window.AutoListerModelUI!.mount(host, {
+        track: tracker(getOwner(), "onboarding"),
         mode: "preferences",
         onContinue: (preferences: ModelChoice | null) => {
           try {

@@ -1,5 +1,62 @@
 // Generated from quick-vint-api/utils/incidents/registry.json. Do not edit.
 globalThis.AutoListerEventRegistry = {
+  model_invitation_shown: {
+    kind: "business",
+  },
+  model_invitation_opened: {
+    kind: "business",
+  },
+  model_invitation_dismissed: {
+    kind: "business",
+  },
+  model_view_opened: {
+    kind: "business",
+  },
+  model_setup_started: {
+    kind: "business",
+  },
+  model_setup_skipped: {
+    kind: "business",
+  },
+  model_preferences_saved: {
+    kind: "business",
+  },
+  model_creation_requested: {
+    kind: "business",
+  },
+  model_creation_accepted: {
+    kind: "business",
+  },
+  model_creation_completed: {
+    kind: "business",
+  },
+  model_creation_failed: {
+    kind: "business",
+  },
+  model_enabled: {
+    kind: "business",
+  },
+  model_disabled: {
+    kind: "business",
+  },
+  model_photos_requested: {
+    kind: "business",
+  },
+  listing_tour_offered: {
+    kind: "business",
+  },
+  listing_tour_started: {
+    kind: "business",
+  },
+  listing_tour_skipped: {
+    kind: "business",
+  },
+  listing_tour_completed: {
+    kind: "business",
+  },
+  listing_tour_closed: {
+    kind: "business",
+  },
   web_app_click: {
     kind: "business",
   },

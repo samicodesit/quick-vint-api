@@ -3284,6 +3284,26 @@
 
         function friendlyEventName(event) {
             const names = {
+                upload_complete: 'Photo upload completed',
+                model_invitation_shown: 'Model invitation shown',
+                model_invitation_opened: 'Model invitation opened',
+                model_invitation_dismissed: 'Model invitation dismissed',
+                model_view_opened: 'Model preview or setup opened',
+                model_setup_started: 'Model setup started',
+                model_setup_skipped: 'Model setup skipped',
+                model_preferences_saved: 'Model preferences selected',
+                model_creation_requested: 'Model creation requested',
+                model_creation_accepted: 'Model creation accepted',
+                model_creation_completed: 'Model ready, seen by user',
+                model_creation_failed: 'Model creation failure observed',
+                model_enabled: 'Model enabled',
+                model_disabled: 'Model disabled',
+                model_photos_requested: 'Listing model photos requested',
+                listing_tour_offered: 'Quick tour offered',
+                listing_tour_started: 'Quick tour started',
+                listing_tour_skipped: 'Quick tour skipped',
+                listing_tour_completed: 'Quick tour completed',
+                listing_tour_closed: 'Quick tour interrupted',
                 extension_uninstalled: 'Extension uninstalled',
                 uninstall_feedback_submitted: 'Uninstall feedback',
                 generate_request: 'Generation request',
@@ -3471,6 +3491,18 @@
             const method = log.event_method || parseLogMetadata(log).context?.method;
             // Historical records used auth_complete for ordinary restoration.
             if (event === 'auth_complete' && method === 'session') return 'Session restored';
+            if (event === 'upload_complete') {
+                const context = parseLogMetadata(log).context || {};
+                if ((log.event_target || context.target) === 'draft_workspace') {
+                    const count = Number(log.event_image_count ?? context.imageCount);
+                    const failed = Number(log.event_failed_photo_count ?? context.failedPhotoCount ?? 0);
+                    if (Number.isInteger(count) && count >= 0 && count <= 100 && Number.isInteger(failed) && failed >= 0 && failed <= 100) {
+                        if (failed) return `Photo import: ${count} added, ${failed} failed`;
+                        return `${count} ${count === 1 ? 'photo' : 'photos'} added to drafts`;
+                    }
+                    return 'Photos added to drafts';
+                }
+            }
             return friendlyEventName(event);
         }
 

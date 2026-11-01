@@ -174,6 +174,33 @@ describe("events tracking endpoint", () => {
     return response;
   }
 
+  it.each([
+    "model_invitation_shown",
+    "model_creation_completed",
+    "model_photos_requested",
+    "listing_tour_completed",
+  ])("retains %s as bounded adoption evidence", async (event) => {
+    await postEvent({
+      event,
+      source: "extension_content",
+      context: {
+        operationId: "op-1",
+        entryPoint: "toolbar",
+        preferences: { hair: "red" },
+        imageUrl: "https://private.invalid/model.jpg",
+      },
+    });
+    const payload = rpcMock.mock.calls.find(
+      (call) => call[0] === "incident_ingest",
+    )?.[1];
+    expect(payload).toBeDefined();
+    expect(JSON.stringify(payload)).toContain(`/event/${event}`);
+    expect(JSON.stringify(payload)).toContain('"analyticsOnly":true');
+    expect(JSON.stringify(payload)).not.toMatch(
+      /preferences|hair|imageUrl|private.invalid/,
+    );
+  });
+
   it("keeps seller edit text through ingestion without leaking it into diagnostics", async () => {
     const db = new PGlite();
     try {

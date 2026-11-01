@@ -44,6 +44,53 @@ function browser(
   return sandbox.AutoListerWebsiteTelemetry;
 }
 
+it("drops model events after account switches and strips appearance data from accepted events", async () => {
+  const received: any[] = [];
+  const telemetry = browser(new IDBFactory(), async (body) => {
+    received.push(...body.events);
+    return {
+      status: 200,
+      headers: new Headers(),
+      json: async () => ({
+        acknowledgedIds: body.events.map((e: any) => e.id),
+      }),
+    };
+  });
+  telemetry.setIdentityProvider(async () => ({
+    id: "new-owner",
+    token: "test",
+  }));
+  expect(
+    await telemetry.track(
+      "model_creation_completed",
+      { expectedAccountId: "old-owner" },
+      true,
+    ),
+  ).toMatchObject({ queued: false, reason: "account_changed" });
+  expect(received).toHaveLength(0);
+  await telemetry.track(
+    "model_creation_completed",
+    {
+      expectedAccountId: "new-owner",
+      context: {
+        operationId: "op-1",
+        entryPoint: "settings",
+        preferences: { hair: "red" },
+        imageUrl: "https://private.invalid/model.jpg",
+      },
+    },
+    true,
+  );
+  expect(received).toHaveLength(1);
+  expect(received[0].context).toMatchObject({
+    operationId: "op-1",
+    entryPoint: "settings",
+  });
+  expect(JSON.stringify(received)).not.toMatch(
+    /preferences|hair|imageUrl|private.invalid/,
+  );
+});
+
 it.each(["error", "unhandledrejection"])(
   "retains safe throw-site and caller locations before %s stack redaction",
   async (capture) => {

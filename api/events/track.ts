@@ -444,7 +444,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       // Existing analytics retention keeps bounded outcome facts without photos,
       // credentials, personal metadata or a separate tracking table.
-      if (retainsBatchEvidence(raw) && !dropCarrier) {
+      if (
+        (retainsBatchEvidence(raw) ||
+          (/^(model_|listing_tour_)/.test(raw.event) &&
+            isRegisteredBusiness(raw.event))) &&
+        !dropCarrier
+      ) {
         return {
           endpoint: `/event/${raw.event}`,
           request_method: "SYSTEM",

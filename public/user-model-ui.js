@@ -146,6 +146,35 @@
       state = null,
       requestSerial = 0;
     let preferences = { heightCm: 170, ...options.initialPreferences };
+    let setupTracked = false;
+    const pendingOperations = new Set();
+    const outcomes = new Set();
+    function track(event, context = {}) {
+      try {
+        Promise.resolve(options.track?.(event, context)).catch(() => {});
+      } catch {}
+    }
+    function observe(next) {
+      const model = next?.model;
+      if (!model?.operationId) return;
+      if (["queued", "running"].includes(model.state))
+        pendingOperations.add(model.operationId);
+      const outcome = model.operationId + ":" + model.state;
+      if (
+        pendingOperations.has(model.operationId) &&
+        ["ready", "failed"].includes(model.state) &&
+        !outcomes.has(outcome)
+      ) {
+        outcomes.add(outcome);
+        track(
+          model.state === "ready"
+            ? "model_creation_completed"
+            : "model_creation_failed",
+          { operationId: model.operationId, resultStatus: model.state },
+        );
+      }
+    }
+    track("model_view_opened");
     container.classList.add("um-view");
     container.lang = root.AutoListerModelCopy.getLocale();
     function button(text, action, primary = false) {
@@ -209,6 +238,7 @@
         if (disposed || serial !== requestSerial) return;
         const old = state;
         state = next;
+        observe(next);
         // Do not reset an unfinished preference form on window focus.
         if (!next.model && old && !old.model) return;
         render();
@@ -226,6 +256,7 @@
       busy = true;
       requestSerial++;
       clearTimeout(timer);
+      track("model_creation_requested", { mode: action });
       container
         .querySelectorAll("button,input")
         .forEach((el) => (el.disabled = true));
@@ -235,10 +266,22 @@
           action === "create" ? { action, preferences } : { action },
         );
         if (disposed) return;
+        if (state?.model?.operationId) {
+          pendingOperations.add(state.model.operationId);
+          track("model_creation_accepted", {
+            operationId: state.model.operationId,
+            mode: action,
+          });
+          observe(state);
+        }
         render();
         schedule();
       } catch (e) {
         if (!disposed) {
+          track("model_creation_failed", {
+            mode: action,
+            resultStatus: "request_failed",
+          });
           render();
           error(e);
         }
@@ -247,6 +290,10 @@
       }
     }
     function form() {
+      if (!setupTracked) {
+        setupTracked = true;
+        track("model_setup_started");
+      }
       header(
         options.mode === "preferences" ? "Create your model" : "Your model",
       );
@@ -333,17 +380,21 @@
       actions.append(create);
       if (options.onContinue || options.onSkip)
         actions.append(
-          button("Skip for now", () =>
-            options.onContinue ? options.onContinue(null) : options.onSkip(),
-          ),
+          button("Skip for now", () => {
+            track("model_setup_skipped");
+            return options.onContinue
+              ? options.onContinue(null)
+              : options.onSkip();
+          }),
         );
       form.append(actions);
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         if (!form.reportValidity() || !validPreferences(preferences)) return;
-        if (options.mode === "preferences")
+        if (options.mode === "preferences") {
+          track("model_preferences_saved");
           options.onContinue({ ...preferences });
-        else void submit("create");
+        } else void submit("create");
       });
       container.append(form);
     }

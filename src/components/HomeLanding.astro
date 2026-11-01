@@ -4,7 +4,9 @@ import { normalizeSiteLocale } from "../i18n/site.js";
 import { WEB_ENTRY_COPY } from "../i18n/webEntry";
 import { PHONE_TRANSFER_COPY } from "../i18n/phoneTransfer";
 import HomePromoGallery from "./HomePromoGallery.astro";
-import { Images, Laptop, Smartphone } from "@lucide/astro";
+import HomeModelFeature from "./HomeModelFeature.astro";
+import { HOME_MODEL_COPY } from "../i18n/homeModel";
+import { ArrowDown, Images, Laptop, Smartphone } from "@lucide/astro";
 
 interface Props {
   copy: SiteCopy["home"];
@@ -24,6 +26,7 @@ const chromeHref =
   "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 const entry = WEB_ENTRY_COPY[normalizeSiteLocale(locale)];
 const transfer = PHONE_TRANSFER_COPY[normalizeSiteLocale(locale)];
+const modelCopy = HOME_MODEL_COPY[normalizeSiteLocale(locale)];
 const iphoneHelpLabels: Record<string, string> = {
   en: "iPhone or iPad? Set up with Orion",
   fr: "iPhone ou iPad ? Installer avec Orion",
@@ -71,24 +74,14 @@ const subtitleParts =
         class="home-hero-copy lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start"
       >
         <div class="home-hero-heading">
-        <div
-          class="hidden sm:flex flex-wrap items-center gap-2 mb-5"
-          data-home-hero-badges
-        >
-          <div
-            class="inline-flex max-w-full items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-left text-brand-600 text-xs font-bold uppercase leading-snug tracking-wider shadow-sm transition-colors cursor-default"
-          >
-            <span class="relative flex h-2 w-2">
-              <span
-                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"
-              ></span>
-              <span
-                class="relative inline-flex rounded-full h-2 w-2 bg-brand-600"
-              ></span>
-            </span>
-            {extra.heroBadgePrimary}
-          </div>
-        </div>
+        <a href="#your-model" class="home-model-teaser">
+          <img src="/images/model-feature/preview.webp" width="112" height="168" alt="" decoding="async" />
+          <span class="home-model-teaser-copy">
+            <span class="home-model-teaser-new">{modelCopy.badge}</span>
+            <span>{modelCopy.teaser}</span>
+          </span>
+          <ArrowDown size={17} stroke-width={1.8} aria-hidden="true" />
+        </a>
 
         <h1
           class="text-[2rem] sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight leading-[1.08] sm:leading-[1.1] mb-3 sm:mb-5 text-slate-900 lg:mt-0 text-balance"
@@ -488,6 +481,8 @@ const subtitleParts =
   </div>
 </div>
 
+<HomeModelFeature locale={locale} />
+
 <section id="features" class="py-20 lg:py-24 bg-white">
   <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center max-w-3xl mx-auto mb-16">
@@ -498,7 +493,7 @@ const subtitleParts =
         {extra.featuresSubtitle}
       </p>
     </div>
-    <div class="grid md:grid-cols-3 gap-8 lg:gap-10">
+    <div class="grid md:grid-cols-2 gap-8 lg:gap-10 max-w-5xl mx-auto">
       <div
         class="group flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden hover:-translate-y-1"
       >
@@ -551,31 +546,6 @@ const subtitleParts =
         </div>
       </div>
 
-      <div
-        class="group flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden hover:-translate-y-1"
-      >
-        <div class="aspect-[4/3] w-full bg-slate-50 relative overflow-hidden">
-          <img
-            src="/feature-3.avif"
-            alt="Smart AI Technology"
-            loading="lazy"
-            decoding="async"
-            class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          <div
-            class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent"
-          >
-          </div>
-        </div>
-        <div class="p-6 lg:p-8 flex flex-col flex-grow">
-          <h3 class="text-xl font-bold text-slate-900 mb-3">
-            {extra.feature3Title}
-          </h3>
-          <p class="text-slate-600 leading-relaxed text-sm lg:text-base">
-            {extra.feature3Body}
-          </p>
-        </div>
-      </div>
     </div>
   </div>
 </section>
@@ -962,6 +932,46 @@ const subtitleParts =
   }
 
   .home-hero-actions { display: grid; gap: 12px; text-align: center; }
+  .home-model-teaser {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 100%;
+    min-height: 64px;
+    margin-bottom: 18px;
+    padding: 4px 14px 4px 4px;
+    border: 1px solid #d8d2ff;
+    border-radius: 13px;
+    background: linear-gradient(110deg, #fff, #f5f3ff);
+    box-shadow: 0 0 0 3px #f5f3ff, 0 4px 20px #7354ed20;
+    color: #342468;
+    text-decoration: none;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .home-model-teaser img {
+    width: 42px;
+    height: 56px;
+    flex: 0 0 auto;
+    object-fit: cover;
+    object-position: center 30%;
+    border-radius: 9px;
+  }
+  .home-model-teaser-copy { display: grid; justify-items: start; gap: 4px; }
+  .home-model-teaser-new {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #fff0c4;
+    color: #805000;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .home-model-teaser svg { flex: 0 0 auto; margin-left: 4px; }
+  .home-model-teaser:hover { border-color: #a799f2; background: #f3efff; }
+  .home-model-teaser:focus-visible { outline: 3px solid #7c6af4; outline-offset: 4px; }
   .home-entry-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 16px; border-radius: 12px; font-size: 15px; font-weight: 700; line-height: 1.25; text-decoration: none; transition: background-color 120ms, border-color 120ms; }
   .home-entry-web { color: white; background: var(--color-brand-600, #4f46e5); border: 1px solid transparent; }
   .home-entry-web:hover { background: var(--color-brand-700, #4338ca); }
@@ -992,7 +1002,8 @@ const subtitleParts =
   @media (max-width: 1023px) {
     .home-hero-grid { display: flex; flex-direction: column; align-items: stretch; gap: 18px; max-width: 640px; margin: 0 auto; }
     .home-hero-copy, .home-hero-media { display: contents; }
-    .home-hero-heading { order: 0; text-align: center; }
+    .home-hero-heading { order: 0; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .home-model-teaser { order: 1; align-self: center; margin: 18px 0 0; }
     .home-hero-heading p { margin-left: auto; margin-right: auto; }
     .home-hero-heading [data-home-hero-badges] { display: none; }
     .home-hero-demo { order: 1; }

@@ -1,0 +1,191 @@
+---
+import { ArrowUpRight } from "@lucide/astro";
+import { HOME_MODEL_COPY } from "../i18n/homeModel";
+import { normalizeSiteLocale } from "../i18n/site";
+import { isPhoneOrTablet } from "../utils/clientDevice";
+
+const { locale = "en" } = Astro.props;
+const copy = HOME_MODEL_COPY[normalizeSiteLocale(locale)];
+---
+
+<section id="your-model" class="home-model" aria-labelledby="home-model-heading">
+  <div class="home-model-frame">
+    <div class="home-model-copy">
+      <span class="home-model-new"><span aria-hidden="true"></span>{copy.badge}</span>
+      <h2 id="home-model-heading">{copy.heading}</h2>
+      <p>{copy.body}</p>
+      <a
+        href="/app?ref=home_model"
+        data-track-event="web_app_click"
+        data-track-context="home_model_feature"
+        class="home-model-action home-model-web"
+      >
+        {copy.action}<ArrowUpRight size={18} aria-hidden="true" />
+      </a>
+      <a
+        href="https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-track-event="chrome_store_click"
+        data-track-context="home_model_feature"
+        class="home-model-action home-model-extension"
+      >
+        {copy.extensionAction}<ArrowUpRight size={18} aria-hidden="true" />
+      </a>
+    </div>
+    <div class="home-model-example">
+      <div class="home-model-photos">
+        <figure class="home-model-original">
+          <img src="/images/model-feature/original.webp" width="480" height="640" alt={copy.originalAlt} loading="lazy" decoding="async" />
+          <figcaption>{copy.original}</figcaption>
+        </figure>
+        <figure>
+          <img src="/images/model-feature/front.webp" width="576" height="864" alt={copy.frontAlt} loading="lazy" decoding="async" />
+          <figcaption>{copy.front}</figcaption>
+        </figure>
+        <figure>
+          <img src="/images/model-feature/back.webp" width="576" height="864" alt={copy.backAlt} loading="lazy" decoding="async" />
+          <figcaption>{copy.back}</figcaption>
+        </figure>
+      </div>
+      <p class="home-model-note">{copy.note}</p>
+    </div>
+  </div>
+</section>
+
+<script is:inline set:html={`document.getElementById('your-model').dataset.device = (${isPhoneOrTablet.toString()})(navigator) ? 'phone' : 'computer';`} />
+
+<style>
+  .home-model {
+    scroll-margin-top: 100px;
+    max-width: 1440px;
+    margin: 52px auto 0;
+    padding: 16px 32px;
+  }
+  .home-model-frame {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: clamp(28px, 4vw, 64px);
+    padding: clamp(28px, 4vw, 56px);
+    border: 1px solid #d8d2ff;
+    border-radius: 28px;
+    background: linear-gradient(120deg, #fff 40%, #f5f3ff);
+    box-shadow: 0 0 0 5px #f5f3ff, 0 12px 54px -16px #7354ed35;
+  }
+  .home-model-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: #fff2ce;
+    color: #805000;
+    box-shadow: 0 0 18px #f4c95d30;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .home-model-new span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #b87500;
+  }
+  h2 {
+    margin: 18px 0 16px;
+    color: #0f172a;
+    font-size: clamp(30px, 3vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.12;
+    text-wrap: balance;
+  }
+  .home-model-copy > p {
+    max-width: 39ch;
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #475569;
+  }
+  .home-model-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 46px;
+    margin-top: 26px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: var(--color-brand-600, #5745ed);
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    box-shadow: 0 5px 15px #5745ed20;
+    transition: background-color 160ms;
+  }
+  .home-model-action:hover { background: var(--color-brand-700, #4934d4); }
+  .home-model-action:focus-visible { outline: 3px solid #7c6af4; outline-offset: 4px; }
+  .home-model-action svg { flex: 0 0 auto; }
+  .home-model-web { display: none; }
+  .home-model[data-device="phone"] .home-model-extension { display: none; }
+  .home-model[data-device="phone"] .home-model-web { display: inline-flex; }
+  .home-model-photos {
+    display: grid;
+    grid-template-columns: 0.8fr 1fr 1fr;
+    align-items: center;
+    gap: 12px;
+  }
+  figure { margin: 0; min-width: 0; }
+  figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    background: #e8e4de;
+    box-shadow: 0 4px 12px #28223b10;
+  }
+  figcaption {
+    margin-top: 10px;
+    color: #475569;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .home-model-note {
+    margin: 18px 0 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+  }
+  @media (max-width: 900px) {
+    .home-model { padding: 12px 24px; margin-top: 28px; }
+    .home-model-frame { grid-template-columns: 1fr; gap: 28px; padding: 28px; }
+    .home-model-copy > p { max-width: 58ch; }
+    h2 { max-width: 22ch; }
+    .home-model-example { max-width: 620px; width: 100%; margin: 0 auto; }
+  }
+  @media (max-width: 480px) {
+    .home-model { padding: 12px 16px; }
+    .home-model-frame { padding: 24px 20px; border-radius: 22px; gap: 26px; }
+    h2 { font-size: 30px; margin-top: 16px; }
+    .home-model-copy > p { font-size: 15px; line-height: 1.6; }
+    .home-model-action { width: 100%; margin-top: 22px; }
+    .home-model-photos { gap: 8px; }
+    figure img { border-radius: 8px; }
+    figcaption { font-size: 11px; margin-top: 8px; }
+    .home-model-note { margin-top: 14px; font-size: 11px; }
+  }
+  @media (max-width: 767px) {
+    .home-model:not([data-device]) .home-model-extension { display: none; }
+    .home-model:not([data-device]) .home-model-web { display: inline-flex; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.scroll-smooth) { scroll-behavior: auto; }
+    .home-model-action { transition: none; }
+  }
+</style>

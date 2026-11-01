@@ -1,4 +1,5 @@
 import { createDraftClient, type DraftAttempt } from "./draftClient";
+import { isPhoneOrTablet } from "../../utils/clientDevice";
 import {
   DEFAULT_DRAFT_SETTINGS,
   DRAFT_LIMITS,
@@ -112,9 +113,7 @@ export function mountDraftWorkspace(
   >();
   let photoEditor: { close: () => void } | undefined;
   let openingPhotoEditor = false;
-  const nativePhotoPicker =
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const nativePhotoPicker = isPhoneOrTablet(navigator);
   root.dataset.nativePhotoPicker = String(nativePhotoPicker);
   let conflict = false;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;

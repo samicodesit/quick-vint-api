@@ -43,7 +43,8 @@ try {
       redirect(data.redirect_url);
     } else {
     if (data.client.id !== clientId || data.user.id !== session.user.id) throw Error("Open a fresh connection from ChatGPT to continue.");
-    if (data.scope.split(" ").some(scope => !["openid","email"].includes(scope))) throw Error("This connection requests unsupported permissions.");
+    // The submission portal includes offline_access for the existing refresh-token flow.
+    if (data.scope.split(" ").some(scope => !["openid","email","offline_access"].includes(scope))) throw Error("This connection requests unsupported permissions.");
     status.textContent = data.user.email;
     controls.hidden = false;
     async function decide(accept: boolean) {

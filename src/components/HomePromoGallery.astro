@@ -1,6 +1,7 @@
 ---
 import { ChevronLeft, ChevronRight } from "@lucide/astro";
 import type { SiteLocale } from "../i18n/site";
+import { HOME_MODEL_COPY } from "../i18n/homeModel";
 
 interface Props {
   locale: SiteLocale;
@@ -17,13 +18,27 @@ const labels = {
   it: ["Immagine precedente", "Immagine successiva", "Bozze di annunci dalle foto", "Foto dal telefono al computer", "Bozze di annunci in serie", "Note del venditore salvate"],
   pt: ["Imagem anterior", "Imagem seguinte", "Rascunhos de anúncios a partir de fotos", "Fotos do telemóvel para o computador", "Rascunhos de anúncios em lote", "Notas do vendedor guardadas"],
 }[locale];
-const promos = ["listing-drafts", "phone-qr", "batch-listing", "saved-notes"];
+const modelCopy = HOME_MODEL_COPY[locale];
+const modelSlide = {
+  en: ["Show clothes on your AI model.", "Create once. Reuse for your listings."],
+  fr: ["Vos vêtements sur votre modèle IA.", "Créez-le une fois. Réutilisez-le."],
+  de: ["Kleidung an deinem KI-Model.", "Einmal erstellen. Immer wieder nutzen."],
+  nl: ["Toon kleding op je AI-model.", "Eén keer maken. Steeds opnieuw gebruiken."],
+  es: ["Tu ropa en tu modelo de IA.", "Créalo una vez. Reutilízalo."],
+  it: ["I tuoi capi sul tuo modello IA.", "Crealo una volta. Riutilizzalo."],
+  pl: ["Twoje ubrania na modelu AI.", "Stwórz raz. Używaj ponownie."],
+  pt: ["Roupa no teu modelo de IA.", "Cria uma vez. Volta a usar."],
+}[locale];
+const promos = ["model-photos", "listing-drafts", "phone-qr", "batch-listing", "saved-notes"];
+const promoLabels = [modelCopy.teaser, ...labels.slice(2)];
+const fullCardSizes = "(min-width: 1280px) 440px, (min-width: 1024px) 32vw, (min-width: 640px) 440px, 88vw";
+const modelImageSizes = "(min-width: 1280px) 264px, (min-width: 1024px) 19.2vw, (min-width: 640px) 264px, 53vw";
 ---
 
 <section class="promo-gallery" data-promo-gallery aria-label={heading}>
   <div class="promo-header">
     <div class="promo-controls" data-promo-controls hidden>
-      <span class="promo-position" data-promo-position aria-live="polite" aria-atomic="true">1 / 4</span>
+      <span class="promo-position" data-promo-position aria-live="polite" aria-atomic="true">1 / {promos.length}</span>
       <button type="button" data-promo-previous aria-label={labels[0]} aria-controls="home-promo-track" disabled>
         <ChevronLeft size={20} aria-hidden="true" />
       </button>
@@ -36,27 +51,32 @@ const promos = ["listing-drafts", "phone-qr", "batch-listing", "saved-notes"];
     {promos.map((name, index) => (
       <button
         type="button"
-        class="promo-card"
+        class:list={["promo-card", { "promo-card-model": name === "model-photos" }]}
         data-screenshot-preview-open
-        data-screenshot-src={`/promos/${name}.webp`}
-        data-screenshot-alt={labels[index + 2]}
+        data-screenshot-src={name === "model-photos" ? "/images/model-guides/comparison-beige.png" : `/promos/${name}.webp`}
+        data-screenshot-alt={promoLabels[index]}
         data-track-event="store_screenshot_open"
         data-track-context={`home_promo_${name}`}
-        aria-label={labels[index + 2]}
+        aria-label={name === "model-photos" ? `${modelCopy.badge}: ${promoLabels[index]}` : promoLabels[index]}
       >
+        {name === "model-photos" && <span class="promo-model-copy" aria-hidden="true">
+          <span class="promo-model-brand">AutoLister AI</span>
+          <span class="promo-new">{modelCopy.badge}</span>
+          <span class="promo-model-text"><span class="promo-model-title">{modelSlide[0]}</span><span class="promo-model-body">{modelSlide[1]}</span></span>
+        </span>}
         <picture>
-        <source
+        {name !== "model-photos" && <source
           type="image/avif"
           srcset={`/promos/${name}-480.avif 480w, /promos/${name}-800.avif 800w, /promos/${name}-960.avif 960w`}
-          sizes="(min-width: 1280px) 440px, (min-width: 1024px) 32vw, (min-width: 640px) 440px, 88vw"
-        />
+          sizes={fullCardSizes}
+        />}
         <img
           src={`/promos/${name}-800.webp`}
           srcset={`/promos/${name}-480.webp 480w, /promos/${name}-800.webp 800w, /promos/${name}-960.webp 960w`}
-          sizes="(min-width: 1280px) 440px, (min-width: 1024px) 32vw, (min-width: 640px) 440px, 88vw"
-          alt={labels[index + 2]}
-          width="1600"
-          height="1000"
+          sizes={name === "model-photos" ? modelImageSizes : fullCardSizes}
+          alt={promoLabels[index]}
+          width={name === "model-photos" ? 1280 : 1600}
+          height={name === "model-photos" ? 936 : 1000}
           loading="lazy"
           decoding="async"
           fetchpriority="low"
@@ -77,9 +97,18 @@ const promos = ["listing-drafts", "phone-qr", "batch-listing", "saved-notes"];
   .promo-controls button:hover:not(:disabled) { border-color: #4f46e5; color: #4f46e5; }
   .promo-controls button:disabled { opacity: .35; cursor: default; }
   .promo-track { display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #c7c2f8 transparent; padding: 3px 3px 12px; scroll-padding-inline: 3px; }
-  .promo-card { flex: 0 0 92%; min-width: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: #4f46e5; cursor: zoom-in; scroll-snap-align: start; }
+  .promo-card { position: relative; flex: 0 0 92%; min-width: 0; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: #4f46e5; cursor: zoom-in; scroll-snap-align: start; }
+  .promo-card-model { aspect-ratio: 8 / 5; container-type: inline-size; background: radial-gradient(ellipse at 0 65%, #3123a7, transparent 65%), linear-gradient(105deg, #4931f5, #5c49ff 42%, #c7c2ff); }
+  .promo-model-copy { position: absolute; left: 3.625%; top: 0; bottom: 0; width: 32%; color: white; text-align: left; }
+  .promo-model-brand { position: absolute; top: 15%; white-space: nowrap; font-size: 3cqw; line-height: 1; font-weight: 750; letter-spacing: -.025em; }
+  .promo-model-text { position: absolute; top: 29%; left: 0; right: 0; }
+  .promo-model-title { display: block; font-size: 6cqw; line-height: 1.08; font-weight: 750; letter-spacing: -.035em; }
+  .promo-model-body { display: block; margin-top: 3cqw; font-size: 3cqw; line-height: 1.25; font-weight: 400; letter-spacing: 0; }
+  .promo-new { position: absolute; top: 4%; left: 0; padding: .9cqw 1.5cqw; border-radius: 1cqw; background: #fff2ce; color: #805000; font-size: clamp(10px, 2.5cqw, 12px); font-weight: 700; line-height: 1; }
+  .promo-card-model picture { position: absolute; left: 38%; right: 2%; top: 3.5%; bottom: 3.5%; display: flex; align-items: center; }
   .promo-card:last-child { scroll-snap-align: end; }
   .promo-card img { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; object-fit: contain; }
+  .promo-card-model img { aspect-ratio: auto; border-radius: 1.5cqw; }
   .promo-card:focus-visible, .promo-controls button:focus-visible { outline: 3px solid #4f46e5; outline-offset: 2px; }
   @media (min-width: 640px) { .promo-card { flex-basis: 72%; max-width: 440px; } }
   @media (min-width: 1024px) { .promo-card { flex-basis: 60%; } }

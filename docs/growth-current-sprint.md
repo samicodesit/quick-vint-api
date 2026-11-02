@@ -486,3 +486,19 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
   `docs/model-photo-release-20261102.md`. Earlier publication-hold notes are historical.
 - No new extension upload, customer message, paid test or advertising spend.
   Live signup and conversion outcomes remain untested by this release QA.
+
+### 2026-11-02: homepage model-photo carousel
+
+- Added the owner's exact beige-dress comparison as the first of five slides in
+  the shared homepage carousel. Both experiment variants retain the other four.
+- Matched the existing 8:5 cards, brand/headline scale, text alignment and purple
+  treatment. Added the localized New badge outside the comparison image.
+- Independent review requested by the owner accepted the benefit-led headline,
+  brief reuse explanation, desktop/phone renders and all eight translations.
+  Portuguese was shortened for consistent sizing on narrow phones.
+- Responsive WebP thumbnails are 22 to 50 KB. Image selection reflects the
+  actual comparison width. Zoom retains the original, pixel-identical comparison.
+- Narrow-phone QA also found two pre-existing Dutch heading overflows. Allow
+  wrapping and constrain the final CTA text column without changing its copy.
+- Final geometry, carousel, zoom, keyboard and release evidence is retained in
+  the owner's `model-carousel-20261102` visualization folder. No spend or outreach.

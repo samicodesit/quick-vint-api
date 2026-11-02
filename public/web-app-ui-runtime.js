@@ -2,6 +2,7 @@
 (function (root) {
   "use strict";
   const catalogs = root.AutoListerWebUiCatalogs;
+  const sharedSources = new Set(root.AutoListerWebUiSharedSources || []);
   const normalize = (value) =>
     String(value || "")
       .toLowerCase()
@@ -12,7 +13,9 @@
       .map(normalize)
       .find((code) => catalogs[code]) || "en";
   const text = (source) =>
-    locale === "en" ? source : (catalogs[locale][source] ?? source);
+    locale === "en" && !sharedSources.has(source)
+      ? source
+      : (catalogs[locale][source] ?? source);
   const format = (source, values) =>
     text(source).replace(/\{(\d+)\}/g, (_, index) =>
       String(values[Number(index)] ?? ""),

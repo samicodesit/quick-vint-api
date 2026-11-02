@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "npm run translations:check && astro build",
+    "translations:sync": "node scripts/sync-shared-translations.mjs",
+    "translations:check": "node scripts/sync-shared-translations.mjs --check",
     "preview": "astro preview",
     "lint": "eslint \"api/**/*.ts\" \"utils/**/*.{ts,js}\"",
     "lint:fix": "eslint \"api/**/*.ts\" \"utils/**/*.{ts,js}\" --fix",

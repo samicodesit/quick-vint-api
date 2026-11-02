@@ -1,3 +1,4 @@
+import { sharedStyleCopy } from "./sharedUiBindings";
 export type UiCopy = {
   heading: string;
   example: string;
@@ -33,58 +34,48 @@ export type Translation = {
   ui: UiCopy;
   example: ExampleCopy;
 };
-function ui(values: string[]): UiCopy {
+function ui(
+  code: Parameters<typeof sharedStyleCopy>[0],
+  values: string[],
+): UiCopy {
   const keys: (keyof UiCopy)[] = [
     "heading",
     "example",
     "title",
     "description",
     "length",
-    "short",
-    "long",
     "format",
     "bullets",
     "paragraphs",
-    "hashtags",
-    "emojis",
     "addNote",
-    "note",
-    "done",
     "useStyle",
     "editStyle",
-    "skip",
     "selected",
   ];
   if (values.length !== keys.length)
     throw new Error("Incomplete UI translation");
-  return Object.fromEntries(
-    keys.map((key, index) => [key, values[index]]),
-  ) as UiCopy;
+  return {
+    ...Object.fromEntries(keys.map((key, index) => [key, values[index]])),
+    ...sharedStyleCopy(code),
+  } as UiCopy;
 }
 /** Prepared translations of the retained Maje example. No model calls or new product facts. */
 export const translations: Translation[] = [
   {
     code: "en",
     name: "English",
-    ui: ui([
+    ui: ui("en", [
       "Your listing style",
       "Example",
       "Title",
       "Description",
       "Length",
-      "Short",
-      "Long",
       "Format",
       "Bullets",
       "Text",
-      "Hashtags",
-      "Emojis",
       "Add seller note",
-      "Seller note",
-      "Done",
       "Use this style",
       "Edit style",
-      "Skip",
       "Selected",
     ]),
     example: {
@@ -113,25 +104,18 @@ export const translations: Translation[] = [
   {
     code: "fr",
     name: "Français",
-    ui: ui([
+    ui: ui("fr", [
       "Votre style d’annonce",
       "Exemple",
       "Titre",
       "Description",
       "Longueur",
-      "Courte",
-      "Longue",
       "Format",
       "Puces",
       "Texte",
-      "Hashtags",
-      "Emojis",
       "Ajouter une note",
-      "Note du vendeur",
-      "Terminé",
       "Utiliser ce style",
       "Modifier le style",
-      "Passer",
       "Sélectionné",
     ]),
     example: {
@@ -161,25 +145,18 @@ export const translations: Translation[] = [
   {
     code: "cz",
     name: "Čeština",
-    ui: ui([
+    ui: ui("cz", [
       "Váš styl inzerátu",
       "Ukázka",
       "Název",
       "Popis",
       "Délka",
-      "Krátký",
-      "Dlouhý",
       "Formát",
       "Odrážky",
       "Text",
-      "Hashtagy",
-      "Emoji",
       "Přidat poznámku",
-      "Poznámka prodejce",
-      "Hotovo",
       "Použít tento styl",
       "Upravit styl",
-      "Přeskočit",
       "Vybráno",
     ]),
     example: {
@@ -209,25 +186,18 @@ export const translations: Translation[] = [
   {
     code: "da",
     name: "Dansk",
-    ui: ui([
+    ui: ui("da", [
       "Din annoncestil",
       "Eksempel",
       "Titel",
       "Beskrivelse",
       "Længde",
-      "Kort",
-      "Lang",
       "Format",
       "Punkter",
       "Tekst",
-      "Hashtags",
-      "Emojis",
       "Tilføj sælgernote",
-      "Sælgernote",
-      "Færdig",
       "Brug denne stil",
       "Rediger stil",
-      "Spring over",
       "Valgt",
     ]),
     example: {
@@ -256,25 +226,18 @@ export const translations: Translation[] = [
   {
     code: "nl",
     name: "Nederlands",
-    ui: ui([
+    ui: ui("nl", [
       "Jouw advertentiestijl",
       "Voorbeeld",
       "Titel",
       "Beschrijving",
       "Lengte",
-      "Kort",
-      "Lang",
       "Opmaak",
       "Lijst",
       "Tekst",
-      "Hashtags",
-      "Emoji’s",
       "Verkoopnotitie toevoegen",
-      "Verkoopnotitie",
-      "Klaar",
       "Gebruik deze stijl",
       "Stijl aanpassen",
-      "Overslaan",
       "Gekozen",
     ]),
     example: {
@@ -303,25 +266,18 @@ export const translations: Translation[] = [
   {
     code: "de",
     name: "Deutsch",
-    ui: ui([
+    ui: ui("de", [
       "Dein Anzeigenstil",
       "Beispiel",
       "Titel",
       "Beschreibung",
       "Länge",
-      "Kurz",
-      "Lang",
       "Format",
       "Liste",
       "Text",
-      "Hashtags",
-      "Emojis",
       "Verkäufernotiz hinzufügen",
-      "Verkäufernotiz",
-      "Fertig",
       "Diesen Stil verwenden",
       "Stil bearbeiten",
-      "Überspringen",
       "Ausgewählt",
     ]),
     example: {
@@ -350,25 +306,18 @@ export const translations: Translation[] = [
   {
     code: "el",
     name: "Ελληνικά",
-    ui: ui([
+    ui: ui("el", [
       "Το στιλ της αγγελίας σας",
       "Παράδειγμα",
       "Τίτλος",
       "Περιγραφή",
       "Μήκος",
-      "Σύντομη",
-      "Εκτενής",
       "Μορφή",
       "Λίστα",
       "Κείμενο",
-      "Hashtags",
-      "Emoji",
       "Προσθήκη σημείωσης",
-      "Σημείωση πωλητή",
-      "Έτοιμο",
       "Χρήση αυτού του στιλ",
       "Αλλαγή στιλ",
-      "Παράλειψη",
       "Επιλέχθηκε",
     ]),
     example: {
@@ -398,25 +347,18 @@ export const translations: Translation[] = [
   {
     code: "hr",
     name: "Hrvatski",
-    ui: ui([
+    ui: ui("hr", [
       "Vaš stil oglasa",
       "Primjer",
       "Naslov",
       "Opis",
       "Duljina",
-      "Kratki",
-      "Dugi",
       "Format",
       "Popis",
       "Tekst",
-      "Hashtagovi",
-      "Emojiji",
       "Dodaj napomenu",
-      "Napomena prodavača",
-      "Gotovo",
       "Koristi ovaj stil",
       "Uredi stil",
-      "Preskoči",
       "Odabrano",
     ]),
     example: {
@@ -445,25 +387,18 @@ export const translations: Translation[] = [
   {
     code: "fi",
     name: "Suomeksi",
-    ui: ui([
+    ui: ui("fi", [
       "Ilmoituksesi tyyli",
       "Esimerkki",
       "Otsikko",
       "Kuvaus",
       "Pituus",
-      "Lyhyt",
-      "Pitkä",
       "Muoto",
       "Lista",
       "Teksti",
-      "Hashtagit",
-      "Emojit",
       "Lisää myyjän huomautus",
-      "Myyjän huomautus",
-      "Valmis",
       "Käytä tätä tyyliä",
       "Muokkaa tyyliä",
-      "Ohita",
       "Valittu",
     ]),
     example: {
@@ -492,25 +427,18 @@ export const translations: Translation[] = [
   {
     code: "hu",
     name: "Magyar",
-    ui: ui([
+    ui: ui("hu", [
       "A hirdetésed stílusa",
       "Példa",
       "Cím",
       "Leírás",
       "Hossz",
-      "Rövid",
-      "Hosszú",
       "Formátum",
       "Lista",
       "Szöveg",
-      "Hashtagek",
-      "Emojik",
       "Eladói megjegyzés hozzáadása",
-      "Eladói megjegyzés",
-      "Kész",
       "Ezt a stílust használom",
       "Stílus módosítása",
-      "Kihagyás",
       "Kiválasztva",
     ]),
     example: {
@@ -540,25 +468,18 @@ export const translations: Translation[] = [
   {
     code: "it",
     name: "Italiano",
-    ui: ui([
+    ui: ui("it", [
       "Il tuo stile di annuncio",
       "Esempio",
       "Titolo",
       "Descrizione",
       "Lunghezza",
-      "Breve",
-      "Lunga",
       "Formato",
       "Elenco",
       "Testo",
-      "Hashtag",
-      "Emoji",
       "Aggiungi nota del venditore",
-      "Nota del venditore",
-      "Fatto",
       "Usa questo stile",
       "Modifica stile",
-      "Salta",
       "Selezionato",
     ]),
     example: {
@@ -588,25 +509,18 @@ export const translations: Translation[] = [
   {
     code: "lt",
     name: "Lietuvių",
-    ui: ui([
+    ui: ui("lt", [
       "Jūsų skelbimo stilius",
       "Pavyzdys",
       "Pavadinimas",
       "Aprašymas",
       "Ilgis",
-      "Trumpas",
-      "Ilgas",
       "Formatas",
       "Sąrašas",
       "Tekstas",
-      "Žymos",
-      "Jaustukai",
       "Pridėti pardavėjo pastabą",
-      "Pardavėjo pastaba",
-      "Atlikta",
       "Naudoti šį stilių",
       "Keisti stilių",
-      "Praleisti",
       "Pasirinkta",
     ]),
     example: {
@@ -636,25 +550,18 @@ export const translations: Translation[] = [
   {
     code: "pl",
     name: "Polski",
-    ui: ui([
+    ui: ui("pl", [
       "Styl Twojego ogłoszenia",
       "Przykład",
       "Tytuł",
       "Opis",
       "Długość",
-      "Krótki",
-      "Długi",
       "Format",
       "Lista",
       "Tekst",
-      "Hashtagi",
-      "Emoji",
       "Dodaj notatkę sprzedawcy",
-      "Notatka sprzedawcy",
-      "Gotowe",
       "Użyj tego stylu",
       "Zmień styl",
-      "Pomiń",
       "Wybrano",
     ]),
     example: {
@@ -684,25 +591,18 @@ export const translations: Translation[] = [
   {
     code: "pt",
     name: "Português",
-    ui: ui([
+    ui: ui("pt", [
       "O estilo do seu anúncio",
       "Exemplo",
       "Título",
       "Descrição",
       "Extensão",
-      "Curta",
-      "Longa",
       "Formato",
       "Lista",
       "Texto",
-      "Hashtags",
-      "Emojis",
       "Adicionar nota do vendedor",
-      "Nota do vendedor",
-      "Concluído",
       "Usar este estilo",
       "Editar estilo",
-      "Saltar",
       "Selecionado",
     ]),
     example: {
@@ -732,25 +632,18 @@ export const translations: Translation[] = [
   {
     code: "ro",
     name: "Română",
-    ui: ui([
+    ui: ui("ro", [
       "Stilul anunțului tău",
       "Exemplu",
       "Titlu",
       "Descriere",
       "Lungime",
-      "Scurtă",
-      "Lungă",
       "Format",
       "Listă",
       "Text",
-      "Hashtaguri",
-      "Emoji",
       "Adaugă nota vânzătorului",
-      "Nota vânzătorului",
-      "Gata",
       "Folosește acest stil",
       "Modifică stilul",
-      "Omite",
       "Selectat",
     ]),
     example: {
@@ -780,25 +673,18 @@ export const translations: Translation[] = [
   {
     code: "es",
     name: "Español",
-    ui: ui([
+    ui: ui("es", [
       "El estilo de tu anuncio",
       "Ejemplo",
       "Título",
       "Descripción",
       "Longitud",
-      "Corta",
-      "Larga",
       "Formato",
       "Lista",
       "Texto",
-      "Hashtags",
-      "Emojis",
       "Añadir nota del vendedor",
-      "Nota del vendedor",
-      "Listo",
       "Usar este estilo",
       "Editar estilo",
-      "Omitir",
       "Seleccionado",
     ]),
     example: {
@@ -828,25 +714,18 @@ export const translations: Translation[] = [
   {
     code: "sk",
     name: "Slovenčina",
-    ui: ui([
+    ui: ui("sk", [
       "Váš štýl inzerátu",
       "Ukážka",
       "Názov",
       "Popis",
       "Dĺžka",
-      "Krátky",
-      "Dlhý",
       "Formát",
       "Odrážky",
       "Text",
-      "Hashtagy",
-      "Emoji",
       "Pridať poznámku",
-      "Poznámka predajcu",
-      "Hotovo",
       "Použiť tento štýl",
       "Upraviť štýl",
-      "Preskočiť",
       "Vybrané",
     ]),
     example: {
@@ -876,25 +755,18 @@ export const translations: Translation[] = [
   {
     code: "sv",
     name: "Svenska",
-    ui: ui([
+    ui: ui("sv", [
       "Din annonsstil",
       "Exempel",
       "Titel",
       "Beskrivning",
       "Längd",
-      "Kort",
-      "Lång",
       "Format",
       "Lista",
       "Text",
-      "Hashtaggar",
-      "Emojier",
       "Lägg till säljaranteckning",
-      "Säljaranteckning",
-      "Klart",
       "Använd den här stilen",
       "Ändra stil",
-      "Hoppa över",
       "Vald",
     ]),
     example: {

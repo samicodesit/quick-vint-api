@@ -1,4 +1,4 @@
-import billingCopy from "../../data/billingCopy.json";
+import { isSharedWebSource } from "./sharedUiBindings";
 import {
   detectLanguage,
   getTranslation,
@@ -447,10 +447,6 @@ export const uiCatalogs = Object.fromEntries(
     const localStyle = getTranslation(locale).ui;
     for (const key of Object.keys(enStyle) as (keyof typeof enStyle)[])
       copy[enStyle[key]] ??= localStyle[key];
-    for (const key of Object.keys(
-      billingCopy.en,
-    ) as (keyof typeof billingCopy.en)[])
-      copy[billingCopy.en[key]] ??= billingCopy[locale][key];
     // These aliases use existing complete catalogs instead of copying their translations.
     copy["Bullet points"] = copy.Bullets;
     copy.Paragraphs = copy.Text;
@@ -566,7 +562,9 @@ export function uiText(
   language: string = getUiLocale(),
 ): string {
   const locale = getUiLocale([normalizeLanguage(language)]);
-  return locale === "en" ? source : (uiCatalogs[locale][source] ?? source);
+  return locale === "en" && !isSharedWebSource(source)
+    ? source
+    : (uiCatalogs[locale][source] ?? source);
 }
 export function uiFormat(
   source: string,

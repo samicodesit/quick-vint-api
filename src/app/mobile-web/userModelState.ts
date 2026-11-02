@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import type { BrowserStorageAdapter } from "./language";
 export const MODEL_PENDING_KEY = "autolister:pending-model:v1";
 export type ModelChoice = {
@@ -15,7 +16,7 @@ export function savePendingModel(
   const value = JSON.stringify({ preferences });
   storage.setItem(MODEL_PENDING_KEY, value);
   if (storage.getItem(MODEL_PENDING_KEY) !== value)
-    throw new Error("Your preferences could not be saved. Try again.");
+    throw new Error(uiText("Your preferences could not be saved. Try again."));
 }
 export function claimPendingModel(
   storage: BrowserStorageAdapter,
@@ -32,6 +33,6 @@ export function claimPendingModel(
   const text = JSON.stringify(next);
   storage.setItem(MODEL_PENDING_KEY, text);
   if (storage.getItem(MODEL_PENDING_KEY) !== text)
-    throw new Error("Your preferences could not be loaded. Try again.");
+    throw new Error(uiText("Your preferences could not be loaded. Try again."));
   return next;
 }

@@ -1,3 +1,4 @@
+import { uiText as translateUi } from "./ui";
 import type { MobileUsage } from "./generationClient";
 import type { MobileBillingTier } from "./billing";
 import { getBillingCopy } from "../../utils/billingDisplay";
@@ -17,6 +18,7 @@ export function getMobilePaywall(
   requested?: string,
   locale = "en",
 ): MobilePaywall | null {
+  const uiText = (source: string) => translateUi(source, locale);
   const code = requested || usage.blockedReason;
   const all: MobileBillingTier[] = [
     "starter",
@@ -26,29 +28,32 @@ export function getMobilePaywall(
   ];
   if (code === "plans" || code === "feature" || code === "credits")
     return {
-      title: "Choose a plan",
-      message: "Use your plan in the web app and extension.",
+      title: uiText("Choose a plan"),
+      message: uiText("Use your plan in the web app and extension."),
       options: code === "feature" ? ["pro", "business"] : all,
-      trust: "Secure checkout by Stripe. Cancel anytime.",
+      trust: uiText("Secure checkout by Stripe. Cancel anytime."),
     };
   if (usage.canGenerate !== false && !requested) return null;
   if (code === "account_paused")
     return {
-      title: "Continue with a paid option",
-      message:
+      title: uiText("Continue with a paid option"),
+      message: uiText(
         "Paid plans and credit packs let legitimate sellers continue while support reviews duplicate free-trial issues.",
+      ),
       options: all,
       support: true,
-      trust:
+      trust: uiText(
         "Secure checkout by Stripe. Contact support if this pause looks wrong.",
+      ),
     };
   if (code === "payment_required")
     return {
-      title: "Update your payment",
-      message:
+      title: uiText("Update your payment"),
+      message: uiText(
         "Payment failed. Update payment to continue. Your drafts stay saved.",
+      ),
       options: ["manage"],
-      trust: "Manage your payment securely with Stripe.",
+      trust: uiText("Manage your payment securely with Stripe."),
       support: true,
     };
   if (code === "free_lifetime_limit") {
@@ -67,10 +72,12 @@ export function getMobilePaywall(
   const tier = usage.plan?.tier;
   if (tier === "business")
     return {
-      title: "Limit reached",
-      message: "Your listing stays here. Add credits without changing plan.",
+      title: uiText("Limit reached"),
+      message: uiText(
+        "Your listing stays here. Add credits without changing plan.",
+      ),
       options: ["credit_pack", "support"],
-      trust: "Secure checkout by Stripe. One-time purchase.",
+      trust: uiText("Secure checkout by Stripe. One-time purchase."),
     };
   const options: MobilePaywall["options"] =
     tier === "starter" ||
@@ -86,11 +93,13 @@ export function getMobilePaywall(
     ? {
         title:
           code === "daily_limit"
-            ? "Daily limit reached"
-            : "Monthly limit reached",
-        message: "Your listing stays here. Upgrade or top up to continue.",
+            ? uiText("Daily limit reached")
+            : uiText("Monthly limit reached"),
+        message: uiText(
+          "Your listing stays here. Upgrade or top up to continue.",
+        ),
         options,
-        trust: "Secure checkout by Stripe. Cancel anytime.",
+        trust: uiText("Secure checkout by Stripe. Cancel anytime."),
       }
     : null;
 }

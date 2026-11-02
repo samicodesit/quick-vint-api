@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import { LocalDraftStore } from "./localDraftStore";
 import { validDraftId, type DraftSettings } from "./draftContracts";
 import { prepareMobileImage } from "./imagePreparation";
@@ -14,12 +15,14 @@ export interface ChatItem {
 }
 
 async function assertImportAccount(owner: string, active: () => boolean) {
-  if (!active()) throw new Error("Draft import cancelled.");
+  if (!active()) throw new Error(uiText("Draft import cancelled."));
   const session = await getBrowserSession();
-  if (!active()) throw new Error("Draft import cancelled.");
+  if (!active()) throw new Error(uiText("Draft import cancelled."));
   if (!owner || session?.user.id !== owner)
     throw new Error(
-      "Your account changed. Reload AutoLister and open the draft again.",
+      uiText(
+        "Your account changed. Reload AutoLister and open the draft again.",
+      ),
     );
 }
 
@@ -48,7 +51,7 @@ export async function saveChatItem(
         !["image/jpeg", "image/png", "image/webp"].includes(p.type),
     )
   )
-    throw new Error("Choose up to four photos of one item.");
+    throw new Error(uiText("Choose up to four photos of one item."));
   const id = value.id,
     store = new LocalDraftStore(owner);
   try {
@@ -148,7 +151,7 @@ export function listenForChatItem(
     try {
       await assertImportAccount(owner, () => !disposed);
       if (e.origin === location.origin && e.data.item?.owner !== owner)
-        throw new Error("This draft belongs to another account.");
+        throw new Error(uiText("This draft belongs to another account."));
       const settings = await defaults();
       if (disposed) return;
       await saveChatItem(owner, e.data.item, settings, () => !disposed);
@@ -168,7 +171,9 @@ export function listenForChatItem(
       if (disposed) return;
       sender.postMessage({ type: "autolister.import-error", nonce }, e.origin);
       onError(
-        error instanceof Error ? error.message : "Could not open this item.",
+        error instanceof Error
+          ? error.message
+          : uiText("Could not open this item."),
       );
       importing = false;
     }

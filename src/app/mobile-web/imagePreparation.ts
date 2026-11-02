@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 const MAX_IMAGE_DIMENSION = 1280;
 const JPEG_QUALITY = 0.8;
 
@@ -98,7 +99,7 @@ async function decodeWithImageElement(
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const element = new Image();
       element.onload = () => resolve(element);
-      element.onerror = () => reject(new Error("Image decode failed"));
+      element.onerror = () => reject(new Error(uiText("Image decode failed")));
       element.src = sourceUrl;
     });
     return {
@@ -121,7 +122,7 @@ function constrainDimensions(
   if (!width || !height)
     throw new MobileImagePreparationError(
       "decode-failed",
-      "The image dimensions could not be read.",
+      uiText("The image dimensions could not be read."),
     );
   const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
   return {
@@ -134,7 +135,7 @@ async function encodeJpeg(file: File, decoded: DecodedImage): Promise<File> {
   if (typeof document === "undefined") {
     throw new MobileImagePreparationError(
       "decode-failed",
-      "Image preparation is unavailable in this browser.",
+      uiText("Image preparation is unavailable in this browser."),
     );
   }
   const dimensions = constrainDimensions(decoded.width, decoded.height);
@@ -145,7 +146,7 @@ async function encodeJpeg(file: File, decoded: DecodedImage): Promise<File> {
   if (!context)
     throw new MobileImagePreparationError(
       "decode-failed",
-      "The image could not be prepared.",
+      uiText("The image could not be prepared."),
     );
   context.drawImage(decoded.image, 0, 0, dimensions.width, dimensions.height);
   decoded.image.close?.();
@@ -158,7 +159,7 @@ async function encodeJpeg(file: File, decoded: DecodedImage): Promise<File> {
           reject(
             new MobileImagePreparationError(
               "decode-failed",
-              "The image could not be compressed.",
+              uiText("The image could not be compressed."),
             ),
           );
       },
@@ -183,7 +184,9 @@ export async function prepareMobileImage(
   if (!sourceType.startsWith("image/")) {
     throw new MobileImagePreparationError(
       "unsupported-type",
-      "This file is not an image. Choose a JPEG, PNG, WebP, or HEIC photo.",
+      uiText(
+        "This file is not an image. Choose a JPEG, PNG, WebP, or HEIC photo.",
+      ),
     );
   }
 
@@ -193,8 +196,12 @@ export async function prepareMobileImage(
     throw new MobileImagePreparationError(
       isHeic(file) ? "unsupported-heic" : "decode-failed",
       isHeic(file)
-        ? "This HEIC photo could not be decoded on this device. Choose a JPEG or PNG instead."
-        : "This photo could not be prepared. Choose another image and try again.",
+        ? uiText(
+            "This HEIC photo could not be decoded on this device. Choose a JPEG or PNG instead.",
+          )
+        : uiText(
+            "This photo could not be prepared. Choose another image and try again.",
+          ),
     );
   }
 

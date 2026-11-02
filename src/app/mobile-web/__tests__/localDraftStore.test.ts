@@ -27,6 +27,48 @@ const photo = async (draftId?: string) => {
   });
 };
 
+it.each(["nl", "fr", "cs-CZ"])(
+  "keeps edit evidence protocol keys and user text unchanged in %s",
+  async (language) => {
+    const previous = globalThis.navigator;
+    vi.stubGlobal("navigator", { languages: [language], language });
+    try {
+      let draft = await create();
+      await photo(draft.id);
+      draft = await first.action("detail", { draftId: draft.id });
+      const operationId = id();
+      await first.beginAttempt(
+        draft.id,
+        { operationId, inputVersion: draft.input_version },
+        false,
+      );
+      await first.finishAttempt(draft.id, operationId, "succeeded", {
+        title: "Original user title",
+        description: "Original user description",
+      } as any);
+      draft = await first.action("detail", { draftId: draft.id });
+      await first.claimEditObservation(draft.id, "visible");
+      draft = await first.action("save", {
+        draftId: draft.id,
+        expectedVersion: draft.version,
+        title: "Your drafts",
+      });
+      expect(draft.title).toBe("Your drafts");
+      const evidence = await first.claimEditObservation(draft.id, "idle");
+      expect(evidence).toMatchObject({
+        titleChanged: true,
+        descriptionChanged: false,
+        generatedTitle: "Original user title",
+        finalTitle: "Your drafts",
+      });
+      expect(evidence).not.toHaveProperty("titleGewijzigd");
+    } finally {
+      first.dispose();
+      vi.stubGlobal("navigator", previous);
+    }
+  },
+);
+
 it("attaches a generated pair atomically before ten originals and never reattaches a removed model photo", async () => {
   let draft = await create();
   for (let n = 0; n < 10; n++) await photo(draft.id);

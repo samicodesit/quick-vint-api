@@ -1,3 +1,4 @@
+import { localizeUiFragment, uiFormat, uiText } from "./ui";
 import {
   CropperCanvas,
   CropperImage,
@@ -385,7 +386,7 @@ export function openPhotoEditor(options: {
     if (!ready || saving) return;
     quarterTurns = (quarterTurns + 1) % 4;
     range.value = "0";
-    range.setAttribute("aria-valuetext", "0 degrees");
+    range.setAttribute("aria-valuetext", uiText("0 degrees"));
     dialog.querySelector("[data-photo-angle]")!.textContent = "0°";
     fit();
     dirty();
@@ -393,7 +394,10 @@ export function openPhotoEditor(options: {
   range.addEventListener("input", () => {
     if (!ready || saving) return;
     dialog.querySelector("[data-photo-angle]")!.textContent = `${range.value}°`;
-    range.setAttribute("aria-valuetext", `${range.value} degrees`);
+    range.setAttribute(
+      "aria-valuetext",
+      uiFormat("{0} degrees", [range.value]),
+    );
     transform();
     dirty();
   });
@@ -407,7 +411,7 @@ export function openPhotoEditor(options: {
     masks.replaceChildren();
     cropShape.value = "free";
     setTool("crop");
-    range.setAttribute("aria-valuetext", "0 degrees");
+    range.setAttribute("aria-valuetext", uiText("0 degrees"));
     selection.aspectRatio = NaN;
     dialog.querySelector("[data-photo-angle]")!.textContent = "0°";
     fit();
@@ -421,7 +425,7 @@ export function openPhotoEditor(options: {
     saving = true;
     canvas.disabled = true;
     save.disabled = true;
-    save.textContent = "Saving…";
+    save.textContent = uiText("Saving…");
     save.setAttribute("aria-busy", "true");
     message("");
     dialog
@@ -442,7 +446,7 @@ export function openPhotoEditor(options: {
         width < 32 ||
         selection.height / scale < 32
       )
-        throw new Error("Make the crop a little larger.");
+        throw new Error(uiText("Make the crop a little larger."));
       const result = await selection.$toCanvas({
         width,
         beforeDraw(context, output) {
@@ -492,7 +496,11 @@ export function openPhotoEditor(options: {
           (value) =>
             value
               ? resolve(value)
-              : reject(new Error("This photo could not be saved. Try again.")),
+              : reject(
+                  new Error(
+                    uiText("This photo could not be saved. Try again."),
+                  ),
+                ),
           "image/jpeg",
           0.92,
         ),
@@ -505,7 +513,7 @@ export function openPhotoEditor(options: {
       message(
         error instanceof Error
           ? error.message
-          : "This photo could not be saved. Try again.",
+          : uiText("This photo could not be saved. Try again."),
         true,
       );
     } finally {
@@ -513,7 +521,7 @@ export function openPhotoEditor(options: {
         saving = false;
         canvas.disabled = false;
         save.disabled = false;
-        save.textContent = "Save photo";
+        save.textContent = uiText("Save photo");
         save.removeAttribute("aria-busy");
         range.disabled = false;
         brushSize.disabled = cropShape.disabled = false;
@@ -528,6 +536,7 @@ export function openPhotoEditor(options: {
       }
     }
   });
+  localizeUiFragment(dialog);
   document.body.append(dialog);
   dialog.showModal();
   document.body.style.overflow = "hidden";
@@ -548,7 +557,10 @@ export function openPhotoEditor(options: {
     })
     .catch(() => {
       if (!closed)
-        message("This photo could not be opened. Close and try again.", true);
+        message(
+          uiText("This photo could not be opened. Close and try again."),
+          true,
+        );
     });
   return { close };
 }

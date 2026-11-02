@@ -9,6 +9,26 @@ const usage = (tier: string, blockedReason: string): MobileUsage => ({
 });
 
 describe("extension-compatible web paywall rules", () => {
+  it("localizes the whole paused-account message in Dutch", () => {
+    const result = getMobilePaywall(
+      usage("free", "account_paused"),
+      undefined,
+      "nl-NL",
+    );
+    expect(result?.title).toBe("Doorgaan met een betaalde optie");
+    expect(result?.message).toContain("gratis proefperiode");
+    expect(result?.trust).toContain("ondersteuning");
+    expect(result?.support).toBe(true);
+  });
+  it("localizes payment recovery and paid quota messages in French", () => {
+    expect(
+      getMobilePaywall(usage("pro", "payment_required"), undefined, "fr-FR")
+        ?.title,
+    ).toBe("Mettre à jour votre paiement");
+    expect(
+      getMobilePaywall(usage("pro", "daily_limit"), undefined, "fr-FR")?.title,
+    ).toBe("Limite quotidienne atteinte");
+  });
   it("offers all paid plans and a one-time pack after the free trial", () => {
     expect(
       getMobilePaywall(usage("free", "free_lifetime_limit")),

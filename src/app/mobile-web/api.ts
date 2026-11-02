@@ -1,3 +1,4 @@
+import { uiError, uiText } from "./ui";
 import {
   getBrowserSession,
   refreshBrowserSession,
@@ -67,7 +68,7 @@ function errorFromResponse(response: Response, body: unknown): MobileApiError {
       ? record.error
       : typeof record.message === "string" && record.message.trim()
         ? record.message
-        : "The request could not be completed.";
+        : uiText("The request could not be completed.");
   const retryable =
     response.status === 408 ||
     response.status === 429 ||
@@ -76,7 +77,7 @@ function errorFromResponse(response: Response, body: unknown): MobileApiError {
   return new MobileApiError({
     status: response.status,
     code,
-    message: message.slice(0, 240),
+    message: uiError(message).slice(0, 500),
     retryable,
   });
 }
@@ -85,8 +86,9 @@ function networkError(): MobileApiError {
   return new MobileApiError({
     status: 0,
     code: "network_error",
-    message:
+    message: uiText(
       "We could not reach AutoLister. Check your connection and try again.",
+    ),
     retryable: true,
   });
 }
@@ -95,7 +97,7 @@ function abortedError(): MobileApiError {
   return new MobileApiError({
     status: 0,
     code: "aborted",
-    message: "The request was cancelled.",
+    message: uiText("The request was cancelled."),
     retryable: false,
   });
 }
@@ -109,7 +111,7 @@ export async function fetchMobileJson<T = unknown>(
     throw new MobileApiError({
       status: 0,
       code: "invalid_api_path",
-      message: "The request path is not available.",
+      message: uiText("The request path is not available."),
       retryable: false,
     });
   }
@@ -123,7 +125,7 @@ export async function fetchMobileJson<T = unknown>(
       throw new MobileApiError({
         status: 401,
         code: "account_changed",
-        message: "Sign in to the same account to continue this item.",
+        message: uiText("Sign in to the same account to continue this item."),
         retryable: false,
       });
     const headers = getHeaderRecord(init.headers);

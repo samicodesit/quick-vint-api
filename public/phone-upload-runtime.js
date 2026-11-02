@@ -1,5 +1,9 @@
 // prettier-ignore
 (() => {
+ const uiText = source => globalThis.AutoListerWebUi?.text(source) ?? source;
+ const uiError = source => globalThis.AutoListerWebUi?.error?.(source) ?? source;
+ const uiFormat = (source, values) => globalThis.AutoListerWebUi?.format(source, values) ?? source.replace(/\{(\d+)\}/g, (_, index) => String(values[Number(index)] ?? ""));
+
             const API_UPLOAD = '/api/phone-upload';
             const API_PREPARE = '/api/phone-upload?action=prepare';
             const API_COMPLETE = '/api/phone-upload?action=complete';
@@ -175,22 +179,22 @@
             function syncPageCopy() {
                 if (isV2()) {
                     document.body.classList.add('v2-mode');
-                    pageCopy.textContent = 'Choose photos. They will appear on your computer after upload.';
-                    mainBtn.lastChild.textContent = 'Choose photos';
+                    pageCopy.textContent = uiText("Choose photos. They will appear on your computer after upload.");
+                    mainBtn.lastChild.textContent = uiText("Choose photos");
                     sendBtn.style.display = 'none';
                 }
                 if (isBatchMode()) {
                     document.body.classList.add('batch-mode');
-                    pageTitle.textContent = 'Upload Batch Photos';
+                    pageTitle.textContent = uiText("Upload Batch Photos");
                     if (!isV2()) {
-                        pageCopy.innerHTML = 'Select photos once. Upload starts immediately in your phone gallery order.';
-                        mainBtn.lastChild.textContent = 'Select Photos';
+                        pageCopy.innerHTML = uiText("Select photos once. Upload starts immediately in your phone gallery order.");
+                        mainBtn.lastChild.textContent = uiText("Select Photos");
                     }
                 }
             }
 
             function showToast(msg) {
-                toastEl.textContent = msg;
+                toastEl.textContent = uiError(msg);
                 toastEl.classList.add('show');
                 setTimeout(() => toastEl.classList.remove('show'), 2000);
             }
@@ -210,7 +214,7 @@
             <div class="file-order"></div>
             <img src="${item.preview}" class="file-preview">
             <div class="file-info">
-                <div class="file-name">${item.name}</div>
+                <div class="file-name" data-ui-content>${item.name}</div>
                 <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
                 <div class="file-status">Waiting...</div>
             </div>
@@ -219,6 +223,7 @@
                 ${completionAction}
             </div>
         `;
+                globalThis.AutoListerWebUi?.initialize(el);
                 fileList.appendChild(el);
                 item.el = el;
                 el.querySelector('.move-up')?.addEventListener('click', () => moveItem(item, -1));
@@ -238,40 +243,40 @@
                     // Keep the individual legacy photo cards, including previews.
                     sendBtn.style.display = state.completeFailed ? 'flex' : 'none';
                     sendBtn.disabled = state.isSending || Date.now() < state.metadataRetryAt;
-                    sendBtn.textContent = state.metadataRecovering ? 'Connection interrupted. Retrying…' : 'Retry confirmation';
+                    sendBtn.textContent = state.metadataRecovering ? uiText("Connection interrupted. Retrying…") : uiText("Retry confirmation");
                     return;
                 }
 
                 const total = state.files.length;
                 const sent = state.files.filter((item) => item.done).length;
                 const failed = state.files.filter((item) => item.failed && !item.done).length;
-                const failureMessage = state.files.find((item) => item.failureMessage)?.failureMessage;
+                const failureMessage = uiError(state.files.find((item) => item.failureMessage)?.failureMessage);
                 const preparing = state.files.filter((item) => item.preparing && !item.done).length;
                 const uploading = state.files.filter((item) => item.uploading && !item.done).length;
                 const active = Math.min(total, sent + preparing + uploading);
                 const pct = total ? Math.round((sent / total) * 100) : 0;
-                let title = 'Ready to send';
-                let detail = 'Choose photos from your phone gallery.';
+                let title = uiText("Ready to send");
+                let detail = uiText("Choose photos from your phone gallery.");
 
                 if (state.isSending) {
-                    title = `Sending ${Math.min(sent + preparing + uploading, total)} of ${total}`;
+                    title = uiFormat("Sending {0} of {1}", [Math.min(sent + preparing + uploading, total), total]);
                     detail = preparing > 0
-                        ? 'Compressing photos before upload. Keep this page open.'
-                        : 'Uploading compressed photos. Keep this page open.';
+                        ? uiText("Compressing photos before upload. Keep this page open.")
+                        : uiText("Uploading compressed photos. Keep this page open.");
                 } else if (state.completeSent) {
-                    title = `${sent} photos sent`;
-                    detail = 'Return to your desktop to group photos into listings.';
+                    title = uiFormat("{0} photos sent", [sent]);
+                    detail = uiText("Return to your desktop to group photos into listings.");
                 } else if (state.completeFailed) {
                     title = 'Desktop handoff failed';
-                    detail = 'Tap retry to notify your desktop again.';
+                    detail = uiText("Tap retry to notify your desktop again.");
                 } else if (failed > 0) {
-                    title = `${failed} photo${failed === 1 ? '' : 's'} failed`;
-                    detail = failureMessage || 'Retry the failed photos when your connection is stable.';
+                    title = uiFormat("{0} photo{1} failed", [failed, failed === 1 ? '' : 's']);
+                    detail = failureMessage || uiText("Retry the failed photos when your connection is stable.");
                 } else if (total > 0) {
-                    title = `${sent} of ${total} photos sent`;
-                    detail = sent === total ? 'Finalizing desktop handoff...' : 'Upload is paused.';
+                    title = uiFormat("{0} of {1} photos sent", [sent, total]);
+                    detail = sent === total ? uiText("Finalizing desktop handoff...") : uiText("Upload is paused.");
                 }
-                if (state.metadataRecovering) detail = 'Connection interrupted. Retrying…';
+                if (state.metadataRecovering) detail = uiText("Connection interrupted. Retrying…");
 
                 if (!isV2()) fileList.innerHTML = `
                     <div class="batch-progress">
@@ -293,16 +298,16 @@
                     mainBtn.classList.toggle('is-ready', total > 0 && !state.isSending && failed === 0);
                     pageCopy.classList.toggle('is-ready', total > 0 && !state.isSending && failed === 0);
                     if (state.isSending) {
-                        mainBtn.lastChild.textContent = `Adding ${active} of ${total}…`;
-                        pageCopy.textContent = state.metadataRecovering || state.files.some(item => item.connectionWaiting) ? 'Waiting for your connection. Your photos are kept here.' : 'Keep this page open while your photos are added.';
+                        mainBtn.lastChild.textContent = uiFormat("Adding {0} of {1}…", [active, total]);
+                        pageCopy.textContent = state.metadataRecovering || state.files.some(item => item.connectionWaiting) ? uiText("Waiting for your connection. Your photos are kept here.") : uiText("Keep this page open while your photos are added.");
                     } else if (failed > 0) {
-                        mainBtn.lastChild.textContent = `Retry ${failed} failed photo${failed === 1 ? '' : 's'}`;
-                        pageCopy.textContent = failureMessage || `${failed} photo${failed === 1 ? '' : 's'} need another try.`;
+                        mainBtn.lastChild.textContent = uiFormat("Retry {0} failed photo{1}", [failed, failed === 1 ? '' : 's']);
+                        pageCopy.textContent = failureMessage || uiFormat("{0} photo{1} need another try.", [failed, failed === 1 ? '' : 's']);
                     } else if (total > 0) {
-                        mainBtn.lastChild.textContent = 'Add more photos';
-                        pageCopy.textContent = `${total} photos ready on your computer`;
+                        mainBtn.lastChild.textContent = uiText("Add more photos");
+                        pageCopy.textContent = uiFormat("{0} photos ready on your computer", [total]);
                     } else {
-                        mainBtn.lastChild.textContent = 'Choose photos';
+                        mainBtn.lastChild.textContent = uiText("Choose photos");
                     }
                     cancelBtn.style.display = total > 0 && !state.completeSent ? 'flex' : 'none';
                     return;
@@ -311,11 +316,11 @@
                 sendBtn.style.display = state.isSending || ((failed > 0 || state.completeFailed) && !state.completeSent) ? 'flex' : 'none';
                 sendBtn.disabled = state.isSending || state.completeSent || state.files.length === 0 || Date.now() < state.metadataRetryAt;
                 if (state.isSending) {
-                    sendBtn.textContent = `Sending ${sent} / ${total}`;
+                    sendBtn.textContent = uiFormat("Sending {0} / {1}", [sent, total]);
                 } else if (state.completeSent) {
-                    sendBtn.textContent = 'Sent to Desktop';
+                    sendBtn.textContent = uiText("Sent to Desktop");
                 } else if (failed > 0 || state.completeFailed) {
-                    sendBtn.textContent = failed > 0 ? 'Retry Failed Photos' : 'Retry confirmation';
+                    sendBtn.textContent = failed > 0 ? uiText("Retry Failed Photos") : uiText("Retry confirmation");
                 }
                 mainBtn.disabled = state.isSending || state.completeSent || (isV2() && state.draftLocked);
             }
@@ -359,7 +364,7 @@
                         ui.fill.style.width = '0%';
                         ui.fill.style.background = '';
                         ui.status.classList.remove('status-done', 'status-error');
-                        ui.status.textContent = attempt > 0 ? 'Retrying...' : 'Starting...';
+                        ui.status.textContent = attempt > 0 ? uiText("Retrying...") : uiText("Starting...");
                     }
                     renderBatchProgress();
 
@@ -379,7 +384,7 @@
                             const pct = Math.round((e.loaded / e.total) * 100);
                             if (ui) {
                                 ui.fill.style.width = pct + '%';
-                                ui.status.textContent = pct === 100 ? 'Processing...' : 'Uploading...';
+                                ui.status.textContent = pct === 100 ? uiText("Processing...") : uiText("Uploading...");
                             }
                         }
                     };
@@ -398,7 +403,7 @@
                             if (ui) {
                                 ui.fill.style.width = '100%';
                                 ui.fill.style.background = '#10b981';
-                                ui.status.textContent = 'Sent';
+                                ui.status.textContent = uiText("Sent");
                                 ui.status.classList.add('status-done');
                             }
                             trackUploadEvent('phone_upload_ready', { operationId: telemetryAttemptId, itemIndex: item.order, uploadedCount: 1 });
@@ -410,7 +415,7 @@
                             if (uploadState) {
                                 uploadState.textContent = '✓';
                                 uploadState.classList.add('upload-complete');
-                                uploadState.setAttribute('aria-label', 'Photo ready');
+                                uploadState.setAttribute('aria-label', uiText("Photo ready"));
                             }
                             renderBatchProgress();
                             resolve();
@@ -420,20 +425,20 @@
                                 if (state.statusPollTimer) clearInterval(state.statusPollTimer);
                                 state.statusPollTimer = null;
                                 state.activeRequests.forEach(request => request.abort());
-                                pageTitle.textContent = 'Upload Expired';
-                                pageCopy.textContent = 'This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.';
+                                pageTitle.textContent = uiText("Upload Expired");
+                                pageCopy.textContent = uiText("This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.");
                                 setDraftControlsLocked(true);
                                 mainBtn.style.display = sendBtn.style.display = cancelBtn.style.display = 'none';
                             }
                             if (ui) {
-                                ui.status.textContent = 'Failed';
+                                ui.status.textContent = uiText("Failed");
                                 ui.status.classList.add('status-error');
                                 ui.fill.style.background = '#ef4444';
                             }
                             item.failed = true;
                             item.uploading = false;
                             renderBatchProgress();
-                            let message = 'Upload failed';
+                            let message = uiText("Upload failed");
                             try {
                                 message = JSON.parse(xhr.responseText || 'null')?.error || message;
                             } catch (error) {
@@ -451,14 +456,14 @@
                         clearTimeout(idleTimer);
                         state.activeRequests.delete(xhr);
                         if (ui) {
-                            ui.status.textContent = 'Error';
+                            ui.status.textContent = uiText("Error");
                             ui.status.classList.add('status-error');
                         }
                         item.failed = true;
                         item.uploading = false;
                         renderBatchProgress();
-                        if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_NETWORK_ERROR', statusCode: 0, message: 'Upload error' });
-                        reject(new Error('Upload error'));
+                        if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_NETWORK_ERROR', statusCode: 0, message: uiText("Upload error") });
+                        reject(new Error(uiText("Upload error")));
                     };
 
                     xhr.onabort = () => {
@@ -466,9 +471,9 @@
                         state.activeRequests.delete(xhr);
                         item.uploading = false;
                         if (idleExpired) {
-                            if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_IDLE_TIMEOUT', statusCode: 0, message: 'Upload stopped making progress' });
-                            reject(Object.assign(new Error('Upload stopped making progress'), { status: 0 }));
-                        } else reject(Object.assign(new Error('Upload cancelled'), { code: 'PHONE_OPERATION_CANCELLED' }));
+                            if (attempt === 0) trackUploadEvent('phone_upload_transfer_error', { operationId: telemetryAttemptId, errorCode: 'UPLOAD_IDLE_TIMEOUT', statusCode: 0, message: uiText("Upload stopped making progress") });
+                            reject(Object.assign(new Error(uiText("Upload stopped making progress")), { status: 0 }));
+                        } else reject(Object.assign(new Error(uiText("Upload cancelled")), { code: 'PHONE_OPERATION_CANCELLED' }));
                     };
 
                     armIdleDeadline();
@@ -483,7 +488,7 @@
                 const sessionId = state.sessionId;
                 const active = () => !state.cancelled && !state.terminal && state.sessionId === sessionId;
                 for (let attempt = 0; ; attempt += 1) {
-                    if (!active()) throw Object.assign(new Error('Upload cancelled'), { code: 'PHONE_OPERATION_CANCELLED' });
+                    if (!active()) throw Object.assign(new Error(uiText("Upload cancelled")), { code: 'PHONE_OPERATION_CANCELLED' });
                     attempts += 1;
                     try {
                         return await uploadFileOnce(item, ui, attempt);
@@ -506,7 +511,7 @@
                         item.connectionWaiting = true;
                         if (ui) {
                             ui.status.classList.remove('status-error');
-                            ui.status.textContent = 'Waiting for connection…';
+                            ui.status.textContent = uiText("Waiting for connection…");
                         }
                         renderBatchProgress();
                         const retryAt = Date.now() + delayMs;
@@ -517,9 +522,9 @@
                 trackUploadEvent('phone_upload_file_error', {
                     operationId: item.telemetryOperationId, order: item.order, attempts,
                     status: Number.isFinite(Number(lastError?.status)) ? Number(lastError.status) : null,
-                    message: lastError?.message || String(lastError || 'Upload failed')
+                    message: lastError?.message || String(lastError || uiText("Upload failed"))
                 });
-                throw lastError || new Error('Upload failed');
+                throw lastError || new Error(uiText("Upload failed"));
             }
 
             function loadImageElementForCompression(url) {
@@ -534,7 +539,7 @@
                         decoder: 'image_element'
                     });
 
-                    img.onerror = () => reject(new Error('Image decode failed'));
+                    img.onerror = () => reject(new Error(uiText("Image decode failed")));
                     img.src = url;
                 });
             }
@@ -614,7 +619,7 @@
                         }, 'image/jpeg', 0.8);
                     }).catch(() => {
                         URL.revokeObjectURL(url);
-                        reject(new Error('Image decode failed'));
+                        reject(new Error(uiText("Image decode failed")));
                     });
                 });
             }
@@ -698,16 +703,16 @@
                 }
                 sendBtn.disabled = state.isSending || state.files.length === 0 || (allDone && state.completeSent) || Date.now() < state.metadataRetryAt;
                 if (!state.isSending && state.files.some((item) => item.failed && !item.done)) {
-                    sendBtn.textContent = 'Retry Failed Photos';
+                    sendBtn.textContent = uiText("Retry Failed Photos");
                 } else if (allDone && state.completeSent) {
-                    sendBtn.textContent = 'Sent to Desktop';
+                    sendBtn.textContent = uiText("Sent to Desktop");
                 } else if (state.completeFailed) {
-                    sendBtn.textContent = 'Retry confirmation';
+                    sendBtn.textContent = uiText("Retry confirmation");
                 } else {
-                    sendBtn.textContent = `Send ${state.files.length} photo${state.files.length === 1 ? '' : 's'}`;
+                    sendBtn.textContent = uiFormat("Send {0} photo{1}", [state.files.length, state.files.length === 1 ? '' : 's']);
                 }
                 if (isV2()) {
-                    mainBtn.lastChild.textContent = state.files.length > 0 ? 'Add more photos' : 'Choose photos';
+                    mainBtn.lastChild.textContent = state.files.length > 0 ? uiText("Add more photos") : uiText("Choose photos");
                 }
             }
 
@@ -747,7 +752,7 @@
             }
 
             async function prepareAndUploadItem(item, ui) {
-                if (ui) ui.status.textContent = 'Compressing...';
+                if (ui) ui.status.textContent = uiText("Compressing...");
                 try {
                     if (!item.compressed) {
                         item.preparing = true;
@@ -758,7 +763,7 @@
                             ? Number(originalFile.size)
                             : null;
                         const compressedFile = await compressImage(originalFile);
-                        if (state.cancelled) throw new Error('Upload cancelled');
+                        if (state.cancelled) throw new Error(uiText("Upload cancelled"));
                         const originalType = String(originalFile.type || '').toLowerCase();
                         const originalName = String(originalFile.name || '').toLowerCase();
                         const originalIsDng =
@@ -772,7 +777,7 @@
                             ? Number(compressedFile.size)
                             : null;
                         if (isV2() && compressedFile.size > 4 * 1024 * 1024) {
-                            throw new Error('Photo is too large to upload. Choose a smaller copy.');
+                            throw new Error(uiText("Photo is too large to upload. Choose a smaller copy."));
                         }
                         item.file = compressedFile;
                         if (
@@ -788,7 +793,7 @@
                         item.compressed = true;
                         item.preparing = false;
                     }
-                    if (ui) ui.status.textContent = 'Uploading...';
+                    if (ui) ui.status.textContent = uiText("Uploading...");
                     renderBatchProgress();
                     await uploadFile(item, ui);
                     return true;
@@ -803,7 +808,7 @@
                             ? message
                             : null;
                         if (ui) {
-                            ui.status.textContent = item.failureMessage ? 'RAW unavailable' : 'Failed';
+                            ui.status.textContent = item.failureMessage ? uiText("RAW unavailable") : uiText("Failed");
                             ui.status.classList.add('status-error');
                         }
                         item.failed = true;
@@ -837,7 +842,7 @@
 
             async function recoverMetadata(stage, url, options, settling = false) {
                 const sessionId = state.sessionId;
-                if (Date.now() < state.metadataRetryAt) throw new Error('Please wait a moment before retrying.');
+                if (Date.now() < state.metadataRetryAt) throw new Error(uiText("Please wait a moment before retrying."));
                 const deadline = Date.now() + UPLOAD_RECOVERY_WINDOW_MS;
                 const operationId = crypto.randomUUID();
                 let metadataAttempts = 0;
@@ -872,8 +877,8 @@
                         state.terminal = true;
                         if (state.statusPollTimer) clearInterval(state.statusPollTimer);
                         state.statusPollTimer = null;
-                        pageTitle.textContent = 'Upload Expired';
-                        pageCopy.textContent = 'This upload is no longer available. Start a new phone upload from your desktop.';
+                        pageTitle.textContent = uiText("Upload Expired");
+                        pageCopy.textContent = uiText("This upload is no longer available. Start a new phone upload from your desktop.");
                         setDraftControlsLocked(true);
                         mainBtn.style.display = sendBtn.style.display = cancelBtn.style.display = 'none';
                     }
@@ -899,8 +904,8 @@
                     );
                 } catch (error) {
                     if (error.status === 410) {
-                        pageTitle.textContent = 'Upload Expired';
-                        pageCopy.textContent = 'This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.';
+                        pageTitle.textContent = uiText("Upload Expired");
+                        pageCopy.textContent = uiText("This upload session expired. Its temporary photos are no longer available. Start a new phone upload from your desktop.");
                     }
                     if (isV2()) throw error;
                     // Progress count is helpful, but upload must continue without it.
@@ -937,12 +942,12 @@
                     sendBtn.disabled = true;
                 }
                 if (isBatchMode()) {
-                    pageTitle.textContent = 'Photos Sent';
+                    pageTitle.textContent = uiText("Photos Sent");
                     pageCopy.innerHTML =
-                        'Return to your desktop to group photos into listings.';
+                        uiText("Return to your desktop to group photos into listings.");
                 }
                 renderBatchProgress();
-                showToast('Sent to desktop');
+                showToast(uiText("Sent to desktop"));
             }
 
             async function sendBatchFiles() {
@@ -973,7 +978,7 @@
                             pendingItems.forEach((item) => {
                                 item.failed = true;
                             });
-                            showToast(error?.message || 'Could not start upload');
+                            showToast(error?.message || uiText("Could not start upload"));
                             renderBatchProgress();
                             return;
                         }
@@ -1002,12 +1007,12 @@
                             await completeUpload();
                         } catch (error) {
                             console.error(error);
-                            showToast('Upload finished, but desktop was not notified. Tap retry.');
+                            showToast(uiText("Upload finished, but desktop was not notified. Tap retry."));
                             failedCount = 1;
                         }
                     } else if (failedCount > 0) {
-                        const failureMessage = pendingItems.find((item) => item.failureMessage)?.failureMessage;
-                        showToast(failureMessage || `${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Retry when ready.`);
+                        const failureMessage = uiError(pendingItems.find((item) => item.failureMessage)?.failureMessage);
+                        showToast(failureMessage || uiFormat("{0} photo{1} failed. Retry when ready.", [failedCount, failedCount === 1 ? '' : 's']));
                     }
 
                     trackUploadEvent('phone_upload_send_summary', {
@@ -1036,7 +1041,7 @@
                 setDraftControlsLocked(true);
                 renderBatchProgress();
                 try { await completeUpload(); }
-                catch (error) { if (error.code !== 'PHONE_OPERATION_CANCELLED') showToast(error.message || 'Could not notify your desktop. Tap retry.'); }
+                catch (error) { if (error.code !== 'PHONE_OPERATION_CANCELLED') showToast(error.message || uiText("Could not notify your desktop. Tap retry.")); }
                 finally { state.isSending = false; setDraftControlsLocked(state.terminal || state.cancelled); if (!state.terminal) renderBatchProgress(); }
             }
 
@@ -1059,12 +1064,12 @@
                             await completeUpload();
                         } catch (error) {
                             console.error(error);
-                            showToast('Upload finished, but desktop was not notified. Try again.');
+                            showToast(uiText("Upload finished, but desktop was not notified. Try again."));
                             failedCount = Math.max(failedCount, 1);
                         }
                     } else if (failedCount > 0) {
-                        const failureMessage = items.find((item) => item.failureMessage)?.failureMessage;
-                        showToast(failureMessage || `${failedCount} photo${failedCount === 1 ? '' : 's'} failed. Try again.`);
+                        const failureMessage = uiError(items.find((item) => item.failureMessage)?.failureMessage);
+                        showToast(failureMessage || uiFormat("{0} photo{1} failed. Try again.", [failedCount, failedCount === 1 ? '' : 's']));
                     }
 
                     trackUploadEvent('phone_upload_send_summary', {
@@ -1182,6 +1187,7 @@
                         <p>You can close this page.</p>
                     </div>
                 `;
+                globalThis.AutoListerWebUi?.initialize(document.querySelector('.container'));
             }
 
             async function checkSessionStatus() {
@@ -1235,7 +1241,7 @@
             });
             cancelBtn.addEventListener('click', async () => {
                 if (!isV2()) return;
-                if (!window.confirm('Cancel this upload and discard its temporary photos?')) return;
+                if (!window.confirm(uiText("Cancel this upload and discard its temporary photos?"))) return;
                 state.cancelled = true;
                 state.activeRequests.forEach((request) => request.abort());
                 state.activeRequests.clear();
@@ -1246,8 +1252,8 @@
                 state.files.forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
                 state.files = [];
                 state.isSending = false;
-                pageTitle.textContent = 'Upload Cancelled';
-                pageCopy.textContent = 'Start a new phone upload from your desktop.';
+                pageTitle.textContent = uiText("Upload Cancelled");
+                pageCopy.textContent = uiText("Start a new phone upload from your desktop.");
                 fileList.replaceChildren();
                 setDraftControlsLocked(true);
                 sendBtn.style.display = 'none';
@@ -1278,7 +1284,7 @@
             sessionFooter.addEventListener('click', () => {
                 const modeParam = isBatchMode() ? '&mode=batch' : '';
                 const link = `${location.origin}${location.pathname}?s=${state.sessionId}${modeParam}`;
-                navigator.clipboard.writeText(link).then(() => showToast('Link copied'));
+                navigator.clipboard.writeText(link).then(() => showToast(uiText("Link copied")));
             });
 
             // Drag drop support on the whole container

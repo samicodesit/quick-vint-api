@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { uiText, uiFormat } from "../../app/mobile-web/ui";
 
 const markup = readFileSync(
   join(process.cwd(), "src/pages/phone-upload.html"),
@@ -41,6 +42,7 @@ describe("phone upload page v2 contract", () => {
       "telemetryAttemptId",
       "idleTimer",
       "attempt",
+      "uiText",
       handler!,
     )(
       state,
@@ -56,6 +58,7 @@ describe("phone upload page v2 contract", () => {
       "transfer-attempt-1",
       undefined,
       0,
+      uiText,
     );
     expect(events).toEqual([
       {
@@ -97,15 +100,20 @@ describe("phone upload page v2 contract", () => {
     expect(html).toContain("uploadState.textContent = '✓'");
     expect(html).toContain("uploadState.classList.add('upload-complete')");
     expect(html).toContain(
-      "uploadState.setAttribute('aria-label', 'Photo ready')",
+      "uploadState.setAttribute('aria-label', uiText(\"Photo ready\"))",
     );
     expect(html).toContain("sendBtn.style.display = 'none'");
   });
 
   it("uses clear v2 primary-action states", () => {
-    expect(html).toContain("Adding ${active} of ${total}…");
-    expect(html).toContain("Retry ${failed} failed photo");
-    expect(html).toContain("${total} photos ready on your computer");
+    expect(uiFormat("Adding {0} of {1}…", [2, 5], "en")).toBe("Adding 2 of 5…");
+    expect(uiFormat("Adding {0} of {1}…", [2, 5], "nl")).toBe("Uploaden… 2/5");
+    expect(uiFormat("Retry {0} failed photo{1}", [3, "s"], "nl")).toContain(
+      "3",
+    );
+    expect(uiFormat("{0} photos ready on your computer", [5], "nl")).toBe(
+      "Naar computer verstuurd: 5",
+    );
     expect(html).toContain("mainBtn.classList.toggle('is-uploading'");
     expect(html).toContain("mainBtn.classList.toggle('is-error'");
     expect(html).toContain("mainBtn.classList.toggle('is-ready'");
@@ -146,7 +154,7 @@ describe("phone upload page v2 contract", () => {
       /\.batch-mode \.file-info \.progress-bar,[\s\S]*?\.batch-mode \.file-status[\s\S]*?display:\s*none/,
     );
     expect(html).toContain(
-      "mainBtn.lastChild.textContent = `Adding ${active} of ${total}…`",
+      'mainBtn.lastChild.textContent = uiFormat("Adding {0} of {1}…", [active, total])',
     );
     expect(html).toContain(
       "mainBtn.disabled = state.isSending || state.completeSent",

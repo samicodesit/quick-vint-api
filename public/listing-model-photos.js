@@ -25,7 +25,9 @@
     sv: "Skapar modellbilder…|Lägger till modellbilder…|Förbereder din modell…|Det gick inte att skapa modellbilder.|Det gick inte att lägga till modellbilder.|Försök igen|Gör plats för 2 modellbilder.|Flytta modellbilderna till början.|Lägger till två modellbilder i lämpliga annonser.|Modellbild|Modellbilder|Väntar på modellbilder…|Det gick inte att läsa in modellbilder.|Gör plats för 1 modellbild.|Lägg till modellbilder|Använder 1 annons från din kvot.|Lägg till varubilder först.|Text klar · Modellbilder på väg",
   };
   function text(key) {
-    const code = root.AutoListerModelCopy?.getLocale?.() || "en";
+    const locale = root.AutoListerModelCopy?.getLocale?.() || "en";
+    const language = String(locale).toLowerCase().split(/[-_]/)[0];
+    const code = language === "cz" ? "cs" : language;
     const row = rows[code]?.split("|");
     const i = keys.indexOf(key);
     return i >= 0 && row ? row[i] : key;

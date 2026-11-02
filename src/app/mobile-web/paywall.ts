@@ -1,3 +1,4 @@
+import { getUiLocale, localizeUiFragment, uiText } from "./ui";
 import { getMobilePaywall } from "./paywallPolicy";
 import {
   openMobilePortal,
@@ -26,7 +27,7 @@ const names = {
   starter: "Starter",
   pro: "Pro",
   business: "Business",
-  credit_pack: "One-time credits",
+  credit_pack: uiText("One-time credits"),
 };
 
 export type MobilePaywallEntryPoint =
@@ -43,12 +44,13 @@ export function mountMobilePaywall(
     flush: () => Promise<void>;
   },
 ) {
-  const locale = navigator.language || "en";
+  const locale = getUiLocale();
   const billingCopy = getBillingCopy(locale);
   const dialog = document.createElement("dialog");
   dialog.className = "mobile-paywall";
   dialog.setAttribute("aria-labelledby", "mobile-paywall-title");
   dialog.innerHTML = `<div class="mobile-paywall-heading"><img src="/favicon-96x96.png" width="40" height="40" alt="" /><div><span class="mobile-paywall-brand">AutoLister AI</span><h2 id="mobile-paywall-title" tabindex="-1"></h2></div><button type="button" aria-label="Close paid options">×</button></div><div class="mobile-paywall-body"><p data-paywall-copy></p><div data-paywall-options role="group" aria-label="Paid options"></div><p role="status" data-paywall-status hidden></p><a data-paywall-support href="${support}" hidden>Contact support</a></div><div class="mobile-paywall-footer"><button type="button" class="mobile-primary-button" data-paywall-continue hidden></button><p class="mobile-paywall-trust" data-paywall-trust></p></div>`;
+  localizeUiFragment(dialog);
   root.append(dialog);
   const tabs = document.createElement("div");
   tabs.className = "mobile-paywall-tabs";
@@ -247,7 +249,7 @@ export function mountMobilePaywall(
             const link = document.createElement("a");
             link.href =
               "mailto:support@autolister.app?subject=AutoLister%20AI%20tailored%20limits";
-            link.textContent = "Contact us for tailored limits";
+            link.textContent = uiText("Contact us for tailored limits");
             list.append(link);
             return;
           }
@@ -287,7 +289,7 @@ export function mountMobilePaywall(
             : null;
           const label =
             tier === "manage"
-              ? "Update payment"
+              ? uiText("Update payment")
               : pack
                 ? billingCopy.pack.replace("{credits}", String(pack.credits))
                 : names[tier as MobileBillingTier];

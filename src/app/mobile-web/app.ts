@@ -1,3 +1,4 @@
+import { initializeUiLocale, uiFormat, uiText } from "./ui";
 import { trackResultEdits, sendResultEdit } from "./resultEditTracking";
 import { mountDraftWorkspace } from "./draftWorkspace";
 import { mountUserModels } from "./userModels";
@@ -147,15 +148,17 @@ export function renderMobileAuthStep(
   text(
     root,
     "#mobile-auth-title",
-    email === null ? "Sign in" : "Check your email",
+    email === null ? uiText("Sign in") : uiText("Check your email"),
   );
   text(root, '[data-mobile-web="auth-email"]', email || "");
   text(
     root,
     "#mobile-otp-help",
     readPreAuthStyle(getStorage())?.settings
-      ? "Open the email link in this browser to keep your selected style."
-      : "The same email also includes a secure sign-in link.",
+      ? uiText(
+          "Open the email link in this browser to keep your selected style.",
+        )
+      : uiText("The same email also includes a secure sign-in link."),
   );
 }
 
@@ -429,13 +432,16 @@ export function getMobileUsageSummary(usage: MobileUsage): MobileUsageSummary {
     tier: isFree ? "free" : "paid",
     headline: isFree
       ? usage.canGenerate === false
-        ? "Limit reached"
+        ? uiText("Limit reached")
         : freeRemaining !== null && freeLimit !== null
-          ? `${freeRemaining} of ${freeLimit} listings remaining`
+          ? uiFormat("{0} of {1} listings remaining", [
+              freeRemaining,
+              freeLimit,
+            ])
           : freeRemaining !== null
-            ? `${freeRemaining} listings remaining`
-            : "Free plan"
-      : "Usage",
+            ? uiFormat("{0} listings remaining", [freeRemaining])
+            : uiText("Free plan")
+      : uiText("Usage"),
     credits,
     free,
     daily: isFree ? null : quotaRow(remaining, limits, resetsAt, "daily"),
@@ -454,8 +460,8 @@ function formatQuotaValue(
   kind: "daily" | "monthly",
 ): string {
   if ("unlimited" in row && row.unlimited)
-    return kind === "daily" ? "No daily cap" : "No monthly cap";
-  if (row.used === null || row.limit === null) return "Unavailable";
+    return kind === "daily" ? uiText("No daily cap") : uiText("No monthly cap");
+  if (row.used === null || row.limit === null) return uiText("Unavailable");
   return `${row.used} / ${row.limit}`;
 }
 
@@ -491,7 +497,9 @@ export function renderMobileUsage(root: ParentNode, usage: MobileUsage): void {
   text(
     root,
     '[data-mobile-web="account-plan"]',
-    `${usage.plan?.tier || "Free"} plan`,
+    usage.plan?.tier && usage.plan.tier !== "free"
+      ? usage.plan.tier[0].toUpperCase() + usage.plan.tier.slice(1)
+      : uiText("Free plan"),
   );
   setHidden(root, '[data-mobile-web="usage-headline"]', true);
   text(
@@ -520,7 +528,7 @@ export function renderMobileUsage(root: ParentNode, usage: MobileUsage): void {
 }
 
 export function clearMobileUsage(root: ParentNode): void {
-  text(root, '[data-mobile-web="usage-headline"]', "Usage unavailable");
+  text(root, '[data-mobile-web="usage-headline"]', uiText("Usage unavailable"));
   setHidden(root, '[data-mobile-web="usage-headline"]', false);
   setHidden(root, '[data-mobile-web="usage-free"]', true);
   setHidden(root, '[data-mobile-web="usage-paid"]', true);
@@ -611,14 +619,14 @@ function errorDetails(error: unknown): {
       message:
         typeof record.message === "string"
           ? record.message
-          : "Something went wrong. Please try again.",
+          : uiText("Something went wrong. Please try again."),
       retryable: record.retryable === true,
       code: typeof record.code === "string" ? record.code : "unknown_error",
     };
   }
   return {
     status: 0,
-    message: "Something went wrong. Please try again.",
+    message: uiText("Something went wrong. Please try again."),
     retryable: true,
     code: "unknown_error",
   };
@@ -627,15 +635,21 @@ function errorDetails(error: unknown): {
 function progressCopy(state: MobileGenerationState): [string, string] {
   if (state.status === "uploading")
     return [
-      "Preparing your photos",
-      `Securely uploading ${state.completed} of ${state.total} photos`,
+      uiText("Preparing your photos"),
+      uiFormat("Securely uploading {0} of {1} photos", [
+        state.completed,
+        state.total,
+      ]),
     ];
   if (state.status === "generating")
     return [
-      "Writing your listing",
-      "Our AI is finding the useful details in your photos",
+      uiText("Writing your listing"),
+      uiText("Our AI is finding the useful details in your photos"),
     ];
-  return ["Preparing your listing", "Your photos are being securely prepared."];
+  return [
+    uiText("Preparing your listing"),
+    uiText("Your photos are being securely prepared."),
+  ];
 }
 
 function setGenerationState(
@@ -708,8 +722,11 @@ export function getMobilePhotoLayoutState(
     showPhotoRail: photoCount > 0,
     countLabel:
       photoCount > 0
-        ? `${photoCount} photo${photoCount === 1 ? "" : "s"} selected`
-        : "No photos yet",
+        ? uiFormat("{0} photo{1} selected", [
+            photoCount,
+            photoCount === 1 ? "" : "s",
+          ])
+        : uiText("No photos yet"),
   };
 }
 
@@ -737,7 +754,7 @@ export function getMobileGenerateButtonState(
     disabled,
     helper:
       !input.hasPhotos && input.status === "idle"
-        ? "Add at least one photo to continue"
+        ? uiText("Add at least one photo to continue")
         : "",
   };
 }
@@ -761,13 +778,16 @@ export function renderPhotos(root: ParentNode, photos: SelectedPhoto[]): void {
     tile.setAttribute("role", "listitem");
     const image = document.createElement("img");
     image.src = photo.previewUrl;
-    image.alt = `Selected photo ${index + 1}`;
+    image.alt = uiFormat("Selected photo {0}", [index + 1]);
     image.loading = "lazy";
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "photo-remove";
     remove.dataset.photoRemove = photo.id;
-    remove.setAttribute("aria-label", `Remove photo ${index + 1}`);
+    remove.setAttribute(
+      "aria-label",
+      uiFormat("Remove photo {0}", [index + 1]),
+    );
     remove.textContent = "×";
     tile.append(image, remove);
     if (addButton) list.insertBefore(tile, addButton);
@@ -856,7 +876,7 @@ function updateFormattingControls(
   text(
     root,
     "[data-mobile-format-summary]",
-    `${formatting.descriptionLength === "long" ? "Long" : "Short"} · ${formatting.useBulletPoints ? "Bullet points" : "Paragraphs"}`,
+    `${formatting.descriptionLength === "long" ? uiText("Long") : uiText("Short")} · ${formatting.useBulletPoints ? uiText("Bullet points") : uiText("Paragraphs")}`,
   );
 }
 
@@ -925,6 +945,7 @@ export function mountMobileWebApp(
       root) ||
     asElement<HTMLElement>(root, '[data-mobile-web="workspace"]');
   if (!shell) return () => undefined;
+  initializeUiLocale(shell);
   let disposed = false;
   let session: Awaited<ReturnType<typeof getBrowserSession>> = null;
   const userModels = mountUserModels(root, () => session?.user.id);
@@ -1027,9 +1048,9 @@ export function mountMobileWebApp(
     } catch {
       showState(
         root,
-        "Your style is still saved",
-        "We could not apply it to this account. Please try again.",
-        "Try again",
+        uiText("Your style is still saved"),
+        uiText("We could not apply it to this account. Please try again."),
+        uiText("Try again"),
       );
       return;
     }
@@ -1202,7 +1223,7 @@ export function mountMobileWebApp(
       if (usage.canGenerate === false) {
         state = {
           status: "quota",
-          message: "You have reached your current generation limit.",
+          message: uiText("You have reached your current generation limit."),
         };
       } else if (state.status === "quota") {
         state = { status: "idle" };
@@ -1293,7 +1314,7 @@ export function mountMobileWebApp(
       text(
         root,
         '[data-mobile-web="result-done"]',
-        "Both fields copied. Open Vinted when you are ready.",
+        uiText("Both fields copied. Open Vinted when you are ready."),
       );
   };
 
@@ -1450,7 +1471,7 @@ export function mountMobileWebApp(
         clearPreviews();
         state = {
           status: "error",
-          message: "Photo generation was cancelled.",
+          message: uiText("Photo generation was cancelled."),
           retryable: false,
         };
         applyGenerationState();
@@ -1493,8 +1514,8 @@ export function mountMobileWebApp(
           setGenerateButtonLabel(
             root,
             state.status === "error" && state.retryable
-              ? "Try again"
-              : "Generate listing",
+              ? uiText("Try again")
+              : uiText("Generate listing"),
           );
         }
       }
@@ -1600,7 +1621,7 @@ export function mountMobileWebApp(
     text(
       root,
       statusSelector,
-      copied ? "Copied ✓" : "Could not copy. Try again.",
+      copied ? uiText("Copied ✓") : uiText("Could not copy. Try again."),
     );
     void trackMobileEvent("copy", getMobileCopyAnalyticsContext(field, copied));
     if (!copied) return;
@@ -1724,7 +1745,7 @@ export function mountMobileWebApp(
               shell.dataset.draftsEnabled === "true"
                 ? '[data-mobile-web="account-status"]'
                 : '[data-mobile-web="generation-status"]',
-              "Could not open billing. Please try again.",
+              uiText("Could not open billing. Please try again."),
             );
         })
         .finally(() => {
@@ -1739,7 +1760,10 @@ export function mountMobileWebApp(
       void signInWithGoogle().catch(() =>
         disposed
           ? undefined
-          : authStatus("Could not open Google sign-in. Try again.", true),
+          : authStatus(
+              uiText("Could not open Google sign-in. Try again."),
+              true,
+            ),
       ),
   );
   const authStatus = (message: string, error = false) => {
@@ -1780,12 +1804,12 @@ export function mountMobileWebApp(
           renderMobileAuthStep(root, email);
           const input = asElement<HTMLInputElement>(root, "#mobile-otp");
           if (input) input.value = "";
-          authStatus("Email sent.");
+          authStatus(uiText("Email sent."));
           asElement<HTMLInputElement>(root, "#mobile-otp")?.focus();
         })
         .catch(() => {
           if (disposed) return;
-          authStatus("Could not send a code. Try again.", true);
+          authStatus(uiText("Could not send a code. Try again."), true);
         })
         .finally(() => {
           if (submit && !disposed) submit.disabled = false;
@@ -1807,7 +1831,7 @@ export function mountMobileWebApp(
     if (input.disabled) return;
     input.disabled = true;
     if (resendCode) resendCode.disabled = true;
-    authStatus("Checking code…");
+    authStatus(uiText("Checking code…"));
     const email =
       asElement<HTMLInputElement>(root, "#mobile-email")?.value ?? "";
     void verifyEmailOtp(email, input.value)
@@ -1825,7 +1849,9 @@ export function mountMobileWebApp(
       .catch(() => {
         if (disposed) return;
         authStatus(
-          "That code could not be verified. Try again or request a new code.",
+          uiText(
+            "That code could not be verified. Try again or request a new code.",
+          ),
           true,
         );
       })
@@ -1838,7 +1864,9 @@ export function mountMobileWebApp(
     if (
       draftWorkspace?.hasUnsaved() &&
       !window.confirm(
-        "Leave this workspace? Unsaved edits and unfinished photos may be lost. Saved drafts will stay in this browser.",
+        uiText(
+          "Leave this workspace? Unsaved edits and unfinished photos may be lost. Saved drafts will stay in this browser.",
+        ),
       )
     )
       return;
@@ -1866,7 +1894,7 @@ export function mountMobileWebApp(
       })
       .catch(() => {
         if (!disposed && status)
-          status.textContent = "Could not sign out. Try again.";
+          status.textContent = uiText("Could not sign out. Try again.");
       })
       .finally(() => {
         if (!disposed) button.disabled = false;
@@ -2006,9 +2034,9 @@ export function mountMobileWebApp(
       if (disposed) return;
       showState(
         root,
-        "We could not restore your session",
-        "Please sign in again to continue.",
-        "Sign in",
+        uiText("We could not restore your session"),
+        uiText("Please sign in again to continue."),
+        uiText("Sign in"),
       );
     }
   };

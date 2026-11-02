@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import {
   createClient,
   type Session,
@@ -141,7 +142,7 @@ export async function requestMagicLink(email: string) {
     throw authError(
       code,
       { status: response.status },
-      getErrorMessage(body.error, "Unable to send the sign-in email."),
+      getErrorMessage(body.error, uiText("Unable to send the sign-in email.")),
     );
   }
 

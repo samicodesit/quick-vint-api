@@ -1,3 +1,4 @@
+import { uiFormat } from "./ui";
 const selectedArtwork = new WeakMap<Element, Element>();
 
 export function syncDraftSelects(root: HTMLElement, attribute?: string) {
@@ -51,7 +52,7 @@ export function syncDraftSelects(root: HTMLElement, attribute?: string) {
           if (planLocked)
             option.setAttribute(
               "aria-label",
-              `${nativeOption?.textContent}: locked, view plans`,
+              uiFormat("{0}: locked, view plans", [nativeOption?.textContent]),
             );
           else option.removeAttribute("aria-label");
           const selected = String(

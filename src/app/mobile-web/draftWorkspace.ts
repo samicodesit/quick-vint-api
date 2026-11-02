@@ -1,3 +1,4 @@
+import { uiFormat, uiText } from "./ui";
 import { createDraftClient, type DraftAttempt } from "./draftClient";
 import { isPhoneOrTablet } from "../../utils/clientDevice";
 import {
@@ -390,7 +391,7 @@ export function mountDraftWorkspace(
           status.textContent =
             error instanceof Error
               ? error.message
-              : "Could not save settings. Try again.";
+              : uiText("Could not save settings. Try again.");
           action("retry-item-settings").hidden = false;
         });
       return;
@@ -458,7 +459,7 @@ export function mountDraftWorkspace(
       globalSettings = loadDefaults();
       renderGlobalSettings();
       hide("[data-draft-global-save-status]", true);
-      label("save-global-defaults", "Save defaults");
+      label("save-global-defaults", uiText("Save defaults"));
     }
     root
       .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
@@ -489,7 +490,7 @@ export function mountDraftWorkspace(
       panel.querySelector("h3")?.textContent?.trim() ||
       summary?.getAttribute("aria-label") ||
       summary?.textContent?.trim() ||
-      "Photo options";
+      uiText("Photo options");
     panel.setAttribute("aria-label", name);
     if (!panel.querySelector("h3")) {
       const heading = document.createElement("h3");
@@ -631,7 +632,7 @@ export function mountDraftWorkspace(
     const url = photo
       ? photo.url
       : selected?.value.photos.find((p) => p.url)?.url;
-    cover.alt = photo ? "Photo to delete" : "Item to delete";
+    cover.alt = photo ? uiText("Photo to delete") : uiText("Item to delete");
     cover.hidden = !url;
     if (url) cover.src = url;
     else cover.removeAttribute("src");
@@ -691,7 +692,7 @@ export function mountDraftWorkspace(
       tell(
         error instanceof Error
           ? error.message
-          : "Your work could not be saved. Try again.",
+          : uiText("Your work could not be saved. Try again."),
         true,
       );
       if ((error as { status?: number }).status === 401) queue.pause();
@@ -758,10 +759,10 @@ export function mountDraftWorkspace(
     if (disposed) return;
     find("[data-draft-save-status]").textContent =
       status === "saving"
-        ? "Saving…"
+        ? uiText("Saving…")
         : status === "saved"
-          ? "Saved"
-          : "Not saved";
+          ? uiText("Saved")
+          : uiText("Not saved");
     action("save").hidden = status !== "error" || conflict;
     find("[data-draft-save-status]").dataset.status = status;
     if (status === "saved" && selected) {
@@ -773,7 +774,7 @@ export function mountDraftWorkspace(
     }
   };
   const makeAutosave = (draft: Draft) => {
-    find("[data-draft-save-status]").textContent = "Saved";
+    find("[data-draft-save-status]").textContent = uiText("Saved");
     find("[data-draft-save-status]").dataset.status = "saved";
     action("save").hidden = true;
     return new DraftAutosave(
@@ -797,7 +798,7 @@ export function mountDraftWorkspace(
     clearTimeout(saveTimer);
     if (conflict)
       throw new Error(
-        "Choose which version of this draft to keep before continuing.",
+        uiText("Choose which version of this draft to keep before continuing."),
       );
     const snapshot = batchSettingsItem || selected;
     if (snapshot?.dirty) validateDraftSettings(snapshot.value.settings);
@@ -808,7 +809,7 @@ export function mountDraftWorkspace(
   function renderLibrary() {
     if (disposed) return;
     find(".draft-library-title").textContent =
-      tab === "done" ? "Listed items" : "Your drafts";
+      tab === "done" ? uiText("Listed items") : uiText("Your drafts");
     const items = find("[data-draft-items]");
     items.setAttribute("aria-busy", String(loading));
     const selectedId = selected?.value.id;
@@ -834,17 +835,17 @@ export function mountDraftWorkspace(
       p.append(icon("images"));
       const heading = document.createElement("h2");
       heading.textContent = loading
-        ? "Loading your drafts…"
+        ? uiText("Loading your drafts…")
         : !action("reload").hidden
-          ? "Drafts unavailable"
+          ? uiText("Drafts unavailable")
           : tab === "done"
-            ? "Items you mark as listed will appear here."
-            : "Prepare your first item";
+            ? uiText("Items you mark as listed will appear here.")
+            : uiText("Prepare your first item");
       p.append(heading);
       if (tab === "draft" && !loading && action("reload").hidden)
         p.append(
           button(
-            "Add item",
+            uiText("Add item"),
             () => run(async () => handlers.new()),
             "draft-primary",
           ),
@@ -866,7 +867,9 @@ export function mountDraftWorkspace(
       check.disabled = busy(draft) || queue.running;
       check.setAttribute(
         "aria-label",
-        `Select ${draft.title || `item ${index + 1}`}`,
+        uiFormat("Select {0}", [
+          draft.title || uiFormat("item {0}", [index + 1]),
+        ]),
       );
       check.addEventListener("change", () => {
         check.checked ? chosen.add(draft.id) : chosen.delete(draft.id);
@@ -899,7 +902,9 @@ export function mountDraftWorkspace(
       const title = document.createElement("strong");
       title.textContent =
         draft.title ||
-        (draft.photos.length ? "Untitled item" : "Untitled draft");
+        (draft.photos.length
+          ? uiText("Untitled item")
+          : uiText("Untitled draft"));
       const detail = document.createElement("span");
       detail.className = "draft-item-detail";
       detail.dataset.state =
@@ -914,26 +919,32 @@ export function mountDraftWorkspace(
                 : "draft";
       detail.textContent =
         draft.state === "done"
-          ? "Listed"
+          ? uiText("Listed")
           : queue.active === draft.id
-            ? "Generating…"
+            ? uiText("Generating…")
             : queue.remaining.includes(draft.id)
               ? queue.paused || !queue.running
-                ? "Paused"
-                : "Waiting…"
+                ? uiText("Paused")
+                : uiText("Waiting…")
               : outputFailed(draft)
-                ? "Needs attention"
+                ? uiText("Needs attention")
                 : draft.operation_state === "running" ||
                     draft.operation_state === "pending"
-                  ? "Check result"
+                  ? uiText("Check result")
                   : draft.description
                     ? draft.modelPhotos?.eligible &&
                       photoUI()?.statusKey(draft.modelPhotos)
                       ? photoUI().text(photoUI().statusKey(draft.modelPhotos))
-                      : "Ready to copy"
+                      : uiText("Ready to copy")
                     : draft.photos.length
-                      ? `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${ready ? "Ready to generate" : "Uploading"}`
-                      : "No photos yet";
+                      ? uiFormat("{0} photo{1} · {2}", [
+                          draft.photos.length,
+                          draft.photos.length === 1 ? "" : "s",
+                          ready
+                            ? uiText("Ready to generate")
+                            : uiText("Uploading"),
+                        ])
+                      : uiText("No photos yet");
       statusLabel(
         detail,
         detail.textContent || "",
@@ -958,7 +969,7 @@ export function mountDraftWorkspace(
   }
   function renderSelection() {
     root.classList.toggle("is-selecting", selectionMode);
-    label("selection", selectionMode ? "Cancel" : "Select");
+    label("selection", selectionMode ? uiText("Cancel") : uiText("Select"));
     action("selection").setAttribute("aria-pressed", String(selectionMode));
     action("selection").hidden = tab === "done" || !library.drafts.length;
     hide("[data-draft-batch-actions]", !selectionMode);
@@ -988,7 +999,7 @@ export function mountDraftWorkspace(
         }
       });
     find("[data-draft-selected-count]").textContent = chosen.size
-      ? `${chosen.size} selected`
+      ? uiFormat("{0} selected", [chosen.size])
       : "";
     const runSize = Math.min(
       eligible.length,
@@ -999,8 +1010,8 @@ export function mountDraftWorkspace(
     label(
       "generate-selected",
       chosen.size
-        ? `Generate ${runSize} draft${runSize === 1 ? "" : "s"}`
-        : "Generate drafts",
+        ? uiFormat("Generate {0} draft{1}", [runSize, runSize === 1 ? "" : "s"])
+        : uiText("Generate drafts"),
     );
     action("generate-selected").disabled =
       !eligible.length || queue.running || processing;
@@ -1013,11 +1024,11 @@ export function mountDraftWorkspace(
     if (photo.url) {
       const img = document.createElement("img");
       img.src = photo.url;
-      img.alt = "Item photo";
+      img.alt = uiText("Item photo");
       wrap.append(img);
     } else {
       const p = document.createElement("span");
-      p.textContent = "Upload incomplete";
+      p.textContent = uiText("Upload incomplete");
       wrap.append(p);
     }
     if (selectable) {
@@ -1031,7 +1042,7 @@ export function mountDraftWorkspace(
       check.disabled = photo.status !== "ready";
       check.setAttribute(
         "aria-label",
-        `Select photo ${library.imports.indexOf(photo) + 1}`,
+        uiFormat("Select photo {0}", [library.imports.indexOf(photo) + 1]),
       );
       check.addEventListener("change", () => {
         check.checked
@@ -1053,7 +1064,7 @@ export function mountDraftWorkspace(
       settingsAccess,
     );
     find("[data-draft-default-summary]").textContent =
-      `${defaultSettings.descriptionLength === "short" ? "Short" : "Long"} · ${defaultSettings.useBulletPoints ? "Bullets" : "Paragraphs"}`;
+      `${defaultSettings.descriptionLength === "short" ? uiText("Short") : uiText("Long")} · ${defaultSettings.useBulletPoints ? uiText("Bullets") : uiText("Paragraphs")}`;
   }
   function renderGlobalSettings() {
     syncSettingsControls(root, "global", globalSettings, false, settingsAccess);
@@ -1095,7 +1106,7 @@ export function mountDraftWorkspace(
     const saveStatus = find("[data-draft-batch-save-status]");
     saveStatus.hidden = false;
     saveStatus.classList.remove("draft-settings-error");
-    saveStatus.textContent = "Saving…";
+    saveStatus.textContent = uiText("Saving…");
     renderPool();
     try {
       for (const draft of inherited) {
@@ -1112,15 +1123,19 @@ export function mountDraftWorkspace(
           JSON.stringify(defaultSettings),
         );
       } catch {}
-      saveStatus.textContent = "Saved";
+      saveStatus.textContent = uiText("Saved");
       tell("");
     } catch {
       defaultSettings = previous;
       saveStatus.classList.add("draft-settings-error");
-      saveStatus.textContent = "Not saved. Change this setting again to retry.";
+      saveStatus.textContent = uiText(
+        "Not saved. Change this setting again to retry.",
+      );
       saveStatus.scrollIntoView({ block: "nearest" });
       throw new Error(
-        "Batch settings could not be saved for every item. Change this setting again to retry. Each item's last saved choices are safe.",
+        uiText(
+          "Batch settings could not be saved for every item. Change this setting again to retry. Each item's last saved choices are safe.",
+        ),
       );
     } finally {
       processing = false;
@@ -1162,8 +1177,8 @@ export function mountDraftWorkspace(
         !uploads.some((photo) => !photo.draftId),
     );
     find("[data-draft-groups] h2").textContent = groups.length
-      ? `Items (${groups.length})`
-      : "Your items";
+      ? uiFormat("Items ({0})", [groups.length])
+      : uiText("Your items");
     find("[data-draft-import]").classList.toggle(
       "has-groups",
       Boolean(groups.length),
@@ -1185,22 +1200,29 @@ export function mountDraftWorkspace(
       }
       const text = document.createElement("span");
       const title = document.createElement("strong");
-      title.textContent = draft.title || `Item ${groups.indexOf(draft) + 1}`;
+      title.textContent =
+        draft.title || uiFormat("Item {0}", [groups.indexOf(draft) + 1]);
       const status = document.createElement("small");
       status.textContent = outputFailed(draft)
-        ? "Needs attention"
+        ? uiText("Needs attention")
         : queue.remaining.includes(draft.id)
           ? queue.paused
-            ? "Paused"
-            : "Waiting"
+            ? uiText("Paused")
+            : uiText("Waiting")
           : busy(draft)
-            ? "Preparing…"
+            ? uiText("Preparing…")
             : draft.modelPhotos?.eligible &&
                 photoUI()?.statusKey(draft.modelPhotos)
               ? photoUI().text(photoUI().statusKey(draft.modelPhotos))
               : draft.description
-                ? "Ready to copy"
-                : `${draft.photos.length} photo${draft.photos.length === 1 ? "" : "s"} · ${sameSettings(draft.settings, defaultSettings) ? "Uses batch settings" : "Custom settings"}`;
+                ? uiText("Ready to copy")
+                : uiFormat("{0} photo{1} · {2}", [
+                    draft.photos.length,
+                    draft.photos.length === 1 ? "" : "s",
+                    sameSettings(draft.settings, defaultSettings)
+                      ? uiText("Uses batch settings")
+                      : uiText("Custom settings"),
+                  ]);
       statusLabel(
         status,
         status.textContent || "",
@@ -1224,10 +1246,10 @@ export function mountDraftWorkspace(
               message.hidden = false;
               message.textContent =
                 status === "saving"
-                  ? "Saving…"
+                  ? uiText("Saving…")
                   : status === "saved"
-                    ? "Saved"
-                    : "Could not save settings. Try again.";
+                    ? uiText("Saved")
+                    : uiText("Could not save settings. Try again.");
               action("retry-item-settings").hidden = status !== "error";
               if (status === "saved") {
                 upsert(batchSettingsItem.value);
@@ -1243,9 +1265,12 @@ export function mountDraftWorkspace(
       );
       settings.append(icon("settings"));
       settings.dataset.focusKey = `group-settings-${draft.id}`;
-      settings.title = "Listing settings";
+      settings.title = uiText("Listing settings");
       settings.className = "draft-text-button draft-group-settings";
-      settings.setAttribute("aria-label", `Settings for ${title.textContent}`);
+      settings.setAttribute(
+        "aria-label",
+        uiFormat("Settings for {0}", [title.textContent]),
+      );
       settings.disabled = busy(draft);
       const remove = button(
         "",
@@ -1281,15 +1306,15 @@ export function mountDraftWorkspace(
       remove.append(icon("remove"));
       remove.setAttribute(
         "aria-label",
-        `Remove ${title.textContent} from batch`,
+        uiFormat("Remove {0} from batch", [title.textContent]),
       );
-      remove.title = "Remove item. Return photos to the pool.";
+      remove.title = uiText("Remove item. Return photos to the pool.");
       remove.disabled = busy(draft);
       remove.style.visibility = draft.description ? "hidden" : "visible";
       remove.disabled ||= Boolean(draft.description);
       if (outputFailed(draft) || (draft.description && !busy(draft))) {
         const review = button(
-          outputFailed(draft) ? "Open" : "Review",
+          outputFailed(draft) ? uiText("Open") : uiText("Review"),
           () => run(() => openDraft(draft.id)),
           "draft-text-button draft-group-review",
         );
@@ -1311,27 +1336,38 @@ export function mountDraftWorkspace(
     ).length;
     const eligible = eligibleCount > 0;
     find("[data-draft-grouping-complete] p").textContent = queue.running
-      ? "Drafts are being prepared."
+      ? uiText("Drafts are being prepared.")
       : queue.remaining.length
-        ? "Resume to finish preparing your drafts."
+        ? uiText("Resume to finish preparing your drafts.")
         : eligible
-          ? "Ready to generate."
-          : "Your drafts are saved and ready to review.";
+          ? uiText("Ready to generate.")
+          : uiText("Your drafts are saved and ready to review.");
     action("generate-groups").disabled =
       queue.running || processing || !eligible;
     label(
       "generate-groups",
-      `Generate ${eligibleCount} draft${eligibleCount === 1 ? "" : "s"}`,
+      uiFormat("Generate {0} draft{1}", [
+        eligibleCount,
+        eligibleCount === 1 ? "" : "s",
+      ]),
     );
     find("[data-draft-batch-cost]").textContent = eligibleCount
-      ? `Uses ${eligibleCount} generation${eligibleCount === 1 ? "" : "s"}${library.imports.length ? `. ${library.imports.length} unassigned photos stay saved.` : ""}`
+      ? uiFormat("Uses {0} generation{1}{2}", [
+          eligibleCount,
+          eligibleCount === 1 ? "" : "s",
+          library.imports.length
+            ? uiFormat(". {0} unassigned photos stay saved.", [
+                library.imports.length,
+              ])
+            : "",
+        ])
       : "";
     action("generate-groups").hidden = !eligible && !queue.running;
     const status = !groups.length
-      ? "Group photos to create an item."
+      ? uiText("Group photos to create an item.")
       : groups.every((d) => Boolean(d.description))
-        ? "All drafts are ready to review and copy."
-        : "Open an item to review its photos and finish preparing it.";
+        ? uiText("All drafts are ready to review and copy.")
+        : uiText("Open an item to review its photos and finish preparing it.");
     find("[data-draft-groups-status]").textContent = status;
     hide("[data-draft-groups-status]", eligible || !queuePanel.hidden);
     restoreFocus();
@@ -1345,11 +1381,11 @@ export function mountDraftWorkspace(
     hide("[data-draft-import]", !bulk);
     find("[data-draft-heading]").textContent = bulk
       ? library.imports.length || groupIds.length
-        ? "Prepare several items"
-        : "Add several items"
+        ? uiText("Prepare several items")
+        : uiText("Add several items")
       : tab === "done"
-        ? "Listed"
-        : "Drafts";
+        ? uiText("Listed")
+        : uiText("Drafts");
     find("[data-draft-heading]").classList.toggle("draft-sr-only", !bulk);
     find(".draft-heading").hidden = !bulk;
     hide("[data-draft-library-actions]", bulk);
@@ -1360,7 +1396,7 @@ export function mountDraftWorkspace(
     hide("[data-draft-import] > .draft-mode", hasPhotos || groupIds.length > 0);
     const complete = !hasPhotos && groupIds.length > 0;
     if (bulk && complete)
-      find("[data-draft-heading]").textContent = "Your batch";
+      find("[data-draft-heading]").textContent = uiText("Your batch");
     find("[data-draft-import]").classList.toggle("is-complete", complete);
     find("[data-draft-import]").classList.toggle(
       "is-empty",
@@ -1369,8 +1405,8 @@ export function mountDraftWorkspace(
     const startedBatch = batchHasStarted();
     hide("[data-draft-grouping-complete]", !complete || startedBatch);
     find("[data-draft-grouping-instruction]").textContent = complete
-      ? "All photos grouped. Generate each item automatically."
-      : "Select photos of the same item.";
+      ? uiText("All photos grouped. Generate each item automatically.")
+      : uiText("Select photos of the same item.");
     hide("[data-draft-bulk-entry]", hasPhotos || groupIds.length > 0);
     hide("[data-draft-import-controls]", !hasPhotos && !startedBatch);
     hide(
@@ -1381,8 +1417,10 @@ export function mountDraftWorkspace(
         tab === "done" ||
         (!library.imports.length && !uploads.some((p) => !p.draftId)),
     );
-    find("[data-draft-import-summary-copy]").textContent =
-      `${library.imports.filter((p) => p.status === "ready").length} photos waiting to be grouped`;
+    find("[data-draft-import-summary-copy]").textContent = uiFormat(
+      "{0} photos waiting to be grouped",
+      [library.imports.filter((p) => p.status === "ready").length],
+    );
     const focused = (document.activeElement as HTMLInputElement | null)?.dataset
       .draftPhotoId;
     const pool = find("[data-draft-pool]");
@@ -1413,21 +1451,21 @@ export function mountDraftWorkspace(
           const summary = document.createElement("summary");
           summary.append(icon("more"));
           summary.dataset.focusKey = `options-${photo.id}`;
-          summary.setAttribute("aria-label", "Photo options");
+          summary.setAttribute("aria-label", uiText("Photo options"));
           menu.dataset.draftPopover = "";
           menu.dataset.photoOptions = photo.id;
           const panel = document.createElement("div");
           panel.className = "draft-popover-panel";
           menu.append(summary, panel);
           panel.append(
-            button("Close", () => closePopover(menu), "draft-close"),
+            button(uiText("Close"), () => closePopover(menu), "draft-close"),
             button(
-              "Delete",
+              uiText("Delete"),
               () =>
                 run(async () => {
                   if (
                     !(await confirmDelete(
-                      "Delete this saved photo? This cannot be undone.",
+                      uiText("Delete this saved photo? This cannot be undone."),
                       photo,
                     ))
                   )
@@ -1475,8 +1513,10 @@ export function mountDraftWorkspace(
         input.checked = chosenPhotos.has(input.dataset.draftPhotoId!);
       });
     hide("[data-draft-import-footer]", !chosenPhotos.size);
-    find("[data-draft-photo-count]").textContent =
-      `${chosenPhotos.size} photo${chosenPhotos.size === 1 ? "" : "s"} selected`;
+    find("[data-draft-photo-count]").textContent = uiFormat(
+      "{0} photo{1} selected",
+      [chosenPhotos.size, chosenPhotos.size === 1 ? "" : "s"],
+    );
     action("individual").hidden = chosenPhotos.size < 2;
     action("group").disabled =
       !chosenPhotos.size ||
@@ -1487,9 +1527,11 @@ export function mountDraftWorkspace(
       !chosenPhotos.size || importing || processing;
     const status =
       chosenPhotos.size > DRAFT_LIMITS.photos
-        ? "Choose up to 10 photos for one item, or make each selected photo a separate item."
+        ? uiText(
+            "Choose up to 10 photos for one item, or make each selected photo a separate item.",
+          )
         : processing
-          ? "Uploading photos… You can group the photos that are ready."
+          ? uiText("Uploading photos… You can group the photos that are ready.")
           : "";
     find("[data-draft-import-status]").textContent = status;
     hide("[data-draft-import-status]", !status);
@@ -1501,7 +1543,7 @@ export function mountDraftWorkspace(
     if (upload.preview) {
       const img = document.createElement("img");
       img.src = upload.preview;
-      img.alt = "Photo being uploaded";
+      img.alt = uiText("Photo being uploaded");
       img.addEventListener("error", () => img.remove(), { once: true });
       wrap.append(img);
     }
@@ -1509,16 +1551,16 @@ export function mountDraftWorkspace(
     statusLabel(
       text,
       upload.state === "error"
-        ? upload.error || "Upload failed"
+        ? upload.error || uiText("Upload failed")
         : upload.state === "waiting"
-          ? "Waiting…"
-          : "Uploading…",
+          ? uiText("Waiting…")
+          : uiText("Uploading…"),
       upload.state === "uploading" ? "working" : "idle",
     );
     wrap.append(text);
     if (upload.state === "error") {
       wrap.append(
-        button("Retry photo", () =>
+        button(uiText("Retry photo"), () =>
           run(async () => {
             await flush();
             upload.state = "waiting";
@@ -1527,7 +1569,7 @@ export function mountDraftWorkspace(
         ),
       );
       wrap.append(
-        button("Remove", () =>
+        button(uiText("Remove"), () =>
           run(async () => {
             await draftAction("removePhoto", { photoId: upload.id }).catch(
               (e) => {
@@ -1589,8 +1631,10 @@ export function mountDraftWorkspace(
         busy(draft),
         settingsAccess,
       );
-      find("[data-draft-settings-context]").textContent =
-        `This item · ${draft.title || `Item ${groupIds.indexOf(draft.id) + 1}`}`;
+      find("[data-draft-settings-context]").textContent = uiFormat(
+        "This item · {0}",
+        [draft.title || uiFormat("Item {0}", [groupIds.indexOf(draft.id) + 1])],
+      );
       find("[data-draft-settings-summary]").textContent = "";
       hide("[data-draft-regenerate-notice]", true);
       action("regenerate").hidden = true;
@@ -1599,7 +1643,10 @@ export function mountDraftWorkspace(
     updatePhoneEntry();
     const draft = selected?.value;
     positionQueuePanel();
-    label("back", openedFromGrouping ? "Back to batch" : "Back to drafts");
+    label(
+      "back",
+      openedFromGrouping ? uiText("Back to batch") : uiText("Back to drafts"),
+    );
     hide("[data-draft-editor]", !draft && !composing);
     hide("[data-draft-editor-empty]", true);
     root.classList.toggle("has-editor", Boolean(draft) || composing);
@@ -1613,7 +1660,7 @@ export function mountDraftWorkspace(
     if (!draft) {
       find("[data-draft-editor]").classList.remove("is-preparing");
       if (composing) {
-        find("#draft-editor-title").textContent = "Add item";
+        find("#draft-editor-title").textContent = uiText("Add item");
         find("#draft-editor-title").classList.remove("draft-sr-only");
         find("[data-draft-editor]").classList.add("is-empty");
         find("[data-draft-editor]").classList.remove("has-text");
@@ -1647,10 +1694,11 @@ export function mountDraftWorkspace(
           settingsAccess,
         );
         find("[data-draft-editor-summary]").textContent =
-          `${newItemSettings.descriptionLength === "short" ? "Short" : "Long"} · ${newItemSettings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
+          `${newItemSettings.descriptionLength === "short" ? uiText("Short") : uiText("Long")} · ${newItemSettings.useBulletPoints ? uiText("Bullet points") : uiText("Paragraphs")}`;
         find("[data-draft-settings-summary]").textContent =
           `${settingsLanguages(newItemSettings)}\n${settingsExtras(permittedDraftSettings(newItemSettings, settingsAccess))}`;
-        find("[data-draft-settings-context]").textContent = "For this new item";
+        find("[data-draft-settings-context]").textContent =
+          uiText("For this new item");
         hide("[data-draft-regenerate-notice]", true);
         action("regenerate").hidden = true;
         hide(".draft-entry-mode", false);
@@ -1724,30 +1772,32 @@ export function mountDraftWorkspace(
       !hasPhotos && !hasText && writingDraftId !== draft.id,
     );
     find("[data-draft-preparation-label]").textContent = draft.photos.length
-      ? `Photos · ${draft.photos.length}`
-      : "Photos";
+      ? uiFormat("Photos · {0}", [draft.photos.length])
+      : uiText("Photos");
     find("[data-draft-settings-summary]").textContent =
       `${settingsLanguages(draft.settings)}\n${settingsExtras(permittedDraftSettings(draft.settings, settingsAccess))}`;
     find("[data-draft-editor-summary]").textContent =
-      `${draft.settings.descriptionLength === "short" ? "Short" : "Long"} · ${draft.settings.useBulletPoints ? "Bullet points" : "Paragraphs"}`;
-    find("[data-draft-settings-context]").textContent =
-      `This item${draft.title ? ` · ${draft.title}` : ""}`;
+      `${draft.settings.descriptionLength === "short" ? uiText("Short") : uiText("Long")} · ${draft.settings.useBulletPoints ? uiText("Bullet points") : uiText("Paragraphs")}`;
+    find("[data-draft-settings-context]").textContent = uiFormat(
+      "This item{0}",
+      [draft.title ? ` · ${draft.title}` : ""],
+    );
     const locked = busy(draft);
     const outputPreparing =
       generating(draft) || queue.remaining.includes(draft.id);
     const order = reviewOrder();
     const index = order.indexOf(draft.id);
     const editorTitle = outputPreparing
-      ? "Preparing item"
+      ? uiText("Preparing item")
       : failedOutput
-        ? "Needs attention"
+        ? uiText("Needs attention")
         : writingDraftId === draft.id
-          ? "Write item"
+          ? uiText("Write item")
           : hasText
-            ? "Review and copy"
+            ? uiText("Review and copy")
             : draft.state === "done"
-              ? "Listed item"
-              : "Prepare item";
+              ? uiText("Listed item")
+              : uiText("Prepare item");
     statusLabel(
       find("#draft-editor-title"),
       editorTitle,
@@ -1771,16 +1821,16 @@ export function mountDraftWorkspace(
     const batchReview = generationCount > 1 && reviewIds.includes(draft.id);
     action("next").setAttribute(
       "aria-label",
-      batchReview ? "Next ready item" : "Next",
+      batchReview ? uiText("Next ready item") : uiText("Next"),
     );
     action("next").querySelector("span")!.textContent = batchReview
-      ? "Next ready"
-      : "Next";
+      ? uiText("Next ready")
+      : uiText("Next");
     action("previous").disabled = !reviewTarget(-1);
     action("next").disabled = !reviewTarget(1);
     action("next").title =
       batchReview && !reviewTarget(1) && queue.running
-        ? "The next item is still preparing."
+        ? uiText("The next item is still preparing.")
         : "";
     for (const name of ["title", "description"] as const) {
       const el = find<HTMLInputElement | HTMLTextAreaElement>(
@@ -1798,9 +1848,12 @@ export function mountDraftWorkspace(
       action(`copy-${name}`).disabled = outputPreparing || !draft[name];
       action(`copy-${name}`).setAttribute(
         "aria-label",
-        `Copy ${failedOutput ? "previous " : ""}${name}`,
+        `${failedOutput ? uiText("Copy previous") : uiText("Copy")}: ${name === "title" ? uiText("Title") : uiText("Description")}`,
       );
-      label(`copy-${name}`, failedOutput ? "Copy previous" : "Copy");
+      label(
+        `copy-${name}`,
+        failedOutput ? uiText("Copy previous") : uiText("Copy"),
+      );
     }
     syncSettingsControls(root, "field", draft.settings, locked, settingsAccess);
     root
@@ -1816,17 +1869,17 @@ export function mountDraftWorkspace(
       outputPreparing || photoCount(draft) >= DRAFT_LIMITS.photos;
     photoSource.setAttribute("aria-disabled", String(cannotAddPhotos));
     photoSource.title = cannotAddPhotos
-      ? "Remove a photo to add another"
-      : "Add photos";
+      ? uiText("Remove a photo to add another")
+      : uiText("Add photos");
     const singleGenerating =
       startingGenerationId === draft.id || generating(draft);
     label(
       "generate",
       singleGenerating
-        ? "Generating…"
+        ? uiText("Generating…")
         : failedOutput
-          ? "Retry generation"
-          : "Generate draft",
+          ? uiText("Retry generation")
+          : uiText("Generate draft"),
     );
     action("generate").setAttribute("aria-busy", String(singleGenerating));
     find("[data-draft-generate-play]").toggleAttribute(
@@ -1856,31 +1909,35 @@ export function mountDraftWorkspace(
     label(
       "done",
       failedOutput
-        ? "Retry · 1 generation"
+        ? uiText("Retry · 1 generation")
         : selected?.savedState === "done"
-          ? "Move to drafts"
-          : "Mark as listed",
+          ? uiText("Move to drafts")
+          : uiText("Mark as listed"),
     );
     action("check").hidden = !(
       draft.operation_state === "running" || draft.operation_state === "pending"
     );
     find("[data-draft-operation-status]").textContent =
       (failedOutput
-        ? queue.failed.get(draft.id) || "Generation failed."
+        ? queue.failed.get(draft.id) || uiText("Generation failed.")
         : "") ||
       (queue.remaining.includes(draft.id)
-        ? "Waiting for its turn. The previous text will be replaced."
+        ? uiText("Waiting for its turn. The previous text will be replaced.")
         : "") ||
       (draft.operation_state === "running" ||
       draft.operation_state === "pending"
-        ? "Your generation is still being saved. Check its result before trying again."
+        ? uiText(
+            "Your generation is still being saved. Check its result before trying again.",
+          )
         : "");
     hide(
       "[data-draft-operation-status]",
       !find("[data-draft-operation-status]").textContent,
     );
     find("[data-draft-generate-help]").textContent = locked
-      ? "You can review another draft while this item is being prepared."
+      ? uiText(
+          "You can review another draft while this item is being prepared.",
+        )
       : "";
     hide("[data-draft-generate-help]", true);
     hide("[data-draft-conflict]", !conflict);
@@ -1921,7 +1978,7 @@ export function mountDraftWorkspace(
       controls.className = "draft-photo-controls";
       if (photo.url) {
         controls.append(
-          button("Save photo (JPEG)", () =>
+          button(uiText("Save photo (JPEG)"), () =>
             run(async () => {
               const url = URL.createObjectURL(
                 await client.readDraftPhoto(photo.id),
@@ -1936,14 +1993,15 @@ export function mountDraftWorkspace(
         );
         const help = document.createElement("p");
         help.className = "draft-photo-download-help";
-        help.textContent =
-          "Prepared JPEG. Keep your originals for full quality.";
+        help.textContent = uiText(
+          "Prepared JPEG. Keep your originals for full quality.",
+        );
         controls.append(help);
       }
       if (!locked) {
         if (photo.status === "ready") {
           controls.prepend(
-            button("Edit photo", () =>
+            button(uiText("Edit photo"), () =>
               run(async () => {
                 if (photoEditor || openingPhotoEditor) return;
                 openingPhotoEditor = true;
@@ -1951,7 +2009,7 @@ export function mountDraftWorkspace(
                 const trigger =
                   controls.querySelector<HTMLButtonElement>("button")!;
                 trigger.disabled = true;
-                trigger.textContent = "Opening…";
+                trigger.textContent = uiText("Opening…");
                 try {
                   await flush();
                   const [editor, blob] = await Promise.all([
@@ -1970,7 +2028,9 @@ export function mountDraftWorkspace(
                     icon,
                     onSave: async (replacement) => {
                       if (disposed || selected?.value.id !== draft.id)
-                        throw new Error("Reopen this item to edit its photo.");
+                        throw new Error(
+                          uiText("Reopen this item to edit its photo."),
+                        );
                       await flush();
                       await client.editDraftPhoto(
                         {
@@ -1995,14 +2055,14 @@ export function mountDraftWorkspace(
                 } finally {
                   openingPhotoEditor = false;
                   trigger.disabled = false;
-                  trigger.textContent = "Edit photo";
+                  trigger.textContent = uiText("Edit photo");
                 }
               }),
             ),
           );
           if (photo.original_bytes)
             controls.append(
-              button("Restore original", () =>
+              button(uiText("Restore original"), () =>
                 run(async () => {
                   await flush();
                   await client.editDraftPhoto(
@@ -2027,7 +2087,7 @@ export function mountDraftWorkspace(
         }
         if (photo.position > 0 && photo.status === "ready")
           controls.append(
-            button("Use as cover", () =>
+            button(uiText("Use as cover"), () =>
               run(() =>
                 regroup([
                   photo.id,
@@ -2040,7 +2100,7 @@ export function mountDraftWorkspace(
           );
         if (photo.origin !== "model")
           controls.append(
-            button("Ungroup", () =>
+            button(uiText("Ungroup"), () =>
               run(() =>
                 regroup(
                   draft.photos
@@ -2051,11 +2111,14 @@ export function mountDraftWorkspace(
             ),
           );
         controls.append(
-          button("Delete photo", () =>
+          button(uiText("Delete photo"), () =>
             run(async () => {
               if (
                 !(await confirmDelete(
-                  `Delete photo ${photo.position + 1}? Your other photos and text will stay saved.`,
+                  uiFormat(
+                    "Delete photo {0}? Your other photos and text will stay saved.",
+                    [photo.position + 1],
+                  ),
                   photo,
                 ))
               )
@@ -2069,10 +2132,12 @@ export function mountDraftWorkspace(
         );
         if (targets.length && photo.origin !== "model") {
           const move = document.createElement("select");
-          move.setAttribute("aria-label", "Move photo to another item");
-          move.append(new Option("Move to item…", ""));
+          move.setAttribute("aria-label", uiText("Move photo to another item"));
+          move.append(new Option(uiText("Move to item…"), ""));
           for (const [i, d] of targets.entries())
-            move.append(new Option(d.title || `Item ${i + 1}`, d.id));
+            move.append(
+              new Option(d.title || uiFormat("Item {0}", [i + 1]), d.id),
+            );
           move.addEventListener("change", () =>
             run(async () => {
               if (!move.value) return;
@@ -2100,7 +2165,7 @@ export function mountDraftWorkspace(
         summary.append(icon("more"));
         summary.setAttribute(
           "aria-label",
-          `Photo ${photo.position + 1} options`,
+          uiFormat("Photo {0} options", [photo.position + 1]),
         );
         summary.dataset.focusKey = `options-${photo.id}`;
         menu.dataset.photoOptions = photo.id;
@@ -2108,7 +2173,7 @@ export function mountDraftWorkspace(
         const panel = document.createElement("div");
         panel.className = "draft-popover-panel";
         panel.append(
-          button("Close", () => closePopover(menu), "draft-close"),
+          button(uiText("Close"), () => closePopover(menu), "draft-close"),
           controls,
         );
         controls
@@ -2307,8 +2372,8 @@ export function mountDraftWorkspace(
     if (files.length > (bulkInput ? 100 : 10))
       throw new Error(
         bulkInput
-          ? "Choose up to 100 photos per import."
-          : "Choose up to 10 photos for one item.",
+          ? uiText("Choose up to 100 photos per import.")
+          : uiText("Choose up to 10 photos for one item."),
       );
     await flush();
     const draft = bulkInput ? undefined : selected?.value || (await newDraft());
@@ -2319,7 +2384,9 @@ export function mountDraftWorkspace(
       (generating(draft!) || photoCount(draft!) + files.length > 10)
     )
       throw new Error(
-        "One item can have up to 10 photos. Wait for uploads or choose fewer photos.",
+        uiText(
+          "One item can have up to 10 photos. Wait for uploads or choose fewer photos.",
+        ),
       );
     const importId = crypto.randomUUID();
     for (const file of files)
@@ -2381,7 +2448,7 @@ export function mountDraftWorkspace(
           if (!saved) result.failed++;
           upload.state = "error";
           upload.error =
-            error instanceof Error ? error.message : "Upload failed";
+            error instanceof Error ? error.message : uiText("Upload failed");
           renderPool();
           renderEditor();
         }
@@ -2431,7 +2498,9 @@ export function mountDraftWorkspace(
       if (recovered.operation_state !== "succeeded")
         throw Object.assign(
           new Error(
-            "This item is still being saved. Check its result before retrying.",
+            uiText(
+              "This item is still being saved. Check its result before retrying.",
+            ),
           ),
           { code: "generation_commit_pending" },
         );
@@ -2500,7 +2569,9 @@ export function mountDraftWorkspace(
           )
             throw Object.assign(
               new Error(
-                "This item's outcome is still being checked. Use Check saved result before trying again.",
+                uiText(
+                  "This item's outcome is still being checked. Use Check saved result before trying again.",
+                ),
               ),
               {
                 code: "generation_commit_pending",
@@ -2544,7 +2615,7 @@ export function mountDraftWorkspace(
   function renderQueue() {
     if (disposed) return;
     queuePanel.dataset.running = String(queue.running);
-    if (bulk) find("[data-draft-heading]").textContent = "Your batch";
+    if (bulk) find("[data-draft-heading]").textContent = uiText("Your batch");
     try {
       if (queue.running || queue.remaining.length || queue.failed.size)
         sessionStorage.setItem(
@@ -2579,19 +2650,32 @@ export function mountDraftWorkspace(
     const queueTitle =
       photosPending && !queue.running && !queue.remaining.length
         ? photoUI()?.text("Text ready · Model photos pending") ||
-          "Text ready · Model photos pending"
+          uiText("Text ready · Model photos pending")
         : queue.running
-          ? `${queue.completed.length} of ${generationCount} ready${queue.paused ? " · Pausing" : ""}`
+          ? uiFormat("{0} of {1} ready{2}", [
+              queue.completed.length,
+              generationCount,
+              queue.paused ? ` · ${uiText("Pausing…")}` : "",
+            ])
           : queue.remaining.length
-            ? `Paused · ${queue.completed.length} of ${generationCount} ready`
-            : `${queue.completed.length} of ${generationCount} ready${queue.failed.size ? ` · ${queue.failed.size} failed` : ""}`;
+            ? uiFormat("Paused · {0} of {1} ready", [
+                queue.completed.length,
+                generationCount,
+              ])
+            : uiFormat("{0} of {1} ready{2}", [
+                queue.completed.length,
+                generationCount,
+                queue.failed.size
+                  ? uiFormat(" · {0} failed", [queue.failed.size])
+                  : "",
+              ]);
     statusLabel(
       find("[data-draft-queue-title]"),
       queueTitle,
       queue.running ? "working" : "idle",
     );
     find("[data-draft-queue-copy]").textContent = queue.running
-      ? "Keep AutoLister open while preparing."
+      ? uiText("Keep AutoLister open while preparing.")
       : "";
     hide(
       "[data-draft-queue-copy]",
@@ -2620,16 +2704,17 @@ export function mountDraftWorkspace(
       if (url) cover.src = url;
       else cover.hidden = true;
       const name = document.createElement("span");
-      name.textContent = draft?.title || `Item ${ids.indexOf(id) + 1}`;
+      name.textContent =
+        draft?.title || uiFormat("Item {0}", [ids.indexOf(id) + 1]);
       const status = document.createElement("span");
       status.className = "draft-queue-item-status";
       status.textContent = queue.failed.has(id)
-        ? "Needs attention"
+        ? uiText("Needs attention")
         : queue.completed.includes(id)
-          ? "Ready"
+          ? uiText("Ready")
           : queue.active === id
-            ? "Generating"
-            : "Waiting";
+            ? uiText("Generating")
+            : uiText("Waiting");
       status.prepend(
         icon(
           queue.failed.has(id)
@@ -2645,7 +2730,7 @@ export function mountDraftWorkspace(
       row.append(cover, name, status);
       if (queue.completed.includes(id) || queue.failed.has(id)) {
         const review = button(
-          queue.failed.has(id) ? "Open" : "Review",
+          queue.failed.has(id) ? uiText("Open") : uiText("Review"),
           () => run(() => openDraft(id)),
           "draft-text-button",
         );
@@ -2713,7 +2798,9 @@ export function mountDraftWorkspace(
   } catch {}
   async function startGeneration(ids: string[]) {
     if (processing)
-      throw new Error("Wait for your settings and photos to finish saving.");
+      throw new Error(
+        uiText("Wait for your settings and photos to finish saving."),
+      );
     if (bulk)
       validateDraftSettings({
         ...defaultSettings,
@@ -2728,11 +2815,14 @@ export function mountDraftWorkspace(
     if (
       queue.remaining.length &&
       !window.confirm(
-        "Replace the paused batch with this selection? Its remaining items will stay saved as drafts.",
+        uiText(
+          "Replace the paused batch with this selection? Its remaining items will stay saved as drafts.",
+        ),
       )
     )
       return;
-    if (!ids.length) throw new Error("Select at least one item to generate.");
+    if (!ids.length)
+      throw new Error(uiText("Select at least one item to generate."));
     const usage = await options.onUsageChange();
     if (usage?.canGenerate === false && options.onGenerationBlocked?.(usage))
       return;
@@ -2743,7 +2833,10 @@ export function mountDraftWorkspace(
     if (ids.length > available) {
       if (
         !window.confirm(
-          `Generate the first ${available} of ${ids.length} selected items? This run uses ${available} generations (up to 20 per run). The remaining items stay saved.`,
+          uiFormat(
+            "Generate the first {0} of {1} selected items? This run uses {2} generations (up to 20 per run). The remaining items stay saved.",
+            [available, ids.length, available],
+          ),
         )
       )
         return;
@@ -2755,7 +2848,16 @@ export function mountDraftWorkspace(
         return Boolean(d?.title || d?.description);
       }) &&
       !window.confirm(
-        `Replace the current title and description for ${ids.length === 1 ? "this item" : `${ids.length} items`}? This uses ${ids.length} generation${ids.length === 1 ? "" : "s"}.`,
+        uiFormat(
+          "Replace the current title and description for {0}? This uses {1} generation{2}.",
+          [
+            ids.length === 1
+              ? uiText("this item")
+              : uiFormat("{0} items", [ids.length]),
+            ids.length,
+            ids.length === 1 ? "" : "s",
+          ],
+        ),
       )
     )
       return;
@@ -2788,7 +2890,9 @@ export function mountDraftWorkspace(
         saved.operation_state === "pending")
     )
       throw new Error(
-        "Wait for this item's generation to finish before saving your edits.",
+        uiText(
+          "Wait for this item's generation to finish before saving your edits.",
+        ),
       );
     selected = makeAutosave(saved);
     conflict = false;
@@ -2943,7 +3047,9 @@ export function mountDraftWorkspace(
       });
       if (
         !window.confirm(
-          `Create ${chosenPhotos.size} separate items, one photo per item?`,
+          uiFormat("Create {0} separate items, one photo per item?", [
+            chosenPhotos.size,
+          ]),
         )
       )
         return;
@@ -3007,7 +3113,7 @@ export function mountDraftWorkspace(
         },
         baseVersion,
       );
-      find("[data-draft-save-status]").textContent = "Unsaved edits";
+      find("[data-draft-save-status]").textContent = uiText("Unsaved edits");
       find("[data-draft-save-status]").dataset.status = "pending";
       remember();
       renderEditor();
@@ -3055,7 +3161,14 @@ export function mountDraftWorkspace(
       if (
         !items.length ||
         !(await confirmDelete(
-          `Delete ${items.length} item${items.length === 1 ? "" : "s"} and their ${items.reduce((count, d) => count + d.photos.length, 0)} photos? This cannot be undone.`,
+          uiFormat(
+            "Delete {0} item{1} and their {2} photos? This cannot be undone.",
+            [
+              items.length,
+              items.length === 1 ? "" : "s",
+              items.reduce((count, d) => count + d.photos.length, 0),
+            ],
+          ),
         ))
       )
         return;
@@ -3099,8 +3212,9 @@ export function mountDraftWorkspace(
       persistDefaults(settings);
       const status = find("[data-draft-default-save-status]");
       status.hidden = false;
-      status.textContent =
-        "Saved for new items on this device. Existing items keep their settings.";
+      status.textContent = uiText(
+        "Saved for new items on this device. Existing items keep their settings.",
+      );
     },
     "retry-item-settings": () => flush(),
     "save-global-defaults": async () => {
@@ -3109,11 +3223,11 @@ export function mountDraftWorkspace(
       try {
         persistDefaults(normalizeDraftSettings(globalSettings));
         status.classList.remove("draft-settings-error");
-        status.textContent = "Defaults saved";
-        label("save-global-defaults", "Defaults saved");
+        status.textContent = uiText("Defaults saved");
+        label("save-global-defaults", uiText("Defaults saved"));
       } catch {
         status.classList.add("draft-settings-error");
-        status.textContent = "Could not save defaults. Try again.";
+        status.textContent = uiText("Could not save defaults. Try again.");
       }
     },
     "generate-groups": () =>
@@ -3139,7 +3253,10 @@ export function mountDraftWorkspace(
       if (
         queue.remaining.length > available &&
         !window.confirm(
-          `You have ${available} generations available. Continue with the first ${available} and keep the rest paused?`,
+          uiFormat(
+            "You have {0} generations available. Continue with the first {1} and keep the rest paused?",
+            [available, available],
+          ),
         )
       )
         return;
@@ -3157,7 +3274,9 @@ export function mountDraftWorkspace(
       renderLibrary();
       if (d.operation_state === "failed")
         tell(
-          "No saved result is available for that attempt. Check your usage before generating again.",
+          uiText(
+            "No saved result is available for that attempt. Check your usage before generating again.",
+          ),
         );
       await options.onUsageChange();
     },
@@ -3216,7 +3335,10 @@ export function mountDraftWorkspace(
       if (!selected) return;
       if (
         !(await confirmDelete(
-          `Delete “${selected.value.title || "Untitled item"}” and its ${selected.value.photos.length} photos? This cannot be undone.`,
+          uiFormat("Delete “{0}” and its {1} photos? This cannot be undone.", [
+            selected.value.title || uiText("Untitled item"),
+            selected.value.photos.length,
+          ]),
         ))
       )
         return;
@@ -3278,10 +3400,11 @@ export function mountDraftWorkspace(
     );
     if (await copyListingField(field, el.value)) {
       void trackMobileEvent("copy", { field, target: "draft_workspace" });
-      label(`copy-${field}`, "Copied");
+      label(`copy-${field}`, uiText("Copied"));
       action(`copy-${field}`).querySelector("svg")!.replaceWith(icon("check"));
-      find("[data-draft-copy-status]").textContent =
-        `${field === "title" ? "Title" : "Description"} copied.`;
+      find("[data-draft-copy-status]").textContent = uiFormat("{0} copied.", [
+        field === "title" ? uiText("Title") : uiText("Description"),
+      ]);
       if (!disposed)
         root.dispatchEvent(
           new CustomEvent("mobile-copy-complete", { bubbles: true }),
@@ -3290,7 +3413,9 @@ export function mountDraftWorkspace(
         if (!disposed) {
           label(
             `copy-${field}`,
-            selected && outputFailed(selected.value) ? "Copy previous" : "Copy",
+            selected && outputFailed(selected.value)
+              ? uiText("Copy previous")
+              : uiText("Copy"),
           );
           action(`copy-${field}`)
             .querySelector("svg")!
@@ -3304,7 +3429,10 @@ export function mountDraftWorkspace(
       el.focus();
       el.select();
       tell(
-        `Copy was blocked. The ${field} is selected. Use your browser or keyboard to copy it.`,
+        uiFormat(
+          "Copy was blocked. The {0} is selected. Use your browser or keyboard to copy it.",
+          [field === "title" ? uiText("Title") : uiText("Description")],
+        ),
         true,
       );
     }
@@ -3387,7 +3515,7 @@ export function mountDraftWorkspace(
         [el.getAttribute("data-draft-global")!]: settingInputValue(el),
       };
       hide("[data-draft-global-save-status]", true);
-      label("save-global-defaults", "Save defaults");
+      label("save-global-defaults", uiText("Save defaults"));
       renderGlobalSettings();
       return;
     }
@@ -3430,7 +3558,7 @@ export function mountDraftWorkspace(
     if (el.getAttribute("data-draft-global") === "descriptionFooterText") {
       globalSettings = { ...globalSettings, descriptionFooterText: el.value };
       hide("[data-draft-global-save-status]", true);
-      label("save-global-defaults", "Save defaults");
+      label("save-global-defaults", uiText("Save defaults"));
       renderGlobalSettings();
       return;
     }
@@ -3480,7 +3608,7 @@ export function mountDraftWorkspace(
   });
   function scheduleSave() {
     if (!batchSettingsItem) remember();
-    find("[data-draft-save-status]").textContent = "Unsaved edits";
+    find("[data-draft-save-status]").textContent = uiText("Unsaved edits");
     find("[data-draft-save-status]").dataset.status = "pending";
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => run(() => flush()), 650);
@@ -3688,7 +3816,9 @@ export function mountDraftWorkspace(
               async () => {
                 const usage = await options.onUsageChange();
                 if (!usage)
-                  throw new Error("Sign in to AutoLister to open this draft.");
+                  throw new Error(
+                    uiText("Sign in to AutoLister to open this draft."),
+                  );
                 return permittedDraftSettings(loadDefaults(), settingsAccess);
               },
               async (id) => {
@@ -3734,7 +3864,10 @@ export function mountDraftWorkspace(
       find("[data-draft-allowance]").textContent =
         allowance === null
           ? ""
-          : `${allowance} generation${allowance === 1 ? "" : "s"} left`;
+          : uiFormat("{0} generation{1} left", [
+              allowance,
+              allowance === 1 ? "" : "s",
+            ]);
       renderSelection();
       renderEditor();
       renderDefaults();
@@ -3761,7 +3894,7 @@ export function mountDraftWorkspace(
         if (p.preview) URL.revokeObjectURL(p.preview);
       });
       root.hidden = true;
-      find("#draft-editor-title").textContent = "New draft";
+      find("#draft-editor-title").textContent = uiText("New draft");
       find<HTMLImageElement>("[data-draft-editor-cover]").removeAttribute(
         "src",
       );

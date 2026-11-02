@@ -1,3 +1,4 @@
+import { uiError, uiText } from "./ui";
 import {
   prepareMobileImage,
   revokeMobilePreview,
@@ -70,7 +71,7 @@ export function createMobileUploadSession(
   if (!accessToken.trim())
     throw new MobileUploadError(
       "missing_token",
-      "Sign in again to upload photos.",
+      uiText("Sign in again to upload photos."),
     );
   return {
     sessionId: createUuid(),
@@ -80,7 +81,10 @@ export function createMobileUploadSession(
 }
 
 function abortError(): MobileUploadError {
-  return new MobileUploadError("aborted", "Photo upload was cancelled.");
+  return new MobileUploadError(
+    "aborted",
+    uiText("Photo upload was cancelled."),
+  );
 }
 
 function ensureNotAborted(signal: AbortSignal): void {
@@ -121,7 +125,7 @@ async function request(
     if (signal.aborted) throw abortError();
     throw new MobileUploadError(
       "network_error",
-      "We could not upload this photo.",
+      uiText("We could not upload this photo."),
       0,
       true,
     );
@@ -142,7 +146,7 @@ async function request(
       )
         throw new MobileUploadError(
           "account_changed",
-          "Sign in to the same account to continue this item.",
+          uiText("Sign in to the same account to continue this item."),
           401,
         );
       if (
@@ -160,7 +164,9 @@ async function request(
     const code =
       typeof body.code === "string" ? body.code : `http_${response.status}`;
     const message =
-      typeof body.error === "string" ? body.error : "Photo upload failed.";
+      typeof body.error === "string"
+        ? uiError(body.error)
+        : uiText("Photo upload failed.");
     throw new MobileUploadError(
       code,
       message,
@@ -178,7 +184,10 @@ export async function uploadPreparedPhotos(
   signal: AbortSignal,
 ): Promise<string[]> {
   if (!files.length)
-    throw new MobileUploadError("no_photos", "Choose at least one photo.");
+    throw new MobileUploadError(
+      "no_photos",
+      uiText("Choose at least one photo."),
+    );
   const prepared = files.map((file) => ({
     file,
     previewUrl: "",
@@ -376,7 +385,7 @@ async function fetchSignedPhotos(
   if (ordered.some((item) => !item)) {
     throw new MobileUploadError(
       "missing_signed_url",
-      "The uploaded photos could not be prepared for generation.",
+      uiText("The uploaded photos could not be prepared for generation."),
     );
   }
   return ordered as UploadedMobilePhoto[];
@@ -390,7 +399,10 @@ export async function uploadSelectedPhotos(
   onProgress?: (progress: MobileUploadProgress) => void,
 ): Promise<UploadedMobilePhoto[]> {
   if (selectedFiles.length === 0)
-    throw new MobileUploadError("no_photos", "Choose at least one photo.");
+    throw new MobileUploadError(
+      "no_photos",
+      uiText("Choose at least one photo."),
+    );
   ensureNotAborted(signal);
   let openAttempted = false;
   let completed = false;

@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import { fetchMobileJson } from "./api";
 import { trackSavedDrafts } from "./savedDraftTracking";
 import { getBrowserSession } from "./auth";
@@ -316,7 +317,9 @@ export function createDraftClient(userId: string) {
       if (current.operation_id !== attempt.operationId)
         throw localDraftError(
           "draft_conflict",
-          "This item is generating in another tab. Check its result before generating again.",
+          uiText(
+            "This item is generating in another tab. Check its result before generating again.",
+          ),
         );
       const recovered = await recover(current.id, true);
       if (recovered.operation_state === "succeeded") return recovered;
@@ -325,8 +328,12 @@ export function createDraftClient(userId: string) {
           ? "generation_retry"
           : "generation_commit_pending",
         recovered.operation_state === "failed"
-          ? "This attempt did not finish. Review the item and generate again."
-          : "This item's result is still being checked. Check its saved result shortly.",
+          ? uiText(
+              "This attempt did not finish. Review the item and generate again.",
+            )
+          : uiText(
+              "This item's result is still being checked. Check its saved result shortly.",
+            ),
       );
     }
     const saved = await store.beginAttempt(current.id, attempt, batch);
@@ -336,7 +343,7 @@ export function createDraftClient(userId: string) {
       if (session?.user.id !== userId || disposed)
         throw localDraftError(
           "account_changed",
-          "Sign in to the same account to continue this item.",
+          uiText("Sign in to the same account to continue this item."),
           401,
         );
       upload = { ...createMobileUploadSession(session.access_token), userId };

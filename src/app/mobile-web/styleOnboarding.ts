@@ -1,3 +1,4 @@
+import { uiError, uiText } from "./ui";
 import {
   buildExample,
   draftSettingsFromStyle,
@@ -231,7 +232,7 @@ export function mountStyleOnboarding(
     const valid = validateDescriptionFooterText(note);
     const error = find("[data-style-note-error]");
     error.hidden = valid.ok;
-    error.textContent = valid.ok ? "" : valid.error;
+    error.textContent = valid.ok ? "" : uiError(valid.error);
     if (!valid.ok) {
       noteInput.focus({ preventScroll: true });
       return;
@@ -259,7 +260,9 @@ export function mountStyleOnboarding(
     } catch {
       const error = find("[data-style-save-error]");
       error.hidden = false;
-      error.textContent = "Your settings could not be saved. Please try again.";
+      error.textContent = uiText(
+        "Your settings could not be saved. Please try again.",
+      );
     }
   }
   bind(find("[data-style-finish]"), "click", () => complete(false));

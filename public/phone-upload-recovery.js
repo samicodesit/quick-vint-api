@@ -1,6 +1,8 @@
 /* Shared metadata policy. Adapters own fetch, Chrome messaging and UI. */
 (function (root) {
   "use strict";
+  const uiText = (source) => globalThis.AutoListerWebUi?.text(source) ?? source;
+
   const BACKOFF = [700, 1500];
   const DEADLINE = 30000;
   const QUICK_WINDOW = 3000;
@@ -10,7 +12,7 @@
       new Error(
         response?.data?.error ||
           response?.error ||
-          "Could not finish the phone upload. Please retry.",
+          uiText("Could not finish the phone upload. Please retry."),
       ),
       {
         code: response?.data?.code || response?.code || "PHONE_METADATA_FAILED",
@@ -38,7 +40,7 @@
     let recovered = false;
     function checkActive() {
       if (!active())
-        throw Object.assign(new Error("Upload cancelled or replaced"), {
+        throw Object.assign(new Error(uiText("Upload cancelled or replaced")), {
           code: "PHONE_OPERATION_CANCELLED",
           retryable: false,
         });
@@ -64,7 +66,7 @@
             timer = setTimer(() => {
               controller.abort();
               reject(
-                Object.assign(new Error("Upload request timed out"), {
+                Object.assign(new Error(uiText("Upload request timed out")), {
                   code: "PHONE_REQUEST_TIMEOUT",
                   retryable: true,
                 }),

@@ -1,3 +1,4 @@
+import { uiError, uiText } from "./ui";
 import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
 import { validateDescriptionFooterText } from "../../../utils/descriptionFooter";
 
@@ -88,7 +89,7 @@ export const DEFAULT_DRAFT_SETTINGS: ResolvedDraftSettings = {
 };
 export function normalizeDraftSettings(value: unknown): ResolvedDraftSettings {
   if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("Choose valid listing settings.");
+    throw new Error(uiText("Choose valid listing settings."));
   const settings = { ...DEFAULT_DRAFT_SETTINGS, ...value };
   validateDraftSettings(settings);
   return settings;
@@ -139,16 +140,16 @@ export function validateDraftSettings(
     ) ||
     Object.keys(v).some((k) => !Object.keys(DEFAULT_DRAFT_SETTINGS).includes(k))
   )
-    throw new Error("Choose valid languages and description style.");
+    throw new Error(uiText("Choose valid languages and description style."));
   const note = validateDescriptionFooterText(v.descriptionFooterText);
-  if (!note.ok) throw new Error(note.error);
+  if (!note.ok) throw new Error(uiError(note.error));
 }
 export function validateDraftAction(
   action: string,
   value: unknown,
 ): Record<string, any> {
   if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("Invalid draft request.");
+    throw new Error(uiText("Invalid draft request."));
   const input = value as Record<string, any>;
   const keys: Record<string, string[]> = {
     list: ["cursor", "state"],
@@ -173,20 +174,20 @@ export function validateDraftAction(
     !keys[action] ||
     Object.keys(input).some((k) => !keys[action].includes(k))
   )
-    throw new Error("Invalid draft action.");
+    throw new Error(uiText("Invalid draft action."));
   for (const key of ["draftId", "photoId", "importId", "id"])
     if (input[key] !== undefined && !validDraftId(input[key]))
-      throw new Error("Invalid item identifier.");
+      throw new Error(uiText("Invalid item identifier."));
   if (
     ["detail", "save", "group", "delete", "recover"].includes(action) &&
     !validDraftId(input.draftId)
   )
-    throw new Error("Choose an item.");
+    throw new Error(uiText("Choose an item."));
   if (
     ["grant", "completeUpload", "removePhoto"].includes(action) &&
     !validDraftId(input.photoId)
   )
-    throw new Error("Choose a photo.");
+    throw new Error(uiText("Choose a photo."));
   if (
     action === "grant" &&
     (!validDraftId(input.importId) ||
@@ -194,25 +195,25 @@ export function validateDraftAction(
       input.bytes < 1 ||
       input.bytes > DRAFT_LIMITS.uploadBytes)
   )
-    throw new Error("Each prepared photo must be no larger than 4 MB.");
+    throw new Error(uiText("Each prepared photo must be no larger than 4 MB."));
   if (
     ["save", "group", "delete"].includes(action) &&
     (!Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 1)
   )
-    throw new Error("Reload this draft before saving.");
+    throw new Error(uiText("Reload this draft before saving."));
   if (input.settings !== undefined) validateDraftSettings(input.settings);
   if (input.state !== undefined && !["draft", "done"].includes(input.state))
-    throw new Error("Invalid draft state.");
+    throw new Error(uiText("Invalid draft state."));
   if (
     input.title !== undefined &&
     (typeof input.title !== "string" || input.title.length > 200)
   )
-    throw new Error("Keep the title under 200 characters.");
+    throw new Error(uiText("Keep the title under 200 characters."));
   if (
     input.description !== undefined &&
     (typeof input.description !== "string" || input.description.length > 10000)
   )
-    throw new Error("Keep the description under 10,000 characters.");
+    throw new Error(uiText("Keep the description under 10,000 characters."));
   if (
     input.photoIds !== undefined &&
     (!Array.isArray(input.photoIds) ||
@@ -221,9 +222,9 @@ export function validateDraftAction(
       !input.photoIds.every(validDraftId) ||
       new Set(input.photoIds).size !== input.photoIds.length)
   )
-    throw new Error("Choose up to 10 different photos for one item.");
+    throw new Error(uiText("Choose up to 10 different photos for one item."));
   if (action === "group" && !Array.isArray(input.photoIds))
-    throw new Error("Choose this item's photos.");
+    throw new Error(uiText("Choose this item's photos."));
   if (
     input.sourceVersions !== undefined &&
     (typeof input.sourceVersions !== "object" ||
@@ -234,11 +235,11 @@ export function validateDraftAction(
           !validDraftId(id) || !Number.isSafeInteger(v) || Number(v) < 1,
       ))
   )
-    throw new Error("Reload the photo groups before moving photos.");
+    throw new Error(uiText("Reload the photo groups before moving photos."));
   if (
     input.cursor !== undefined &&
     (typeof input.cursor !== "string" || input.cursor.length > 160)
   )
-    throw new Error("Invalid page.");
+    throw new Error(uiText("Invalid page."));
   return input;
 }

@@ -1,21 +1,27 @@
+import { uiFormat, uiText } from "./ui";
 import type { Draft } from "./draftContracts";
 import type { MobileUsage } from "./generationClient";
 
 export function draftGenerationAllowance(usage: MobileUsage | null): number {
   if (!usage)
     throw new Error(
-      "Your usage could not be checked. Try again before generating.",
+      uiText("Your usage could not be checked. Try again before generating."),
     );
   const reset = Date.parse(
     typeof usage.resetsAt?.minute === "string" ? usage.resetsAt.minute : "",
   );
   if (usage.remaining?.minute === 0 && reset > Date.now())
     throw new Error(
-      `Please wait before generating more items. Try again in ${Math.ceil((reset - Date.now()) / 1000)} seconds. Your drafts are saved.`,
+      uiFormat(
+        "Please wait before generating more items. Try again in {0} seconds. Your drafts are saved.",
+        [Math.ceil((reset - Date.now()) / 1000)],
+      ),
     );
   if (usage.canGenerate === false)
     throw new Error(
-      "You have reached your current generation limit. Your drafts are still saved.",
+      uiText(
+        "You have reached your current generation limit. Your drafts are still saved.",
+      ),
     );
   const available = usage.remaining?.generations;
   if (
@@ -24,11 +30,13 @@ export function draftGenerationAllowance(usage: MobileUsage | null): number {
     available < 0
   )
     throw new Error(
-      "Your generation allowance could not be checked. Try again.",
+      uiText("Your generation allowance could not be checked. Try again."),
     );
   if (!available)
     throw new Error(
-      "You have no generations left in your current allowance. Your drafts are still saved.",
+      uiText(
+        "You have no generations left in your current allowance. Your drafts are still saved.",
+      ),
     );
   return available;
 }
@@ -119,9 +127,9 @@ export class DraftQueue {
     private changed: () => void,
   ) {}
   async start(ids: string[]) {
-    if (this.running) throw new Error("A batch is already running.");
+    if (this.running) throw new Error(uiText("A batch is already running."));
     if (!ids.length || ids.length > 20 || new Set(ids).size !== ids.length)
-      throw new Error("Choose between 1 and 20 items.");
+      throw new Error(uiText("Choose between 1 and 20 items."));
     this.remaining = [...ids];
     this.completed = [];
     this.failed.clear();
@@ -149,7 +157,7 @@ export class DraftQueue {
             this.active,
             error instanceof Error
               ? error.message
-              : "This item could not be generated.",
+              : uiText("This item could not be generated."),
           );
           const details = error as { status?: number; code?: string };
           if (

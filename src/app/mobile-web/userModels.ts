@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import { fetchMobileJson } from "./api";
 import { getBrowserSession } from "./auth";
 import { trackMobileEvent } from "./analytics";
@@ -129,7 +130,7 @@ export function mountUserModels(
       );
       if ((await getBrowserSession())?.user.id !== owner) {
         close();
-        throw new Error("Your account changed. Reopen your model.");
+        throw new Error(uiText("Your account changed. Reopen your model."));
       }
       if (result && "invitationState" in result) updateEntries(owner, result);
       if (result?.model?.state === "ready") setupDrafts.delete(owner);
@@ -194,7 +195,7 @@ export function mountUserModels(
         ...draftOptions(owner, initialPreferences),
         onClose: leave,
         onSkip: leave,
-        backLabel: "Close",
+        backLabel: uiText("Close"),
       });
     };
     if (invite && !initialPreferences) {
@@ -253,7 +254,7 @@ export function mountUserModels(
       track: tracker(owner, "settings"),
       request: request(owner),
       onClose: back,
-      backLabel: "Settings",
+      backLabel: uiText("Settings"),
     });
   }
   root.addEventListener("click", settings);

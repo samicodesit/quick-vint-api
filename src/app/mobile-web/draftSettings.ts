@@ -1,3 +1,4 @@
+import { uiError, uiFormat, uiText } from "./ui";
 import {
   DEFAULT_DRAFT_SETTINGS,
   type Draft,
@@ -9,22 +10,31 @@ import { validateDescriptionFooterText } from "../../../utils/descriptionFooter"
 import { syncDraftSelects } from "./draftSelect";
 
 export const TONE_LABELS = {
-  standard: "Standard",
-  friendly: "Friendly",
+  standard: uiText("Standard"),
+  friendly: uiText("Friendly"),
   professional: "Pro",
-  enthusiastic: "Enthusiastic",
+  enthusiastic: uiText("Enthusiastic"),
 } as const;
 export function settingsSummary(value: DraftSettings): string {
   const s = { ...DEFAULT_DRAFT_SETTINGS, ...value };
-  return `${s.descriptionLength === "short" ? "Short" : "Long"} · ${s.useBulletPoints ? "Bullet points" : "Paragraphs"} · ${TONE_LABELS[s.tone]}`;
+  return `${s.descriptionLength === "short" ? uiText("Short") : uiText("Long")} · ${s.useBulletPoints ? uiText("Bullet points") : uiText("Paragraphs")} · ${TONE_LABELS[s.tone]}`;
 }
 export function settingsExtras(value: DraftSettings): string {
-  return `Hashtags ${value.useHashtags ? "on" : "off"} · Emojis ${value.useEmojis ? "on" : "off"} · ${value.includeSellerNote && value.descriptionFooterText?.trim() ? "Note included" : "Note excluded"}`;
+  return uiFormat("Hashtags {0} · Emojis {1} · {2}", [
+    value.useHashtags ? uiText("on") : uiText("off"),
+    value.useEmojis ? uiText("on") : uiText("off"),
+    value.includeSellerNote && value.descriptionFooterText?.trim()
+      ? uiText("Note included")
+      : uiText("Note excluded"),
+  ]);
 }
 export function settingsLanguages(value: DraftSettings): string {
   const label = (code: string) =>
     SUPPORTED_OUTPUT_LANGUAGES.find((l) => l.code === code)?.label || code;
-  return `Title: ${label(value.titleLanguageCode)} · Description: ${label(value.descriptionLanguageCode)}`;
+  return uiFormat("Title: {0} · Description: {1}", [
+    label(value.titleLanguageCode),
+    label(value.descriptionLanguageCode),
+  ]);
 }
 export function sameSettings(a: DraftSettings, b: DraftSettings): boolean {
   return Object.keys(DEFAULT_DRAFT_SETTINGS).every(
@@ -108,13 +118,13 @@ export function syncSettingsControls(
   panel.querySelector("[data-draft-note-count]")!.textContent =
     `${note.value.length}/240`;
   const validation = validateDescriptionFooterText(note.value);
-  note.setCustomValidity(validation.ok ? "" : validation.error);
+  note.setCustomValidity(validation.ok ? "" : uiError(validation.error));
   const error = panel.querySelector<HTMLElement>(
     "[data-draft-settings-error]",
   )!;
   const newlyInvalid = error.hidden && !validation.ok;
   error.hidden = validation.ok;
-  error.textContent = validation.ok ? "" : validation.error;
+  error.textContent = validation.ok ? "" : uiError(validation.error);
   note.setAttribute("aria-invalid", String(!validation.ok));
   panel
     .closest(".draft-popover-panel")

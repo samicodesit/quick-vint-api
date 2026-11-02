@@ -134,9 +134,10 @@
 }
 .photo-editor-tools {
   gap: 4px;
+  flex-wrap: wrap;
 }
 .photo-editor-tools button {
-  flex: 1;
+  flex: 1 1 auto;
 }
 .photo-editor-tools [aria-pressed="true"] {
   background: var(--mobile-surface);

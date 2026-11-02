@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import {
   DEFAULT_DRAFT_SETTINGS,
   DRAFT_LIMITS,
@@ -64,7 +65,7 @@ export function localDraftError(code: string, message: string, status = 409) {
 const conflict = () =>
   localDraftError(
     "draft_conflict",
-    "This item changed in another tab. Reload its saved version.",
+    uiText("This item changed in another tab. Reload its saved version."),
   );
 const busy = (draft: Row) =>
   draft.operation_state === "running" || draft.operation_state === "pending";
@@ -72,7 +73,7 @@ function editable(draft: Row) {
   if (busy(draft))
     throw localDraftError(
       "generation_in_progress",
-      "Check this item's generation result before making changes.",
+      uiText("Check this item's generation result before making changes."),
     );
 }
 function storageError(error: unknown) {
@@ -86,8 +87,12 @@ function storageError(error: unknown) {
   return localDraftError(
     full ? "storage_limit" : "local_storage_unavailable",
     full
-      ? "This browser's storage is full. Delete unused items or photos, then try again."
-      : "This browser could not save your drafts. Allow site storage and try again.",
+      ? uiText(
+          "This browser's storage is full. Delete unused items or photos, then try again.",
+        )
+      : uiText(
+          "This browser could not save your drafts. Allow site storage and try again.",
+        ),
     503,
   );
 }
@@ -124,7 +129,7 @@ export class LocalDraftStore {
     if (!userId)
       throw localDraftError(
         "local_storage_unavailable",
-        "Sign in to open your drafts.",
+        uiText("Sign in to open your drafts."),
       );
   }
   private open() {
@@ -170,7 +175,9 @@ export class LocalDraftStore {
           reject(
             localDraftError(
               "local_storage_unavailable",
-              "Close other AutoLister tabs, then reload to open your drafts.",
+              uiText(
+                "Close other AutoLister tabs, then reload to open your drafts.",
+              ),
               503,
             ),
           );
@@ -243,7 +250,10 @@ export class LocalDraftStore {
               ? await request<Row | undefined>(draftStore.get(cursor))
               : undefined;
             if (cursor && (!last || last.state !== state))
-              throw localDraftError("invalid_cursor", "Reload your drafts.");
+              throw localDraftError(
+                "invalid_cursor",
+                uiText("Reload your drafts."),
+              );
             return pageRows(
               draftStore.index("library"),
               IDBKeyRange.bound(
@@ -315,7 +325,7 @@ export class LocalDraftStore {
     if (!row)
       throw localDraftError(
         "draft_not_found",
-        "This item is no longer saved in this browser.",
+        uiText("This item is no longer saved in this browser."),
         404,
       );
     return row;
@@ -391,7 +401,7 @@ export class LocalDraftStore {
       if (rows.some((r) => !r?.blob))
         throw localDraftError(
           "photo_not_found",
-          "This photo is no longer saved in this browser.",
+          uiText("This photo is no longer saved in this browser."),
           404,
         );
       return rows.map((row) => row!.blob);
@@ -441,14 +451,16 @@ export class LocalDraftStore {
           if (data.draftCount >= DRAFT_LIMITS.drafts)
             throw localDraftError(
               "draft_limit",
-              "You have 500 saved items. Delete unused items to make space.",
+              uiText(
+                "You have 500 saved items. Delete unused items to make space.",
+              ),
             );
           const photoIds: string[] = input.photoIds || [];
           const photos = photoIds.map((id) => data.photos.get(id));
           if (photos.some((p) => !p || p.draft_id))
             throw localDraftError(
               "photo_not_found",
-              "Choose photos that have not been grouped yet.",
+              uiText("Choose photos that have not been grouped yet."),
             );
           const now = new Date().toISOString();
           const row: Row = {
@@ -480,7 +492,7 @@ export class LocalDraftStore {
           if (!photo)
             throw localDraftError(
               "photo_not_found",
-              "This photo is no longer available.",
+              uiText("This photo is no longer available."),
               404,
             );
           if (photo.draft_id) {
@@ -524,7 +536,7 @@ export class LocalDraftStore {
           if (photos.some((p) => !p))
             throw localDraftError(
               "photo_not_found",
-              "One of these photos is no longer available.",
+              uiText("One of these photos is no longer available."),
             );
           if (
             photos.some(
@@ -534,7 +546,7 @@ export class LocalDraftStore {
           )
             throw localDraftError(
               "photo_limit",
-              "Choose this item's original photos.",
+              uiText("Choose this item's original photos."),
             );
           const sources = new Set(
             photos.map((p) => p!.draft_id).filter((id) => id && id !== row.id),
@@ -568,7 +580,7 @@ export class LocalDraftStore {
         } else
           throw localDraftError(
             "invalid_draft_request",
-            "This draft action is not available.",
+            uiText("This draft action is not available."),
             400,
           );
         return this.view(data, row);
@@ -600,7 +612,10 @@ export class LocalDraftStore {
   ): Promise<DraftPhoto> {
     validateDraftAction("grant", { ...input, bytes: blob.size });
     if (blob.type !== "image/jpeg")
-      throw localDraftError("photo_size", "Choose a prepared JPEG photo.");
+      throw localDraftError(
+        "photo_size",
+        uiText("Choose a prepared JPEG photo."),
+      );
     const photo = await this.transact(
       "readwrite",
       (data) => {
@@ -624,7 +639,9 @@ export class LocalDraftStore {
         )
           throw localDraftError(
             "storage_limit",
-            "Saved photos have reached 512 MB in this browser. Delete unused photos to make space.",
+            uiText(
+              "Saved photos have reached 512 MB in this browser. Delete unused photos to make space.",
+            ),
           );
         if (
           [...data.photos.values()].filter(
@@ -633,7 +650,7 @@ export class LocalDraftStore {
         )
           throw localDraftError(
             "import_limit",
-            "One import can have up to 100 photos.",
+            uiText("One import can have up to 100 photos."),
           );
         let position = 0;
         if (input.draftId) {
@@ -645,7 +662,7 @@ export class LocalDraftStore {
           if (sourcePhotos(photos).length >= DRAFT_LIMITS.photos)
             throw localDraftError(
               "photo_limit",
-              "One item can have up to 10 photos.",
+              uiText("One item can have up to 10 photos."),
             );
           position = Math.max(-1, ...photos.map((p) => p.position)) + 1;
           this.saveRow(data, row, true);
@@ -687,7 +704,7 @@ export class LocalDraftStore {
     )
       throw localDraftError(
         "invalid_draft_request",
-        "Reopen this photo and try again.",
+        uiText("Reopen this photo and try again."),
         400,
       );
     if (
@@ -698,7 +715,7 @@ export class LocalDraftStore {
     )
       throw localDraftError(
         "photo_size",
-        "Choose a JPEG photo smaller than 4 MB.",
+        uiText("Choose a JPEG photo smaller than 4 MB."),
         400,
       );
     const result = await this.transact(
@@ -713,7 +730,7 @@ export class LocalDraftStore {
         )
           throw localDraftError(
             "photo_not_found",
-            "This photo moved or is no longer saved. Reopen the item.",
+            uiText("This photo moved or is no longer saved. Reopen the item."),
             404,
           );
         const row = this.row(data, input.draftId);
@@ -737,7 +754,9 @@ export class LocalDraftStore {
         )
           throw localDraftError(
             "storage_limit",
-            "This browser's photo storage is full. Delete unused photos and try again.",
+            uiText(
+              "This browser's photo storage is full. Delete unused photos and try again.",
+            ),
           );
         data.tx
           .objectStore("blobs")
@@ -778,7 +797,7 @@ export class LocalDraftStore {
         )
           throw localDraftError(
             "photos_not_ready",
-            "Add a photo before generating.",
+            uiText("Add a photo before generating."),
           );
         const saved: LocalDraftAttempt = {
           draftId,
@@ -836,7 +855,7 @@ export class LocalDraftStore {
           )
             throw localDraftError(
               "invalid_result",
-              "The generated text could not be saved.",
+              uiText("The generated text could not be saved."),
             );
           row.title = result.title;
           row.description = result.description;
@@ -984,14 +1003,17 @@ export class LocalDraftStore {
     )
       throw localDraftError(
         "invalid_model_photos",
-        "Couldn’t add model photos.",
+        uiText("Couldn’t add model photos."),
       );
     await this.transact(
       "readwrite",
       (data) => {
         const row = this.row(data, draftId);
         if (row.modelPhotos?.jobId !== jobId || row.state !== "draft")
-          throw localDraftError("photo_source_changed", "This item changed.");
+          throw localDraftError(
+            "photo_source_changed",
+            uiText("This item changed."),
+          );
         if (row.modelPhotos.attached) return;
         const existing = [...data.photos.values()].filter(
           (p) => p.draft_id === draftId,
@@ -999,7 +1021,7 @@ export class LocalDraftStore {
         if (sourcePhotoSignature(existing) !== row.modelPhotos.sourceSignature)
           throw localDraftError(
             "photo_source_changed",
-            "This item's photos changed.",
+            uiText("This item's photos changed."),
           );
         const total = [...data.photos.values()]
           .filter((p) => !(p.draft_id === draftId && p.origin === "model"))
@@ -1010,7 +1032,7 @@ export class LocalDraftStore {
         )
           throw localDraftError(
             "storage_limit",
-            "This browser's storage is full.",
+            uiText("This browser's storage is full."),
           );
         existing
           .filter((p) => p.origin === "model")

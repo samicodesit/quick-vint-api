@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import { animateSurface, bindSurfaceBackdrop } from "./surfaceMotion";
 /** Modal behavior for the existing mobile sheets, without moving their controls. */
 export function activateMobileSheet(
@@ -57,7 +58,7 @@ function activateModal(
   const backdrop = document.createElement("button");
   backdrop.type = "button";
   backdrop.className = "mobile-sheet-backdrop";
-  backdrop.setAttribute("aria-label", "Close dialog");
+  backdrop.setAttribute("aria-label", uiText("Close dialog"));
   backdrop.tabIndex = -1;
   backdrop.addEventListener("click", close);
   // A sticky header is its own stacking context. Keep its backdrop below the

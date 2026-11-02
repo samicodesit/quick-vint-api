@@ -1,3 +1,4 @@
+import { uiText } from "./ui";
 import { fetchMobileJson } from "./api";
 
 type Mode = "single" | "batch";
@@ -22,7 +23,7 @@ function loadQrLibrary() {
       script.onerror = () => {
         script.remove();
         qrLibrary = undefined;
-        reject(new Error("Could not load the QR code. Try again."));
+        reject(new Error(uiText("Could not load the QR code. Try again.")));
       };
       document.head.append(script);
     });
@@ -77,15 +78,17 @@ export function mountPhoneEntry(
       if (intent !== revision || disposed) return;
       if (["expired", "cancelled"].includes(result.status)) {
         sessionId = undefined;
-        throw new Error("This QR code has expired. Create a new one.");
+        throw new Error(uiText("This QR code has expired. Create a new one."));
       }
       if (result.complete) {
         if (
           !result.files.length ||
           result.files.length > (mode === "batch" ? 100 : 10)
         )
-          throw new Error("Choose fewer photos on your phone and try again.");
-        status(mode, "Receiving your photos…");
+          throw new Error(
+            uiText("Choose fewer photos on your phone and try again."),
+          );
+        status(mode, uiText("Receiving your photos…"));
         const files = await Promise.all(
           [...result.files]
             .sort((a, b) => a.order - b.order)
@@ -94,7 +97,9 @@ export function mountPhoneEntry(
                 signal: request!.signal,
               });
               if (!response.ok)
-                throw new Error("Could not receive your photos. Try again.");
+                throw new Error(
+                  uiText("Could not receive your photos. Try again."),
+                );
               const blob = await response.blob();
               return new File([blob], file.name, {
                 type: blob.type || "image/jpeg",
@@ -114,8 +119,8 @@ export function mountPhoneEntry(
       status(
         mode,
         result.status === "uploading"
-          ? "Photos are uploading…"
-          : "Scan to take or choose photos.",
+          ? uiText("Photos are uploading…")
+          : uiText("Scan to take or choose photos."),
       );
       timer = setTimeout(() => void poll(mode, id, intent), 2500);
     } catch (error) {
@@ -125,7 +130,7 @@ export function mountPhoneEntry(
         mode,
         error instanceof Error
           ? error.message
-          : "Could not connect. Try again.",
+          : uiText("Could not connect. Try again."),
         true,
       );
     }
@@ -144,7 +149,7 @@ export function mountPhoneEntry(
       }),
     );
     pane(mode).querySelector<HTMLElement>("[data-phone-copy]")!.hidden = true;
-    status(mode, "Preparing QR code…");
+    status(mode, uiText("Preparing QR code…"));
     try {
       await fetchMobileJson(
         `/api/phone-upload?action=open&v=2&mode=${mode}&sessionId=${id}`,
@@ -172,7 +177,7 @@ export function mountPhoneEntry(
       code.make();
       const image = document.createElement("img");
       image.src = code.createDataURL(4, 16);
-      image.alt = "Scan to add photos from your phone";
+      image.alt = uiText("Scan to add photos from your phone");
       qr.replaceChildren(image);
       pane(mode).querySelector<HTMLElement>("[data-phone-copy]")!.hidden =
         false;
@@ -185,7 +190,7 @@ export function mountPhoneEntry(
         mode,
         error instanceof Error
           ? error.message
-          : "Could not create QR code. Try again.",
+          : uiText("Could not create QR code. Try again."),
         true,
       );
     } finally {
@@ -205,7 +210,7 @@ export function mountPhoneEntry(
     const mode = current?.dataset.phoneUpload as Mode | undefined;
     if (!mode || mode !== activeMode) return;
     if (target.closest("[data-phone-retry]")) {
-      status(mode, "Reconnecting…");
+      status(mode, uiText("Reconnecting…"));
       if (sessionId) void poll(mode, sessionId, revision);
       else {
         stop();
@@ -215,12 +220,12 @@ export function mountPhoneEntry(
     if (target.closest("[data-phone-copy]")) {
       try {
         await navigator.clipboard.writeText(link);
-        status(mode, "Link copied");
+        status(mode, uiText("Link copied"));
       } catch {
         const field = document.createElement("input");
         field.readOnly = true;
         field.value = link;
-        field.setAttribute("aria-label", "Phone upload link");
+        field.setAttribute("aria-label", uiText("Phone upload link"));
         current!.querySelector("[data-phone-status]")!.replaceChildren(field);
         field.focus();
         field.select();

@@ -402,61 +402,84 @@ describe("mobile web generation idempotency", () => {
     "x-autolister-request-id": requestId,
   };
 
-  it("records authoritative web model and source metadata in the existing log", async () => {
+  it.each([
+    ["mobile_web", mobileHeaders],
+    ["extension", extensionHeaders],
+  ])(
+    "records authoritative %s model and source metadata in the existing log",
+    async (client, headers) => {
+      process.env.VERCEL_GIT_COMMIT_SHA = "a".repeat(40);
+      const response = await invoke(headers, {
+        ...body,
+        client: "extension",
+        requestId: "body-cannot-override-header",
+        openaiActualModel: "client-cannot-choose-returned-model",
+        generationSourceCommit: "b".repeat(40),
+      } as any);
+      await Promise.all(backgroundWork.splice(0));
+      expect(response.statusCode).toBe(200);
+      expect(response.body.title).toBe("Black Dress");
+      expect(logRequest).toHaveBeenCalledTimes(1);
+      expect(logRequest.mock.calls[0][0].fullRequestBody).toMatchObject({
+        client,
+        requestId,
+        generationCommitted: true,
+        openaiActualModel: "gpt-5.4-provider-snapshot",
+        generationSourceCommit: "a".repeat(40),
+      });
+      expect(createCompletion).toHaveBeenCalledTimes(1);
+      expect(reserveAndBindMobileGenerationReservation).toHaveBeenCalledTimes(
+        1,
+      );
+    },
+  );
+
+  it.each([mobileHeaders, extensionHeaders])(
+    "keeps missing source and returned model unknown instead of trusting body values for $x-autolister-client",
+    async (headers) => {
+      process.env.VERCEL_GIT_COMMIT_SHA = "not-a-commit";
+      const provider = createCompletion.getMockImplementation()!;
+      createCompletion.mockImplementation((...args) => {
+        const result = provider(...args);
+        return {
+          withResponse: async () => {
+            const response = await result.withResponse();
+            delete response.data.model;
+            return response;
+          },
+        };
+      });
+      await invoke(headers, {
+        ...body,
+        openaiActualModel: "spoofed",
+        generationSourceCommit: "b".repeat(40),
+      } as any);
+      await Promise.all(backgroundWork.splice(0));
+      const logged = logRequest.mock.calls[0][0].fullRequestBody;
+      expect(logged.openaiActualModel).toBeUndefined();
+      expect(logged.generationSourceCommit).toBeUndefined();
+    },
+  );
+
+  it("does not invent a verified request or receipt for legacy extension generation", async () => {
     process.env.VERCEL_GIT_COMMIT_SHA = "a".repeat(40);
-    const response = await invoke(mobileHeaders, {
+    const { "x-autolister-request-id": _request, ...legacyHeaders } =
+      extensionHeaders;
+    const response = await invoke(legacyHeaders, {
       ...body,
-      client: "extension",
-      requestId: "body-cannot-override-header",
-      openaiActualModel: "client-cannot-choose-returned-model",
-      generationSourceCommit: "b".repeat(40),
-    } as any);
-    await Promise.all(backgroundWork.splice(0));
-    expect(response.statusCode).toBe(200);
-    expect(response.body.title).toBe("Black Dress");
-    expect(logRequest).toHaveBeenCalledTimes(1);
-    expect(logRequest.mock.calls[0][0].fullRequestBody).toMatchObject({
-      client: "mobile_web",
-      requestId,
+      requestId: "untrusted-body-id",
       generationCommitted: true,
-      openaiActualModel: "gpt-5.4-provider-snapshot",
-      generationSourceCommit: "a".repeat(40),
-    });
-    expect(createCompletion).toHaveBeenCalledTimes(1);
-    expect(reserveAndBindMobileGenerationReservation).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps missing source and returned model unknown instead of trusting body values", async () => {
-    process.env.VERCEL_GIT_COMMIT_SHA = "not-a-commit";
-    const provider = createCompletion.getMockImplementation()!;
-    createCompletion.mockImplementation((...args) => {
-      const result = provider(...args);
-      return {
-        withResponse: async () => {
-          const response = await result.withResponse();
-          delete response.data.model;
-          return response;
-        },
-      };
-    });
-    await invoke(mobileHeaders, {
-      ...body,
-      openaiActualModel: "spoofed",
-      generationSourceCommit: "b".repeat(40),
     } as any);
-    await Promise.all(backgroundWork.splice(0));
-    const logged = logRequest.mock.calls[0][0].fullRequestBody;
-    expect(logged.openaiActualModel).toBeUndefined();
-    expect(logged.generationSourceCommit).toBeUndefined();
-  });
-
-  it("leaves extension log enrichment outside the web-only rollout", async () => {
-    process.env.VERCEL_GIT_COMMIT_SHA = "a".repeat(40);
-    const response = await invoke(extensionHeaders);
     expect(response.statusCode).toBe(200);
     const logged = logRequest.mock.calls[0][0].fullRequestBody;
-    expect(logged.generationSourceCommit).toBeUndefined();
-    expect(logged.openaiActualModel).toBeUndefined();
+    expect(logged.client).toBe("extension");
+    expect(logged.requestId).toBeUndefined();
+    expect(logged.generationCommitted).toBe(false);
+    expect(logged.generationSourceCommit).toBe("a".repeat(40));
+    expect(logged.openaiActualModel).toBe("gpt-5.4-provider-snapshot");
+    expect(claimMobileGenerationIdempotency).not.toHaveBeenCalled();
+    expect(createCompletion).toHaveBeenCalledTimes(1);
+    expect(logRequest).toHaveBeenCalledTimes(1);
   });
 
   it("returns a committed mobile result while a slow reporting write finishes in the background", async () => {

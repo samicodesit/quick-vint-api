@@ -301,20 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               )
                 ? safeBody.analyticsClientId
                 : undefined,
-            client: "mobile_web",
-            // These fields are server evidence, never caller-supplied context.
-            openaiActualModel: undefined,
-            generationSourceCommit: /^[a-f0-9]{40}$/i.test(
-              process.env.VERCEL_GIT_COMMIT_SHA || "",
-            )
-              ? process.env.VERCEL_GIT_COMMIT_SHA
-              : undefined,
-            generationCommitted: false,
             generationStartedAt: new Date(startTime).toISOString(),
-            requestId:
-              typeof mobileRequestId === "string"
-                ? mobileRequestId.slice(0, 80)
-                : undefined,
             imageCount: Array.isArray(req.body?.imageUrls)
               ? req.body.imageUrls.length
               : 0,
@@ -330,6 +317,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     extensionVersion,
     pricingLimitsMode,
   };
+  if (isMobileWebRequest || client === "extension") {
+    // Reuse authoritative headers and the existing reporting write for both
+    // clients. Legacy extensions without a request header stay unverified.
+    mergeLogRequestBody(logData, {
+      client: isMobileWebRequest ? "mobile_web" : "extension",
+      requestId:
+        typeof mobileRequestId === "string"
+          ? mobileRequestId.slice(0, 80)
+          : undefined,
+      generationCommitted: false,
+      openaiActualModel: undefined,
+      generationSourceCommit: /^[a-f0-9]{40}$/i.test(
+        process.env.VERCEL_GIT_COMMIT_SHA || "",
+      )
+        ? process.env.VERCEL_GIT_COMMIT_SHA
+        : undefined,
+    });
+  }
 
   // Extract imageUrls early for logging purposes (even if validation fails later)
   if (req.body && Array.isArray(req.body.imageUrls)) {
@@ -1233,7 +1238,9 @@ Reply only in JSON: {"title":"...","description":"..."}
       logData.openaiCachedTokens =
         chat.usage?.prompt_tokens_details?.cached_tokens;
       mergeLogRequestBody(logData, {
-        ...(isMobileWebRequest ? { openaiActualModel: chat.model } : {}),
+        ...(isMobileWebRequest || client === "extension"
+          ? { openaiActualModel: chat.model }
+          : {}),
         openaiModelDurationMs: Date.now() - modelStartTime,
       });
       content = chat.choices?.[0]?.message?.content ?? "{}";
@@ -1374,8 +1381,7 @@ Reply only in JSON: {"title":"...","description":"..."}
         });
       }
       mobileReservationCommitState = "committed";
-      if (isMobileWebRequest)
-        logData.fullRequestBody.generationCommitted = true;
+      logData.fullRequestBody.generationCommitted = true;
     }
 
     // Add generated content to log

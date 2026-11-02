@@ -1,6 +1,6 @@
 # Pricing Tier Spec
 
-Last reviewed: 2026-07-03
+Last reviewed: 2026-11-02
 
 This is the source-of-truth checklist for the public pricing page and product tier behavior. Keep this file updated whenever limits, plan features, or pricing-page copy change.
 
@@ -28,17 +28,18 @@ When `PUBLIC_PRICING_DISPLAY_MODE=legacy`, the public page switches to compatibi
 
 ## Feature Matrix
 
-| Feature                                 | Free Trial                      | Starter                         | Pro       | Business  |
-| --------------------------------------- | ------------------------------- | ------------------------------- | --------- | --------- |
-| AI-generated titles and descriptions    | Yes                             | Yes                             | Yes       | Yes       |
-| Reusable seller note                    | Yes                             | No                              | Yes       | Yes       |
-| Emoji support in generated descriptions | Yes                             | No                              | Yes       | Yes       |
-| Change AI writing tone                  | No                              | No                              | Yes       | Yes       |
-| Phone upload + batch upload             | Soon restricted to Pro/Business | Soon restricted to Pro/Business | Yes       | Yes       |
-| One-time credit pack                    | Available                       | Available                       | Available | Available |
-| Dedicated support                       | No                              | No                              | No        | Yes       |
-| Custom limits by email                  | No                              | No                              | No        | Available |
-| Priority processing                     | No                              | No                              | Yes       | Yes       |
+| Feature                                 | Free Trial | Starter   | Pro       | Business  |
+| --------------------------------------- | ---------- | --------- | --------- | --------- |
+| AI-generated titles and descriptions    | Yes        | Yes       | Yes       | Yes       |
+| Listing text in 18 languages            | Yes        | Yes       | Yes       | Yes       |
+| AI model photos for eligible items      | Yes        | Yes       | Yes       | Yes       |
+| Reusable seller note                    | Yes        | No        | Yes       | Yes       |
+| Emoji support in generated descriptions | Yes        | No        | Yes       | Yes       |
+| Change AI writing tone                  | No         | No        | Yes       | Yes       |
+| Phone upload + batch upload             | Yes        | Yes       | Yes       | Yes       |
+| One-time credit pack                    | Available  | Available | Available | Available |
+| Dedicated support                       | No         | No        | No        | Yes       |
+| Custom limits by email                  | No         | No        | No        | Available |
 
 ## Implementation Notes
 
@@ -54,5 +55,7 @@ When `PUBLIC_PRICING_DISPLAY_MODE=legacy`, the public page switches to compatibi
 - Reusable seller note is enabled for Free Trial, Pro, and Business, but not Starter, through `canUseDescriptionFooter()` in `utils/descriptionFooter.ts`.
 - Tone customization and paid emoji controls are only enabled for `pro` and `business` in `api/generate.ts`.
 - Batch capacity uses the same generation entitlement checks through `api/user/batch-capacity.ts`.
-- `api/phone-upload.ts` stores and lists uploaded photos; the public pricing promise is that phone upload and batch upload will be restricted to Pro and Business.
+- `api/phone-upload.ts` stores and lists uploaded photos. Phone and batch uploads use the normal generation allowance; no future restriction is advertised without a confirmed rollout.
+- Model photos require a saved model and a suitable item. Model photos requested alongside a text draft share that generation; photo-only requests use a generation allowance. Availability also depends on the feature flags and normal account limits.
+- The page does not promise priority processing because no separate priority queue was verified.
 - Business has unlimited daily usage only in legacy compatibility mode or for active legacy Business subscribers; current new Business entitlement is 60/day.

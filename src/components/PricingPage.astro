@@ -71,7 +71,7 @@ type CreditPack = {
   priceLabel: string;
 };
 
-type FeatureState = "included" | "restrictedSoon" | "unavailable";
+type FeatureState = "included" | "unavailable";
 
 type Feature = {
   state: FeatureState;
@@ -106,9 +106,28 @@ const { copy, extra, limits, isCurrentPricing, locale = "en" } = Astro.props;
 const billing = getBillingCopy(locale);
 const pricingTiers = isCurrentPricing ? TIER_CONFIGS : COMPATIBILITY_TIER_CONFIGS;
 
-const phoneUploadLabel = extra.phoneUpload.replace(/\s*\(.+\)\s*$/, "");
-const uploadFeatureLabel = `${phoneUploadLabel} + batch upload`;
-const restrictedSoonNote = "Soon restricted to Pro and Business";
+const featureCopy: Record<string, { upload: string; languages: string; model: string }> = {
+  en: { upload: "Phone & batch photo upload", languages: "Listing text in 18 languages", model: "AI model photos for eligible items" },
+  fr: { upload: "Import de photos mobile et par lot", languages: "Textes d’annonce en 18 langues", model: "Photos avec mannequin IA pour articles éligibles" },
+  de: { upload: "Foto-Upload per Handy und im Stapel", languages: "Anzeigentexte in 18 Sprachen", model: "KI-Modelfotos für geeignete Artikel" },
+  nl: { upload: "Foto's uploaden via telefoon en in batches", languages: "Advertentieteksten in 18 talen", model: "AI-modelfoto's voor geschikte artikelen" },
+  pl: { upload: "Zdjęcia z telefonu i przesyłanie grupowe", languages: "Treść ogłoszeń w 18 językach", model: "Zdjęcia z modelem AI dla odpowiednich przedmiotów" },
+  es: { upload: "Subida de fotos desde el móvil y por lotes", languages: "Textos de anuncios en 18 idiomas", model: "Fotos con modelo de IA para artículos aptos" },
+  it: { upload: "Caricamento foto da telefono e in gruppo", languages: "Testi degli annunci in 18 lingue", model: "Foto con modella IA per articoli idonei" },
+  pt: { upload: "Envio de fotos por telemóvel e em lote", languages: "Textos de anúncios em 18 idiomas", model: "Fotos com modelo de IA para artigos elegíveis" },
+};
+const currentFeatures = featureCopy[locale] || featureCopy.en;
+const featureStatusCopy: Record<string, Record<FeatureState, string>> = {
+  en: { included: "Included: ", unavailable: "Not included: " },
+  fr: { included: "Inclus : ", unavailable: "Non inclus : " },
+  de: { included: "Enthalten: ", unavailable: "Nicht enthalten: " },
+  nl: { included: "Inbegrepen: ", unavailable: "Niet inbegrepen: " },
+  pl: { included: "W pakiecie: ", unavailable: "Poza pakietem: " },
+  es: { included: "Incluido: ", unavailable: "No incluido: " },
+  it: { included: "Incluso: ", unavailable: "Non incluso: " },
+  pt: { included: "Incluído: ", unavailable: "Não incluído: " },
+};
+const featureStatus = featureStatusCopy[locale] || featureStatusCopy.en;
 const customLimitsFeature = "Custom limits available - email us";
 const starterSubtitle = extra.starterPlanSubtitle;
 const safetyNoLoginLabel =
@@ -131,11 +150,6 @@ const limitFeature = (
 });
 
 const includedFeature = (text: string): Feature => ({ state: "included", text });
-const restrictedSoonFeature = (text: string): Feature => ({
-  state: "restrictedSoon",
-  text,
-  note: restrictedSoonNote,
-});
 const unavailableFeature = (text: string, note?: string): Feature => ({
   state: "unavailable",
   text,
@@ -161,10 +175,11 @@ const plans: Plan[] = [
       limitFeature(limits.freePrimaryValue, limits.freePrimaryLabel),
       ...(freeSecondaryFeature ? [freeSecondaryFeature] : []),
       includedFeature(extra.aiGeneratedTitles),
+      includedFeature(currentFeatures.languages),
+      includedFeature(currentFeatures.model),
       includedFeature(extra.savedNote),
-      restrictedSoonFeature(uploadFeatureLabel),
+      includedFeature(currentFeatures.upload),
       includedFeature(extra.emojiSupport),
-      includedFeature(extra.seeIfYouLikeIt),
       unavailableFeature(extra.changeAiTone),
     ],
   },
@@ -179,8 +194,10 @@ const plans: Plan[] = [
       limitFeature(limits.starterDaily, ` ${extra.listingsPerDay}`),
       limitFeature(limits.starterMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
+      includedFeature(currentFeatures.languages),
+      includedFeature(currentFeatures.model),
       unavailableFeature(extra.savedNote),
-      restrictedSoonFeature(uploadFeatureLabel),
+      includedFeature(currentFeatures.upload),
       unavailableFeature(extra.emojiSupport),
       unavailableFeature(extra.changeAiTone),
     ],
@@ -197,11 +214,12 @@ const plans: Plan[] = [
       limitFeature(limits.proDaily, ` ${extra.listingsPerDay}`),
       limitFeature(limits.proMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
+      includedFeature(currentFeatures.languages),
+      includedFeature(currentFeatures.model),
       includedFeature(extra.savedNote),
-      includedFeature(uploadFeatureLabel),
+      includedFeature(currentFeatures.upload),
       includedFeature(extra.emojiSupport),
       includedFeature(extra.changeAiTone),
-      includedFeature(extra.priorityProcessing),
     ],
   },
   {
@@ -218,11 +236,12 @@ const plans: Plan[] = [
       ),
       limitFeature(limits.businessMonthly, ` ${extra.listingsPerMonth}`),
       includedFeature(extra.aiGeneratedTitles),
+      includedFeature(currentFeatures.languages),
+      includedFeature(currentFeatures.model),
       includedFeature(extra.savedNote),
-      includedFeature(uploadFeatureLabel),
+      includedFeature(currentFeatures.upload),
       includedFeature(extra.emojiSupport),
       includedFeature(extra.changeAiTone),
-      includedFeature(extra.priorityProcessing),
       includedFeature(extra.dedicatedSupport),
       includedFeature(customLimitsFeature),
     ],
@@ -239,13 +258,11 @@ const buttonClassByPlan: Record<Plan["id"], string> = {
 
 const featureStateClass: Record<FeatureState, string> = {
   included: "text-slate-800",
-  restrictedSoon: "text-amber-800",
   unavailable: "text-slate-500",
 };
 
 const featureIconClass: Record<FeatureState, string> = {
   included: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  restrictedSoon: "border-amber-200 bg-amber-50 text-amber-700",
   unavailable: "border-slate-200 bg-slate-50 text-slate-400",
 };
 
@@ -321,9 +338,6 @@ const featureIconClass: Record<FeatureState, string> = {
               >
                 {plan.name}
               </h2>
-              <span class="shrink-0 whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                {extra.accountSafe}
-              </span>
             </div>
             <p class="mt-2 min-h-[20px] text-[13px] leading-5 text-slate-500">
               {plan.subtitle}
@@ -360,12 +374,6 @@ const featureIconClass: Record<FeatureState, string> = {
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
-                  {feature.state === "restrictedSoon" && (
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 15v2m0-10a3 3 0 00-3 3v2h6v-2a3 3 0 00-3-3z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M7 12h10v7H7z" />
-                    </svg>
-                  )}
                   {feature.state === "unavailable" && (
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M6 18L18 6M6 6l12 12" />
@@ -373,6 +381,7 @@ const featureIconClass: Record<FeatureState, string> = {
                   )}
                 </span>
                 <span>
+                  <span class="sr-only">{featureStatus[feature.state]}</span>
                   {feature.strong && <strong class="font-bold text-slate-950">{feature.strong}</strong>}
                   {feature.suffix}
                   {feature.text}

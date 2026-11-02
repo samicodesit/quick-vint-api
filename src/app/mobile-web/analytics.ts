@@ -10,6 +10,7 @@ import {
 export const MOBILE_REF_STORAGE_KEY = "autolister.mobile_web.ref.v1";
 
 export const MOBILE_ANALYTICS_EVENTS = [
+  "model_button_viewed",
   "model_invitation_shown",
   "model_invitation_opened",
   "model_invitation_dismissed",
@@ -265,6 +266,29 @@ export async function trackMobileEvent(
 }
 
 const RESTORED_SESSION_KEY = "autolister.session-restored.v1";
+const modelButtonViews = new Set<string>();
+
+/** One discovery-button impression per account and analytics visit, across remounts/reloads. */
+export async function trackModelButtonViewed(userId: string): Promise<boolean> {
+  const visit = getWebAnalyticsContext().webSessionId || "page";
+  const storageKey = `autolister.model-button-viewed.v1.${userId}`;
+  const key = `${userId}:${visit}`;
+  if (modelButtonViews.has(key)) return false;
+  try {
+    if (window.localStorage.getItem(storageKey) === visit) return false;
+    window.localStorage.setItem(storageKey, visit);
+  } catch {
+    // Memory still suppresses duplicate impressions when storage is unavailable.
+  }
+  // Claim before enqueueing. An impression is not important enough to retry.
+  modelButtonViews.add(key);
+  return trackMobileEvent(
+    "model_button_viewed",
+    { entryPoint: "toolbar" },
+    userId,
+  );
+}
+
 let lastRestoredSession = "";
 const restoring = new Map<string, Promise<boolean>>();
 

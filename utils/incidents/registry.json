@@ -1,4 +1,5 @@
 {
+  "model_button_viewed": { "kind": "business" },
   "model_invitation_shown": { "kind": "business" },
   "model_invitation_opened": { "kind": "business" },
   "model_invitation_dismissed": { "kind": "business" },

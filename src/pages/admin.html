@@ -3285,8 +3285,9 @@
         function friendlyEventName(event) {
             const names = {
                 upload_complete: 'Photo upload completed',
-                model_invitation_shown: 'Model invitation shown',
-                model_invitation_opened: 'Model invitation opened',
+                model_button_viewed: 'Model button viewed',
+                model_invitation_shown: 'Model invitation exposure (legacy)',
+                model_invitation_opened: 'Model setup opened from invitation',
                 model_invitation_dismissed: 'Model invitation dismissed',
                 model_view_opened: 'Model preview or setup opened',
                 model_setup_started: 'Model setup started',
@@ -3489,6 +3490,11 @@
         function getLogEventLabel(log) {
             const event = (log.endpoint || '').replace('/event/', '');
             const method = log.event_method || parseLogMetadata(log).context?.method;
+            if (event === 'model_invitation_shown') {
+                const entry = log.event_entry_point || parseLogMetadata(log).context?.entryPoint;
+                if (entry === 'toolbar') return 'Model button viewed';
+                if (entry === 'invitation') return 'Model invitation popup shown';
+            }
             // Historical records used auth_complete for ordinary restoration.
             if (event === 'auth_complete' && method === 'session') return 'Session restored';
             if (event === 'upload_complete') {

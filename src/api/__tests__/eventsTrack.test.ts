@@ -175,6 +175,7 @@ describe("events tracking endpoint", () => {
   }
 
   it.each([
+    "model_button_viewed",
     "model_invitation_shown",
     "model_creation_completed",
     "model_photos_requested",

@@ -1,5 +1,8 @@
 // Generated from quick-vint-api/utils/incidents/registry.json. Do not edit.
 globalThis.AutoListerEventRegistry = {
+  model_button_viewed: {
+    kind: "business",
+  },
   model_invitation_shown: {
     kind: "business",
   },

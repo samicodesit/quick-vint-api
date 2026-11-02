@@ -1,7 +1,7 @@
 import { uiText } from "./ui";
 import { fetchMobileJson } from "./api";
 import { getBrowserSession } from "./auth";
-import { trackMobileEvent } from "./analytics";
+import { trackMobileEvent, trackModelButtonViewed } from "./analytics";
 import {
   MODEL_PENDING_KEY,
   claimPendingModel,
@@ -92,7 +92,7 @@ export function mountUserModels(
       ).some((el) => el.getClientRects().length)
     ) {
       exposed.add(owner);
-      void tracker(owner, "toolbar")("model_invitation_shown");
+      void trackModelButtonViewed(owner);
     }
   }
   function acknowledge(owner: string) {

@@ -4,6 +4,7 @@ import { supabase } from "../utils/supabaseClient";
 import {
   isAllowedAppOrigin,
   isAllowedVintedOrigin,
+  isFirefoxExtensionOrigin,
 } from "../utils/allowedOrigins";
 import {
   listingPhotosEnabled,
@@ -21,6 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (
     !isAllowedAppOrigin(origin) &&
     !isAllowedVintedOrigin(origin) &&
+    !isFirefoxExtensionOrigin(origin) &&
     !/^chrome-extension:\/\/[a-p]{32}$/.test(origin || "")
   )
     return res.status(403).json({ code: "origin_denied" });

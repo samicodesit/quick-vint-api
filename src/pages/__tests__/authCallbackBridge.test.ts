@@ -7,6 +7,7 @@ async function runBridge(
   href: string,
   extensionResponse: unknown,
   options: {
+    userAgent?: string;
     lastError?: { message: string } | null;
     storage?: {
       getItem: (key: string) => string | null;
@@ -56,6 +57,7 @@ async function runBridge(
     return elements.get(id);
   }
   const context = {
+    navigator: { userAgent: options.userAgent || "" },
     console,
     URLSearchParams,
     AutoListerWebsiteTelemetry: {
@@ -280,6 +282,26 @@ describe("auth callback bridge", () => {
         context: expect.objectContaining({ message: "invalid_session" }),
       }),
     ]);
+  });
+
+  it("keeps Firefox recovery on the website instead of a Chrome callback URL", async () => {
+    const { events, locationHref, elements } = await runBridge(
+      "https://autolister.app/auth/callback#access_token=access-1&refresh_token=refresh-1",
+      undefined,
+      {
+        userAgent: "Mozilla/5.0 Firefox/151.0",
+        lastError: {
+          message: "The message port closed before a response was received.",
+        },
+      },
+    );
+    expect(locationHref).toMatch(/^https:/);
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ event: "auth_extension_callback_fallback" }),
+    );
+    expect(elements.get("authCallbackCopy")?.textContent).toContain(
+      "same Firefox profile",
+    );
   });
 
   it("falls back to the extension callback page when old extension handoff closes the port", async () => {

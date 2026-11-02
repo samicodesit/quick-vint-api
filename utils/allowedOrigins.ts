@@ -27,3 +27,15 @@ export function isAllowedAppOrigin(origin?: string): boolean {
 export function isAllowedVintedOrigin(origin?: string): boolean {
   return typeof origin === "string" && vintedOriginPattern.test(origin);
 }
+
+// Firefox assigns a different UUID origin to each installation. This predicate
+// grants API CORS only, never app redirects or authentication. Protected handlers
+// still validate their bearer token; public email requests retain abuse limits.
+export function isFirefoxExtensionOrigin(origin?: string): boolean {
+  return (
+    typeof origin === "string" &&
+    /^moz-extension:\/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      origin,
+    )
+  );
+}

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
+import { isFirefoxExtensionOrigin } from "../../utils/allowedOrigins";
 import { getDirectUser } from "../../utils/directUser";
 import {
   continueIncidentWork,
@@ -33,6 +34,7 @@ const allowedOrigins = rawOrigins
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
+    if (isFirefoxExtensionOrigin(incomingOrigin)) return callback(null, true);
     if (
       incomingOrigin === "https://autolister.app" ||
       incomingOrigin === "chrome-extension://mommklhpammnlojjobejddmidmdcalcl"

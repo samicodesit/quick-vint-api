@@ -267,6 +267,31 @@ describe("magic link endpoint", () => {
     );
   });
 
+  it("allows native Firefox preflight without sending an email", async () => {
+    const origin = "moz-extension://d5013c18-2f77-438f-914c-1e6325ce8d70";
+    const res = await invokeMagicLink({
+      method: "OPTIONS",
+      headers: { origin },
+      body: {},
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["access-control-allow-origin"]).toBe(origin);
+    expect(generateLinkMock).not.toHaveBeenCalled();
+    expect(resendSendMock).not.toHaveBeenCalled();
+  });
+
+  it("retains input validation for native Firefox email requests", async () => {
+    const res = await invokeMagicLink({
+      headers: {
+        origin: "moz-extension://d5013c18-2f77-438f-914c-1e6325ce8d70",
+      },
+      body: {},
+    });
+    expect(res.statusCode).toBe(400);
+    expect(generateLinkMock).not.toHaveBeenCalled();
+    expect(resendSendMock).not.toHaveBeenCalled();
+  });
+
   it("uses the HTTPS auth callback bridge instead of direct chrome-extension redirects", async () => {
     const res = await invokeMagicLink();
 

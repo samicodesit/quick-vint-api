@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
+import { isFirefoxExtensionOrigin } from "../../utils/allowedOrigins";
 import { getDirectUser } from "../../utils/directUser";
 import { RateLimiter, type UserProfile } from "../../utils/rateLimiter";
 import { supabase } from "../../utils/supabaseClient";
@@ -21,6 +22,7 @@ const ALLOWED_ORIGINS = rawOrigins
 const cors = Cors({
   origin: (incomingOrigin, callback) => {
     if (!incomingOrigin) return callback(null, true);
+    if (isFirefoxExtensionOrigin(incomingOrigin)) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(incomingOrigin)) return callback(null, true);
     if (vintedOriginPattern.test(incomingOrigin)) return callback(null, true);
     return callback(new Error("CORS origin denied for batch capacity"), false);

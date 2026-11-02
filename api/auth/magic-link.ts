@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
 import { Resend } from "resend";
+import { isFirefoxExtensionOrigin } from "../../utils/allowedOrigins";
 import { ApiLogger } from "../../utils/apiLogger";
 import { supabase } from "../../utils/supabaseClient";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
@@ -33,6 +34,7 @@ const cors = Cors({
     }
     if (
       ALLOWED_ORIGINS.includes(incomingOrigin) ||
+      isFirefoxExtensionOrigin(incomingOrigin) ||
       isAllowedAppOrigin(incomingOrigin)
     ) {
       return callback(null, true);

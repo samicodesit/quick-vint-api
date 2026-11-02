@@ -324,6 +324,14 @@
       track("auth_extension_handoff_error", {
         message: String(error?.message || error || "unknown").slice(0, 180),
       });
+      if (/Firefox\//i.test(globalThis.navigator?.userAgent || "")) {
+        setStatus(
+          "Could not open the extension.",
+          "Open this link in the same Firefox profile where AutoLister AI is installed. If it still fails, request a new sign-in email and enter its 6-digit code in the extension.",
+          "error",
+        );
+        return;
+      }
       if (shouldFallbackToExtensionCallback(error)) {
         track("auth_extension_callback_fallback");
         setStatus(

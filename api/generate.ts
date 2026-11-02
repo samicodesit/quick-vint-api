@@ -6,6 +6,7 @@ import type {
   ChatCompletionCreateParamsNonStreaming,
 } from "openai/resources/chat/completions";
 import Cors from "cors";
+import { isFirefoxExtensionOrigin } from "../utils/allowedOrigins";
 import { startListingPhotos } from "../utils/listingPhotoJobs";
 import { getDirectUser } from "../utils/directUser";
 import { supabase } from "../utils/supabaseClient";
@@ -153,6 +154,7 @@ const cors = Cors({
     if (!incomingOrigin) return callback(null, true);
     if (isAllowedAppOrigin(incomingOrigin)) return callback(null, true);
     if (isAllowedVintedOrigin(incomingOrigin)) return callback(null, true);
+    if (isFirefoxExtensionOrigin(incomingOrigin)) return callback(null, true);
     return callback(new Error("CORS origin denied for generate"), false);
   },
   methods: ["POST", "OPTIONS"],

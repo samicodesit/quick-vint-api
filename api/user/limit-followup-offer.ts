@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
+import { isFirefoxExtensionOrigin } from "../../utils/allowedOrigins";
 import { getDirectUser } from "../../utils/directUser";
 import { supabase } from "../../utils/supabaseClient";
 import { createPricingOfferUrl } from "../../utils/pricingOfferToken";
@@ -24,6 +25,7 @@ const INTERNAL_OFFER_TEST_EMAILS = new Set(["samicodesit@gmail.com"]);
 
 export function isAllowedLimitFollowupOrigin(incomingOrigin?: string | null) {
   if (!incomingOrigin) return true;
+  if (isFirefoxExtensionOrigin(incomingOrigin)) return true;
   if (ALLOWED_ORIGINS.includes(incomingOrigin)) return true;
   if (vintedOriginPattern.test(incomingOrigin)) return true;
   if (chromeExtensionOriginPattern.test(incomingOrigin)) return true;

@@ -2005,7 +2005,19 @@ async function handleLogDetail(req: VercelRequest, res: VercelResponse) {
       .single();
     if (error) throw error;
 
-    return res.status(200).json({ log: await attachSignedDebugImages(data) });
+    const log = await attachSignedDebugImages(data);
+    if (data.full_request_body?.inputPhotoReview) {
+      const { signInputPhotoReview } =
+        await import("../../utils/inputPhotoReview.js");
+      try {
+        log.inputPhotoReviewImages = await signInputPhotoReview(data);
+      } catch {
+        log.inputPhotoReviewImages = [];
+        log.inputPhotoReviewStatus = "storage_unavailable";
+      }
+    }
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).json({ log });
   } catch (error: any) {
     console.error("Error fetching log detail:", error);
     return res.status(500).json({ error: error.message });

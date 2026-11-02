@@ -10,6 +10,11 @@ const removeMock = vi.fn();
 const getUserMock = vi.fn();
 const rpcMock = vi.fn();
 const continueWorkMock = vi.fn();
+const reviewWork = vi.hoisted(() => [] as Promise<unknown>[]);
+const moveMock = vi.fn();
+vi.mock("@vercel/functions", () => ({
+  waitUntil: (work: Promise<unknown>) => reviewWork.push(work),
+}));
 
 vi.mock("../../../utils/incidents/service", () => ({
   continueIncidentWork: continueWorkMock,
@@ -27,6 +32,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
         createSignedUrls: createSignedUrlsMock,
         download: downloadMock,
         remove: removeMock,
+        move: moveMock,
       })),
     },
     auth: {
@@ -67,6 +73,68 @@ function createResponse() {
   };
   return response;
 }
+
+it.each(["GET", "POST"])(
+  "denies %s access to retained private photos",
+  async (method) => {
+    const handler = (await import("../../../api/phone-upload.js"))
+      .default as any;
+    const res = createResponse();
+    await handler(
+      {
+        method,
+        headers: {},
+        query: { sessionId: "_review-00000000-0000-4000-8000-000000000001" },
+      } as any,
+      res as any,
+    );
+    expect(res.statusCode).toBe(400);
+  },
+);
+
+it("rejects a private namespace in the multipart body", async () => {
+  const handler = (await import("../../../api/phone-upload.js")).default as any;
+  const res = createResponse();
+  const req = createMultipartUploadRequest({
+    sessionId: "_review-00000000-0000-4000-8000-000000000001",
+    uploadOrder: 0,
+    filename: "photo.jpg",
+  });
+  req.query.sessionId = "normal-session";
+  await handler(req, res as any);
+  await res.finished;
+  expect(res.statusCode).toBe(400);
+});
+
+it("acknowledges cleanup without waiting for a slow server-side move", async () => {
+  const handler = (await import("../../../api/phone-upload.js")).default as any;
+  const sessionId = "00000000-0000-4000-8000-000000000001";
+  listMock.mockResolvedValue({
+    data: [{ name: "000000-upload.jpg", created_at: new Date().toISOString() }],
+    error: null,
+  });
+  let finish!: () => void;
+  moveMock.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = () => resolve({ error: null });
+      }),
+  );
+  const res = createResponse();
+  await handler(
+    {
+      method: "POST",
+      headers: {},
+      query: { action: "cleanup", sessionId },
+    } as any,
+    res as any,
+  );
+  expect(res.statusCode).toBe(200);
+  expect(res.body.cleanupPending).toBe(true);
+  expect(moveMock).toHaveBeenCalled();
+  finish();
+  await Promise.all(reviewWork.splice(0));
+});
 
 function createMultipartUploadRequest({
   sessionId,

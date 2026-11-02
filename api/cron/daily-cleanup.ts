@@ -4,11 +4,15 @@ import { RateLimiter } from "../../utils/rateLimiter";
 import { ApiLogger } from "../../utils/apiLogger";
 import { cleanupExpiredMobileGenerationIdempotency } from "../../utils/mobileGenerationIdempotency";
 import { cleanupDraftPhotos } from "../../utils/listingDrafts";
+import {
+  REVIEW_PREFIX,
+  cleanupReviewFolder,
+  retireUploadFiles,
+} from "../../utils/inputPhotoReview";
 
 const TEMP_UPLOAD_BUCKET = "temp-uploads";
 const TEMP_UPLOAD_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const TEMP_UPLOAD_ROOT_PAGE_SIZE = 100;
-const TEMP_UPLOAD_MAX_ROOT_ENTRIES = 500;
 const TEMP_UPLOAD_FILE_PAGE_SIZE = 100;
 const V2_SESSION_MARKER = "_session.json";
 const API_LOG_COMPACTION_CUTOFF_HOURS = 6;
@@ -80,11 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 2. Cleanup Temp Uploads
   try {
     const folders = [];
-    for (
-      let offset = 0;
-      offset < TEMP_UPLOAD_MAX_ROOT_ENTRIES;
-      offset += TEMP_UPLOAD_ROOT_PAGE_SIZE
-    ) {
+    for (let offset = 0; ; offset += TEMP_UPLOAD_ROOT_PAGE_SIZE) {
       const { data, error: listError } = await supabase.storage
         .from(TEMP_UPLOAD_BUCKET)
         .list("", {
@@ -103,6 +103,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let deletedCount = 0;
 
       for (const folder of folders) {
+        if (!folder.id && folder.name.startsWith(REVIEW_PREFIX)) {
+          deletedCount += await cleanupReviewFolder(folder.name, now);
+          continue;
+        }
         // If it's a file at root
         if (folder.id) {
           if (!folder.created_at) continue;
@@ -163,20 +167,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     (file) => `${folder.name}/${file.name}`,
                   );
                   if (paths.length) {
-                    const { error: delError } = await supabase.storage
-                      .from(TEMP_UPLOAD_BUCKET)
-                      .remove(paths);
-                    if (delError) throw delError;
+                    if (marker.status === "cancelled") {
+                      const { error: delError } = await supabase.storage
+                        .from(TEMP_UPLOAD_BUCKET)
+                        .remove(paths);
+                      if (delError) throw delError;
+                    } else {
+                      await retireUploadFiles(folder.name, allFiles, now);
+                    }
                   }
                   deletedCount++;
                 }
                 continue;
               }
-            } catch (error) {
-              console.error(
-                `Invalid v2 session marker for ${folder.name}:`,
-                error,
-              );
+            } catch {
+              throw new Error("Upload session cleanup failed");
             }
           }
           continue;
@@ -202,12 +207,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
 
           if (allFiles && allFiles.length > 0) {
-            const paths = allFiles.map((f) => `${folder.name}/${f.name}`);
-            const { error: delError } = await supabase.storage
-              .from(TEMP_UPLOAD_BUCKET)
-              .remove(paths);
-
-            if (!delError) deletedCount++;
+            await retireUploadFiles(folder.name, allFiles, now);
+            deletedCount++;
           }
         }
       }
@@ -259,10 +260,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch {
     results.listingDraftPhotos.error = "Draft photo cleanup failed";
   }
-  return res.status(results.apiLogs.success ? 200 : 500).json({
-    message: results.apiLogs.success
+  const successful = results.apiLogs.success && results.tempUploads.success;
+  return res.status(successful ? 200 : 500).json({
+    message: successful
       ? "Daily cleanup job completed"
-      : "Daily cleanup job completed with API log compaction errors",
+      : "Daily cleanup job completed with storage or log compaction errors",
     results,
   });
 }

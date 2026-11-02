@@ -89,6 +89,56 @@ describe("daily cleanup cron", () => {
     headers: { authorization: "Bearer test-cron-secret" },
   });
 
+  it("deletes expired retained photos and keeps younger photos in the same folder", async () => {
+    const handler = (await import("../../../api/cron/daily-cleanup.js"))
+      .default as any;
+    const folder = "_review-00000000-0000-4000-8000-000000000001";
+    const expired = `${Date.now() - 1000}-000000-upload.jpg`;
+    const young = `${Date.now() + 3600000}-000001-upload.jpg`;
+    storageList.mockImplementation(async (prefix?: string) => ({
+      data:
+        prefix === ""
+          ? [{ id: null, name: folder, created_at: null }]
+          : [expired, young].map((name) => ({
+              id: "object",
+              name,
+              created_at: null,
+            })),
+      error: null,
+    }));
+    const res = createResponse();
+    await handler(authorizedRequest() as any, res as any);
+    expect(storageRemove).toHaveBeenCalledWith([`${folder}/${expired}`]);
+    expect(JSON.stringify(storageRemove.mock.calls)).not.toContain(young);
+    expect(res.body.results.tempUploads.success).toBe(true);
+  });
+
+  it("returns failure to the scheduler if retained photo deletion fails", async () => {
+    const handler = (await import("../../../api/cron/daily-cleanup.js"))
+      .default as any;
+    storageList.mockImplementation(async (prefix?: string) => ({
+      data:
+        prefix === ""
+          ? [{ id: null, name: "_review-session", created_at: null }]
+          : [
+              {
+                id: "object",
+                name: `${Date.now() - 1000}-000000-upload.jpg`,
+                created_at: null,
+              },
+            ],
+      error: null,
+    }));
+    storageRemove.mockResolvedValueOnce({
+      error: { message: "storage unavailable" },
+    } as any);
+    const res = createResponse();
+    await handler(authorizedRequest() as any, res as any);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.results.tempUploads.success).toBe(false);
+    expect(compactOldLogs).toHaveBeenCalled();
+  });
+
   it("rejects requests without the cron secret before doing cleanup work", async () => {
     const module = await import("../../../api/cron/daily-cleanup.js");
     const handler = (module as any).default;

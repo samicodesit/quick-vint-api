@@ -302,6 +302,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 ? safeBody.analyticsClientId
                 : undefined,
             client: "mobile_web",
+            // These fields are server evidence, never caller-supplied context.
+            openaiActualModel: undefined,
+            generationSourceCommit: /^[a-f0-9]{40}$/i.test(
+              process.env.VERCEL_GIT_COMMIT_SHA || "",
+            )
+              ? process.env.VERCEL_GIT_COMMIT_SHA
+              : undefined,
             generationCommitted: false,
             generationStartedAt: new Date(startTime).toISOString(),
             requestId:
@@ -1226,6 +1233,7 @@ Reply only in JSON: {"title":"...","description":"..."}
       logData.openaiCachedTokens =
         chat.usage?.prompt_tokens_details?.cached_tokens;
       mergeLogRequestBody(logData, {
+        ...(isMobileWebRequest ? { openaiActualModel: chat.model } : {}),
         openaiModelDurationMs: Date.now() - modelStartTime,
       });
       content = chat.choices?.[0]?.message?.content ?? "{}";

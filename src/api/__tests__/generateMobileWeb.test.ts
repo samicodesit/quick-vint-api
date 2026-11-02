@@ -282,6 +282,7 @@ describe("mobile web generation idempotency", () => {
     process.env.VERCEL_APP_SUPABASE_URL = "https://project.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
     process.env.MOBILE_WEB_APP_ENABLED = "true";
+    delete process.env.VERCEL_GIT_COMMIT_SHA;
 
     getUser.mockResolvedValue({
       data: { user: { id: "user-1", email: "seller@example.com" } },
@@ -330,6 +331,7 @@ describe("mobile web generation idempotency", () => {
     createCompletion.mockReturnValue({
       withResponse: vi.fn(async () => ({
         data: {
+          model: "gpt-5.4-provider-snapshot",
           choices: [
             {
               message: {
@@ -399,6 +401,63 @@ describe("mobile web generation idempotency", () => {
     "x-autolister-extension-version": "1.3.17",
     "x-autolister-request-id": requestId,
   };
+
+  it("records authoritative web model and source metadata in the existing log", async () => {
+    process.env.VERCEL_GIT_COMMIT_SHA = "a".repeat(40);
+    const response = await invoke(mobileHeaders, {
+      ...body,
+      client: "extension",
+      requestId: "body-cannot-override-header",
+      openaiActualModel: "client-cannot-choose-returned-model",
+      generationSourceCommit: "b".repeat(40),
+    } as any);
+    await Promise.all(backgroundWork.splice(0));
+    expect(response.statusCode).toBe(200);
+    expect(response.body.title).toBe("Black Dress");
+    expect(logRequest).toHaveBeenCalledTimes(1);
+    expect(logRequest.mock.calls[0][0].fullRequestBody).toMatchObject({
+      client: "mobile_web",
+      requestId,
+      generationCommitted: true,
+      openaiActualModel: "gpt-5.4-provider-snapshot",
+      generationSourceCommit: "a".repeat(40),
+    });
+    expect(createCompletion).toHaveBeenCalledTimes(1);
+    expect(reserveAndBindMobileGenerationReservation).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps missing source and returned model unknown instead of trusting body values", async () => {
+    process.env.VERCEL_GIT_COMMIT_SHA = "not-a-commit";
+    const provider = createCompletion.getMockImplementation()!;
+    createCompletion.mockImplementation((...args) => {
+      const result = provider(...args);
+      return {
+        withResponse: async () => {
+          const response = await result.withResponse();
+          delete response.data.model;
+          return response;
+        },
+      };
+    });
+    await invoke(mobileHeaders, {
+      ...body,
+      openaiActualModel: "spoofed",
+      generationSourceCommit: "b".repeat(40),
+    } as any);
+    await Promise.all(backgroundWork.splice(0));
+    const logged = logRequest.mock.calls[0][0].fullRequestBody;
+    expect(logged.openaiActualModel).toBeUndefined();
+    expect(logged.generationSourceCommit).toBeUndefined();
+  });
+
+  it("leaves extension log enrichment outside the web-only rollout", async () => {
+    process.env.VERCEL_GIT_COMMIT_SHA = "a".repeat(40);
+    const response = await invoke(extensionHeaders);
+    expect(response.statusCode).toBe(200);
+    const logged = logRequest.mock.calls[0][0].fullRequestBody;
+    expect(logged.generationSourceCommit).toBeUndefined();
+    expect(logged.openaiActualModel).toBeUndefined();
+  });
 
   it("returns a committed mobile result while a slow reporting write finishes in the background", async () => {
     let finishLog!: () => void;

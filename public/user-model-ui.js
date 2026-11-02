@@ -147,6 +147,7 @@
       requestSerial = 0;
     let preferences = { heightCm: 170, ...options.initialPreferences };
     let setupTracked = false;
+    let previewTracked = false;
     const pendingOperations = new Set();
     const outcomes = new Set();
     function track(event, context = {}) {
@@ -174,7 +175,6 @@
         );
       }
     }
-    track("model_view_opened");
     container.classList.add("um-view");
     container.lang = root.AutoListerModelCopy.getLocale();
     function button(text, action, primary = false) {
@@ -292,7 +292,7 @@
     function form() {
       if (!setupTracked) {
         setupTracked = true;
-        track("model_setup_started");
+        track("model_setup_viewed");
       }
       header(
         options.mode === "preferences" ? "Create your model" : "Your model",
@@ -409,6 +409,10 @@
       header();
       const model = state.model;
       if (model.state === "ready") {
+        if (!previewTracked) {
+          previewTracked = true;
+          track("model_view_opened", { target: "preview" });
+        }
         const image = document.createElement("img");
         image.className = "um-preview";
         image.src = model.imageUrl;

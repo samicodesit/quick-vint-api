@@ -88,6 +88,11 @@ describe("admin log pagination", () => {
     expect(filters).toHaveLength(2);
     expect(filters[0]).toBe(filters[1]);
     expect(filters[0]).toContain("endpoint.neq./event/session_restored");
+    expect(filters[0]).toContain("endpoint.neq./event/listing_tools_ready");
+    expect(filters[0]).toContain("endpoint.neq./event/web_app_view");
+    expect(filters[0]).toContain(
+      "or(endpoint.neq./event/model_view_opened,full_request_body->context->>target.eq.preview)",
+    );
     expect(filters[0]).toContain(
       "full_request_body->context->>method.neq.session",
     );

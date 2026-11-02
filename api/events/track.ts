@@ -452,7 +452,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // credentials, personal metadata or a separate tracking table.
       if (
         (retainsBatchEvidence(raw) ||
-          (/^(model_|listing_tour_)/.test(raw.event) &&
+          ((/^(model_|listing_tour_)/.test(raw.event) ||
+            [
+              "generation_blocked",
+              "generation_recovered",
+              "generation_recovery_pending",
+            ].includes(raw.event)) &&
             isRegisteredBusiness(raw.event))) &&
         !dropCarrier
       ) {

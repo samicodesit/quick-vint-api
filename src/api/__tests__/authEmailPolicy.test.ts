@@ -215,6 +215,134 @@ async function claim() {
   return (await db.query<any>("SELECT * FROM incident_claim_notifications(20)"))
     .rows;
 }
+
+// A disconnected client can deliver its renewal before queued failures. Its
+// observer retains the first failure reference even if that event was lost.
+async function orphanRenewal(overrides: any = {}, account = owner) {
+  const ref = {
+    operation: randomUUID(),
+    client: "browser-a",
+    account,
+    incidentId: "",
+    eventId: randomUUID(),
+  };
+  await outcome(ref, 8, {
+    firstFailureObservedAt: new Date(now - 124 * 60000).toISOString(),
+    firstFailureClientId: ref.client,
+    firstFailureVersion: "1.4.31",
+    firstFailureEvent: "token_refresh_failed",
+    ...overrides,
+  });
+  return ref;
+}
+
+it.each([1, 2, 3])(
+  "ignores delayed pre-renewal failures with a missing original receipt, repetition %s",
+  async () => {
+    await orphanRenewal();
+    await failure(23);
+    await failure(18);
+    await failure(13);
+    expect(await deliverPendingNotifications()).toEqual({ sent: 0, failed: 0 });
+    expect(outbound.send).not.toHaveBeenCalled();
+    expect(await group()).toMatchObject({
+      status: "open",
+      occurrences: 3,
+      notification_status: "quiet",
+    });
+  },
+);
+
+it("still alerts when failures persist after an orphan-referenced renewal", async () => {
+  await orphanRenewal();
+  await failure(7);
+  await failure(4);
+  await failure(1);
+  const rows = await claim();
+  expect(rows).toHaveLength(1);
+  expect(rows[0].notification_payload.authPolicy.reason).toBe("persistent");
+});
+
+it.each([
+  "client",
+  "account",
+  "firstClient",
+  "firstEvent",
+  "missingStart",
+  "lateStart",
+  "oldStart",
+  "invalidStart",
+  "invalidOperation",
+  "signInRequired",
+])(
+  "does not hide failures using invalid %s orphan renewal evidence",
+  async (kind) => {
+    await orphanRenewal(
+      kind === "client"
+        ? { analyticsClientId: "other-browser" }
+        : kind === "firstClient"
+          ? { firstFailureClientId: "other-browser" }
+          : kind === "firstEvent"
+            ? { firstFailureEvent: "token_refresh_expired" }
+            : kind === "missingStart"
+              ? { firstFailureObservedAt: undefined }
+              : kind === "lateStart"
+                ? {
+                    firstFailureObservedAt: new Date(
+                      now - 10 * 60000,
+                    ).toISOString(),
+                  }
+                : kind === "oldStart"
+                  ? {
+                      firstFailureObservedAt: new Date(
+                        now - 25 * 3600000,
+                      ).toISOString(),
+                    }
+                  : kind === "invalidStart"
+                    ? { firstFailureObservedAt: "invalid" }
+                    : kind === "invalidOperation"
+                      ? { operationId: "invalid" }
+                      : kind === "signInRequired"
+                        ? { signInRequired: true }
+                        : {},
+      kind === "account" ? "123e4567-e89b-42d3-a456-426614174001" : owner,
+    );
+    await failure(23);
+    await failure(18);
+    await failure(13);
+    expect(await claim()).toHaveLength(1);
+  },
+);
+
+it("keeps a blocked Generate alert after an orphan-referenced background renewal", async () => {
+  await orphanRenewal();
+  const first = await failure(23);
+  await failure(18);
+  await failure(13);
+  await retainAuthAction([
+    owner,
+    JSON.stringify({
+      source: "extension_content",
+      extensionVersion: "1.4.31",
+      occurredAt: new Date(now - 60000).toISOString(),
+      context: {
+        analyticsClientId: first.client,
+        authRefreshOperationId: first.operation,
+        operationId: randomUUID(),
+        entryPoint: "generate",
+        resultStatus: "blocked",
+        statusCode: 401,
+        generationAttemptId: "gen-blocked-after-renewal",
+      },
+    }),
+  ]);
+  const rows = await claim();
+  expect(rows).toHaveLength(1);
+  expect(rows[0].notification_payload.authPolicy).toMatchObject({
+    reason: "blocked",
+    generateBlockedClients: 1,
+  });
+});
 async function retainAuthAction(params: [string, string]) {
   const body = JSON.parse(params[1]);
   const normalized = normalizeIncidentEvent({

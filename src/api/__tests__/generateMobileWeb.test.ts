@@ -482,29 +482,90 @@ describe("mobile web generation idempotency", () => {
     expect(logRequest).toHaveBeenCalledTimes(1);
   });
 
-  it("returns a committed mobile result while a slow reporting write finishes in the background", async () => {
-    let finishLog!: () => void;
-    logRequest.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          finishLog = resolve;
-        }),
-    );
-    const pending = invoke();
-    try {
-      const response = await Promise.race([
-        pending,
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 200)),
-      ]);
-      expect(response?.statusCode).toBe(200);
-      expect(response?.body.title).toBe("Black Dress");
-      expect(completeMobileGenerationIdempotency).toHaveBeenCalled();
-      expect(backgroundWork.length).toBeGreaterThan(0);
-    } finally {
-      finishLog?.();
-      await pending;
-    }
-  });
+  it.each([mobileHeaders, extensionHeaders])(
+    "returns a committed result while a slow reporting write finishes in the background for $x-autolister-client",
+    async (headers) => {
+      let finishLog!: () => void;
+      logRequest.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishLog = resolve;
+          }),
+      );
+      const pending = invoke(headers);
+      try {
+        const response = await Promise.race([
+          pending,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 200)),
+        ]);
+        expect(response?.statusCode).toBe(200);
+        expect(response?.body.title).toBe("Black Dress");
+        expect(completeMobileGenerationIdempotency).toHaveBeenCalled();
+        expect(backgroundWork.length).toBeGreaterThan(0);
+      } finally {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        finishLog?.();
+        await pending;
+        await Promise.all(backgroundWork.splice(0));
+      }
+    },
+  );
+
+  it.each([mobileHeaders, extensionHeaders])(
+    "rejects forged photo evidence for $x-autolister-client",
+    async (headers) => {
+      await invoke(headers, {
+        ...body,
+        inputPhotoReview: { v: 1, images: [{ path: "forged" }] },
+      } as any);
+      await Promise.all(backgroundWork.splice(0));
+      expect(
+        logRequest.mock.calls[0][0].fullRequestBody.inputPhotoReview,
+      ).toBeUndefined();
+    },
+  );
+
+  it.each([mobileHeaders, extensionHeaders])(
+    "hashes the actual fetched input once, after responding, for $x-autolister-client",
+    async (headers) => {
+      process.env.VERCEL_APP_SUPABASE_URL = "https://project.supabase.co";
+      const originalFetch = globalThis.fetch;
+      const fetch = vi.fn(
+        async () =>
+          new Response("photo", { headers: { "content-type": "image/jpeg" } }),
+      );
+      globalThis.fetch = fetch as any;
+      try {
+        const path = "00000000-0000-4000-8000-000000000001/000000-upload.jpg";
+        const response = await invoke(headers, {
+          ...body,
+          imageUrls: [
+            `https://project.supabase.co/storage/v1/object/sign/temp-uploads/${path}?token=private`,
+          ],
+        });
+        expect(response.statusCode).toBe(200);
+        expect(logRequest).not.toHaveBeenCalled();
+        await Promise.all(backgroundWork.splice(0));
+        const { createHash } = await import("node:crypto");
+        expect(
+          logRequest.mock.calls[0][0].fullRequestBody.inputPhotoReview.images,
+        ).toEqual([
+          {
+            index: 0,
+            path,
+            sha256: createHash("sha256").update("photo").digest("hex"),
+          },
+        ]);
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(createCompletion).toHaveBeenCalledTimes(1);
+        expect(JSON.stringify(createCompletion.mock.calls)).toContain(
+          "data:image/jpeg;base64,cGhvdG8=",
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    },
+  );
 
   it("replays an extension result with mobile disabled without another AI call or credit", async () => {
     process.env.MOBILE_WEB_APP_ENABLED = "false";

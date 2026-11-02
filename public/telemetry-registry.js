@@ -18,6 +18,18 @@ globalThis.AutoListerEventRegistry = {
   model_setup_started: {
     kind: "business",
   },
+  model_setup_viewed: {
+    kind: "business",
+  },
+  generation_blocked: {
+    kind: "business",
+  },
+  generation_recovered: {
+    kind: "business",
+  },
+  generation_recovery_pending: {
+    kind: "business",
+  },
   model_setup_skipped: {
     kind: "business",
   },

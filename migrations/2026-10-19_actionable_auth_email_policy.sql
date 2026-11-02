@@ -95,7 +95,17 @@ BEGIN
         FROM api_logs a
         JOIN failures original ON a.user_id=nullif(original.owner_key,'anonymous')::uuid
           AND original.context->>'analyticsClientId'=a.full_request_body->'context'->>'analyticsClientId'
-          AND original.attempt_id=a.full_request_body->'context'->>'operationId'
+          AND (original.attempt_id=a.full_request_body->'context'->>'operationId'
+            -- The durable observer can arrive before its original failure (or
+            -- outlive that failure's retained detail). Its bounded same-client
+            -- episode is sufficient for background renewal, never Generate.
+            OR (a.full_request_body->'context'->>'resultStatus'='silent_renewed'
+              AND a.full_request_body->'context'->'signInRequired'='false'::jsonb
+              AND a.full_request_body->'context'->>'operationId' ~* '^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$'
+              AND a.full_request_body->'context'->>'firstFailureClientId'=original.context->>'analyticsClientId'
+              AND a.full_request_body->'context'->>'firstFailureEvent'='token_refresh_failed'
+              AND incident_auth_event_time(a.full_request_body->'context'->>'firstFailureObservedAt')
+                BETWEEN incident_auth_event_time(a.full_request_body->>'occurredAt')-interval '24 hours' AND original.occurred_at))
         CROSS JOIN LATERAL (SELECT incident_auth_event_time(a.full_request_body->>'occurredAt') AS at) t
         WHERE a.endpoint='/event/auth_session_result'
           AND a.created_at BETWEEN now()-interval '35 minutes' AND now()

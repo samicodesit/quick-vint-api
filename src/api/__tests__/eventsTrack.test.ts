@@ -176,6 +176,10 @@ describe("events tracking endpoint", () => {
 
   it.each([
     "model_button_viewed",
+    "model_setup_viewed",
+    "generation_blocked",
+    "generation_recovered",
+    "generation_recovery_pending",
     "model_invitation_shown",
     "model_creation_completed",
     "model_photos_requested",

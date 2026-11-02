@@ -215,7 +215,7 @@ const LOG_SELECT =
   "id, user_id, user_email, endpoint, request_method, origin, ip_address, image_urls, raw_prompt, full_request_body, generated_title, generated_description, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const LOG_LIST_SELECT =
-  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, image_count:full_request_body->imageCount, log_client:full_request_body->client, log_source:full_request_body->source, event_entry_point:full_request_body->context->entryPoint, event_method:full_request_body->context->method, event_status:full_request_body->context->status, event_tier:full_request_body->context->tier, event_target:full_request_body->context->target, event_image_count:full_request_body->context->imageCount, event_failed_photo_count:full_request_body->context->failedPhotoCount, event_field:full_request_body->context->field, event_occurred_at:full_request_body->occurredAt, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
+  "id, user_id, user_email, endpoint, request_method, origin, ip_address, generated_title, response_status, openai_model, openai_tokens_used, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens, openai_billing:full_request_body->openaiBilling, image_count:full_request_body->imageCount, log_client:full_request_body->client, log_source:full_request_body->source, event_error_code:full_request_body->context->errorCode, event_entry_point:full_request_body->context->entryPoint, event_method:full_request_body->context->method, event_status:full_request_body->context->status, event_tier:full_request_body->context->tier, event_target:full_request_body->context->target, event_image_count:full_request_body->context->imageCount, event_failed_photo_count:full_request_body->context->failedPhotoCount, event_field:full_request_body->context->field, event_occurred_at:full_request_body->occurredAt, subscription_tier, subscription_status, api_calls_count, created_at, processing_duration_ms, suspicious_activity, flagged_reason";
 
 const LOG_GENERATION_LIST_SELECT = LOG_LIST_SELECT;
 
@@ -2005,7 +2005,19 @@ async function handleLogDetail(req: VercelRequest, res: VercelResponse) {
       .single();
     if (error) throw error;
 
-    return res.status(200).json({ log: await attachSignedDebugImages(data) });
+    const log = await attachSignedDebugImages(data);
+    if (data.full_request_body?.inputPhotoReview) {
+      const { signInputPhotoReview } =
+        await import("../../utils/inputPhotoReview.js");
+      try {
+        log.inputPhotoReviewImages = await signInputPhotoReview(data);
+      } catch {
+        log.inputPhotoReviewImages = [];
+        log.inputPhotoReviewStatus = "storage_unavailable";
+      }
+    }
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).json({ log });
   } catch (error: any) {
     console.error("Error fetching log detail:", error);
     return res.status(500).json({ error: error.message });
@@ -2092,7 +2104,7 @@ async function handleViewLogs(req: VercelRequest, res: VercelResponse) {
         ["all", "events"].includes(logType)
       )
         query = query.or(
-          "response_status.gte.400,suspicious_activity.eq.true,and(endpoint.neq./event/session_restored,or(endpoint.neq./event/auth_complete,full_request_body->context->>method.is.null,full_request_body->context->>method.neq.session))",
+          "response_status.gte.400,suspicious_activity.eq.true,and(endpoint.neq./event/listing_tools_ready,endpoint.neq./event/web_app_view,endpoint.neq./event/session_restored,or(endpoint.neq./event/model_view_opened,full_request_body->context->>target.eq.preview),or(endpoint.neq./event/auth_complete,full_request_body->context->>method.is.null,full_request_body->context->>method.neq.session))",
         );
       if (logType === "all") return query;
       if (logType === "events") return query.like("endpoint", "/event/%");

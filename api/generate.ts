@@ -1,11 +1,13 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { setImmediate } from "node:timers";
 import { waitUntil } from "@vercel/functions";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { OpenAI } from "openai";
 import type {
   ChatCompletionContentPart,
   ChatCompletionCreateParamsNonStreaming,
 } from "openai/resources/chat/completions";
 import Cors from "cors";
+import { buildInputPhotoReview } from "../utils/inputPhotoReview";
 import { isFirefoxExtensionOrigin } from "../utils/allowedOrigins";
 import { startListingPhotos } from "../utils/listingPhotoJobs";
 import { getDirectUser } from "../utils/directUser";
@@ -317,6 +319,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     extensionVersion,
     pricingLimitsMode,
   };
+  // This evidence is server-authored only, including on legacy/error paths.
+  if (logData.fullRequestBody && typeof logData.fullRequestBody === "object") {
+    delete logData.fullRequestBody.inputPhotoReview;
+  }
   if (isMobileWebRequest || client === "extension") {
     // Reuse authoritative headers and the existing reporting write for both
     // clients. Legacy extensions without a request header stay unverified.
@@ -1437,19 +1443,24 @@ Reply only in JSON: {"title":"...","description":"..."}
           code: "generation_commit_pending",
         });
       }
-      if (isMobileWebRequest) {
+      {
         // The result and allowance are already committed. Reporting must not
         // delay delivery, and Vercel keeps this write alive after the response.
-        const reporting = Promise.resolve(ApiLogger.logRequest(logData)).catch(
-          () => console.warn("Mobile generation reporting write failed"),
-        );
+        const reporting = new Promise<void>((resolve) => setImmediate(resolve))
+          .then(async () => {
+            logData.fullRequestBody.inputPhotoReview = buildInputPhotoReview(
+              imageUrls,
+              openAIImageUrls,
+              startTime,
+            );
+            await ApiLogger.logRequest(logData);
+          })
+          .catch(() => console.warn("Generation reporting write failed"));
         try {
           waitUntil(reporting);
         } catch {
           // Local runners do not have a Vercel request context.
         }
-      } else {
-        await ApiLogger.logRequest(logData);
       }
       return res.status(200).json(responseBody);
     } else {

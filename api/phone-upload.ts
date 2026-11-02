@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
+import { waitUntil } from "@vercel/functions";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Busboy from "busboy";
 import Cors from "cors";
+import {
+  publicUploadSessionAllowed,
+  retireUploadFiles,
+} from "../utils/inputPhotoReview";
 import { getDirectUser } from "../utils/directUser";
 import { registerPhoneEvidenceOwner } from "../utils/incidents/phone";
 import { continueIncidentWork } from "../utils/incidents/service";
@@ -323,8 +328,12 @@ async function writeExpectedCountMarker(
   if (error) throw error;
 }
 
-async function removeV2SessionFiles(sessionId: string) {
+async function removeV2SessionFiles(
+  sessionId: string,
+  retainForReview = false,
+) {
   const files = await listSessionFiles(sessionId);
+  if (retainForReview) return retireUploadFiles(sessionId, files);
   const paths = files.map((file) => `${sessionId}/${file.name}`);
   if (!paths.length) return;
   const { error } = await supabase.storage.from(UPLOAD_BUCKET).remove(paths);
@@ -340,7 +349,7 @@ async function markV2SessionTerminal(
   marker.status = status;
   marker.expectedCount = null;
   marker.lastActivityAt = now.toISOString();
-  await removeV2SessionFiles(sessionId);
+  await removeV2SessionFiles(sessionId, status === "expired");
   return marker;
 }
 
@@ -476,6 +485,13 @@ async function createStoredFileResponses(
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await runMiddleware(req, res, cors);
+
+    if (
+      req.query.sessionId &&
+      !publicUploadSessionAllowed(req.query.sessionId)
+    ) {
+      return res.status(400).json({ error: "Invalid sessionId" });
+    }
 
     if (req.method === "GET") {
       if (req.query.action === "status" && req.query.v === "2") {
@@ -796,6 +812,9 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
 
       if (!finalSessionId) {
         return sendError(400, "Missing sessionId");
+      }
+      if (!publicUploadSessionAllowed(finalSessionId)) {
+        return sendError(400, "Invalid sessionId");
       }
 
       if (fileUploads.length === 0) {
@@ -1300,6 +1319,17 @@ async function handleCleanup(req: VercelRequest, res: VercelResponse) {
     const files = await listSessionFiles(sessionId);
 
     if (files && files.length > 0) {
+      if (V2_SESSION_ID.test(sessionId) && req.query.reason !== "cancelled") {
+        const cleanup = retireUploadFiles(sessionId, files).catch(() => {
+          console.error("Photo review background cleanup failed");
+        });
+        try {
+          waitUntil(cleanup);
+        } catch {
+          /* Local request context. */
+        }
+        return res.status(200).json({ success: true, cleanupPending: true });
+      }
       const filesToRemove = files.map((f) => `${sessionId}/${f.name}`);
       const { error: removeError } = await supabase.storage
         .from(UPLOAD_BUCKET)

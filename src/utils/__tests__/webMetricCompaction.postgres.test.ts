@@ -7,7 +7,7 @@ describe("web metric compaction in PostgreSQL", () => {
     const db = new PGlite();
     try {
       await db.exec(
-        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), created_at timestamptz DEFAULT now(), endpoint text, image_urls jsonb,raw_prompt text,generated_title text,generated_description text,user_agent text,origin text,ip_address text,user_email text,full_request_body jsonb);",
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), created_at timestamptz DEFAULT now(), endpoint text, response_status integer, image_urls jsonb,raw_prompt text,generated_title text,generated_description text,user_agent text,origin text,ip_address text,user_email text,full_request_body jsonb);",
       );
       await db.exec(
         readFileSync("migrations/2026-10-12_web_metric_compaction.sql", "utf8"),
@@ -23,6 +23,9 @@ describe("web metric compaction in PostgreSQL", () => {
           "migrations/2026-10-27_checkout_funnel_metrics.sql",
           "utf8",
         ),
+      );
+      await db.exec(
+        readFileSync("migrations/2026-11-02_input_photo_review.sql", "utf8"),
       );
       const bodies = [
         [

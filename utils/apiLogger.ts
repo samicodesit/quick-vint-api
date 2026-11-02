@@ -244,8 +244,9 @@ export class ApiLogger {
           `endpoint.is.null,endpoint.neq./event/generation_output_edited,full_request_body->context->>textCaptureVersion.is.null,created_at.lt.${editCutoffIso}`,
         );
         const metricCutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+        const reviewCutoff = new Date(Date.now() - 86400000).toISOString();
         query = query.or(
-          `full_request_body->>analyticsOnly.is.null,created_at.lt.${metricCutoff}`,
+          `full_request_body->>analyticsOnly.is.null,created_at.lt.${metricCutoff},and(full_request_body->inputPhotoReview.not.is.null,created_at.lt.${reviewCutoff})`,
         );
       }
       const callStartedAt = Date.now();

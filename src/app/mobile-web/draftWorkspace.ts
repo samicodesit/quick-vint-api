@@ -31,6 +31,7 @@ import { prepareMobileImage } from "./imagePreparation";
 import { copyListingField } from "./billing";
 import type { MobileUsage } from "./generationClient";
 import { trackMobileEvent } from "./analytics";
+import { generationOutcome } from "./generationOutcome";
 import { activateMobileSheet } from "./sheet";
 import { mountDraftSelects } from "./draftSelect";
 import { animateSurface } from "./surfaceMotion";
@@ -2541,12 +2542,16 @@ export function mountDraftWorkspace(
         }
         const blockedUsage = await options.onUsageChange();
         const blockCode = (error as { code?: string }).code;
-        void trackMobileEvent("generation_error", {
-          target: "draft_workspace",
-          errorCode: blockCode || "generation_failed",
-          method: generationCount > 1 ? "batch" : "single",
-          count: generationCount,
-        });
+        void trackMobileEvent(
+          generationOutcome(blockCode, attempt.operationId, recovered),
+          {
+            target: "draft_workspace",
+            operationId: attempt.operationId,
+            errorCode: blockCode || "generation_failed",
+            method: generationCount > 1 ? "batch" : "single",
+            count: generationCount,
+          },
+        );
         if (
           blockCode &&
           [

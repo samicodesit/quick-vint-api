@@ -3290,7 +3290,8 @@
                 model_invitation_opened: 'Model setup opened from invitation',
                 model_invitation_dismissed: 'Model invitation dismissed',
                 model_view_opened: 'Model preview or setup opened',
-                model_setup_started: 'Model setup started',
+                model_setup_started: 'Model setup form viewed',
+                model_setup_viewed: 'Model setup form viewed',
                 model_setup_skipped: 'Model setup skipped',
                 model_preferences_saved: 'Model preferences selected',
                 model_creation_requested: 'Model creation requested',
@@ -3328,6 +3329,9 @@
                 web_generation_run: 'Web app generation run',
                 generation_success: 'Generation success',
                 generation_error: 'Generation error',
+                generation_blocked: 'Generation blocked',
+                generation_recovered: 'Generation recovered',
+                generation_recovery_pending: 'Generation outcome pending',
                 copy: 'Copied draft text',
                 checkout_opened: 'Checkout opened',
                 chrome_store_click: 'Chrome Store click',
@@ -3490,6 +3494,7 @@
         function getLogEventLabel(log) {
             const event = (log.endpoint || '').replace('/event/', '');
             const method = log.event_method || parseLogMetadata(log).context?.method;
+            if (isGenerationBlock(log)) return 'Generation blocked';
             if (event === 'model_invitation_shown') {
                 const entry = log.event_entry_point || parseLogMetadata(log).context?.entryPoint;
                 if (entry === 'toolbar') return 'Model button viewed';
@@ -3914,8 +3919,18 @@
             `;
         }
 
+        function isGenerationBlock(log) {
+            if (log.endpoint === '/event/generation_blocked') return true;
+            if (!['/event/generation_error', '/event/generate_error'].includes(log.endpoint)) return false;
+            const code = log.event_error_code || parseLogMetadata(log).context?.errorCode;
+            return ['free_lifetime_limit', 'daily_limit', 'monthly_limit', 'account_paused', 'payment_required'].includes(code);
+        }
+
         function getActivityIcon(log, eventName) {
             const kind = getLogKind(log);
+            if (isGenerationBlock(log)) return { symbol: 'LIM', className: 'warning' };
+            if (eventName === 'generation_recovered') return { symbol: 'OK', className: 'success' };
+            if (eventName === 'generation_recovery_pending') return { symbol: 'WAIT', className: 'warning' };
             if (eventName === 'telemetry_queue_dropped') return { symbol: 'DROP', className: 'warning' };
             if (log.response_status >= 400 || eventName === 'generate_error' || eventName.endsWith('_error')) return { symbol: 'ERR', className: 'danger' };
             if (eventName.endsWith('_retry') || eventName.endsWith('_fallback')) return { symbol: 'WARN', className: 'warning' };
@@ -4173,7 +4188,7 @@
                     <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.875rem;">
                         <input type="checkbox" ${state.logsBackground ? 'checked' : ''} onchange="setLogsBackground(this.checked)">
                         Show background events
-                        <span class="text-muted">(routine session restoration)</span>
+                        <span class="text-muted">(routine page loads and session restoration)</span>
                     </label>
                 ` : ''}
 

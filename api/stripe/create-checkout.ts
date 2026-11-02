@@ -335,7 +335,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const session = await stripe.checkout.sessions.create({
         ...AUTOLISTER_CHECKOUT_BRANDING,
         ...(creditPack
-          ? { payment_intent_data: AUTOLISTER_CREDIT_PAYMENT_DATA }
+          ? {
+              payment_intent_data: {
+                ...AUTOLISTER_CREDIT_PAYMENT_DATA,
+                description: `AutoLister AI - ${CREDIT_PACK_CONFIG.displayName} (one-time purchase)`,
+                metadata: {
+                  purchase_type: "credit_pack",
+                  pack_id: CREDIT_PACK_CONFIG.id,
+                  credits: String(CREDIT_PACK_CONFIG.credits),
+                  profile_id: profile.id,
+                },
+              },
+            }
           : {}),
         ...(creditPack ? {} : getSubscriptionCheckoutDisclosure()),
         mode: creditPack ? "payment" : "subscription",

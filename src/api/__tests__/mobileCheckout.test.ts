@@ -131,6 +131,87 @@ function extensionRequest(body: Record<string, unknown> = {}) {
 
 describe("bearer-owned mobile Stripe billing", () => {
   it.each([
+    [
+      "mobile",
+      "credits_20",
+      "20",
+      "AutoLister AI - 20 credits (one-time purchase)",
+    ],
+    [
+      "mobile",
+      "credits_50",
+      "50",
+      "AutoLister AI - 50 credits (one-time purchase)",
+    ],
+    [
+      "mobile",
+      "credits_100",
+      "100",
+      "AutoLister AI - 100 credits (one-time purchase)",
+    ],
+    [
+      "extension",
+      "credits_20",
+      "20",
+      "AutoLister AI - 20 credits (one-time purchase)",
+    ],
+    [
+      "extension",
+      "credits_50",
+      "50",
+      "AutoLister AI - 50 credits (one-time purchase)",
+    ],
+    [
+      "extension",
+      "credits_100",
+      "100",
+      "AutoLister AI - 100 credits (one-time purchase)",
+    ],
+  ])(
+    "labels the %s payment for %s using the verified pack",
+    async (client, packId, credits, description) => {
+      const { default: handler } =
+        await import("../../../api/stripe/create-credit-checkout.js");
+      const body = {
+        packId,
+        email: "owner@example.com",
+        credits: 9999,
+        description: "Untrusted purchase label",
+        source: "extension_popup",
+      };
+      const response = createResponse();
+      await (handler as any)(
+        (client === "mobile"
+          ? mobileRequest(body)
+          : extensionRequest(body)) as any,
+        response as any,
+      );
+      expect(response.statusCode).toBe(200);
+      const checkout = checkoutCreateMock.mock.calls[0][0];
+      expect(checkout.payment_intent_data).toEqual({
+        statement_descriptor_suffix: "AUTOLISTER",
+        description,
+        metadata: {
+          purchase_type: "credit_pack",
+          pack_id: packId,
+          credits,
+          profile_id: "bearer-user",
+        },
+      });
+      expect(checkout.metadata).toEqual(
+        expect.objectContaining({
+          purchase_type: "credit_pack",
+          pack_id: packId,
+          credits,
+          profile_id: "bearer-user",
+          source: client === "mobile" ? "mobile_web" : "extension_popup",
+        }),
+      );
+      expect(checkout.mode).toBe("payment");
+    },
+  );
+
+  it.each([
     [undefined, "credits_20", 20, "price_1ThzPhP5rNq9hGDSVZZSnLqQ"],
     ["credits_50", "credits_50", 50, "price_1USy3OP5rNq9hGDSeMkhzX64"],
     ["credits_100", "credits_100", 100, "price_1USy40P5rNq9hGDS3O786Ald"],
@@ -155,7 +236,9 @@ describe("bearer-owned mobile Stripe billing", () => {
         expect.objectContaining({
           mode: "payment",
           branding_settings: { display_name: "AutoLister AI" },
-          payment_intent_data: { statement_descriptor_suffix: "AUTOLISTER" },
+          payment_intent_data: expect.objectContaining({
+            statement_descriptor_suffix: "AUTOLISTER",
+          }),
           line_items: [{ price: priceId, quantity: 1 }],
           success_url:
             "https://autolister.app/app?checkout=success&session_id={CHECKOUT_SESSION_ID}",
@@ -328,7 +411,16 @@ describe("bearer-owned mobile Stripe billing", () => {
       expect.objectContaining({
         mode: "payment",
         branding_settings: { display_name: "AutoLister AI" },
-        payment_intent_data: { statement_descriptor_suffix: "AUTOLISTER" },
+        payment_intent_data: {
+          statement_descriptor_suffix: "AUTOLISTER",
+          description: "AutoLister AI - 20 credits (one-time purchase)",
+          metadata: {
+            purchase_type: "credit_pack",
+            pack_id: "credits_20",
+            credits: "20",
+            profile_id: "bearer-user",
+          },
+        },
         customer: "cus_existing",
         line_items: [{ price: "price_credit_fixture", quantity: 1 }],
         success_url:
@@ -769,7 +861,9 @@ describe("bearer-owned mobile Stripe billing", () => {
       expect.objectContaining({
         mode: "payment",
         branding_settings: { display_name: "AutoLister AI" },
-        payment_intent_data: { statement_descriptor_suffix: "AUTOLISTER" },
+        payment_intent_data: expect.objectContaining({
+          statement_descriptor_suffix: "AUTOLISTER",
+        }),
         line_items: [{ price: "price_1USy3OP5rNq9hGDSeMkhzX64", quantity: 1 }],
         metadata: expect.objectContaining({
           profile_id: "bearer-user",

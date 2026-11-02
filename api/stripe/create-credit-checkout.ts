@@ -109,9 +109,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const originHeader = req.headers?.origin;
     const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader;
     const utm = body.utm && typeof body.utm === "object" ? body.utm : {};
+    const purchaseMetadata = {
+      purchase_type: "credit_pack",
+      pack_id: pack.id,
+      credits: String(pack.credits),
+      profile_id: profile.id,
+    };
     const session = await stripe.checkout.sessions.create({
       ...AUTOLISTER_CHECKOUT_BRANDING,
-      payment_intent_data: AUTOLISTER_CREDIT_PAYMENT_DATA,
+      payment_intent_data: {
+        ...AUTOLISTER_CREDIT_PAYMENT_DATA,
+        description: `AutoLister AI - ${pack.displayName} (one-time purchase)`,
+        metadata: purchaseMetadata,
+      },
       mode: "payment",
       line_items: [
         {
@@ -131,10 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : `${process.env.STRIPE_CANCEL_URL}?session_id={CHECKOUT_SESSION_ID}`,
       allow_promotion_codes: true,
       metadata: {
-        purchase_type: "credit_pack",
-        pack_id: pack.id,
-        credits: String(pack.credits),
-        profile_id: profile.id,
+        ...purchaseMetadata,
         source,
         ...Object.fromEntries(
           [

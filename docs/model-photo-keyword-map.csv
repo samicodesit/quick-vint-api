@@ -1,0 +1,9 @@
+phase,intent,query_family,destination,decision,evidence_status
+1,commercial,AI model photos for clothes; AI model photos for clothing sellers,/ai-model-photos,One feature page for the cluster,Volume and difficulty unmeasured
+1,commercial,put clothes on a model with AI; clothing photo to model,/ai-model-photos,Explain the actual photo workflow on the same page,Volume and difficulty unmeasured
+1,commercial,AI model photos for second hand clothes,/ai-model-photos,Initial audience and positioning,Volume and difficulty unmeasured
+1,instructional,AI model photos Vinted; add model photos to Vinted,/blog/ai-model-photos-vinted,Existing prepared localized guide held for extension release,Owned product workflow
+1,case_study,clothing listing photos before and after,/blog/model-photos-four-listings,Use four approved examples with supplied historical counts,No causal sales lift established
+2,instructional,photograph clothes for resale without modelling; flat lay to model photo,Proposed single broader photography guide,Create after the first release and query review,Terminology observed; volume unmeasured
+later,marketplace_specific,model photos for Depop; model photos for eBay,Not assigned,Validate manual workflow and demand before creating pages,No native integration claimed
+exclude,ambiguous,AI model generator; virtual try on; free unlimited AI models,None,Do not target initially because intent or promise does not match,Scope decision

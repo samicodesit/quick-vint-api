@@ -32,6 +32,19 @@ export function mountUserModels(
     offeredOwner: string | undefined;
   const interacted = new Set<string>();
   const exposed = new Set<string>();
+  // Unsubmitted choices live only in this workspace session, never on the model.
+  const setupDrafts = new Map<string, Partial<ModelChoice>>();
+  function draftOptions(owner: string, initial?: ModelChoice) {
+    if (initial && !setupDrafts.has(owner))
+      setupDrafts.set(owner, { ...initial });
+    return {
+      initialPreferences: setupDrafts.get(owner),
+      onPreferencesChange: (preferences: Partial<ModelChoice>) => {
+        if (!stopped && getOwner() === owner)
+          setupDrafts.set(owner, { ...preferences });
+      },
+    };
+  }
   function tracker(owner: string | undefined, entryPoint: string) {
     return (event: string, context: Record<string, unknown> = {}) => {
       if (getOwner() !== owner) return;
@@ -119,6 +132,7 @@ export function mountUserModels(
         throw new Error("Your account changed. Reopen your model.");
       }
       if (result && "invitationState" in result) updateEntries(owner, result);
+      if (result?.model?.state === "ready") setupDrafts.delete(owner);
       if (method === "PATCH" && typeof result?.enabled === "boolean")
         void tracker(
           owner,
@@ -177,7 +191,7 @@ export function mountUserModels(
           invite ? "invitation" : initialPreferences ? "onboarding" : "toolbar",
         ),
         request: request(owner),
-        initialPreferences,
+        ...draftOptions(owner, initialPreferences),
         onClose: leave,
         onSkip: leave,
         backLabel: "Close",
@@ -235,6 +249,7 @@ export function mountUserModels(
     activeCleanup = back;
     details?.addEventListener("toggle", toggle);
     dispose = window.AutoListerModelUI!.mount(view, {
+      ...draftOptions(owner),
       track: tracker(owner, "settings"),
       request: request(owner),
       onClose: back,
@@ -247,6 +262,7 @@ export function mountUserModels(
       .then((session) => {
         if (session?.user.id !== getOwner()) {
           close();
+          setupDrafts.clear();
           clearTimeout(offerTimer);
           offeredOwner = undefined;
         }
@@ -356,6 +372,7 @@ export function mountUserModels(
     },
     reset() {
       close();
+      setupDrafts.clear();
       clearTimeout(offerTimer);
       offeredOwner = undefined;
       root
@@ -367,6 +384,7 @@ export function mountUserModels(
     dispose() {
       stopped = true;
       close();
+      setupDrafts.clear();
       clearTimeout(offerTimer);
       root.removeEventListener("click", settings);
       window.removeEventListener("storage", accountChanged);

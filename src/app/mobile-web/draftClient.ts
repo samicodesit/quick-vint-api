@@ -135,6 +135,11 @@ export function createDraftClient(userId: string) {
               return;
             }
             await store.attachModelPhotos(draftId, job.jobId, photos);
+            void trackMobileEvent(
+              "model_photos_attached",
+              { operationId: job.jobId, imageCount: photos.length },
+              userId,
+            );
             void photoRequest(job.jobId, "attached").catch(() => {});
           } catch (error: any) {
             if (disposed) return;

@@ -1,0 +1,8 @@
+---
+import ModelPhotoPage from "../components/ModelPhotoPage.astro";
+import { MODEL_PHOTO_CONTENT_ENABLED } from "../utils/modelContentRelease";
+export function getStaticPaths() {
+  return MODEL_PHOTO_CONTENT_ENABLED ? [{ params: { modelFeature: "ai-model-photos" } }] : [];
+}
+---
+<ModelPhotoPage locale="en" />

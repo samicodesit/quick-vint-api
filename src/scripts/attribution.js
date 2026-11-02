@@ -10,6 +10,18 @@ const MEDIA = new Set([
   "unknown",
 ]);
 const REFERRER_SOURCES = {
+  "chatgpt.com": "chatgpt.com",
+  "www.chatgpt.com": "chatgpt.com",
+  "chat.openai.com": "chatgpt.com",
+  "gemini.google.com": "gemini.google.com",
+  "claude.ai": "claude.ai",
+  "www.claude.ai": "claude.ai",
+  "claude.com": "claude.ai",
+  "www.claude.com": "claude.ai",
+  "perplexity.ai": "perplexity.ai",
+  "www.perplexity.ai": "perplexity.ai",
+  "grok.com": "grok.com",
+  "www.grok.com": "grok.com",
   "x.com": "x",
   "www.x.com": "x",
   "twitter.com": "x",
@@ -77,6 +89,17 @@ function isAttributionSource(source) {
 }
 
 function inferMedium(source) {
+  if (
+    [
+      "chatgpt.com",
+      "gemini.google.com",
+      "claude.ai",
+      "claude.com",
+      "perplexity.ai",
+      "grok.com",
+    ].includes(source)
+  )
+    return "referral";
   if (source === "google") return "search";
   if (
     [

@@ -1,4 +1,5 @@
 // @ts-nocheck -- Astro endpoint imports ESM-only integration modules under a CommonJS tsc package boundary.
+import { isBlogPostPublished } from "../../../utils/blog.js";
 import rss from "@astrojs/rss";
 import { getCollection } from "astro:content";
 import {
@@ -18,7 +19,7 @@ export async function GET(context: { params: { lang?: string }; site: URL }) {
   const posts = getBlogEntrancePosts(
     await getCollection(
       "blog",
-      ({ data }) => data.locale === locale && !data.draft,
+      ({ data }) => data.locale === locale && isBlogPostPublished({ data }),
     ),
   );
 

@@ -1,0 +1,11 @@
+---
+const { item, alt, open } = Astro.props;
+---
+<figure class="model-comparison">
+  <a href={`/images/model-guides/comparison-${item}.png`} target="_blank" rel="noopener" aria-label={open}>
+    <img src={`/images/model-guides/comparison-${item}.png`} alt={alt} width="1280" height="936" loading="lazy" />
+  </a>
+</figure>
+<style>
+  .model-comparison{margin:28px 0}.model-comparison img{display:block;width:100%;height:auto;border-radius:14px}.model-comparison a{display:block;border-radius:14px}.model-comparison a:focus-visible{outline:3px solid #7564e7;outline-offset:4px}
+</style>

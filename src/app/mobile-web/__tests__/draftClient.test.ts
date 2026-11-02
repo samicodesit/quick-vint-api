@@ -18,7 +18,104 @@ vi.mock("../uploadClient", () => ({
 import { createDraftClient } from "../draftClient";
 import { LocalDraftStore } from "../localDraftStore";
 import { DEFAULT_DRAFT_SETTINGS } from "../draftContracts";
+import { captureMobileFirstTouch } from "../analytics";
 const id = () => crypto.randomUUID();
+it.each([false, true])(
+  "retains AI referral through photo completion, attachment failure=%s",
+  async (attachmentFails) => {
+    const stored = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => stored.get(key) || null,
+      setItem: (key: string, value: string) => stored.set(key, value),
+    };
+    const track = vi.fn(async () => ({ queued: true }));
+    vi.stubGlobal("window", { localStorage: storage, sessionStorage: storage });
+    vi.stubGlobal("AutoListerWebsiteTelemetry", { track });
+    captureMobileFirstTouch({
+      href: "https://autolister.app/ai-model-photos?utm_source=chatgpt.com",
+      storage,
+    });
+    captureMobileFirstTouch({
+      href: "https://autolister.app/app?ref=model_feature_en",
+      storage,
+    });
+    const jobId = id();
+    const ready = {
+      status: "ready",
+      photos: [
+        { url: "https://photos.example/front.jpg" },
+        { url: "https://photos.example/back.jpg" },
+      ],
+    };
+    mocks.api.mockImplementation(async (path: string) =>
+      path === "/api/generate"
+        ? {
+            title: "Dress",
+            description: "Details",
+            modelPhotos: { jobId, status: "queued" },
+          }
+        : ready,
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(new Blob(["jpeg"], { type: "image/jpeg" }), {
+            headers: { "Content-Type": "image/jpeg" },
+          }),
+      ),
+    );
+    const fault = attachmentFails
+      ? vi
+          .spyOn(LocalDraftStore.prototype, "attachModelPhotos")
+          .mockRejectedValueOnce(new Error("storage_limit"))
+      : null;
+    try {
+      const draft = await item();
+      await client.executeDraftAttempt(
+        draft,
+        { operationId: id(), inputVersion: draft.input_version },
+        false,
+      );
+      await vi.waitFor(async () => {
+        const current = await client.draftAction("detail", {
+          draftId: draft.id,
+        });
+        expect(current.modelPhotos?.status).toBe(
+          attachmentFails ? "attachment_failed" : "attached",
+        );
+      });
+      const current = await client.draftAction("detail", { draftId: draft.id });
+      expect(current.title).toBe("Dress");
+      client.observeDraft(current);
+      client.observeDraft(current);
+      const completed = track.mock.calls.filter(
+        ([event]: any[]) => event === "model_photos_attached",
+      );
+      expect(completed).toHaveLength(attachmentFails ? 0 : 1);
+      if (!attachmentFails)
+        expect(completed[0]).toMatchObject([
+          "model_photos_attached",
+          {
+            expectedAccountId: "owner",
+            utm: { utm_source: "chatgpt.com", utm_medium: "referral" },
+            context: {
+              operationId: jobId,
+              imageCount: 2,
+              source: "model_feature_en",
+            },
+          },
+        ]);
+      expect(
+        current.photos.filter((p: any) => p.origin === "model"),
+      ).toHaveLength(attachmentFails ? 0 : 2);
+    } finally {
+      fault?.mockRestore();
+      client.dispose();
+      vi.unstubAllGlobals();
+    }
+  },
+);
 let client: ReturnType<typeof createDraftClient>;
 beforeEach(async () => {
   const { IDBFactory, IDBKeyRange } = await import("fake-indexeddb");

@@ -467,6 +467,7 @@ type SiteExtraPricingCopy = {
   noDailyLimit: string;
   listingsPerDay: string;
   listingsPerMonth: string;
+  lifetimeListings: string;
   everythingInPro: string;
   highestDailyLimits: string;
   dedicatedSupport: string;
@@ -605,6 +606,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "No Daily Limit",
       listingsPerDay: "/ day",
       listingsPerMonth: "/ month",
+      lifetimeListings: "lifetime listings",
       everythingInPro: "Everything in Pro",
       highestDailyLimits: "Highest daily limits",
       dedicatedSupport: "Dedicated support",
@@ -737,6 +739,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "Sans limite quotidienne",
       listingsPerDay: "/ jour",
       listingsPerMonth: "/ mois",
+      lifetimeListings: "annonces au total",
       everythingInPro: "Tout ce qu'inclut Pro",
       highestDailyLimits: "Limites quotidiennes maximales",
       dedicatedSupport: "Support dédié",
@@ -871,6 +874,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "Kein Tageslimit",
       listingsPerDay: "/ Tag",
       listingsPerMonth: "/ Monat",
+      lifetimeListings: "Anzeigen insgesamt",
       everythingInPro: "Alles aus Pro",
       highestDailyLimits: "Hochste Tageslimits",
       dedicatedSupport: "Dedizierter Support",
@@ -1004,6 +1008,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "Geen daglimiet",
       listingsPerDay: "/ dag",
       listingsPerMonth: "/ maand",
+      lifetimeListings: "advertenties in totaal",
       everythingInPro: "Alles van Pro",
       highestDailyLimits: "Hoogste daglimieten",
       dedicatedSupport: "Toegewijde ondersteuning",
@@ -1136,6 +1141,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "Brak limitu dziennego",
       listingsPerDay: "/ dzien",
       listingsPerMonth: "/ miesiac",
+      lifetimeListings: "ogłoszeń łącznie",
       everythingInPro: "Wszystko z Pro",
       highestDailyLimits: "Najwyzsze limity dzienne",
       dedicatedSupport: "Dedykowane wsparcie",
@@ -1268,6 +1274,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "Sin limite diario",
       listingsPerDay: "/ dia",
       listingsPerMonth: "/ mes",
+      lifetimeListings: "anuncios en total",
       everythingInPro: "Todo lo de Pro",
       highestDailyLimits: "Limites diarios maximos",
       dedicatedSupport: "Soporte dedicado",
@@ -1400,6 +1407,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "Nessun limite giornaliero",
       listingsPerDay: "/ giorno",
       listingsPerMonth: "/ mese",
+      lifetimeListings: "annunci in totale",
       everythingInPro: "Tutto di Pro",
       highestDailyLimits: "Limiti giornalieri massimi",
       dedicatedSupport: "Supporto dedicato",
@@ -1534,6 +1542,7 @@ export const SITE_EXTRA_COPY: Record<
       noDailyLimit: "Sem limite diario",
       listingsPerDay: "/ dia",
       listingsPerMonth: "/ mes",
+      lifetimeListings: "anúncios no total",
       everythingInPro: "Tudo do Pro",
       highestDailyLimits: "Maiores limites diarios",
       dedicatedSupport: "Suporte dedicado",

@@ -1,0 +1,9 @@
+---
+import ModelPhotoPage from "../../components/ModelPhotoPage.astro";
+import { MODEL_PHOTO_CONTENT_ENABLED } from "../../utils/modelContentRelease";
+export function getStaticPaths() {
+  return MODEL_PHOTO_CONTENT_ENABLED ? ["nl", "fr", "de"].map(lang => ({ params: { lang, modelFeature: "ai-model-photos" } })) : [];
+}
+const locale = Astro.params.lang as "nl" | "fr" | "de";
+---
+<ModelPhotoPage locale={locale} />

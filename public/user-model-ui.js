@@ -327,6 +327,7 @@
           input.setAttribute("aria-label", t(label));
           input.addEventListener("change", () => {
             preferences[group] = value;
+            options.onPreferencesChange?.({ ...preferences });
           });
           const art = document.createElement("span");
           art.className = "um-choice-art";
@@ -355,6 +356,7 @@
             input.value = String(preferences.heightCm);
             input.addEventListener("input", () => {
               preferences.heightCm = Number(input.value);
+              options.onPreferencesChange?.({ ...preferences });
               inputs.forEach((other) => {
                 if (other !== input) other.value = input.value;
               });

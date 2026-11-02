@@ -7,6 +7,21 @@ import {
 } from "../pricingDisplay.js";
 
 describe("public pricing display", () => {
+  it("uses the localized lifetime allowance without changing the free quota", () => {
+    const labels = {
+      listingsPerDay: "/ Tag",
+      listingsPerMonth: "/ Monat",
+      noDailyLimit: "Kein Tageslimit",
+      lifetimeListings: "Anzeigen insgesamt",
+    };
+    expect(getPricingDisplay("current", labels).limits).toMatchObject({
+      freePrimaryValue: "5",
+      freePrimaryLabel: " Anzeigen insgesamt",
+    });
+    expect(getPricingDisplay().limits.freePrimaryLabel).toBe(
+      " lifetime listings",
+    );
+  });
   it("defaults to current display mode", () => {
     expect(getPublicPricingDisplayMode()).toBe("current");
     expect(getPricingDisplay().limits).toMatchObject({

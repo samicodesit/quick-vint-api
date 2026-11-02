@@ -455,3 +455,34 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
 - Local receiver account-switch protection and additive policy pages remain undeployed. This test does not validate those changes or the separate portal App.
 - Full ChatGPT-host demo video remains incomplete. Available browser capture capability is screenshots only. Do not substitute a screenshot montage as a recording.
 - Public submission blocked pending supported Sites verification/OAuth route. See docs/plugin-submission/sites-public-route.md for exact identities and evidence.
+
+### 2026-11-02: first-use friction, local only
+
+- Fixed mobile navigation sending the main start action to the Chrome Store.
+  Web app is primary; extension installation stays separate. Checked all eight
+  locales with their existing click tracking.
+- Retain unfinished model choices across dialog/settings close and reopen in
+  the current account session. Sign-out clears them. Creation stays explicit.
+- Browser QA exposed and fixed Back to settings also closing the settings panel.
+- Inspected real local first-item screens, guest skip and preferences through
+  fixture sign-in, and the optional invitation. No new onboarding copy or prompts.
+- Fixed a narrow-screen pricing badge overflow and made short mobile menus
+  scrollable. Localized the previously English lifetime quota label without
+  changing the allowance. See `docs/first-use-friction-review.md` for evidence and scope.
+- No live signup, generation or conversion claim. No spend, email or publication.
+  The model-content publication hold remains in place.
+- Final evidence: website production gate passed (1,382 tests); six built-page
+  first-use browser cases passed. Extension verification totals 168 unit and
+  382 browser passes, 13 browser skips. Corrected a stale sibling-backend fixture
+  path and reran all 25 coordinated cases successfully. No unresolved test failure.
+
+### 2026-11-02: model-photo release authorized
+
+- Owner authorized publication after extension 1.4.30 became publicly available.
+  Google's public update service independently confirmed that package version.
+- Fresh enabled website gate passed: 1,382 tests. All six built-page first-use
+  browser checks passed again with the model content enabled.
+- Release scope, deployment checks, rollback and final evidence location are in
+  `docs/model-photo-release-20261102.md`. Earlier publication-hold notes are historical.
+- No new extension upload, customer message, paid test or advertising spend.
+  Live signup and conversion outcomes remain untested by this release QA.

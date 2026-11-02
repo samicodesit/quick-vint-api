@@ -1,0 +1,14 @@
+---
+import guideCopy from "../../i18n/modelGuides.json";
+import { CHROME_WEB_STORE_URL } from "../../utils/blog";
+const { locale = "en", guide = "howto" } = Astro.props as { locale: keyof typeof guideCopy; guide: string };
+const c = guideCopy[locale];
+---
+<aside class="model-guide-cta">
+  <h2>{c.cta}</h2>
+  <div><a class="web" href={`/app?ref=model_guide_${guide}_${locale}_web`} data-track-event="web_app_click" data-track-context={`model_guide_${guide}_${locale}_web`}>{c.web}</a>
+  <a href={CHROME_WEB_STORE_URL} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context={`model_guide_${guide}_${locale}_extension`}>{c.extension}</a></div>
+</aside>
+<style>
+  .model-guide-cta{margin:40px 0 20px;padding:28px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px}.model-guide-cta h2{margin:0 0 20px!important;font-size:24px!important}.model-guide-cta div{display:flex;gap:18px;align-items:center;flex-wrap:wrap}.model-guide-cta a{color:var(--color-brand-700);font-size:14px;font-weight:600;text-underline-offset:4px;line-height:1.5}.model-guide-cta a.web{padding:12px 18px;background:var(--color-brand-600);color:white;border-radius:10px;text-decoration:none}.model-guide-cta a:focus-visible{outline:3px solid #7564e7;outline-offset:4px}
+</style>

@@ -6,6 +6,8 @@ import { WEB_ENTRY_COPY } from "../i18n/webEntry";
 import { blogPath, normalizeBlogLocale } from "../i18n/blog";
 import { bootstrapHomepageExperiment, HOMEPAGE_EXPERIMENT } from "../scripts/homepageExperiment";
 import type { SiteLocale } from "../i18n/site.js";
+import { MODEL_PHOTO_CONTENT_ENABLED } from "../utils/modelContentRelease";
+import { MODEL_PHOTO_COPY } from "../i18n/modelPhotos";
 
 export interface Props {
   title?: string;
@@ -21,6 +23,11 @@ export interface Props {
   localizedUrls?: Partial<Record<SiteLocale, string>>;
   minimalChrome?: boolean;
   includeWebApplication?: boolean;
+  webPrimary?: boolean;
+  socialImage?: string;
+  socialImageAlt?: string;
+  socialImageWidth?: number;
+  socialImageHeight?: number;
 }
 
 const {
@@ -37,13 +44,19 @@ const {
   localizedUrls,
   minimalChrome = false,
   includeWebApplication = false,
+  webPrimary = false,
+  socialImage = "/social-card-oct2026.png",
+  socialImageAlt = "AutoLister AI: From photos to listing drafts. A seller photographs clothes on a rail.",
+  socialImageWidth = 1200,
+  socialImageHeight = 630,
 } = Astro.props;
 
-const ogImage = "https://autolister.app/social-card-oct2026.png";
-const ogImageAlt = "AutoLister AI: From photos to listing drafts. A seller photographs clothes on a rail.";
+const ogImage = new URL(socialImage, "https://autolister.app").href;
+const ogImageAlt = socialImageAlt;
 
 const resolvedLocale = normalizeSiteLocale(currentLocale || htmlLang);
 const navCopy = SITE_COPY[resolvedLocale].nav;
+const modelCopy = MODEL_PHOTO_COPY[resolvedLocale as keyof typeof MODEL_PHOTO_COPY] || MODEL_PHOTO_COPY.en;
 const showLanguageSwitcher = Boolean(currentLocale);
 const localePrefix = resolvedLocale === "en" ? "" : `/${resolvedLocale}`;
 const homeHref = `${localePrefix}/`;
@@ -60,6 +73,11 @@ const chromeHref =
 <html lang={htmlLang} class="scroll-smooth">
   <head>
     <link rel="preload" href="/fonts/geist-latin-wght-normal-19f9c925.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <style is:global>
+      @media (prefers-reduced-motion: reduce) {
+        html.scroll-smooth { scroll-behavior: auto; }
+      }
+    </style>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {isHomepage && <script is:inline set:html={`(${bootstrapHomepageExperiment.toString()})(window,${JSON.stringify(HOMEPAGE_EXPERIMENT)});`} />}
@@ -77,8 +95,8 @@ const chromeHref =
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content={socialImageWidth} />
+    <meta property="og:image:height" content={socialImageHeight} />
     <meta property="og:image:alt" content={ogImageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content={ogUrl} />
@@ -112,23 +130,23 @@ const chromeHref =
       }
     </script>
 
-    <script type="application/ld+json">
-      {
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "@id": "https://autolister.app/#browser-extension",
         "name": "AutoLister AI browser extension",
         "applicationCategory": "BrowserExtension",
         "softwareRequirements": "Chrome on a computer, or Orion with Chrome extension support on iPhone and iPad.",
-        "description": "AutoLister AI prepares editable listing titles and descriptions from your photos for you to review.",
+        "description": MODEL_PHOTO_CONTENT_ENABLED
+          ? "AutoLister AI prepares editable listing titles, descriptions and AI model photos for eligible clothing listings on Vinted. Review the results before publishing."
+          : "AutoLister AI prepares editable listing titles and descriptions from your photos for you to review.",
         "offers": {
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "USD"
         },
         "url": "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl"
-      }
-    </script>
+      })} />
     {(includeWebApplication || isHomepage) && (
       <script type="application/ld+json" is:inline set:html={JSON.stringify({
         "@context": "https://schema.org",
@@ -139,7 +157,9 @@ const chromeHref =
         operatingSystem: "iOS, iPadOS, Android, Windows, macOS, Linux",
         browserRequirements: "Requires JavaScript and an internet connection. No browser extension required.",
         url: "https://autolister.app/app",
-        description: "Generate editable listing titles and descriptions from item photos in your phone or computer browser. Review and copy the text into your marketplace listing, then publish it yourself.",
+        description: MODEL_PHOTO_CONTENT_ENABLED
+          ? "Create editable listing titles, descriptions and AI model photos from item photos on your phone or computer. Reuse a saved model, review the results and save photos as JPEGs. Upload to your marketplace yourself."
+          : "Generate editable listing titles and descriptions from item photos in your phone or computer browser. Review and copy the text into your marketplace listing, then publish it yourself.",
       })} />
     )}
   </head>
@@ -220,14 +240,14 @@ const chromeHref =
           <!-- CTA -->
           <div class="site-desktop-nav hidden md:block">
             <a
-              href={chromeHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-track-event="chrome_store_click"
+              href={webPrimary ? `/app?ref=model_nav_${resolvedLocale}` : chromeHref}
+              target={webPrimary ? undefined : "_blank"}
+              rel={webPrimary ? undefined : "noopener noreferrer"}
+              data-track-event={webPrimary ? "web_app_click" : "chrome_store_click"}
               data-track-context="nav_desktop"
               class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 no-underline"
             >
-              {navCopy.cta}
+              {webPrimary ? modelCopy.web : navCopy.cta}
             </a>
           </div>
 
@@ -259,7 +279,7 @@ const chromeHref =
       <!-- Mobile Menu (Hidden by default) -->
       <div
         id="mobile-menu"
-        class="hidden md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-xl transition-all duration-300 origin-top transform"
+        class="hidden md:hidden absolute top-20 left-0 w-full max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain bg-white border-b border-gray-100 shadow-xl transition-all duration-300 origin-top transform"
       >
         <div class="px-4 pt-2 pb-6 space-y-2">
           {isHomepage && (
@@ -308,14 +328,22 @@ const chromeHref =
 
           <div class="pt-4 mt-4 border-t border-gray-100">
             <a
+              href={`/app?ref=nav_mobile_${resolvedLocale}`}
+              data-track-event="web_app_click"
+              data-track-context="nav_mobile"
+              class="block w-full text-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 no-underline"
+            >
+              {webPrimary ? modelCopy.web : navCopy.cta}
+            </a>
+            <a
               href={chromeHref}
               target="_blank"
               rel="noopener noreferrer"
               data-track-event="chrome_store_click"
-              data-track-context="nav_mobile"
-              class="block w-full text-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 no-underline"
+              data-track-context="nav_mobile_extension"
+              class="block mt-3 px-3 py-2 text-center text-sm font-semibold text-slate-600 hover:text-brand-600 no-underline"
             >
-              {navCopy.cta}
+              {homeExtra.addToChrome}
             </a>
           </div>
         </div>

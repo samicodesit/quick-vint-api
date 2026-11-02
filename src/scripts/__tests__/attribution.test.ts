@@ -11,6 +11,103 @@ function createStorage(initial: Record<string, string> = {}) {
 }
 
 describe("website first-touch attribution", () => {
+  it.each([
+    ["gemini.google.com", "gemini.google.com"],
+    ["claude.ai", "claude.ai"],
+    ["claude.com", "claude.ai"],
+    ["www.claude.ai", "claude.ai"],
+    ["perplexity.ai", "perplexity.ai"],
+    ["www.perplexity.ai", "perplexity.ai"],
+    ["grok.com", "grok.com"],
+    ["www.grok.com", "grok.com"],
+  ])("recognizes an AI assistant referral from %s", (host, source) => {
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/ai-model-photos",
+        referrer: `https://${host}/private-conversation`,
+        storage: createStorage(),
+      }),
+    ).toMatchObject({ source, medium: "referral", referrerHost: host });
+  });
+
+  it.each(["gemini.google.com", "claude.ai", "perplexity.ai", "grok.com"])(
+    "recognizes an explicitly tagged AI assistant source: %s",
+    (source) => {
+      expect(
+        captureFirstTouch({
+          href: `https://autolister.app/?utm_source=${source}`,
+          storage: createStorage(),
+        }),
+      ).toMatchObject({ source, medium: "referral" });
+    },
+  );
+
+  it("does not guess Grok attribution from an X short link", () => {
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/",
+        referrer: "https://t.co/example",
+        storage: createStorage(),
+      }),
+    ).toMatchObject({ source: "x", medium: "organic_social" });
+  });
+
+  it.each(["chatgpt.com", "www.chatgpt.com", "chat.openai.com"])(
+    "recognizes an untagged ChatGPT referral from %s",
+    (host) => {
+      expect(
+        captureFirstTouch({
+          href: "https://autolister.app/ai-model-photos",
+          referrer: `https://${host}/c/private-conversation-id`,
+          storage: createStorage(),
+        }),
+      ).toMatchObject({
+        source: "chatgpt.com",
+        medium: "referral",
+        referrerHost: host,
+      });
+    },
+  );
+
+  it("keeps tagged ChatGPT attribution through an internal guide CTA", () => {
+    const storage = createStorage();
+    const first = captureFirstTouch({
+      href: "https://autolister.app/ai-model-photos?utm_source=chatgpt.com",
+      storage,
+    });
+    expect(first).toMatchObject({ source: "chatgpt.com", medium: "referral" });
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/app?ref=model_photos_web",
+        referrer: "https://autolister.app/ai-model-photos",
+        storage,
+      }),
+    ).toEqual(first);
+  });
+
+  it("does not classify a lookalike host as ChatGPT", () => {
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/",
+        referrer: "https://chatgpt.com.example.org/c/private",
+        storage: createStorage(),
+      }),
+    ).toMatchObject({
+      source: "unknown",
+      medium: "referral",
+      referrerHost: "chatgpt.com.example.org",
+    });
+  });
+
+  it("keeps an explicit accepted medium for a tagged ChatGPT source", () => {
+    expect(
+      captureFirstTouch({
+        href: "https://autolister.app/?utm_source=chatgpt.com&utm_medium=search",
+        storage: createStorage(),
+      }),
+    ).toMatchObject({ source: "chatgpt.com", medium: "search" });
+  });
+
   it.each(["2026-01-01T10:00:00.000Z", "2026-10-07T11:00:00.000Z"])(
     "replaces an expired or future first touch: %s",
     (capturedAt) => {

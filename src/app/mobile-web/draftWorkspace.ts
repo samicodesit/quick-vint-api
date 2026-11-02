@@ -3592,7 +3592,9 @@ export function mountDraftWorkspace(
     root
       .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")
       .forEach((el) => {
-        if (!el.contains(event.target as Node)) closePopover(el);
+        // A subview can remove its clicked button while returning to settings.
+        // The original event path still identifies that as an inside click.
+        if (!event.composedPath().includes(el)) closePopover(el);
       });
   });
   async function restoreView(state: unknown) {

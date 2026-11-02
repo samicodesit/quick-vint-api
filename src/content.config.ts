@@ -25,6 +25,8 @@ const blog = defineCollection({
     category: z.enum(BLOG_CATEGORIES),
     tags: z.array(z.string()).default([]),
     author: z.string().default("AutoLister AI Team"),
+    authorType: z.enum(["Organization", "Person"]).default("Organization"),
+    releaseGroup: z.enum(["model-photos"]).optional(),
     heroImage: z.string().optional(),
     heroImageAlt: z.string().optional(),
     locale: z.enum(BLOG_LOCALES).default("en"),

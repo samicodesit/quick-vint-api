@@ -24,6 +24,7 @@ export const MOBILE_ANALYTICS_EVENTS = [
   "model_enabled",
   "model_disabled",
   "model_photos_requested",
+  "model_photos_attached",
   "web_app_view",
   "web_style_setup",
   "auth_complete",

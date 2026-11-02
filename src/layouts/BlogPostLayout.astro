@@ -31,13 +31,14 @@ interface Props {
 
 const { post, headings, relatedPosts, translations } = Astro.props;
 const locale = post.data.locale as BlogLocale;
+const modelEntry = post.data.releaseGroup === "model-photos";
 const descriptionEntry = post.data.translationKey === "vinted-descriptions-that-sell" && ["en", "de"].includes(locale);
 const batchEntry = locale === "en" && ["sell-many-items-at-once", "batch-generate-vinted-listings"].includes(post.data.translationKey);
 const beginnerEntry = locale === "en" && post.data.translationKey === "what-is-vinted-how-it-works";
 const copy = BLOG_COPY[locale];
 const canonicalUrl = new URL(getPostUrl(post), Astro.site || "https://autolister.app").toString();
 const readingTime = estimateReadingTime(post.body || "");
-const heroImage = post.data.heroImage
+const heroImage = modelEntry ? "https://autolister.app/images/model-guides/comparison-beige.png" : post.data.heroImage
   ? new URL(post.data.heroImage, Astro.site || "https://autolister.app").toString()
   : "https://autolister.app/social-card-sep2026.png?v=20260930";
 const categoryUrl = locale === "en"
@@ -57,7 +58,7 @@ const blogPostingSchema = {
   datePublished: post.data.publishDate.toISOString(),
   dateModified: (post.data.updatedDate || post.data.publishDate).toISOString(),
   author: {
-    "@type": "Organization",
+    "@type": post.data.authorType || "Organization",
     name: post.data.author,
     url: "https://autolister.app/",
   },
@@ -114,7 +115,8 @@ const faqSchema = post.data.faqItems?.length
 ---
 
 <SiteLayout
-  includeWebApplication={descriptionEntry || batchEntry || beginnerEntry}
+  includeWebApplication
+  webPrimary={modelEntry}
   title={`${post.data.title} - AutoLister AI`}
   description={post.data.description}
   canonical={canonicalUrl}
@@ -125,6 +127,10 @@ const faqSchema = post.data.faqItems?.length
   localeBasePath={`/blog/${post.data.slug}`}
   switcherLocales={translations.map((translation) => translation.locale)}
   localizedUrls={localizedUrls}
+  socialImage={modelEntry ? "/images/model-guides/comparison-beige.png" : undefined}
+  socialImageAlt={modelEntry ? post.data.title : undefined}
+  socialImageWidth={modelEntry ? 1280 : undefined}
+  socialImageHeight={modelEntry ? 936 : undefined}
 >
   <Fragment slot="head">
     <meta property="article:published_time" content={post.data.publishDate.toISOString()} />
@@ -141,7 +147,7 @@ const faqSchema = post.data.faqItems?.length
     {faqSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
   </Fragment>
 
-  <main class="bg-white pt-28">
+  <main class:list={["bg-white pt-28", { "model-article": modelEntry }]}>
     <section class="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-brand-50 via-white to-indigo-50 py-16 sm:py-20">
       <div class="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl"></div>
       <div class="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -200,13 +206,13 @@ const faqSchema = post.data.faqItems?.length
           <div class="mt-8 lg:hidden">
             <ShareButtons title={post.data.title} url={canonicalUrl} locale={locale} />
           </div>
-          {descriptionEntry || batchEntry || beginnerEntry ? (
+          {!modelEntry && (descriptionEntry || batchEntry || beginnerEntry ? (
             <ListingDraftCTA
               locale={locale === "de" ? "de" : "en"}
               intent={batchEntry ? "batch" : "single"}
               context={`blog_${post.data.slug}_end`}
             />
-          ) : <EndOfPostCTA locale={locale} />}
+          ) : <EndOfPostCTA locale={locale} />)}
         </div>
       </article>
 
@@ -246,6 +252,12 @@ const faqSchema = post.data.faqItems?.length
 </SiteLayout>
 
 <style>
+  .model-article > section:first-child { padding-top: 32px; padding-bottom: 32px; background: #f8fafc; }
+  .model-article > section:first-child > div:first-child { display: none; }
+  .model-article h1 { font-weight: 700; font-size: clamp(32px, 4vw, 48px); }
+  .model-article > section:first-child a { margin-bottom: 20px; }
+  .model-article > section:first-child p { margin-top: 18px; }
+  @media (max-width: 640px) { .model-article { padding-top: 80px; } .model-article > section:nth-of-type(2) { padding-top: 24px; } }
   .blog-content :global(h2) {
     margin-top: 3rem;
     margin-bottom: 1rem;

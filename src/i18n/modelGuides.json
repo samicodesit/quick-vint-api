@@ -1,0 +1,22 @@
+{
+  "en": {
+    "cta": "Try it with one of your items",
+    "web": "Open web app",
+    "extension": "Get the Chrome extension"
+  },
+  "nl": {
+    "cta": "Probeer het met een van je kledingstukken",
+    "web": "Open de webapp",
+    "extension": "Download de Chrome-extensie"
+  },
+  "fr": {
+    "cta": "Essayez avec l’un de vos articles",
+    "web": "Ouvrir l’appli web",
+    "extension": "Installer l’extension Chrome"
+  },
+  "de": {
+    "cta": "Probier es mit einem deiner Artikel",
+    "web": "Web-App öffnen",
+    "extension": "Chrome-Erweiterung installieren"
+  }
+}

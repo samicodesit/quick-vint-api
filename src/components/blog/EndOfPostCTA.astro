@@ -1,5 +1,6 @@
 ---
 import { CHROME_WEB_STORE_URL } from "../../utils/blog.js";
+import { MODEL_PHOTO_CONTENT_ENABLED } from "../../utils/modelContentRelease";
 
 interface Props {
   locale?: "en" | "fr" | "de" | "nl";
@@ -10,27 +11,31 @@ const { locale = "en" } = Astro.props;
 const copy = {
   en: {
     title: "Try AutoLister AI",
-    body: "Prepare editable listing drafts from your photos and seller notes. Create an account to try 5 free generations. No card required.",
-    cta: "Install AutoLister",
-    mobile: "Using an iPhone or iPad? Setup guide",
+    body: "Create editable listing drafts from your photos on your phone or computer.",
+    cta: "Open web app",
+    mobile: "Get the Vinted extension",
+    model: "Explore AI model photos",
   },
   fr: {
     title: "Essayer AutoLister AI",
-    body: "Préparez des brouillons modifiables à partir de vos photos et de vos notes. Créez un compte pour essayer 5 générations gratuites, sans carte bancaire.",
-    cta: "Installer AutoLister",
-    mobile: "Sur iPhone ou iPad ? Guide d’installation",
+    body: "Créez des brouillons d’annonces modifiables à partir de vos photos, sur téléphone ou ordinateur.",
+    cta: "Ouvrir l’appli web",
+    mobile: "Installer l’extension Vinted",
+    model: "Découvrir les photos sur mannequin IA",
   },
   de: {
     title: "AutoLister AI testen",
-    body: "Erstelle bearbeitbare Entwürfe aus deinen Fotos und Verkäufernotizen. Registriere dich für 5 kostenlose Generierungen. Keine Kreditkarte nötig.",
-    cta: "AutoLister installieren",
-    mobile: "iPhone oder iPad? Zur Installationsanleitung",
+    body: "Erstelle bearbeitbare Anzeigen aus deinen Fotos, am Handy oder Computer.",
+    cta: "Web-App öffnen",
+    mobile: "Vinted-Erweiterung installieren",
+    model: "KI-Modelfotos entdecken",
   },
   nl: {
     title: "Probeer AutoLister AI",
-    body: "Maak bewerkbare advertentieconcepten met je foto's en verkopersnotities. Maak een account voor 5 gratis generaties. Geen betaalkaart nodig.",
-    cta: "AutoLister installeren",
-    mobile: "iPhone of iPad? Bekijk de installatiegids",
+    body: "Maak bewerkbare advertentieconcepten van je foto’s, op je telefoon of computer.",
+    cta: "Open de webapp",
+    mobile: "Download de Vinted-extensie",
+    model: "Ontdek AI-modelfoto’s",
   },
 }[locale];
 ---
@@ -42,22 +47,22 @@ const copy = {
       <p class="mt-1 text-sm text-slate-600 leading-relaxed">{copy.body}</p>
     </div>
     <a
-      href={CHROME_WEB_STORE_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      data-track-event="chrome_store_click"
-      data-track-context="blog_end_of_post"
+      href={`/app?ref=blog_end_${locale}`}
+      data-track-event="web_app_click"
+      data-track-context={`blog_end_${locale}`}
       class="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white no-underline transition hover:bg-slate-800"
     >
       {copy.cta}
     </a>
   </div>
   <a
-    href="/support#iphone-ipad"
-    data-track-event="support_guide_click"
-    data-track-context="blog_end_of_post_iphone_ipad"
+    href={CHROME_WEB_STORE_URL}
+    target="_blank" rel="noopener noreferrer"
+    data-track-event="chrome_store_click"
+    data-track-context={`blog_end_${locale}_extension`}
     class="mt-4 inline-block text-sm font-medium text-indigo-700 underline underline-offset-4 hover:text-indigo-900"
   >
     {copy.mobile}
   </a>
+  {MODEL_PHOTO_CONTENT_ENABLED && <a href={`${locale === 'en' ? '' : '/' + locale}/ai-model-photos`} class="mt-4 block text-sm font-medium text-indigo-700 underline underline-offset-4 hover:text-indigo-900">{copy.model}</a>}
 </aside>

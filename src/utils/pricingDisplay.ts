@@ -12,6 +12,7 @@ export type PricingDisplayLabels = {
   listingsPerDay: string;
   listingsPerMonth: string;
   noDailyLimit: string;
+  lifetimeListings?: string;
 };
 
 const ENGLISH_LABELS: PricingDisplayLabels = {
@@ -48,7 +49,7 @@ export function getPricingDisplay(
     limits: isCurrent
       ? {
           freePrimaryValue: String(FREE_LIFETIME_LIMIT),
-          freePrimaryLabel: " lifetime listings",
+          freePrimaryLabel: ` ${labels.lifetimeListings || "lifetime listings"}`,
           freeSecondaryText: null,
           freeSecondaryValue: null,
           freeSecondaryLabel: "",

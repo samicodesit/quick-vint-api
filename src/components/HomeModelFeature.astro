@@ -3,6 +3,8 @@ import { ArrowUpRight } from "@lucide/astro";
 import { HOME_MODEL_COPY } from "../i18n/homeModel";
 import { normalizeSiteLocale } from "../i18n/site";
 import { isPhoneOrTablet } from "../utils/clientDevice";
+import { MODEL_PHOTO_CONTENT_ENABLED } from "../utils/modelContentRelease";
+import { MODEL_PHOTO_COPY } from "../i18n/modelPhotos";
 
 const { locale = "en" } = Astro.props;
 const copy = HOME_MODEL_COPY[normalizeSiteLocale(locale)];
@@ -32,6 +34,7 @@ const copy = HOME_MODEL_COPY[normalizeSiteLocale(locale)];
       >
         {copy.extensionAction}<ArrowUpRight size={18} aria-hidden="true" />
       </a>
+      {MODEL_PHOTO_CONTENT_ENABLED && locale in MODEL_PHOTO_COPY && <a class="home-model-learn" href={`${locale === 'en' ? '' : '/' + locale}/ai-model-photos`}>{MODEL_PHOTO_COPY[locale as keyof typeof MODEL_PHOTO_COPY].more}</a>}
     </div>
     <div class="home-model-example">
       <div class="home-model-photos">
@@ -127,6 +130,7 @@ const copy = HOME_MODEL_COPY[normalizeSiteLocale(locale)];
     transition: background-color 160ms;
   }
   .home-model-action:hover { background: var(--color-brand-700, #4934d4); }
+  .home-model-learn { display: block; width: fit-content; margin-top: 18px; color: var(--color-brand-700); font-size: 14px; font-weight: 600; text-underline-offset: 4px; }
   .home-model-action:focus-visible { outline: 3px solid #7c6af4; outline-offset: 4px; }
   .home-model-action svg { flex: 0 0 auto; }
   .home-model-web { display: none; }

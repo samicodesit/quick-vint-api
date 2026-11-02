@@ -1,4 +1,9 @@
 import { BLOG_COPY, type BlogCategory, type BlogLocale } from "../i18n/blog.js";
+import { applyModelContentHold } from "./modelContentRelease";
+
+export function isBlogPostPublished(post: Pick<BlogPost, "data">): boolean {
+  return !applyModelContentHold(post.data).draft;
+}
 
 export const CHROME_WEB_STORE_URL =
   "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
@@ -15,6 +20,8 @@ export type BlogPost = {
     category: BlogCategory;
     tags: string[];
     author: string;
+    authorType?: "Organization" | "Person";
+    releaseGroup?: "model-photos";
     heroImage?: string;
     heroImageAlt?: string;
     locale: BlogLocale;
@@ -84,13 +91,13 @@ export function isHiddenFromBlogEntrances(post: BlogPost): boolean {
 }
 
 export function getPublishedPosts(posts: BlogPost[]): BlogPost[] {
-  return sortPostsByDate(posts.filter((post) => !post.data.draft));
+  return sortPostsByDate(posts.filter((post) => isBlogPostPublished(post)));
 }
 
 export function getBlogEntrancePosts(posts: BlogPost[]): BlogPost[] {
   return sortPostsByDate(
     posts.filter(
-      (post) => !post.data.draft && !isHiddenFromBlogEntrances(post),
+      (post) => isBlogPostPublished(post) && !isHiddenFromBlogEntrances(post),
     ),
   );
 }
@@ -104,7 +111,7 @@ export function getRelatedPosts(
     allPosts.filter(
       (post) =>
         post.id !== currentPost.id &&
-        !post.data.draft &&
+        isBlogPostPublished(post) &&
         !isHiddenFromBlogEntrances(post) &&
         post.data.locale === currentPost.data.locale &&
         (post.data.category === currentPost.data.category ||

@@ -1,4 +1,5 @@
 ---
+import { isBlogPostPublished } from "../../utils/blog.js";
 import { getCollection } from "astro:content";
 import BlogCard from "../../components/blog/BlogCard.astro";
 import { BLOG_CATEGORIES, BLOG_COPY } from "../../i18n/blog.js";
@@ -9,7 +10,7 @@ const locale = "en";
 const copy = BLOG_COPY[locale];
 const posts = getBlogEntrancePosts(
   ((await getCollection("blog")) as BlogPost[]).filter(
-    (post) => post.data.locale === locale && !post.data.draft,
+    (post) => post.data.locale === locale && isBlogPostPublished(post),
   ),
 );
 const canonicalUrl = "https://autolister.app/blog";

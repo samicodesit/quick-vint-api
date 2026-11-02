@@ -42,6 +42,9 @@ globalThis.AutoListerEventRegistry = {
   model_photos_requested: {
     kind: "business",
   },
+  model_photos_attached: {
+    kind: "business",
+  },
   listing_tour_offered: {
     kind: "business",
   },

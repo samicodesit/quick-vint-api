@@ -178,6 +178,7 @@ describe("events tracking endpoint", () => {
     "model_invitation_shown",
     "model_creation_completed",
     "model_photos_requested",
+    "model_photos_attached",
     "listing_tour_completed",
   ])("retains %s as bounded adoption evidence", async (event) => {
     await postEvent({

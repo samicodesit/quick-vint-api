@@ -1,0 +1,65 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { MODEL_PHOTO_COPY } from "../i18n/modelPhotos";
+import { CHROME_WEB_STORE_URL } from "../utils/blog";
+const { locale = "en" } = Astro.props as { locale: keyof typeof MODEL_PHOTO_COPY };
+const c = MODEL_PHOTO_COPY[locale];
+const prefix = locale === "en" ? "" : `/${locale}`;
+const canonical = `https://autolister.app${prefix}/ai-model-photos`;
+---
+<SiteLayout title={c.title} description={c.description} canonical={canonical} ogUrl={canonical}
+  htmlLang={locale} currentLocale={locale} localeBasePath="/ai-model-photos"
+  switcherLocales={['en','nl','fr','de']} includeWebApplication webPrimary
+  socialImage="/images/model-guides/comparison-beige.png" socialImageAlt={c.comparison} socialImageWidth={1280} socialImageHeight={936}>
+  <Fragment slot="head">
+    {['en','nl','fr','de'].map(lang => <link rel="alternate" hreflang={lang} href={`https://autolister.app${lang === 'en' ? '' : '/' + lang}/ai-model-photos`} />)}
+    <link rel="alternate" hreflang="x-default" href="https://autolister.app/ai-model-photos" />
+  </Fragment>
+  <main class="model-page">
+    <section class="model-hero">
+      <div class="hero-copy">
+        <h1>{c.heading}</h1><p class="intro">{c.intro}</p>
+        <a class="primary" href={`/app?ref=model_feature_${locale}`} data-track-event="web_app_click" data-track-context={`model_feature_${locale}_hero`}>{c.web}</a>
+        <p class="access">{c.access}</p>
+        <a class="secondary" href={CHROME_WEB_STORE_URL} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context={`model_feature_${locale}_hero`}>{c.extension}</a>
+      </div>
+      <figure><a class="hero-proof" href="/images/model-guides/comparison-beige.png" target="_blank" rel="noopener" aria-label={c.open}>
+        <img src="/images/model-guides/comparison-beige.png" alt={c.comparison} width="1280" height="936" fetchpriority="high" />
+      </a><figcaption>{c.counts}</figcaption></figure>
+    </section>
+    <section class="model-how" aria-labelledby="model-how-heading">
+      <div><h2 id="model-how-heading">{c.how}</h2>
+        <ol>{c.steps.map(([title, body]) => <li><h3>{title}</h3><p>{body}</p></li>)}</ol>
+      </div>
+      <img class="setup" src={`/images/model-guides/setup-ui-${locale}.png`} alt={c.setupAlt} width="686" height="1456" loading="lazy" />
+    </section>
+    <section class="model-use"><div><h2>{c.useTitle}</h2><p>{c.useBody}</p></div><div><h2>{c.detailTitle}</h2><p>{c.detailBody}</p></div></section>
+    <section class="model-links"><h2>{c.more}</h2><a href={`${prefix}/blog/ai-model-photos-vinted`}>{c.howto}</a><a href={`${prefix}/blog/model-photos-four-listings`}>{c.results}</a></section>
+    <div class="model-bottom"><a class="primary" href={`/app?ref=model_feature_${locale}_end`} data-track-event="web_app_click" data-track-context={`model_feature_${locale}_end`}>{c.web}</a><a class="secondary" href={`${prefix}/pricing`}>{c.pricing}</a></div>
+  </main>
+</SiteLayout>
+<style>
+  .model-page{max-width:1200px;margin:auto;padding:144px 32px 80px;color:#0f172a}
+  .model-hero{display:grid;grid-template-columns:.85fr 1.15fr;gap:48px;align-items:center}
+  h1{font-size:clamp(38px,4.4vw,60px);line-height:1.07;letter-spacing:-.045em;font-weight:700;text-wrap:balance;margin:0 0 24px}
+  .intro{font-size:19px;line-height:1.65;color:#475569;max-width:37ch;margin:0 0 28px}
+  .primary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;background:var(--color-brand-600);color:white;padding:13px 22px;border-radius:12px;font-weight:600;text-decoration:none;line-height:1.4}
+  .primary:hover{background:var(--color-brand-700)}
+  .secondary{color:var(--color-brand-700);text-underline-offset:4px;font-size:14px;font-weight:600}
+  .access{font-size:13px;color:#64748b;margin:12px 0 18px;line-height:1.5}
+  .hero-proof{display:block;border-radius:16px;overflow:hidden;background:#171d1d}
+  .hero-proof img{display:block;width:100%;height:auto}
+  figure{margin:0;min-width:0}figcaption{margin:12px 0 0;color:#475569;font-size:14px;line-height:1.6}
+  a:focus-visible{outline:3px solid #7862e9;outline-offset:5px}
+  h2{font-size:clamp(26px,3vw,34px);line-height:1.2;letter-spacing:-.025em;font-weight:700;text-wrap:balance;margin:0 0 24px}
+  h3{font-size:19px;line-height:1.35;font-weight:600;margin:0 0 9px}
+  .model-how{display:grid;grid-template-columns:1fr 280px;gap:80px;align-items:start;padding:48px 56px;margin-top:56px;background:#f8fafc;border-radius:24px}
+  ol{list-style:decimal;padding-left:25px;margin:32px 0 0}li{padding-left:12px;margin-bottom:28px}li:last-child{margin-bottom:0}li::marker{font-weight:600;color:var(--color-brand-700)}
+  li p,.model-use p{font-size:16px;line-height:1.75;color:#475569;margin:0;max-width:56ch}
+  .setup{display:block;width:100%;height:auto;border:1px solid #e2e8f0;border-radius:16px}
+  .model-use{display:grid;grid-template-columns:1fr 1fr;gap:72px;padding:72px 0;border-bottom:1px solid #e2e8f0}.model-use h2{font-size:26px}
+  .model-links{padding-top:48px}.model-links a{display:block;width:fit-content;margin:16px 0;color:var(--color-brand-700);text-underline-offset:4px;font-weight:500}
+  .model-bottom{display:flex;align-items:center;gap:28px;margin-top:40px;flex-wrap:wrap}
+  @media(max-width:900px){.model-page{padding-top:120px}.model-hero{gap:28px;grid-template-columns:1fr 1fr}.model-how{padding:40px;gap:40px;grid-template-columns:1fr 260px}}
+  @media(max-width:640px){.model-page{padding:112px 20px 48px}.model-hero{grid-template-columns:1fr;gap:30px}h1{max-width:14ch;font-size:42px}.intro{font-size:17px;margin-bottom:22px}.hero-proof{border-radius:12px}.model-how{grid-template-columns:1fr;padding:28px 22px;margin-top:40px;gap:28px}.setup{max-width:300px;margin:auto}.model-use{grid-template-columns:1fr;padding:40px 0;gap:32px}.model-links{padding-top:32px}.model-bottom{gap:20px}.model-links a{line-height:1.6}}
+</style>

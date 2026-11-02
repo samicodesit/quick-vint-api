@@ -502,3 +502,14 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
   wrapping and constrain the final CTA text column without changing its copy.
 - Final geometry, carousel, zoom, keyboard and release evidence is retained in
   the owner's `model-carousel-20261102` visualization folder. No spend or outreach.
+
+### 2026-11-02: natural Dutch heading wrapping
+
+- Replaced the two long compound-word headings with natural Dutch:
+  "AI-assistent voor je advertenties" and "Klaar voor je volgende advertentie?"
+- Removed arbitrary word breaking for these Dutch headings. Balance the lines
+  and keep AI-assistent together at its existing font size. Other locales retain
+  their existing treatment.
+- Verified 24 heading cases across six widths, 320 to 1440 px, and both homepage
+  variants. Check actual word boundaries, not just page overflow. Evidence is in
+  the owner's `dutch-heading-wrap-20261102` visualization folder.

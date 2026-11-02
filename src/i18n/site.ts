@@ -943,7 +943,7 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      featuresTitle: "Een AI-assistent voor advertentieconcepten",
+      featuresTitle: "AI-assistent voor je advertenties",
       featuresSubtitle:
         "Zet itemfoto's om in concepttitels en -beschrijvingen om te controleren.",
       feature1Title: "Duidelijke concepten",
@@ -966,7 +966,7 @@ export const SITE_EXTRA_COPY: Record<
       step3Title: "Controleer en publiceer",
       step3Body:
         "Controleer het concept, pas het aan en publiceer wanneer je klaar bent.",
-      finalCtaTitle: "Klaar voor je volgende advertentieconcept?",
+      finalCtaTitle: "Klaar voor je volgende advertentie?",
       finalCtaBody:
         "Gebruik AutoLister voor bewerkbare titels en beschrijvingen vanuit je foto's.",
       getStartedFree: "Gratis beginnen",

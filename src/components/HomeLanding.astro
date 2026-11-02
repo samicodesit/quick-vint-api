@@ -486,8 +486,10 @@ const subtitleParts =
 <section id="features" class="py-20 lg:py-24 bg-white">
   <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center max-w-3xl mx-auto mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-slate-900 mb-4 break-words">
-        {extra.featuresTitle}
+      <h2 class:list={["text-3xl lg:text-4xl font-bold text-slate-900 mb-4", locale === "nl" ? "text-balance" : "break-words"]}>
+        {locale === "nl"
+          ? extra.featuresTitle.split(/(AI-assistent)/).map(part => part === "AI-assistent" ? <span class="whitespace-nowrap">{part}</span> : part)
+          : extra.featuresTitle}
       </h2>
       <p class="text-lg text-slate-600">
         {extra.featuresSubtitle}
@@ -636,7 +638,7 @@ const subtitleParts =
       >
         <div class="min-w-0 w-full max-w-xl mx-auto md:mx-0 text-center md:text-left">
           <h2
-            class="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl mb-6 break-words"
+            class:list={["text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl mb-6", locale === "nl" ? "text-balance" : "break-words"]}
           >
             {extra.finalCtaTitle}
           </h2>

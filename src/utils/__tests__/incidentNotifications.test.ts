@@ -446,3 +446,45 @@ it("does not override an explicit source with a nested background source", () =>
     "AutoLister issue: token_refresh_failed",
   );
 });
+
+it.each([
+  [
+    "blocked",
+    "AutoLister: user action interrupted",
+    "Session renewal alone does not establish Generate recovery",
+  ],
+  [
+    "persistent",
+    "AutoLister: persistent background renewal failures",
+    "at least three failed renewals spanning five minutes",
+  ],
+  [
+    "widespread",
+    "AutoLister: renewal failures across browser clients",
+    "within ten minutes",
+  ],
+  [
+    "recovery",
+    "AutoLister: session renewal recovered",
+    "previous background renewal alert",
+  ],
+])(
+  "renders the native queue decision %s without implying a login outage",
+  (reason, subject, detail) => {
+    const value = backgroundIncident();
+    value.authPolicy = {
+      reason,
+      checkedAt: "2026-10-19T17:38:08Z",
+      blockedClients: 1,
+      persistentClients: 1,
+      unrecoveredClients: 3,
+      recoveredClients: 1,
+      renewedAt: "2026-10-19T17:35:05Z",
+    };
+    const email = renderIncidentEmail(value);
+    expect(email.subject).toBe(subject);
+    expect(email.html).toContain(detail);
+    expect(email.html).toContain("Failed to fetch");
+    expect(email.html).not.toContain("users cannot log in");
+  },
+);

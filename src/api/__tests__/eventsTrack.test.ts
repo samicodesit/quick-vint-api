@@ -428,6 +428,112 @@ describe("events tracking endpoint", () => {
     expect(args.p_event.businessLog).not.toHaveProperty("ip_address");
   });
 
+  it("retains the real background failure cohort beyond three examples and suppresses it after same-client renewal", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      await db.exec(
+        readFileSync(
+          "migrations/2026-10-19_actionable_auth_email_indexes.sql",
+          "utf8",
+        ).replace(/ CONCURRENTLY/g, ""),
+      );
+      await db.exec(
+        readFileSync(
+          "migrations/2026-10-19_actionable_auth_email_policy.sql",
+          "utf8",
+        ),
+      );
+      rpcMock.mockImplementation(async (_name, args) => ({
+        data: (
+          await db.query<any>(
+            "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+            [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+          )
+        ).rows[0].result,
+      }));
+      let lastOperation = "";
+      const now = Date.now();
+      for (let index = 0; index < 7; index++) {
+        lastOperation = `b423926a-35a6-4bf5-8027-8ab335c7212${index}`;
+        const event = {
+          id: `b423926a-35a6-4bf5-8027-8ab335c7222${index}`,
+          event: "token_refresh_failed",
+          source: "extension_background",
+          extensionVersion: "1.4.21",
+          occurredAt: new Date(now - (8 - index) * 60000).toISOString(),
+          context: {
+            operationId: lastOperation,
+            analyticsClientId: "same-browser",
+            entryPoint: "scheduled_refresh",
+            message: "Failed to fetch",
+            stack: "unnecessary-stack",
+            access_token: "private",
+          },
+        };
+        expect(
+          (await postEvent({ schemaVersion: 2, events: [event] })).body,
+        ).toMatchObject({ acknowledgedIds: [event.id] });
+      }
+      const retained = (
+        await db.query<any>(
+          "SELECT full_request_body FROM api_logs WHERE endpoint='/event/token_refresh_failed'",
+        )
+      ).rows;
+      expect(retained).toHaveLength(7);
+      expect(JSON.stringify(retained)).not.toContain("private");
+      expect(JSON.stringify(retained)).not.toContain("unnecessary-stack");
+      const success = {
+        id: "c423926a-35a6-4bf5-8027-8ab335c72229",
+        event: "auth_session_result",
+        source: "extension_background",
+        extensionVersion: "1.4.21",
+        occurredAt: new Date().toISOString(),
+        context: {
+          operationId: lastOperation,
+          analyticsClientId: "same-browser",
+          authRefreshOperationId: "d423926a-35a6-4bf5-8027-8ab335c72229",
+          resultStatus: "silent_renewed",
+          reason: "token_refresh_success",
+          signInRequired: false,
+        },
+      };
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [success] })).body,
+      ).toMatchObject({ acknowledgedIds: [success.id] });
+      expect(
+        (await db.query("SELECT * FROM incident_claim_notifications(5)")).rows,
+      ).toHaveLength(0);
+      expect(
+        (
+          await db.query<any>(
+            "SELECT status,notification_status,occurrences,jsonb_array_length(examples) AS examples FROM incident_groups",
+          )
+        ).rows[0],
+      ).toMatchObject({
+        status: "open",
+        notification_status: "quiet",
+        occurrences: 7,
+        examples: 3,
+      });
+      expect(
+        (
+          await db.query<any>(
+            "SELECT count(*)::int AS n FROM incident_receipts",
+          )
+        ).rows[0].n,
+      ).toBe(8);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
+
   it.each(["auth_action_result", "auth_session_result"])(
     "persists %s correlation through the endpoint and native SQL",
     async (eventName) => {

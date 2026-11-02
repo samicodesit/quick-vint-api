@@ -379,7 +379,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
     authenticatedUserId,
     (raw, context) => {
+      const backgroundRefreshFailure =
+        raw.event === "token_refresh_failed" &&
+        raw.source === "extension_background";
       const retained =
+        backgroundRefreshFailure ||
         retainsBatchEvidence(raw) ||
         isRegisteredBusiness(raw.event) ||
         [
@@ -462,6 +466,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             transportEventId: raw.id,
             occurredAt: raw.occurredAt,
             context,
+          },
+        };
+      }
+      if (backgroundRefreshFailure && !dropCarrier) {
+        return {
+          endpoint: "/event/token_refresh_failed",
+          request_method: metadata.requestMethod,
+          response_status: 204,
+          full_request_body: {
+            event: raw.event,
+            source: raw.source,
+            extensionVersion: redact(raw.extensionVersion, 80),
+            transportEventId: raw.id,
+            occurredAt: raw.occurredAt,
+            context: Object.fromEntries(
+              [
+                "operationId",
+                "analyticsClientId",
+                "entryPoint",
+                "parentOperationId",
+              ]
+                .filter(
+                  (key) =>
+                    typeof context[key] === "string" &&
+                    context[key].length <= 160,
+                )
+                .map((key) => [key, context[key]]),
+            ),
           },
         };
       }

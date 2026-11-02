@@ -72,6 +72,46 @@ export function renderIncidentEmail(
       <p style="font-size:12px;color:#666">Status checked: ${escape(emailTime(evidence?.checkedAt || new Date().toISOString()))}</p>
       <p><a href="${escape(link)}" style="color:#007782;text-decoration:underline">Open this issue in AutoLister</a></p></div>`;
   }
+  const policy = payload.authPolicy;
+  if (
+    isBackgroundAuthFailure(payload) &&
+    ["blocked", "persistent", "widespread", "recovery"].includes(policy?.reason)
+  ) {
+    const recovery = policy.reason === "recovery";
+    const heading = {
+      blocked: "User action interrupted",
+      persistent: "Persistent background renewal failures",
+      widespread: "Renewal failures across browser clients",
+      recovery: "Session renewal recovered",
+    }[policy.reason as "blocked" | "persistent" | "widespread" | "recovery"];
+    subject = `AutoLister: ${heading.charAt(0).toLowerCase()}${heading.slice(1)}`;
+    const browserClients = (count: unknown) =>
+      `${escape(count)} browser ${Number(count) === 1 ? "client" : "clients"}`;
+    const interruption = [
+      policy.generateBlockedClients > 0
+        ? `Generate was blocked in ${browserClients(policy.generateBlockedClients)}.`
+        : "",
+      policy.signInRequiredClients > 0
+        ? `Sign-in was required in ${browserClients(policy.signInRequiredClients)}.`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const detail =
+      policy.reason === "blocked"
+        ? `${interruption || `Confirmed interruption in ${browserClients(policy.blockedClients)}.`} Session renewal alone does not establish Generate recovery.`
+        : policy.reason === "persistent"
+          ? `${browserClients(policy.persistentClients)} reported at least three failed renewals spanning five minutes, without a later matching renewal.`
+          : policy.reason === "widespread"
+            ? `${escape(policy.recentFailureClients ?? policy.unrecoveredClients)} browser clients reported unrecovered renewal failures within ten minutes. These are browser clients, not a count of affected users.`
+            : `The browser clients in the previous background renewal alert renewed their sessions. Last matched renewal: ${escape(emailTime(policy.renewedAt))}. This confirms session renewal only.`;
+    body = `<div style="overflow-wrap:anywhere;word-break:break-word">
+      <p style="font-weight:700;color:${recovery ? "#157347" : "#9a3412"}">${escape(heading)}</p>
+      <p>${detail}</p>
+      <p>Extension: ${escape(payload.release)}<br>Original error: ${escape(context.message || context.error || context.errorCode || payload.event)}</p>
+      <p style="font-size:12px;color:#666">Evidence checked: ${escape(emailTime(policy.checkedAt))}</p>
+      <p><a href="${escape(link)}" style="color:#007782;text-decoration:underline">Open this issue in AutoLister</a></p></div>`;
+  }
   return {
     from: "AutoLister AI Alerts <alerts@autolister.app>",
     to: "samicodesit@gmail.com",
@@ -98,7 +138,9 @@ export async function deliverPendingNotifications(limit = 10) {
     try {
       let snapshot = incident.notification_payload;
       if (!snapshot?.email) {
-        const evidence = await loadAuthNotificationEvidence(snapshot);
+        const evidence = snapshot?.authPolicy
+          ? undefined
+          : await loadAuthNotificationEvidence(snapshot);
         const frozen = await supabase
           .rpc("incident_freeze_notification", {
             p_id: incident.id,

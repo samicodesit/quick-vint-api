@@ -120,6 +120,14 @@
         properties.context || {},
         properties.source || "website",
       );
+      // A queue-level click precedes the individual draft attempts.
+      if (
+        event === "web_generation_run" &&
+        properties.context?.target === "draft_workspace" &&
+        !properties.context.operationId &&
+        !properties.context.generationAttemptId
+      )
+        delete prepared.event.context.operationId;
       if (
         event === "own_context_exception" &&
         properties.source === "phone_upload_page"

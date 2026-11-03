@@ -2524,6 +2524,7 @@ export function mountDraftWorkspace(
         );
         void trackMobileEvent("generation_success", {
           target: "draft_workspace",
+          operationId: attempt.operationId,
           imageCount: current.photos.length,
           method: generationCount > 1 ? "batch" : "single",
           count: generationCount,

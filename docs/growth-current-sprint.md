@@ -513,3 +513,25 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
 - Verified 24 heading cases across six widths, 320 to 1440 px, and both homepage
   variants. Check actual word boundaries, not just page overflow. Evidence is in
   the owner's `dutch-heading-wrap-20261102` visualization folder.
+
+### 2026-11-03: US homepage compatibility copy (local draft)
+
+- Reuse the English homepage source to build the US output. A Vercel country
+  rewrite selects it at `/`, retaining query parameters and the existing A/B
+  assignment. No runtime location API, extra JavaScript or server function.
+- US copy: "Compatible with Vinted, Depop, Poshmark and eBay\*." The footer
+  states that Depop, Poshmark and eBay have limited access. Other visitors and
+  localized routes keep their existing wording. Internal output is excluded
+  from the sitemap and canonicalizes to `/`.
+- Local built-output checks cover US, France and absent country signals,
+  both existing A/B assignments, and 320/390/1440px widths: 18 cases pass.
+  Confirm visible text, footer, retained URL/assignment, layout stability,
+  no horizontal overflow or JavaScript errors. Built HTML is identical after
+  substituting only the requested compatibility and footer text.
+- Lint, type checking, build and formatting pass. Initial full-suite run hit
+  a 5-second timeout in `inputPhotoReview.postgres.test.ts`; it passed alone
+  and the full rerun with four workers passes (1531 tests, 20 opt-in skips).
+- Desktop before/after and mobile A/B renders are saved in the owner's
+  `01a1a0b0-4038-7423-a16d-f049c5ccc65b` visualization folder. CDN header matching
+  is simulated locally; real Vercel routing remains untested until an approved
+  deployment. No publication, spend, customer signup or marketplace action.

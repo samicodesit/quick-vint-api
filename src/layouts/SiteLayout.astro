@@ -28,6 +28,8 @@ export interface Props {
   socialImageAlt?: string;
   socialImageWidth?: number;
   socialImageHeight?: number;
+  homepage?: boolean;
+  marketplaceAccessNote?: string;
 }
 
 const {
@@ -49,6 +51,8 @@ const {
   socialImageAlt = "AutoLister AI: From photos to listing drafts. A seller photographs clothes on a rail.",
   socialImageWidth = 1200,
   socialImageHeight = 630,
+  homepage = false,
+  marketplaceAccessNote,
 } = Astro.props;
 
 const ogImage = new URL(socialImage, "https://autolister.app").href;
@@ -60,7 +64,7 @@ const modelCopy = MODEL_PHOTO_COPY[resolvedLocale as keyof typeof MODEL_PHOTO_CO
 const showLanguageSwitcher = Boolean(currentLocale);
 const localePrefix = resolvedLocale === "en" ? "" : `/${resolvedLocale}`;
 const homeHref = `${localePrefix}/`;
-const isHomepage = Astro.url.pathname.replace(/\/$/, "") === homeHref.replace(/\/$/, "");
+const isHomepage = homepage || Astro.url.pathname.replace(/\/$/, "") === homeHref.replace(/\/$/, "");
 const homeExtra = SITE_EXTRA_COPY[resolvedLocale].home;
 const featuresHref = `${localePrefix}/#features`;
 const pricingHref = `${localePrefix}/pricing`;
@@ -405,7 +409,7 @@ const chromeHref =
             {navCopy.independence}
           </p>
           <p class="mx-auto mt-2 max-w-3xl text-xs leading-relaxed text-slate-500">
-            {navCopy.ebayAccessNote}
+            {marketplaceAccessNote ?? navCopy.ebayAccessNote}
           </p>
         </div>
       </div>

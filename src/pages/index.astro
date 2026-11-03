@@ -5,7 +5,24 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 import { SITE_EXTRA_COPY, SITE_COPY } from "../i18n/site.js";
 
 const baseUrl = "https://autolister.app";
-const copy = SITE_COPY.en;
+interface Props {
+  country?: "US";
+}
+const isUS = Astro.props.country === "US";
+const compatibility = "Compatible with Vinted, Depop, Poshmark and eBay*.";
+const copy = isUS
+  ? {
+      ...SITE_COPY.en,
+      home: {
+        ...SITE_COPY.en.home,
+        heroSubtitle: SITE_COPY.en.home.heroSubtitle.replace(
+          SITE_COPY.en.home.heroMobileSubtitle,
+          compatibility,
+        ),
+        heroMobileSubtitle: compatibility,
+      },
+    }
+  : SITE_COPY.en;
 const extra = SITE_EXTRA_COPY.en;
 ---
 
@@ -17,6 +34,8 @@ const extra = SITE_EXTRA_COPY.en;
   htmlLang="en"
   currentLocale="en"
   localeBasePath="/"
+  homepage
+  marketplaceAccessNote={isUS ? "* Depop, Poshmark and eBay are available with limited access." : undefined}
 >
   <Fragment slot="head">
     <link rel="preload" as="image" href="/video-poster.webp" type="image/webp" />

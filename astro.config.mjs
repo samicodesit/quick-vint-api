@@ -14,6 +14,7 @@ export default defineConfig({
         const pathname = new URL(page).pathname.replace(/\/+$/, "") || "/";
         const excludedPaths = new Set([
           "/admin",
+          "/home-us",
           "/app",
           "/app/auth/callback",
           "/app/chatgpt",

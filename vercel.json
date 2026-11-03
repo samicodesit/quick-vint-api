@@ -65,6 +65,13 @@
   },
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        { "type": "header", "key": "x-vercel-ip-country", "value": "US" }
+      ],
+      "destination": "/home-us"
+    },
+    {
       "source": "/admin/:view",
       "destination": "/admin"
     }

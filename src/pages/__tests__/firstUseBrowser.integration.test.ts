@@ -26,6 +26,7 @@ async function fixture(
   width = 390,
   invitationState = "dismissed",
   authenticated = true,
+  modelReady = false,
 ) {
   const context = await browser.newContext({
     viewport: { width, height: width < 768 ? 844 : 900 },
@@ -78,7 +79,14 @@ async function fixture(
       if (claimed) invitationState = "seen";
       if (body?.action === "dismiss") invitationState = "dismissed";
       return route.fulfill({
-        json: { model: null, enabled: false, invitationState, claimed },
+        json: {
+          model: modelReady
+            ? { state: "ready", imageUrl: "/images/user-model-male.webp" }
+            : null,
+          enabled: modelReady,
+          invitationState,
+          claimed,
+        },
       });
     }
     if (url.pathname === "/api/user/usage")
@@ -103,6 +111,89 @@ async function fixture(
   page.on("pageerror", (e: Error) => errors.push(e.message));
   return { context, page, creates, errors };
 }
+
+it.skipIf(!enabled).each([390, 1365])(
+  "shows the model photo hint through the web workspace at %i px",
+  async (width) => {
+    const { context, page, errors } = await fixture(
+      width,
+      "created",
+      true,
+      true,
+    );
+    try {
+      await page.goto(base + "/app");
+      await page.locator("[data-style-finish]").click();
+      await page.locator("[data-model-compact]").click();
+      const hint = page.locator(".um-preview-hint");
+      await expect(hint).toHaveText(
+        "Your model will wear your items in future listing photos.",
+      );
+      await expect(hint.locator("svg")).toBeVisible();
+      await expect(page.locator(".um-preview")).toBeVisible();
+      if (output) {
+        const size = width < 768 ? "mobile" : "desktop";
+        await hint.evaluate(
+          (el: HTMLElement) => (el.style.visibility = "hidden"),
+        );
+        await page.screenshot({ path: `${output}/web-before-${size}.png` });
+        await hint.evaluate((el: HTMLElement) => (el.style.visibility = ""));
+        await expect(hint).toBeVisible();
+        await page.waitForTimeout(250);
+        await page.screenshot({ path: `${output}/web-after-${size}.png` });
+      }
+      if (width === 390) {
+        for (const locale of [
+          "en",
+          "fr",
+          "de",
+          "nl",
+          "es",
+          "it",
+          "pl",
+          "pt",
+          "cz",
+          "da",
+          "el",
+          "hr",
+          "fi",
+          "hu",
+          "lt",
+          "ro",
+          "sk",
+          "sv",
+        ]) {
+          const value = await page.evaluate((code: string) => {
+            const copy = (window as any).AutoListerModelCopy;
+            copy.setLocale(code);
+            return copy.text(
+              "Your model will wear your items in future listing photos.",
+            );
+          }, locale);
+          expect(value).toBeTruthy();
+          if (locale !== "en")
+            expect(value).not.toBe(
+              "Your model will wear your items in future listing photos.",
+            );
+          await hint
+            .locator("span")
+            .evaluate(
+              (el: HTMLElement, text: string) => (el.textContent = text),
+              value,
+            );
+          const fits = await hint.evaluate(
+            (el: HTMLElement) => el.scrollWidth <= el.clientWidth,
+          );
+          expect(fits, locale).toBe(true);
+        }
+      }
+      expect(errors).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  },
+  30000,
+);
 
 it.skipIf(!enabled)(
   "opens the web app from every mobile pricing menu, with extension access separate",

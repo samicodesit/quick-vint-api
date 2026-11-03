@@ -316,6 +316,16 @@
   margin: 12px 0;
   color: #62736a;
 }
+.um-preview-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.um-preview-hint svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
 .um-error {
   color: #a83832;
 }

@@ -432,6 +432,16 @@
           { once: true },
         );
         container.append(image);
+        const hint = document.createElement("p");
+        hint.className = "um-message um-preview-hint";
+        hint.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 1-1.7 1.7-2.4A6 6 0 1 0 7.3 11.6C8 12.3 8.8 13 9 14c.1.6.1 1.3.1 2h5.8c0-.7 0-1.4.1-2Z"/><path d="M9 19h6M10 22h4"/></svg>';
+        const hintText = document.createElement("span");
+        hintText.textContent = t(
+          "Your model will wear your items in future listing photos.",
+        );
+        hint.append(hintText);
+        container.append(hint);
         const toggle = document.createElement("label");
         toggle.className = "um-enabled";
         toggle.append(document.createTextNode(t("Enable your model")));

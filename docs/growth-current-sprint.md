@@ -535,3 +535,10 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
   `01a1a0b0-4038-7423-a16d-f049c5ccc65b` visualization folder. CDN header matching
   is simulated locally; real Vercel routing remains untested until an approved
   deployment. No publication, spend, customer signup or marketplace action.
+
+- Approved deployment on November 3. Initial live US retrieval exposed Vercel
+  filesystem precedence: `index.html` bypassed the conditional rewrite. Move
+  only the built default HTML into `home-default/index.html`, then use the
+  existing US rule plus a default fallback. Keep the shared source and dev
+  homepage intact. Added a regression check against actual built output and
+  filesystem precedence. Live verification remains active until rechecked.

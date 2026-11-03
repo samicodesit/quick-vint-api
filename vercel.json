@@ -72,6 +72,10 @@
       "destination": "/home-us"
     },
     {
+      "source": "/",
+      "destination": "/home-default"
+    },
+    {
       "source": "/admin/:view",
       "destination": "/admin"
     }

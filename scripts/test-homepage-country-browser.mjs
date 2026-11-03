@@ -34,12 +34,13 @@ try {
             const rewrite = config.rewrites.find(
               (rule) =>
                 rule.source === "/" &&
-                rule.has?.some(
-                  (condition) =>
-                    condition.type === "header" &&
-                    condition.key === "x-vercel-ip-country" &&
-                    condition.value === country,
-                ),
+                (!rule.has ||
+                  rule.has.every(
+                    (condition) =>
+                      condition.type === "header" &&
+                      condition.key === "x-vercel-ip-country" &&
+                      condition.value === country,
+                  )),
             );
             if (rewrite) {
               const response = await context.request.get(

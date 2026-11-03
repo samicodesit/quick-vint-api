@@ -1,6 +1,7 @@
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
+import { mkdir, rename } from "node:fs/promises";
 
 import tailwindcss from "@tailwindcss/vite";
 
@@ -39,6 +40,20 @@ export default defineConfig({
         );
       },
     }),
+    {
+      name: "homepage-country-output",
+      hooks: {
+        "astro:build:done": async ({ dir }) => {
+          // Vercel serves index.html before conditional rewrites. Keep the
+          // shared source route for dev, but let CDN routing select build output.
+          await mkdir(new URL("home-default/", dir), { recursive: true });
+          await rename(
+            new URL("index.html", dir),
+            new URL("home-default/index.html", dir),
+          );
+        },
+      },
+    },
   ],
 
   vite: {

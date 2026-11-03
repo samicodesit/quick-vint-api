@@ -59,7 +59,7 @@ if (process.argv.includes('--built')) {
   for (const locale of locales) {
     const copy = JSON.parse(readFileSync(path.join(directory, `${locale}.json`), 'utf8'));
     const prefix = locale === 'en' ? '' : `/${locale}`;
-    const homepage = readFileSync(path.join(root, 'dist', prefix, 'index.html'), 'utf8');
+    const homepage = readFileSync(path.join(root, 'dist', locale === 'en' ? 'home-default' : prefix, 'index.html'), 'utf8');
     for (const slug of slugs) {
       const url = `${origin}${prefix}/${slug}`;
       const file = path.join(root, 'dist', prefix, slug, 'index.html');
@@ -91,7 +91,7 @@ if (process.argv.includes('--built')) {
       assert.ok(html.includes('data-track-event="chrome_store_click"'), `${url}: missing conversion tracking`);
     }
   }
-  for (const route of ['index.html', 'support/index.html', 'vinted-description-generator/index.html', 'vinted-chatgpt-guide/index.html', 'vinted-extension-iphone-orion/index.html', 'welcome/en/index.html']) {
+  for (const route of ['home-default/index.html', 'home-us/index.html', 'support/index.html', 'vinted-description-generator/index.html', 'vinted-chatgpt-guide/index.html', 'vinted-extension-iphone-orion/index.html', 'welcome/en/index.html']) {
     const html = readFileSync(path.join(root, 'dist', route), 'utf8');
     const schemas = [...html.matchAll(/<script\b[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map(match => JSON.parse(match[1]));
     const applications = schemas.flatMap(schema => schema['@graph'] || [schema]);

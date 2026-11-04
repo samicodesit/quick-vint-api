@@ -164,6 +164,9 @@ describe("admin log pagination", () => {
     )?.[0];
     expect(listColumns).toContain("image_count:full_request_body->imageCount");
     expect(listColumns).toContain(
+      "event_analytics_client_id:full_request_body->context->analyticsClientId",
+    );
+    expect(listColumns).toContain(
       "event_status:full_request_body->context->status",
     );
     expect(listColumns).not.toMatch(/(?:^|, )full_request_body(?:,|$)/);

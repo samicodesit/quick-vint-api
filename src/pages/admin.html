@@ -3385,9 +3385,9 @@
         }
 
         function getLogAnalyticsClientId(log) {
-            const body = log.full_request_body || {};
+            const body = parseLogMetadata(log);
             const context = body.context || {};
-            return context.analyticsClientId || '';
+            return log.event_analytics_client_id || context.analyticsClientId || '';
         }
 
         function shortId(value) {
@@ -3689,6 +3689,10 @@
         }
 
         function renderEventLogRows(logs) {
+            return renderGroupedRefreshLogs(logs, renderEventLogRowsRaw, true);
+        }
+
+        function renderEventLogRowsRaw(logs) {
             return logs.map(log => `
                 <tr onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
                     <td><div class="log-time">${formatDateTime(log.created_at)}</div></td>
@@ -3711,6 +3715,10 @@
         }
 
         function renderEventLogMobileCards(logs) {
+            return renderGroupedRefreshLogs(logs, renderEventLogMobileCardsRaw);
+        }
+
+        function renderEventLogMobileCardsRaw(logs) {
             return logs.map(log => `
                 <div class="mobile-card" onclick="showLogDetails('${log.id}')" style="cursor: pointer;">
                     <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtml(getLogEventLabel(log))}</div>
@@ -3977,6 +3985,58 @@
         }
 
         function renderActivityFeed(logs) {
+            return renderGroupedRefreshLogs(logs, renderActivityFeedRaw);
+        }
+
+        function renderGroupedRefreshLogs(logs, renderRows, table = false) {
+            const groups = new Map();
+            const entries = [];
+            for (const log of logs) {
+                const metadata = parseLogMetadata(log);
+                const client = getLogAnalyticsClientId(log);
+                const source = log.log_source || metadata.source;
+                const entryPoint = log.event_entry_point || metadata.context?.entryPoint;
+                const occurredAt = log.event_occurred_at || metadata.occurredAt || log.created_at;
+                const day = typeof occurredAt === 'string' ? occurredAt.slice(0, 10) : '';
+                const groupable = log.endpoint === '/event/token_refresh_failed' &&
+                    source === 'extension_background' && client && day &&
+                    ['startup_restore', 'scheduled_refresh'].includes(entryPoint) &&
+                    !log.suspicious_activity && !(log.response_status >= 400);
+                const key = groupable ? JSON.stringify([log.user_id || log.user_email || '', client, day]) : null;
+                if (key && groups.has(key)) groups.get(key).push(log);
+                else {
+                    const records = [log];
+                    entries.push(records);
+                    if (key) groups.set(key, records);
+                }
+            }
+            // Batch untouched rows so existing diagnostic grouping still applies.
+            const output = [];
+            let pending = [];
+            const flush = () => {
+                if (pending.length) output.push(renderRows(pending));
+                pending = [];
+            };
+            for (const records of entries) {
+                if (records.length === 1) { pending.push(records[0]); continue; }
+                flush();
+                const first = records[0];
+                const times = records.map(log => log.event_occurred_at || parseLogMetadata(log).occurredAt || log.created_at).sort();
+                const details = `<details class="auth-refresh-group">
+                    <summary style="padding:1rem; cursor:pointer; border:1px solid var(--border-color); border-left:4px solid var(--warning-text); border-radius:0.75rem;">
+                        <strong>Background session refresh</strong> · ${records.length} warnings on this page
+                        <div class="activity-meta" style="margin-top:0.35rem; overflow-wrap:anywhere;">${getLogActor(first)} · Installation ${escapeHtml(shortId(getLogAnalyticsClientId(first)))}</div>
+                        <div class="activity-meta" style="margin-top:0.25rem;">${escapeHtml(formatDateTime(times[0]))} to ${escapeHtml(formatDateTime(times[times.length - 1]))}</div>
+                    </summary>
+                    ${table ? `<table><tbody>${renderRows(records)}</tbody></table>` : renderRows(records)}
+                </details>`;
+                output.push(table ? `<tr><td colspan="6">${details}</td></tr>` : details);
+            }
+            flush();
+            return output.join('');
+        }
+
+        function renderActivityFeedRaw(logs) {
             const output = [];
             const actorKey = log => log.user_id ? `user:${log.user_id}` : log.user_email ? `email:${log.user_email}` : getLogAnalyticsClientId(log) ? `client:${getLogAnalyticsClientId(log)}` : null;
             for (let index = 0; index < logs.length;) {

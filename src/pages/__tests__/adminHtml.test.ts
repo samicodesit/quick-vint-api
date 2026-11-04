@@ -524,6 +524,10 @@ function buildAdminHarness() {
       ) => void;
       renderUserActions: (user: Record<string, unknown>) => string;
       renderActivityFeed: (logs: Array<Record<string, unknown>>) => string;
+      renderEventLogRows: (logs: Array<Record<string, unknown>>) => string;
+      renderEventLogMobileCards: (
+        logs: Array<Record<string, unknown>>,
+      ) => string;
       setLogsBackground: (enabled: boolean) => void;
       renderUserRow: (user: Record<string, unknown>) => string;
       renderUserMobileCard: (user: Record<string, unknown>) => string;
@@ -601,6 +605,84 @@ describe("seller output diff evidence", () => {
 });
 
 describe("admin HTML", () => {
+  it.each([
+    "renderActivityFeed",
+    "renderEventLogRows",
+    "renderEventLogMobileCards",
+  ] as const)(
+    "%s collapses one installation's background retries while preserving unrelated activity and every detail link",
+    (renderer) => {
+      const { context } = buildAdminHarness();
+      const warning = {
+        endpoint: "/event/token_refresh_failed",
+        user_id: "owner-1",
+        event_analytics_client_id: "installation-1",
+        log_source: "extension_background",
+        event_entry_point: "startup_restore",
+        created_at: "2026-11-04T18:00:00Z",
+        response_status: 204,
+      };
+      const logs = [
+        { ...warning, id: "retry-1" },
+        { ...warning, id: "visible-error", endpoint: "/event/generate_error" },
+        { ...warning, id: "retry-2", event_entry_point: "scheduled_refresh" },
+        {
+          ...warning,
+          id: "different-installation",
+          event_analytics_client_id: "installation-2",
+        },
+        { ...warning, id: "different-owner", user_id: "owner-2" },
+        { ...warning, id: "interactive-auth", event_entry_point: "generate" },
+        { ...warning, id: "expired", endpoint: "/event/token_refresh_expired" },
+        { ...warning, id: "missing-client", event_analytics_client_id: null },
+        { ...warning, id: "missing-client-2", event_analytics_client_id: null },
+        { ...warning, id: "flagged-warning", suspicious_activity: true },
+        { ...warning, id: "failed-request", response_status: 500 },
+      ];
+      const html = context[renderer](logs);
+      const groups = [
+        ...html.matchAll(
+          /<details class="auth-refresh-group">([\s\S]*?)<\/details>/g,
+        ),
+      ];
+      expect(groups).toHaveLength(1);
+      expect(groups[0][1]).toContain("2 warnings on this page");
+      expect(groups[0][1]).toContain("showLogDetails('retry-1')");
+      expect(groups[0][1]).toContain("showLogDetails('retry-2')");
+      const outside = html.replace(groups[0][0], "");
+      for (const log of logs.slice(1).filter((log) => log.id !== "retry-2")) {
+        expect(outside).toContain(`showLogDetails('${log.id}')`);
+      }
+      expect(html).not.toMatch(/<details[^>]*\bopen\b/);
+      expect(logs).toHaveLength(11);
+    },
+  );
+
+  it("groups retained metadata safely and keeps different days separate", () => {
+    const { context } = buildAdminHarness();
+    const warning = {
+      endpoint: "/event/token_refresh_failed",
+      user_id: "owner",
+      created_at: "2026-11-04T18:00:00Z",
+      full_request_body: JSON.stringify({
+        source: "extension_background",
+        occurredAt: "2026-11-03T20:00:00Z",
+        context: { analyticsClientId: "client", entryPoint: "startup_restore" },
+      }),
+    };
+    const html = context.renderActivityFeed([
+      { ...warning, id: "old-1" },
+      { ...warning, id: "today", event_occurred_at: "2026-11-04T18:00:00Z" },
+      { ...warning, id: "old-2" },
+    ]);
+    const group = html.match(
+      /<details class="auth-refresh-group">([\s\S]*?)<\/details>/,
+    )?.[1];
+    expect(group).toContain("showLogDetails('old-1')");
+    expect(group).toContain("showLogDetails('old-2')");
+    expect(group).not.toContain("showLogDetails('today')");
+  });
+
   it("distinguishes local photo imports from uploads and shows one result summary", () => {
     const { context } = buildAdminHarness();
     const log = {

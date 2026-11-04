@@ -18,6 +18,96 @@ const plan = {
   detailIndex: 1,
 };
 describe("listing photo recipes", () => {
+  it("requires visible rear evidence when a classifier labels the front as the back", async () => {
+    const recordedPlan = {
+      eligible: true,
+      category: "top",
+      frontIndex: 1,
+      backIndex: 1,
+      detailIndex: 3,
+    };
+    process.env.VERCEL_APP_OPENAI_API_KEY = "test";
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "completed",
+        output: [
+          { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+        ],
+        usage: {},
+      }),
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await checkListingPhoto(
+      "pose",
+      Buffer.from("candidate"),
+      recordedPlan,
+      "secondary",
+      false,
+      ["original-front", "label"],
+    );
+    const input = JSON.parse(fetcher.mock.calls[0][1].body).input[0].content;
+    const instructions = input
+      .filter((part: any) => part.type === "input_text")
+      .map((part: any) => part.text)
+      .join("\n");
+    expect(instructions).toContain(
+      "A front view is not evidence of rear decoration",
+    );
+    expect(instructions).not.toContain(
+      "PRODUCT: actual sale item, target surface.",
+    );
+    expect(
+      input
+        .filter((part: any) => part.type === "input_image")
+        .map((part: any) => part.image_url),
+    ).toEqual([
+      "pose",
+      expect.stringContaining("data:image/jpeg;base64,"),
+      "original-front",
+    ]);
+    // Shared indices remain legal for a genuine front/back collage.
+    expect(parsePhotoPlan(JSON.stringify(recordedPlan), 4)).toEqual(
+      recordedPlan,
+    );
+  });
+
+  it.each([
+    ["top", "primary", false],
+    ["shoes", "secondary", false],
+    ["bag", "secondary", false],
+    ["backpack", "secondary", false],
+    ["top", "secondary", true],
+  ] as const)(
+    "keeps unrelated %s %s pose=%s checks unchanged",
+    async (category, slot, rear) => {
+      process.env.VERCEL_APP_OPENAI_API_KEY = "test";
+      const fetcher = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: "completed",
+          output: [
+            { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+          ],
+          usage: {},
+        }),
+      });
+      vi.stubGlobal("fetch", fetcher);
+      await checkListingPhoto(
+        "pose",
+        Buffer.from("candidate"),
+        { ...plan, category },
+        slot,
+        rear,
+        ["original"],
+      );
+      const request = JSON.parse(fetcher.mock.calls[0][1].body);
+      expect(JSON.stringify(request)).not.toContain(
+        "A front view is not evidence of rear decoration",
+      );
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
   it("rejects a visible product mismatch even when anatomy passes", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
     const verdict = {

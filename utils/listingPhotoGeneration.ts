@@ -236,6 +236,10 @@ export async function checkListingPhoto(
     "unrelated_accessory",
     "changed_build",
   ];
+  const rearClothing =
+    !rear &&
+    slot === "secondary" &&
+    ["top", "full_body", "bottom"].includes(plan.category);
   const view =
     rear || slot === "secondary" || plan.category === "backpack"
       ? "rear or rear three-quarter"
@@ -243,6 +247,7 @@ export async function checkListingPhoto(
   const prompt = `Evaluate only CANDIDATE, a ${view} mirror photo. ${rear ? "Require the full adult and both shoes." : `Sale category: ${plan.category}. MODEL gives the person's identity, build, scene and phone pose, NOT the sale clothing. PRODUCT gives the sale item. The candidate MUST change MODEL's clothing/bag to PRODUCT; this intended change is never a defect.`}
 Return only clear visible defects, each with concrete evidence in CANDIDATE. Empty defects means usable. Count actual limbs: one phone arm plus one relaxed arm is two, not three. A bag strap is not an arm. Allow natural rotation, clothing drape and crop changes. Do not require pixel-identical pose. Front selfies show rear phone lenses; rear selfies show phone screen. Covered central face or back of head is valid. For shoes/bottoms the head, phone and arms can be outside frame. Wider framing is acceptable if the sale item is entirely visible.
 ${originals.length ? "For garment fidelity compare CANDIDATE ONLY to PRODUCT, never to MODEL's old outfit. A handbag/backpack being added is the intended sale item, not an unrelated accessory. Flag a clear wrong main color, added/missing construction or invented decoration on the target surface. The target surface alone determines its visible features; do not require front hardware on a plain back. For short-handled bags, flag handles elongated into shoulder straps. When PRODUCT is a sleeveless dress, a visible base T-shirt neckline or sleeves under it is an unwanted retained garment, even when the dress itself matches. An unrelated accessory means something OTHER than the sale item copied from PRODUCT. Ignore tiny unreadable lettering, unseen features, uncertain shades, perspective and normal folds. Compare build to MODEL only for obvious anatomical slimming/enlargement, not drape." : "Do not speculate about unseen product features."}
+${rearClothing && originals.length ? "PRODUCT may show only the garment front, even when it was selected for a rear candidate. Identify its visible surface yourself. A front view is not evidence of rear decoration. A copied front graphic on CANDIDATE is invented_decoration unless PRODUCT clearly shows it on the rear too. A collage may contain valid separate front and rear views. Do not invent requirements for unseen rear construction." : ""}
 Report actual evidence, not uncertainty or changed styling. Never list a code whose evidence only describes the intended try-on change.`;
   const result = await structured(
     prompt,
@@ -275,7 +280,9 @@ Report actual evidence, not uncertainty or changed styling. Never list a code wh
           "CANDIDATE: generated try-on photo to inspect.",
           ...(originals.length
             ? [
-                "PRODUCT: actual sale item, target surface. Compare item details to this.",
+                rearClothing
+                  ? "PRODUCT: actual sale item. Determine whether its front or rear is visible before comparing rear details."
+                  : "PRODUCT: actual sale item, target surface. Compare item details to this.",
               ]
             : []),
         ],

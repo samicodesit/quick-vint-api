@@ -542,3 +542,10 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
   existing US rule plus a default fallback. Keep the shared source and dev
   homepage intact. Added a regression check against actual built output and
   filesystem precedence. Live verification remains active until rechecked.
+
+## Vinted seller articles QA - 2026-11-04
+
+- Updated the four localized seller stories and prepared four localized selling guides. Native listing crops omit the seller account name; source originals and provenance are retained privately in the case-study report directory.
+- Local build and blog-plan check passed. Browser checks covered eight pages at 390px and 1440px, including canonical and language links, internal article links, image loading and horizontal overflow. English, French, German and Dutch mobile examples and English desktop examples were visually inspected.
+- Production web entry /app?ref=blog_sell_faster returned 200 and displayed the listing-style flow on mobile. The Chrome Web Store destination and Vinted guidance returned 200. Signup, generation, model-photo charges and a complete first-value journey were not tested. No new account or Vinted listing was created.
+- Local full production verification passed: 181 test files, 1,534 tests; 4 files and 22 tests skipped. Search indexing and acquisition outcomes remain to be measured after release.

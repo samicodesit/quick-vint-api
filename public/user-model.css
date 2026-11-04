@@ -261,6 +261,24 @@
 .um-actions .um-primary {
   flex: 1;
 }
+.um-form-actions .um-primary {
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .um-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .um-form-actions .um-primary {
+    flex: none;
+  }
+  .um-form-actions .um-secondary {
+    align-self: center;
+    min-height: 32px;
+    padding: 6px 12px;
+  }
+}
 .um-actions .um-secondary {
   border: 0;
   font-size: 0.875rem;
@@ -692,6 +710,27 @@ button.um-model-entry:hover {
 .mp-message {
   min-width: 0;
 }
+.mp-unavailable {
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--text-secondary, #647067);
+  font-size: 12px;
+}
+.mp-unavailable-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-top: 1px;
+}
+.mp-unavailable-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.quickvint-tools .mp-unavailable {
+  margin: 0;
+  padding: 0;
+}
 .mp-retry {
   font: inherit;
   font-weight: 600;
@@ -744,6 +783,10 @@ button.um-model-entry:hover {
   aspect-ratio: 5 / 6;
 }
 .draft-item-photos .mp-message {
+  font-size: 12px;
+}
+.draft-photo-notice .mp-progress {
+  padding: 0 0 8px;
   font-size: 12px;
 }
 @media (max-width: 767px) {

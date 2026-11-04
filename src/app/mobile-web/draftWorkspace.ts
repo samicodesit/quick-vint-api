@@ -1669,6 +1669,8 @@ export function mountDraftWorkspace(
         find("[data-draft-save-status]").textContent = "";
         closeContainedPopovers(find("[data-draft-item-photos]"));
         find("[data-draft-item-photos]").replaceChildren();
+        find("[data-draft-photo-notice]").replaceChildren();
+        hide("[data-draft-photo-notice]", true);
         railSignature = "";
         hide("[data-draft-upload-intro]", false);
         hide("[data-draft-editor-cover]", true);
@@ -1965,12 +1967,24 @@ export function mountDraftWorkspace(
     const restoreFocus = preserveFocus(rail);
     closeContainedPopovers(rail);
     rail.replaceChildren();
+    const photoNotice = find("[data-draft-photo-notice]");
+    photoNotice.replaceChildren();
+    photoNotice.hidden = true;
     if (draft.modelPhotos && draft.state === "draft" && photoUI()) {
       const progress = document.createElement("div");
       photoUI().render(progress, draft.modelPhotos, () =>
         client.retryModelPhotos(draft.id),
       );
-      rail.append(progress);
+      if (
+        ["preparing", "generating", "adding", "queued"].includes(
+          draft.modelPhotos.status,
+        )
+      ) {
+        rail.append(progress);
+      } else {
+        photoNotice.append(progress);
+        photoNotice.hidden = progress.hidden;
+      }
     }
     for (const photo of draft.photos) {
       if (uploads.some((p) => p.id === photo.id)) continue;
@@ -3911,6 +3925,7 @@ export function mountDraftWorkspace(
         "[data-draft-items]",
         "[data-draft-pool]",
         "[data-draft-item-photos]",
+        "[data-draft-photo-notice]",
         "[data-draft-created-groups]",
       ])
         find(selector).replaceChildren();

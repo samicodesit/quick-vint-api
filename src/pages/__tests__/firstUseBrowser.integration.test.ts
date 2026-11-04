@@ -361,7 +361,10 @@ it.skipIf(!enabled).each([390, 1365])(
         "178",
       );
       await expect(
-        page.getByRole("button", { name: "Create model", exact: true }),
+        page.getByRole("button", {
+          name: "Create and enable",
+          exact: true,
+        }),
       ).toBeVisible();
       if (output)
         await page.screenshot({ path: `${output}/model-after-${size}.png` });

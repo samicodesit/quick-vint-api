@@ -372,12 +372,8 @@
       );
       form.append(consequence);
       const actions = document.createElement("div");
-      actions.className = "um-actions";
-      const create = button(
-        options.mode === "preferences" ? "Continue" : "Create model",
-        () => {},
-        true,
-      );
+      actions.className = "um-actions um-form-actions";
+      const create = button("Create and enable", () => {}, true);
       create.type = "submit";
       actions.append(create);
       if (options.onContinue || options.onSkip)

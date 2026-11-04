@@ -57,6 +57,12 @@ globalThis.AutoListerEventRegistry = {
   model_photos_requested: {
     kind: "business",
   },
+  model_photos_uploaded: {
+    kind: "business",
+  },
+  model_photos_order_failed: {
+    kind: "business",
+  },
   model_photos_attached: {
     kind: "business",
   },

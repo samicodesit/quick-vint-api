@@ -86,7 +86,10 @@ export async function runModelOperation(
     };
     let code = "provider_failed";
     try {
-      if (job.prompt_version !== 1 || job.catalog_version !== 1)
+      if (
+        ![1, 2].includes(job.prompt_version) ||
+        job.catalog_version !== job.prompt_version
+      )
         throw new Error("unsupported_recipe");
       const generated = await deps.generate(job);
       metrics.generationMs = generated.durationMs;
@@ -163,7 +166,11 @@ export async function generateModelImage(job: ModelJob) {
     "images/generations",
     {
       model: IMAGE_MODEL,
-      prompt: compileModelPrompt(job.preferences, job.scene),
+      prompt: compileModelPrompt(
+        job.preferences,
+        job.scene,
+        job.prompt_version,
+      ),
       n: 1,
       quality: "medium",
       size: "1024x1536",

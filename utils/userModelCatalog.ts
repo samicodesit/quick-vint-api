@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-export const MODEL_CATALOG_VERSION = 1;
-export const MODEL_PROMPT_VERSION = 1;
+export const MODEL_CATALOG_VERSION = 2;
+export const MODEL_PROMPT_VERSION = 2;
 export interface ModelPreferences {
   gender: "male" | "female";
   hair: "black" | "blonde" | "brown" | "red";
@@ -108,14 +108,67 @@ export function resolveModelScene(seed: string) {
     lighting: pick(["soft_overcast", "gentle_morning", "diffused_afternoon"]),
     arrangement: pick(["left", "right"]),
     position: pick(["centered", "slightly_offset"]),
-    phoneCase: pick(["black", "charcoal", "dark_taupe"]),
+    phoneCase: pick([
+      "black",
+      "charcoal",
+      "dark_taupe",
+      "navy",
+      "muted_green",
+      "burgundy",
+    ]),
+    hairStyle: pick([
+      "short_textured",
+      "soft_waves",
+      "straight_layers",
+      "natural_curls",
+      "close_crop",
+      "tied_back",
+    ]),
+    age: pick([26, 30, 35, 40]),
+    accessory: pick(["none", "none", "small_watch", "stud_earrings"]),
+    skinDetail: pick([
+      "ordinary uneven skin texture and fine natural arm hair",
+      "a few faint freckles on the arms and natural skin texture",
+      "subtle variation in skin tone across hands and arms",
+      "fine natural lines at wrists and knuckles, with normal skin texture",
+    ]),
+    baseOutfit: pick([
+      "a soft washed grey T-shirt, straight dark blue jeans and everyday white trainers",
+      "a plain navy long-sleeved top, beige straight trousers and everyday trainers",
+      "a plain white T-shirt, straight black jeans and simple dark trainers",
+      "a plain beige T-shirt, dark straight trousers and simple white trainers",
+    ]),
+    homeDetail: pick(
+      {
+        bedroom_edge: [
+          "a plain wardrobe and the edge of an unmade bed",
+          "a bedside table and a radiator under the window",
+        ],
+        living_corner: [
+          "the edge of an everyday sofa and a small bookcase",
+          "a practical side table and the edge of a fabric armchair",
+        ],
+        entryway: [
+          "a simple coat hook and a narrow shoe rack",
+          "a small hallway bench and a wall socket",
+        ],
+        dressing_corner: [
+          "a wardrobe door and a basket of folded clothes",
+          "a plain chest of drawers and a clothes rail",
+        ],
+      }[room],
+    ),
   };
 }
 export type ModelScene = ReturnType<typeof resolveModelScene>;
 export function sceneFingerprint(scene: ModelScene) {
   return createHash("sha256").update(JSON.stringify(scene)).digest("hex");
 }
-export function compileModelPrompt(p: ModelPreferences, s: ModelScene): string {
+export function compileModelPrompt(
+  p: ModelPreferences,
+  s: ModelScene,
+  version = MODEL_PROMPT_VERSION,
+): string {
   const words = (value: string) => value.replace(/_/g, " ");
   const tones = {
     tone_1: "very fair",
@@ -125,6 +178,42 @@ export function compileModelPrompt(p: ModelPreferences, s: ModelScene): string {
     tone_5: "dark brown",
     tone_6: "deep brown",
   };
+  const hairstyles: Record<string, string> = {
+    short_textured: "a short textured haircut",
+    soft_waves:
+      p.gender === "female"
+        ? "loose shoulder-length waves"
+        : "medium-length wavy hair",
+    straight_layers:
+      p.gender === "female"
+        ? "a straight chin-length bob"
+        : "medium-length straight layers",
+    natural_curls:
+      p.gender === "female"
+        ? "shoulder-length natural curls"
+        : "short natural curls",
+    close_crop:
+      p.gender === "female"
+        ? "a cropped pixie haircut"
+        : "a close cropped haircut",
+    tied_back:
+      p.gender === "female"
+        ? "hair loosely tied in a low ponytail"
+        : "longer hair tied in a low bun",
+  };
+  if (version === 2)
+    return [
+      "An unretouched phone mirror snapshot at home, like an ordinary second-hand seller photographing an outfit.",
+      `A fictional adult aged ${s.age}, ${p.gender}, ${p.hair} hair with ${hairstyles[s.hairStyle]}, ${tones[p.skinTone]} skin, ${words(p.build)} build, about ${p.heightCm} cm tall. Wearing ${s.baseOutfit}. ${s.accessory === "small_watch" ? "A small plain watch on the free wrist." : s.accessory === "stud_earrings" ? "Small simple stud earrings." : "No accessories."}`,
+      `Standing comfortably, ${words(s.position)}, weight slightly on one leg, one arm relaxed and the other naturally holding a normal-sized phone with a ${words(s.phoneCase)} case in front of the central face. Central features are hidden; forehead, cheek, jaw and small eye-edge fragments are acceptable. Full body, top of hair and BOTH complete shoes visible with a little floor below the feet.`,
+      `An ordinary home ${words(s.room)} with ${words(s.wall)} walls and ${words(s.floor)} flooring. A simple ${words(s.mirror)} mirror with a ${words(s.frame)} frame. In the background, ${s.homeDetail}.`,
+      s.accent === "plant"
+        ? `A ${words(s.plant!)} at the side of the room.`
+        : s.accent === "floor_lamp"
+          ? "A simple floor lamp at the side of the room."
+          : "",
+      `Ordinary phone auto-exposure with slightly uneven ${words(s.lighting)} daylight from the ${s.lightDirection}. ${s.skinDetail}; keep the chosen skin tone. Natural body contours, loose hair strands and clothing creases. Modest practical home, casual framing. No beauty smoothing, studio lights, showroom staging or artificial blur. One adult, one mirror photo, no text or logos.`,
+    ].join("\n");
   return [
     "Create one very realistic ordinary smartphone mirror selfie of a fictional adult around 30. Not a studio or fashion campaign.",
     `The adult is ${p.gender}, with ${p.hair} hair, ${tones[p.skinTone]} skin, ${words(p.build)} build and approximately ${p.heightCm} cm tall. Keep believable adult anatomy and proportions.`,

@@ -10,7 +10,7 @@ const pass = {
   full_body_and_shoes_visible: true,
   no_major_defects: true,
 };
-function fixture() {
+function fixture(version = 1) {
   const jobs = [1, 2].map(
     (n) =>
       ({
@@ -19,8 +19,8 @@ function fixture() {
         operation_id: "op",
         lease_token: "lease" + n,
         attempt_count: n,
-        prompt_version: 1,
-        catalog_version: 1,
+        prompt_version: version,
+        catalog_version: version,
       }) as ModelJob,
   );
   const mutate = vi.fn(async (_u: string, action: string) =>
@@ -62,19 +62,22 @@ describe("bounded image worker", () => {
       }),
     );
   });
-  it("publishes only after storage and validated quality, recording costs", async () => {
-    const d = fixture();
-    await runModelOperation("owner", "op", d);
-    expect(d.generate).toHaveBeenCalledTimes(1);
-    expect(d.mutate).toHaveBeenCalledWith(
-      "owner",
-      "finish",
-      expect.objectContaining({
-        lease: "lease1",
-        metrics: expect.objectContaining({ estimatedCostUsd: 0.0135 }),
-      }),
-    );
-  });
+  it.each([1, 2])(
+    "publishes recipe %s only after storage and validated quality, recording costs",
+    async (version) => {
+      const d = fixture(version);
+      await runModelOperation("owner", "op", d);
+      expect(d.generate).toHaveBeenCalledTimes(1);
+      expect(d.mutate).toHaveBeenCalledWith(
+        "owner",
+        "finish",
+        expect.objectContaining({
+          lease: "lease1",
+          metrics: expect.objectContaining({ estimatedCostUsd: 0.0135 }),
+        }),
+      );
+    },
+  );
   it("retries a bad image once, with no publication of the rejected candidate", async () => {
     const d = fixture();
     vi.mocked(d.check).mockResolvedValueOnce({

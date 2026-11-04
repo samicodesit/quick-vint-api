@@ -18,6 +18,38 @@ const plan = {
   detailIndex: 1,
 };
 describe("listing photo recipes", () => {
+  it("gives the fidelity check enough time without extending classification or image calls", async () => {
+    process.env.VERCEL_APP_OPENAI_API_KEY = "test";
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: "completed",
+          output: [
+            { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+          ],
+        }),
+      }),
+    );
+    await checkListingPhoto("pose", Buffer.from("image"), plan, "primary");
+    expect(timeout).toHaveBeenCalledWith(20000);
+    timeout.mockRestore();
+  });
+  it.each(["headwear", "neckwear", "other"])(
+    "skips an unsupported %s instead of forcing it into a supported framing",
+    (itemType) => {
+      expect(
+        parsePhotoPlan(JSON.stringify({ ...plan, itemType }), 2),
+      ).toMatchObject({ eligible: false, category: "skip" });
+    },
+  );
+  it("rejects a contradictory item type before creating a different garment", () => {
+    expect(() =>
+      parsePhotoPlan(JSON.stringify({ ...plan, itemType: "trousers" }), 2),
+    ).toThrow("invalid_photo_plan");
+  });
   it("requires visible rear evidence when a classifier labels the front as the back", async () => {
     const recordedPlan = {
       eligible: true,
@@ -65,6 +97,7 @@ describe("listing photo recipes", () => {
       "pose",
       expect.stringContaining("data:image/jpeg;base64,"),
       "original-front",
+      "label",
     ]);
     // Shared indices remain legal for a genuine front/back collage.
     expect(parsePhotoPlan(JSON.stringify(recordedPlan), 4)).toEqual(
@@ -141,17 +174,17 @@ describe("listing photo recipes", () => {
     );
     expect(result.accepted).toBe(false);
     expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({
-      model: "gpt-5.4-2026-03-05",
+      model: "gpt-6.1-sol",
       reasoning: { effort: "low" },
     });
     expect(
       JSON.parse(fetcher.mock.calls[0][1].body).input[0].content.at(-1),
-    ).toMatchObject({ type: "input_image", image_url: "original-back" });
+    ).toMatchObject({ type: "input_image", image_url: "front-detail" });
     expect(
       JSON.parse(fetcher.mock.calls[0][1].body).input[0].content.filter(
         (part: any) => part.type === "input_image",
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
   });
   it("bounds classifier indices to input files even when a source contains collage panels", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
@@ -221,14 +254,25 @@ describe("listing photo recipes", () => {
         input_tokens_details: { image_tokens: 1000, text_tokens: 100 },
         output_tokens: 200,
       }),
-    ).toBeCloseTo(0.0145);
+    ).toBeCloseTo(0.0145, 9);
     expect(
       photoCost("check", {
         input_tokens: 1000,
         input_tokens_details: { cached_tokens: 100 },
         output_tokens: 100,
       }),
-    ).toBeCloseTo(0.0011325);
+    ).toBeCloseTo(0.0011325, 9);
+    expect(
+      photoCost(
+        "check",
+        {
+          input_tokens: 1000,
+          input_tokens_details: { cached_tokens: 100 },
+          output_tokens: 100,
+        },
+        "gpt-6.1-sol",
+      ),
+    ).toBeCloseTo(0.00281, 9);
     expect(
       photoCost(
         "check",
@@ -239,7 +283,7 @@ describe("listing photo recipes", () => {
         },
         "gpt-5.4-2026-03-05",
       ),
-    ).toBeCloseTo(0.003775);
+    ).toBeCloseTo(0.003775, 9);
   });
   it("uses parallel-safe single-view edits and treats malformed checker output as failure", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
@@ -261,6 +305,7 @@ describe("listing photo recipes", () => {
     );
     const body = JSON.parse(fetcher.mock.calls[0][1].body);
     expect(body).toMatchObject({
+      model: "gpt-image-2.5-flare-2026-09-08",
       quality: "medium",
       size: "768x1152",
       n: 1,

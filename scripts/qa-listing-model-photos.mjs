@@ -9,9 +9,12 @@ if (!process.argv.includes("--confirmed-budget"))
   throw new Error("Explicit budget authorization required");
 const out = resolve(arg("--out"));
 mkdirSync(out, { recursive: true });
-const prior = process.argv.includes("--spent-usd") ? Number(arg("--spent-usd")) : 1.59862125,
+const prior = process.argv.includes("--spent-usd")
+    ? Number(arg("--spent-usd"))
+    : 1.59862125,
   cap = 3;
-if (!Number.isFinite(prior) || prior < 0 || prior >= cap) throw Error("Invalid prior spend");
+if (!Number.isFinite(prior) || prior < 0 || prior >= cap)
+  throw Error("Invalid prior spend");
 if (!process.env.VERCEL_APP_OPENAI_API_KEY) {
   const env = readFileSync(arg("--env-file"), "utf8");
   const line = env
@@ -89,7 +92,10 @@ async function call(name, kind, fn) {
   const row = {
     name,
     kind,
-    model: kind === "check" && !name.endsWith("-classify") ? api.LISTING_PHOTO_CHECK_MODEL : undefined,
+    model:
+      kind === "check" && !name.endsWith("-classify")
+        ? api.LISTING_PHOTO_CHECK_MODEL
+        : undefined,
     reservedUsd,
     status: "dispatched",
     startedAt: new Date().toISOString(),
@@ -221,12 +227,7 @@ for (const c of cases) {
       ["primary", "secondary"].map(async (slot) => {
         const pose =
           slot === "secondary" || plan.category === "backpack" ? rear : front;
-        const indices = [
-          slot === "secondary" && plan.backIndex >= 0
-            ? plan.backIndex
-            : plan.frontIndex,
-          plan.detailIndex,
-        ].filter((n, i, a) => n >= 0 && a.indexOf(n) === i);
+        const indices = api.photoReferenceIndices(plan, slot);
         const prompt = api.photoPrompt(plan, slot);
         writeFileSync(join(out, c.name + "-" + slot + "-prompt.txt"), prompt);
         const generated = c.checkOnly

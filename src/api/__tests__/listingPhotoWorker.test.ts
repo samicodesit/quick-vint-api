@@ -1,5 +1,70 @@
 import { it, expect } from "vitest";
 import { runPhotoJob } from "../../../utils/listingPhotoWorker";
+it("retains a checker timeout without losing an accepted view or repeating image calls", async () => {
+  const job: any = {
+    id: "j",
+    user_id: "u",
+    kind: "listing",
+    lease_token: "l",
+    retry_count: 0,
+    payload: {
+      plan: {
+        eligible: true,
+        category: "top",
+        frontIndex: 0,
+        backIndex: 1,
+        detailIndex: -1,
+      },
+    },
+  };
+  const records: any[] = [];
+  let edits = 0;
+  await runPhotoJob("u", "j", {
+    mutate: async (_u, action, input) => {
+      if (action === "claim" || action === "get") return job;
+      if (action === "stage") return { id: input.stage };
+      if (action === "metrics") records.push(input);
+      if (action === "save") {
+        Object.assign(job.payload, input.payload);
+        if (input.state) job.state = input.state;
+      }
+      return job;
+    },
+    sources: async () => ["front", "back"],
+    front: async () => "front-pose",
+    rear: async () => "back-pose",
+    classify: async () => {
+      throw new Error("unexpected classification");
+    },
+    edit: async () => {
+      edits++;
+      return { bytes: Buffer.from("image"), usage: {} };
+    },
+    check: async (_pose, _bytes, _plan, slot) => {
+      if (slot === "secondary")
+        throw Object.assign(new Error("sensitive signed URL"), {
+          name: "TimeoutError",
+        });
+      return { accepted: true, usage: {}, quality: { defects: [] } };
+    },
+    upload: async () => {},
+  });
+  expect(edits).toBe(2);
+  expect(job.payload.primary.state).toBe("ready");
+  expect(job.payload.secondary).toMatchObject({
+    state: "failed",
+    errorCode: "photo_provider_timeout",
+  });
+  expect(records).toContainEqual(
+    expect.objectContaining({
+      attemptId: "secondary_check",
+      status: "failed",
+      metrics: expect.objectContaining({ errorCode: "photo_provider_timeout" }),
+    }),
+  );
+  expect(JSON.stringify(records)).not.toContain("sensitive signed URL");
+  expect(job.state).toBe("failed");
+});
 it("starts both views independently and preserves the accepted view across a failed-view retry", async () => {
   const job: any = {
     id: "job",
@@ -64,7 +129,10 @@ it("starts both views independently and preserves the accepted view across a fai
   };
   await runPhotoJob("user", "job", deps);
   expect(calls).toEqual(["front-pose", "rear-pose"]);
-  expect(checkedSources).toEqual([["front-product"], ["back-product"]]);
+  expect(checkedSources).toEqual([
+    ["front-product", "back-product"],
+    ["back-product", "front-product"],
+  ]);
   expect(job.state).toBe("failed");
   expect(job.payload.primary.state).toBe("ready");
   deps.check = async () => ({ accepted: true, usage: {}, quality: {} });

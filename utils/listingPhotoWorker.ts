@@ -1,12 +1,24 @@
 import {
   photoPrompt,
+  photoReferenceIndices,
   rearPosePrompt,
   photoCost,
   LISTING_PHOTO_CHECK_MODEL,
+  REAR_PHOTO_CHECK_MODEL,
   type PhotoPlan,
   type PhotoSlot,
 } from "./listingPhotoGeneration";
 import { IMAGE_MODEL, CHECK_MODEL } from "./userModelGeneration";
+export function photoFailureCode(error: unknown): string {
+  if (error instanceof Error && error.name === "TimeoutError")
+    return "photo_provider_timeout";
+  const message = error instanceof Error ? error.message : "";
+  return /^(?:photo_provider_[45]\d{2}|photo_(?:quality_failed|cancelled|source_unavailable|source_too_large|source_snapshot_failed)|invalid_photo_(?:source|image|plan|check)|incomplete_photo_check|photo_provider_unavailable)$/.test(
+    message,
+  )
+    ? message
+    : "photo_operation_failed";
+}
 export interface PhotoJob {
   id: string;
   user_id: string;
@@ -49,6 +61,7 @@ export async function runPhotoJob(
 ) {
   const job: PhotoJob | null = await deps.mutate(user, "claim", { id });
   if (!job) return;
+  const jobKind = job.kind;
   const input = { id, lease: job.lease_token };
   const save = (payload: any, state?: string, errorCode?: string) =>
     deps.mutate(user, "save", {
@@ -70,13 +83,28 @@ export async function runPhotoJob(
       objectKey,
     });
     if (!attempt) throw new Error("photo_cancelled");
-    const result = await work();
+    let result;
+    try {
+      result = await work();
+    } catch (error) {
+      await deps.mutate(user, "metrics", {
+        ...input,
+        attemptId: attempt.id,
+        // Keep cost unknown. The provider may have completed a timed-out call.
+        cost: null,
+        status: "failed",
+        metrics: { errorCode: photoFailureCode(error) },
+      });
+      throw error;
+    }
     const model =
       kind === "image"
         ? IMAGE_MODEL
         : name === "classify"
           ? CHECK_MODEL
-          : LISTING_PHOTO_CHECK_MODEL;
+          : jobKind === "rear"
+            ? REAR_PHOTO_CHECK_MODEL
+            : LISTING_PHOTO_CHECK_MODEL;
     await deps.mutate(user, "metrics", {
       ...input,
       attemptId: attempt.id,
@@ -119,12 +147,9 @@ export async function runPhotoJob(
         ),
         deps.upload(key, generated.bytes),
       ]);
-      if (
-        uploaded.status === "rejected" ||
-        checked.status === "rejected" ||
-        !checked.value.accepted
-      )
-        throw new Error("photo_quality_failed");
+      if (uploaded.status === "rejected") throw uploaded.reason;
+      if (checked.status === "rejected") throw checked.reason;
+      if (!checked.value.accepted) throw new Error("photo_quality_failed");
       await save({ primary: { state: "ready", key } }, "ready");
       return;
     }
@@ -156,12 +181,7 @@ export async function runPhotoJob(
         if (job.payload[slot]?.state === "ready") return;
         const pose =
           slot === "secondary" || plan.category === "backpack" ? rear : front;
-        const indices = [
-          slot === "secondary" && plan.backIndex >= 0
-            ? plan.backIndex
-            : plan.frontIndex,
-          plan.detailIndex,
-        ].filter((n, i, a) => n >= 0 && a.indexOf(n) === i);
+        const indices = photoReferenceIndices(plan, slot);
         const key = `${user}/${id}/${job.retry_count}/${slot}.jpg`;
         try {
           const generated = await stage(
@@ -188,15 +208,14 @@ export async function runPhotoJob(
             ),
             deps.upload(key, generated.bytes),
           ]);
-          if (
-            uploaded.status === "rejected" ||
-            checked.status === "rejected" ||
-            !checked.value.accepted
-          )
-            throw new Error("photo_quality_failed");
+          if (uploaded.status === "rejected") throw uploaded.reason;
+          if (checked.status === "rejected") throw checked.reason;
+          if (!checked.value.accepted) throw new Error("photo_quality_failed");
           await save({ [slot]: { state: "ready", key } });
-        } catch {
-          await save({ [slot]: { state: "failed" } });
+        } catch (error) {
+          await save({
+            [slot]: { state: "failed", errorCode: photoFailureCode(error) },
+          });
         }
       }),
     );
@@ -210,7 +229,7 @@ export async function runPhotoJob(
       ready ? "ready" : "failed",
       ready ? undefined : "photo_generation_failed",
     );
-  } catch {
-    await save({}, "failed", "photo_generation_failed");
+  } catch (error) {
+    await save({}, "failed", photoFailureCode(error));
   }
 }

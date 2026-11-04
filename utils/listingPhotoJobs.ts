@@ -140,7 +140,7 @@ async function sources(job: PhotoJob) {
     );
     images.push(...batch);
   }
-  await Promise.all(
+  const snapshots = await Promise.allSettled(
     images.map(async (image, i) => {
       const match = images[i].match(
         /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/,
@@ -153,23 +153,38 @@ async function sources(job: PhotoJob) {
         objectKey: key,
       });
       if (!attempt) throw new Error("photo_cancelled");
-      const upload = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(key, Buffer.from(match[2], "base64"), {
-          contentType: match[1],
-          upsert: true,
+      try {
+        const upload = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(key, Buffer.from(match[2], "base64"), {
+            contentType: match[1],
+            upsert: true,
+          });
+        if (upload.error) throw upload.error;
+        await photoMutate(job.user_id, "metrics", {
+          id: job.id,
+          lease: job.lease_token,
+          attemptId: attempt.id,
+          cost: 0,
+          metrics: {},
         });
-      if (upload.error) throw upload.error;
-      await photoMutate(job.user_id, "metrics", {
-        id: job.id,
-        lease: job.lease_token,
-        attemptId: attempt.id,
-        cost: 0,
-        metrics: {},
-      });
-      keys[i] = key;
+        keys[i] = key;
+      } catch {
+        await photoMutate(job.user_id, "metrics", {
+          id: job.id,
+          lease: job.lease_token,
+          attemptId: attempt.id,
+          cost: 0,
+          status: "failed",
+          metrics: { errorCode: "photo_source_snapshot_failed" },
+        });
+        throw new Error("photo_source_snapshot_failed");
+      }
     }),
   );
+  for (const snapshot of snapshots) {
+    if (snapshot.status === "rejected") throw snapshot.reason;
+  }
   await photoMutate(job.user_id, "save", {
     id: job.id,
     lease: job.lease_token,

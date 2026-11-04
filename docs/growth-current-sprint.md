@@ -549,3 +549,8 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
 - Local build and blog-plan check passed. Browser checks covered eight pages at 390px and 1440px, including canonical and language links, internal article links, image loading and horizontal overflow. English, French, German and Dutch mobile examples and English desktop examples were visually inspected.
 - Production web entry /app?ref=blog_sell_faster returned 200 and displayed the listing-style flow on mobile. The Chrome Web Store destination and Vinted guidance returned 200. Signup, generation, model-photo charges and a complete first-value journey were not tested. No new account or Vinted listing was created.
 - Local full production verification passed: 181 test files, 1,534 tests; 4 files and 22 tests skipped. Search indexing and acquisition outcomes remain to be measured after release.
+
+## Seller story balance screenshot - 2026-11-04
+
+- Added the seller-provided balance screenshot to the start of the four localized case studies. The available and pending figures retain their original labels; the account name is not shown.
+- Cropped source is retained with the private case-study evidence. Rendered desktop and mobile placements passed in all four languages; the case-study links are unchanged from the previous live check.

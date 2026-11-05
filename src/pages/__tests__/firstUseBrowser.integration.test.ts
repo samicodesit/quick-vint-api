@@ -196,7 +196,7 @@ it.skipIf(!enabled).each([390, 1365])(
 );
 
 it.skipIf(!enabled)(
-  "opens the web app from every mobile pricing menu, with extension access separate",
+  "opens the web app from every mobile pricing menu",
   async () => {
     const { context, page } = await fixture();
     try {
@@ -223,7 +223,7 @@ it.skipIf(!enabled)(
         await expect(primary).not.toHaveAttribute("target", "_blank");
         await expect(
           page.locator('[data-track-context="nav_mobile_extension"]'),
-        ).toHaveAttribute("href", /chromewebstore.google.com/);
+        ).toHaveCount(0);
         if (locale === "de" && output)
           await page.screenshot({ path: `${output}/pricing-after-mobile.png` });
         await primary.click();

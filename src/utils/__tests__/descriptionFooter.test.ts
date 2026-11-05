@@ -64,11 +64,11 @@ describe("description footer helpers", () => {
     ).toMatchObject({ ok: false });
   });
 
-  it("allows the feature for free, pro, and business only", () => {
+  it("keeps the saved note available when a free seller buys Starter", () => {
     expect(canUseDescriptionFooter("free")).toBe(true);
+    expect(canUseDescriptionFooter("starter")).toBe(true);
     expect(canUseDescriptionFooter("pro")).toBe(true);
     expect(canUseDescriptionFooter("business")).toBe(true);
-    expect(canUseDescriptionFooter("starter")).toBe(false);
     expect(canUseDescriptionFooter(null)).toBe(false);
   });
 

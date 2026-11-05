@@ -9,8 +9,8 @@ const browser = await chromium.launch({ headless: true });
 const results = [];
 let externalRequests = 0;
 const blockedHosts = [];
-async function fixture(width, bit, { denied = false, blocked = false, coldTap = false } = {}) {
-  const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: width < 768, hasTouch: width < 768 });
+async function fixture(width, bit, { denied = false, blocked = false, coldTap = false, userAgent } = {}) {
+  const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: width < 768, hasTouch: width < 768 || Boolean(userAgent), ...(userAgent ? { userAgent } : {}) });
   const events = [], errors = [];
   await context.route("**/*", async route => {
     const url = new URL(route.request().url());
@@ -19,6 +19,10 @@ async function fixture(width, bit, { denied = false, blocked = false, coldTap = 
       externalRequests++;
       blockedHosts.push(url.hostname);
       return route.abort();
+    }
+    if (process.env.HOME_BROWSER_PREVIEW === "1" && url.pathname === "/") {
+      const response = await route.fetch({ url: `${base}/home-default/` });
+      return route.fulfill({ response });
     }
     if (url.pathname === "/api/events/track") {
       const batch = route.request().postDataJSON().events || [];
@@ -30,6 +34,7 @@ async function fixture(width, bit, { denied = false, blocked = false, coldTap = 
     return route.continue();
   });
   await context.addInitScript(({ bit, denied, blocked, coldTap }) => {
+    Date.now = () => Date.parse("2026-10-20T12:00:00Z");
     const random = crypto.getRandomValues.bind(crypto);
     crypto.getRandomValues = array => array instanceof Uint32Array && array.length === 1 ? array.fill(bit) : random(array);
     if (denied) Object.defineProperty(window, "localStorage", { get() { throw new Error("Storage denied fixture"); } });
@@ -51,7 +56,10 @@ async function fixture(width, bit, { denied = false, blocked = false, coldTap = 
     }
   }, { bit, denied, blocked, coldTap });
   const page = await context.newPage();
-  page.on("pageerror", error => errors.push(error.message));
+  page.on("pageerror", error => {
+    if (denied && error.message === "Storage denied fixture" && error.stack?.includes("/node_modules/astro/dist/runtime/client/dev-toolbar/")) return;
+    errors.push(error.message);
+  });
   return { context, page, events, errors };
 }
 try {
@@ -64,6 +72,14 @@ try {
     assert.equal(first.variant, bit ? "b" : "a", "Assigned before the first visible hero frame");
     assert.equal(first.button < first.demo, Boolean(bit), "Only B moves the app action before the full demo");
     assert.ok(await f.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "No sideways scroll");
+    assert.equal(await f.page.locator(".home-entry-extension").isVisible(), false, "Mobile hero keeps the desktop store route out of the entry path");
+    assert.equal(await f.page.locator('[data-track-context="nav_mobile_extension"]').count(), 0, "Mobile navigation does not send sellers to the desktop store");
+    if (width === 390 && bit === 1) {
+      await f.page.locator("[data-screenshot-preview-open]").first().click();
+      assert.equal(await f.page.locator(".home-modal-extension").isVisible(), false);
+      assert.equal(await f.page.locator(".home-modal-web").isVisible(), true);
+      await f.page.locator("button[data-screenshot-preview-close]").first().click();
+    }
     await f.page.waitForFunction(() => localStorage.getItem("autolister.home-entry.v1.exposed") === "1");
     await f.page.waitForTimeout(1400);
     const exposure = f.events.find(e => e.event === "home_hero_exposure");
@@ -101,11 +117,25 @@ try {
     await f.context.addInitScript(variant => localStorage.setItem("autolister.home-entry.v1", JSON.stringify({ id: "mobile-entry-v1", variant, enrolledAt: Date.now() })), variant);
     await f.page.goto(base);
     boxes.push([await f.page.locator(".home-entry-web").boundingBox(), await f.page.locator(".home-hero-demo").boundingBox()]);
+    assert.equal(await f.page.locator(".home-entry-extension").isVisible(), true, "Desktop keeps its store route");
     assert.ok(!(await f.page.locator(".home-entry-device-label").isVisible()));
     assert.deepEqual(f.errors, []);
     await f.context.close();
   }
   assert.deepEqual(boxes[0], boxes[1], "Desktop geometry is identical for both assignments");
+  const tablet = await fixture(1024, 1, { userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel Tablet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" });
+  await tablet.page.goto(base);
+  assert.equal(await tablet.page.locator("html").getAttribute("data-client-device"), "phone");
+  assert.equal(await tablet.page.locator(".home-entry-extension").isVisible(), false);
+  assert.equal(await tablet.page.locator(".home-entry-web").isVisible(), true);
+  await tablet.page.locator("[data-screenshot-preview-open]").first().click();
+  assert.equal(await tablet.page.locator(".home-modal-extension").isVisible(), false);
+  assert.equal(await tablet.page.locator(".home-modal-web").isVisible(), true);
+  await tablet.page.goto(`${base}/pricing`);
+  assert.equal(await tablet.page.locator(".site-nav-main").isVisible(), false);
+  assert.equal(await tablet.page.locator(".site-nav-tablet-web").isVisible(), true);
+  assert.deepEqual(tablet.errors, []);
+  await tablet.context.close();
   const denied = await fixture(390, 1, { denied: true });
   await denied.page.goto(base);
   assert.equal(await denied.page.locator("html").getAttribute("data-home-entry-variant"), null);

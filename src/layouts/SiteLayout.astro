@@ -8,6 +8,7 @@ import { bootstrapHomepageExperiment, HOMEPAGE_EXPERIMENT } from "../scripts/hom
 import type { SiteLocale } from "../i18n/site.js";
 import { MODEL_PHOTO_CONTENT_ENABLED } from "../utils/modelContentRelease";
 import { MODEL_PHOTO_COPY } from "../i18n/modelPhotos";
+import { isPhoneOrTablet } from "../utils/clientDevice";
 
 export interface Props {
   title?: string;
@@ -84,6 +85,7 @@ const chromeHref =
     </style>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline set:html={`if((${isPhoneOrTablet.toString()})(navigator))document.documentElement.dataset.clientDevice='phone';`} />
     {isHomepage && <script is:inline set:html={`(${bootstrapHomepageExperiment.toString()})(window,${JSON.stringify(HOMEPAGE_EXPERIMENT)});`} />}
 
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -249,10 +251,20 @@ const chromeHref =
               rel={webPrimary ? undefined : "noopener noreferrer"}
               data-track-event={webPrimary ? "web_app_click" : "chrome_store_click"}
               data-track-context="nav_desktop"
-              class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 no-underline"
+              class="site-nav-main inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 no-underline"
             >
               {webPrimary ? modelCopy.web : navCopy.cta}
             </a>
+            {!webPrimary && (
+              <a
+                href={`/app?ref=nav_tablet_${resolvedLocale}`}
+                data-track-event="web_app_click"
+                data-track-context="nav_tablet"
+                class="site-nav-tablet-web items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 no-underline"
+              >
+                {modelCopy.web}
+              </a>
+            )}
           </div>
 
           <!-- Mobile menu button -->
@@ -338,16 +350,6 @@ const chromeHref =
               class="block w-full text-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 no-underline"
             >
               {webPrimary ? modelCopy.web : navCopy.cta}
-            </a>
-            <a
-              href={chromeHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-track-event="chrome_store_click"
-              data-track-context="nav_mobile_extension"
-              class="block mt-3 px-3 py-2 text-center text-sm font-semibold text-slate-600 hover:text-brand-600 no-underline"
-            >
-              {homeExtra.addToChrome}
             </a>
           </div>
         </div>
@@ -464,6 +466,9 @@ const chromeHref =
 </html>
 
 <style>
+  .site-nav-tablet-web { display: none; }
+  html[data-client-device="phone"] .site-nav-main[href^="https://chromewebstore.google.com/"] { display: none; }
+  html[data-client-device="phone"] .site-nav-tablet-web { display: inline-flex; }
   .home-public-stats { flex-direction: column; justify-content: center; align-items: center; width: 108px; min-width: 0; height: 38px; flex-shrink: 0; color: #64748b; font-size: 10px; line-height: 1.15; text-align: center; }
   .home-public-stats .public-stat-number { color: #4338ca; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
   @media (max-width: 1279px) {

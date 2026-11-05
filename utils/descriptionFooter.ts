@@ -98,6 +98,7 @@ export function canUseDescriptionFooter(
 ) {
   return (
     effectiveTier === "free" ||
+    effectiveTier === "starter" ||
     effectiveTier === "pro" ||
     effectiveTier === "business"
   );

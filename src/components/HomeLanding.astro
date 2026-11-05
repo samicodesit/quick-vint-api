@@ -182,7 +182,7 @@ const subtitleParts =
             <p class="home-entry-note">{entry.web}</p>
             <p class="home-entry-device-label"><Smartphone size={14} aria-hidden="true" />{entry.devices}</p>
           </div>
-          <div class="home-entry-route">
+          <div class="home-entry-route home-entry-desktop-route">
           <p class="home-entry-desktop-label"><Laptop size={15} aria-hidden="true" />{entry.desktop}</p>
           <a
             href={chromeHref}
@@ -473,9 +473,17 @@ const subtitleParts =
         rel="noopener noreferrer"
         data-track-event="chrome_store_click"
         data-track-context="screenshot_preview_modal"
-        class="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-black text-white no-underline shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        class="home-modal-extension inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-black text-white no-underline shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         {extra.screenshotModalCta}
+      </a>
+      <a
+        href="/app?ref=screenshot_preview_mobile"
+        data-track-event="web_app_click"
+        data-track-context="screenshot_preview_mobile"
+        class="home-modal-web min-h-11 items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-black text-white no-underline shadow-lg shadow-brand-600/20 focus:outline-none focus:ring-2 focus:ring-brand-500"
+      >
+        {entry.action}
       </a>
     </div>
   </div>
@@ -982,9 +990,18 @@ const subtitleParts =
   .home-entry-button:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 3px; }
   .home-entry-note { margin-top: 5px; font-size: 12px; line-height: 1.4; color: #64748b; }
   .home-entry-phone { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; color: #4338ca; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+  .home-modal-web { display: none; }
   .home-entry-device-label, .home-entry-desktop-label, .home-mobile-instructions { display: none; }
+  html[data-client-device="phone"] .home-entry-desktop-route,
+  html[data-client-device="phone"] .home-modal-extension,
+  html[data-client-device="phone"] .home-desktop-instructions { display: none; }
+  html[data-client-device="phone"] .home-modal-web { display: inline-flex; }
+  html[data-client-device="phone"] .home-mobile-instructions { display: inline; }
+  html[data-client-device="phone"] .home-final-web { display: flex; }
 
   @media (max-width: 767px) {
+    .home-entry-desktop-route, .home-modal-extension { display: none; }
+    .home-modal-web { display: inline-flex; }
     .home-desktop-instructions { display: none; }
     .home-mobile-instructions { display: inline; }
     .home-final-web { display: flex; }

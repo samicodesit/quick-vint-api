@@ -200,11 +200,60 @@ describe("/api/generate remote image handling", () => {
     },
   });
 
+  it("keeps requested emojis and a saved note when a seller upgrades to Starter", async () => {
+    profileSingle.mockResolvedValue({
+      data: {
+        api_calls_this_month: 0,
+        subscription_status: "active",
+        subscription_tier: "starter",
+        last_api_call_reset: "2026-07-17",
+        is_legacy_plan: false,
+        account_status: "active",
+        free_lifetime_generations_used: 5,
+        pack_credits: 0,
+        abuse_reason: null,
+      },
+      error: null,
+    });
+    const request = pilotRequest();
+    request.body = {
+      ...request.body,
+      useEmojis: true,
+      descriptionFooterText: "Ships in a cardboard box.",
+    } as typeof request.body;
+    const module = await import("../../../api/generate.js");
+    const response = createResponse();
+    await (module as any).default(request as any, response as any);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.description).toContain("Ships in a cardboard box.");
+    const sentPrompt = createCompletion.mock.calls[0][0].messages[1].content[0]
+      .text as string;
+    expect(sentPrompt).toContain("Use relevant emojis naturally");
+  });
+
   it("routes pilot accounts through Fast Responses with identical prompt text and logs actual billing", async () => {
     const module = await import("../../../api/generate.js");
     const handler = (module as any).default;
     await handler(pilotRequest() as any, createResponse() as any);
     const baseline = createCompletion.mock.calls[0][0];
+    const prompt = baseline.messages[1].content[0].text as string;
+    expect(prompt).toContain(
+      "Inspect every supplied image, including close-ups",
+    );
+    expect(prompt).toContain("full readable year range");
+    expect(prompt).toContain("adjacent number");
+    expect(prompt).toContain(
+      "keep the distinctive part and drop only the generic legal words",
+    );
+    expect(prompt).toContain("Never include barcode numbers");
+    expect(prompt).toContain(
+      "words or slogans that are part of the item's main print",
+    );
+    expect(prompt).toContain("Do not say how you know a fact");
+    expect(prompt).not.toContain("or where it appears");
+    expect(prompt).toContain("Never turn a printed year into a season");
+    expect(prompt).toContain("never as proof of authenticity or licensing");
     vi.clearAllMocks();
     process.env.OPENAI_DRAFT_PILOT_PERCENT = "100";
     const res = createResponse();

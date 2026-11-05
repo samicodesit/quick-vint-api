@@ -9,6 +9,10 @@ import {
   type PhotoSlot,
 } from "./listingPhotoGeneration";
 import { IMAGE_MODEL, CHECK_MODEL } from "./userModelGeneration";
+const retryableCheckFailure = (code: string) =>
+  /^(?:photo_provider_timeout|photo_provider_429|photo_provider_5\d{2})$/.test(
+    code,
+  );
 export function photoFailureCode(error: unknown): string {
   if (error instanceof Error && error.name === "TimeoutError")
     return "photo_provider_timeout";
@@ -53,6 +57,7 @@ export interface PhotoWorkerDependencies {
     originals?: string[],
   ): Promise<any>;
   upload(key: string, bytes: Buffer): Promise<void>;
+  download(key: string): Promise<Buffer>;
 }
 export async function runPhotoJob(
   user: string,
@@ -183,19 +188,30 @@ export async function runPhotoJob(
         const pose =
           slot === "secondary" || plan.category === "backpack" ? rear : front;
         const indices = photoReferenceIndices(plan, slot);
-        const key = `${user}/${id}/${job.retry_count}/${slot}.jpg`;
+        const previous = job.payload[slot];
+        const reuse =
+          job.retry_count === 1 &&
+          previous?.state === "failed" &&
+          retryableCheckFailure(previous.errorCode) &&
+          previous.candidateKey === `${user}/${id}/0/${slot}.jpg`;
+        const key = reuse
+          ? previous.candidateKey
+          : `${user}/${id}/${job.retry_count}/${slot}.jpg`;
+        let candidateKey: string | undefined;
         try {
-          const generated = await stage(
-            slot,
-            "image",
-            () =>
-              deps.edit(
-                user,
-                [pose, ...indices.map((i) => sources![i])],
-                photoPrompt(plan, slot),
-              ),
-            key,
-          );
+          const generated = reuse
+            ? { bytes: await deps.download(key) }
+            : await stage(
+                slot,
+                "image",
+                () =>
+                  deps.edit(
+                    user,
+                    [pose, ...indices.map((i) => sources![i])],
+                    photoPrompt(plan, slot),
+                  ),
+                key,
+              );
           const [checked, uploaded] = await Promise.allSettled([
             stage(slot + "_check", "check", () =>
               deps.check(
@@ -207,15 +223,23 @@ export async function runPhotoJob(
                 indices.map((i) => sources![i]),
               ),
             ),
-            deps.upload(key, generated.bytes),
+            reuse ? Promise.resolve() : deps.upload(key, generated.bytes),
           ]);
           if (uploaded.status === "rejected") throw uploaded.reason;
-          if (checked.status === "rejected") throw checked.reason;
+          if (checked.status === "rejected") {
+            if (retryableCheckFailure(photoFailureCode(checked.reason)))
+              candidateKey = key;
+            throw checked.reason;
+          }
           if (!checked.value.accepted) throw new Error("photo_quality_failed");
           await save({ [slot]: { state: "ready", key } });
         } catch (error) {
           await save({
-            [slot]: { state: "failed", errorCode: photoFailureCode(error) },
+            [slot]: {
+              state: "failed",
+              errorCode: photoFailureCode(error),
+              ...(candidateKey ? { candidateKey } : {}),
+            },
           });
         }
       }),

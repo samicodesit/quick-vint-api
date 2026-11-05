@@ -245,6 +245,13 @@ export async function processListingPhotoJob(user: string, id: string) {
     classify: classifyListingPhotos,
     edit: editListingPhoto,
     check: checkListingPhoto,
+    download: async (key) => {
+      const image = await imageData(await signed(PHOTO_BUCKET, key));
+      const bytes = Buffer.from(image.slice(image.indexOf(",") + 1), "base64");
+      if (bytes.length < 1000 || bytes[0] !== 255 || bytes[1] !== 216)
+        throw new Error("invalid_photo_image");
+      return bytes;
+    },
     upload: async (key, bytes) => {
       const result = await supabase.storage
         .from(PHOTO_BUCKET)

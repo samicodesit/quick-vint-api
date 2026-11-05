@@ -45,7 +45,16 @@ it("retains a checker timeout without losing an accepted view or repeating image
         throw Object.assign(new Error("sensitive signed URL"), {
           name: "TimeoutError",
         });
-      return { accepted: true, usage: {}, quality: { defects: [] } };
+      return {
+        accepted: true,
+        usage: {
+          input_tokens: 1000,
+          input_tokens_details: { cached_tokens: 100 },
+          output_tokens: 100,
+        },
+        serviceTier: "priority",
+        quality: { defects: [] },
+      };
     },
     upload: async () => {},
   });
@@ -60,6 +69,13 @@ it("retains a checker timeout without losing an accepted view or repeating image
       attemptId: "secondary_check",
       status: "failed",
       metrics: expect.objectContaining({ errorCode: "photo_provider_timeout" }),
+    }),
+  );
+  expect(records).toContainEqual(
+    expect.objectContaining({
+      attemptId: "primary_check",
+      cost: expect.closeTo(0.00562, 9),
+      metrics: expect.objectContaining({ serviceTier: "priority" }),
     }),
   );
   expect(JSON.stringify(records)).not.toContain("sensitive signed URL");

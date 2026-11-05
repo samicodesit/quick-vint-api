@@ -36,6 +36,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
   },
 }));
 import handler from "../../../api/events/track";
+import { ApiLogger } from "../../../utils/apiLogger";
 
 async function editedListing() {
   const req = {
@@ -119,6 +120,29 @@ describe("event endpoint style learning cost boundary", () => {
     expect(mocks.suggest).toHaveBeenCalledOnce();
     expect(mocks.update).toHaveBeenCalledWith(
       expect.objectContaining({ ai_instructions: "Use short lines" }),
+    );
+  });
+
+  it("logs the style-learning model usage for cost accounting", async () => {
+    mocks.suggest.mockImplementationOnce(async ({ onUsage }) => {
+      onUsage({
+        actualModel: "gpt-5.4-mini-2026-03-17",
+        promptTokens: 1000,
+        completionTokens: 100,
+        cachedTokens: 100,
+      });
+      return null;
+    });
+    await editedListing();
+    expect(ApiLogger.logRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "/event/ai_style_learning",
+        openaiModel: "gpt-5.4-mini",
+        openaiTokensUsed: 1100,
+        openaiPromptTokens: 1000,
+        openaiCompletionTokens: 100,
+        openaiCachedTokens: 100,
+      }),
     );
   });
 

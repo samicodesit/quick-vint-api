@@ -28,6 +28,10 @@ import {
   estimateOpenAICostUsd,
   getBillableOpenAIModel,
 } from "../../utils/openaiModelExperiment";
+import {
+  summarizeDraftCostUncertainty,
+  summarizeNonDraftAiCosts,
+} from "../../utils/adminAiCost";
 import { createPricingOfferUrl } from "../../utils/pricingOfferToken";
 import {
   LIMIT_FOLLOWUP_COUPON_CODE,
@@ -2305,6 +2309,29 @@ async function fetchOpenAICostLogsForWindow(windowStartIso: string) {
   }
 }
 
+async function fetchMonthlyAiCostRows(
+  table: string,
+  fields: string,
+  windowStartIso: string,
+  endpoint?: string,
+) {
+  const rows: any[] = [];
+  const pageSize = 1000;
+  for (let page = 0; ; page += 1) {
+    let query = supabase
+      .from(table)
+      .select(fields)
+      .gte("created_at", windowStartIso);
+    if (endpoint) query = query.eq("endpoint", endpoint);
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
 function buildOpenAICostSummary(
   logs: OpenAICostLog[],
   days: number,
@@ -2923,6 +2950,33 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
         periodTotalDays: monthTotalDays,
       },
     );
+    const [listingPhotoAttempts, userModelAttempts, styleLearningLogs] =
+      await Promise.all([
+        fetchMonthlyAiCostRows(
+          "listing_photo_attempts",
+          "created_at, stage, cost_usd, metrics",
+          costWindowStart.toISOString(),
+        ),
+        fetchMonthlyAiCostRows(
+          "user_model_attempts",
+          "created_at, metrics",
+          costWindowStart.toISOString(),
+        ),
+        fetchMonthlyAiCostRows(
+          "api_logs",
+          "created_at, openai_model, openai_prompt_tokens, openai_completion_tokens, openai_cached_tokens",
+          costWindowStart.toISOString(),
+          "/event/ai_style_learning",
+        ),
+      ]);
+    const nonDraftAiCostSummary = summarizeNonDraftAiCosts(
+      listingPhotoAttempts,
+      userModelAttempts,
+      styleLearningLogs,
+    );
+    const draftCostUncertainty = summarizeDraftCostUncertainty(
+      costLogWindow.logs,
+    );
     const revenueSummary = await buildAdminRevenueSummary();
 
     // 1. Get recent activity timestamps to sort users
@@ -3036,6 +3090,8 @@ async function handleUsageStats(req: VercelRequest, res: VercelResponse) {
       today: todayUsage,
       lastWeek: weekStats,
       openaiCostSummary,
+      nonDraftAiCostSummary,
+      draftCostUncertainty,
       revenueSummary,
       totalUsers: totalUserCount || 0,
       recentActivity: recentActivityUsers,

@@ -75,4 +75,29 @@ describe("suggestAiStyle prompt", () => {
       "tone, structure, wording, verbosity, formatting, or field placement",
     );
   });
+
+  it("reports usage even when the model recommends no style change", async () => {
+    createCompletion.mockResolvedValueOnce({
+      model: "gpt-5.4-mini-2026-03-17",
+      usage: {
+        prompt_tokens: 1000,
+        completion_tokens: 100,
+        prompt_tokens_details: { cached_tokens: 100 },
+      },
+      choices: [{ message: { content: '{"action":"no_change"}' } }],
+    });
+    const onUsage = vi.fn();
+    const suggestion = await suggestAiStyle({
+      currentInstructions: null,
+      examples: [],
+      onUsage,
+    });
+    expect(suggestion).toBeNull();
+    expect(onUsage).toHaveBeenCalledWith({
+      actualModel: "gpt-5.4-mini-2026-03-17",
+      promptTokens: 1000,
+      completionTokens: 100,
+      cachedTokens: 100,
+    });
+  });
 });

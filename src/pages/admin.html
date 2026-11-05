@@ -2465,7 +2465,7 @@
             const routes = {
                 costs: {
                     title: 'Costs',
-                    subtitle: 'OpenAI spend, model mix, and high-cost usage patterns.',
+                    subtitle: '',
                     loading: 'Loading token-based AI cost reporting...'
                 },
                 reports: {
@@ -3000,284 +3000,97 @@
         async function renderCosts(container) {
             const todayRange = getLocalTodayRange();
             const data = await fetchAPI(`/api/admin?action=usage-stats&today_start=${encodeURIComponent(todayRange.start)}&today_end=${encodeURIComponent(todayRange.end)}`);
-            const costSummary = data.openaiCostSummary || {};
-            const costDaily = Array.isArray(costSummary.daily) ? costSummary.daily : [];
-            const costModels = Array.isArray(costSummary.modelBreakdown) ? costSummary.modelBreakdown : [];
-            const costTopUsers = Array.isArray(costSummary.topUsers) ? costSummary.topUsers : [];
-            const totalOpenAICost = Number(costSummary.totalCostUsd || 0);
-            const avgOpenAICost = Number(costSummary.avgCostPerGenerationUsd || 0);
-            const projectedMonthEndCost = Number(costSummary.projectedMonthEndCostUsd || costSummary.projectedMonthlyCostUsd || 0);
-            const unknownCostGenerations = Number(costSummary.unknownCostGenerations || 0);
-            const todayCost = Number(data.today?.estimatedCost || 0);
-            const pricedGenerations = Number(costSummary.costedGenerations || 0);
-            const totalTokens = Number(costSummary.totalTokens || 0);
-            const windowDays = Number(costSummary.windowDays || 30);
-            const periodLabel = costSummary.periodLabel || `${windowDays}-day period`;
-            const periodTotalDays = Number(costSummary.periodTotalDays || windowDays);
-            const todayGenerations = Number(data.today?.pricedGenerations || 0);
-            const revenueSummary = data.revenueSummary || {};
-            const estimatedMrr = Number(revenueSummary.estimatedMrrEur || 0);
-            const activePaidUsers = Number(revenueSummary.activePaidUsers || 0);
-            const profileEstimateMrr = Number(revenueSummary.profileEstimateMrrEur || 0);
-            const profileActivePaidUsers = Number(revenueSummary.profileActivePaidUsers || 0);
-            const revenueSource = String(revenueSummary.source || '');
-            const isStripeMrr = revenueSource === 'stripe_subscription_items';
-            const isRevenueFallback = revenueSource === 'profile_plan_list_price_fallback' || revenueSummary.stripeUnavailable;
-            const revenueByTier = Array.isArray(revenueSummary.byTier) ? revenueSummary.byTier : [];
-            const currentCostLoad = estimatedMrr ? (totalOpenAICost / estimatedMrr) * 100 : null;
-            const projectedCostLoad = estimatedMrr ? (projectedMonthEndCost / estimatedMrr) * 100 : null;
-            const grossMarginAfterAi = estimatedMrr ? ((estimatedMrr - totalOpenAICost) / estimatedMrr) * 100 : null;
-            const unknownModels = Array.isArray(costSummary.unknownModelBreakdown) ? costSummary.unknownModelBreakdown : [];
-            const latestUnknown = costSummary.latestUnknownCostLog || null;
-            const unknownCostCopy = unknownCostGenerations
-                ? `${unknownCostGenerations.toLocaleString()} generation${unknownCostGenerations === 1 ? '' : 's'} missing pricing`
-                : '';
-            const avgCostCopy = pricedGenerations
-                ? `${formatMoney(avgOpenAICost)} avg`
-                : 'No priced generation cost yet';
-            const formatCostDateTime = (value) => {
-                if (!value) return '';
-                return new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const draft = data.openaiCostSummary || {};
+            const other = data.nonDraftAiCostSummary || {};
+            const photos = other.modelPhoto || {};
+            const style = other.styleLearning || {};
+            const uncertainty = data.draftCostUncertainty || {};
+            const revenue = data.revenueSummary || {};
+            const draftUsd = Number(draft.totalCostUsd || 0);
+            const photoUsd = Number(photos.knownCostUsd || 0);
+            const styleUsd = Number(style.knownCostUsd || 0);
+            const knownUsd = draftUsd + photoUsd + styleUsd;
+            const mrrEur = Number(revenue.estimatedMrrEur || 0);
+            const paidUsers = Number(revenue.activePaidUsers || 0);
+            const isStripeMrr = revenue.source === 'stripe_subscription_items';
+            const solCount = Number(uncertainty.solMissingTierCount || 0);
+            const unknownParts = [];
+            if (solCount) unknownParts.push(`${solCount.toLocaleString()} Sol drafts (${formatMoney(uncertainty.solStandardCostUsd)} to ${formatMoney(uncertainty.solFastCostUsd)} estimate)`);
+            if (Number(uncertainty.otherUnknownCount || 0)) unknownParts.push(`${Number(uncertainty.otherUnknownCount).toLocaleString()} other drafts`);
+            if (Number(photos.unknownAttempts || 0)) unknownParts.push(`${Number(photos.unknownAttempts).toLocaleString()} photo attempts`);
+            if (Number(style.unknownCalls || 0)) unknownParts.push(`${Number(style.unknownCalls).toLocaleString()} style calls`);
+
+            const modelMap = new Map();
+            const addModelCost = (name, amount) => {
+                const label = String(name || 'unknown').replace(/-\d{4}-\d{2}-\d{2}$/, '');
+                if (label === 'unknown') return;
+                modelMap.set(label, (modelMap.get(label) || 0) + Number(amount || 0));
             };
-            const latestUnknownCopy = latestUnknown
-                ? `Latest unknown: ${escapeHtml(latestUnknown.model || 'unknown')} at ${formatCostDateTime(latestUnknown.created_at)}`
-                : '';
-            const unknownModelCopy = unknownModels.length
-                ? unknownModels.slice(0, 3).map((item) => `${escapeHtml(item.model || 'unknown')} (${Number(item.generation_count || 0).toLocaleString()})`).join(' · ')
-                : '';
-            const tierRevenueCopy = revenueByTier.length
-                ? revenueByTier.map((tier) => `${escapeHtml(tier.tier || 'unknown')}: ${Number(tier.count || 0).toLocaleString()} / ${formatEuro(tier.monthlyRevenueEur)}`).join(' · ')
-                : 'No active paid profile tiers found.';
-            const mrrLabel = isStripeMrr ? 'Stripe MRR' : 'Estimated MRR';
-            const mrrSourceCopy = isStripeMrr
-                ? `Stripe subscriptions · ${activePaidUsers.toLocaleString()} current paid subscription${activePaidUsers === 1 ? '' : 's'}`
-                : `Profile estimate${isRevenueFallback ? ' fallback' : ''} · ${activePaidUsers.toLocaleString()} active paid user${activePaidUsers === 1 ? '' : 's'}`;
-            const profileDriftCopy = isStripeMrr && profileEstimateMrr
-                ? `Profile estimate: ${formatEuro(profileEstimateMrr)}${profileActivePaidUsers ? ` / ${profileActivePaidUsers.toLocaleString()} paid profile${profileActivePaidUsers === 1 ? '' : 's'}` : ''}`
-                : '';
-            const mrrCaveatCopy = isStripeMrr
-                ? 'MRR is summed from current Stripe subscription item prices. VAT, one-off credit packs, and currency movement are not included.'
-                : 'MRR is estimated from active paid profile tiers because Stripe MRR was unavailable. Discounts, VAT, churn timing, credit packs, and currency movement are not included.';
+            for (const model of Array.isArray(draft.modelBreakdown) ? draft.modelBreakdown : []) addModelCost(model.model, model.cost_usd);
+            for (const model of Array.isArray(photos.modelBreakdown) ? photos.modelBreakdown : []) addModelCost(model.model, model.costUsd);
+            if (styleUsd) addModelCost('gpt-5.4-mini', styleUsd);
+            const modelRows = [...modelMap].sort((a, b) => b[1] - a[1]);
+            const costDaily = Array.isArray(draft.daily) ? draft.daily : [];
+            const otherDaily = new Map((Array.isArray(other.daily) ? other.daily : []).map(day => [day.date, Number(day.costUsd || 0)]));
+
             container.innerHTML = `
-                <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
-                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.25rem;">
-                        <div>
-                            <div class="section-kicker">Costs</div>
-                            <h3 class="card-title" style="font-size:1.25rem; margin:0.15rem 0 0.35rem;">AI cost vs MRR</h3>
-                            <div class="text-sm text-muted">${escapeHtml(periodLabel)} · day ${windowDays} of ${periodTotalDays}. OpenAI costs are estimated from generation logs.</div>
-                        </div>
-                        ${unknownCostGenerations ? `<span class="badge badge-warning">${unknownCostCopy}</span>` : ''}
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:0.85rem; align-items:stretch;">
+                <div class="card" style="padding:1.5rem; margin-bottom:1rem;">
+                    <h3 class="card-title" style="font-size:1.25rem; margin:0.15rem 0 0.25rem;">AI costs</h3>
+                    <div class="text-sm text-muted">${escapeHtml(draft.periodLabel || 'Current month')}</div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.75rem; margin-top:1rem;">
                         <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:linear-gradient(135deg, rgba(118,75,162,0.10), rgba(255,255,255,0));">
-                            <div class="text-sm text-muted">Month-to-date AI spend</div>
-                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatMoney(totalOpenAICost)}</div>
-                            <div class="text-sm text-muted">${pricedGenerations.toLocaleString()} priced generations · ${totalTokens.toLocaleString()} tokens</div>
+                            <div class="text-sm text-muted">Known AI spend</div>
+                            <div style="font-size:1.85rem; font-weight:850; margin-top:0.35rem;">${formatMoney(knownUsd)}</div>
                         </div>
-                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                            <div class="text-sm text-muted">Projected month-end AI cost</div>
-                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatMoney(projectedMonthEndCost)}</div>
-                            <div class="text-sm text-muted">Run-rate from ${windowDays.toLocaleString()} elapsed day${windowDays === 1 ? '' : 's'}</div>
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem;">
+                            <div class="text-sm text-muted">Draft spend</div>
+                            <div style="font-size:1.85rem; font-weight:850; margin-top:0.35rem;">${formatMoney(draftUsd)}</div>
                         </div>
-                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                            <div class="text-sm text-muted">${mrrLabel}</div>
-                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatEuro(estimatedMrr)}</div>
-                            <div class="text-sm text-muted">${mrrSourceCopy}</div>
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem;">
+                            <div class="text-sm text-muted">Model photos</div>
+                            <div style="font-size:1.85rem; font-weight:850; margin-top:0.35rem;">${formatMoney(photoUsd)}</div>
                         </div>
-                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                            <div class="text-sm text-muted">AI cost load</div>
-                            <div style="font-size:2.15rem; line-height:1; font-weight:850; color:var(--text-primary); margin:0.55rem 0;">${formatPercent(currentCostLoad)}</div>
-                            <div class="text-sm text-muted">${formatPercent(projectedCostLoad)} projected at month-end</div>
+                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem;">
+                            <div class="text-sm text-muted">${isStripeMrr ? 'Stripe MRR' : 'Estimated MRR'}</div>
+                            <div style="font-size:1.85rem; font-weight:850; margin-top:0.35rem;">${formatEuro(mrrEur)}</div>
+                            <div class="text-sm text-muted">${paidUsers.toLocaleString()} paid subscriptions</div>
                         </div>
                     </div>
-
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; margin-top:1rem; align-items:stretch;">
-                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
-                                <div>
-                                    <div class="text-sm text-muted">Gross margin after AI</div>
-                                    <div style="font-size:1.8rem; font-weight:850; margin:0.35rem 0;">${formatPercent(grossMarginAfterAi)}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div class="text-sm text-muted">Avg cost</div>
-                                    <div style="font-weight:800;">${avgCostCopy} per priced generation</div>
-                                </div>
-                            </div>
-                            <div style="margin-top:0.8rem; height:10px; border-radius:999px; background:#eef2f7; overflow:hidden;">
-                                <div style="height:100%; width:${Math.max(0, Math.min(100, Number(currentCostLoad || 0)))}%; background:#764BA2;"></div>
-                            </div>
-                            <div class="text-sm text-muted" style="margin-top:0.75rem;">${mrrCaveatCopy}${profileDriftCopy ? `<br>${profileDriftCopy}` : ''}</div>
-                        </div>
-                        <div style="border:1px solid var(--border-color); border-radius:12px; padding:1rem; background:#fff;">
-                            <div style="display:flex; justify-content:space-between; gap:1rem;">
-                                <div>
-                                    <div class="text-sm text-muted">Today</div>
-                                    <div style="font-size:1.35rem; font-weight:850; margin:0.25rem 0;">${formatMoney(todayCost)}</div>
-                                    <div class="text-sm text-muted">${todayGenerations.toLocaleString()} priced generation${todayGenerations === 1 ? '' : 's'}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div class="text-sm text-muted">Revenue mix</div>
-                                    <div style="font-size:0.82rem; line-height:1.45; color:var(--text-secondary); max-width:280px;">${tierRevenueCopy}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    ${unknownCostGenerations ? `
-                        <div style="margin-top:1rem; padding:0.85rem 1rem; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:0.875rem; line-height:1.5;">
-                            Missing pricing is excluded from the dollar total until its model is mapped. ${latestUnknownCopy}${unknownModelCopy ? `<br>Unknown models: ${unknownModelCopy}` : ''}
-                        </div>
-                    ` : ''}
+                    ${unknownParts.length ? `<div style="margin-top:1rem; padding:0.7rem 0.85rem; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:0.875rem;">Unpriced: ${unknownParts.join(' · ')}</div>` : ''}
                 </div>
-
-                <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
-                    <div class="card-header" style="padding: 0 0 1rem 0;">
-                        <div>
-                            <h3 class="card-title">Daily cost trend</h3>
-                            <div class="text-sm text-muted">Month-to-date spend and priced generations.</div>
-                        </div>
-                        <button class="btn-secondary" onclick="state.logsType='generation'; switchView('logs')">Open logs</button>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:1rem; margin-bottom:2rem;">
+                    <div class="card" style="padding:1.25rem;">
+                        <h3 class="card-title" style="margin-bottom:1rem;">Daily spend</h3>
+                        <div style="height:300px;"><canvas id="aiCostChart"></canvas></div>
                     </div>
-                    <div style="height: 320px;">
-                        <canvas id="aiCostChart"></canvas>
+                    <div class="card" style="padding:1.25rem;">
+                        <h3 class="card-title" style="margin-bottom:1rem;">AI model costs</h3>
+                        ${modelRows.length ? modelRows.map(([model, cost]) => `<div style="display:flex; justify-content:space-between; gap:1rem; padding:0.8rem 0; border-top:1px solid var(--border-color);"><span style="font-weight:700; overflow-wrap:anywhere;">${escapeHtml(model)}</span><strong style="white-space:nowrap;">${formatMoney(cost)}</strong></div>`).join('') : '<div class="text-sm text-muted">No priced calls yet.</div>'}
                     </div>
-                </div>
+                </div>`;
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
-                    <div class="card" style="padding: 1.25rem;">
-                        <h3 class="card-title" style="margin-bottom: 1rem;">Model Split</h3>
-                        ${costModels.length ? costModels.map(model => `
-                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 0; border-top:1px solid var(--border-color);">
-                                <div>
-                                    <div style="font-weight:700;">${escapeHtml(model.model || 'unknown')}</div>
-                                    <div class="text-sm text-muted">${Number(model.generation_count || 0).toLocaleString()} generations · ${Number(model.tokens || 0).toLocaleString()} tokens${Number(model.unknown_cost_count || 0) ? ` · ${Number(model.unknown_cost_count || 0).toLocaleString()} unknown` : ''}</div>
-                                </div>
-                                <div style="font-weight:800;">${formatMoney(model.cost_usd)}</div>
-                            </div>
-                        `).join('') : '<div class="empty-state">No model cost data yet.</div>'}
-                    </div>
-
-                    <div class="card" style="padding: 1.25rem;">
-                        <h3 class="card-title" style="margin-bottom: 1rem;">Highest Cost Users</h3>
-                        ${costTopUsers.length ? costTopUsers.map(user => `
-                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 0; border-top:1px solid var(--border-color);">
-                                <div style="min-width:0;">
-                                    <div style="font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(user.user_email || user.user_id || 'unknown')}</div>
-                                    <div class="text-sm text-muted">${Number(user.generation_count || 0).toLocaleString()} generations · ${Number(user.tokens || 0).toLocaleString()} tokens</div>
-                                </div>
-                                <div style="font-weight:800;">${formatMoney(user.cost_usd)}</div>
-                            </div>
-                        `).join('') : '<div class="empty-state">No user cost data yet.</div>'}
-                    </div>
-                </div>
-            `;
-
-            const aiCostCanvas = document.getElementById('aiCostChart');
-            if (!aiCostCanvas) return;
-
-            const costCtx = aiCostCanvas.getContext('2d');
-            const costLabels = costDaily.map(d => new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-            const dailyCosts = costDaily.map(d => Number(d.cost_usd || 0));
-            const dailyGenerations = costDaily.map(d => Number(d.openai_call_count || d.generation_count || 0));
-            const costGradient = costCtx.createLinearGradient(0, 0, 0, 320);
-            costGradient.addColorStop(0, 'rgba(118, 75, 162, 0.18)');
-            costGradient.addColorStop(1, 'rgba(118, 75, 162, 0)');
-
-            new Chart(costCtx, {
+            const canvas = document.getElementById('aiCostChart');
+            if (!canvas) return;
+            new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: costLabels,
-                    datasets: [
-                        {
-                            label: 'AI Cost ($)',
-                            data: dailyCosts,
-                            borderColor: '#764BA2',
-                            backgroundColor: costGradient,
-                            borderWidth: 2,
-                            tension: 0.35,
-                            fill: true,
-                            pointRadius: 0,
-                            pointHoverRadius: 4,
-                            yAxisID: 'cost'
-                        },
-                        {
-                            label: 'Priced generations',
-                            data: dailyGenerations,
-                            borderColor: '#111827',
-                            backgroundColor: 'transparent',
-                            borderDash: [4, 4],
-                            borderWidth: 1.5,
-                            tension: 0.35,
-                            pointRadius: 0,
-                            pointHoverRadius: 4,
-                            yAxisID: 'generations'
-                        }
-                    ]
+                    labels: costDaily.map(day => new Date(day.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
+                    datasets: [{
+                        label: 'USD',
+                        data: costDaily.map(day => Number(day.cost_usd || 0) + Number(otherDaily.get(day.date) || 0)),
+                        borderColor: '#764BA2',
+                        backgroundColor: 'rgba(118,75,162,0.10)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 2
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            align: 'end',
-                            labels: {
-                                usePointStyle: true,
-                                boxWidth: 6,
-                                font: { family: "var(--font-sans)", size: 11 },
-                                color: '#6b7280'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: '#111827',
-                            titleColor: '#f9fafb',
-                            bodyColor: '#f9fafb',
-                            callbacks: {
-                                label: function (context) {
-                                    if (context.dataset.yAxisID === 'cost') {
-                                        return `AI Cost: ${formatMoney(context.parsed.y)}`;
-                                    }
-                                    return `Generations: ${Number(context.parsed.y || 0).toLocaleString()}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        cost: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            beginAtZero: true,
-                            grid: { color: '#f3f4f6', drawBorder: false },
-                            ticks: {
-                                callback: function (value) { return formatMoney(value); },
-                                font: { family: "var(--font-sans)", size: 10 },
-                                color: '#9ca3af'
-                            }
-                        },
-                        generations: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            beginAtZero: true,
-                            grid: { display: false },
-                            ticks: {
-                                precision: 0,
-                                font: { family: "var(--font-sans)", size: 10 },
-                                color: '#9ca3af'
-                            }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                maxTicksLimit: 10,
-                                font: { family: "var(--font-sans)", size: 10 },
-                                color: '#9ca3af'
-                            }
-                        }
-                    }
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: value => formatMoney(value) } }, x: { grid: { display: false } } }
                 }
             });
         }

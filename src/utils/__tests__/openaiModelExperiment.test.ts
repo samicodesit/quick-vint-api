@@ -47,6 +47,9 @@ describe("openaiModelExperiment", () => {
     expect(
       estimateOpenAICostUsd({ ...base, serviceTier: "default" } as any),
     ).toBeCloseTo(0.00391, 8);
+    expect(
+      estimateOpenAICostUsd({ ...base, serviceTier: "priority" } as any),
+    ).toBeCloseTo(0.00782, 8);
     expect(estimateOpenAICostUsd(base)).toBeNull();
   });
   it("defaults generation to gpt-5.4", () => {

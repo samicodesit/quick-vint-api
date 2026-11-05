@@ -108,10 +108,11 @@ export async function runPhotoJob(
     await deps.mutate(user, "metrics", {
       ...input,
       attemptId: attempt.id,
-      cost: photoCost(kind, result.usage, model),
+      cost: photoCost(kind, result.usage, model, result.serviceTier),
       metrics: {
         model,
         usage: result.usage,
+        serviceTier: result.serviceTier || null,
         durationMs: result.durationMs,
         quality: result.quality,
       },

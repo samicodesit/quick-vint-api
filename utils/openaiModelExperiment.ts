@@ -136,10 +136,10 @@ export function estimateOpenAICostUsd({
   // including after old request metadata has been compacted.
   if (
     normalizedModel === "gpt-6.1-sol" &&
-    !["fast", "default"].includes(serviceTier || "")
+    !["fast", "priority", "default"].includes(serviceTier || "")
   )
     return null;
-  const multiplier = serviceTier === "fast" ? 2 : 1;
+  const multiplier = ["fast", "priority"].includes(serviceTier || "") ? 2 : 1;
 
   const safePromptTokens = Math.max(0, Number(promptTokens || 0));
   const safeCompletionTokens = Math.max(0, Number(completionTokens || 0));

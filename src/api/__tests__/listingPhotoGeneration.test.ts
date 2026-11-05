@@ -27,14 +27,21 @@ describe("listing photo recipes", () => {
         ok: true,
         json: async () => ({
           status: "completed",
+          service_tier: "priority",
           output: [
             { content: [{ type: "output_text", text: '{"defects":[]}' }] },
           ],
         }),
       }),
     );
-    await checkListingPhoto("pose", Buffer.from("image"), plan, "primary");
+    const result = await checkListingPhoto(
+      "pose",
+      Buffer.from("image"),
+      plan,
+      "primary",
+    );
     expect(timeout).toHaveBeenCalledWith(20000);
+    expect(result.serviceTier).toBe("priority");
     timeout.mockRestore();
   });
   it.each(["headwear", "neckwear", "other"])(
@@ -250,10 +257,14 @@ describe("listing photo recipes", () => {
   });
   it("accounts for separate image/text tokens and cached checker input", () => {
     expect(
-      photoCost("image", {
-        input_tokens_details: { image_tokens: 1000, text_tokens: 100 },
-        output_tokens: 200,
-      }),
+      photoCost(
+        "image",
+        {
+          input_tokens_details: { image_tokens: 1000, text_tokens: 100 },
+          output_tokens: 200,
+        },
+        "gpt-image-2.5-flare-2026-09-08",
+      ),
     ).toBeCloseTo(0.0145, 9);
     expect(
       photoCost("check", {
@@ -271,8 +282,28 @@ describe("listing photo recipes", () => {
           output_tokens: 100,
         },
         "gpt-6.1-sol",
+        "default",
       ),
     ).toBeCloseTo(0.00281, 9);
+    expect(
+      photoCost(
+        "check",
+        {
+          input_tokens: 1000,
+          input_tokens_details: { cached_tokens: 100 },
+          output_tokens: 100,
+        },
+        "gpt-6.1-sol",
+        "priority",
+      ),
+    ).toBeCloseTo(0.00562, 9);
+    expect(
+      photoCost(
+        "check",
+        { input_tokens: 1000, output_tokens: 100 },
+        "gpt-6.1-sol",
+      ),
+    ).toBeNull();
     expect(
       photoCost(
         "check",
@@ -284,6 +315,12 @@ describe("listing photo recipes", () => {
         "gpt-5.4-2026-03-05",
       ),
     ).toBeCloseTo(0.003775, 9);
+    expect(
+      photoCost("image", { input_tokens: 1000 }, "unknown-image-model"),
+    ).toBeNull();
+    expect(
+      photoCost("check", { input_tokens: 1000 }, "unknown-check-model"),
+    ).toBeNull();
   });
   it("uses parallel-safe single-view edits and treats malformed checker output as failure", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";

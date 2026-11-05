@@ -11,9 +11,16 @@ type Example = {
 export async function suggestAiStyle({
   currentInstructions,
   examples,
+  onUsage,
 }: {
   currentInstructions: string | null;
   examples: Example[];
+  onUsage?: (usage: {
+    actualModel: string;
+    promptTokens: number;
+    completionTokens: number;
+    cachedTokens: number;
+  }) => void;
 }) {
   const openai = new OpenAI({
     apiKey: process.env.VERCEL_APP_OPENAI_API_KEY,
@@ -34,6 +41,12 @@ export async function suggestAiStyle({
         content: JSON.stringify({ currentInstructions, examples }),
       },
     ],
+  });
+  onUsage?.({
+    actualModel: completion.model || "gpt-5.4-mini",
+    promptTokens: completion.usage?.prompt_tokens || 0,
+    completionTokens: completion.usage?.completion_tokens || 0,
+    cachedTokens: completion.usage?.prompt_tokens_details?.cached_tokens || 0,
   });
   const content = completion.choices[0]?.message?.content || "";
   let result: { action?: string; aiInstructions?: unknown; reason?: unknown };

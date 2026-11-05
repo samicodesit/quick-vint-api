@@ -108,10 +108,22 @@ async function maybeLearnAiStyle(userId: string, item: any) {
   )
     return;
 
+  const usageState: {
+    value: {
+      actualModel: string;
+      promptTokens: number;
+      completionTokens: number;
+      cachedTokens: number;
+    } | null;
+  } = { value: null };
   const suggestion = await suggestAiStyle({
     currentInstructions: profile.ai_instructions || null,
     examples: [currentExample],
+    onUsage: (usage) => {
+      usageState.value = usage;
+    },
   });
+  const modelUsage = usageState.value;
   const update: Record<string, any> = {
     ai_style_learning_state: {
       ...state,
@@ -129,6 +141,13 @@ async function maybeLearnAiStyle(userId: string, item: any) {
     userEmail: profile.email || undefined,
     endpoint: "/event/ai_style_learning",
     responseStatus: 200,
+    openaiModel: "gpt-5.4-mini",
+    openaiTokensUsed: modelUsage
+      ? modelUsage.promptTokens + modelUsage.completionTokens
+      : undefined,
+    openaiPromptTokens: modelUsage?.promptTokens,
+    openaiCompletionTokens: modelUsage?.completionTokens,
+    openaiCachedTokens: modelUsage?.cachedTokens,
     subscriptionTier: profile.subscription_tier || "free",
     subscriptionStatus: profile.subscription_status || "free",
     fullRequestBody: {
@@ -139,6 +158,7 @@ async function maybeLearnAiStyle(userId: string, item: any) {
         exampleCount: 1,
         outcome: suggestion ? "free_style_updated" : "no_change",
         reason: suggestion?.reason || null,
+        actualModel: modelUsage?.actualModel || null,
       },
     },
   });

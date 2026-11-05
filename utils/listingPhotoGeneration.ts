@@ -112,9 +112,11 @@ export function photoCost(
   kind: "image" | "check",
   usage: any,
   model = CHECK_MODEL,
+  serviceTier?: string | null,
 ) {
   if (!usage) return null;
   if (kind === "image") {
+    if (model !== IMAGE_MODEL) return null;
     const d = usage.input_tokens_details || {};
     return (
       ((d.image_tokens || 0) * 8 +
@@ -123,19 +125,27 @@ export function photoCost(
       1e6
     );
   }
+  if (
+    model === LISTING_PHOTO_CHECK_MODEL &&
+    !["default", "fast", "priority"].includes(serviceTier || "")
+  )
+    return null;
   const cached = usage.input_tokens_details?.cached_tokens || 0;
   const rates =
     model === LISTING_PHOTO_CHECK_MODEL
       ? [2, 0.1, 10]
       : model === REAR_PHOTO_CHECK_MODEL
         ? [2.5, 0.25, 15]
-        : [0.75, 0.075, 4.5];
-  return (
+        : model === CHECK_MODEL
+          ? [0.75, 0.075, 4.5]
+          : null;
+  if (!rates) return null;
+  const cost =
     (((usage.input_tokens || 0) - cached) * rates[0] +
       cached * rates[1] +
       (usage.output_tokens || 0) * rates[2]) /
-    1e6
-  );
+    1e6;
+  return cost * (["fast", "priority"].includes(serviceTier || "") ? 2 : 1);
 }
 async function provider(path: string, body: object, timeout: number) {
   const key = process.env.VERCEL_APP_OPENAI_API_KEY;
@@ -213,7 +223,12 @@ async function structured(
     .filter((c: any) => c.type === "output_text")
     .map((c: any) => c.text)
     .join("");
-  return { text, usage: response.usage, durationMs: Date.now() - started };
+  return {
+    text,
+    usage: response.usage,
+    serviceTier: response.service_tier || null,
+    durationMs: Date.now() - started,
+  };
 }
 export async function classifyListingPhotos(images: string[]) {
   const sourceIndices = [-1, ...images.map((_, index) => index)];

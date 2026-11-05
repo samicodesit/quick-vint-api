@@ -109,7 +109,7 @@ function buildAdminHarness() {
       openaiCallCount: 1891,
       noOpenAICallCount: 109,
       costedGenerations: 1891,
-      unknownCostGenerations: 0,
+      unknownCostGenerations: 145,
       noOpenAIReasonBreakdown: [
         { reason: "Rate limit exceeded", count: 100 },
         { reason: "Forbidden or paused", count: 9 },
@@ -153,6 +153,36 @@ function buildAdminHarness() {
       ],
       unknownModelBreakdown: [],
       latestUnknownCostLog: null,
+    },
+    draftCostUncertainty: {
+      solMissingTierCount: 145,
+      solStandardCostUsd: 1.19,
+      solFastCostUsd: 2.39,
+      otherUnknownCount: 0,
+    },
+    nonDraftAiCostSummary: {
+      modelPhoto: {
+        knownCostUsd: 2.9,
+        listingCostUsd: 2.78,
+        baseModelCostUsd: 0.12,
+        unknownAttempts: 5,
+        modelBreakdown: [
+          {
+            model: "gpt-image-2.5-flare-2026-09-08",
+            costUsd: 2.5,
+            callCount: 64,
+            unknownCallCount: 0,
+          },
+          {
+            model: "gpt-5.4-mini-2026-03-17",
+            costUsd: 0.4,
+            callCount: 34,
+            unknownCallCount: 0,
+          },
+        ],
+      },
+      styleLearning: { knownCostUsd: 0, unknownCalls: 9 },
+      daily: [{ date: "2026-06-22", costUsd: 0.2 }],
     },
     revenueSummary: {
       estimatedMrrEur: 130,
@@ -553,6 +583,7 @@ function buildAdminHarness() {
       };
     },
     content: el("contentArea"),
+    usage,
     modalBody: el("modalBody"),
     modalTitle: el("modalTitle"),
   };
@@ -875,8 +906,8 @@ describe("admin HTML", () => {
     await context.loadView("costs");
 
     expect(content.innerHTML).toContain("Stripe MRR");
-    expect(content.innerHTML).toContain("Stripe subscriptions");
-    expect(content.innerHTML).toContain("Profile estimate");
+    expect(content.innerHTML).toContain("18 paid subscriptions");
+    expect(content.innerHTML).not.toContain("Profile estimate");
   });
 
   it("renders every admin view without runtime view errors", async () => {
@@ -1270,41 +1301,58 @@ describe("admin HTML", () => {
     expect(html).toContain("10");
   });
 
-  it("compares month-to-date AI costs against Stripe MRR", async () => {
+  it("shows a compact, currency-safe AI cost dashboard with model totals", async () => {
     const { context, content } = buildAdminHarness();
 
     context.state.currentView = "costs";
     await context.loadView("costs");
 
-    expect(content.innerHTML).toContain("AI cost vs MRR");
+    expect(content.innerHTML).toContain("AI costs");
     expect(content.innerHTML).toContain("June 2026");
-    expect(content.innerHTML).toContain("Month-to-date AI spend");
-    expect(content.innerHTML).toContain("Projected month-end AI cost");
+    expect(content.innerHTML).toContain("Known AI spend");
+    expect(content.innerHTML).toContain("Draft spend");
+    expect(content.innerHTML).toContain("Model photos");
     expect(content.innerHTML).toContain("Stripe MRR");
-    expect(content.innerHTML).toContain("AI cost load");
-    expect(content.innerHTML).toContain("Gross margin after AI");
-    expect(content.innerHTML).toContain("Stripe subscriptions");
     expect(content.innerHTML).toContain("$12.67");
-    expect(content.innerHTML).toContain("$17.28");
-    expect(content.innerHTML).toContain("€130.00");
-    expect(content.innerHTML).toContain("9.7%");
-    expect(content.innerHTML).toContain("90.3%");
-    expect(content.innerHTML).toContain("18 current paid subscriptions");
-    expect(content.innerHTML).toContain("Profile estimate: €120.00");
-    expect(content.innerHTML).toContain("0 priced generations");
-    expect(content.innerHTML).toContain("1,891 priced generations");
-    expect(content.innerHTML).toContain("1,080,000 tokens");
-    expect(content.innerHTML).toContain("$0.0067 avg per priced generation");
-    expect(content.innerHTML).toContain("Daily cost trend");
-    expect(content.innerHTML).toContain("Model Split");
-    expect(content.innerHTML).toContain("Highest Cost Users");
+    expect(content.innerHTML).toContain("$15.57");
+    expect(content.innerHTML).toContain("$2.90");
     expect(content.innerHTML).toContain(
-      "MRR is summed from current Stripe subscription item prices",
+      "145 Sol drafts ($1.19 to $2.39 estimate)",
+    );
+    expect(content.innerHTML).toContain("5 photo attempts");
+    expect(content.innerHTML).toContain("9 style calls");
+    expect(content.innerHTML).toContain("€130.00");
+    expect(content.innerHTML).not.toContain("AI cost load");
+    expect(content.innerHTML).not.toContain("Gross margin after AI");
+    expect(content.innerHTML).not.toContain("Projected month-end AI cost");
+    expect(content.innerHTML).toContain("18 paid subscriptions");
+    expect(content.innerHTML).toContain("Daily spend");
+    expect(content.innerHTML).toContain("AI model costs");
+    expect(content.innerHTML).toContain("gpt-image-2.5-flare");
+    expect(content.innerHTML).not.toContain("Highest draft-cost users");
+    expect(content.innerHTML).not.toContain(
+      "MRR is summed from current Stripe",
     );
     expect(content.innerHTML).not.toContain("Rolling 30-day AI spend");
     expect(content.innerHTML).not.toContain("Model Experiment");
     expect(content.innerHTML).not.toContain("Stopped before OpenAI");
     expect(content.innerHTML).not.toContain("OpenAI calls");
     expect(content.innerHTML).not.toContain("Projected Monthly");
+  });
+
+  it("drops the historical cost notice when a new month has complete usage", async () => {
+    const { context, content, usage } = buildAdminHarness();
+    usage.openaiCostSummary.periodLabel = "December 2026";
+    usage.openaiCostSummary.unknownCostGenerations = 0;
+    usage.draftCostUncertainty.solMissingTierCount = 0;
+    usage.draftCostUncertainty.otherUnknownCount = 0;
+    usage.nonDraftAiCostSummary.modelPhoto.unknownAttempts = 0;
+    usage.nonDraftAiCostSummary.styleLearning.unknownCalls = 0;
+
+    context.state.currentView = "costs";
+    await context.loadView("costs");
+
+    expect(content.innerHTML).toContain("December 2026");
+    expect(content.innerHTML).not.toContain("Unpriced:");
   });
 });

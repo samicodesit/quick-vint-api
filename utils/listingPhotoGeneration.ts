@@ -131,6 +131,11 @@ export function photoCost(
   )
     return null;
   const cached = usage.input_tokens_details?.cached_tokens || 0;
+  // Historical Sol checks used implicit caching with the default 30m lifetime.
+  const written =
+    model === LISTING_PHOTO_CHECK_MODEL
+      ? usage.input_tokens_details?.cache_write_tokens || 0
+      : 0;
   const rates =
     model === LISTING_PHOTO_CHECK_MODEL
       ? [2, 0.1, 10]
@@ -141,8 +146,9 @@ export function photoCost(
           : null;
   if (!rates) return null;
   const cost =
-    (((usage.input_tokens || 0) - cached) * rates[0] +
+    (((usage.input_tokens || 0) - cached - written) * rates[0] +
       cached * rates[1] +
+      written * rates[0] * 1.25 +
       (usage.output_tokens || 0) * rates[2]) /
     1e6;
   return cost * (["fast", "priority"].includes(serviceTier || "") ? 2 : 1);
@@ -177,6 +183,11 @@ async function structured(
     {
       model,
       store: false,
+      // These one-shot candidates rarely share a reusable prefix. Avoid writing
+      // their image inputs to cache without changing the model's evidence.
+      ...(model === LISTING_PHOTO_CHECK_MODEL
+        ? { prompt_cache_options: { mode: "explicit" } }
+        : {}),
       reasoning: { effort: reasoningEffort },
       max_output_tokens: reasoningEffort === "low" ? 1600 : 450,
       input: [

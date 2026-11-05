@@ -18,6 +18,79 @@ const plan = {
   detailIndex: 1,
 };
 describe("listing photo recipes", () => {
+  it("avoids cache writes for unique Sol checks while retaining the fidelity inputs", async () => {
+    process.env.VERCEL_APP_OPENAI_API_KEY = "test";
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "completed",
+        output: [
+          { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await checkListingPhoto(
+      "pose",
+      Buffer.from("candidate"),
+      plan,
+      "primary",
+      false,
+      ["front", "back"],
+    );
+    const body = JSON.parse(fetcher.mock.calls[0][1].body);
+    expect(body.prompt_cache_options).toEqual({ mode: "explicit" });
+    expect(body.model).toBe("gpt-6.1-sol");
+    expect(body.reasoning).toEqual({ effort: "low" });
+    expect(
+      body.input[0].content
+        .filter((part: any) => part.type === "input_image")
+        .map((part: any) => part.image_url),
+    ).toEqual([
+      "pose",
+      expect.stringContaining("data:image/jpeg;base64,"),
+      "front",
+      "back",
+    ]);
+    expect(JSON.stringify(body)).not.toContain("prompt_cache_breakpoint");
+    await checkListingPhoto(
+      "pose",
+      Buffer.from("candidate"),
+      plan,
+      "secondary",
+      true,
+    );
+    expect(JSON.parse(fetcher.mock.calls[1][1].body)).not.toHaveProperty(
+      "prompt_cache_options",
+    );
+  });
+
+  it.each([
+    ["default", 1],
+    ["fast", 2],
+    ["priority", 2],
+  ] as const)(
+    "prices retained Sol cache writes separately from ordinary input at %s tier",
+    (tier, multiplier) => {
+      // 1,000 ordinary + 2,000 read + 3,000 written, then 100 output tokens.
+      expect(
+        photoCost(
+          "check",
+          {
+            input_tokens: 6000,
+            input_tokens_details: {
+              cached_tokens: 2000,
+              cache_write_tokens: 3000,
+            },
+            output_tokens: 100,
+          },
+          "gpt-6.1-sol",
+          tier,
+        ),
+      ).toBeCloseTo(0.0107 * multiplier, 9);
+    },
+  );
+
   it("gives the fidelity check enough time without extending classification or image calls", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
     const timeout = vi.spyOn(AbortSignal, "timeout");

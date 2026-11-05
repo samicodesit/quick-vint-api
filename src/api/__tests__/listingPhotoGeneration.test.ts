@@ -8,6 +8,7 @@ import {
   checkListingPhoto,
   sourceFingerprint,
   classifyListingPhotos,
+  photoView,
 } from "../../../utils/listingPhotoGeneration";
 afterEach(() => vi.unstubAllGlobals());
 const plan = {
@@ -18,6 +19,101 @@ const plan = {
   detailIndex: 1,
 };
 describe("listing photo recipes", () => {
+  it("shares source-grounded construction facts across views without inventing an unseen back", () => {
+    const facts = {
+      sleeveLength: "sleeveless",
+      legLength: "calf_length",
+      frontDecoration: "decorated",
+      backDecoration: "plain",
+    } as const;
+    const measured = {
+      ...plan,
+      category: "bottom",
+      backIndex: 1,
+      construction: facts,
+    };
+    expect(photoPrompt(measured, "primary")).toContain("calf-length");
+    expect(photoPrompt(measured, "secondary")).toContain("calf-length");
+    expect(photoPrompt(measured, "secondary")).toContain(
+      "rear surface is plain",
+    );
+    expect(
+      photoPrompt({ ...measured, backIndex: -1 }, "secondary"),
+    ).not.toContain("rear surface is plain");
+    expect(() =>
+      parsePhotoPlan(
+        JSON.stringify({
+          ...measured,
+          construction: { ...facts, legLength: "guess" },
+        }),
+        2,
+      ),
+    ).toThrow("invalid_photo_plan");
+    expect(() =>
+      parsePhotoPlan(
+        JSON.stringify({ ...measured, backViewEvidence: "absent" }),
+        2,
+      ),
+    ).toThrow("invalid_photo_plan");
+  });
+  it("uses only evidenced surfaces, including genuine shared collages and backpacks", () => {
+    expect(photoView(plan, "secondary")).toBe("front");
+    expect(photoView({ ...plan, backIndex: 0 }, "secondary")).toBe("front");
+    expect(
+      photoView(
+        { ...plan, backIndex: 0, backViewEvidence: "shared_collage" },
+        "secondary",
+      ),
+    ).toBe("rear");
+    expect(photoView({ ...plan, backIndex: 1 }, "secondary")).toBe("rear");
+    expect(photoView({ ...plan, category: "backpack" }, "primary")).toBe(
+      "rear",
+    );
+    expect(photoPrompt(plan, "secondary")).toContain("front");
+    expect(photoPrompt(plan, "secondary")).not.toContain(
+      "plain undecorated back",
+    );
+    expect(photoPrompt(plan, "secondary")).toContain(
+      "Do not reveal an unseen back",
+    );
+  });
+
+  it("checks the detail reference used by the editor instead of dropping it", async () => {
+    process.env.VERCEL_APP_OPENAI_API_KEY = "test";
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "completed",
+        output: [
+          { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await checkListingPhoto(
+      "pose",
+      Buffer.from("candidate"),
+      { ...plan, backIndex: 1, detailIndex: 2 },
+      "secondary",
+      false,
+      ["back", "front", "detail"],
+    );
+    const content = JSON.parse(fetcher.mock.calls[0][1].body).input[0].content;
+    expect(
+      content
+        .filter((part: any) => part.type === "input_image")
+        .map((part: any) => part.image_url),
+    ).toEqual([
+      "pose",
+      expect.stringContaining("data:image/jpeg;base64,"),
+      "back",
+      "front",
+      "detail",
+    ]);
+    expect(content.at(-2).text).toContain("PRODUCT");
+    expect(content.at(-2).text).toContain("detail");
+  });
+
   it("avoids cache writes for unique Sol checks while retaining the fidelity inputs", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
     const fetcher = vi.fn().mockResolvedValue({
@@ -137,6 +233,7 @@ describe("listing photo recipes", () => {
       frontIndex: 1,
       backIndex: 1,
       detailIndex: 3,
+      backViewEvidence: "shared_collage" as const,
     };
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
     const fetcher = vi.fn().mockResolvedValue({
@@ -312,7 +409,7 @@ describe("listing photo recipes", () => {
   });
   it("uses a single rear pose and category-specific crop without forcing phone into shoe crops", () => {
     expect(rearPosePrompt).toContain("SCREEN");
-    expect(photoPrompt(plan, "secondary")).toContain("undecorated");
+    expect(photoPrompt(plan, "secondary")).not.toContain("undecorated");
     expect(photoPrompt({ ...plan, category: "shoes" }, "primary")).toContain(
       "outside the crop",
     );

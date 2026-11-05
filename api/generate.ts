@@ -1188,7 +1188,7 @@ Reply only in JSON: {"title":"...","description":"..."}
                 ],
               },
             ],
-            service_tier: "fast",
+            service_tier: "default",
             reasoning: { effort: "low" },
             max_output_tokens: OPEN_AI_MAX_OUTPUT_TOKENS,
             store: false,
@@ -1224,7 +1224,7 @@ Reply only in JSON: {"title":"...","description":"..."}
           cacheWriteTokens:
             result.usage?.input_tokens_details?.cache_write_tokens ?? 0,
         },
-        openaiRequestedServiceTier: "fast",
+        openaiRequestedServiceTier: "default",
         openaiResponseId: result.id,
         openaiActualModel: result.model,
         openaiResponseStatus: result.status,

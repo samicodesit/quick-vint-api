@@ -25,6 +25,7 @@ export function selectDraftModel(
     email?.toLowerCase() === "samicodesit+ai-style-test@gmail.com";
   const bucket = userId
     ? createHash("sha256")
+        // Retain account assignment while measuring standard service separately.
         .update(`draft-sol-fast-v1:${userId}`)
         .digest()
         .readUInt32BE(0) % 10000
@@ -39,7 +40,7 @@ export function selectDraftModel(
         ? "gpt-6.1-sol"
         : DEFAULT_OPENAI_MODEL,
     imageDetail: pilot ? ("high" as const) : DEFAULT_OPENAI_IMAGE_DETAIL,
-    experiment: "draft-sol-fast-v1",
+    experiment: "draft-sol-standard-v2",
   };
 }
 

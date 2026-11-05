@@ -1,5 +1,18 @@
 # Draft model Fast pilot
 
+## November 5 local revision, not deployed
+
+The cost and fidelity review keeps the same account split, Sol model, high image
+detail, reasoning and text prompt, and requests standard service instead of Fast.
+Assignment still hashes the original experiment seed; new logs use
+`draft-sol-standard-v2` so the periods remain distinguishable. Actual returned
+service tier still determines billing. The rest of this document records the
+original October pilot. Standard service can be slower. The matched November
+evaluation and photo verification are recorded in
+`docs/superpowers/plans/2026-11-05-generation-cost-fidelity.md` and the private QA
+report. Mini and Luna were not promoted because source-photo review found factual
+regressions. Deployment remains pending owner approval.
+
 The owner authorized a production pilot on October 12, 2026. Use GPT-6.1 Sol
 Fast for a stable 50% of authenticated accounts, both existing and new, with
 high-detail images, low reasoning, a 1,000-token output cap, strict listing JSON

@@ -1,6 +1,7 @@
 import {
   photoPrompt,
   photoReferenceIndices,
+  photoView,
   rearPosePrompt,
   photoCost,
   LISTING_PHOTO_CHECK_MODEL,
@@ -174,8 +175,11 @@ export async function runPhotoJob(
       return;
     }
     await save({ phase: "preparing" });
-    const rear = await deps.rear(user);
-    if (!rear) {
+    const needsRear = (["primary", "secondary"] as PhotoSlot[]).some(
+      (slot) => photoView(plan, slot) === "rear",
+    );
+    const rear = needsRear ? await deps.rear(user) : null;
+    if (needsRear && !rear) {
       await save({ phase: "preparing" }, "queued");
       return;
     }
@@ -185,8 +189,7 @@ export async function runPhotoJob(
     await Promise.all(
       (["primary", "secondary"] as PhotoSlot[]).map(async (slot) => {
         if (job.payload[slot]?.state === "ready") return;
-        const pose =
-          slot === "secondary" || plan.category === "backpack" ? rear : front;
+        const pose = photoView(plan, slot) === "rear" ? rear! : front;
         const indices = photoReferenceIndices(plan, slot);
         const previous = job.payload[slot];
         const reuse =

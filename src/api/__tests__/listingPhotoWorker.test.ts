@@ -1,5 +1,52 @@
 import { it, expect, vi } from "vitest";
 import { runPhotoJob } from "../../../utils/listingPhotoWorker";
+it("keeps two front-facing outputs when the back is unknown without paying for a rear pose", async () => {
+  const job: any = {
+    id: "j",
+    kind: "listing",
+    lease_token: "l",
+    retry_count: 0,
+    payload: {
+      plan: {
+        eligible: true,
+        category: "top",
+        frontIndex: 0,
+        backIndex: -1,
+        detailIndex: 1,
+      },
+    },
+  };
+  const edit = vi.fn(async () => ({ bytes: Buffer.from("image"), usage: {} }));
+  const rear = vi.fn(async () => {
+    throw Error("must not prepare an unsupported rear");
+  });
+  const deps: any = {
+    mutate: async (_user: string, action: string, input: any) => {
+      if (action === "claim" || action === "get")
+        return { ...job, payload: { ...job.payload } };
+      if (action === "stage") return { id: input.stage };
+      if (action === "save") {
+        Object.assign(job.payload, input.payload);
+        if (input.state) job.state = input.state;
+      }
+      return job;
+    },
+    sources: async () => ["product-front", "label"],
+    front: async () => "front-pose",
+    rear,
+    edit,
+    check: async () => ({ accepted: true, usage: {}, quality: {} }),
+    upload: async () => {},
+  };
+  await runPhotoJob("u", "j", deps);
+  expect(rear).not.toHaveBeenCalled();
+  expect(edit).toHaveBeenCalledTimes(2);
+  expect(
+    edit.mock.calls.every((args: any[]) => args[1][0] === "front-pose"),
+  ).toBe(true);
+  expect(job.state).toBe("ready");
+  expect(job.payload.secondary.state).toBe("ready");
+});
 it.each(["rejected", "missing", "foreign-key"])(
   "keeps saved-photo recovery safe when %s",
   async (failure) => {

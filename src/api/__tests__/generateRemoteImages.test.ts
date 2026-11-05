@@ -232,7 +232,7 @@ describe("/api/generate remote image handling", () => {
     expect(sentPrompt).toContain("Use relevant emojis naturally");
   });
 
-  it("routes pilot accounts through Fast Responses with identical prompt text and logs actual billing", async () => {
+  it("routes pilot accounts through standard Responses with identical prompt text and logs actual billing", async () => {
     const module = await import("../../../api/generate.js");
     const handler = (module as any).default;
     await handler(pilotRequest() as any, createResponse() as any);
@@ -265,7 +265,7 @@ describe("/api/generate remote image handling", () => {
     expect(path).toBe("/responses");
     expect(options.body).toMatchObject({
       model: "gpt-6.1-sol",
-      service_tier: "fast",
+      service_tier: "default",
       reasoning: { effort: "low" },
       max_output_tokens: 1000,
       store: false,
@@ -291,6 +291,7 @@ describe("/api/generate remote image handling", () => {
         openaiPromptTokens: 1000,
         openaiCompletionTokens: 200,
         fullRequestBody: expect.objectContaining({
+          openaiRequestedServiceTier: "default",
           openaiBilling: expect.objectContaining({
             serviceTier: "fast",
             cacheWriteTokens: 0,
@@ -298,6 +299,7 @@ describe("/api/generate remote image handling", () => {
           draftModelPilot: expect.objectContaining({
             arm: "pilot",
             percentage: 100,
+            experiment: "draft-sol-standard-v2",
           }),
         }),
       }),

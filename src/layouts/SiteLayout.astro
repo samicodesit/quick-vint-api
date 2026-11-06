@@ -112,19 +112,7 @@ const chromeHref =
     <meta name="twitter:image:alt" content={ogImageAlt} />
     <slot name="head" />
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F2QL50WB6M"
-    ></script>
-    <script is:inline>
-      window.dataLayer = window.dataLayer || [];
-
-      function gtag() {
-        window.dataLayer.push(arguments);
-      }
-
-      gtag("js", new Date());
-      gtag("config", "G-F2QL50WB6M");
-    </script>
+    <script is:inline src="/purchase-measurement.js"></script>
 
     <script type="application/ld+json">
       {

@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { firstSubscriptionPurchase } from "../../utils/firstSubscriptionPurchase";
 import { supabase } from "../../utils/supabaseClient";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
 import {
@@ -83,6 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     let fulfilled = false;
+    let fulfilledProfileId: string | null = null;
     let fulfillmentType: "subscription" | "credit_pack" | "unknown" =
       session.mode === "subscription" ? "subscription" : "unknown";
 
@@ -119,10 +121,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         fulfilled = !!data;
+        fulfilledProfileId = data?.id || null;
       }
     }
 
+    const purchaseConversion = fulfilled
+      ? await firstSubscriptionPurchase(stripe, session, fulfilledProfileId)
+      : null;
+    res.setHeader("Cache-Control", "private, no-store");
     return res.status(200).json({
+      purchase_conversion: purchaseConversion,
       valid: true,
       status: fulfilled ? "fulfilled" : "pending",
       fulfilled,

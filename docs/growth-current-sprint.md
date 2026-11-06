@@ -554,3 +554,47 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
 
 - Added the seller-provided balance screenshot to the start of the four localized case studies. The available and pending figures retain their original labels; the account name is not shown.
 - Cropped source is retained with the private case-study evidence. Rendered desktop and mobile placements passed in all four languages; the case-study links are unchanged from the previous live check.
+
+## First subscription purchase measurement and paused Search test, 2026-11-06
+
+- Owner approved deploying tracking only. Ads must remain paused, with no spend.
+- Add consent-gated Google Ads conversion `AutoLister first paid subscription`,
+  `AW-18434567859/TMdVCLelxLMdELPdpNZE`. Primary, variable EUR value, count one,
+  stable invoice ID for deduplication. Enhanced conversions and personalization
+  are off. Purchase is campaign-specific, not an account-default goal.
+- Server verifies a live paid completed subscription Checkout Session, matching
+  paid initial invoice, fulfilled profile and no earlier positive paid subscription
+  history across Stripe invoices or this profile's billing events. Tracking errors
+  fail closed without changing entitlements. Renewals, credit packs and test
+  sessions do not count. Invoice value is actual first payment, not predicted LTV.
+- Browser measurement requires permission and a return from Checkout. Rejection,
+  blockers, or never returning can cause undercounting. No real purchase or live
+  conversion was manufactured for QA. End-to-end Google receipt is not verified.
+- Local production gate passes: 184 suites, 1,575 tests; 22 opt-in tests skipped.
+  Desktop 1280px and phone 390px built-page renders checked for consent/disclosure.
+  Reject and privacy navigation work. Local app entry is disabled by its build
+  configuration, so signup and first generation are not validated locally.
+- Existing campaign 24222309107 renamed `AutoLister | UK | Description Search | Nov 2026`
+  and explicitly paused. Campaign total EUR52.50 includes EUR2.50 historical spend:
+  EUR50 additional ad spend remains. End November 21; revisit if launch is delayed.
+  Maximize clicks, CPC ceiling EUR0.75. UK presence targeting; Search partners and
+  Display off. AI Max, automatic asset creation, text customization and URL
+  expansion off. Original English language configuration retained.
+- Enabled exact keywords: [vinted description generator], [vinted listing tool].
+  Paused the three AI/agent keywords. Added 11 phrase negatives covering customer
+  support, parcel/shipping enquiries, jobs/careers and buying bots. Campaign and
+  new ad URL suffixes identify description_search_uk_nov2026.
+- New responsive Search ad submitted through Save ad; table count rose from two
+  to three. Eight headlines and three descriptions, five free drafts, browser
+  access, review/edit/copy claims. Final URL /vinted-description-generator.
+  Removed the old iPhone/Orion setup sitelink from the new ad form.
+- Launch blockers: ad blocker hides the ad table and actual previews. User asked
+  to disable it for ads.google.com; browser security policy disallowed agent
+  extension-settings changes. Final saved-ad readback, pausing the old ad,
+  inherited asset review, and desktop/phone Google previews remain outstanding.
+  Do not launch until these checks and the real signup-to-first-draft path pass.
+- Proposed practical seller check: girlfriend tries one real item from the exact
+  landing page on her phone without coaching, notes confusion and draft edits.
+  Do not buy, post to Vinted, email dormant subscribers, or claim this is proof of
+  willingness to pay. Review search intent/activation at EUR25 additional spend,
+  assess paid acquisitions at EUR50 after conversion lag. No automatic scaling.

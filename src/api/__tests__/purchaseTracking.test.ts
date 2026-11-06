@@ -47,6 +47,7 @@ const invoice = {
   billing_reason: "subscription_create",
   customer: "cus_fixture",
   parent: { subscription_details: { subscription: "sub_fixture" } },
+  customer_email: "buyer@example.com",
 };
 beforeEach(() => {
   vi.clearAllMocks();
@@ -62,7 +63,17 @@ beforeEach(() => {
   }));
   m.from.mockImplementation((table) => {
     const q: any = {};
-    for (const k of ["select", "eq", "neq", "gt", "lt", "lte", "not", "limit"])
+    for (const k of [
+      "select",
+      "eq",
+      "ilike",
+      "neq",
+      "gt",
+      "lt",
+      "lte",
+      "not",
+      "limit",
+    ])
       q[k] = vi.fn(() => q);
     q.maybeSingle = vi.fn(async () => ({
       data: m.profile,
@@ -136,8 +147,35 @@ it("excludes paid history on a different Stripe customer for the same profile", 
   m.history = [{ stripe_invoice_id: "in_previous_customer" }];
   expect((await run()).purchase_conversion).toBeNull();
 });
+it("excludes an earlier paid invoice with email but no profile id", async () => {
+  const original = m.from.getMockImplementation()!;
+  m.from.mockImplementation((table) => {
+    if (table !== "billing_events") return original(table);
+    const q: any = {};
+    let matchesEmail = false;
+    for (const method of ["select", "eq", "neq", "gt", "lte", "not", "limit"])
+      q[method] = () => q;
+    q.ilike = (_field: string, value: string) => {
+      matchesEmail = value === "buyer@example.com";
+      return q;
+    };
+    q.then = (resolve: any) =>
+      resolve({
+        data: matchesEmail ? [{ stripe_invoice_id: "in_old_customer" }] : [],
+        error: null,
+      });
+    return q;
+  });
+  expect((await run()).purchase_conversion).toBeNull();
+});
 it("fails closed when billing history is unavailable without breaking fulfillment", async () => {
   m.historyError = new Error("history unavailable");
+  const result = await run();
+  expect(result.fulfilled).toBe(true);
+  expect(result.purchase_conversion).toBeNull();
+});
+it("does not call an email-less invoice a verified new customer", async () => {
+  m.invoice.mockResolvedValue({ ...invoice, customer_email: null });
   const result = await run();
   expect(result.fulfilled).toBe(true);
   expect(result.purchase_conversion).toBeNull();

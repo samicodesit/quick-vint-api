@@ -64,6 +64,25 @@ export async function firstSubscriptionPurchase(
       )
       .limit(1);
     if (error || !data || data.length) return null;
+    // Historical webhook audit rows can lack user_id. Match the verified
+    // invoice email too, so changing Stripe customer IDs cannot reset history.
+    const email = invoice.customer_email?.trim();
+    if (!email) return null;
+    const emailHistory = await supabase
+      .from("billing_events")
+      .select("stripe_invoice_id")
+      .ilike("user_email", email.replace(/[\\%_]/g, "\\$&"))
+      .eq("status", "paid")
+      .gt("raw_event->>amount_paid", 0)
+      .not("stripe_subscription_id", "is", null)
+      .neq("stripe_invoice_id", invoice.id)
+      .lte(
+        "stripe_event_created_at",
+        new Date(invoice.created * 1000).toISOString(),
+      )
+      .limit(1);
+    if (emailHistory.error || !emailHistory.data || emailHistory.data.length)
+      return null;
     // EUR is the app's billing currency. Fail closed for unhandled minor-unit currencies.
     if (invoice.currency !== "eur") return null;
     return {

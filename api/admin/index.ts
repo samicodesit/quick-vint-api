@@ -1199,7 +1199,7 @@ async function enrichAdminUsers(
       .or(`expires_at.gt.${nowIso},expires_at.is.null`),
     fetchAttributionRowsByIds(
       "user_attributions",
-      "user_id, source, referrer_host",
+      "user_id, source, referrer_host, campaign, claimed_at",
       "user_id",
       ids,
     )
@@ -1311,6 +1311,9 @@ async function enrichAdminUsers(
       acquisition_status: attributionResult.available
         ? "available"
         : "unavailable",
+      acquisition_campaign: attributionByUser.get(user.id)?.campaign || null,
+      acquisition_claimed_at:
+        attributionByUser.get(user.id)?.claimed_at || null,
       subscription_tier: tierKey,
       subscription_status: user.subscription_status || "unknown",
       email_can_contact: Boolean(

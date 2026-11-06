@@ -104,7 +104,13 @@ describe("admin user channel badges data", () => {
     async (segment) => {
       stubDatabase({
         data: [
-          { user_id: "campaign", source: "newsletter", referrer_host: null },
+          {
+            user_id: "campaign",
+            source: "newsletter",
+            referrer_host: null,
+            campaign: "description_search_uk_nov2026",
+            claimed_at: "2026-10-01T10:01:00Z",
+          },
           { user_id: "known", source: "x", referrer_host: "t.co" },
           {
             user_id: "referral",
@@ -124,6 +130,12 @@ describe("admin user channel badges data", () => {
         res as any,
       );
       expect(res.statusCode).toBe(200);
+      expect(
+        res.body.users.find((u: any) => u.id === "campaign"),
+      ).toMatchObject({
+        acquisition_campaign: "description_search_uk_nov2026",
+        acquisition_claimed_at: "2026-10-01T10:01:00Z",
+      });
       expect(
         res.body.users.map((u: any) => [
           u.id,

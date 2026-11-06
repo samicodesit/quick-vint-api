@@ -94,6 +94,31 @@ export function photoReferenceIndices(plan: PhotoPlan, slot: PhotoSlot) {
     (n, i, all) => n >= 0 && all.indexOf(n) === i,
   );
 }
+export function photoEditReferenceIndices(plan: PhotoPlan, slot: PhotoSlot) {
+  const references = photoReferenceIndices(plan, slot);
+  const rear = photoView(plan, slot) === "rear";
+  const target = rear
+    ? plan.construction?.backDecoration
+    : plan.construction?.frontDecoration;
+  const opposite = rear
+    ? plan.construction?.frontDecoration
+    : plan.construction?.backDecoration;
+  if (
+    ["top", "full_body", "bottom"].includes(plan.category) &&
+    plan.backViewEvidence === "separate_photo" &&
+    plan.backIndex >= 0 &&
+    plan.frontIndex !== plan.backIndex &&
+    target === "plain" &&
+    opposite === "decorated"
+  ) {
+    // Avoid transferring an opposite-side graphic into a known plain surface.
+    // Validation still receives both surfaces via photoReferenceIndices.
+    return references.filter(
+      (index) => index !== (rear ? plan.frontIndex : plan.backIndex),
+    );
+  }
+  return references;
+}
 export function sourceFingerprint(sources: string[]) {
   return createHash("sha256")
     .update(
@@ -159,11 +184,6 @@ export function photoPrompt(plan: PhotoPlan, slot: PhotoSlot) {
   const rear = photoView(plan, slot) === "rear";
   const facts = plan.construction;
   const construction = [
-    facts?.sleeveLength &&
-    facts.sleeveLength !== "unknown" &&
-    ["top", "full_body"].includes(plan.category)
-      ? `Sale garment sleeves: ${facts.sleeveLength.replace(/_/g, " ")}.`
-      : "",
     facts?.legLength &&
     facts.legLength !== "unknown" &&
     plan.category === "bottom"
@@ -191,7 +211,7 @@ export function photoPrompt(plan: PhotoPlan, slot: PhotoSlot) {
   };
   return `Create one realistic ${rear ? "rear" : "front"} mirror photo of the person in image 1 wearing the sale item in image 2. Image 2 is the target product surface for this output. Other images are supporting construction references, not permission to copy their opposite-side graphics. ${construction}
 Keep the same person, build, hairstyle, skin texture, small accessories, room, light, phone and natural arm positions. Copy only the item from product photos. Ignore hangers, tape measures, tags, hands and background objects.
-Match color, fabric, cut, pockets, fastenings and decoration. Preserve sleeve and hem proportions from PRODUCT, not the base outfit: sleeveless, short and long sleeves stay distinct; calf-length/cropped trousers must not become ankle-length or full-length. Do not stretch the garment to cover more of the model. Do not redesign the item or add accessories.
+Match color, fabric, cut, pockets, fastenings and decoration. Preserve shoulder-to-cuff length relative to the garment body in PRODUCT, not the base outfit: wrist-length sleeves must not end at the elbow. Keep sleeveless and short sleeves distinct. Calf-length/cropped trousers must not become ankle-length or full-length. Do not stretch the garment to cover more of the model. Do not redesign the item or add accessories.
 ${plan.category === "top" ? "Replace only the top. Keep the base trousers on in both views. A blouse stays a blouse, not a dress." : plan.category === "full_body" ? "Replace any base clothes the item covers; a sleeveless dress has no T-shirt underneath." : "Keep unrelated base clothes and shoes."}
 ${rear ? "Keep the rear pose: one bent arm holding the phone with its SCREEN facing the mirror, and one free arm. Copy only the evidenced target surface. Never move front-only decoration onto the back." : "Keep the phone naturally covering the central face."}
 Framing: ${crop[plan.category] || crop.full_body}
@@ -437,7 +457,7 @@ Report actual evidence, not uncertainty or changed styling. Never list a code wh
     !rear &&
     originals.length &&
     ["top", "full_body", "bottom"].includes(plan.category)
-      ? "\nCheck garment construction before anatomy. Compare sleeve endpoints (none, upper arm, elbow, wrist) and hem/leg proportions against all PRODUCT views and detail images. A calf-length/cropped leg changed to ankle/full length, or short sleeves changed to long, is wrong_item_construction even when color and fabric match. Judge the garment's proportions and exposed leg, allowing normal drape and different model height; do not use MODEL's original clothes as the length reference."
+      ? "\nCheck garment construction before anatomy. Compare sleeve endpoints (none, upper arm, elbow, wrist) and hem/leg proportions against all PRODUCT views and detail images. For flat garments, compare shoulder-to-cuff length relative to the garment body. A calf-length/cropped leg changed to ankle/full length, short sleeves changed to long, or wrist-length sleeves shortened to the elbow is wrong_item_construction even when color and fabric match. Allow normal drape and different model height; do not use MODEL's original clothes as the length reference."
       : "";
   const result = await structured(
     prompt + constructionCheck,

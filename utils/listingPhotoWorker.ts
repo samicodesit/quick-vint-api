@@ -1,6 +1,7 @@
 import {
   photoPrompt,
   photoReferenceIndices,
+  photoEditReferenceIndices,
   photoView,
   rearPosePrompt,
   photoCost,
@@ -191,6 +192,7 @@ export async function runPhotoJob(
         if (job.payload[slot]?.state === "ready") return;
         const pose = photoView(plan, slot) === "rear" ? rear! : front;
         const indices = photoReferenceIndices(plan, slot);
+        const editIndices = photoEditReferenceIndices(plan, slot);
         const previous = job.payload[slot];
         const reuse =
           job.retry_count === 1 &&
@@ -210,7 +212,7 @@ export async function runPhotoJob(
                 () =>
                   deps.edit(
                     user,
-                    [pose, ...indices.map((i) => sources![i])],
+                    [pose, ...editIndices.map((i) => sources![i])],
                     photoPrompt(plan, slot),
                   ),
                 key,

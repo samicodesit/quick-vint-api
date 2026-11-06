@@ -48,3 +48,26 @@ No product behavior changed. Lint, types, build, formatting and all 1,599 tests
 across 187 files passed, with none skipped. This supersedes the earlier 19-case
 coverage limitation. Origin/main remains 629c75a; the release is a fast-forward
 and needs no database migration. No additional paid calls or deployment.
+
+## Independent review supersedes photo acceptance
+
+The subsequent source-image review found that the earlier accepted dress rear
+shortened wrist-length sleeves. Its classifier sleeve class was wrong. The
+photo release is now on hold; earlier five-output acceptance claims are not
+valid release evidence for this dress. Removed hard sleeve-class instructions
+and added proportional checking. The exact bad rear is now rejected, while
+retained correct long-sleeve and cropped controls pass.
+
+Two new rear trials still failed: one copied the front print, and one kept the
+back plain but shortened the sleeves. Both were rejected. A narrow edit-reference
+split excludes decorated opposite views only for separately evidenced plain
+garment surfaces; checking retains both sides and detail. This remains a local
+candidate, not a demonstrated general image fix. Do not deploy it as solved.
+
+Fresh text examples cover two actual seller settings and one clearly labelled
+English control. Independent source review supports their main facts; seller
+post-edit acceptance remains unavailable. Full code gate passed all 1,602 tests,
+none skipped. Paid QA total USD 4.7067565 of USD 5. Private evidence is in
+workspace `qa/independent-final-review.md`, `qa/final-setup-examples/` and the
+shared ledger. A faithful dress rear and unchanged negative controls remain
+required before photo release. Nothing deployed.

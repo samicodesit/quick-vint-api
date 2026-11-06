@@ -9,6 +9,8 @@ import {
   sourceFingerprint,
   classifyListingPhotos,
   photoView,
+  photoEditReferenceIndices,
+  photoReferenceIndices,
 } from "../../../utils/listingPhotoGeneration";
 afterEach(() => vi.unstubAllGlobals());
 const plan = {
@@ -19,6 +21,82 @@ const plan = {
   detailIndex: 1,
 };
 describe("listing photo recipes", () => {
+  it("isolates a separately evidenced plain edit surface while preserving checker evidence", () => {
+    const separate = {
+      ...plan,
+      category: "full_body",
+      frontIndex: 0,
+      backIndex: 1,
+      detailIndex: 2,
+      backViewEvidence: "separate_photo" as const,
+      construction: {
+        sleeveLength: "unknown" as const,
+        legLength: "unknown" as const,
+        frontDecoration: "decorated" as const,
+        backDecoration: "plain" as const,
+      },
+    };
+    expect(photoEditReferenceIndices(separate, "secondary")).toEqual([1, 2]);
+    expect(photoReferenceIndices(separate, "secondary")).toEqual([1, 0, 2]);
+    expect(photoEditReferenceIndices(separate, "primary")).toEqual([0, 1, 2]);
+    expect(
+      photoEditReferenceIndices({ ...separate, detailIndex: 0 }, "secondary"),
+    ).toEqual([1]);
+    expect(
+      photoEditReferenceIndices(
+        { ...separate, backViewEvidence: undefined },
+        "secondary",
+      ),
+    ).toEqual([1, 0, 2]);
+    expect(
+      photoEditReferenceIndices(
+        { ...separate, backIndex: 0, backViewEvidence: "shared_collage" },
+        "secondary",
+      ),
+    ).toEqual([0, 2]);
+    expect(
+      photoEditReferenceIndices(
+        {
+          ...separate,
+          construction: {
+            ...separate.construction,
+            frontDecoration: "plain",
+            backDecoration: "decorated",
+          },
+        },
+        "primary",
+      ),
+    ).toEqual([0, 2]);
+    expect(
+      photoEditReferenceIndices(
+        {
+          ...separate,
+          construction: {
+            ...separate.construction,
+            frontDecoration: "unknown",
+          },
+        },
+        "secondary",
+      ),
+    ).toEqual([1, 0, 2]);
+  });
+  it("does not turn a classifier sleeve guess into an edit instruction", () => {
+    const ambiguousSleeves = {
+      ...plan,
+      category: "full_body",
+      backIndex: 1,
+      construction: {
+        sleeveLength: "three_quarter" as const,
+        legLength: "unknown" as const,
+        frontDecoration: "decorated" as const,
+        backDecoration: "plain" as const,
+      },
+    };
+    const prompt = photoPrompt(ambiguousSleeves, "secondary");
+    expect(prompt).not.toContain("Sale garment sleeves:");
+    expect(prompt).toContain("shoulder-to-cuff");
+    expect(prompt).toContain("rear surface is plain");
+  });
   it("shares source-grounded construction facts across views without inventing an unseen back", () => {
     const facts = {
       sleeveLength: "sleeveless",

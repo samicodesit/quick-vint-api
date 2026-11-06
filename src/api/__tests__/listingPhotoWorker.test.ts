@@ -1,5 +1,60 @@
 import { it, expect, vi } from "vitest";
 import { runPhotoJob } from "../../../utils/listingPhotoWorker";
+it("keeps both product surfaces in validation when a plain-side edit omits the opposite print", async () => {
+  const job: any = {
+    id: "j",
+    kind: "listing",
+    lease_token: "l",
+    retry_count: 0,
+    payload: {
+      plan: {
+        eligible: true,
+        category: "full_body",
+        frontIndex: 0,
+        backIndex: 1,
+        detailIndex: 2,
+        backViewEvidence: "separate_photo",
+        construction: {
+          sleeveLength: "unknown",
+          legLength: "unknown",
+          frontDecoration: "decorated",
+          backDecoration: "plain",
+        },
+      },
+    },
+  };
+  const edit = vi.fn(async () => ({ bytes: Buffer.from("image"), usage: {} }));
+  const check = vi.fn(async () => ({ accepted: true, usage: {}, quality: {} }));
+  await runPhotoJob("u", "j", {
+    mutate: async (_user: string, action: string, input: any) => {
+      if (action === "claim" || action === "get")
+        return { ...job, payload: { ...job.payload } };
+      if (action === "stage") return { id: input.stage };
+      if (action === "save") {
+        Object.assign(job.payload, input.payload);
+        if (input.state) job.state = input.state;
+      }
+      return job;
+    },
+    sources: async () => ["printed-front", "plain-back", "label"],
+    front: async () => "front-pose",
+    rear: async () => "rear-pose",
+    edit,
+    check,
+    upload: async () => {},
+  } as any);
+  expect(edit.mock.calls.map((args: any[]) => args[1])).toEqual(
+    expect.arrayContaining([
+      ["front-pose", "printed-front", "plain-back", "label"],
+      ["rear-pose", "plain-back", "label"],
+    ]),
+  );
+  const rearCheck = (check.mock.calls as any[][]).find(
+    (args) => args[3] === "secondary",
+  )!;
+  expect(rearCheck[5]).toEqual(["plain-back", "printed-front", "label"]);
+  expect(job.state).toBe("ready");
+});
 it("keeps two front-facing outputs when the back is unknown without paying for a rear pose", async () => {
   const job: any = {
     id: "j",

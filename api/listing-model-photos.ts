@@ -1,5 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { waitUntil } from "@vercel/functions";
+import { detectAndPauseDuplicateIpAccount } from "../utils/duplicateIpAutoPause";
+import { ApiLogger } from "../utils/apiLogger";
+import { buildAccountPausedResponse } from "../src/utils/accountPause";
 import { supabase } from "../utils/supabaseClient";
 import {
   isAllowedAppOrigin,
@@ -48,6 +51,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data, error } = auth;
   if (error || !data.user)
     return res.status(401).json({ code: "sign_in_required" });
+  // Protect direct requests from either client before admission or resuming AI work.
+  if (
+    req.method === "POST" &&
+    ["create", "retry", "resume"].includes(req.body?.action)
+  ) {
+    try {
+      const pause = await detectAndPauseDuplicateIpAccount({
+        userId: data.user.id,
+        email: data.user.email,
+        ipAddress: ApiLogger.extractRequestMetadata(req).ipAddress,
+        source: "listing-model-photos",
+      });
+      if (pause.paused)
+        return res.status(403).json(
+          buildAccountPausedResponse({
+            account_status: "paused",
+            abuse_reason: pause.reason,
+          }),
+        );
+    } catch {
+      return res.status(503).json({ code: "photo_job_unavailable" });
+    }
+  }
   if (req.method === "POST" && req.body?.action === "create") {
     if (
       Object.keys(req.body).some(

@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const pauseMock = vi.hoisted(() => vi.fn());
+vi.mock("../../../utils/duplicateIpAutoPause", () => ({
+  detectAndPauseDuplicateIpAccount: pauseMock,
+}));
+vi.mock("../../../utils/apiLogger", () => ({
+  ApiLogger: { extractRequestMetadata: () => ({ ipAddress: "1.2.3.4" }) },
+}));
 const getUserMock = vi.fn();
 const fromMock = vi.fn();
 const selectMock = vi.fn();
@@ -121,9 +128,10 @@ async function invokeHandler(
 describe("authenticated mobile usage endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    pauseMock.mockResolvedValue({ paused: false });
     process.env.MOBILE_WEB_APP_ENABLED = "true";
     getUserMock.mockResolvedValue({
-      data: { user: { id: "user-1" } },
+      data: { user: { id: "user-1", email: "user@example.com" } },
       error: null,
     });
     getGenerationCapacityMock.mockResolvedValue(freeCapacity);
@@ -144,6 +152,26 @@ describe("authenticated mobile usage endpoint", () => {
     expect(getUserMock).not.toHaveBeenCalled();
   });
 
+  it("returns a newly detected pause on the first usage response", async () => {
+    pauseMock.mockResolvedValue({
+      paused: true,
+      reason: "duplicate_ip_signup",
+    });
+    const response = await invokeHandler(freeProfile);
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({
+      blockedReason: "account_paused",
+      canGenerate: false,
+      plan: { status: "paused" },
+    });
+    expect(pauseMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        email: "user@example.com",
+        ipAddress: "1.2.3.4",
+      }),
+    );
+  });
   it("projects native generation capacity and UTC reset boundaries", async () => {
     const { buildUsageResponse } = await loadProjection();
     const response = buildUsageResponse(freeProfile, freeCapacity, 3, now);

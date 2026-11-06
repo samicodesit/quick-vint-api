@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { ApiLogger } from "../../utils/apiLogger";
 import {
   isMobileWebEnabled,
   MOBILE_WEB_DISABLED_RESPONSE,
@@ -42,7 +43,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const response = await getUsageForBearer(tokenMatch[1]);
+    const response = await getUsageForBearer(
+      tokenMatch[1],
+      ApiLogger.extractRequestMetadata(req).ipAddress,
+    );
     return res.status(200).json(response);
   } catch (error: any) {
     if (error instanceof UsageRequestError || error?.statusCode) {

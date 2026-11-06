@@ -62,6 +62,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res
         .status(401)
         .json({ error: "Sign in again to open your model." });
+    // Disabling and dismissing must remain available, but never resume work.
+    const stopsWork =
+      (req.method === "PATCH" && req.body?.enabled === false) ||
+      (req.method === "POST" && req.body?.action === "dismiss");
+    if (!stopsWork) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select(
+          "id,account_status,abuse_reason,subscription_status,subscription_tier,free_lifetime_generations_used,pack_credits,paid_access_expires_at",
+        )
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile)
+        return res.status(403).json({ code: "account_unavailable" });
+      const pause = await detectAndPauseDuplicateIpAccount({
+        userId: user.id,
+        email: user.email,
+        ipAddress: ApiLogger.extractRequestMetadata(req).ipAddress,
+        source: "user-model",
+        currentProfile: profile,
+      });
+      if (pause.paused || isAccountPaused(profile))
+        return res
+          .status(403)
+          .json(
+            buildAccountPausedResponse(
+              pause.paused
+                ? { account_status: "paused", abuse_reason: pause.reason }
+                : profile,
+            ),
+          );
+    }
     let job: any;
     if (req.method !== "GET") {
       const body = req.body;
@@ -96,29 +129,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(403).json({
               error: "Use a permanent email address to create your model.",
             });
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select(
-              "id,account_status,abuse_reason,subscription_status,subscription_tier,free_lifetime_generations_used",
-            )
-            .eq("id", user.id)
-            .maybeSingle();
-          if (profileError) throw profileError;
-          const pause = await detectAndPauseDuplicateIpAccount({
-            userId: user.id,
-            email: user.email,
-            ipAddress: ApiLogger.extractRequestMetadata(req).ipAddress,
-            source: "user-model",
-            currentProfile: profile,
-          });
-          if (pause.paused || isAccountPaused(profile))
-            return res
-              .status(403)
-              .json(
-                buildAccountPausedResponse(
-                  profile || { account_status: "paused" },
-                ),
-              );
           job =
             body.action === "create"
               ? await createUserModel(user.id, body.preferences)
@@ -138,6 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       warmRearModel(user.id);
     const operationId = job?.operation_id || state.model?.operationId;
     if (
+      !stopsWork &&
       operationId &&
       ["queued", "running"].includes(state.model?.state || "")
     ) {

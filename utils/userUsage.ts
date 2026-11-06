@@ -1,3 +1,4 @@
+import { detectAndPauseDuplicateIpAccount } from "./duplicateIpAutoPause";
 import { getDirectUser } from "./directUser";
 import { isAccountPaused } from "../src/utils/accountPause";
 import { isGenerationSuspendedForPayment } from "../src/utils/subscriptionStatus";
@@ -288,7 +289,10 @@ export function buildUsageResponse(
   };
 }
 
-export async function getUsageForBearer(token: string): Promise<UsageResponse> {
+export async function getUsageForBearer(
+  token: string,
+  ipAddress?: string | null,
+): Promise<UsageResponse> {
   const {
     data: { user },
     error: userError,
@@ -325,6 +329,17 @@ export async function getUsageForBearer(token: string): Promise<UsageResponse> {
   }
 
   const profile = normalizeProfile(data as Record<string, unknown>);
+  const pause = await detectAndPauseDuplicateIpAccount({
+    userId: user.id,
+    email: user.email,
+    ipAddress,
+    source: "user-usage",
+    currentProfile: { ...profile, id: user.id },
+  });
+  if (pause.paused) {
+    profile.account_status = "paused";
+    profile.abuse_reason = pause.reason || null;
+  }
   const capacity = await RateLimiter.getGenerationCapacity(
     profile.id as string,
     profile,

@@ -154,3 +154,49 @@ describe("account-owned model endpoint", () => {
     });
   });
 });
+
+it.each([
+  "https://autolister.app",
+  "https://www.vinted.nl",
+  "chrome-extension://" + "a".repeat(32),
+])("blocks model setup before any work for %s", async (origin) => {
+  mocks.pause.mockResolvedValue({
+    paused: true,
+    reason: "duplicate_ip_signup",
+  });
+  mocks.get.mockResolvedValue({
+    model: { operationId: "op", state: "queued" },
+  });
+  for (const [method, body] of [
+    ["GET", undefined],
+    ["PATCH", { enabled: true }],
+    ["POST", { action: "invite" }],
+  ] as const) {
+    const res = await call(method, body, {
+      origin,
+      authorization: "Bearer valid",
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toMatchObject({
+      code: "account_paused",
+      abuseReason: "duplicate_ip_signup",
+    });
+  }
+  expect(mocks.mutate).not.toHaveBeenCalled();
+  expect(mocks.process).not.toHaveBeenCalled();
+});
+it("does not resume queued work when disabling or dismissing", async () => {
+  mocks.get.mockResolvedValue({
+    model: { operationId: "op", state: "queued" },
+  });
+  await call("PATCH", { enabled: false });
+  await call("POST", { action: "dismiss" });
+  expect(mocks.process).not.toHaveBeenCalled();
+});
+it("blocks already paused and missing accounts before reading models", async () => {
+  for (const data of [{ id: "owner", account_status: "paused" }, null]) {
+    mocks.profile.mockResolvedValue({ data, error: null });
+    expect((await call()).statusCode).toBe(403);
+  }
+  expect(mocks.get).not.toHaveBeenCalled();
+});

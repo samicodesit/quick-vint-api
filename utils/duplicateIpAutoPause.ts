@@ -17,6 +17,8 @@ type ProfileRow = {
   subscription_status?: string | null;
   subscription_tier?: string | null;
   account_status?: string | null;
+  pack_credits?: number | null;
+  paid_access_expires_at?: string | null;
   free_lifetime_generations_used?: number | null;
 };
 
@@ -79,6 +81,12 @@ function isPublicIp(ipAddress: string) {
 
 function isFreeProfile(profile?: ProfileRow | null) {
   if (!profile) return true;
+  if (Number(profile.pack_credits || 0) > 0) return false;
+  if (
+    profile.paid_access_expires_at &&
+    Date.parse(profile.paid_access_expires_at) > Date.now()
+  )
+    return false;
   if (hasPaidEntitlementStatus(profile.subscription_status)) return false;
   return true;
 }
@@ -118,7 +126,7 @@ export async function detectAndPauseDuplicateIpAccount({
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "id, email, subscription_status, subscription_tier, account_status, free_lifetime_generations_used",
+        "id, email, subscription_status, subscription_tier, account_status, free_lifetime_generations_used, pack_credits, paid_access_expires_at",
       )
       .eq("id", normalizedUserId)
       .maybeSingle();
@@ -171,7 +179,7 @@ export async function detectAndPauseDuplicateIpAccount({
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select(
-      "id, email, subscription_status, subscription_tier, account_status, free_lifetime_generations_used",
+      "id, email, subscription_status, subscription_tier, account_status, free_lifetime_generations_used, pack_credits, paid_access_expires_at",
     )
     .in("id", candidateIds.slice(0, 50));
 
@@ -210,7 +218,7 @@ export async function detectAndPauseDuplicateIpAccount({
     matchedProfile?.email || matchingLog.user_email || matchingLog.user_id;
   const notes = `Auto-paused: same IP as prior free account ${matchedLabel} that exhausted free usage. Source: ${source}.`;
 
-  const { error: pauseError } = await supabase
+  const { data: pausedProfile, error: pauseError } = await supabase
     .from("profiles")
     .update({
       account_status: "paused",
@@ -219,12 +227,25 @@ export async function detectAndPauseDuplicateIpAccount({
       paused_at: new Date().toISOString(),
       paused_by: "system_ip_match",
     })
-    .eq("id", normalizedUserId);
+    .eq("id", normalizedUserId)
+    // Payment can arrive between detection and update. Never overwrite paid access.
+    .or(
+      "subscription_status.is.null,subscription_status.not.in.(active,trialing,canceling,past_due)",
+    )
+    .or("pack_credits.is.null,pack_credits.lte.0")
+    .or(
+      "paid_access_expires_at.is.null,paid_access_expires_at.lte." +
+        new Date().toISOString(),
+    )
+    .select("id")
+    .maybeSingle();
 
   if (pauseError) {
     console.error("Failed to auto-pause duplicate IP account:", pauseError);
     return { paused: false };
   }
+
+  if (!pausedProfile) return { paused: false };
 
   await ApiLogger.logRequest({
     requestMethod: "SYSTEM",

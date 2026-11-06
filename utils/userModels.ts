@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { warmRearModel, listingPhotosEnabled } from "./listingPhotoJobs";
+import {
+  warmRearModel,
+  listingPhotosEnabled,
+  photoAccess,
+} from "./listingPhotoJobs";
 import { supabase } from "./supabaseClient";
 import {
   MODEL_CATALOG_VERSION,
@@ -118,12 +122,16 @@ export async function getUserModel(user: string) {
 }
 export async function processUserModel(user: string, operationId: string) {
   await runModelOperation(user, operationId, {
-    mutate: modelMutate,
+    mutate: async (owner, action, input) => {
+      // Check each claim, including retries and cron recovery, before provider work.
+      if (action === "claim" && !(await photoAccess(owner))) return null;
+      return modelMutate(owner, action, input);
+    },
     generate: generateModelImage,
     check: checkModelImage,
     upload: uploadModelImage,
   });
-  warmRearModel(user);
+  if (await photoAccess(user)) warmRearModel(user);
 }
 export async function cleanUserModelObjects() {
   const { data, error } = await supabase

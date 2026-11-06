@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   db: null as PGlite | null,
   providerCalls: 0,
+  beforePause: null as null | (() => Promise<void>),
 }));
 const newUser = "00000000-0000-4000-8000-000000000001";
 const oldUser = "00000000-0000-4000-8000-000000000002";
@@ -64,6 +65,11 @@ vi.mock("../../../utils/supabaseClient", () => ({
         let sql = `SELECT * FROM ${table}${where}${order}${limit}`;
         const args = [...values];
         if (patch) {
+          if (patch.account_status === "paused" && state.beforePause) {
+            const applyPayment = state.beforePause;
+            state.beforePause = null;
+            await applyPayment();
+          }
           const assignments = Object.entries(patch).map(([key, value]) => {
             args.push(value);
             return `${column(key)} = $${args.length}`;
@@ -78,6 +84,27 @@ vi.mock("../../../utils/supabaseClient", () => ({
       }
       const query = {
         select: () => query,
+        or: (expression: string) => {
+          const match = expression.match(
+            /^([a-z_]+)\.is\.null,\1\.(lte|not\.in)\.(.+)$/,
+          );
+          if (!match) throw new Error("Unsupported fixture OR: " + expression);
+          const name = column(match[1]);
+          if (match[2] === "lte") {
+            values.push(match[3]);
+            filters.push(`(${name} IS NULL OR ${name} <= $${values.length})`);
+          } else {
+            const list = match[3].slice(1, -1).split(",");
+            const placeholders = list.map((value) => {
+              values.push(value);
+              return `$${values.length}`;
+            });
+            filters.push(
+              `(${name} IS NULL OR ${name} NOT IN (${placeholders.join(",")}))`,
+            );
+          }
+          return query;
+        },
         eq: (name: string, value: unknown) => filter(name, "=", value),
         neq: (name: string, value: unknown) => filter(name, "<>", value),
         gte: (name: string, value: unknown) => filter(name, ">=", value),
@@ -133,7 +160,7 @@ beforeAll(async () => {
       id uuid PRIMARY KEY, email text, subscription_status text DEFAULT 'free',
       subscription_tier text DEFAULT 'free', account_status text DEFAULT 'active',
       free_lifetime_generations_used integer DEFAULT 0, api_calls_this_month integer DEFAULT 0,
-      pack_credits integer DEFAULT 0, last_api_call_reset timestamptz DEFAULT now(),
+      paid_access_expires_at timestamptz, pack_credits integer DEFAULT 0, last_api_call_reset timestamptz DEFAULT now(),
       is_legacy_plan boolean DEFAULT false, ai_instructions text, abuse_reason text,
       abuse_notes text, paused_at timestamptz, paused_by text
     );
@@ -301,4 +328,45 @@ it("paid entitlement keeps the existing exemption from duplicate free-trial chec
     [newUser],
   );
   expect(row.rows[0].account_status).toBe("active");
+});
+
+it.each(["pack", "subscription", "paid_access"])(
+  "a concurrent %s payment prevents a stale pause write",
+  async (kind) => {
+    state.beforePause = async () => {
+      const patch =
+        kind === "pack"
+          ? "pack_credits=20"
+          : kind === "subscription"
+            ? "subscription_status='active'"
+            : "paid_access_expires_at=now()+interval '1 day'";
+      await state.db!.query(`UPDATE profiles SET ${patch} WHERE id=$1`, [
+        newUser,
+      ]);
+    };
+    expect((await request("mobile_web")).status).toBe(400);
+    const result = await state.db!.query(
+      "SELECT account_status FROM profiles WHERE id=$1",
+      [newUser],
+    );
+    expect(result.rows[0]).toMatchObject({ account_status: "active" });
+    expect(log).not.toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: "/system/auto-pause-duplicate-ip" }),
+    );
+    expect(state.providerCalls).toBe(0);
+  },
+);
+it("purchased credits stay usable on the same IP", async () => {
+  await state.db!.query("UPDATE profiles SET pack_credits=20 WHERE id=$1", [
+    newUser,
+  ]);
+  expect((await request("extension")).status).toBe(400);
+  const result = await state.db!.query(
+    "SELECT account_status, pack_credits FROM profiles WHERE id=$1",
+    [newUser],
+  );
+  expect(result.rows[0]).toMatchObject({
+    account_status: "active",
+    pack_credits: 20,
+  });
 });

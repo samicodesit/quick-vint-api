@@ -1,6 +1,7 @@
 import { beforeEach, it, expect, vi } from "vitest";
 const m = vi.hoisted(() => ({
   auth: vi.fn(),
+  pause: vi.fn(),
   access: vi.fn(),
   get: vi.fn(),
   mutate: vi.fn(),
@@ -21,6 +22,12 @@ vi.mock("../../../utils/listingPhotoJobs", () => ({
     process.env.LISTING_MODEL_PHOTOS_ENABLED === "true",
 }));
 vi.mock("@vercel/functions", () => ({ waitUntil: vi.fn() }));
+vi.mock("../../../utils/duplicateIpAutoPause", () => ({
+  detectAndPauseDuplicateIpAccount: m.pause,
+}));
+vi.mock("../../../utils/apiLogger", () => ({
+  ApiLogger: { extractRequestMetadata: () => ({ ipAddress: "1.2.3.4" }) },
+}));
 import handler from "../../../api/listing-model-photos";
 const id = "f61d1098-af80-4053-b503-e7c70fefb290";
 async function call(
@@ -51,6 +58,7 @@ beforeEach(() => {
   process.env.LISTING_MODEL_PHOTOS_ENABLED = "true";
   m.auth.mockResolvedValue({ data: { user: { id: "owner" } } });
   m.access.mockResolvedValue(true);
+  m.pause.mockResolvedValue({ paused: false });
   m.get.mockResolvedValue({ jobId: id, status: "generating" });
   m.mutate.mockResolvedValue({ id });
   m.process.mockResolvedValue(undefined);
@@ -129,3 +137,18 @@ it("admits a photos-only request without accepting a client allowance or owner",
     ).statusCode,
   ).toBe(400);
 });
+
+it.each(["create", "retry", "resume"])(
+  "checks shared-IP pause before photo %s work",
+  async (action) => {
+    m.pause.mockResolvedValue({ paused: true, reason: "duplicate_ip_signup" });
+    const body =
+      action === "create"
+        ? { action, sources: ["data:image/jpeg;base64,YQ=="] }
+        : { action, id };
+    expect((await call("POST", body)).statusCode).toBe(403);
+    expect(m.admit).not.toHaveBeenCalled();
+    expect(m.mutate).not.toHaveBeenCalled();
+    expect(m.process).not.toHaveBeenCalled();
+  },
+);

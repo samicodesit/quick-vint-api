@@ -516,6 +516,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     is_legacy_plan: false,
     free_lifetime_generations_used: 0,
     pack_credits: 0,
+    paid_access_expires_at: null,
     account_status: "active",
     abuse_reason: null,
     ai_instructions: null,
@@ -540,6 +541,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     currentProfile: {
       id: user.id,
       email: user.email,
+      pack_credits: userProfile.pack_credits,
+      paid_access_expires_at: userProfile.paid_access_expires_at,
       subscription_status: userProfile.subscription_status,
       subscription_tier: userProfile.subscription_tier,
       account_status: userProfile.account_status,

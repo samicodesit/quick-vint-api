@@ -598,3 +598,10 @@ in the parent workspace; portal screenshot is saved in plugin-public-path.
   Do not buy, post to Vinted, email dormant subscribers, or claim this is proof of
   willingness to pay. Review search intent/activation at EUR25 additional spend,
   assess paid acquisitions at EUR50 after conversion lag. No automatic scaling.
+
+### 2026-11-06: saved ad readback after blocker change
+
+- Ads table now renders. Confirmed responsive search ad `830674223022`, landing URL `/vinted-description-generator`, display paths `vinted/descriptions`, and the intended campaign/creative UTM suffix.
+- Paused superseded ad `823641484551`; verified the row reads Paused. Campaign `24222309107` remains paused; no spend enabled. New ad remains pending review.
+- Desktop preview rendered one combination with relevant listing/photo checklist and plans sitelinks. Mobile previews remained blank on repeated checks, so full placement verification remains incomplete. Do not activate yet.
+- Proposed additional test budget remains EUR 50, within the saved EUR 52.50 campaign total including EUR 2.50 already spent.

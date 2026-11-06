@@ -35,6 +35,7 @@ function mockSupabaseResult(result: QueryResult) {
     "order",
     "limit",
     "update",
+    "or",
   ]) {
     query[method] = vi.fn(() => query);
   }
@@ -152,7 +153,7 @@ describe("detectAndPauseDuplicateIpAccount", () => {
         ],
         error: null,
       },
-      { data: null, error: null },
+      { data: { id: "new-user" }, error: null },
     ]);
 
     const result = await detectAndPauseDuplicateIpAccount({
@@ -254,7 +255,7 @@ describe("detectAndPauseDuplicateIpAccount", () => {
           ],
           error: null,
         },
-        { data: null, error: null },
+        { data: { id: "new-user" }, error: null },
       ]);
       const result = await detectAndPauseDuplicateIpAccount({
         userId: "excluded-user",
@@ -340,7 +341,7 @@ describe("detectAndPauseDuplicateIpAccount", () => {
         ],
         error: null,
       },
-      { data: null, error: null },
+      { data: { id: "new-user" }, error: null },
     ]);
 
     const result = await detectAndPauseDuplicateIpAccount({
@@ -378,4 +379,71 @@ describe("detectAndPauseDuplicateIpAccount", () => {
     expect(result).toEqual({ paused: false });
     expect(fromMock).toHaveBeenCalledTimes(1);
   });
+});
+
+it.each([
+  { pack_credits: 20 },
+  { paid_access_expires_at: "2099-01-01T00:00:00.000Z" },
+])(
+  "does not pause a free-status account with paid access %j",
+  async (entitlement) => {
+    fromMock.mockReset();
+    logRequestMock.mockClear();
+    queueSupabaseResults([
+      { data: [{ user_id: "old", endpoint: "/event/generate_limit_hit" }] },
+      {
+        data: [
+          {
+            ...currentFreeProfile,
+            id: "old",
+            free_lifetime_generations_used: 5,
+          },
+        ],
+      },
+      { data: { id: "new-user" } },
+    ]);
+    const result = await detectAndPauseDuplicateIpAccount({
+      userId: "new-user",
+      email: "new@example.com",
+      ipAddress: "203.0.113.9",
+      source: "test",
+      currentProfile: { ...currentFreeProfile, ...entitlement },
+    });
+    expect(result.paused).toBe(false);
+    expect(fromMock).not.toHaveBeenCalled();
+  },
+);
+it("does not report a pause if a concurrent payment prevents the conditional update", async () => {
+  fromMock.mockReset();
+  logRequestMock.mockClear();
+  queueSupabaseResults([
+    { data: [{ user_id: "old", endpoint: "/event/generate_limit_hit" }] },
+    {
+      data: [
+        { ...currentFreeProfile, id: "old", free_lifetime_generations_used: 5 },
+      ],
+    },
+    { data: null, error: null },
+  ]);
+  const result = await detectAndPauseDuplicateIpAccount({
+    userId: "new-user",
+    email: "new@example.com",
+    ipAddress: "203.0.113.9",
+    source: "test",
+    currentProfile: currentFreeProfile,
+  });
+  expect(result.paused).toBe(false);
+  expect(logRequestMock).not.toHaveBeenCalled();
+  const update = fromMock.mock.results[2].value;
+  expect(update.or).toHaveBeenCalledWith(
+    "subscription_status.is.null,subscription_status.not.in.(active,trialing,canceling,past_due)",
+  );
+  expect(update.or).toHaveBeenCalledWith(
+    "pack_credits.is.null,pack_credits.lte.0",
+  );
+  expect(update.or).toHaveBeenCalledWith(
+    expect.stringContaining(
+      "paid_access_expires_at.is.null,paid_access_expires_at.lte.",
+    ),
+  );
 });

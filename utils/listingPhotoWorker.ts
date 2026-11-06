@@ -8,11 +8,12 @@ import {
   rearPosePrompt,
   photoCost,
   LISTING_PHOTO_CHECK_MODEL,
+  LISTING_PHOTO_CLASSIFY_MODEL,
   REAR_PHOTO_CHECK_MODEL,
   type PhotoPlan,
   type PhotoSlot,
 } from "./listingPhotoGeneration";
-import { IMAGE_MODEL, CHECK_MODEL } from "./userModelGeneration";
+import { IMAGE_MODEL } from "./userModelGeneration";
 const retryableCheckFailure = (code: string) =>
   /^(?:photo_provider_timeout|photo_provider_429|photo_provider_5\d{2})$/.test(
     code,
@@ -110,7 +111,7 @@ export async function runPhotoJob(
       kind === "image"
         ? IMAGE_MODEL
         : name === "classify"
-          ? CHECK_MODEL
+          ? LISTING_PHOTO_CLASSIFY_MODEL
           : jobKind === "rear"
             ? REAR_PHOTO_CHECK_MODEL
             : LISTING_PHOTO_CHECK_MODEL;
@@ -242,7 +243,7 @@ export async function runPhotoJob(
                     user,
                     editImages,
                     defects
-                      ? photoCorrectionPrompt(defects)
+                      ? photoCorrectionPrompt(defects, plan, slot)
                       : photoPrompt(plan, slot),
                   ),
                 key,

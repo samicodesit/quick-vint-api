@@ -41,6 +41,39 @@ type Recovery = {
   result?: MobileGenerationResult;
 };
 
+type ModelPhotoSlot = "primary" | "secondary";
+function availablePhotos(state: any): { slot: ModelPhotoSlot; url: string }[] {
+  if (
+    !["generating", "preparing", "queued", "ready", "failed"].includes(
+      state.status,
+    )
+  )
+    return [];
+  if (!Array.isArray(state.photos)) {
+    if (state.status === "ready") throw new Error("invalid_photo_pair");
+    return [];
+  }
+  const legacy =
+    state.status === "ready" &&
+    state.photos.length === 2 &&
+    state.photos.every((p: any) => !p.slot);
+  const photos = state.photos.map((photo: any, index: number) => ({
+    slot: legacy ? (index === 0 ? "primary" : "secondary") : photo.slot,
+    url: photo.url,
+  }));
+  if (
+    photos.length > 2 ||
+    (state.status === "ready" && photos.length !== 2) ||
+    new Set(photos.map((p: any) => p.slot)).size !== photos.length ||
+    photos.some(
+      (p: any) =>
+        !["primary", "secondary"].includes(p.slot) || typeof p.url !== "string",
+    )
+  )
+    throw new Error("invalid_photo_pair");
+  return photos;
+}
+
 /** One account and lifetime per workspace, never a global mutable account binding. */
 export function createDraftClient(userId: string) {
   const store = new LocalDraftStore(userId);
@@ -100,48 +133,55 @@ export function createDraftClient(userId: string) {
         const state = await photoRequest(job.jobId);
         failures = 0;
         if (disposed) return;
-        if (state.status === "ready") {
+        if (state.status === "ready" || state.photos?.length) {
           await store.updateModelPhotos(draftId, job.jobId, {
-            status: "adding",
-            eligible: true,
+            status: state.status === "ready" ? "adding" : state.status,
+            eligible: state.eligible ?? true,
+            canRetry: state.canRetry,
           });
           notifyPhotos();
           try {
-            if (!Array.isArray(state.photos) || state.photos.length !== 2)
-              throw new Error("invalid_photo_pair");
-            const photos = await Promise.all(
-              state.photos.map(async (photo: any) => {
-                const url = new URL(photo.url);
-                if (url.protocol !== "https:")
-                  throw new Error("invalid_photo_url");
-                const response = await fetch(url, {
-                  signal: controller.signal,
-                });
-                if (!response.ok) throw new Error("photo_download_failed");
-                const blob = await response.blob();
-                if (blob.size > 4 * 1024 * 1024)
-                  throw new Error("photo_too_large");
-                return blob;
-              }),
+            const photos = availablePhotos(state).filter(
+              (photo) => !job.receivedSlots?.includes(photo.slot),
             );
-            if ((await getBrowserSession())?.user.id !== userId || disposed)
-              return;
-            // Recheck the server-side enable/ownership fence after downloading.
-            if (disposed) return;
-            if ((await photoRequest(job.jobId)).status !== "ready") {
-              await store.updateModelPhotos(draftId, job.jobId, {
-                status: "cancelled",
+            for (const photo of photos) {
+              const url = new URL(photo.url);
+              if (url.protocol !== "https:")
+                throw new Error("invalid_photo_url");
+              const response = await fetch(url, {
+                signal: controller.signal,
               });
+              if (!response.ok) throw new Error("photo_download_failed");
+              const blob = await response.blob();
+              if (blob.size > 4 * 1024 * 1024)
+                throw new Error("photo_too_large");
+              if ((await getBrowserSession())?.user.id !== userId || disposed)
+                return;
+              // Recheck the server-side enable/ownership fence after downloading.
+              const fresh = await photoRequest(job.jobId);
+              if (disposed) return;
+              if (!availablePhotos(fresh).some((p) => p.slot === photo.slot)) {
+                await store.updateModelPhotos(draftId, job.jobId, {
+                  status: "cancelled",
+                });
+                notifyPhotos();
+                return;
+              }
+              await store.attachModelPhotos(draftId, job.jobId, [
+                { slot: photo.slot, blob },
+              ]);
               notifyPhotos();
+            }
+            const current = await store.action("detail", { draftId });
+            if (current.modelPhotos?.attached) {
+              void trackMobileEvent(
+                "model_photos_attached",
+                { operationId: job.jobId, imageCount: 2 },
+                userId,
+              );
+              void photoRequest(job.jobId, "attached").catch(() => {});
               return;
             }
-            await store.attachModelPhotos(draftId, job.jobId, photos);
-            void trackMobileEvent(
-              "model_photos_attached",
-              { operationId: job.jobId, imageCount: photos.length },
-              userId,
-            );
-            void photoRequest(job.jobId, "attached").catch(() => {});
           } catch (error: any) {
             if (disposed) return;
             if (
@@ -159,7 +199,13 @@ export function createDraftClient(userId: string) {
             });
           }
           notifyPhotos();
-          return;
+          const current = await store.action("detail", { draftId });
+          if (
+            ["cancelled", "attachment_failed"].includes(
+              current.modelPhotos?.status || "",
+            )
+          )
+            return;
         }
         if (
           job.status !== state.status ||

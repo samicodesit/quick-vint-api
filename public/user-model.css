@@ -789,10 +789,32 @@ button.um-model-entry:hover {
   padding: 0 0 8px;
   font-size: 12px;
 }
+@media (min-width: 768px) {
+  .draft-item-photos .mp-progress {
+    grid-column: span 2;
+    padding: 0;
+  }
+  .draft-item-photos .mp-progress[data-remaining="1"] {
+    grid-column: auto;
+  }
+  .draft-item-photos .mp-placeholders {
+    width: 100%;
+  }
+  .draft-item-photos .mp-placeholder {
+    flex: 1;
+    width: auto;
+    height: 106px;
+    aspect-ratio: auto;
+  }
+}
 @media (max-width: 767px) {
   .draft-editor.has-text .draft-item-photos .mp-progress {
     flex: 0 0 168px;
     width: 168px;
     padding: 0;
+  }
+  .draft-editor.has-text .draft-item-photos .mp-progress[data-remaining="1"] {
+    flex-basis: 80px;
+    width: 80px;
   }
 }

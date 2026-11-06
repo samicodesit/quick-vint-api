@@ -78,6 +78,24 @@ it("GET only reads owned status; resume and retry require POST", async () => {
   expect(m.mutate).toHaveBeenCalledWith("owner", "retry", { id });
   expect(m.process).toHaveBeenCalledWith("owner", id);
 });
+it("returns the first validated photo while the other is still generating", async () => {
+  const state = {
+    jobId: id,
+    status: "generating",
+    eligible: true,
+    photos: [
+      {
+        id: `${id}-primary`,
+        slot: "primary",
+        url: "https://photos.example/accepted.jpg",
+      },
+    ],
+  };
+  m.get.mockResolvedValue(state);
+  expect((await call()).body).toEqual(state);
+  expect(m.get).toHaveBeenCalledWith("owner", id);
+  expect(m.process).not.toHaveBeenCalled();
+});
 it("does not restart work for paused accounts or when feature is disabled", async () => {
   m.access.mockResolvedValue(false);
   expect((await call("POST", { id, action: "resume" })).statusCode).toBe(403);

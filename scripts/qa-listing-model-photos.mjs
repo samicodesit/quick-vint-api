@@ -69,9 +69,16 @@ globalThis.fetch = async (...args) => {
   const row = activeCall.getStore();
   if (row && String(args[0]).startsWith("https://api.openai.com/")) {
     const data = await response.clone().json();
+    row.model = JSON.parse(args[1].body).model;
+    row.serviceTier = data.service_tier || null;
     if (data.usage) {
       row.usage = data.usage;
-      row.costUsd = api.photoCost(row.kind, data.usage, row.model);
+      row.costUsd = api.photoCost(
+        row.kind,
+        data.usage,
+        row.model,
+        row.serviceTier,
+      );
     }
     row.providerStatus = data.status || response.status;
     row.responseText = data.output
@@ -104,7 +111,7 @@ async function call(name, kind, fn) {
   persist();
   try {
     const r = await activeCall.run(row, fn);
-    row.costUsd = api.photoCost(kind, r.usage, row.model);
+    row.costUsd = api.photoCost(kind, r.usage, row.model, row.serviceTier);
     row.usage = r.usage;
     row.durationMs = r.durationMs;
     row.status = "completed";

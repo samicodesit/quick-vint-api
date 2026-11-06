@@ -62,9 +62,18 @@
       delete container.dataset.signature;
       return;
     }
+    const remaining =
+      2 -
+      new Set(
+        (state?.receivedSlots || []).filter((slot) =>
+          ["primary", "secondary"].includes(slot),
+        ),
+      ).size;
+    container.dataset.remaining = String(remaining);
     const signature = JSON.stringify([
       key,
       working,
+      remaining,
       state?.canRetry,
       text(key),
     ]);
@@ -77,7 +86,7 @@
       const previews = document.createElement("div");
       previews.className = "mp-placeholders";
       previews.setAttribute("aria-hidden", "true");
-      for (let n = 0; n < 2; n++) {
+      for (let n = 0; n < remaining; n++) {
         const card = document.createElement("span");
         card.className = "mp-placeholder";
         previews.append(card);

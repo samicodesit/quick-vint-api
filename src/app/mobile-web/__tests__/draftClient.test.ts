@@ -148,6 +148,122 @@ async function item() {
   );
   return client.draftAction("detail", { draftId: draft.id });
 }
+it("keeps a good photo usable after partial failure and retries only the missing photo", async () => {
+  const jobId = id();
+  let state: any = {
+    status: "failed",
+    eligible: true,
+    canRetry: true,
+    photos: [{ slot: "secondary", url: "https://photos.example/back.jpg" }],
+  };
+  mocks.api.mockImplementation(async (path: string) =>
+    path === "/api/generate"
+      ? {
+          title: "Dress",
+          description: "Details",
+          modelPhotos: { jobId, status: "queued" },
+        }
+      : state,
+  );
+  const download = vi.fn(
+    async () =>
+      new Response(new Blob(["jpeg"], { type: "image/jpeg" }), {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+  );
+  vi.stubGlobal("fetch", download);
+  try {
+    let draft = await item();
+    await client.executeDraftAttempt(
+      draft,
+      { operationId: id(), inputVersion: draft.input_version },
+      false,
+    );
+    await vi.waitFor(async () => {
+      draft = await client.draftAction("detail", { draftId: draft.id });
+      expect(draft.modelPhotos?.receivedSlots).toEqual(["secondary"]);
+      expect(draft.modelPhotos?.status).toBe("failed");
+    });
+    expect(draft.photos[0].modelSlot).toBe("secondary");
+    await client.draftAction("removePhoto", { photoId: draft.photos[0].id });
+    state = {
+      status: "ready",
+      eligible: true,
+      photos: [
+        { slot: "primary", url: "https://photos.example/front.jpg" },
+        ...state.photos,
+      ],
+    };
+    await client.retryModelPhotos(draft.id);
+    await vi.waitFor(async () =>
+      expect(
+        (await client.draftAction("detail", { draftId: draft.id })).modelPhotos
+          ?.attached,
+      ).toBe(true),
+    );
+    draft = await client.draftAction("detail", { draftId: draft.id });
+    expect(
+      draft.photos.filter((p) => p.origin === "model").map((p) => p.modelSlot),
+    ).toEqual(["primary"]);
+    expect(download).toHaveBeenCalledTimes(2);
+    expect(
+      mocks.api.mock.calls.filter(
+        ([, init]) => init?.body && JSON.parse(init.body).action === "retry",
+      ),
+    ).toHaveLength(1);
+  } finally {
+    client.dispose();
+    vi.unstubAllGlobals();
+  }
+});
+
+it("discards a downloaded partial photo when access is revoked before attachment", async () => {
+  const jobId = id();
+  let revoked = false;
+  mocks.api.mockImplementation(async (path: string) => {
+    if (path === "/api/generate")
+      return {
+        title: "Dress",
+        description: "Details",
+        modelPhotos: { jobId, status: "queued" },
+      };
+    if (revoked) throw Object.assign(new Error("forbidden"), { status: 403 });
+    return {
+      status: "generating",
+      eligible: true,
+      photos: [{ slot: "primary", url: "https://photos.example/front.jpg" }],
+    };
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      revoked = true;
+      return new Response(new Blob(["jpeg"], { type: "image/jpeg" }), {
+        headers: { "Content-Type": "image/jpeg" },
+      });
+    }),
+  );
+  try {
+    const draft = await item();
+    await client.executeDraftAttempt(
+      draft,
+      { operationId: id(), inputVersion: draft.input_version },
+      false,
+    );
+    await vi.waitFor(async () =>
+      expect(
+        (await client.draftAction("detail", { draftId: draft.id })).modelPhotos
+          ?.status,
+      ).toBe("cancelled"),
+    );
+    expect(
+      (await client.draftAction("detail", { draftId: draft.id })).photos,
+    ).toHaveLength(1);
+  } finally {
+    client.dispose();
+    vi.unstubAllGlobals();
+  }
+});
 it("sends bounded edit evidence only after saved changes, and cancels pending work on disposal", async () => {
   let draft = await item();
   const operationId = id();

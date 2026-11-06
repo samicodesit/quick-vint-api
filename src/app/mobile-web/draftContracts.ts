@@ -62,6 +62,8 @@ export interface DraftModelPhotos {
   eligible?: boolean;
   canRetry?: boolean;
   attached?: boolean;
+  // Delivery history survives seller deletion of an attached photo.
+  receivedSlots?: ("primary" | "secondary")[];
 }
 export const sourcePhotos = (photos: DraftPhoto[]) =>
   photos.filter((p) => p.origin !== "model");

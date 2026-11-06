@@ -159,7 +159,7 @@ for (const c of JSON.parse(readFileSync(arg("--cases")))) {
           c.name + "-classify",
           "check",
           () => api.classifyListingPhotos(sources),
-          { model: api.CHECK_MODEL },
+          { model: api.LISTING_PHOTO_CLASSIFY_MODEL },
         );
         c.plan = classified.plan;
         record.plan = c.plan;

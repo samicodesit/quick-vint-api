@@ -991,11 +991,25 @@ export class LocalDraftStore {
       { draftIds: [draftId], noPhotos: true },
     );
   }
-  async attachModelPhotos(draftId: string, jobId: string, images: Blob[]) {
+  async attachModelPhotos(
+    draftId: string,
+    jobId: string,
+    images: Blob[] | { slot: "primary" | "secondary"; blob: Blob }[],
+  ) {
+    const slots = ["primary", "secondary"] as const;
+    const legacy = images.every((image) => image instanceof Blob);
+    const entries = images.map((image, index) =>
+      image instanceof Blob ? { slot: slots[index], blob: image } : image,
+    );
     if (
-      images.length !== 2 ||
-      images.some(
-        (b) =>
+      !entries.length ||
+      entries.length > 2 ||
+      (legacy && entries.length !== 2) ||
+      new Set(entries.map((entry) => entry.slot)).size !== entries.length ||
+      entries.some(
+        ({ slot, blob: b }) =>
+          !slots.includes(slot) ||
+          !(b instanceof Blob) ||
           b.type !== "image/jpeg" ||
           !b.size ||
           b.size > DRAFT_LIMITS.uploadBytes,
@@ -1023,49 +1037,66 @@ export class LocalDraftStore {
             "photo_source_changed",
             uiText("This item's photos changed."),
           );
+        const current = existing.filter(
+          (p) => p.origin === "model" && p.modelJobId === jobId,
+        );
+        const received = new Set(
+          row.modelPhotos.receivedSlots ||
+            current.flatMap((p) => (p.modelSlot ? [p.modelSlot] : [])),
+        );
+        const additions = entries.filter((entry) => !received.has(entry.slot));
+        if (!additions.length) return;
+        const obsolete = existing.filter(
+          (p) => p.origin === "model" && p.modelJobId !== jobId,
+        );
         const total = [...data.photos.values()]
-          .filter((p) => !(p.draft_id === draftId && p.origin === "model"))
+          .filter((p) => !obsolete.some((old) => old.id === p.id))
           .reduce((sum, p) => sum + p.bytes + (p.original_bytes || 0), 0);
         if (
-          total + images.reduce((sum, b) => sum + b.size, 0) >
+          total + additions.reduce((sum, entry) => sum + entry.blob.size, 0) >
           DRAFT_LIMITS.storageBytes
         )
           throw localDraftError(
             "storage_limit",
             uiText("This browser's storage is full."),
           );
-        existing
-          .filter((p) => p.origin === "model")
-          .forEach((p) => {
-            data.tx.objectStore("photos").delete(p.id);
-            data.tx.objectStore("blobs").delete(p.id);
-          });
-        sourcePhotos(existing)
-          .sort((a, b) => a.position - b.position)
-          .forEach((p, i) => {
-            p.position = i + 2;
-            this.putPhoto(data, p);
-          });
-        images.forEach((blob, position) => {
+        obsolete.forEach((p) => {
+          data.tx.objectStore("photos").delete(p.id);
+          data.tx.objectStore("blobs").delete(p.id);
+        });
+        additions.forEach(({ blob, slot }) => {
           const photo: DraftPhoto = {
             id: crypto.randomUUID(),
             import_id: jobId,
             draft_id: draftId,
-            position,
+            position: slots.indexOf(slot),
             bytes: blob.size,
             status: "ready",
             origin: "model",
             modelJobId: jobId,
-            modelSlot: position === 0 ? "primary" : "secondary",
+            modelSlot: slot,
             created_at: new Date().toISOString(),
           };
           this.putPhoto(data, photo);
           data.tx.objectStore("blobs").put({ id: photo.id, blob });
+          current.push(photo);
+          received.add(slot);
         });
+        [
+          ...current.sort(
+            (a, b) => slots.indexOf(a.modelSlot!) - slots.indexOf(b.modelSlot!),
+          ),
+          ...sourcePhotos(existing).sort((a, b) => a.position - b.position),
+        ].forEach((p, position) => {
+          p.position = position;
+          this.putPhoto(data, p);
+        });
+        const attached = slots.every((slot) => received.has(slot));
         row.modelPhotos = {
           ...row.modelPhotos,
-          status: "attached",
-          attached: true,
+          status: attached ? "attached" : row.modelPhotos.status,
+          attached,
+          receivedSlots: slots.filter((slot) => received.has(slot)),
         };
         // No text or input revision changes: source images and editable text are untouched.
         data.tx.objectStore("drafts").put(row);

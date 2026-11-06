@@ -346,14 +346,21 @@ export async function getListingPhotoJob(user: string, id: string) {
       job.state === "failed" &&
       job.retry_count < 1 &&
       Date.parse(job.source_expires_at) > Date.now(),
-    ...(job.state === "ready"
+    ...(["queued", "running", "ready", "failed"].includes(job.state)
       ? {
           photos: await Promise.all(
-            ["primary", "secondary"].map(async (slot) => ({
-              id: `${id}-${slot}`,
-              slot,
-              url: await signed(PHOTO_BUCKET, payload[slot].key),
-            })),
+            ["primary", "secondary"]
+              .filter(
+                (slot) =>
+                  payload[slot]?.state === "ready" &&
+                  typeof payload[slot]?.key === "string" &&
+                  payload[slot].key.length > 0,
+              )
+              .map(async (slot) => ({
+                id: `${id}-${slot}`,
+                slot,
+                url: await signed(PHOTO_BUCKET, payload[slot].key),
+              })),
           ),
         }
       : {}),

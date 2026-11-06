@@ -1970,6 +1970,7 @@ export function mountDraftWorkspace(
     const photoNotice = find("[data-draft-photo-notice]");
     photoNotice.replaceChildren();
     photoNotice.hidden = true;
+    let pendingPhotos: HTMLElement | null = null;
     if (draft.modelPhotos && draft.state === "draft" && photoUI()) {
       const progress = document.createElement("div");
       photoUI().render(progress, draft.modelPhotos, () =>
@@ -1980,13 +1981,25 @@ export function mountDraftWorkspace(
           draft.modelPhotos.status,
         )
       ) {
-        rail.append(progress);
+        const message = progress.querySelector(".mp-message");
+        if (message) {
+          const notice = document.createElement("div");
+          notice.className = "mp-progress";
+          notice.append(message);
+          photoNotice.append(notice);
+          photoNotice.hidden = progress.hidden;
+        }
+        pendingPhotos = progress;
       } else {
         photoNotice.append(progress);
         photoNotice.hidden = progress.hidden;
       }
     }
     for (const photo of draft.photos) {
+      if (pendingPhotos && photo.origin !== "model") {
+        rail.append(pendingPhotos);
+        pendingPhotos = null;
+      }
       if (uploads.some((p) => p.id === photo.id)) continue;
       const wrap = thumbnail(photo, false);
       const controls = document.createElement("div");

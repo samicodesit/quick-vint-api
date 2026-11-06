@@ -1,5 +1,6 @@
 import { it, expect, vi } from "vitest";
 import { runPhotoJob } from "../../../utils/listingPhotoWorker";
+import { checkListingPhoto } from "../../../utils/listingPhotoGeneration";
 function correctionFixture() {
   const job: any = {
     id: "j",
@@ -46,6 +47,157 @@ function correctionFixture() {
   };
   return { job, deps, defect };
 }
+it("keeps a candidate private when real checker parsing finds a mismatch behind empty defects", async () => {
+  const { job, deps } = correctionFixture();
+  process.env.VERCEL_APP_OPENAI_API_KEY = "test";
+  const comparison = {
+    shape: { product: "Long dress", candidate: "Long dress", verdict: "match" },
+    construction: {
+      product: "Wrist-length sleeves",
+      candidate: "Sleeves end at the elbow",
+      verdict: "mismatch",
+    },
+    decoration: {
+      product: "Plain back",
+      candidate: "Plain back",
+      verdict: "match",
+    },
+  };
+  const fetcher = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      status: "completed",
+      service_tier: "default",
+      usage: { input_tokens: 1000, output_tokens: 200 },
+      output: [
+        {
+          content: [
+            {
+              type: "output_text",
+              text: JSON.stringify({
+                defects: [],
+                productComparison: comparison,
+              }),
+            },
+          ],
+        },
+      ],
+    }),
+  });
+  vi.stubGlobal("fetch", fetcher);
+  deps.check = checkListingPhoto;
+  try {
+    await runPhotoJob("u", "j", deps);
+    expect(job.state).toBe("failed");
+    expect(job.payload.secondary.state).toBe("failed");
+    expect(job.payload.secondary.correction.defects).toEqual([
+      {
+        code: "wrong_item_construction",
+        evidence: expect.stringContaining("elbow"),
+      },
+    ]);
+    expect(job.payload.primary).toEqual({
+      state: "ready",
+      key: "u/j/0/primary.jpg",
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(deps.edit).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+it("passes per-view close-ups through first attempt, correction and validation without extra calls", async () => {
+  const { job, deps } = correctionFixture();
+  job.payload.plan = {
+    eligible: true,
+    category: "bottom",
+    itemType: "trousers",
+    frontIndex: 0,
+    backIndex: 2,
+    detailIndex: 8,
+    backViewEvidence: "separate_photo",
+    viewDetails: { front: 3, rear: 6 },
+  };
+  deps.sources = async () => Array.from({ length: 10 }, (_, i) => "source" + i);
+  await runPhotoJob("u", "j", deps);
+  const references = ["source2", "source6", "source8", "source0"];
+  expect(deps.edit).toHaveBeenCalledExactlyOnceWith(
+    "u",
+    ["rear-pose", ...references],
+    expect.any(String),
+  );
+  expect(deps.check).toHaveBeenCalledExactlyOnceWith(
+    "rear-pose",
+    Buffer.from("candidate"),
+    job.payload.plan,
+    "secondary",
+    false,
+    references,
+  );
+  job.retry_count = 1;
+  deps.edit.mockClear();
+  deps.check.mockClear();
+  deps.check.mockResolvedValue({
+    accepted: true,
+    quality: { defects: [] },
+    usage: {},
+  });
+  await runPhotoJob("u", "j", deps);
+  expect(deps.edit).toHaveBeenCalledExactlyOnceWith(
+    "u",
+    [
+      "data:image/jpeg;base64," +
+        Buffer.from("saved-candidate").toString("base64"),
+      ...references,
+      "rear-pose",
+    ],
+    expect.stringContaining("Frame waist through feet"),
+  );
+  expect(deps.check).toHaveBeenCalledExactlyOnceWith(
+    "rear-pose",
+    Buffer.from("candidate"),
+    job.payload.plan,
+    "secondary",
+    false,
+    references,
+  );
+  expect(job.payload.primary).toEqual({
+    state: "ready",
+    key: "u/j/0/primary.jpg",
+  });
+  expect(job.state).toBe("ready");
+});
+it("records classification with its actual model and service-tier cost", async () => {
+  const { job, deps } = correctionFixture();
+  job.payload = {};
+  deps.classify = vi.fn(async () => ({
+    plan: {
+      eligible: false,
+      category: "skip",
+      frontIndex: -1,
+      backIndex: -1,
+      detailIndex: -1,
+    },
+    usage: { input_tokens: 1000, output_tokens: 200 },
+    serviceTier: "default",
+    durationMs: 1200,
+  }));
+  await runPhotoJob("u", "j", deps);
+  expect(deps.mutate).toHaveBeenCalledWith(
+    "u",
+    "metrics",
+    expect.objectContaining({
+      attemptId: "classify",
+      cost: expect.closeTo(0.004, 9),
+      metrics: expect.objectContaining({
+        model: "gpt-6.1-sol",
+        serviceTier: "default",
+        durationMs: 1200,
+      }),
+    }),
+  );
+  expect(deps.edit).not.toHaveBeenCalled();
+});
 it("corrects only the rejected slot on the existing retry and checks all original evidence", async () => {
   const { job, deps, defect } = correctionFixture();
   await runPhotoJob("u", "j", deps);

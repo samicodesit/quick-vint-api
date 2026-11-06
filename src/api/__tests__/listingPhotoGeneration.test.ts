@@ -13,6 +13,26 @@ import {
   photoReferenceIndices,
 } from "../../../utils/listingPhotoGeneration";
 afterEach(() => vi.unstubAllGlobals());
+const usableQuality = {
+  defects: [],
+  productComparison: {
+    shape: {
+      product: "Long sleeves",
+      candidate: "Long sleeves",
+      verdict: "match",
+    },
+    construction: {
+      product: "Plain cuffs",
+      candidate: "Plain cuffs",
+      verdict: "match",
+    },
+    decoration: {
+      product: "Plain fabric",
+      candidate: "Plain fabric",
+      verdict: "match",
+    },
+  },
+};
 const plan = {
   eligible: true,
   category: "top",
@@ -21,6 +41,49 @@ const plan = {
   detailIndex: 1,
 };
 describe("listing photo recipes", () => {
+  it("reads every source at high detail before choosing evidenced item surfaces", async () => {
+    process.env.VERCEL_APP_OPENAI_API_KEY = "test";
+    const sources = ["whole-front", "sleeve-close-up", "label"];
+    const frontOnly = {
+      ...plan,
+      backViewEvidence: "absent",
+      viewDetails: { front: 1, rear: -1 },
+      sourceEvidence: {
+        shape: "Short-sleeve top",
+        front: "Plain blue",
+        rear: "Not visible",
+      },
+    };
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "completed",
+        output: [
+          {
+            content: [{ type: "output_text", text: JSON.stringify(frontOnly) }],
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const result = await classifyListingPhotos(sources);
+    const body = JSON.parse(fetcher.mock.calls[0][1].body);
+    expect(body.model).toBe("gpt-6.1-sol");
+    expect(body.reasoning).toEqual({ effort: "low" });
+    expect(body.prompt_cache_options).toEqual({ mode: "explicit" });
+    expect(
+      body.input[0].content.filter((part: any) => part.type === "input_image"),
+    ).toEqual(
+      sources.map((image_url) => ({
+        type: "input_image",
+        image_url,
+        detail: "high",
+      })),
+    );
+    expect(photoView(result.plan, "secondary")).toBe("front");
+    expect(photoReferenceIndices(result.plan, "secondary")).toEqual([0, 1]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it("isolates a separately evidenced plain edit surface while preserving checker evidence", () => {
     const separate = {
       ...plan,
@@ -163,7 +226,11 @@ describe("listing photo recipes", () => {
       json: async () => ({
         status: "completed",
         output: [
-          { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+          {
+            content: [
+              { type: "output_text", text: JSON.stringify(usableQuality) },
+            ],
+          },
         ],
       }),
     });
@@ -199,7 +266,11 @@ describe("listing photo recipes", () => {
       json: async () => ({
         status: "completed",
         output: [
-          { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+          {
+            content: [
+              { type: "output_text", text: JSON.stringify(usableQuality) },
+            ],
+          },
         ],
       }),
     });
@@ -276,7 +347,11 @@ describe("listing photo recipes", () => {
           status: "completed",
           service_tier: "priority",
           output: [
-            { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+            {
+              content: [
+                { type: "output_text", text: JSON.stringify(usableQuality) },
+              ],
+            },
           ],
         }),
       }),
@@ -319,7 +394,11 @@ describe("listing photo recipes", () => {
       json: async () => ({
         status: "completed",
         output: [
-          { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+          {
+            content: [
+              { type: "output_text", text: JSON.stringify(usableQuality) },
+            ],
+          },
         ],
         usage: {},
       }),
@@ -339,7 +418,7 @@ describe("listing photo recipes", () => {
       .map((part: any) => part.text)
       .join("\n");
     expect(instructions).toContain(
-      "A front view is not evidence of rear decoration",
+      "Do not invent requirements for unseen surfaces",
     );
     expect(instructions).not.toContain(
       "PRODUCT: actual sale item, target surface.",
@@ -375,7 +454,11 @@ describe("listing photo recipes", () => {
         json: async () => ({
           status: "completed",
           output: [
-            { content: [{ type: "output_text", text: '{"defects":[]}' }] },
+            {
+              content: [
+                { type: "output_text", text: JSON.stringify(usableQuality) },
+              ],
+            },
           ],
           usage: {},
         }),
@@ -399,6 +482,7 @@ describe("listing photo recipes", () => {
   it("rejects a visible product mismatch even when anatomy passes", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
     const verdict = {
+      productComparison: usableQuality.productComparison,
       defects: [
         {
           code: "invented_decoration",
@@ -444,6 +528,12 @@ describe("listing photo recipes", () => {
   it("bounds classifier indices to input files even when a source contains collage panels", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";
     const result = {
+      viewDetails: { front: -1, rear: -1 },
+      sourceEvidence: {
+        shape: "Small backpack",
+        front: "Front pocket",
+        rear: "Straps",
+      },
       eligible: true,
       category: "backpack",
       frontIndex: 0,
@@ -467,9 +557,7 @@ describe("listing photo recipes", () => {
       (await classifyListingPhotos(["data:image/jpeg;base64,collage"])).plan,
     ).toEqual(result);
     const schema = JSON.parse(fetcher.mock.calls[0][1].body).text.format.schema;
-    expect(JSON.parse(fetcher.mock.calls[0][1].body).model).toBe(
-      "gpt-5.4-mini-2026-03-17",
-    );
+    expect(JSON.parse(fetcher.mock.calls[0][1].body).model).toBe("gpt-6.1-sol");
     for (const key of ["frontIndex", "backIndex", "detailIndex"])
       expect(schema.properties[key].enum).toEqual([-1, 0]);
     expect(() =>

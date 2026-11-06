@@ -102,6 +102,62 @@ it("attaches a generated pair atomically before ten originals and never reattach
     (await first.action("detail", { draftId: draft.id })).photos,
   ).toHaveLength(11);
 });
+it("attaches slots independently across tabs without resurrecting seller deletions", async () => {
+  let draft = await create();
+  await photo(draft.id);
+  draft = await first.action("detail", { draftId: draft.id });
+  const operationId = id(),
+    jobId = id();
+  await first.beginAttempt(
+    draft.id,
+    { operationId, inputVersion: draft.input_version },
+    false,
+  );
+  await first.finishAttempt(draft.id, operationId, "succeeded", {
+    title: "Saved text",
+    description: "Saved description",
+    modelPhotos: { jobId, status: "generating" },
+  } as any);
+  await first.attachModelPhotos(draft.id, jobId, [
+    { slot: "secondary", blob: jpeg() },
+  ]);
+  draft = await first.action("detail", { draftId: draft.id });
+  expect(draft.modelPhotos).toMatchObject({
+    status: "generating",
+    receivedSlots: ["secondary"],
+    attached: false,
+  });
+  expect(draft.photos[0].modelSlot).toBe("secondary");
+  const second = new LocalDraftStore("account-one");
+  try {
+    await first.action("removePhoto", { photoId: draft.photos[0].id });
+    draft = await first.action("detail", { draftId: draft.id });
+    await first.action("save", {
+      draftId: draft.id,
+      expectedVersion: draft.version,
+      title: "Seller edited title",
+    });
+    await Promise.all(
+      [first, second].map((store) =>
+        store.attachModelPhotos(draft.id, jobId, [
+          { slot: "primary", blob: jpeg() },
+          { slot: "secondary", blob: jpeg() },
+        ]),
+      ),
+    );
+    draft = await second.action("detail", { draftId: draft.id });
+    expect(draft.modelPhotos?.attached).toBe(true);
+    expect(
+      draft.photos.filter((p) => p.origin === "model").map((p) => p.modelSlot),
+    ).toEqual(["primary"]);
+    expect(draft.photos).toHaveLength(2);
+    expect(draft.title).toBe("Seller edited title");
+    expect(draft.description).toBe("Saved description");
+  } finally {
+    second.dispose();
+  }
+});
+
 it("rejects stale photo attachments and never moves generated photos into the source pool", async () => {
   let draft = await create();
   await photo(draft.id);

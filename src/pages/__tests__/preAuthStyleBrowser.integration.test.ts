@@ -193,6 +193,20 @@ async function fixture(
   return { context, page, oauth, emails, errors, session };
 }
 
+async function continueToSignIn(page: any) {
+  // With models enabled, style selection is followed by the optional model
+  // preferences step. Exercise its real skip action before asserting sign-in.
+  if (
+    await page.evaluate(
+      () => window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.userModelsEnabled,
+    )
+  ) {
+    await expect(page.locator(".um-preauth")).toBeVisible();
+    await page.locator(".um-preauth .um-secondary").click();
+  }
+  await expect(page.locator('[data-mobile-web="auth-card"]')).toBeVisible();
+}
+
 async function chooseStyle(page: any) {
   await expect(page.locator("section[data-style-setup]")).toBeVisible();
   await expect(page.locator('[data-mobile-web="auth-card"]')).toBeHidden();
@@ -209,7 +223,7 @@ async function chooseStyle(page: any) {
     chosen.descriptionFooterText,
   );
   await page.click("[data-style-finish]");
-  await expect(page.locator('[data-mobile-web="auth-card"]')).toBeVisible();
+  await continueToSignIn(page);
 }
 
 it.skipIf(!enabled).each(["google", "email-code", "email-link"])(
@@ -320,6 +334,7 @@ it.skipIf(!enabled)(
         chosen.descriptionFooterText,
       );
       await page.click("[data-style-finish]");
+      await continueToSignIn(page);
       expect(new URL(page.url()).searchParams.get("signin")).toBe("1");
       await page.reload();
       await expect(page.locator('[data-mobile-web="auth-card"]')).toBeVisible();
@@ -355,6 +370,7 @@ it.skipIf(!enabled)(
         first.page.locator("section[data-style-setup]"),
       ).toBeVisible();
       await first.page.click("[data-style-skip]");
+      await continueToSignIn(first.page);
       await first.page.fill("#mobile-email", "fixture@example.test");
       await first.page.locator('[data-mobile-web="email-form"] button').click();
       await first.page.fill("#mobile-otp", "123456");
@@ -760,9 +776,7 @@ it.skipIf(!enabled)(
           expect(enlarged!.y).toBeGreaterThanOrEqual(0);
           expect(enlarged!.y + enlarged!.height).toBeLessThanOrEqual(height);
           await page.locator("[data-style-finish]").click();
-          await expect(
-            page.locator('[data-mobile-web="auth-card"]'),
-          ).toBeVisible();
+          await continueToSignIn(page);
         }
       } finally {
         await context.close();

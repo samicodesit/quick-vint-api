@@ -38,3 +38,13 @@ Ruling: Keep two photos and use another supported front view when rear evidence 
 - Detailed private evidence: workspace qa/cost-fidelity-results.md and qa/remaining-budget-ledger.json. No deployment. Commit locally after final diff review.
 
 Ruling: share a small construction object from the existing classifier rather than adding another model call or broad prompt paragraphs. Standard text service removes the Fast premium but may increase latency. Do not substitute cheaper text models generally until they pass factual review.
+
+## November 6 release follow-up
+
+All 22 opt-in browser cases are now included in the complete production gate.
+The older style-login tests were corrected to skip the existing optional model
+preferences step when the model feature is enabled, then assert sign-in.
+No product behavior changed. Lint, types, build, formatting and all 1,599 tests
+across 187 files passed, with none skipped. This supersedes the earlier 19-case
+coverage limitation. Origin/main remains 629c75a; the release is a fast-forward
+and needs no database migration. No additional paid calls or deployment.

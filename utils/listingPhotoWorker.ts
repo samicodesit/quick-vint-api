@@ -1,5 +1,7 @@
 import {
   photoPrompt,
+  photoCorrection,
+  photoCorrectionPrompt,
   photoReferenceIndices,
   photoEditReferenceIndices,
   photoView,
@@ -199,11 +201,37 @@ export async function runPhotoJob(
           previous?.state === "failed" &&
           retryableCheckFailure(previous.errorCode) &&
           previous.candidateKey === `${user}/${id}/0/${slot}.jpg`;
+        const defects =
+          job.retry_count === 1 &&
+          previous?.state === "failed" &&
+          previous.errorCode === "photo_quality_failed" &&
+          previous.correction?.candidateKey === `${user}/${id}/0/${slot}.jpg`
+            ? photoCorrection(previous.correction)
+            : undefined;
         const key = reuse
           ? previous.candidateKey
           : `${user}/${id}/${job.retry_count}/${slot}.jpg`;
         let candidateKey: string | undefined;
+        let correction:
+          | {
+              candidateKey: string;
+              defects: NonNullable<ReturnType<typeof photoCorrection>>;
+            }
+          | undefined;
         try {
+          // Correct only the existing manual retry. The checker still sees the
+          // original pose and product, never the rejected image as evidence.
+          const references = editIndices.map((i) => sources![i]);
+          const editImages = defects
+            ? [
+                "data:image/jpeg;base64," +
+                  (
+                    await deps.download(previous.correction.candidateKey)
+                  ).toString("base64"),
+                ...references,
+                pose,
+              ]
+            : [pose, ...references];
           const generated = reuse
             ? { bytes: await deps.download(key) }
             : await stage(
@@ -212,8 +240,10 @@ export async function runPhotoJob(
                 () =>
                   deps.edit(
                     user,
-                    [pose, ...editIndices.map((i) => sources![i])],
-                    photoPrompt(plan, slot),
+                    editImages,
+                    defects
+                      ? photoCorrectionPrompt(defects)
+                      : photoPrompt(plan, slot),
                   ),
                 key,
               );
@@ -236,7 +266,12 @@ export async function runPhotoJob(
               candidateKey = key;
             throw checked.reason;
           }
-          if (!checked.value.accepted) throw new Error("photo_quality_failed");
+          if (!checked.value.accepted) {
+            const defects = photoCorrection(checked.value.quality);
+            if (job.retry_count === 0 && defects)
+              correction = { candidateKey: key, defects };
+            throw new Error("photo_quality_failed");
+          }
           await save({ [slot]: { state: "ready", key } });
         } catch (error) {
           await save({
@@ -244,6 +279,7 @@ export async function runPhotoJob(
               state: "failed",
               errorCode: photoFailureCode(error),
               ...(candidateKey ? { candidateKey } : {}),
+              ...(correction ? { correction } : {}),
             },
           });
         }

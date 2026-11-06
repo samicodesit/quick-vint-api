@@ -1,5 +1,146 @@
 import { it, expect, vi } from "vitest";
 import { runPhotoJob } from "../../../utils/listingPhotoWorker";
+function correctionFixture() {
+  const job: any = {
+    id: "j",
+    kind: "listing",
+    lease_token: "l",
+    retry_count: 0,
+    payload: {
+      plan: {
+        eligible: true,
+        category: "full_body",
+        frontIndex: 0,
+        backIndex: 1,
+        detailIndex: 2,
+      },
+      primary: { state: "ready", key: "u/j/0/primary.jpg" },
+    },
+  };
+  const defect = {
+    code: "wrong_item_construction",
+    evidence: "Sleeves are shorter than PRODUCT.",
+  };
+  const deps: any = {
+    mutate: vi.fn(async (_user, action, input) => {
+      if (action === "claim" || action === "get")
+        return { ...job, payload: { ...job.payload } };
+      if (action === "stage") return { id: input.stage };
+      if (action === "save") {
+        Object.assign(job.payload, input.payload);
+        if (input.state) job.state = input.state;
+      }
+      return job;
+    }),
+    sources: async () => ["product-front", "product-rear", "detail"],
+    front: async () => "front-pose",
+    rear: async () => "rear-pose",
+    edit: vi.fn(async () => ({ bytes: Buffer.from("candidate"), usage: {} })),
+    check: vi.fn(async () => ({
+      accepted: false,
+      quality: { defects: [defect] },
+      usage: {},
+    })),
+    upload: vi.fn(async () => {}),
+    download: vi.fn(async () => Buffer.from("saved-candidate")),
+  };
+  return { job, deps, defect };
+}
+it("corrects only the rejected slot on the existing retry and checks all original evidence", async () => {
+  const { job, deps, defect } = correctionFixture();
+  await runPhotoJob("u", "j", deps);
+  expect(job.state).toBe("failed");
+  expect(job.payload.secondary.correction).toEqual({
+    candidateKey: "u/j/0/secondary.jpg",
+    defects: [defect],
+  });
+  expect(deps.edit).toHaveBeenCalledTimes(1);
+  job.retry_count = 1;
+  deps.edit.mockClear();
+  deps.check.mockClear();
+  deps.check.mockResolvedValue({
+    accepted: true,
+    quality: { defects: [] },
+    usage: {},
+  });
+  await runPhotoJob("u", "j", deps);
+  expect(deps.download).toHaveBeenCalledWith("u/j/0/secondary.jpg");
+  expect(deps.edit).toHaveBeenCalledExactlyOnceWith(
+    "u",
+    [
+      "data:image/jpeg;base64," +
+        Buffer.from("saved-candidate").toString("base64"),
+      "product-rear",
+      "product-front",
+      "detail",
+      "rear-pose",
+    ],
+    expect.stringContaining(defect.evidence),
+  );
+  expect(deps.check).toHaveBeenCalledExactlyOnceWith(
+    "rear-pose",
+    Buffer.from("candidate"),
+    job.payload.plan,
+    "secondary",
+    false,
+    ["product-rear", "product-front", "detail"],
+  );
+  expect(job.payload.primary).toEqual({
+    state: "ready",
+    key: "u/j/0/primary.jpg",
+  });
+  expect(job.payload.secondary).toEqual({
+    state: "ready",
+    key: "u/j/1/secondary.jpg",
+  });
+  expect(job.state).toBe("ready");
+});
+it("does not publish or retain another correction when the correction fails", async () => {
+  const { job, deps } = correctionFixture();
+  await runPhotoJob("u", "j", deps);
+  job.retry_count = 1;
+  await runPhotoJob("u", "j", deps);
+  expect(job.state).toBe("failed");
+  expect(job.payload.secondary).toEqual({
+    state: "failed",
+    errorCode: "photo_quality_failed",
+  });
+  expect(deps.edit).toHaveBeenCalledTimes(2);
+});
+it.each(["foreign", "missing", "mixed", "upload", "no-evidence"])(
+  "keeps correction recovery safe for %s",
+  async (failure) => {
+    const { job, deps } = correctionFixture();
+    if (failure === "upload")
+      deps.upload.mockRejectedValue(new Error("storage failed"));
+    if (failure === "mixed")
+      deps.check.mockResolvedValue({
+        accepted: false,
+        usage: {},
+        quality: { defects: [{ code: "extra_limb", evidence: "Three arms" }] },
+      });
+    if (failure === "no-evidence")
+      deps.check.mockResolvedValue({ accepted: false, usage: {}, quality: {} });
+    await runPhotoJob("u", "j", deps);
+    if (["mixed", "upload", "no-evidence"].includes(failure)) {
+      expect(job.payload.secondary.correction).toBeUndefined();
+      return;
+    }
+    expect(job.payload.secondary.correction).toBeDefined();
+    if (failure === "foreign")
+      job.payload.secondary.correction.candidateKey = "other/j/0/secondary.jpg";
+    else deps.download.mockRejectedValue(new Error("gone"));
+    job.retry_count = 1;
+    deps.edit.mockClear();
+    deps.check.mockClear();
+    await runPhotoJob("u", "j", deps);
+    expect(deps.download).toHaveBeenCalledTimes(failure === "foreign" ? 0 : 1);
+    expect(deps.edit).toHaveBeenCalledTimes(failure === "foreign" ? 1 : 0);
+    expect(deps.check).toHaveBeenCalledTimes(failure === "foreign" ? 1 : 0);
+    expect(job.payload.secondary.correction).toBeUndefined();
+    expect(job.state).toBe("failed");
+  },
+);
 it("keeps both product surfaces in validation when a plain-side edit omits the opposite print", async () => {
   const job: any = {
     id: "j",

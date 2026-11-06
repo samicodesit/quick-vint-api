@@ -1,0 +1,9 @@
+{
+  "pageChecks": 60,
+  "pageIssues": [],
+  "variantBChecks": 8,
+  "variantBIssues": [],
+  "viewportWidths": [320, 390, 1440],
+  "homeLocales": ["de", "en", "es", "fr", "it", "nl", "pl", "pt"],
+  "customerOrMarketplaceJourney": "Not rerun for this content-only change"
+}

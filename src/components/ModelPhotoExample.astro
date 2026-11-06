@@ -1,0 +1,28 @@
+---
+import { HOME_MODEL_COPY } from "../i18n/homeModel";
+import { normalizeSiteLocale } from "../i18n/site";
+const { locale = "en", eager = false, article = false } = Astro.props;
+const copy = HOME_MODEL_COPY[normalizeSiteLocale(locale)];
+const photos = [
+  { file: "original", label: copy.original, alt: copy.originalAlt, width: 480, height: 640 },
+  { file: "front", label: copy.front, alt: copy.frontAlt, width: 576, height: 864 },
+];
+---
+<div class:list={["model-comparison", "model-photo-example", { "article-example": article }]}>
+  {photos.map(photo => <figure>
+    <a href={`/images/model-feature/v2/${photo.file}.webp`} target="_blank" rel="noopener">
+      <img src={`/images/model-feature/v2/${photo.file}.webp`} alt={photo.alt} width={photo.width} height={photo.height} loading={eager ? "eager" : "lazy"} fetchpriority={eager && photo.file === "front" ? "high" : "auto"} decoding="async" />
+    </a>
+    <figcaption>{photo.label}</figcaption>
+  </figure>)}
+</div>
+<style>
+  .model-photo-example { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .article-example { margin: 28px 0; }
+  figure { margin: 0; min-width: 0; }
+  a { display: block; border-radius: 12px; overflow: hidden; background: #f0ede7; }
+  a:focus-visible { outline: 3px solid #7564e7; outline-offset: 4px; }
+  img { display: block; width: 100%; height: auto; aspect-ratio: 2 / 3; object-fit: contain; }
+  figcaption { margin-top: 9px; color: #475569; font-size: 13px; line-height: 1.5; text-align: center; }
+  @media (max-width: 400px) { .model-photo-example { gap: 8px; } figcaption { font-size: 12px; } }
+</style>

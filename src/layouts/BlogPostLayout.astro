@@ -40,7 +40,7 @@ const beginnerEntry = locale === "en" && post.data.translationKey === "what-is-v
 const copy = BLOG_COPY[locale];
 const canonicalUrl = new URL(getPostUrl(post), Astro.site || "https://autolister.app").toString();
 const readingTime = estimateReadingTime(post.body || "");
-const heroImage = (caseEntry || speedEntry) ? "https://autolister.app/blog/vinted-photo-case-study/beige-dress-sold.webp" : post.data.heroImage
+const heroImage = modelEntry ? "https://autolister.app/images/model-feature/v2/comparison.webp" : (caseEntry || speedEntry) ? "https://autolister.app/blog/vinted-photo-case-study/beige-dress-sold.webp" : post.data.heroImage
   ? new URL(post.data.heroImage, Astro.site || "https://autolister.app").toString()
   : "https://autolister.app/social-card-sep2026.png?v=20260930";
 const categoryUrl = locale === "en"
@@ -126,17 +126,13 @@ const faqSchema = post.data.faqItems?.length
   ogType="article"
   socialImage={heroImage}
   socialImageAlt={post.data.heroImageAlt || post.data.title}
-  socialImageWidth={(caseEntry || speedEntry) ? 268 : 1200}
-  socialImageHeight={(caseEntry || speedEntry) ? 455 : 630}
+  socialImageWidth={modelEntry ? 1280 : (caseEntry || speedEntry) ? 268 : 1200}
+  socialImageHeight={modelEntry ? 936 : (caseEntry || speedEntry) ? 455 : 630}
   htmlLang={locale}
   currentLocale={locale}
   localeBasePath={`/blog/${post.data.slug}`}
   switcherLocales={translations.map((translation) => translation.locale)}
   localizedUrls={localizedUrls}
-  socialImage={modelEntry ? "/images/model-guides/comparison-beige.png" : undefined}
-  socialImageAlt={modelEntry ? post.data.title : undefined}
-  socialImageWidth={modelEntry ? 1280 : undefined}
-  socialImageHeight={modelEntry ? 936 : undefined}
 >
   <Fragment slot="head">
     <meta property="article:published_time" content={post.data.publishDate.toISOString()} />

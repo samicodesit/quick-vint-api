@@ -10,6 +10,11 @@ export const MODEL_PHOTO_COPY = {
     extension: "Get the Vinted extension",
     access: "On your phone or computer. No extension needed.",
     comparison: "Beige dress: item photo and AI model photo",
+    example:
+      "Beige embroidered top: original item photo and current AI model photo",
+    exampleNote:
+      "AI-generated example. Compare the item details with your originals.",
+    sellerExample: "A seller’s before and after",
     open: "View the comparison at full size",
     how: "Create your model once.",
     counts: "5 to 135 views. 0 to 33 favourites. Sold.",
@@ -37,7 +42,7 @@ export const MODEL_PHOTO_COPY = {
       "Check colours, seams, logos and wear before using a photo. AI can get details wrong. The photos illustrate the item, not its actual fit.",
     more: "See it in practice",
     howto: "How to add model photos to a Vinted listing",
-    results: "Four listings, before and after model photos",
+    results: "A seller’s wardrobe, before and after model photos",
     pricing: "See plans and allowances",
   },
   nl: {
@@ -51,6 +56,11 @@ export const MODEL_PHOTO_COPY = {
     extension: "Download de Vinted-extensie",
     access: "Op je telefoon of computer. Zonder extensie.",
     comparison: "Beige jurk: kledingfoto en AI-modelfoto",
+    example:
+      "Beige geborduurde top: originele kledingfoto en huidige AI-modelfoto",
+    exampleNote:
+      "AI-gegenereerd voorbeeld. Vergelijk de artikeldetails met je originele foto’s.",
+    sellerExample: "Voor en na bij een verkoper",
     open: "Bekijk de vergelijking op volledig formaat",
     how: "Maak je model één keer.",
     counts: "Van 5 naar 135 weergaven. Van 0 naar 33 favorieten. Verkocht.",
@@ -78,7 +88,7 @@ export const MODEL_PHOTO_COPY = {
       "Controleer kleuren, naden, logo’s en gebruikssporen. AI kan details verkeerd weergeven. De foto’s tonen het kledingstuk, niet de werkelijke pasvorm.",
     more: "Bekijk hoe het werkt",
     howto: "Zo voeg je modelfoto’s toe aan een Vinted-advertentie",
-    results: "Vier advertenties, voor en na modelfoto’s",
+    results: "Een garderobe, voor en na modelfoto’s",
     pricing: "Bekijk abonnementen en limieten",
   },
   fr: {
@@ -92,6 +102,11 @@ export const MODEL_PHOTO_COPY = {
     extension: "Installer l’extension Vinted",
     access: "Sur téléphone ou ordinateur. Sans extension.",
     comparison: "Robe beige : photo de l’article et photo sur mannequin IA",
+    example:
+      "Haut beige brodé : photo d’origine et photo actuelle sur mannequin IA",
+    exampleNote:
+      "Exemple généré par IA. Comparez les détails de l’article avec vos photos d’origine.",
+    sellerExample: "Les photos avant et après d’une vendeuse",
     open: "Voir le comparatif en grand",
     how: "Créez votre mannequin une fois.",
     counts: "De 5 à 135 vues. De 0 à 33 favoris. Vendu.",
@@ -119,7 +134,7 @@ export const MODEL_PHOTO_COPY = {
       "Vérifiez les couleurs, les coutures, les logos et les traces d’usure. L’IA peut se tromper sur les détails. Les photos illustrent l’article, pas son ajustement réel.",
     more: "Voir des exemples",
     howto: "Ajouter des photos sur mannequin à une annonce Vinted",
-    results: "Quatre annonces, avant et après les photos sur mannequin",
+    results: "Une garde-robe, avant et après les photos sur mannequin",
     pricing: "Voir les offres et les limites",
   },
   de: {
@@ -133,6 +148,11 @@ export const MODEL_PHOTO_COPY = {
     extension: "Vinted-Erweiterung installieren",
     access: "Am Handy oder Computer. Ohne Erweiterung.",
     comparison: "Beiges Kleid: Artikelfoto und KI-Modelfoto",
+    example:
+      "Beigefarbenes besticktes Oberteil: Originalfoto und aktuelles KI-Modelfoto",
+    exampleNote:
+      "KI-generiertes Beispiel. Vergleiche die Artikeldetails mit deinen Originalfotos.",
+    sellerExample: "Vorher und nachher bei einer Verkäuferin",
     open: "Vergleich in voller Größe ansehen",
     how: "Erstelle dein Model einmal.",
     counts: "Von 5 auf 135 Aufrufe. Von 0 auf 33 Favoriten. Verkauft.",
@@ -160,7 +180,7 @@ export const MODEL_PHOTO_COPY = {
       "Prüfe Farben, Nähte, Logos und Gebrauchsspuren. KI kann Details falsch darstellen. Die Fotos zeigen den Artikel, nicht die tatsächliche Passform.",
     more: "So sieht es in der Praxis aus",
     howto: "Modelfotos zu einer Vinted-Anzeige hinzufügen",
-    results: "Vier Anzeigen vor und nach den Modelfotos",
+    results: "Eine Garderobe vor und nach den Modelfotos",
     pricing: "Tarife und Nutzungslimits ansehen",
   },
 } as const;

@@ -29,8 +29,12 @@ const modelSlide = {
   pl: ["Twoje ubrania na modelu AI.", "Stwórz raz. Używaj ponownie."],
   pt: ["Roupa no teu modelo de IA.", "Cria uma vez. Volta a usar."],
 }[locale];
-const promos = ["model-photos", "listing-drafts", "phone-qr", "batch-listing", "saved-notes"];
-const promoLabels = [modelCopy.teaser, ...labels.slice(2)];
+const promos = ["model-v2", "model-photos", "listing-drafts", "phone-qr", "batch-listing", "saved-notes"];
+const sellerLabel = {
+  en: "A seller’s before and after", fr: "Avant et après d’une vendeuse", de: "Vorher und nachher bei einer Verkäuferin", nl: "Voor en na bij een verkoper",
+  es: "Antes y después de una vendedora", it: "Prima e dopo di una venditrice", pl: "Przed i po u sprzedającej", pt: "Antes e depois de uma vendedora",
+}[locale];
+const promoLabels = [modelCopy.teaser, sellerLabel, ...labels.slice(2)];
 const fullCardSizes = "(min-width: 1280px) 440px, (min-width: 1024px) 32vw, (min-width: 640px) 440px, 88vw";
 const modelImageSizes = "(min-width: 1280px) 264px, (min-width: 1024px) 19.2vw, (min-width: 640px) 264px, 53vw";
 ---
@@ -51,32 +55,32 @@ const modelImageSizes = "(min-width: 1280px) 264px, (min-width: 1024px) 19.2vw, 
     {promos.map((name, index) => (
       <button
         type="button"
-        class:list={["promo-card", { "promo-card-model": name === "model-photos" }]}
+        class:list={["promo-card", { "promo-card-model": name === "model-v2" || name === "model-photos" }]}
         data-screenshot-preview-open
-        data-screenshot-src={name === "model-photos" ? "/images/model-guides/comparison-beige.png" : `/promos/${name}.webp`}
+        data-screenshot-src={name === "model-v2" ? "/images/model-feature/v2/comparison.webp" : name === "model-photos" ? "/images/model-guides/comparison-beige.png" : `/promos/${name}.webp`}
         data-screenshot-alt={promoLabels[index]}
         data-track-event="store_screenshot_open"
         data-track-context={`home_promo_${name}`}
         aria-label={name === "model-photos" ? `${modelCopy.badge}: ${promoLabels[index]}` : promoLabels[index]}
       >
-        {name === "model-photos" && <span class="promo-model-copy" aria-hidden="true">
+        {(name === "model-v2" || name === "model-photos") && <span class="promo-model-copy" aria-hidden="true">
           <span class="promo-model-brand">AutoLister AI</span>
-          <span class="promo-new">{modelCopy.badge}</span>
-          <span class="promo-model-text"><span class="promo-model-title">{modelSlide[0]}</span><span class="promo-model-body">{modelSlide[1]}</span></span>
+          {name === "model-v2" && <span class="promo-new">{modelCopy.badge}</span>}
+          <span class="promo-model-text"><span class="promo-model-title">{name === "model-v2" ? modelSlide[0] : sellerLabel}</span>{name === "model-v2" && <span class="promo-model-body">{modelSlide[1]}</span>}</span>
         </span>}
         <picture>
-        {name !== "model-photos" && <source
+        {name !== "model-photos" && name !== "model-v2" && <source
           type="image/avif"
           srcset={`/promos/${name}-480.avif 480w, /promos/${name}-800.avif 800w, /promos/${name}-960.avif 960w`}
           sizes={fullCardSizes}
         />}
         <img
-          src={`/promos/${name}-800.webp`}
-          srcset={`/promos/${name}-480.webp 480w, /promos/${name}-800.webp 800w, /promos/${name}-960.webp 960w`}
-          sizes={name === "model-photos" ? modelImageSizes : fullCardSizes}
+          src={name === "model-v2" ? "/images/model-feature/v2/comparison-800.webp" : `/promos/${name}-800.webp`}
+          srcset={name === "model-v2" ? "/images/model-feature/v2/comparison-480.webp 480w, /images/model-feature/v2/comparison-800.webp 800w, /images/model-feature/v2/comparison-960.webp 960w" : `/promos/${name}-480.webp 480w, /promos/${name}-800.webp 800w, /promos/${name}-960.webp 960w`}
+          sizes={name === "model-photos" || name === "model-v2" ? modelImageSizes : fullCardSizes}
           alt={promoLabels[index]}
-          width={name === "model-photos" ? 1280 : 1600}
-          height={name === "model-photos" ? 936 : 1000}
+          width={name === "model-photos" || name === "model-v2" ? 1280 : 1600}
+          height={name === "model-photos" || name === "model-v2" ? 936 : 1000}
           loading="lazy"
           decoding="async"
           fetchpriority="low"

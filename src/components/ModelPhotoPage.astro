@@ -2,6 +2,7 @@
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { MODEL_PHOTO_COPY } from "../i18n/modelPhotos";
 import { CHROME_WEB_STORE_URL } from "../utils/blog";
+import ModelPhotoExample from "./ModelPhotoExample.astro";
 const { locale = "en" } = Astro.props as { locale: keyof typeof MODEL_PHOTO_COPY };
 const c = MODEL_PHOTO_COPY[locale];
 const prefix = locale === "en" ? "" : `/${locale}`;
@@ -10,7 +11,7 @@ const canonical = `https://autolister.app${prefix}/ai-model-photos`;
 <SiteLayout title={c.title} description={c.description} canonical={canonical} ogUrl={canonical}
   htmlLang={locale} currentLocale={locale} localeBasePath="/ai-model-photos"
   switcherLocales={['en','nl','fr','de']} includeWebApplication webPrimary
-  socialImage="/images/model-guides/comparison-beige.png" socialImageAlt={c.comparison} socialImageWidth={1280} socialImageHeight={936}>
+  socialImage="/images/model-feature/v2/comparison.webp" socialImageAlt={c.example} socialImageWidth={1280} socialImageHeight={936}>
   <Fragment slot="head">
     {['en','nl','fr','de'].map(lang => <link rel="alternate" hreflang={lang} href={`https://autolister.app${lang === 'en' ? '' : '/' + lang}/ai-model-photos`} />)}
     <link rel="alternate" hreflang="x-default" href="https://autolister.app/ai-model-photos" />
@@ -23,15 +24,19 @@ const canonical = `https://autolister.app${prefix}/ai-model-photos`;
         <p class="access">{c.access}</p>
         <a class="secondary" href={CHROME_WEB_STORE_URL} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context={`model_feature_${locale}_hero`}>{c.extension}</a>
       </div>
-      <figure><a class="hero-proof" href="/images/model-guides/comparison-beige.png" target="_blank" rel="noopener" aria-label={c.open}>
-        <img src="/images/model-guides/comparison-beige.png" alt={c.comparison} width="1280" height="936" fetchpriority="high" />
-      </a><figcaption>{c.counts}</figcaption></figure>
+      <figure><ModelPhotoExample locale={locale} eager /><figcaption>{c.exampleNote}</figcaption></figure>
     </section>
     <section class="model-how" aria-labelledby="model-how-heading">
       <div><h2 id="model-how-heading">{c.how}</h2>
         <ol>{c.steps.map(([title, body]) => <li><h3>{title}</h3><p>{body}</p></li>)}</ol>
       </div>
       <img class="setup" src={`/images/model-guides/setup-ui-${locale}.png`} alt={c.setupAlt} width="686" height="1456" loading="lazy" />
+    </section>
+    <section class="seller-example">
+      <h2>{c.sellerExample}</h2>
+      <figure><a class="hero-proof" href="/images/model-guides/comparison-beige.png" target="_blank" rel="noopener" aria-label={c.open}>
+        <img src="/images/model-guides/comparison-beige.png" alt={c.comparison} width="1280" height="936" loading="lazy" />
+      </a><figcaption>{c.counts} <a class="secondary" href={`${prefix}/blog/model-photos-four-listings`}>{c.results}</a></figcaption></figure>
     </section>
     <section class="model-use"><div><h2>{c.useTitle}</h2><p>{c.useBody}</p></div><div><h2>{c.detailTitle}</h2><p>{c.detailBody}</p></div></section>
     <section class="model-links"><h2>{c.more}</h2><a href={`${prefix}/blog/ai-model-photos-vinted`}>{c.howto}</a><a href={`${prefix}/blog/model-photos-four-listings`}>{c.results}</a></section>
@@ -50,6 +55,7 @@ const canonical = `https://autolister.app${prefix}/ai-model-photos`;
   .hero-proof{display:block;border-radius:16px;overflow:hidden;background:#171d1d}
   .hero-proof img{display:block;width:100%;height:auto}
   figure{margin:0;min-width:0}figcaption{margin:12px 0 0;color:#475569;font-size:14px;line-height:1.6}
+  .seller-example{margin-top:56px}.seller-example figure{max-width:680px}.seller-example figcaption a{display:block;margin-top:8px}
   a:focus-visible{outline:3px solid #7862e9;outline-offset:5px}
   h2{font-size:clamp(26px,3vw,34px);line-height:1.2;letter-spacing:-.025em;font-weight:700;text-wrap:balance;margin:0 0 24px}
   h3{font-size:19px;line-height:1.35;font-weight:600;margin:0 0 9px}

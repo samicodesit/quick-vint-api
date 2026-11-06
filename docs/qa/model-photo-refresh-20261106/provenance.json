@@ -1,0 +1,341 @@
+{
+  "date": "2026-11-06",
+  "state": "local draft",
+  "recipe": {
+    "preferences": {
+      "gender": "female",
+      "hair": "brown",
+      "heightCm": 170,
+      "build": "average",
+      "skinTone": "tone_3"
+    },
+    "scene": {
+      "room": "dressing_corner",
+      "wall": "muted_greige",
+      "floor": "light_stone_tile",
+      "mirror": "rectangular",
+      "frame": "dark_wood",
+      "furniture": "stool",
+      "accent": "plant",
+      "plant": "zz_plant",
+      "window": "partial_right",
+      "lightDirection": "right",
+      "lighting": "diffused_afternoon",
+      "arrangement": "right",
+      "position": "centered",
+      "phoneCase": "navy",
+      "hairStyle": "short_textured",
+      "age": 30,
+      "accessory": "stud_earrings",
+      "skinDetail": "fine natural lines at wrists and knuckles, with normal skin texture",
+      "baseOutfit": "a soft washed grey T-shirt, straight dark blue jeans and everyday white trainers",
+      "homeDetail": "a wardrobe door and a basket of folded clothes"
+    },
+    "promptVersion": 2,
+    "catalogVersion": 2,
+    "prompt": "An unretouched phone mirror snapshot at home, like an ordinary second-hand seller photographing an outfit.\nA fictional adult aged 30, female, brown hair with a short textured haircut, medium tan skin, average build, about 170 cm tall. Wearing a soft washed grey T-shirt, straight dark blue jeans and everyday white trainers. Small simple stud earrings.\nStanding comfortably, centered, weight slightly on one leg, one arm relaxed and the other naturally holding a normal-sized phone with a navy case in front of the central face. Central features are hidden; forehead, cheek, jaw and small eye-edge fragments are acceptable. Full body, top of hair and BOTH complete shoes visible with a little floor below the feet.\nAn ordinary home dressing corner with muted greige walls and light stone tile flooring. A simple rectangular mirror with a dark wood frame. In the background, a wardrobe door and a basket of folded clothes.\nA zz plant at the side of the room.\nOrdinary phone auto-exposure with slightly uneven diffused afternoon daylight from the right. fine natural lines at wrists and knuckles, with normal skin texture; keep the chosen skin tone. Natural body contours, loose hair strands and clothing creases. Modest practical home, casual framing. No beauty smoothing, studio lights, showroom staging or artificial blur. One adult, one mirror photo, no text or logos."
+  },
+  "classification": {
+    "sourceEvidence": {
+      "shape": "Loose, straight-cut knitted top with round neckline, dropped shoulders and approximately elbow-length sleeves; hip-length proportions.",
+      "front": "Beige fine-knit pullover with tonal embroidered branching floral stems and small pearl-like beads. No visible pockets or fastenings.",
+      "rear": "Not visible; all photos show the front or its embroidered details."
+    },
+    "eligible": true,
+    "category": "top",
+    "itemType": "top",
+    "frontIndex": 0,
+    "backIndex": -1,
+    "detailIndex": 2,
+    "viewDetails": {
+      "front": 1,
+      "rear": -1
+    },
+    "backViewEvidence": "absent",
+    "construction": {
+      "sleeveLength": "elbow",
+      "legLength": "unknown",
+      "frontDecoration": "decorated",
+      "backDecoration": "unknown"
+    }
+  },
+  "source": "Existing public embroidered-top example, with its original detail photographs. No customer account or private customer images used.",
+  "generation": "Current userModelGeneration and listingPhotoGeneration functions, without prompt or provider overrides. Two front views because no rear source exists. No retouching or image alterations beyond resize and WebP export.",
+  "providerCalls": [
+    {
+      "name": "v2-model",
+      "kind": "image",
+      "reservedUsd": 0.15,
+      "status": "completed",
+      "model": "gpt-image-2.5-flare-2026-09-08",
+      "endpoint": "images/generations",
+      "providerStatus": 200,
+      "usage": {
+        "input_tokens": 281,
+        "input_tokens_details": {
+          "image_tokens": 0,
+          "text_tokens": 281
+        },
+        "output_tokens": 343,
+        "output_tokens_details": {
+          "image_tokens": 343,
+          "text_tokens": 0
+        },
+        "total_tokens": 624
+      },
+      "costUsd": 0.011695
+    },
+    {
+      "name": "v2-model-check",
+      "kind": "check",
+      "reservedUsd": 0.06,
+      "status": "completed",
+      "model": "gpt-5.4-mini-2026-03-17",
+      "endpoint": "responses",
+      "providerStatus": 200,
+      "usage": {
+        "input_tokens": 2083,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 84,
+        "output_tokens_details": {
+          "reasoning_tokens": 49
+        },
+        "total_tokens": 2167
+      },
+      "costUsd": 0.00194025,
+      "quality": {
+        "phone_obscures_face": true,
+        "full_body_and_shoes_visible": true,
+        "no_major_defects": true
+      }
+    },
+    {
+      "name": "classify-public-top",
+      "kind": "check",
+      "reservedUsd": 0.06,
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "endpoint": "responses",
+      "providerStatus": 200,
+      "usage": {
+        "input_tokens": 2565,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 154,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2719
+      },
+      "costUsd": 0.00667
+    },
+    {
+      "name": "primary",
+      "kind": "image",
+      "reservedUsd": 0.15,
+      "status": "completed",
+      "model": "gpt-image-2.5-flare-2026-09-08",
+      "endpoint": "images/edits",
+      "providerStatus": 200,
+      "usage": {
+        "input_tokens": 4232,
+        "input_tokens_details": {
+          "image_tokens": 3840,
+          "text_tokens": 392
+        },
+        "output_tokens": 277,
+        "output_tokens_details": {
+          "image_tokens": 277,
+          "text_tokens": 0
+        },
+        "total_tokens": 4509
+      },
+      "costUsd": 0.04099
+    },
+    {
+      "name": "primary-check",
+      "kind": "check",
+      "reservedUsd": 0.06,
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "endpoint": "responses",
+      "providerStatus": 200,
+      "usage": {
+        "input_tokens": 5726,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 222,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 5948
+      },
+      "costUsd": 0.013672,
+      "quality": {
+        "productComparison": {
+          "shape": {
+            "product": "Loose, straight, hip-length knitted top with a round neckline, dropped shoulders and approximately elbow-length sleeves.",
+            "candidate": "Loose hip-length top with a round neckline, dropped shoulders and sleeves ending around the elbows; full hem is visible.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Fine-knit pullover with simple sleeve cuffs and hem; no visible pockets or fastenings.",
+            "candidate": "Fine-knit pullover with plain cuffs and hem, without added pockets or fastenings.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Beige knit with tonal branching floral embroidery across the front and small pearl-like beads among the flower clusters.",
+            "candidate": "Beige knit retains the prominent tonal branching floral stems and small pale bead-like accents across the front.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      },
+      "accepted": true
+    },
+    {
+      "name": "secondary",
+      "kind": "image",
+      "reservedUsd": 0.15,
+      "status": "completed",
+      "model": "gpt-image-2.5-flare-2026-09-08",
+      "endpoint": "images/edits",
+      "providerStatus": 200,
+      "usage": {
+        "input_tokens": 4263,
+        "input_tokens_details": {
+          "image_tokens": 3840,
+          "text_tokens": 423
+        },
+        "output_tokens": 277,
+        "output_tokens_details": {
+          "image_tokens": 277,
+          "text_tokens": 0
+        },
+        "total_tokens": 4540
+      },
+      "costUsd": 0.041145
+    },
+    {
+      "name": "secondary-check",
+      "kind": "check",
+      "reservedUsd": 0.06,
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "endpoint": "responses",
+      "providerStatus": 200,
+      "usage": {
+        "input_tokens": 5726,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 220,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 5946
+      },
+      "costUsd": 0.013652,
+      "quality": {
+        "productComparison": {
+          "shape": {
+            "product": "Loose, straight-cut hip-length top with a round neckline, dropped shoulders and approximately elbow-length sleeves.",
+            "candidate": "Loose straight top with a round neckline, dropped shoulders, elbow-length sleeves and a hem at the hips.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Fine-knit pullover with plain finished sleeve cuffs and hem; no visible pockets or fastenings.",
+            "candidate": "Fine-knit pullover with plain finished cuffs and hem, without visible pockets or fastenings.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Beige knit with tonal branching floral embroidery and small pearl-like beads arranged across the front.",
+            "candidate": "Beige knit retaining the two main branching floral arrangements, tonal embroidery and bead-like flower clusters across the front.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      },
+      "accepted": true
+    }
+  ],
+  "capUsd": 1,
+  "accountedUsd": 0.12976425,
+  "assets": {
+    "public/images/model-feature/v2/alternate.webp": {
+      "sha256": "4cdb8163847574ef18505f7bdb8196877a707acb50b647f56a7f79c9ee1699f9",
+      "bytes": 45614,
+      "dimensions": [576, 864]
+    },
+    "public/images/model-feature/v2/comparison-480.webp": {
+      "sha256": "a2536b1bf7b3f65a22925840e3c112f2bca958b8f2d2be5a9861a75e87c59426",
+      "bytes": 15852,
+      "dimensions": [480, 351]
+    },
+    "public/images/model-feature/v2/comparison-800.webp": {
+      "sha256": "9a9abfcceda6f3090ae45f1589b702adcfb44a57a5a59bc1b22d4e36e3d66596",
+      "bytes": 35712,
+      "dimensions": [800, 585]
+    },
+    "public/images/model-feature/v2/comparison-960.webp": {
+      "sha256": "e5e3b2d8724dfe2fd12b519591b470090284a931bac55f3c1916be668a1f5b62",
+      "bytes": 47488,
+      "dimensions": [960, 702]
+    },
+    "public/images/model-feature/v2/comparison.webp": {
+      "sha256": "4ebecf3b6159d5c1587baf2d44bd26a4437474da4a374d3f2b6a18cbe6b8e929",
+      "bytes": 89946,
+      "dimensions": [1280, 936]
+    },
+    "public/images/model-feature/v2/front.webp": {
+      "sha256": "b2ec34e8621af9e0f0d159182a5b0a37ba588ab83c1a7838cd528191abdc5333",
+      "bytes": 43234,
+      "dimensions": [576, 864]
+    },
+    "public/images/model-feature/v2/original.webp": {
+      "sha256": "7831f7dd722d62e8d12bac97d089417c0c693afe542d48e257cb4e325fe6c522",
+      "bytes": 27860,
+      "dimensions": [480, 640]
+    },
+    "public/images/model-feature/v2/preview.webp": {
+      "sha256": "e54a04dd1bef2a2da3b20d8d6fa119d50dfeab4ce616d5a74584fe32a7acbeff",
+      "bytes": 2360,
+      "dimensions": [112, 168]
+    }
+  },
+  "preservedSellerEvidence": {
+    "public/images/model-guides/comparison-skirt.png": "6fd236cc8eeb25275ca7651729a5f6575ab86b27efa804c1b6b8aa2423251a51",
+    "public/images/model-guides/comparison-black.png": "5e7730e1a3c40fb5736531db2261ebb7fe1f0684ad01eb47802eb2ef521cfd8a",
+    "public/images/model-guides/comparison-beige.png": "eac996b08d800a99fcbd7dcac0bd80918fd2b2329fd08a2773f83d92e7c649f7",
+    "public/images/model-guides/comparison-leggings.png": "5d781fb0de23fc3e72404e4426c0d6769f11ad55b549d2d5a1ddb1a562a5cae4",
+    "public/blog/vinted-photo-case-study/beige-dress-flatlay.webp": "3f7d5c27f301fcfdf9434b7f7f99792e8ea5d59417d8dfcd39b554aeafdcf2ff",
+    "public/blog/vinted-photo-case-study/turquoise-leggings-views.webp": "80c9f162986dbdf2b46ebde193d30831e29bd4b50a20d4e988e783e82494c596",
+    "public/blog/vinted-photo-case-study/beige-dress-sold.webp": "40392c066069e3c1c619c8dc4ba267b92b0b4e5024cd066858f2835799d0668d",
+    "public/blog/vinted-photo-case-study/seller-balance.webp": "0fd720e137281b9468c9bcf3193522af7279da5fd00712f15e6bdea31d3065b5",
+    "public/blog/vinted-photo-case-study/turquoise-leggings-flatlay.webp": "d69174b059bfad8cbe6961c268eb46dfe8ff65b7bd4ebca00a254e81d4cc30f7",
+    "src/content/blog/fr/model-photos-four-listings.mdx": "ce3e854d08f34f9cdfebd58ad211b47abcbdb9e04dc7cd2ea246e7497b1616b4",
+    "src/content/blog/de/model-photos-four-listings.mdx": "b2d3700f24b4ddfacc98cecec8749ca591150304f0242fbcb4417d2728267a95",
+    "src/content/blog/en/model-photos-four-listings.mdx": "21b23c4bfdbfb6ffb13b76c64e1078217c689d184c7ad54bc6ab42c9e2e68486",
+    "src/content/blog/nl/model-photos-four-listings.mdx": "0ae23ac49fe9446c26b4e57bb1c2f3c8a05c223c914d4f1f7e8812efb350b3d5"
+  }
+}

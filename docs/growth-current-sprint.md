@@ -1,5 +1,11 @@
 # AutoLister AI Growth Current Sprint
 
+## Homepage model photo back view, November 7, 2026
+
+- The owner asked for a clear back view because the second front view was too similar to the first. The homepage now pairs the existing v2 front photo with a generated rear illustration. The image prompt used the v2 front as the model, outfit and room reference and the older AI rear example for the pose and plain rear surface. The source set has no original rear photo.
+- The WebP is 576 by 864 pixels and 45,282 bytes. The rear caption and alt text are localized for all eight homepages. The production-mode build passed, eight homepage tests passed and 24 localized browser checks passed at 320, 390 and 1440 px. Compared the new image with the front in the actual rendered section.
+- The corrected preview is a local draft. The November 6 version went live as commit `e122b2a` and is the before view in the preview. The new screenshot and browser evidence are under `model-photo-refresh/rear-correction/` in the task visualization directory.
+
 ## V2 model-photo website examples, November 6, 2026
 
 - Local draft only. Refreshed the model-photo section, hero thumbnail and gallery in all eight homepage locales, plus the feature page and how-to guide in English, Dutch, French and German. The new gallery card sits alongside the original seller comparison. Feature pages and guides retain that comparison in a separate seller section. Existing layout, pricing and experiment assignment are unchanged.

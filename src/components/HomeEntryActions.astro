@@ -1,0 +1,35 @@
+---
+import { HOME_ENTRY_ROUTES } from "../i18n/homeEntryRoutes";
+import { normalizeSiteLocale } from "../i18n/site";
+interface Props { locale: string; webAction: string; placement: "hero" | "final"; }
+const { locale, webAction, placement } = Astro.props;
+const route = HOME_ENTRY_ROUTES[normalizeSiteLocale(locale)];
+const chromeHref = "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
+---
+<div class:list={["home-route-actions", { "home-route-actions-final": placement === "final" }]}>
+  <div class="home-route-web">
+    <a href={`/app?ref=home_${placement}`} class:list={["home-route-primary", placement === "hero" ? "home-entry-web" : "home-final-web"]} data-track-event="web_app_click" data-track-context={`home_${placement}_web`} data-track-copy-version="desktop_entry_v3">{webAction}</a>
+    {placement === "hero" && <p class="home-route-note">{route.webNote}</p>}
+  </div>
+  <div class="home-route-extension">
+    <a href={chromeHref} target="_blank" rel="noopener noreferrer" class="home-route-primary" data-track-event="chrome_store_click" data-track-context={`home_${placement}_extension`} data-track-copy-version="desktop_entry_v3">{route.extensionAction}</a>
+    {placement === "hero" && <p class="home-route-note">{route.extensionNote}</p>}
+    {placement === "hero" && <a class="home-route-proof" href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-context="home_rating"><span class="rating-star" aria-hidden="true">★</span><span>{route.proof.slice(2)}</span></a>}
+    <a href={`/app?ref=home_${placement}`} class="home-route-alternative" data-track-event="web_app_click" data-track-context={`home_${placement}_web_alternative`} data-track-copy-version="desktop_entry_v3">{route.webAlternative}</a>
+  </div>
+</div>
+<style>
+  .home-route-actions { width: 100%; }
+  .home-route-primary { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 12px 16px; border-radius: 12px; background: #4f46e5; color: white; font-size: 16px; font-weight: 700; line-height: 1.35; text-align: center; text-decoration: none; }
+  .home-route-primary:hover { background: #4338ca; }
+  .home-route-primary:focus-visible, .home-route-alternative:focus-visible { outline: 3px solid #8b5cf6; outline-offset: 4px; }
+  .home-route-note { margin: 8px 0 0; color: #475569; font-size: 13px; line-height: 1.5; text-align: center; }
+  .home-route-alternative { display: flex; align-items: center; min-height: 44px; margin-top: 8px; color: #4338ca; font-size: 14px; font-weight: 600; line-height: 1.4; text-decoration: underline; text-underline-offset: 3px; text-align: left; }
+  .home-route-proof { display: flex; align-items: center; min-height: 44px; margin: 4px 0 0; color: #475569; font-size: 13px; font-weight: 600; line-height: 1.5; text-align: left; text-decoration: none; }
+  .home-route-proof:hover { text-decoration: underline; }
+  .rating-star { color: #b77900; font-size: 18px; margin-right: 7px; }
+  .home-route-proof:focus-visible { outline: 3px solid #8b5cf6; outline-offset: 4px; }
+  .home-route-actions-final .home-route-primary { min-height: 60px; padding: 16px 24px; font-size: 18px; border-radius: 16px; }
+  .home-route-actions-final .home-route-alternative { color: white; }
+  @media (max-width: 1023px) { .home-route-proof { text-align: center; } }
+</style>

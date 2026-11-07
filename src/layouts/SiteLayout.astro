@@ -2,7 +2,8 @@
 import "../styles/global.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import { SITE_COPY, SITE_EXTRA_COPY, normalizeSiteLocale } from "../i18n/site.js";
-import { WEB_ENTRY_COPY } from "../i18n/webEntry";
+import { HOME_ENTRY_ROUTES } from "../i18n/homeEntryRoutes";
+import { bootstrapHomepageEntryRoute } from "../scripts/homepageEntryRoute";
 import { blogPath, normalizeBlogLocale } from "../i18n/blog";
 import { bootstrapHomepageExperiment, HOMEPAGE_EXPERIMENT } from "../scripts/homepageExperiment";
 import type { SiteLocale } from "../i18n/site.js";
@@ -89,6 +90,7 @@ const chromeHref =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script is:inline set:html={`if((${isPhoneOrTablet.toString()})(navigator))document.documentElement.dataset.clientDevice='phone';`} />
     {isHomepage && <script is:inline set:html={`(${bootstrapHomepageExperiment.toString()})(window,${JSON.stringify(HOMEPAGE_EXPERIMENT)});`} />}
+    {isHomepage && <script is:inline set:html={`(${bootstrapHomepageEntryRoute.toString()})(window);`} />}
 
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -241,11 +243,12 @@ const chromeHref =
               rel={navWebPrimary ? undefined : "noopener noreferrer"}
               data-track-event={navWebPrimary ? "web_app_click" : "chrome_store_click"}
               data-track-context="nav_desktop"
-              class="site-nav-main inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 no-underline"
+              class:list={["site-nav-main inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 no-underline", {"home-route-web": isHomepage}]}
             >
               {navAction}
             </a>
-            {!webPrimary && (
+            {isHomepage && <a href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context="home_nav_extension" data-track-copy-version="desktop_entry_v3" class="home-route-extension inline-flex items-center px-6 py-2.5 text-sm font-bold rounded-2xl text-white bg-brand-600 hover:bg-brand-700 no-underline">{HOME_ENTRY_ROUTES[resolvedLocale].extensionAction}</a>}
+            {!webPrimary && !isHomepage && (
               <a
                 href={`/app?ref=nav_tablet_${resolvedLocale}`}
                 data-track-event="web_app_click"
@@ -288,9 +291,6 @@ const chromeHref =
         class="hidden md:hidden absolute top-20 left-0 w-full max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain bg-white border-b border-gray-100 shadow-xl transition-all duration-300 origin-top transform"
       >
         <div class="px-4 pt-2 pb-6 space-y-2">
-          {isHomepage && (
-            <a href="/app?ref=home_menu" data-track-event="web_app_click" data-track-context="home_menu_web" data-track-copy-version="dual_route_v1" class="block px-3 py-3 rounded-lg text-base font-semibold text-brand-700 hover:bg-brand-50 no-underline">{WEB_ENTRY_COPY[resolvedLocale].action}</a>
-          )}
           <a
             href={featuresHref}
             class="block px-3 py-3 rounded-lg text-base font-semibold text-slate-600 hover:text-brand-600 hover:bg-brand-50 transition-colors no-underline"
@@ -337,10 +337,11 @@ const chromeHref =
               href={`/app?ref=nav_mobile_${resolvedLocale}`}
               data-track-event="web_app_click"
               data-track-context="nav_mobile"
-              class="block w-full text-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 no-underline"
+              class:list={["block w-full text-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 no-underline", {"home-route-web": isHomepage}]}
             >
               {navAction}
             </a>
+            {isHomepage && <a href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-event="chrome_store_click" data-track-context="home_menu_extension" data-track-copy-version="desktop_entry_v3" class="home-route-extension block w-full text-center px-6 py-3 text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 no-underline">{HOME_ENTRY_ROUTES[resolvedLocale].extensionAction}</a>}
           </div>
         </div>
       </div>
@@ -470,4 +471,9 @@ const chromeHref =
     .home-navbar .site-navbar-row { height: 64px; }
     .home-navbar #mobile-menu { top: 64px; }
   }
+</style>
+
+<style is:global>
+  html:not([data-home-entry-route="extension"]) .home-route-extension,
+  html[data-home-entry-route="extension"] .home-route-web { display: none !important; }
 </style>

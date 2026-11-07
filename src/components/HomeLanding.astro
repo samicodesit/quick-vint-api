@@ -6,7 +6,9 @@ import { PHONE_TRANSFER_COPY } from "../i18n/phoneTransfer";
 import HomePromoGallery from "./HomePromoGallery.astro";
 import HomeModelFeature from "./HomeModelFeature.astro";
 import { HOME_MODEL_COPY } from "../i18n/homeModel";
-import { ArrowDown, Images, Laptop, Smartphone } from "@lucide/astro";
+import { ArrowDown, Images } from "@lucide/astro";
+import HomeEntryActions from "./HomeEntryActions.astro";
+import { HOME_ENTRY_ROUTES } from "../i18n/homeEntryRoutes";
 
 interface Props {
   copy: SiteCopy["home"];
@@ -27,16 +29,7 @@ const chromeHref =
 const entry = WEB_ENTRY_COPY[normalizeSiteLocale(locale)];
 const transfer = PHONE_TRANSFER_COPY[normalizeSiteLocale(locale)];
 const modelCopy = HOME_MODEL_COPY[normalizeSiteLocale(locale)];
-const iphoneHelpLabels: Record<string, string> = {
-  en: "iPhone or iPad? Set up with Orion",
-  fr: "iPhone ou iPad ? Installer avec Orion",
-  de: "iPhone oder iPad? Mit Orion einrichten",
-  nl: "iPhone of iPad? Instellen met Orion",
-  pl: "iPhone lub iPad? Skonfiguruj w Orion",
-  es: "¿iPhone o iPad? Configura con Orion",
-  it: "iPhone o iPad? Configura con Orion",
-  pt: "iPhone ou iPad? Configure com Orion",
-};
+const routes = HOME_ENTRY_ROUTES[normalizeSiteLocale(locale)];
 
 const subtitleParts =
   heroSubtitleEmphasis && copy.heroSubtitle.includes(heroSubtitleEmphasis)
@@ -166,97 +159,8 @@ const subtitleParts =
           </li>
         </ul>}
 
-        <div
-          class="home-hero-actions w-full"
-        >
-          <div class="home-entry-route">
-            <a href="/app?ref=home_hero" data-track-event="web_app_click" data-track-context="home_hero_web" data-track-copy-version="acquisition_recovery_v2" class="home-entry-button home-entry-web">
-              <Images size={20} stroke-width={1.8} aria-hidden="true" />
-              <span>{copy.heroAction}</span>
-            </a>
-            <p class="home-entry-note">{entry.web}</p>
-            <p class="home-entry-device-label"><Smartphone size={14} aria-hidden="true" />{entry.devices}</p>
-          </div>
-          <div class="home-entry-route home-entry-desktop-route">
-          <p class="home-entry-desktop-label"><Laptop size={15} aria-hidden="true" />{entry.desktop}</p>
-          <a
-            href={chromeHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-track-event="chrome_store_click"
-            data-track-context="home_hero_primary"
-            data-track-copy-version="acquisition_recovery_v2"
-            class="home-entry-button home-entry-extension"
-          >
-            <div
-              class="bg-white rounded-full shrink-0 self-center"
-            >
-              <svg
-                viewBox="0 0 48 48"
-                class="w-5 h-5 shrink-0"
-              >
-                <defs>
-                  <linearGradient
-                    id="chrome-a"
-                    x1="3.2"
-                    y1="15"
-                    x2="44.7"
-                    y2="15"
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop offset="0" stop-color="#d93025"></stop>
-                    <stop offset="1" stop-color="#ea4335"></stop>
-                  </linearGradient>
-                  <linearGradient
-                    id="chrome-b"
-                    x1="20.7"
-                    y1="47.6"
-                    x2="41.5"
-                    y2="11.6"
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop offset="0" stop-color="#fcc934"></stop>
-                    <stop offset="1" stop-color="#fbbc04"></stop>
-                  </linearGradient>
-                  <linearGradient
-                    id="chrome-c"
-                    x1="26.5"
-                    y1="46.5"
-                    x2="5.8"
-                    y2="10.5"
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop offset="0" stop-color="#1e8e3e"></stop>
-                    <stop offset="1" stop-color="#34a853"></stop>
-                  </linearGradient>
-                </defs>
-                <circle cx="24" cy="24" r="12" fill="#fff"></circle>
-                <path
-                  d="M24 12H44.78a24 24 0 0 0-41.56 0L13.6 30S24 12 24 12Z"
-                  fill="url(#chrome-a)"></path>
-                <circle cx="24" cy="24" r="9.5" fill="#1a73e8"></circle>
-                <path
-                  d="M34.39 30 24 48a24 24 0 0 0 20.78-36H24S34.39 30 34.39 30Z"
-                  fill="url(#chrome-b)"></path>
-                <path
-                  d="M13.6 30 3.2 12A24 24 0 0 0 24 48l10.4-18S13.6 30 13.6 30Z"
-                  fill="url(#chrome-c)"></path>
-              </svg>
-            </div>
-
-            <span>{extra.addToChrome}</span>
-          </a>
-          <p class="home-entry-note">{entry.extension}</p>
-          <p class="home-entry-note hidden lg:block" data-extension-only-benefit>{extra.heroBullet2}</p>
-
-        <a
-          href="/support#iphone-ipad"
-          class="home-entry-phone"
-        >
-          <Smartphone size={15} stroke-width={1.8} aria-hidden="true" />
-          {iphoneHelpLabels[locale] || iphoneHelpLabels.en}
-        </a>
-          </div>
+        <div class="home-hero-actions w-full">
+          <HomeEntryActions locale={locale} webAction={copy.heroAction} placement="hero" />
         </div>
 
         {!copy.heroIndependence && <ul
@@ -295,29 +199,7 @@ const subtitleParts =
           </li>
         </ul>}
 
-        <div
-          class="home-hero-testimonial mt-6 hidden lg:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
-        >
-          <img
-            class="w-10 h-10 rounded-full border-2 border-white shadow-md shrink-0"
-            src="/user-1.jpg"
-            alt="User"
-            width="40"
-            height="40"
-            loading="lazy"
-            decoding="async"
-          />
-          <div class="text-sm">
-            <p class="text-slate-700 italic leading-relaxed">
-              "{extra.testimonialQuote}"
-            </p>
-            <p
-              class="text-slate-900 font-bold mt-2 text-xs uppercase tracking-wide"
-            >
-              {extra.testimonialAuthor}
-            </p>
-          </div>
-        </div>
+
       </div>
 
       <div
@@ -567,7 +449,8 @@ const subtitleParts =
         {extra.howItWorksTitle}
       </h2>
       <p class="text-lg text-slate-600">
-        {entry.web}
+        <span class="home-route-web">{routes.webNote}</span>
+        <span class="home-route-extension">{routes.extensionNote}</span>
       </p>
     </div>
     <div class="grid md:grid-cols-3 gap-8 relative">
@@ -583,10 +466,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">1</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {entry.steps[0]}
+          <span class="home-route-web">{entry.steps[0]}</span><span class="home-route-extension">{extra.step1Title}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {entry.stepBodies[0]}
+          <span class="home-route-web">{entry.stepBodies[0]}</span><span class="home-route-extension">{extra.step1Body}</span>
         </p>
       </div>
 
@@ -597,10 +480,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">2</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {entry.steps[1]}
+          <span class="home-route-web">{entry.steps[1]}</span><span class="home-route-extension">{extra.step2Title}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {entry.stepBodies[1]}
+          <span class="home-route-web">{entry.stepBodies[1]}</span><span class="home-route-extension">{extra.step2Body}</span>
         </p>
       </div>
 
@@ -611,10 +494,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">3</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          {entry.steps[2]}
+          <span class="home-route-web">{entry.steps[2]}</span><span class="home-route-extension">{extra.step3Title}</span>
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          {entry.stepBodies[2]}
+          <span class="home-route-web">{entry.stepBodies[2]}</span><span class="home-route-extension">{extra.step3Body}</span>
         </p>
       </div>
     </div>
@@ -651,24 +534,10 @@ const subtitleParts =
             {extra.finalCtaTitle}
           </h2>
           <p class="text-lg leading-relaxed text-slate-300 mb-10 font-medium">
-            {entry.web}
+            <span class="home-route-web">{routes.webNote}</span>
+        <span class="home-route-extension">{routes.extensionNote}</span>
           </p>
-          <div
-            class="flex flex-col items-center md:items-start gap-4"
-          >
-            <a href="/app?ref=home_final" data-track-event="web_app_click" data-track-context="home_final_web" data-track-copy-version="acquisition_recovery_v2" class="home-final-web flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold rounded-2xl text-white bg-brand-600 w-full"><Images size={20} aria-hidden="true" />{copy.heroAction}</a>
-            <a
-              href={chromeHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-track-event="chrome_store_click"
-              data-track-context="home_final_extension"
-              class="home-entry-desktop-route inline-flex items-center justify-center min-h-11 text-sm font-semibold text-white underline underline-offset-4"
-            >
-              {extra.addToChrome}
-            </a>
-          </div>
-        </div>
+          <HomeEntryActions locale={locale} webAction={copy.heroAction} placement="final" />   </div>
       </div>
     </div>
   </div>

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { SITE_EXTRA_COPY } from "../../i18n/site";
+import { HOME_ENTRY_ROUTES } from "../../i18n/homeEntryRoutes";
 
 const source = fs.readFileSync(
   path.resolve(process.cwd(), "src/components/HomeLanding.astro"),
@@ -25,9 +26,10 @@ describe("home hero copy", () => {
     );
   });
   it("scopes the no-copy-paste promise to the extension route", () => {
-    expect(source).toContain(
-      "data-extension-only-benefit>{extra.heroBullet2}</p>",
+    expect(HOME_ENTRY_ROUTES.en.webNote).toContain(
+      "Copy your draft into Vinted",
     );
+    expect(HOME_ENTRY_ROUTES.en.extensionNote).toContain("directly on Vinted");
     const sharedBenefits = source.slice(
       source.indexOf("<ul"),
       source.indexOf("</ul>"),

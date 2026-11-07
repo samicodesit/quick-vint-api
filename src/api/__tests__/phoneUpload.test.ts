@@ -253,6 +253,56 @@ function mockV2Session(
 }
 
 describe("phone upload endpoint", () => {
+  it("routes URL query parameters without invoking the legacy Vercel query parser", async () => {
+    const module = await import("../../../api/phone-upload.js");
+    const res = createResponse();
+    const legacyQueryParser = vi.fn(() => ({
+      action: "unexpected",
+      sessionId: "invalid",
+    }));
+    const req = {
+      method: "POST",
+      url: "/api/phone-upload?action=upload&v=2&sessionId=invalid",
+      headers: { "content-type": "application/json" },
+    } as any;
+    Object.defineProperty(req, "query", {
+      configurable: true,
+      get: legacyQueryParser,
+      set(value) {
+        Object.defineProperty(this, "query", {
+          value,
+          configurable: true,
+          writable: true,
+        });
+      },
+    });
+
+    await (module as any).default(req, res);
+    expect(legacyQueryParser).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Unknown action");
+    expect(req.query).toMatchObject({
+      action: "upload",
+      v: "2",
+      sessionId: "invalid",
+    });
+  });
+
+  it("preserves duplicate and encoded query values", async () => {
+    const module = await import("../../../api/phone-upload.js");
+    const res = createResponse();
+    const req = {
+      method: "DELETE",
+      url: "/api/phone-upload?tag=a%2Bb&tag=c+d&empty=",
+      headers: {},
+      query: {},
+    } as any;
+
+    await (module as any).default(req, res);
+    expect(res.statusCode).toBe(405);
+    expect(req.query).toMatchObject({ tag: ["a+b", "c d"], empty: "" });
+  });
+
   it("repairs missing diagnostic ownership from a stored v2 marker without waiting", async () => {
     const sessionId = "550e8400-e29b-41d4-a716-446655440099";
     const ownerId = "123e4567-e89b-42d3-a456-426614174000";

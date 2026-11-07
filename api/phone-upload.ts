@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parse as parseQuery } from "node:querystring";
 import { waitUntil } from "@vercel/functions";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Busboy from "busboy";
@@ -485,6 +486,15 @@ async function createStoredFileResponses(
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await runMiddleware(req, res, cors);
+
+    // Vercel's older lazy query helper calls deprecated url.parse(). Populate
+    // the same query values from the request URL without invoking that getter.
+    if (typeof req.url === "string") {
+      const search = new URL(req.url, "http://localhost").search;
+      req.query = parseQuery(
+        search.startsWith("?") ? search.slice(1) : search,
+      ) as VercelRequest["query"];
+    }
 
     if (
       req.query.sessionId &&

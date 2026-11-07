@@ -68,7 +68,7 @@ const subtitleParts =
   </div>
 
   <div
-    class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full"
+    class="home-hero-container max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full"
   >
     <div class="home-hero-grid lg:grid lg:grid-cols-12 lg:gap-8 xl:gap-16 items-center">
       <div
@@ -1051,7 +1051,7 @@ const subtitleParts =
 </style>
 
 <style is:global>
-  /* Reviewed recovery layout, intended for release after mobile-entry-v1 ends. */
+  /* Recovery layout; the previous experiment was archived before release. */
   [data-home-hero][data-acquisition-recovery] .home-hero-grid { align-items: start; }
   [data-home-hero][data-acquisition-recovery] .home-hero-heading { margin-bottom: 24px; }
   [data-home-hero][data-acquisition-recovery] .home-hero-subtitle { margin-bottom: 0; }
@@ -1064,6 +1064,9 @@ const subtitleParts =
   [data-home-hero][data-acquisition-recovery] .home-model-teaser img { width: 30px; height: 40px; }
   [data-home-hero][data-acquisition-recovery] .home-model-teaser-copy { display: flex; align-items: center; gap: 8px; }
   @media (min-width: 1024px) {
+    [data-home-hero][data-acquisition-recovery] { padding-top: 8rem; }
+    [data-home-hero][data-acquisition-recovery] .home-hero-container { max-width: 75rem; }
+    [data-home-hero][data-acquisition-recovery] .home-hero-grid { column-gap: 3rem; }
     [data-home-hero][data-acquisition-recovery] .home-hero-copy,
     [data-home-hero][data-acquisition-recovery] .home-hero-media { grid-column: span 6 / span 6; }
     [data-home-hero][data-acquisition-recovery] .home-hero-media { width: 100%; max-width: 35rem; justify-self: end; text-align: center; }

@@ -1,5 +1,18 @@
 # AutoLister AI Growth Current Sprint
 
+## Desktop hero spacing refinement, November 7, 2026
+
+- Owner requested refinement and production push after inspecting the live screenshot. Narrowed the desktop hero container from 1440px to 1200px, set a 48px column gap, and increased top padding from 97px to 128px. The headline and demo remain top-aligned. The 81px navigation now has 47px clearance before hero content instead of 16px. CSS applies only at 1024px and above; copy, metadata, destinations and mobile ordering are unchanged.
+- Browser geometry QA: all nine variants at 320x568, 390x844, 768x1024, 1024x768, 1280x800, 1440x900 and 1920x1080, 63 passes. No horizontal overflow, nav overlap, clipped CTA labels or mismatched headline/demo top edges. All primary CTAs at least 52px high; maximum CTA bottom on 320px phones is 467.74px. Desktop column gap is 48px throughout. Build and 17 targeted country-routing/experiment tests pass before the mandatory full production push gate.
+- Visual acceptance: English desktop composition and long German headline inspected at full screenshot resolution. This is direct layout QA, not a new independent expert review or evidence of conversion lift. Evidence is in the current visualization folder under `homepage-recovery/spacing`, including geometry JSON and before/after captures. Treat this as a same-day refinement of the recovery release, excluded from the November 8 start of the comparison window.
+
+## Homepage recovery release acceptance, November 7, 2026
+
+- Owner approved release before the old experiment's November 9 end. Frozen early-close snapshot: 25/275 mature activations for demo-first and 36/294 for CTA-first; one attributed payment each. Directional activation evidence, not an established winner or paid lift. Post-release accumulation in the old report is not an uncontaminated final result.
+- Released commit `65d7f220bed674ad7bef4a4983f74185667af992` through `npm run push:production`, `main -> main`. Vercel `dpl_2mVpdjXp7TMwxjMg2Tneu8pRE8Mq` READY at 2026-11-07 15:20:12 UTC and verified on autolister.app. Full gate passed: lint, type-check, build, formatting, 1688 tests, 22 opt-in skips.
+- All eight live homepage variants passed title/H1/canonical/hreflang and CTA destination checks. Live desktop/mobile rendered checks passed; hero click opens the working app and existing drafts. No signup, generation or purchase was performed. Actual before/after previews are saved in the visualization folder's `homepage-recovery/live-release` directory.
+- Evidence: parent workspace `reports/paying-decline-2026-11-07/release-acceptance.md`, `release-status.json`, `live-homepages.json`, and `measurement-windows.json`. Compare October 10-November 6 against November 8-December 5 UTC; exclude release day. Primary outcome is first-time positive subscription-paying customers; clicks, signups and successful drafts explain the funnel. No recurring monitoring was scheduled.
+
 ## Homepage model photo back view, November 7, 2026
 
 - The owner asked for a clear back view because the second front view was too similar to the first. The homepage now pairs the existing v2 front photo with a generated rear illustration. The image prompt used the v2 front as the model, outfit and room reference and the older AI rear example for the pose and plain rear surface. The source set has no original rear photo.

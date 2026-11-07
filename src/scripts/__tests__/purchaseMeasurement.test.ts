@@ -1,118 +1,106 @@
 import { expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-function boot(choice: string | null = null) {
-  const events: any[] = [],
-    stored = new Map<string, string>();
+
+function boot(choice: string | null = null, storageBlocked = false) {
+  const stored = new Map<string, string>([
+    ["autolister.first_touch.v1", "campaign-fixture"],
+    ["sb-auth-token", "auth-fixture"],
+  ]);
   if (choice) stored.set("autolister.measurement-consent.v1", choice);
-  const w: any = {
-    location: {
-      reload: vi.fn(),
-      hostname: "autolister.app",
-      pathname: "/success",
-      search: "?session_id=cs_live_fixture",
-      href: "https://autolister.app/success?session_id=cs_live_fixture",
-    },
-    localStorage: {
-      getItem: (k: string) => stored.get(k) ?? null,
-      setItem: (k: string, v: string) => stored.set(k, v),
-      removeItem: (k: string) => stored.delete(k),
-    },
-    addEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  };
-  const callbacks: Record<string, Function> = {};
-  const buttons = ["rejected", "accepted"].map((choice) => ({
-    style: {},
-    dataset: { choice },
-    addEventListener: (_: string, cb: Function) => {
-      callbacks[choice] = cb;
-    },
-  }));
-  const document: any = {
-    readyState: "loading",
+  const cookieWrites: string[] = [];
+  const cookies = "_ga=old; _ga_F2QL50WB6M=old; _gcl_aw=old; session=keep";
+  const document = {
+    readyState: "complete",
     addEventListener: vi.fn(),
     head: { appendChild: vi.fn() },
     body: { appendChild: vi.fn() },
-    getElementById: () => null,
-    createElement: () => ({
+    createElement: vi.fn(() => ({
       style: {},
       setAttribute: vi.fn(),
-      addEventListener: (_: string, cb: Function) => {
-        callbacks.settings = cb;
-      },
+      addEventListener: vi.fn(),
       querySelector: () => ({ style: {} }),
-      querySelectorAll: () => buttons,
-    }),
-    cookie: "",
+      querySelectorAll: () => [],
+    })),
+    getElementById: vi.fn(() => null),
+    get cookie() {
+      return cookies;
+    },
+    set cookie(value: string) {
+      cookieWrites.push(value);
+    },
+  };
+  const window: any = {
+    location: {
+      href: "https://autolister.app/success?session_id=cs_live_fixture",
+      hostname: "autolister.app",
+      pathname: "/success",
+      search: "?session_id=cs_live_fixture",
+    },
+    localStorage: {
+      getItem: (key: string) => stored.get(key) ?? null,
+      removeItem: (key: string) => {
+        if (storageBlocked) throw new Error("Storage blocked");
+        stored.delete(key);
+      },
+    },
   };
   const fetch = vi.fn();
   const context = {
-    window: w,
+    window,
     document,
-    URL,
+    fetch,
     URLSearchParams,
+    URL,
     Set,
     Date,
-    fetch,
     setTimeout: vi.fn(),
-    CustomEvent: class {},
-    console,
   };
-  vm.runInNewContext(
-    readFileSync("public/purchase-measurement.js", "utf8"),
-    context,
-  );
-  w.dataLayer.forEach((e: any) => events.push(Array.from(e)));
-  return { w, events, document, fetch, stored, callbacks };
+  const run = () =>
+    vm.runInNewContext(
+      readFileSync("public/purchase-measurement.js", "utf8"),
+      context,
+    );
+  run();
+  return { window, document, fetch, stored, cookieWrites, run };
 }
-const purchase = {
-  transaction_id: "in_fixture",
-  value: 3.99,
-  currency: "EUR",
-  new_customer: true,
-};
-it("does not load Google or count purchases without consent", () => {
-  const t = boot();
-  t.w.AutoListerMeasurement.purchase(purchase);
-  expect(t.document.head.appendChild).not.toHaveBeenCalled();
-  expect(t.w.dataLayer.some((e: any) => e[0] === "event")).toBe(false);
-});
-it("sends one verified purchase and deduplicates repeats", () => {
-  const t = boot("accepted");
-  t.w.AutoListerMeasurement.purchase(purchase);
-  t.w.AutoListerMeasurement.purchase(purchase);
-  const events = t.w.dataLayer.filter((e: any) => e[0] === "event");
-  expect(events).toHaveLength(1);
-  expect(events[0][2]).toMatchObject({
-    send_to: "AW-18434567859/TMdVCLelxLMdELPdpNZE",
-    ...purchase,
-  });
-});
-it("rejects invalid values and test transactions", () => {
-  const t = boot("accepted");
-  for (const p of [
-    { ...purchase, value: 0 },
-    { ...purchase, transaction_id: "cs_test_x" },
-    { ...purchase, new_customer: false },
-    null,
-  ])
-    t.w.AutoListerMeasurement.purchase(p);
-  expect(t.w.dataLayer.some((e: any) => e[0] === "event")).toBe(false);
-});
-it("strips checkout secrets from the Google page URL", () => {
-  const t = boot("accepted");
-  const config = t.w.dataLayer.find((e: any) => e[0] === "config");
-  expect(config[2].page_location).toBe("https://autolister.app/success");
-});
 
-it("persists withdrawal and reloads to stop the loaded measurement runtime", () => {
+it.each([null, "accepted", "rejected"])(
+  "disables optional tracking and consent UI for prior choice %s",
+  (choice) => {
+    const t = boot(choice);
+    t.window.gtag("event", "page_view");
+    t.window.AutoListerMeasurement.purchase({
+      transaction_id: "in_fixture",
+      value: 3.99,
+      currency: "EUR",
+      new_customer: true,
+    });
+    expect(t.document.createElement).not.toHaveBeenCalled();
+    expect(t.document.head.appendChild).not.toHaveBeenCalled();
+    expect(t.document.body.appendChild).not.toHaveBeenCalled();
+    expect(t.fetch).not.toHaveBeenCalled();
+    expect(t.window.dataLayer ?? []).toHaveLength(0);
+    expect(t.stored.has("autolister.measurement-consent.v1")).toBe(false);
+    expect(t.stored.get("autolister.first_touch.v1")).toBe("campaign-fixture");
+    expect(t.stored.get("sb-auth-token")).toBe("auth-fixture");
+  },
+);
+it("expires only legacy Google measurement cookies", () => {
   const t = boot("accepted");
-  t.document.addEventListener.mock.calls[0][1]();
-  t.callbacks.settings();
-  t.callbacks.rejected();
-  expect(t.stored.get("autolister.measurement-consent.v1")).toBe("rejected");
-  expect(t.w.location.reload).toHaveBeenCalledOnce();
-  t.w.AutoListerMeasurement.purchase(purchase);
-  expect(t.w.dataLayer.some((e: any) => e[0] === "event")).toBe(false);
+  for (const name of ["_ga", "_ga_F2QL50WB6M", "_gcl_aw"])
+    expect(
+      t.cookieWrites.some(
+        (value) => value.startsWith(name + "=") && value.includes("Max-Age=0"),
+      ),
+    ).toBe(true);
+  expect(t.cookieWrites.some((value) => value.startsWith("session="))).toBe(
+    false,
+  );
+});
+it("remains safe with blocked storage and repeated execution", () => {
+  const t = boot("accepted", true);
+  expect(() => t.run()).not.toThrow();
+  expect(() => t.window.AutoListerMeasurement.purchase(null)).not.toThrow();
+  expect(t.fetch).not.toHaveBeenCalled();
 });

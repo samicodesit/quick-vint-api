@@ -1,5 +1,12 @@
 # AutoLister AI Growth Current Sprint
 
+## Visible search wording and fractional rating, November 7, 2026
+
+- Owner requested the important query wording in visible copy and a fractional star display. English desktop/mobile introductions now say "AI listing agent for Vinted" while retaining titles, descriptions, hashtags, seller notes and single/multiple items. The other seven locales use natural listing-generator wording consistent with their existing localized titles. No extra copy block was added. Title, H1, meta description, canonical and hreflang remain unchanged.
+- Evidence: saved Search Console export for October 8-November 4 records 57 clicks for "ai listing agent for vinted" and 33 for "vinted ai listing agent". The previous release retained the English page title but lacked the phrase in visible body copy. This closes that content gap; it does not establish a ranking or paid conversion change.
+- Replaced the single rating symbol with four gold SVG stars and a fifth filled to 60%, followed by the explicit 4.6/5 Store rating (localized decimal commas). Decorative stars are hidden from accessibility APIs; the numeric rating and Store source remain the link name. Existing 44px focusable link, device routing, CTA sizing and header counter remain intact.
+- QA: 32 fresh-load checks across eight locales at 320, 390, 1024 and 1440px. No overflow or clipped actions/rating; one primary hero action at least 52px high. Maximum phone primary-button bottom is 475px in a 568px viewport. English desktop/mobile and long French desktop renders inspected. Nu HTML validation: eight pages, zero messages. Full production gate required before push. No new signup, install, generation or payment performed. Evidence: current visualization folder, homepage-recovery/keyword-final.
+
 ## Homepage entry and rating refinement, November 7, 2026
 
 - Owner approved implementation and push after four actual-page directions and two independent agent reviews. Final desktop render was reviewed again with no blocking finding. Compared actual Grammarly browser and LanguageTool landing pages for clear primary/secondary entry hierarchy, not conversion benchmarks.

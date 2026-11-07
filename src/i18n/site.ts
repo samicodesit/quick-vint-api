@@ -78,9 +78,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Generate editable titles, descriptions and hashtags for Vinted from your photos. Prepare one item or several in your browser or with the Chrome extension.",
       heroTitle: "Turn your photos into Vinted listing drafts.",
       heroSubtitle:
-        "Generate titles, descriptions and hashtags with AI. Prepare one item or several from your photos, with your own seller notes included.",
+        "Your AI listing agent for Vinted. Turn photos into titles, descriptions and hashtags, with your seller notes. One item or several.",
       heroMobileSubtitle:
-        "AI-generated titles, descriptions and hashtags from your photos. One item or several, with your seller notes.",
+        "Your AI listing agent for Vinted. Turn photos into titles, descriptions and hashtags, with your seller notes. One item or several.",
       heroIndependence: "Independent tool. Not affiliated with Vinted.",
       heroAction: "Create a free listing draft",
     },
@@ -117,9 +117,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Créez des titres et descriptions modifiables pour Vinted à partir de vos photos. Préparez un ou plusieurs articles dans le navigateur ou avec l’extension Chrome.",
       heroTitle: "Vos photos deviennent des brouillons d’annonces Vinted.",
       heroSubtitle:
-        "Générez des titres, descriptions et hashtags avec l’IA. Préparez un ou plusieurs articles à partir de vos photos, avec vos notes vendeur.",
+        "Votre générateur d’annonces IA pour Vinted. Créez titres, descriptions et hashtags depuis vos photos, avec vos notes vendeur. Un article ou plusieurs.",
       heroMobileSubtitle:
-        "Titres, descriptions et hashtags générés par IA à partir de vos photos. Un ou plusieurs articles, avec vos notes vendeur.",
+        "Votre générateur d’annonces IA pour Vinted. Créez titres, descriptions et hashtags depuis vos photos, avec vos notes vendeur. Un article ou plusieurs.",
       heroIndependence: "Outil indépendant, sans affiliation à Vinted.",
       heroAction: "Créer une annonce gratuitement",
     },
@@ -156,9 +156,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Erstelle aus Artikelfotos bearbeitbare Titel und Beschreibungen für Vinted. Bereite einen oder mehrere Artikel vor, im Browser oder mit der Chrome-Erweiterung.",
       heroTitle: "Aus deinen Fotos werden Vinted-Anzeigenentwürfe.",
       heroSubtitle:
-        "Erstelle mit KI Titel, Beschreibungen und Hashtags aus deinen Fotos. Bereite einen oder mehrere Artikel vor, mit deinen eigenen Verkäufernotizen.",
+        "Dein KI-Anzeigengenerator für Vinted. Erstelle Titel, Beschreibungen und Hashtags aus Fotos, mit deinen Verkäufernotizen. Für einen oder mehrere Artikel.",
       heroMobileSubtitle:
-        "KI-Titel, Beschreibungen und Hashtags aus deinen Fotos. Für einen oder mehrere Artikel, mit deinen Verkäufernotizen.",
+        "Dein KI-Anzeigengenerator für Vinted. Erstelle Titel, Beschreibungen und Hashtags aus Fotos, mit deinen Verkäufernotizen. Für einen oder mehrere Artikel.",
       heroIndependence: "Unabhängiges Tool. Nicht mit Vinted verbunden.",
       heroAction: "Kostenlosen Entwurf erstellen",
     },
@@ -194,9 +194,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Maak van je foto’s bewerkbare titels en beschrijvingen voor Vinted. Bereid één of meerdere artikelen voor, in je browser of met de Chrome-extensie.",
       heroTitle: "Van je foto’s naar conceptadvertenties voor Vinted.",
       heroSubtitle:
-        "Maak met AI titels, beschrijvingen en hashtags van je foto’s. Bereid één of meerdere artikelen voor, met je eigen verkopersnotities.",
+        "Je AI-advertentiegenerator voor Vinted. Maak titels, beschrijvingen en hashtags van je foto’s, met je verkopersnotities. Voor één of meerdere artikelen.",
       heroMobileSubtitle:
-        "AI-titels, beschrijvingen en hashtags van je foto’s. Voor één of meerdere artikelen, met je verkopersnotities.",
+        "Je AI-advertentiegenerator voor Vinted. Maak titels, beschrijvingen en hashtags van je foto’s, met je verkopersnotities. Voor één of meerdere artikelen.",
       heroIndependence: "Onafhankelijke tool. Niet verbonden aan Vinted.",
       heroAction: "Maak gratis een concept",
     },
@@ -233,9 +233,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Zamień zdjęcia przedmiotów w edytowalne tytuły i opisy na Vinted. Przygotuj jeden lub kilka przedmiotów w przeglądarce albo z rozszerzeniem Chrome.",
       heroTitle: "Zamień zdjęcia w szkice ogłoszeń na Vinted.",
       heroSubtitle:
-        "Twórz tytuły, opisy i hashtagi ze zdjęć za pomocą AI. Przygotuj jeden lub kilka przedmiotów, z własnymi notatkami sprzedawcy.",
+        "Twój generator ogłoszeń AI na Vinted. Twórz tytuły, opisy i hashtagi ze zdjęć, uwzględniając własne notatki. Dla jednego lub kilku przedmiotów.",
       heroMobileSubtitle:
-        "Tytuły, opisy i hashtagi ze zdjęć dzięki AI. Dla jednego lub kilku przedmiotów, z Twoimi notatkami sprzedawcy.",
+        "Twój generator ogłoszeń AI na Vinted. Twórz tytuły, opisy i hashtagi ze zdjęć, uwzględniając własne notatki. Dla jednego lub kilku przedmiotów.",
       heroIndependence: "Niezależne narzędzie. Bez powiązania z Vinted.",
       heroAction: "Utwórz bezpłatny szkic",
     },
@@ -271,9 +271,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Convierte fotos en títulos y descripciones editables para Vinted. Prepara uno o varios artículos en el navegador o con la extensión de Chrome.",
       heroTitle: "Convierte tus fotos en borradores de anuncios para Vinted.",
       heroSubtitle:
-        "Genera títulos, descripciones y hashtags con IA a partir de tus fotos. Prepara uno o varios artículos con tus propias notas de vendedor.",
+        "Tu generador de anuncios con IA para Vinted. Crea títulos, descripciones y hashtags a partir de tus fotos y notas de vendedor. Para uno o varios artículos.",
       heroMobileSubtitle:
-        "Títulos, descripciones y hashtags con IA a partir de tus fotos. Uno o varios artículos, con tus notas de vendedor.",
+        "Tu generador de anuncios con IA para Vinted. Crea títulos, descripciones y hashtags a partir de tus fotos y notas de vendedor. Para uno o varios artículos.",
       heroIndependence: "Herramienta independiente, sin afiliación a Vinted.",
       heroAction: "Crea un borrador gratis",
     },
@@ -310,9 +310,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Trasforma le foto in titoli e descrizioni modificabili per Vinted. Prepara uno o più articoli nel browser o con l’estensione Chrome.",
       heroTitle: "Dalle tue foto alle bozze di annunci per Vinted.",
       heroSubtitle:
-        "Genera titoli, descrizioni e hashtag con l’IA a partire dalle tue foto. Prepara uno o più articoli con le tue note venditore.",
+        "Il tuo generatore di annunci IA per Vinted. Crea titoli, descrizioni e hashtag dalle tue foto, con le tue note di vendita. Per uno o più articoli.",
       heroMobileSubtitle:
-        "Titoli, descrizioni e hashtag con l’IA dalle tue foto. Uno o più articoli, con le tue note venditore.",
+        "Il tuo generatore di annunci IA per Vinted. Crea titoli, descrizioni e hashtag dalle tue foto, con le tue note di vendita. Per uno o più articoli.",
       heroIndependence: "Strumento indipendente, non affiliato a Vinted.",
       heroAction: "Crea una bozza gratis",
     },
@@ -348,9 +348,9 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
         "Transforme fotografias em títulos e descrições editáveis para Vinted. Prepare um ou vários artigos no navegador ou com a extensão Chrome.",
       heroTitle: "Das tuas fotos a rascunhos de anúncios para Vinted.",
       heroSubtitle:
-        "Gera títulos, descrições e hashtags com IA a partir das tuas fotos. Prepara um ou vários artigos com as tuas notas de vendedor.",
+        "O teu gerador de anúncios com IA para Vinted. Cria títulos, descrições e hashtags a partir das tuas fotos e notas de vendedor. Para um ou vários artigos.",
       heroMobileSubtitle:
-        "Títulos, descrições e hashtags com IA a partir das tuas fotos. Um ou vários artigos, com as tuas notas de vendedor.",
+        "O teu gerador de anúncios com IA para Vinted. Cria títulos, descrições e hashtags a partir das tuas fotos e notas de vendedor. Para um ou vários artigos.",
       heroIndependence: "Ferramenta independente, sem afiliação à Vinted.",
       heroAction: "Cria um rascunho grátis",
     },

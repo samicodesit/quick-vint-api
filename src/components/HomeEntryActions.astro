@@ -14,7 +14,7 @@ const chromeHref = "https://chromewebstore.google.com/detail/autolister-ai-vinte
   <div class="home-route-extension">
     <a href={chromeHref} target="_blank" rel="noopener noreferrer" class="home-route-primary" data-track-event="chrome_store_click" data-track-context={`home_${placement}_extension`} data-track-copy-version="desktop_entry_v3">{route.extensionAction}</a>
     {placement === "hero" && <p class="home-route-note">{route.extensionNote}</p>}
-    {placement === "hero" && <a class="home-route-proof" href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-context="home_rating"><span class="rating-star" aria-hidden="true">★</span><span>{route.proof.slice(2)}</span></a>}
+    {placement === "hero" && <a class="home-route-proof" href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-context="home_rating"><span class="rating-stars" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <svg width="16" height="16" viewBox="0 0 20 20" focusable="false">{index === 4 && <defs><linearGradient id="home-rating-partial"><stop offset="60%" stop-color="#b77900" /><stop offset="60%" stop-color="#cbd5e1" /></linearGradient></defs>}<path fill={index === 4 ? "url(#home-rating-partial)" : "#b77900"} d="M10 1.5 12.6 6.8 18.5 7.6 14.25 11.75 15.25 17.6 10 14.85 4.75 17.6 5.75 11.75 1.5 7.6 7.4 6.8Z" /></svg>)}</span><span>{route.proof.slice(2)}</span></a>}
     <a href={`/app?ref=home_${placement}`} class="home-route-alternative" data-track-event="web_app_click" data-track-context={`home_${placement}_web_alternative`} data-track-copy-version="desktop_entry_v3">{route.webAlternative}</a>
   </div>
 </div>
@@ -27,7 +27,7 @@ const chromeHref = "https://chromewebstore.google.com/detail/autolister-ai-vinte
   .home-route-alternative { display: flex; align-items: center; min-height: 44px; margin-top: 8px; color: #4338ca; font-size: 14px; font-weight: 600; line-height: 1.4; text-decoration: underline; text-underline-offset: 3px; text-align: left; }
   .home-route-proof { display: flex; align-items: center; min-height: 44px; margin: 4px 0 0; color: #475569; font-size: 13px; font-weight: 600; line-height: 1.5; text-align: left; text-decoration: none; }
   .home-route-proof:hover { text-decoration: underline; }
-  .rating-star { color: #b77900; font-size: 18px; margin-right: 7px; }
+  .rating-stars { display: inline-flex; flex-shrink: 0; gap: 1px; margin-right: 8px; }
   .home-route-proof:focus-visible { outline: 3px solid #8b5cf6; outline-offset: 4px; }
   .home-route-actions-final .home-route-primary { min-height: 60px; padding: 16px 24px; font-size: 18px; border-radius: 16px; }
   .home-route-actions-final .home-route-alternative { color: white; }

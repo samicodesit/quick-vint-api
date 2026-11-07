@@ -48,6 +48,7 @@ const subtitleParts =
 <div
   class="relative pt-[84px] pb-8 lg:pt-[97px] lg:pb-0 overflow-hidden bg-white"
   data-home-hero
+  data-acquisition-recovery
 >
   <div
     class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0"
@@ -74,15 +75,6 @@ const subtitleParts =
         class="home-hero-copy lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start"
       >
         <div class="home-hero-heading">
-        <a href="#your-model" class="home-model-teaser">
-          <img src="/images/model-feature/v2/preview.webp" width="112" height="168" alt="" decoding="async" />
-          <span class="home-model-teaser-copy">
-            <span class="home-model-teaser-new">{modelCopy.badge}</span>
-            <span>{modelCopy.teaser}</span>
-          </span>
-          <ArrowDown size={17} stroke-width={1.8} aria-hidden="true" />
-        </a>
-
         <h1
           class="text-[2rem] sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight leading-[1.08] sm:leading-[1.1] mb-3 sm:mb-5 text-slate-900 lg:mt-0 text-balance"
         >
@@ -122,9 +114,12 @@ const subtitleParts =
         >
           {copy.heroMobileSubtitle}
         </p>
+        {copy.heroIndependence && (
+          <p class="home-hero-independence">{copy.heroIndependence}</p>
+        )}
         </div>
 
-        <ul
+        {!copy.heroIndependence && <ul
           class="home-hero-benefits hidden lg:block space-y-2.5 mb-6 text-left w-full max-w-md px-2 sm:px-0 list-none"
         >
           <li class="flex items-start gap-3">
@@ -169,15 +164,15 @@ const subtitleParts =
               >{extra.heroBullet3}</span
             >
           </li>
-        </ul>
+        </ul>}
 
         <div
           class="home-hero-actions w-full"
         >
           <div class="home-entry-route">
-            <a href="/app?ref=home_hero" data-track-event="web_app_click" data-track-context="home_hero_web" data-track-copy-version="dual_route_v1" class="home-entry-button home-entry-web">
+            <a href="/app?ref=home_hero" data-track-event="web_app_click" data-track-context="home_hero_web" data-track-copy-version="acquisition_recovery_v2" class="home-entry-button home-entry-web">
               <Images size={20} stroke-width={1.8} aria-hidden="true" />
-              <span>{entry.action}</span>
+              <span>{copy.heroAction}</span>
             </a>
             <p class="home-entry-note">{entry.web}</p>
             <p class="home-entry-device-label"><Smartphone size={14} aria-hidden="true" />{entry.devices}</p>
@@ -190,7 +185,7 @@ const subtitleParts =
             rel="noopener noreferrer"
             data-track-event="chrome_store_click"
             data-track-context="home_hero_primary"
-            data-track-copy-version="vinted_ai_listing_assistant_v1"
+            data-track-copy-version="acquisition_recovery_v2"
             class="home-entry-button home-entry-extension"
           >
             <div
@@ -264,7 +259,7 @@ const subtitleParts =
           </div>
         </div>
 
-        <ul
+        {!copy.heroIndependence && <ul
           class="home-hero-mobile-proof lg:hidden grid w-full grid-cols-1 gap-2 text-left list-none"
           aria-label="AutoLister highlights"
         >
@@ -298,7 +293,7 @@ const subtitleParts =
             </svg>
             <span>{extra.heroBullet1}</span>
           </li>
-        </ul>
+        </ul>}
 
         <div
           class="home-hero-testimonial mt-6 hidden lg:flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100/60 max-w-md backdrop-blur-sm"
@@ -364,7 +359,7 @@ const subtitleParts =
                 data-open-fullscreen
                 data-track-event="demo_video_open"
                 data-track-context="home_hero_secondary"
-                data-track-copy-version="dual_route_v1"
+                data-track-copy-version="acquisition_recovery_v2"
                 class="inline-flex items-center gap-1.5 px-3 py-2 bg-black/65 text-white rounded-lg text-xs font-semibold hover:bg-black/80"
                 aria-label={extra.watchDemo}
               >
@@ -387,12 +382,16 @@ const subtitleParts =
           </div>
         </div>
 
-        <div class="mt-2 text-center">
-          <p class="text-xs text-slate-500 font-medium">
-            {extra.videoCaption}
-          </p>
         </div>
-        </div>
+
+        <a href="#your-model" class="home-model-teaser">
+          <img src="/images/model-feature/v2/preview.webp" width="112" height="168" alt="" decoding="async" />
+          <span class="home-model-teaser-copy">
+            <span class="home-model-teaser-new">{modelCopy.badge}</span>
+            <span>{modelCopy.teaser}</span>
+          </span>
+          <ArrowDown size={17} stroke-width={1.8} aria-hidden="true" />
+        </a>
 
         <div class="home-hero-screenshots mt-5 w-full min-w-0">
           <HomePromoGallery locale={normalizeSiteLocale(locale)} heading={transfer.previews} />
@@ -451,6 +450,7 @@ const subtitleParts =
     <div class="min-h-0 flex-1 overflow-auto bg-slate-100 p-3 sm:p-5">
       <img
         data-screenshot-preview-image
+        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
         alt=""
         class="mx-auto h-auto max-h-[65vh] w-auto max-w-full rounded-2xl bg-white object-contain shadow-xl ring-1 ring-slate-200"
       />
@@ -567,7 +567,7 @@ const subtitleParts =
         {extra.howItWorksTitle}
       </h2>
       <p class="text-lg text-slate-600">
-        <span class="home-desktop-instructions">{extra.howItWorksSubtitle}</span><span class="home-mobile-instructions">{entry.web}</span>
+        {entry.web}
       </p>
     </div>
     <div class="grid md:grid-cols-3 gap-8 relative">
@@ -583,10 +583,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">1</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          <span class="home-desktop-instructions">{extra.step1Title}</span><span class="home-mobile-instructions">{entry.steps[0]}</span>
+          {entry.steps[0]}
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          <span class="home-desktop-instructions">{extra.step1Body}</span><span class="home-mobile-instructions">{entry.stepBodies[0]}</span>
+          {entry.stepBodies[0]}
         </p>
       </div>
 
@@ -597,10 +597,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">2</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          <span class="home-desktop-instructions">{extra.step2Title}</span><span class="home-mobile-instructions">{entry.steps[1]}</span>
+          {entry.steps[1]}
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          <span class="home-desktop-instructions">{extra.step2Body}</span><span class="home-mobile-instructions">{entry.stepBodies[1]}</span>
+          {entry.stepBodies[1]}
         </p>
       </div>
 
@@ -611,10 +611,10 @@ const subtitleParts =
           <span class="text-3xl font-bold text-brand-600">3</span>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-3">
-          <span class="home-desktop-instructions">{extra.step3Title}</span><span class="home-mobile-instructions">{entry.steps[2]}</span>
+          {entry.steps[2]}
         </h3>
         <p class="text-slate-600 leading-relaxed max-w-xs">
-          <span class="home-desktop-instructions">{extra.step3Body}</span><span class="home-mobile-instructions">{entry.stepBodies[2]}</span>
+          {entry.stepBodies[2]}
         </p>
       </div>
     </div>
@@ -651,19 +651,21 @@ const subtitleParts =
             {extra.finalCtaTitle}
           </h2>
           <p class="text-lg leading-relaxed text-slate-300 mb-10 font-medium">
-            <span class="home-desktop-instructions">{extra.finalCtaBody}</span><span class="home-mobile-instructions">{entry.web}</span>
+            {entry.web}
           </p>
           <div
-            class="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4"
+            class="flex flex-col items-center md:items-start gap-4"
           >
-            <a href="/app?ref=home_final" data-track-event="web_app_click" data-track-context="home_final_web" class="home-mobile-instructions home-final-web items-center justify-center gap-2 px-8 py-4 text-lg font-bold rounded-2xl text-white bg-brand-600 w-full"><Images size={20} aria-hidden="true" />{entry.action}</a>
+            <a href="/app?ref=home_final" data-track-event="web_app_click" data-track-context="home_final_web" data-track-copy-version="acquisition_recovery_v2" class="home-final-web flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold rounded-2xl text-white bg-brand-600 w-full"><Images size={20} aria-hidden="true" />{copy.heroAction}</a>
             <a
               href={chromeHref}
               target="_blank"
               rel="noopener noreferrer"
-              class="home-desktop-instructions inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-2xl shadow-xl shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-500 transition-all hover:-translate-y-1 w-full sm:w-auto"
+              data-track-event="chrome_store_click"
+              data-track-context="home_final_extension"
+              class="home-entry-desktop-route inline-flex items-center justify-center min-h-11 text-sm font-semibold text-white underline underline-offset-4"
             >
-              {extra.getStartedFree}
+              {extra.addToChrome}
             </a>
           </div>
         </div>
@@ -882,6 +884,14 @@ const subtitleParts =
 </script>
 
 <style is:global>
+  .home-hero-independence {
+    margin: 10px 0 0;
+    max-width: 32rem;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
   .video-wrapper {
     box-shadow:
       0 25px 50px -12px rgba(0, 0, 0, 0.15),
@@ -1038,4 +1048,36 @@ const subtitleParts =
 
   }
 
+</style>
+
+<style is:global>
+  /* Reviewed recovery layout, intended for release after mobile-entry-v1 ends. */
+  [data-home-hero][data-acquisition-recovery] .home-hero-grid { align-items: start; }
+  [data-home-hero][data-acquisition-recovery] .home-hero-heading { margin-bottom: 24px; }
+  [data-home-hero][data-acquisition-recovery] .home-hero-subtitle { margin-bottom: 0; }
+  [data-home-hero][data-acquisition-recovery] .home-hero-actions { display: grid; max-width: 28rem; gap: 12px; }
+  [data-home-hero][data-acquisition-recovery] .home-entry-web { min-height: 52px; font-size: 16px; }
+  [data-home-hero][data-acquisition-recovery] .home-entry-device-label,
+  [data-home-hero][data-acquisition-recovery] .home-entry-desktop-label { display: none; }
+  [data-home-hero][data-acquisition-recovery] .home-hero-demo { width: 100%; max-width: 35rem; margin-inline: auto; }
+  [data-home-hero][data-acquisition-recovery] .home-model-teaser { margin: 20px 0 0; min-height: 48px; box-shadow: none; background: #fff; }
+  [data-home-hero][data-acquisition-recovery] .home-model-teaser img { width: 30px; height: 40px; }
+  [data-home-hero][data-acquisition-recovery] .home-model-teaser-copy { display: flex; align-items: center; gap: 8px; }
+  @media (min-width: 1024px) {
+    [data-home-hero][data-acquisition-recovery] .home-hero-copy,
+    [data-home-hero][data-acquisition-recovery] .home-hero-media { grid-column: span 6 / span 6; }
+    [data-home-hero][data-acquisition-recovery] .home-hero-media { width: 100%; max-width: 35rem; justify-self: end; text-align: center; }
+    [data-home-hero][data-acquisition-recovery] h1 { font-size: clamp(2.5rem, 3.7vw, 3.25rem); }
+  }
+  @media (max-width: 1023px) {
+    [data-home-hero][data-acquisition-recovery] .home-hero-heading { margin-bottom: 0; }
+    [data-home-hero][data-acquisition-recovery] .home-hero-actions { order: 1; margin-inline: auto; }
+    [data-home-hero][data-acquisition-recovery] .home-hero-demo { order: 2; max-width: 26rem; }
+    [data-home-hero][data-acquisition-recovery] .home-model-teaser { order: 3; align-self: center; margin: 0; }
+    [data-home-hero][data-acquisition-recovery] .home-hero-screenshots { order: 4; margin-top: 0; }
+    [data-home-hero][data-acquisition-recovery] .home-entry-phone { display: none; }
+  }
+  @media (max-width: 479px) {
+    [data-home-hero][data-acquisition-recovery] .home-hero-demo { max-width: 18.75rem; }
+  }
 </style>

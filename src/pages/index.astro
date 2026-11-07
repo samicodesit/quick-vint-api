@@ -15,11 +15,10 @@ const copy = isUS
       ...SITE_COPY.en,
       home: {
         ...SITE_COPY.en.home,
-        heroSubtitle: SITE_COPY.en.home.heroSubtitle.replace(
-          SITE_COPY.en.home.heroMobileSubtitle,
-          compatibility,
-        ),
+        heroSubtitle:
+          `Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. ${compatibility}`,
         heroMobileSubtitle: compatibility,
+        heroIndependence: undefined,
       },
     }
   : SITE_COPY.en;

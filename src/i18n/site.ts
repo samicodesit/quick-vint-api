@@ -34,6 +34,8 @@ type HomeCopy = {
   heroTitle: string;
   heroSubtitle: string;
   heroMobileSubtitle: string;
+  heroAction: string;
+  heroIndependence?: string;
 };
 
 type PricingCopy = {
@@ -71,13 +73,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay is available with limited access.",
     },
     home: {
-      seoTitle: "AI Listing Assistant & Description Generator | AutoLister AI",
+      seoTitle: "AI Listing Agent for Vinted | AutoLister",
       seoDescription:
-        "Create editable listing titles, descriptions, and hashtags from item photos with AutoLister AI.",
-      heroTitle: "AI listing assistant for titles and descriptions",
+        "Generate editable titles, descriptions and hashtags for Vinted from your photos. Prepare one item or several in your browser or with the Chrome extension.",
+      heroTitle: "Turn your photos into Vinted listing drafts.",
       heroSubtitle:
-        "Create titles, descriptions, and hashtags from your item photos. Save and reuse your own seller notes. Compatible with Vinted & eBay*.",
-      heroMobileSubtitle: "Compatible with Vinted & eBay*.",
+        "Generate titles, descriptions and hashtags with AI. Prepare one item or several from your photos, with your own seller notes included.",
+      heroMobileSubtitle:
+        "AI-generated titles, descriptions and hashtags from your photos. One item or several, with your seller notes.",
+      heroIndependence: "Independent tool. Not affiliated with Vinted.",
+      heroAction: "Create a free listing draft",
     },
     pricing: {
       seoTitle: "Pricing - AutoLister AI",
@@ -107,14 +112,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay est disponible en accès limité.",
     },
     home: {
-      seoTitle:
-        "Assistant IA pour annonces et générateur de descriptions | AutoLister AI",
+      seoTitle: "Générateur d’annonces IA pour Vinted | AutoLister",
       seoDescription:
-        "Créez des titres, descriptions et hashtags modifiables depuis vos photos avec AutoLister AI.",
-      heroTitle: "Assistant IA pour les titres et descriptions",
+        "Créez des titres et descriptions modifiables pour Vinted à partir de vos photos. Préparez un ou plusieurs articles dans le navigateur ou avec l’extension Chrome.",
+      heroTitle: "Vos photos deviennent des brouillons d’annonces Vinted.",
       heroSubtitle:
-        "Créez des titres, descriptions et hashtags depuis vos photos. Enregistrez et réutilisez vos notes vendeur. Compatible avec Vinted et eBay*.",
-      heroMobileSubtitle: "Compatible avec Vinted et eBay*.",
+        "Générez des titres, descriptions et hashtags avec l’IA. Préparez un ou plusieurs articles à partir de vos photos, avec vos notes vendeur.",
+      heroMobileSubtitle:
+        "Titres, descriptions et hashtags générés par IA à partir de vos photos. Un ou plusieurs articles, avec vos notes vendeur.",
+      heroIndependence: "Outil indépendant, sans affiliation à Vinted.",
+      heroAction: "Créer une annonce gratuitement",
     },
     pricing: {
       seoTitle: "Tarifs - AutoLister AI",
@@ -144,14 +151,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay ist mit eingeschränktem Zugang verfügbar.",
     },
     home: {
-      seoTitle:
-        "KI-Assistent für Anzeigen & Beschreibungsgenerator | AutoLister AI",
+      seoTitle: "KI-Anzeigengenerator für Vinted-Verkäufer | AutoLister",
       seoDescription:
-        "Erstelle bearbeitbare Titel, Beschreibungen und Hashtags aus Artikelfotos mit AutoLister AI.",
-      heroTitle: "KI-Assistent für Titel und Beschreibungen",
+        "Erstelle aus Artikelfotos bearbeitbare Titel und Beschreibungen für Vinted. Bereite einen oder mehrere Artikel vor, im Browser oder mit der Chrome-Erweiterung.",
+      heroTitle: "Aus deinen Fotos werden Vinted-Anzeigenentwürfe.",
       heroSubtitle:
-        "Erstelle Titel, Beschreibungen und Hashtags aus Artikelfotos. Speichere und verwende eigene Verkäufernotizen. Kompatibel mit Vinted und eBay*.",
-      heroMobileSubtitle: "Kompatibel mit Vinted und eBay*.",
+        "Erstelle mit KI Titel, Beschreibungen und Hashtags aus deinen Fotos. Bereite einen oder mehrere Artikel vor, mit deinen eigenen Verkäufernotizen.",
+      heroMobileSubtitle:
+        "KI-Titel, Beschreibungen und Hashtags aus deinen Fotos. Für einen oder mehrere Artikel, mit deinen Verkäufernotizen.",
+      heroIndependence: "Unabhängiges Tool. Nicht mit Vinted verbunden.",
+      heroAction: "Kostenlosen Entwurf erstellen",
     },
     pricing: {
       seoTitle: "Preise - AutoLister AI",
@@ -180,14 +189,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay is beschikbaar met beperkte toegang.",
     },
     home: {
-      seoTitle:
-        "AI-assistent voor advertenties & beschrijvinggenerator | AutoLister AI",
+      seoTitle: "AI-advertentiegenerator voor Vinted | AutoLister",
       seoDescription:
-        "Maak bewerkbare titels, beschrijvingen en hashtags vanuit itemfoto's met AutoLister AI.",
-      heroTitle: "AI-assistent voor titels en beschrijvingen",
+        "Maak van je foto’s bewerkbare titels en beschrijvingen voor Vinted. Bereid één of meerdere artikelen voor, in je browser of met de Chrome-extensie.",
+      heroTitle: "Van je foto’s naar conceptadvertenties voor Vinted.",
       heroSubtitle:
-        "Maak titels, beschrijvingen en hashtags vanuit itemfoto's. Bewaar en hergebruik je verkopersnotities. Compatibel met Vinted en eBay*.",
-      heroMobileSubtitle: "Compatibel met Vinted en eBay*.",
+        "Maak met AI titels, beschrijvingen en hashtags van je foto’s. Bereid één of meerdere artikelen voor, met je eigen verkopersnotities.",
+      heroMobileSubtitle:
+        "AI-titels, beschrijvingen en hashtags van je foto’s. Voor één of meerdere artikelen, met je verkopersnotities.",
+      heroIndependence: "Onafhankelijke tool. Niet verbonden aan Vinted.",
+      heroAction: "Maak gratis een concept",
     },
     pricing: {
       seoTitle: "Prijzen - AutoLister AI",
@@ -217,13 +228,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay jest dostępny w ograniczonym zakresie.",
     },
     home: {
-      seoTitle: "Asystent AI do ogłoszeń i generator opisów | AutoLister AI",
+      seoTitle: "Generator ogłoszeń AI na Vinted | AutoLister",
       seoDescription:
-        "Twórz edytowalne tytuły, opisy i hashtagi ze zdjęć produktów dzięki AutoLister AI.",
-      heroTitle: "Asystent AI do tytułów i opisów",
+        "Zamień zdjęcia przedmiotów w edytowalne tytuły i opisy na Vinted. Przygotuj jeden lub kilka przedmiotów w przeglądarce albo z rozszerzeniem Chrome.",
+      heroTitle: "Zamień zdjęcia w szkice ogłoszeń na Vinted.",
       heroSubtitle:
-        "Twórz tytuły, opisy i hashtagi ze zdjęć produktów. Zapisuj i wykorzystuj ponownie notatki sprzedawcy. Kompatybilne z Vinted i eBay*.",
-      heroMobileSubtitle: "Kompatybilne z Vinted i eBay*.",
+        "Twórz tytuły, opisy i hashtagi ze zdjęć za pomocą AI. Przygotuj jeden lub kilka przedmiotów, z własnymi notatkami sprzedawcy.",
+      heroMobileSubtitle:
+        "Tytuły, opisy i hashtagi ze zdjęć dzięki AI. Dla jednego lub kilku przedmiotów, z Twoimi notatkami sprzedawcy.",
+      heroIndependence: "Niezależne narzędzie. Bez powiązania z Vinted.",
+      heroAction: "Utwórz bezpłatny szkic",
     },
     pricing: {
       seoTitle: "Cennik - AutoLister AI",
@@ -252,14 +266,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay está disponible con acceso limitado.",
     },
     home: {
-      seoTitle:
-        "Asistente IA para anuncios y generador de descripciones | AutoLister AI",
+      seoTitle: "Generador de anuncios con IA para Vinted | AutoLister",
       seoDescription:
-        "Crea títulos, descripciones y hashtags editables desde fotos de artículos con AutoLister AI.",
-      heroTitle: "Asistente IA para títulos y descripciones",
+        "Convierte fotos en títulos y descripciones editables para Vinted. Prepara uno o varios artículos en el navegador o con la extensión de Chrome.",
+      heroTitle: "Convierte tus fotos en borradores de anuncios para Vinted.",
       heroSubtitle:
-        "Crea títulos, descripciones y hashtags desde las fotos de tus artículos. Guarda y reutiliza tus notas de vendedor. Compatible con Vinted y eBay*.",
-      heroMobileSubtitle: "Compatible con Vinted y eBay*.",
+        "Genera títulos, descripciones y hashtags con IA a partir de tus fotos. Prepara uno o varios artículos con tus propias notas de vendedor.",
+      heroMobileSubtitle:
+        "Títulos, descripciones y hashtags con IA a partir de tus fotos. Uno o varios artículos, con tus notas de vendedor.",
+      heroIndependence: "Herramienta independiente, sin afiliación a Vinted.",
+      heroAction: "Crea un borrador gratis",
     },
     pricing: {
       seoTitle: "Precios - AutoLister AI",
@@ -289,14 +305,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay è disponibile con accesso limitato.",
     },
     home: {
-      seoTitle:
-        "Assistente IA per annunci e generatore di descrizioni | AutoLister AI",
+      seoTitle: "Generatore di annunci IA per Vinted | AutoLister",
       seoDescription:
-        "Crea titoli, descrizioni e hashtag modificabili dalle foto degli articoli con AutoLister AI.",
-      heroTitle: "Assistente IA per titoli e descrizioni",
+        "Trasforma le foto in titoli e descrizioni modificabili per Vinted. Prepara uno o più articoli nel browser o con l’estensione Chrome.",
+      heroTitle: "Dalle tue foto alle bozze di annunci per Vinted.",
       heroSubtitle:
-        "Crea titoli, descrizioni e hashtag dalle foto degli articoli. Salva e riutilizza le tue note venditore. Compatibile con Vinted ed eBay*.",
-      heroMobileSubtitle: "Compatibile con Vinted ed eBay*.",
+        "Genera titoli, descrizioni e hashtag con l’IA a partire dalle tue foto. Prepara uno o più articoli con le tue note venditore.",
+      heroMobileSubtitle:
+        "Titoli, descrizioni e hashtag con l’IA dalle tue foto. Uno o più articoli, con le tue note venditore.",
+      heroIndependence: "Strumento indipendente, non affiliato a Vinted.",
+      heroAction: "Crea una bozza gratis",
     },
     pricing: {
       seoTitle: "Prezzi - AutoLister AI",
@@ -325,14 +343,16 @@ export const SITE_COPY: Record<SiteLocale, SiteCopy> = {
       ebayAccessNote: "* eBay está disponível com acesso limitado.",
     },
     home: {
-      seoTitle:
-        "Assistente IA para anúncios e gerador de descrições | AutoLister AI",
+      seoTitle: "Gerador de anúncios com IA para Vinted | AutoLister",
       seoDescription:
-        "Crie títulos, descrições e hashtags editáveis a partir de fotografias dos artigos com o AutoLister AI.",
-      heroTitle: "Assistente IA para títulos e descrições",
+        "Transforme fotografias em títulos e descrições editáveis para Vinted. Prepare um ou vários artigos no navegador ou com a extensão Chrome.",
+      heroTitle: "Das tuas fotos a rascunhos de anúncios para Vinted.",
       heroSubtitle:
-        "Crie títulos, descrições e hashtags a partir das fotografias dos artigos. Guarde e reutilize as suas notas de vendedor. Compatível com Vinted e eBay*.",
-      heroMobileSubtitle: "Compatível com Vinted e eBay*.",
+        "Gera títulos, descrições e hashtags com IA a partir das tuas fotos. Prepara um ou vários artigos com as tuas notas de vendedor.",
+      heroMobileSubtitle:
+        "Títulos, descrições e hashtags com IA a partir das tuas fotos. Um ou vários artigos, com as tuas notas de vendedor.",
+      heroIndependence: "Ferramenta independente, sem afiliação à Vinted.",
+      heroAction: "Cria um rascunho grátis",
     },
     pricing: {
       seoTitle: "Precos - AutoLister AI",
@@ -542,7 +562,7 @@ export const SITE_EXTRA_COPY: Record<
           },
         },
       },
-      featuresTitle: "An AI Assistant for Listing Drafts",
+      featuresTitle: "AI description generator for Vinted listings",
       featuresSubtitle:
         "Turn item photos into draft titles and descriptions for you to review.",
       feature1Title: "Clear Listing Drafts",

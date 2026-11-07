@@ -66,6 +66,8 @@ const showLanguageSwitcher = Boolean(currentLocale);
 const localePrefix = resolvedLocale === "en" ? "" : `/${resolvedLocale}`;
 const homeHref = `${localePrefix}/`;
 const isHomepage = homepage || Astro.url.pathname.replace(/\/$/, "") === homeHref.replace(/\/$/, "");
+const navWebPrimary = webPrimary || isHomepage;
+const navAction = isHomepage ? SITE_COPY[resolvedLocale].home.heroAction : webPrimary ? modelCopy.web : navCopy.cta;
 const homeExtra = SITE_EXTRA_COPY[resolvedLocale].home;
 const featuresHref = `${localePrefix}/#features`;
 const pricingHref = `${localePrefix}/pricing`;
@@ -180,7 +182,7 @@ const chromeHref =
           </a>
 
           {isHomepage && (
-            <div data-public-stats data-stats-endpoint="/api/public-stats" class="home-public-stats flex" aria-label={homeExtra.publicStatsAriaLabel} aria-busy="true" aria-live="polite">
+            <div data-public-stats data-stats-endpoint="/api/public-stats" class="home-public-stats flex" role="status" aria-label={homeExtra.publicStatsAriaLabel} aria-busy="true" aria-live="polite">
               <span data-stat-generations class="public-stat-number">...</span>
               <span>{homeExtra.publicStatsGenerationsLabel}</span>
             </div>
@@ -234,14 +236,14 @@ const chromeHref =
           <!-- CTA -->
           <div class="site-desktop-nav hidden md:block">
             <a
-              href={webPrimary ? `/app?ref=model_nav_${resolvedLocale}` : chromeHref}
-              target={webPrimary ? undefined : "_blank"}
-              rel={webPrimary ? undefined : "noopener noreferrer"}
-              data-track-event={webPrimary ? "web_app_click" : "chrome_store_click"}
+              href={navWebPrimary ? `/app?ref=${isHomepage ? 'home' : 'model'}_nav_${resolvedLocale}` : chromeHref}
+              target={navWebPrimary ? undefined : "_blank"}
+              rel={navWebPrimary ? undefined : "noopener noreferrer"}
+              data-track-event={navWebPrimary ? "web_app_click" : "chrome_store_click"}
               data-track-context="nav_desktop"
               class="site-nav-main inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 no-underline"
             >
-              {webPrimary ? modelCopy.web : navCopy.cta}
+              {navAction}
             </a>
             {!webPrimary && (
               <a
@@ -250,7 +252,7 @@ const chromeHref =
                 data-track-context="nav_tablet"
                 class="site-nav-tablet-web items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-2xl shadow-lg shadow-brand-600/20 text-white bg-brand-600 hover:bg-brand-700 no-underline"
               >
-                {modelCopy.web}
+                {isHomepage ? navAction : modelCopy.web}
               </a>
             )}
           </div>
@@ -337,7 +339,7 @@ const chromeHref =
               data-track-context="nav_mobile"
               class="block w-full text-center px-6 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 no-underline"
             >
-              {webPrimary ? modelCopy.web : navCopy.cta}
+              {navAction}
             </a>
           </div>
         </div>

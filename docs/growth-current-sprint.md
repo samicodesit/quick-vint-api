@@ -1,5 +1,11 @@
 # AutoLister AI Growth Current Sprint
 
+## Free extension CTA wording, November 7, 2026
+
+- Owner authorized choosing clearer free-start messaging and pushing. Extension entry now says "Add to Chrome for free" consistently in the header/menu, hero and final action, with natural equivalents in all eight locales. Supporting text says only "Create drafts directly on Vinted." The five-draft quota is removed from this pitch; the actual five lifetime generations and pricing disclosure remain unchanged. Web entry still explicitly offers a free draft.
+- Rationale: retain the concrete install action and put zero upfront cost at the decision point. Grammarly's current browser page similarly includes free in its acquisition CTA (https://www.grammarly.com/browser). This supports the design choice, not a measured conversion advantage. No keyword-bearing introduction, title, heading or SEO metadata was edited.
+- QA: 40 fresh-load locale/viewport checks at 320, 390, 1024, 1280 and 1440px. No overflow, clipped action labels or navigation overlap. German and English desktop placements inspected; all header labels remain on one line at 1280px. Eight Nu HTML validations return zero messages. Existing route/copy tests and the full production gate are required before push. Evidence is in the current visualization folder, homepage-recovery/free-cta-final. No signup, extension installation, generation or payment performed.
+
 ## Visible search wording and fractional rating, November 7, 2026
 
 - Owner requested the important query wording in visible copy and a fractional star display. English desktop/mobile introductions now say "AI listing agent for Vinted" while retaining titles, descriptions, hashtags, seller notes and single/multiple items. The other seven locales use natural listing-generator wording consistent with their existing localized titles. No extra copy block was added. Title, H1, meta description, canonical and hreflang remain unchanged.

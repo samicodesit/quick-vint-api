@@ -1,5 +1,6 @@
 import { waitUntil } from "@vercel/functions";
 import { supabase } from "./supabaseClient";
+import { withFreeTrialIpKey } from "./freeTrialIpQuota";
 import { isAccountPaused } from "../src/utils/accountPause";
 import { isGenerationSuspendedForPayment } from "../src/utils/subscriptionStatus";
 import {
@@ -43,6 +44,7 @@ export async function photoMutate(
   user: string,
   action: string,
   input: Record<string, unknown> = {},
+  freeTrialIpKey?: string,
 ) {
   if (
     action === "stage" &&
@@ -50,11 +52,12 @@ export async function photoMutate(
     !(await photoAccess(user))
   )
     return null;
-  const { data, error } = await supabase.rpc("listing_photo_mutate", {
+  const query = supabase.rpc("listing_photo_mutate", {
     p_user_id: user,
     p_action: action,
     p_input: input,
   });
+  const { data, error } = await withFreeTrialIpKey(query, freeTrialIpKey);
   if (error) throw error;
   return data;
 }
@@ -298,6 +301,7 @@ export async function admitPhotoOnly(
   user: string,
   sources: string[],
   sourceKey?: string,
+  freeTrialIpKey?: string,
 ) {
   if (
     !listingPhotosEnabled() ||
@@ -318,11 +322,12 @@ export async function admitPhotoOnly(
       ? ["client-revision:" + sourceKey]
       : sources,
   );
-  const job = await photoMutate(user, "admit", {
-    fingerprint,
-    sources,
-    limits: getGenerationReservationParams(profile),
-  });
+  const job = await photoMutate(
+    user,
+    "admit",
+    { fingerprint, sources, limits: getGenerationReservationParams(profile) },
+    freeTrialIpKey,
+  );
   if (!job?.id) return { denied: true, code: job?.code || "model_not_ready" };
   if (job.state === "queued") background(processListingPhotoJob(user, job.id));
   return { jobId: job.id, status: job.state };

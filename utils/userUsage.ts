@@ -1,5 +1,6 @@
 import { detectAndPauseDuplicateIpAccount } from "./duplicateIpAutoPause";
 import { getDirectUser } from "./directUser";
+import { getFreeTrialIpKey } from "./freeTrialIpQuota";
 import { isAccountPaused } from "../src/utils/accountPause";
 import { isGenerationSuspendedForPayment } from "../src/utils/subscriptionStatus";
 import {
@@ -292,6 +293,7 @@ export function buildUsageResponse(
 export async function getUsageForBearer(
   token: string,
   ipAddress?: string | null,
+  trustedTrialIp?: string,
 ): Promise<UsageResponse> {
   const {
     data: { user },
@@ -343,6 +345,8 @@ export async function getUsageForBearer(
   const capacity = await RateLimiter.getGenerationCapacity(
     profile.id as string,
     profile,
+    undefined,
+    getFreeTrialIpKey(trustedTrialIp, user.email),
   );
   const minuteValue = capacity.remaining.minute;
   let minuteRemaining: number | null;

@@ -1,6 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { waitUntil } from "@vercel/functions";
 import { detectAndPauseDuplicateIpAccount } from "../utils/duplicateIpAutoPause";
+import {
+  getFreeTrialIpKey,
+  getTrustedTrialIp,
+} from "../utils/freeTrialIpQuota";
 import { ApiLogger } from "../utils/apiLogger";
 import { buildAccountPausedResponse } from "../src/utils/accountPause";
 import { supabase } from "../utils/supabaseClient";
@@ -92,6 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         data.user.id,
         req.body.sources,
         req.body.sourceKey,
+        getFreeTrialIpKey(getTrustedTrialIp(req.headers), data.user.email),
       );
       return res.status(result.denied ? 409 : 200).json(result);
     } catch {

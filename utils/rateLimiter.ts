@@ -1,5 +1,6 @@
 // utils/rateLimiter.ts
 import { supabase } from "./supabaseClient";
+import { FREE_TRIAL_IP_LIMIT, withFreeTrialIpKey } from "./freeTrialIpQuota";
 import {
   FREE_LIFETIME_LIMIT,
   TIER_CONFIGS,
@@ -23,6 +24,8 @@ import type {
 const GLOBAL_DAILY_BUDGET_USD = 100; // Increased for business growth
 // Budget guardrail only. Admin cost reporting uses token-level api_logs pricing.
 const OPENAI_COST_PER_REQUEST_USD = 0.0201; // Based on actual dashboard: $6.12/304 requests
+const FREE_LISTING_LIMIT_MESSAGE =
+  "Free listing limit reached. Upgrade your plan or buy a one-time credit pack.";
 
 interface RateLimitResult {
   allowed: boolean;
@@ -497,8 +500,7 @@ export class RateLimiter {
           nextTier,
           limitScope: "month",
           currentLimit: FREE_LIFETIME_LIMIT,
-          error:
-            "Free listing limit reached. Upgrade your plan or buy a one-time credit pack.",
+          error: FREE_LISTING_LIMIT_MESSAGE,
         };
       }
 
@@ -617,6 +619,7 @@ export class RateLimiter {
     userId: string,
     profile: UserProfile,
     pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+    freeTrialIpKey?: string,
   ): Promise<RateLimitResult> {
     const {
       effectiveTier,
@@ -628,7 +631,7 @@ export class RateLimiter {
     } = getGenerationReservationParams(profile, pricingLimitsMode);
 
     try {
-      const { data, error } = await supabase.rpc(
+      const query = supabase.rpc(
         "reserve_generation_request_for_current_status",
         {
           p_user_id: userId,
@@ -641,6 +644,7 @@ export class RateLimiter {
           p_has_unlimited_daily: hasUnlimitedDaily,
         },
       );
+      const { data, error } = await withFreeTrialIpKey(query, freeTrialIpKey);
 
       if (error) {
         console.error("Generation reservation failed:", error);
@@ -689,6 +693,7 @@ export class RateLimiter {
     userId: string,
     profile: UserProfile,
     pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+    freeTrialIpKey?: string,
   ): Promise<RateLimitResult> {
     const tierKey = getEffectiveTier(profile);
 
@@ -774,7 +779,7 @@ export class RateLimiter {
         };
       }
 
-      const { data: reservation, error: insertError } = await supabase
+      const query = supabase
         .from("generation_reservations")
         .insert({
           user_id: userId,
@@ -791,8 +796,22 @@ export class RateLimiter {
         })
         .select("id")
         .single();
+      const { data: reservation, error: insertError } =
+        await withFreeTrialIpKey(query, freeTrialIpKey);
 
       if (insertError) {
+        if (insertError.code === "P5IP1") {
+          return {
+            allowed: false,
+            code: "free_lifetime_limit",
+            currentTier: tierKey,
+            nextTier: getNextTier(tierKey),
+            limitScope: "month",
+            currentLimit: FREE_TRIAL_IP_LIMIT,
+            error: FREE_LISTING_LIMIT_MESSAGE,
+          };
+        }
+        if (insertError.code === "P5IP2") throw insertError;
         console.error("Emoji retry reservation failed:", insertError);
         return {
           allowed: false,
@@ -973,6 +992,7 @@ export class RateLimiter {
     userId: string,
     profile: UserProfile,
     pricingLimitsMode: PricingLimitsMode = getPricingLimitsMode(),
+    freeTrialIpKey?: string,
   ): Promise<GenerationCapacity> {
     const tierKey = getEffectiveTier(profile);
     const tierConfig = getTierConfigForProfile(profile, pricingLimitsMode);
@@ -1063,12 +1083,37 @@ export class RateLimiter {
         custom_limit_expires_at: customLimits?.custom_limit_expires_at ?? null,
       };
 
-      if (pricingLimitsMode === "current" && tierKey === "free") {
+      const ipQuotaApplies =
+        freeTrialIpKey &&
+        !hasPaidEntitlementStatus(profile.subscription_status) &&
+        !profile.paid_access_expires_at;
+
+      if (
+        tierKey === "free" &&
+        (pricingLimitsMode === "current" || ipQuotaApplies)
+      ) {
         const freeUsed = Math.max(
           0,
           profile.free_lifetime_generations_used || 0,
         );
-        const freeRemaining = Math.max(FREE_LIFETIME_LIMIT - freeUsed, 0);
+        let freeRemaining = Math.max(FREE_LIFETIME_LIMIT - freeUsed, 0);
+        if (
+          ipQuotaApplies &&
+          freeTrialIpKey !== "unavailable" &&
+          freeRemaining
+        ) {
+          const { data, error } = await supabase
+            .from("free_trial_ip_usage")
+            .select("used")
+            .eq("ip_key", freeTrialIpKey)
+            .maybeSingle();
+          if (!error) {
+            freeRemaining = Math.min(
+              freeRemaining,
+              FREE_TRIAL_IP_LIMIT - (data?.used ?? 0),
+            );
+          }
+        }
         const available = freeRemaining + packCredits;
 
         return {
@@ -1076,10 +1121,7 @@ export class RateLimiter {
           allowed: available > 0,
           available,
           reason: available > 0 ? undefined : "free_lifetime_limit",
-          message:
-            available > 0
-              ? undefined
-              : "Free listing limit reached. Upgrade your plan or buy a one-time credit pack.",
+          message: available > 0 ? undefined : FREE_LISTING_LIMIT_MESSAGE,
           limits: {
             ...baseCapacity.limits,
             daily: null,

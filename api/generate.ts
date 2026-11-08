@@ -20,6 +20,10 @@ import { ApiLogger } from "../utils/apiLogger";
 import { languageMap } from "../utils/languageMap";
 import { isDisposableEmail } from "../utils/disposableDomains";
 import { detectAndPauseDuplicateIpAccount } from "../utils/duplicateIpAutoPause";
+import {
+  getFreeTrialIpKey,
+  getTrustedTrialIp,
+} from "../utils/freeTrialIpQuota";
 import { getMeasurementAdvice, isClothingItem } from "../utils/helperTips";
 import { getEffectiveTier } from "../utils/tierConfig";
 import {
@@ -833,6 +837,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     mobileIdempotencyAttemptId = claim.attemptId;
   }
 
+  const freeTrialIpKey = getFreeTrialIpKey(
+    getTrustedTrialIp(req.headers),
+    user.email,
+  );
   const rateLimitResult =
     hasRetryProtection && !isEmojiRetryRequest
       ? await reserveAndBindMobileGenerationReservation({
@@ -844,6 +852,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           attemptId: mobileIdempotencyAttemptId as string,
           requestId: mobileRequestId as string,
           requestHash: mobileRequestHash as string,
+          freeTrialIpKey,
           ...getGenerationReservationParams(userProfile, pricingLimitsMode),
         })
       : isEmojiRetryRequest
@@ -851,11 +860,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             user.id,
             userProfile,
             pricingLimitsMode,
+            freeTrialIpKey,
           )
         : await RateLimiter.reserveGenerationRequest(
             user.id,
             userProfile,
             pricingLimitsMode,
+            freeTrialIpKey,
           );
 
   if (!rateLimitResult.allowed) {

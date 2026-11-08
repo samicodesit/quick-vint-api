@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { ApiLogger } from "../../utils/apiLogger";
+import { getTrustedTrialIp } from "../../utils/freeTrialIpQuota";
 import {
   isMobileWebEnabled,
   MOBILE_WEB_DISABLED_RESPONSE,
@@ -46,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const response = await getUsageForBearer(
       tokenMatch[1],
       ApiLogger.extractRequestMetadata(req).ipAddress,
+      getTrustedTrialIp(req.headers),
     );
     return res.status(200).json(response);
   } catch (error: any) {

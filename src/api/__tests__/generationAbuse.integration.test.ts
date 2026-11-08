@@ -342,6 +342,20 @@ it("sharing an IP alone does not pause another unused free account", async () =>
   expect(row.rows[0].account_status).toBe("active");
 });
 
+it("hands off to the quota without running the legacy account pause", async () => {
+  vi.stubEnv("FREE_TRIAL_IP_QUOTA_ENABLED", "true");
+  try {
+    expect((await request("mobile_web")).status).toBe(400);
+    const row = await state.db!.query(
+      "SELECT account_status FROM profiles WHERE id=$1",
+      [newUser],
+    );
+    expect(row.rows[0]).toMatchObject({ account_status: "active" });
+  } finally {
+    delete process.env.FREE_TRIAL_IP_QUOTA_ENABLED;
+  }
+});
+
 it("paid entitlement keeps the existing exemption from duplicate free-trial checks", async () => {
   await state.db!.query(
     "UPDATE profiles SET subscription_status='active',subscription_tier='starter' WHERE id=$1",

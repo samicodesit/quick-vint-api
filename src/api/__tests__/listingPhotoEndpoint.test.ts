@@ -123,7 +123,7 @@ it("admits a photos-only request without accepting a client allowance or owner",
     (await call("POST", { action: "create", sources, sourceKey: "revision" }))
       .body.jobId,
   ).toBe(id);
-  expect(m.admit).toHaveBeenCalledWith("owner", sources, "revision");
+  expect(m.admit).toHaveBeenCalledWith("owner", sources, "revision", undefined);
   expect(
     (await call("POST", { action: "create", sources, allowance: 999 }))
       .statusCode,
@@ -136,6 +136,34 @@ it("admits a photos-only request without accepting a client allowance or owner",
       })
     ).statusCode,
   ).toBe(400);
+});
+
+it("passes a server-derived IP key for a photo-only draft", async () => {
+  vi.stubEnv("FREE_TRIAL_IP_QUOTA_ENABLED", "true");
+  vi.stubEnv("FREE_TRIAL_IP_HASH_KEY", "local-fixture-secret-for-ip-quotas");
+  try {
+    m.admit.mockResolvedValue({ denied: true, code: "free_lifetime_limit" });
+    const sources = ["data:image/jpeg;base64,YQ=="];
+    const result = await call(
+      "POST",
+      { action: "create", sources },
+      {
+        authorization: "Bearer valid",
+        "x-vercel-forwarded-for": "203.0.113.9",
+        "x-autolister-free-trial-ip": "forged",
+      },
+    );
+    expect(result.statusCode).toBe(409);
+    expect(result.body.code).toBe("free_lifetime_limit");
+    expect(m.admit).toHaveBeenCalledWith(
+      "owner",
+      sources,
+      undefined,
+      expect.stringMatching(/^[0-9a-f]{64}$/),
+    );
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 it.each(["create", "retry", "resume"])(

@@ -2,6 +2,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Cors from "cors";
 import { isFirefoxExtensionOrigin } from "../../utils/allowedOrigins";
 import { getDirectUser } from "../../utils/directUser";
+import {
+  getFreeTrialIpKey,
+  getTrustedTrialIp,
+} from "../../utils/freeTrialIpQuota";
 import { RateLimiter, type UserProfile } from "../../utils/rateLimiter";
 import { supabase } from "../../utils/supabaseClient";
 import { getPricingLimitsModeForExtension } from "../../utils/tierConfig";
@@ -130,6 +134,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     user.id,
     userProfile,
     pricingLimitsMode,
+    getFreeTrialIpKey(getTrustedTrialIp(req.headers), user.email),
   );
 
   return res.status(200).json({

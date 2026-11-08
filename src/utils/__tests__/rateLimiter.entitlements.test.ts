@@ -166,6 +166,29 @@ describe("RateLimiter entitlement decisions", () => {
     expect(fromCalls).toHaveLength(0);
   });
 
+  it("reports the shared IP allowance and keeps purchased credits available", async () => {
+    queueCommonPreflight();
+    queueSingle("free_trial_ip_usage", { data: { used: 5 }, error: null });
+    const { RateLimiter } = await import("../../../utils/rateLimiter.js");
+    const result = await RateLimiter.getGenerationCapacity(
+      "user-free",
+      {
+        subscription_status: "free",
+        subscription_tier: "free",
+        api_calls_this_month: 1,
+        free_lifetime_generations_used: 1,
+        pack_credits: 2,
+      },
+      "legacy",
+      "a".repeat(64),
+    );
+    expect(result).toMatchObject({
+      allowed: true,
+      available: 2,
+      remaining: { freeLifetime: 0, packCredits: 2 },
+    });
+  });
+
   it("blocks free users after exactly 5 lifetime listings when no pack credits exist", async () => {
     queueCommonPreflight();
     queueRateCount(0);

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { supabase } from "./supabaseClient";
+import { withFreeTrialIpKey } from "./freeTrialIpQuota";
 import type {
   IdempotencyClaim,
   MobileGenerationReservationParams,
@@ -395,10 +396,11 @@ export async function reserveAndBindMobileGenerationReservation(
     attemptId: string;
     requestId: string;
     requestHash: string;
+    freeTrialIpKey?: string;
   } & MobileGenerationReservationParams,
 ): Promise<MobileGenerationReservationResult> {
   try {
-    const { data, error } = await supabase.rpc(
+    const query = supabase.rpc(
       "reserve_and_bind_mobile_generation_reservation",
       {
         p_user_id: input.userId,
@@ -415,6 +417,10 @@ export async function reserveAndBindMobileGenerationReservation(
         p_free_lifetime_limit: input.freeLifetimeLimit,
         p_has_unlimited_daily: input.hasUnlimitedDaily,
       },
+    );
+    const { data, error } = await withFreeTrialIpKey(
+      query,
+      input.freeTrialIpKey,
     );
 
     if (error) {

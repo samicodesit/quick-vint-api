@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createCompletion = vi.fn();
@@ -401,6 +402,40 @@ describe("mobile web generation idempotency", () => {
     "x-autolister-extension-version": "1.3.17",
     "x-autolister-request-id": requestId,
   };
+
+  it.each([mobileHeaders, extensionHeaders])(
+    "passes the same trusted IP key for $x-autolister-client and stops before AI at the limit",
+    async (headers) => {
+      const secret = "local-fixture-secret-for-ip-quotas";
+      vi.stubEnv("FREE_TRIAL_IP_QUOTA_ENABLED", "true");
+      vi.stubEnv("FREE_TRIAL_IP_HASH_KEY", secret);
+      try {
+        reserveAndBindMobileGenerationReservation.mockResolvedValue({
+          allowed: false,
+          code: "free_lifetime_limit",
+          currentLimit: 5,
+        });
+        const response = await invoke({
+          ...headers,
+          "x-vercel-forwarded-for": "203.0.113.9",
+          "x-forwarded-for": "203.0.113.10",
+          "x-autolister-free-trial-ip": "forged",
+        });
+        expect(response.statusCode).toBe(429);
+        expect(response.body.code).toBe("free_lifetime_limit");
+        expect(reserveAndBindMobileGenerationReservation).toHaveBeenCalledWith(
+          expect.objectContaining({
+            freeTrialIpKey: createHmac("sha256", secret)
+              .update("autolister:free-trial:203.0.113.9")
+              .digest("hex"),
+          }),
+        );
+        expect(createCompletion).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
 
   it.each([
     ["mobile_web", mobileHeaders],

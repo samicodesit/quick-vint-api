@@ -2,6 +2,10 @@ import { hasPaidEntitlementStatus } from "../src/utils/subscriptionStatus";
 import { ApiLogger } from "./apiLogger";
 import { supabase } from "./supabaseClient";
 import { FREE_LIFETIME_LIMIT } from "./tierConfig";
+import {
+  freeTrialIpQuotaEnabled,
+  isFreeTrialIpExempt,
+} from "./freeTrialIpQuota";
 
 type DuplicateIpAutoPauseInput = {
   userId?: string | null;
@@ -34,19 +38,6 @@ type LogRow = {
 
 const LOOKBACK_DAYS = 30;
 const LOG_LIMIT = 100;
-const INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS = new Set([
-  "samicodesit@gmail.com",
-  "nadenickovao7@gmail.com",
-]);
-
-function isInternalDuplicateIpExcludedEmail(email?: string | null) {
-  return INTERNAL_DUPLICATE_IP_EXCLUDED_EMAILS.has(
-    String(email || "")
-      .trim()
-      .toLowerCase(),
-  );
-}
-
 function isPublicIp(ipAddress: string) {
   const ip = ipAddress.trim().toLowerCase();
   if (!ip || ip === "unknown" || ip === "::1" || ip === "localhost") {
@@ -111,6 +102,8 @@ export async function detectAndPauseDuplicateIpAccount({
   source,
   currentProfile: providedCurrentProfile,
 }: DuplicateIpAutoPauseInput): Promise<{ paused: boolean; reason?: string }> {
+  if (freeTrialIpQuotaEnabled()) return { paused: false };
+
   const normalizedUserId = String(userId || "").trim();
   const normalizedEmail = String(email || "")
     .trim()
@@ -140,8 +133,8 @@ export async function detectAndPauseDuplicateIpAccount({
 
   if (
     !currentProfile ||
-    isInternalDuplicateIpExcludedEmail(normalizedEmail) ||
-    isInternalDuplicateIpExcludedEmail(currentProfile.email) ||
+    isFreeTrialIpExempt(normalizedEmail) ||
+    isFreeTrialIpExempt(currentProfile.email) ||
     currentProfile?.account_status === "paused" ||
     !isFreeProfile(currentProfile as ProfileRow | null)
   ) {
@@ -198,8 +191,8 @@ export async function detectAndPauseDuplicateIpAccount({
     if (!log.user_id || log.user_id === normalizedUserId) return false;
     const profile = profileById.get(log.user_id);
     if (
-      isInternalDuplicateIpExcludedEmail(profile?.email) ||
-      isInternalDuplicateIpExcludedEmail(log.user_email)
+      isFreeTrialIpExempt(profile?.email) ||
+      isFreeTrialIpExempt(log.user_email)
     ) {
       return false;
     }

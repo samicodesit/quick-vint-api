@@ -5,17 +5,17 @@ interface Props { locale: string; webAction: string; placement: "hero" | "final"
 const { locale, webAction, placement } = Astro.props;
 const siteLocale = normalizeSiteLocale(locale);
 const route = HOME_ENTRY_ROUTES[siteLocale];
-const freeDraftsNote = siteLocale === "en" ? "5 free drafts. No card required." : undefined;
+const noCardNote = siteLocale === "en" ? "No card required." : undefined;
 const chromeHref = "https://chromewebstore.google.com/detail/autolister-ai-vinted-desc/mommklhpammnlojjobejddmidmdcalcl";
 ---
 <div class:list={["home-route-actions", { "home-route-actions-final": placement === "final" }]}>
   <div class="home-route-web">
     <a href={`/app?ref=home_${placement}`} class:list={["home-route-primary", placement === "hero" ? "home-entry-web" : "home-final-web"]} data-track-event="web_app_click" data-track-context={`home_${placement}_web`} data-track-copy-version="desktop_entry_v3">{webAction}</a>
-    {placement === "hero" && <p class="home-route-note">{freeDraftsNote ?? route.webNote}</p>}
+    {placement === "hero" && <p class="home-route-note">{noCardNote ?? route.webNote}</p>}
   </div>
   <div class="home-route-extension">
     <a href={chromeHref} target="_blank" rel="noopener noreferrer" class="home-route-primary" data-track-event="chrome_store_click" data-track-context={`home_${placement}_extension`} data-track-copy-version="desktop_entry_v3">{route.extensionAction}</a>
-    {placement === "hero" && <p class="home-route-note">{freeDraftsNote ?? route.extensionNote}</p>}
+    {placement === "hero" && <p class="home-route-note">{noCardNote ?? route.extensionNote}</p>}
     {placement === "hero" && <a class="home-route-proof" href={chromeHref} target="_blank" rel="noopener noreferrer" data-track-context="home_rating"><span class="rating-stars" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <svg width="16" height="16" viewBox="0 0 20 20" focusable="false">{index === 4 && <defs><linearGradient id="home-rating-partial"><stop offset="60%" stop-color="#b77900" /><stop offset="60%" stop-color="#cbd5e1" /></linearGradient></defs>}<path fill={index === 4 ? "url(#home-rating-partial)" : "#b77900"} d="M10 1.5 12.6 6.8 18.5 7.6 14.25 11.75 15.25 17.6 10 14.85 4.75 17.6 5.75 11.75 1.5 7.6 7.4 6.8Z" /></svg>)}</span><span>{route.proof.slice(2)}</span></a>}
     <a href={`/app?ref=home_${placement}`} class="home-route-alternative" data-track-event="web_app_click" data-track-context={`home_${placement}_web_alternative`} data-track-copy-version="desktop_entry_v3">{route.webAlternative}</a>
   </div>

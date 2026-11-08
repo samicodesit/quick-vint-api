@@ -1106,6 +1106,7 @@ export class RateLimiter {
             .from("free_trial_ip_usage")
             .select("used")
             .eq("ip_key", freeTrialIpKey)
+            .gt("expires_at", new Date().toISOString())
             .maybeSingle();
           if (!error) {
             freeRemaining = Math.min(

@@ -1,15 +1,23 @@
 BEGIN;
+SET LOCAL lock_timeout = '3s';
 
 CREATE TABLE public.free_trial_ip_usage (
   ip_key text PRIMARY KEY CHECK (ip_key ~ '^[0-9a-f]{64}$'),
-  used integer NOT NULL CHECK (used BETWEEN 0 AND 5)
+  used integer NOT NULL CHECK (used BETWEEN 0 AND 5),
+  expires_at timestamptz NOT NULL DEFAULT (now() + interval '2 years')
 );
+CREATE INDEX free_trial_ip_usage_expiry ON public.free_trial_ip_usage (expires_at);
 ALTER TABLE public.free_trial_ip_usage ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.free_trial_ip_usage FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.free_trial_ip_usage TO service_role;
 
 -- Keep the link to a reservation only while it can still be refunded.
-ALTER TABLE public.generation_reservations ADD COLUMN free_trial_ip_key text;
+ALTER TABLE public.generation_reservations
+  ADD COLUMN free_trial_ip_key text,
+  ADD COLUMN free_trial_ip_expires_at timestamptz;
+CREATE INDEX generation_reservations_free_trial_ip_expiry
+  ON public.generation_reservations (free_trial_ip_expires_at)
+  WHERE free_trial_ip_expires_at IS NOT NULL;
 
 -- Only the server's service-role PostgREST request carries this key.
 CREATE FUNCTION public.request_free_trial_ip_key() RETURNS text
@@ -21,14 +29,26 @@ REVOKE ALL ON FUNCTION public.request_free_trial_ip_key() FROM PUBLIC, anon, aut
 
 CREATE FUNCTION public.track_free_trial_ip_reservation() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
-DECLARE trial_ip text;
+DECLARE
+  trial_ip text;
+  window_expiry timestamptz;
+  remaining integer;
 BEGIN
   IF TG_OP = 'UPDATE' THEN
     IF NEW.status = 'refunded' THEN
-      UPDATE free_trial_ip_usage SET used = used - 1
-      WHERE ip_key = OLD.free_trial_ip_key AND used > 0;
+      PERFORM pg_advisory_xact_lock(552026, hashtext(OLD.free_trial_ip_key));
+      UPDATE free_trial_ip_usage
+      SET used = used - 1
+      WHERE ip_key = OLD.free_trial_ip_key
+        AND expires_at = OLD.free_trial_ip_expires_at
+        AND used > 0
+      RETURNING used INTO remaining;
+      IF remaining = 0 THEN
+        DELETE FROM free_trial_ip_usage WHERE ip_key = OLD.free_trial_ip_key;
+      END IF;
     END IF;
     NEW.free_trial_ip_key := NULL;
+    NEW.free_trial_ip_expires_at := NULL;
     RETURN NEW;
   END IF;
 
@@ -43,15 +63,23 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = 'P5IP2', MESSAGE = 'free_trial_ip_unavailable';
   END IF;
 
-  -- Insertion has already locked the profile through its foreign key.
+  -- The direct emoji retry and the normal reservation share the same IP lock.
+  PERFORM pg_advisory_xact_lock(552026, hashtext(trial_ip));
   INSERT INTO free_trial_ip_usage (ip_key, used) VALUES (trial_ip, 1)
-  ON CONFLICT (ip_key) DO UPDATE SET used = free_trial_ip_usage.used + 1
-  WHERE free_trial_ip_usage.used < 5;
+  ON CONFLICT (ip_key) DO UPDATE SET
+    used = CASE WHEN free_trial_ip_usage.expires_at <= now()
+      THEN 1 ELSE free_trial_ip_usage.used + 1 END,
+    expires_at = CASE WHEN free_trial_ip_usage.expires_at <= now()
+      THEN EXCLUDED.expires_at ELSE free_trial_ip_usage.expires_at END
+  WHERE free_trial_ip_usage.expires_at <= now() OR free_trial_ip_usage.used < 5
+  RETURNING expires_at INTO window_expiry;
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE = 'P5IP1', MESSAGE = 'free_trial_ip_limit';
   END IF;
 
-  UPDATE generation_reservations SET free_trial_ip_key = trial_ip WHERE id = NEW.id;
+  UPDATE generation_reservations
+  SET free_trial_ip_key = trial_ip, free_trial_ip_expires_at = window_expiry
+  WHERE id = NEW.id;
   RETURN NEW;
 END;
 $$;
@@ -105,9 +133,10 @@ BEGIN
     AND coalesce(profile_status, 'free') NOT IN ('active','trialing','canceling')
     AND protected_access_end IS NULL THEN
     IF trial_ip ~ '^[0-9a-f]{64}$' THEN
-      INSERT INTO free_trial_ip_usage (ip_key, used) VALUES (trial_ip, 0)
-      ON CONFLICT (ip_key) DO NOTHING;
-      SELECT used INTO ip_used FROM free_trial_ip_usage WHERE ip_key = trial_ip FOR UPDATE;
+      PERFORM pg_advisory_xact_lock(552026, hashtext(trial_ip));
+      SELECT used INTO ip_used FROM free_trial_ip_usage
+      WHERE ip_key = trial_ip AND expires_at > now();
+      ip_used := coalesce(ip_used, 0);
     ELSIF coalesce(paid_credits, 0) = 0 THEN
       RETURN jsonb_build_object('allowed',false,'code','service_unavailable','limitScope','service');
     END IF;
@@ -121,6 +150,30 @@ BEGIN
     outcome := outcome || jsonb_build_object('currentLimit', 5);
   END IF;
   RETURN outcome;
+END;
+$$;
+
+CREATE FUNCTION public.cleanup_expired_free_trial_ip_usage() RETURNS void
+LANGUAGE sql SET search_path = public, pg_temp AS $$
+  UPDATE generation_reservations
+  SET free_trial_ip_key = NULL, free_trial_ip_expires_at = NULL
+  WHERE free_trial_ip_expires_at <= now();
+
+  DELETE FROM free_trial_ip_usage WHERE expires_at <= now();
+$$;
+REVOKE ALL ON FUNCTION public.cleanup_expired_free_trial_ip_usage()
+  FROM PUBLIC, anon, authenticated;
+
+-- Production Supabase has pg_cron. Local database fixtures do not.
+DO $$
+BEGIN
+  IF to_regprocedure('cron.schedule(text,text,text)') IS NOT NULL THEN
+    PERFORM cron.schedule(
+      'cleanup-expired-free-trial-ip',
+      '*/5 * * * *',
+      'SELECT public.cleanup_expired_free_trial_ip_usage()'
+    );
+  END IF;
 END;
 $$;
 

@@ -45,6 +45,7 @@ function createQueryBuilder(table: string) {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    gt: vi.fn(() => builder),
     contains: vi.fn(() => builder),
     gte: vi.fn(() => builder),
     insert: vi.fn(() => builder),

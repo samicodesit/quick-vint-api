@@ -25,7 +25,7 @@ beforeAll(async () => {
     "2026-10-27_upgrade_payment_expiry.sql",
     "2026-11-01_user_models.sql",
     "2026-11-01_listing_model_photos.sql",
-    "2026-11-08_lifetime_ip_trial.sql",
+    "2026-11-08_free_trial_ip_quota.sql",
   ]) {
     await db.exec(readFileSync(`migrations/${migration}`, "utf8"));
   }
@@ -92,6 +92,99 @@ it("shares five drafts across accounts and legacy clients", async () => {
       )
     ).rows[0].free_lifetime_generations_used,
   ).toBe(2);
+});
+
+it("keeps the first draft's expiry and opens a new window only after two years", async () => {
+  const expiry = async () =>
+    (
+      await db.query<{ expires_at: Date }>(
+        "SELECT expires_at FROM free_trial_ip_usage WHERE ip_key=$1",
+        [ipKey],
+      )
+    ).rows[0].expires_at;
+  expect((await reserve(owner, ipKey)).allowed).toBe(true);
+  const firstExpiry = await expiry();
+  expect(
+    (
+      await db.query<{ valid: boolean }>(
+        "SELECT $1::timestamptz BETWEEN now()+interval '2 years'-interval '5 seconds' AND now()+interval '2 years' AS valid",
+        [firstExpiry],
+      )
+    ).rows[0].valid,
+  ).toBe(true);
+  for (let count = 0; count < 4; count++) await reserve(owner, ipKey);
+  expect((await reserve(other, ipKey)).allowed).toBe(false);
+  expect(await expiry()).toEqual(firstExpiry);
+
+  await db.query(
+    "UPDATE free_trial_ip_usage SET expires_at=now()-interval '1 second' WHERE ip_key=$1",
+    [ipKey],
+  );
+  expect((await reserve(other, ipKey)).allowed).toBe(true);
+  expect(
+    (
+      await db.query("SELECT used FROM free_trial_ip_usage WHERE ip_key=$1", [
+        ipKey,
+      ])
+    ).rows,
+  ).toEqual([{ used: 1 }]);
+  expect((await reserve(owner, ipKey)).allowed).toBe(false);
+});
+
+it("does not start an IP window for an account that has no free drafts left", async () => {
+  await db.query(
+    "UPDATE profiles SET free_lifetime_generations_used=5 WHERE id=$1",
+    [owner],
+  );
+  expect((await reserve(owner, ipKey)).allowed).toBe(false);
+  expect((await db.query("SELECT * FROM free_trial_ip_usage")).rows).toEqual(
+    [],
+  );
+});
+
+it("purges expired IP records and reservation links without touching a newer window", async () => {
+  const old = await reserve(owner, ipKey);
+  await db.query(
+    "UPDATE free_trial_ip_usage SET expires_at=now()-interval '1 second' WHERE ip_key=$1",
+    [ipKey],
+  );
+  await db.query(
+    "UPDATE generation_reservations SET free_trial_ip_expires_at=now()-interval '1 second' WHERE id=$1",
+    [old.reservationId],
+  );
+  expect((await reserve(other, ipKey)).allowed).toBe(true);
+  await db.query("SELECT refund_generation_reservation($1)", [
+    old.reservationId,
+  ]);
+  expect(
+    (
+      await db.query("SELECT used FROM free_trial_ip_usage WHERE ip_key=$1", [
+        ipKey,
+      ])
+    ).rows,
+  ).toEqual([{ used: 1 }]);
+
+  const expired = await reserve(other, anotherIp);
+  await db.query(
+    "UPDATE free_trial_ip_usage SET expires_at=now()-interval '1 second' WHERE ip_key=$1",
+    [anotherIp],
+  );
+  await db.query(
+    "UPDATE generation_reservations SET free_trial_ip_expires_at=now()-interval '1 second' WHERE id=$1",
+    [expired.reservationId],
+  );
+  await db.query("SELECT cleanup_expired_free_trial_ip_usage()");
+  expect(
+    (await db.query("SELECT ip_key FROM free_trial_ip_usage")).rows,
+  ).toEqual([{ ip_key: ipKey }]);
+  expect(
+    (
+      await db.query(
+        "SELECT free_trial_ip_key FROM generation_reservations WHERE id=$1",
+        [expired.reservationId],
+      )
+    ).rows,
+  ).toEqual([{ free_trial_ip_key: null }]);
 });
 
 it("returns a slot once on refund and keeps committed usage", async () => {

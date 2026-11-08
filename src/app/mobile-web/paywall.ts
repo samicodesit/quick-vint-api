@@ -49,7 +49,7 @@ export function mountMobilePaywall(
   const dialog = document.createElement("dialog");
   dialog.className = "mobile-paywall";
   dialog.setAttribute("aria-labelledby", "mobile-paywall-title");
-  dialog.innerHTML = `<div class="mobile-paywall-heading"><img src="/favicon-96x96.png" width="40" height="40" alt="" /><div><span class="mobile-paywall-brand">AutoLister AI</span><h2 id="mobile-paywall-title" tabindex="-1"></h2></div><button type="button" aria-label="Close paid options">×</button></div><div class="mobile-paywall-body"><p data-paywall-copy></p><div data-paywall-options role="group" aria-label="Paid options"></div><p role="status" data-paywall-status hidden></p><a data-paywall-support href="${support}" hidden>Contact support</a></div><div class="mobile-paywall-footer"><button type="button" class="mobile-primary-button" data-paywall-continue hidden></button><p class="mobile-paywall-trust" data-paywall-trust></p></div>`;
+  dialog.innerHTML = `<div class="mobile-paywall-heading"><img src="/favicon-96x96.png" width="40" height="40" alt="" /><div><span class="mobile-paywall-brand">AutoLister AI</span><h2 id="mobile-paywall-title" tabindex="-1"></h2></div><button type="button" aria-label="Close paid options">×</button></div><div class="mobile-paywall-body"><p data-paywall-copy></p><div data-paywall-options role="group" aria-label="Paid options"></div><p role="status" data-paywall-status hidden></p><a data-paywall-support href="${support}" hidden>Contact support</a></div><div class="mobile-paywall-footer"><p class="mobile-paywall-trust" data-paywall-trust></p></div>`;
   localizeUiFragment(dialog);
   root.append(dialog);
   const tabs = document.createElement("div");
@@ -76,26 +76,11 @@ export function mountMobilePaywall(
   let busy = false;
   let disposed = false;
   let revision = 0;
-  let selectedTier: MobileBillingTier | CreditPackId | undefined;
   let paywallContext: { reason: string; entryPoint: MobilePaywallEntryPoint } =
     {
       reason: "paid_options",
       entryPoint: "unknown",
     };
-  const proceed = find("[data-paywall-continue]") as HTMLButtonElement;
-  const continueLabel = () => {
-    const pack = getCreditPackConfig(selectedTier ?? null);
-    return pack
-      ? billingCopy.buy.replace("{credits}", String(pack.credits))
-      : selectedTier === "credit_pack"
-        ? billingCopy.buyCredits
-        : selectedTier
-          ? billingCopy.continueWith.replace(
-              "{plan}",
-              names[selectedTier as MobileBillingTier],
-            )
-          : "";
-  };
   const restore = () => {
     if (dialog.open) return;
     document.body.style.overflow = overflow;
@@ -108,6 +93,7 @@ export function mountMobilePaywall(
   };
   const checkout = async (
     tier: MobileBillingTier | CreditPackId | "manage",
+    option: HTMLButtonElement,
   ) => {
     if (busy || disposed || !dialog.open) return;
     const userId = options.userId();
@@ -118,15 +104,12 @@ export function mountMobilePaywall(
       dialog.open &&
       revision === attempt &&
       options.userId() === userId;
-    const controls = dialog.querySelectorAll<
-      HTMLInputElement | HTMLButtonElement
-    >(
-      "[data-paywall-options] input, [data-paywall-options] button, [data-paywall-continue], [data-billing-mode]",
+    const controls = dialog.querySelectorAll<HTMLButtonElement>(
+      "[data-paywall-options] button, [data-billing-mode]",
     );
     busy = true;
     controls.forEach((control) => (control.disabled = true));
-    proceed.textContent = billingCopy.openingCheckout;
-    proceed.setAttribute("aria-busy", "true");
+    option.setAttribute("aria-busy", "true");
     const status = find("[data-paywall-status]");
     status.hidden = true;
     try {
@@ -156,15 +139,12 @@ export function mountMobilePaywall(
     } finally {
       busy = false;
       if (!disposed) {
-        proceed.textContent = continueLabel();
-        proceed.removeAttribute("aria-busy");
+        option.removeAttribute("aria-busy");
         controls.forEach((control) => (control.disabled = false));
+        if (active() && !status.hidden) option.focus({ preventScroll: true });
       }
     }
   };
-  proceed.addEventListener("click", () => {
-    if (selectedTier) void checkout(selectedTier);
-  });
   find("button").addEventListener("click", close);
   find("button").setAttribute("aria-label", billingCopy.closePaywall);
   dialog.addEventListener("click", (event) => {
@@ -201,7 +181,6 @@ export function mountMobilePaywall(
           ? "/account-paused-paywall.webp"
           : "/favicon-96x96.png";
       revision++;
-      proceed.hidden = true;
       find("h2").textContent = policy.title;
       find("[data-paywall-copy]").textContent = policy.message;
       find("[data-paywall-trust]").textContent = policy.trust;
@@ -219,8 +198,6 @@ export function mountMobilePaywall(
           : "monthly";
       tabs.hidden = !allowsPacks;
       const render = () => {
-        selectedTier = undefined;
-        proceed.hidden = true;
         list.replaceChildren();
         billingNote.hidden =
           !allowsPacks &&
@@ -253,36 +230,11 @@ export function mountMobilePaywall(
             list.append(link);
             return;
           }
-          const button = document.createElement(
-            tier === "manage" ? "button" : "label",
-          );
+          const button = document.createElement("button");
+          button.type = "button";
+          button.value = tier;
           button.className = "mobile-paywall-option";
-          let radio: HTMLInputElement | undefined;
-          if (button instanceof HTMLButtonElement) {
-            button.type = "button";
-            button.addEventListener("click", () => void checkout("manage"));
-          } else {
-            radio = document.createElement("input");
-            radio.type = "radio";
-            radio.name = "mobile-paywall-tier";
-            radio.value = tier;
-            radio.checked = !selectedTier;
-            if (radio.checked)
-              selectedTier = tier as MobileBillingTier | CreditPackId;
-            radio.addEventListener("change", () => {
-              if (!radio!.checked || busy) return;
-              selectedTier = tier as MobileBillingTier | CreditPackId;
-              proceed.textContent = continueLabel();
-              find("[data-paywall-trust]").textContent = getCreditPackConfig(
-                tier,
-              )
-                ? billingCopy.oneTimeTrust
-                : policy.trust;
-            });
-            button.classList.add("mobile-paywall-choice");
-            button.append(radio);
-            proceed.hidden = false;
-          }
+          button.addEventListener("click", () => void checkout(tier, button));
           const pack = getCreditPackConfig(tier);
           const fallbackPlan = ["starter", "pro", "business"].includes(tier)
             ? TIER_CONFIGS[tier as "starter" | "pro" | "business"]
@@ -329,7 +281,7 @@ export function mountMobilePaywall(
                   .replace("{daily}", String(plan.dailyLimit))
                   .replace("{monthly}", String(plan.monthlyLimit))
               : "";
-          (radio || button).setAttribute(
+          button.setAttribute(
             "aria-label",
             [
               label,
@@ -366,10 +318,13 @@ export function mountMobilePaywall(
               side.append(unit);
             }
           }
-          button.append(side);
+          const arrow = document.createElement("span");
+          arrow.className = "mobile-paywall-option-arrow";
+          arrow.setAttribute("aria-hidden", "true");
+          arrow.textContent = "›";
+          button.append(side, arrow);
           list.append(button);
         });
-        proceed.textContent = continueLabel();
       };
       tabs.querySelectorAll<HTMLButtonElement>("button").forEach((tab) => {
         const select = (next: "monthly" | "once") => {

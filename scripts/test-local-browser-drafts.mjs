@@ -113,7 +113,7 @@ await context.route(`${base}/api/**`, async (route) => {
   }
   if (["/api/drafts", "/api/draft-photo"].includes(url.pathname))
     return route.abort("failed");
-  if (url.pathname === "/api/stripe/create-checkout") {
+  if (url.pathname === "/api/stripe/create-credit-checkout") {
     checkoutCalls++;
     const body = req.postDataJSON();
     assert.equal(req.headers()["x-autolister-client"], "mobile_web");
@@ -121,7 +121,7 @@ await context.route(`${base}/api/**`, async (route) => {
     assert.equal(body.source, "mobile_web");
     assert.equal("email" in body, false);
     assert.equal("userId" in body, false);
-    assert.equal(body.tier, "credit_pack");
+    assert.equal(body.packId, "credits_20");
     await new Promise((resolve) => setTimeout(resolve, 300));
     return route.fulfill(
       checkoutFail
@@ -510,7 +510,7 @@ if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
     const copy = billingCopy[locale === "cs" ? "cz" : locale] || billingCopy.en;
     assert.equal(await dialog.locator("h2").textContent(), copy.freeLimitTitle.replace("{limit}", "5"));
     assert.equal(await dialog.locator("[data-paywall-copy]").textContent(), copy.freeLimitMessage);
-    assert.equal(await dialog.locator("[data-paywall-continue]").textContent(), copy.continueWith.replace("{plan}", "Starter"));
+    assert.equal(await dialog.locator('button[value="starter"]').isVisible(), true);
     assert.equal(generations, 0, "Blocked Resume consumes no generation");
     assert.deepEqual((await snapshot()).drafts, before.drafts);
     assert.deepEqual(
@@ -526,7 +526,7 @@ if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
       await page.screenshot({ path: `${output}/resume-free-limit-${width}.png` });
     }
     await dialog.getByRole("tab").nth(1).click();
-    assert.equal(await dialog.locator("[data-paywall-continue]").textContent(), copy.buy.replace("{credits}", "20"));
+    assert.equal(await dialog.locator('button[value="credits_20"]').isVisible(), true);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: `${output}/resume-free-limit-once-390.png` });
     await dialog.locator(".mobile-paywall-heading button").click();
@@ -1303,7 +1303,7 @@ try {
   assert.equal(savedEdit.context.finalTitle,"Saved before returning through the logo");
   assert.equal(savedEdit.context.generationRequestId,trackedOperation);
   assert.match(savedEdit.context.generatedTitle,/^Dress /);
-  assert.equal(new URL(page.url()).pathname, "/app");
+  assert.match(new URL(page.url()).pathname, /^\/app\/?$/);
   assert.equal(
     await page.locator("html").getAttribute("data-logo-navigation-test"),
     documentMarker,
@@ -1440,27 +1440,9 @@ try {
     "mobile-paywall-title",
     "Opening the paywall focuses its heading, never the dismiss button",
   );
-  assert.equal(
-    await page.getByRole("radio", { name: /Starter/ }).isVisible(),
-    true,
-  );
-  assert.equal(
-    await page.getByRole("radio", { name: /Starter/ }).isChecked(),
-    true,
-  );
-  await page.getByRole("radio", { name: /Starter/ }).focus();
-  await page.getByRole("radio", { name: /Starter/ }).press("ArrowDown");
-  assert.equal(
-    await page.getByRole("radio", { name: /Pro,/ }).isChecked(),
-    true,
-  );
-  assert.equal(checkoutCalls, 0, "Selecting a plan never creates checkout");
-  assert.equal(
-    await page
-      .getByRole("button", { name: "Continue with Pro", exact: true })
-      .isVisible(),
-    true,
-  );
+  assert.equal(await page.locator('button[value="starter"]').isVisible(), true);
+  assert.equal(await page.locator('button[value="pro"]').isVisible(), true);
+  assert.equal(checkoutCalls, 0, "Opening the chooser never creates checkout");
   assert.equal(generations, callsBeforeQuota);
   await page.screenshot({ path: `${output}/quota-paywall.png` });
   for (const [tier, code, title, targets] of [
@@ -1481,16 +1463,17 @@ try {
     await click("generate");
     const dialog = page.getByRole("dialog", { name: title });
     await dialog.waitFor();
-    assert.equal(await dialog.getByRole("radio").count(), targets.length + 1);
+    const options = dialog.locator(".mobile-paywall-option");
+    assert.equal(await options.count(), targets.length || 3);
     for (const target of targets)
       assert.equal(
         await dialog
-          .getByRole("radio", { name: new RegExp(target) })
+          .getByRole("button", { name: new RegExp(target) })
           .isVisible(),
         true,
       );
     assert.equal(
-      await dialog.getByRole("radio", { name: /One-time credits/ }).isVisible(),
+      await dialog.getByRole("tab").nth(1).isVisible(),
       true,
     );
     assert.equal(generations, callsBeforeQuota);
@@ -1524,13 +1507,6 @@ try {
       ),
       true,
     );
-    const continueBox = await dialog
-      .locator("[data-paywall-continue]")
-      .boundingBox();
-    assert(
-      continueBox.y >= 0 && continueBox.y + continueBox.height <= height,
-      "Checkout CTA stays visible without scrolling on short phones",
-    );
     const badge = await dialog.locator(".mobile-paywall-badge").boundingBox();
     const side = await dialog
       .locator(".mobile-paywall-option")
@@ -1551,11 +1527,7 @@ try {
     name: "Update your payment",
   });
   await paymentDialog.waitFor();
-  assert.equal(await paymentDialog.getByRole("radio").count(), 0);
-  assert.equal(
-    await paymentDialog.locator("[data-paywall-continue]").isVisible(),
-    false,
-  );
+  assert.equal(await paymentDialog.locator(".mobile-paywall-option").count(), 1);
   await paymentDialog
     .getByRole("button", { name: "Update payment", exact: true })
     .click();
@@ -1577,14 +1549,10 @@ try {
   assert.equal(generations, callsBeforeQuota);
   quotaCode = "free_lifetime_limit";
   await click("generate");
-  await page.getByRole("radio", { name: /One-time credits/ }).check();
+  await page.getByRole("dialog").getByRole("tab").nth(1).click();
   assert.equal(checkoutCalls, 0);
-  await page
-    .getByRole("button", {
-      name: "Continue with one-time credits",
-      exact: true,
-    })
-    .dblclick();
+  const firstPack = page.locator('button[value="credits_20"]');
+  await firstPack.dblclick();
   await page.waitForFunction(
     () => document.querySelector("[data-paywall-status]")?.hidden === false,
   );
@@ -1593,15 +1561,7 @@ try {
     1,
     "A double tap creates only one checkout request",
   );
-  assert.equal(
-    await page
-      .getByRole("button", {
-        name: "Continue with one-time credits",
-        exact: true,
-      })
-      .isEnabled(),
-    true,
-  );
+  assert.equal(await firstPack.isEnabled(), true);
   checkoutFail = false;
   await context.route(
     "https://checkout.stripe.com/c/web-paywall-fixture",
@@ -1611,27 +1571,43 @@ try {
         body: `<a href="${base}/app?checkout=cancel">Back to AutoLister</a>`,
       }),
   );
-  assert.equal(
-    await page.getByRole("radio", { name: /One-time credits/ }).isChecked(),
-    true,
-  );
-  await page
-    .getByRole("button", {
-      name: "Continue with one-time credits",
-      exact: true,
-    })
-    .click();
+  await firstPack.click();
   await page.waitForURL("https://checkout.stripe.com/c/web-paywall-fixture");
   assert.equal(checkoutCalls, 2);
   await page.getByRole("link", { name: "Back to AutoLister" }).click();
-  await page.waitForURL(`${base}/app*`);
+  await page.waitForURL((url) => url.origin === new URL(base).origin && /^\/app\/?$/.test(url.pathname));
   await action("generate").waitFor();
   assert.equal((await snapshot()).drafts.length, 5);
   assert.equal(generations, callsBeforeQuota);
-  checks.push(
-    "Tailored trial, daily, monthly and pause paywalls preserve drafts; burst limits never sell access; bearer checkout retries and cancellation work",
+  await click("generate");
+  await page.getByRole("dialog").getByRole("tab").nth(1).click();
+  await context.route(
+    "https://checkout.stripe.com/c/web-paywall-fixture",
+    (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<a href="${base}/app?checkout=success">Return after payment</a>`,
+      }),
   );
+  await firstPack.click();
+  await page.waitForURL("https://checkout.stripe.com/c/web-paywall-fixture");
+  assert.equal(checkoutCalls, 3);
   quota = false;
+  const usageReads = () =>
+    requests.filter(({ path }) => path === "/api/user/usage").length;
+  const readsBeforeReturn = usageReads();
+  const refreshedUsage = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/user/usage" &&
+      usageReads() >= readsBeforeReturn + 4,
+  );
+  await page.getByRole("link", { name: "Return after payment" }).click();
+  await refreshedUsage;
+  await action("generate").waitFor();
+  assert.equal((await snapshot()).drafts.length, 5);
+  checks.push(
+    "Tailored paywalls preserve drafts through checkout retries, cancellation and successful return",
+  );
   await page.reload();
   await action("generate").waitFor();
   checks.push("Existing generation limits prevent new generation requests");

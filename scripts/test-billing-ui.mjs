@@ -143,30 +143,36 @@ try {
       copy[language].monthly,
     );
     assert.equal(await dialog.locator(".mobile-paywall-option").count(), 3);
+    assert.equal(await dialog.getByRole("radio").count(), 0);
+    assert.equal(purchases.length, 0);
     if (language === "en")
       await page.screenshot({
         path: output + "/webapp-monthly-en-390.jpg",
         fullPage: true,
       });
     for (const tier of ["starter", "pro", "business"]) {
-      await dialog.locator('input[value="' + tier + '"]').check();
-      await dialog.locator("[data-paywall-continue]").click();
+      const before = purchases.length;
+      const option = dialog.locator('button[value="' + tier + '"]');
+      if (tier === "pro") await option.press("Enter");
+      else await option.click();
       await dialog
         .getByRole("status")
         .filter({ hasText: copy[language].checkoutError })
         .waitFor();
       assert.equal(purchases.at(-1).body.tier, tier);
+      assert.equal(purchases.length, before + 1);
     }
     await dialog.getByRole("tab").nth(1).click();
     for (const pack of ["credits_20", "credits_50", "credits_100"]) {
-      await dialog.locator('input[value="' + pack + '"]').check();
-      await dialog.locator("[data-paywall-continue]").click();
+      const before = purchases.length;
+      await dialog.locator('button[value="' + pack + '"]').click();
       await dialog
         .getByRole("status")
         .filter({ hasText: copy[language].checkoutError })
         .waitFor();
       const purchase = purchases.at(-1);
       assert.equal(purchase.body.packId, pack);
+      assert.equal(purchases.length, before + 1);
       assert.equal(purchase.body.email, undefined);
       assert.equal(purchase.headers["x-autolister-client"], "mobile_web");
       assert.ok(purchase.headers.authorization.startsWith("Bearer "));

@@ -1,5 +1,10 @@
 # AutoLister AI Growth Current Sprint
 
+## Signed-in web app checkout, November 9, 2026
+
+- Choosing a monthly plan or one-time pack in the web app opens the existing Stripe checkout for that choice. The Monthly and One-time tabs still switch the options displayed.
+- Browser fixtures checked the six paid choices in 18 locales, keyboard activation, and phone layouts at 320px and 390px. Desktop and phone handoff checks reached the intercepted Stripe destination for each choice. The local draft suite passed 26 checks, including double taps, checkout errors, and keeping saved drafts through canceled and successful returns. The visual comparisons use the actual local app with fixture accounts.
+
 ## Free extension CTA wording, November 7, 2026
 
 - Owner authorized choosing clearer free-start messaging and pushing. Extension entry now says "Add to Chrome for free" consistently in the header/menu, hero and final action, with natural equivalents in all eight locales. Supporting text says only "Create drafts directly on Vinted." The five-draft quota is removed from this pitch; the actual five lifetime generations and pricing disclosure remain unchanged. Web entry still explicitly offers a free draft.

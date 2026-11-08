@@ -279,7 +279,7 @@ function photoPresentation(plan: PhotoPlan, includeFraming = true) {
     plan.itemType === "dress" || plan.itemType === "outfit"
       ? "Remove the base top and trousers when putting on the sale dress/outfit; do not leave visible base layers underneath. Keep the base shoes unless the sale outfit includes footwear."
       : plan.category === "top"
-        ? "Replace only the top. Keep the base trousers on in both views. A blouse stays a blouse, not a dress."
+        ? "For a cardigan, short jacket, or blazer evidenced by PRODUCT, layer the sale item over a plain base top. A visible base layer is allowed when the sale item remains clearly distinguishable and its opening, cut, pockets, and fastenings can be assessed. For other tops, replace the base top. Keep the base trousers on in both views. A blouse stays a blouse, not a dress."
         : plan.itemType === "long_coat"
           ? "Wear the sale coat over the base outfit; keep visible base trousers and shoes."
           : plan.category === "full_body"

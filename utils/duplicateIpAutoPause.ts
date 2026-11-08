@@ -237,7 +237,8 @@ export async function detectAndPauseDuplicateIpAccount({
       "paid_access_expires_at.is.null,paid_access_expires_at.lte." +
         new Date().toISOString(),
     )
-    .select("id")
+    // Older PostgREST versions also use the OR columns in the returned-row query.
+    .select("id, subscription_status, pack_credits, paid_access_expires_at")
     .maybeSingle();
 
   if (pauseError) {

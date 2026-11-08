@@ -48,6 +48,8 @@ vi.mock("../../../utils/supabaseClient", () => ({
         throw new Error(`Unexpected abuse-test table: ${table}`);
       const values: unknown[] = [];
       const filters: string[] = [];
+      const orFilters: string[] = [];
+      let selectedColumns = "*";
       let patch: Record<string, unknown> | undefined;
       let order = "";
       let limit = "";
@@ -74,16 +76,38 @@ vi.mock("../../../utils/supabaseClient", () => ({
             args.push(value);
             return `${column(key)} = $${args.length}`;
           });
-          sql = `UPDATE ${table} SET ${assignments.join(",")}${where} RETURNING *`;
+          // Hosted PostgREST also applies OR filters to the returned rows.
+          // PostgreSQL rejects this query if an OR column is missing from RETURNING.
+          const returning =
+            selectedColumns === "*"
+              ? "*"
+              : selectedColumns
+                  .split(",")
+                  .map((name) => column(name.trim()))
+                  .join(",");
+          const outerWhere = orFilters.length
+            ? ` WHERE ${orFilters.join(" AND ")}`
+            : "";
+          sql = `WITH pgrst_source AS (
+            UPDATE ${table} SET ${assignments.join(",")}${where} RETURNING ${returning}
+          ) SELECT * FROM pgrst_source AS ${table}${outerWhere}`;
         }
-        const result = await state.db!.query(sql, args);
-        return {
-          data: single ? result.rows[0] || null : result.rows,
-          error: null,
-        };
+        try {
+          const result = await state.db!.query(sql, args);
+          return {
+            data: single ? result.rows[0] || null : result.rows,
+            error: null,
+          };
+        } catch (error) {
+          if (!patch) throw error;
+          return { data: null, error };
+        }
       }
       const query = {
-        select: () => query,
+        select: (columns = "*") => {
+          selectedColumns = columns;
+          return query;
+        },
         or: (expression: string) => {
           const match = expression.match(
             /^([a-z_]+)\.is\.null,\1\.(lte|not\.in)\.(.+)$/,
@@ -103,6 +127,7 @@ vi.mock("../../../utils/supabaseClient", () => ({
               `(${name} IS NULL OR ${name} NOT IN (${placeholders.join(",")}))`,
             );
           }
+          orFilters.push(filters[filters.length - 1]);
           return query;
         },
         eq: (name: string, value: unknown) => filter(name, "=", value),

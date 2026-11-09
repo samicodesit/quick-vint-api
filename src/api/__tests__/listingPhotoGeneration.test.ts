@@ -42,73 +42,107 @@ const plan = {
   detailIndex: 1,
 };
 describe("listing photo recipes", () => {
-  it("keeps the layering allowance tied to the evidenced sale item in generation, correction, and checking", async () => {
-    const layeredTop = {
-      ...plan,
-      itemType: "top" as const,
-      sourceEvidence: {
-        shape: "Open-front cardigan with long sleeves",
-        front: "Plain textured knit with an open front",
-        rear: "Not visible",
-      },
-    };
-    const layeringRule =
-      "For a cardigan, short jacket, or blazer evidenced by PRODUCT";
-    const replaceOtherTops = "For other tops, replace the base top.";
-    const defect = {
-      code: "wrong_item_construction" as const,
-      evidence: "The candidate has a sewn closure across the open front.",
-    };
-    for (const prompt of [
-      photoPrompt(layeredTop, "primary"),
-      photoCorrectionPrompt([defect], layeredTop, "primary"),
-    ]) {
-      expect(prompt).toContain(layeringRule);
-      expect(prompt).toContain(replaceOtherTops);
-    }
+  const croppedSweatshirt = {
+    ...plan,
+    itemType: "top" as const,
+    detailIndex: -1,
+    sourceEvidence: {
+      shape:
+        "Very cropped crew-neck sweatshirt with a high curved hem and long loose sleeves",
+      front: "Plain heather gray with ribbed cuffs and no fastenings",
+      rear: "Not visible",
+    },
+  };
 
-    vi.stubEnv("VERCEL_APP_OPENAI_API_KEY", "test");
-    try {
-      const fetcher = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: "completed",
-          output: [
-            {
-              content: [
-                {
-                  type: "output_text",
-                  text: JSON.stringify({ ...usableQuality, defects: [defect] }),
-                },
-              ],
-            },
-          ],
-        }),
-      });
-      vi.stubGlobal("fetch", fetcher);
-      const result = await checkListingPhoto(
-        "data:image/jpeg;base64,model",
-        Buffer.from("candidate"),
-        layeredTop,
-        "primary",
-        false,
-        ["data:image/jpeg;base64,product"],
-      );
-      const body = JSON.parse(fetcher.mock.calls[0][1].body);
-      const prompt = body.input[0].content[0].text;
-      expect(prompt).toContain(layeringRule);
-      expect(prompt).toContain(replaceOtherTops);
-      expect(prompt).toContain(
-        "its opening, cut, pockets, and fastenings can be assessed",
-      );
-      expect(prompt).toContain(
-        "Reject material changes to item type, cut, main color, pocket structure or prominent design.",
-      );
-      expect(result.accepted).toBe(false);
-    } finally {
-      vi.unstubAllEnvs();
-    }
-  });
+  it.each([
+    {
+      case: "a distinct plain underlayer below the cropped hem",
+      candidate:
+        "High curved hem, long sleeves and cuffs all visible above a separate fitted plain top",
+      verdict: "match",
+      accepted: true,
+    },
+    {
+      case: "a layer that hides the cropped hem",
+      candidate:
+        "The lower edge blends into the layer beneath it so the crop cannot be assessed",
+      verdict: "unverifiable",
+      accepted: false,
+    },
+    {
+      case: "a different garment",
+      candidate: "A full-length zip-up jacket with straight hem and pockets",
+      verdict: "mismatch",
+      accepted: false,
+    },
+  ])(
+    "checks the sale garment itself for $case",
+    async ({ candidate, verdict, accepted }) => {
+      const defect = {
+        code: "wrong_item_construction" as const,
+        evidence:
+          "The candidate has a full-length hem rather than a high curved hem.",
+      };
+      const separateLayerRule = "a separate garment";
+      const visibleItemRule = "hem, cut and defining details";
+      for (const prompt of [
+        photoPrompt(croppedSweatshirt, "primary"),
+        photoCorrectionPrompt([defect], croppedSweatshirt, "primary"),
+      ]) {
+        expect(prompt).toContain(separateLayerRule);
+        expect(prompt).toContain(visibleItemRule);
+      }
+
+      vi.stubEnv("VERCEL_APP_OPENAI_API_KEY", "test");
+      try {
+        const fetcher = vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            status: "completed",
+            output: [
+              {
+                content: [
+                  {
+                    type: "output_text",
+                    text: JSON.stringify({
+                      ...usableQuality,
+                      productComparison: {
+                        ...usableQuality.productComparison,
+                        shape: {
+                          product: croppedSweatshirt.sourceEvidence.shape,
+                          candidate,
+                          verdict,
+                        },
+                      },
+                    }),
+                  },
+                ],
+              },
+            ],
+          }),
+        });
+        vi.stubGlobal("fetch", fetcher);
+        const result = await checkListingPhoto(
+          "data:image/jpeg;base64,model",
+          Buffer.from("candidate"),
+          croppedSweatshirt,
+          "primary",
+          false,
+          ["data:image/jpeg;base64,product"],
+        );
+        const body = JSON.parse(fetcher.mock.calls[0][1].body);
+        const prompt = body.input[0].content[0].text;
+        expect(prompt).toContain(separateLayerRule);
+        expect(prompt).toContain(visibleItemRule);
+        expect(prompt).toContain(
+          "Reject material changes to item type, cut, main color, pocket structure or prominent design.",
+        );
+        expect(result.accepted).toBe(accepted);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
 
   it("reads every source at high detail before choosing evidenced item surfaces", async () => {
     process.env.VERCEL_APP_OPENAI_API_KEY = "test";

@@ -589,8 +589,12 @@ Report actual evidence. Never list a code whose evidence only describes the inte
     ["top", "full_body", "bottom"].includes(plan.category)
       ? "\nCheck sleeve and leg endpoints against the source cut. Long sleeves reach the wrist unless visibly pushed up; exposed forearms with flat, unbunched cuffs indicate a shorter cut. Allow ordinary drape and model height differences without changing the intended garment length."
       : "";
+  const necklineCheck =
+    requireComparison && plan.category === "top"
+      ? "\nFor tops, compare neckline shape and depth independently of the overall silhouette. A materially raised, lowered or reshaped neckline is a cut mismatch even when both openings are rounded."
+      : "";
   const result = await structured(
-    prompt + constructionCheck,
+    prompt + constructionCheck + necklineCheck,
     rear
       ? ["data:image/jpeg;base64," + bytes.toString("base64")]
       : [

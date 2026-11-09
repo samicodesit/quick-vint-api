@@ -135,6 +135,9 @@ describe("listing photo recipes", () => {
         expect(prompt).toContain(separateLayerRule);
         expect(prompt).toContain(visibleItemRule);
         expect(prompt).toContain(
+          "compare neckline shape and depth independently",
+        );
+        expect(prompt).toContain(
           "Reject material changes to item type, cut, main color, pocket structure or prominent design.",
         );
         expect(result.accepted).toBe(accepted);

@@ -171,6 +171,7 @@ export async function startMobileCheckout(
   tier: MobileBillingTier,
   expectedUserId?: string,
   context: Record<string, unknown> = {},
+  offerToken?: string,
 ): Promise<MobileBillingSession> {
   assertBillingTier(tier);
   return trackedBillingRequest(
@@ -189,6 +190,7 @@ export async function startMobileCheckout(
             tier,
             source: MOBILE_BILLING_CLIENT,
             utm: getMobileUtmParameters(),
+            ...(offerToken ? { offerToken } : {}),
           }),
         },
         { retryOn401: true, ...(expectedUserId ? { expectedUserId } : {}) },

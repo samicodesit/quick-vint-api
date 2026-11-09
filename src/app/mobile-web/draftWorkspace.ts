@@ -36,6 +36,7 @@ import { activateMobileSheet } from "./sheet";
 import { mountDraftSelects } from "./draftSelect";
 import { animateSurface } from "./surfaceMotion";
 import { mountPhoneEntry } from "./phoneEntry";
+import { mountDraftFiveOffer } from "./draftFiveOffer";
 
 interface Upload {
   id: string;
@@ -53,12 +54,22 @@ export function mountDraftWorkspace(
     userId: string;
     onUsageChange: () => Promise<MobileUsage | null>;
     onGenerationBlocked?: (usage: MobileUsage | null, code?: string) => boolean;
+    onGetMoreDrafts?: () => void;
     onViewPlans?: () => void;
     defaultSettings?: DraftSettings;
     startWithNewItem?: boolean;
   },
 ) {
   const client = createDraftClient(options.userId);
+  const draftFiveOffer = mountDraftFiveOffer(
+    root,
+    options.userId,
+    async () => {
+      await flush();
+      if (selected) client.flushDraftEdits(selected.value.id);
+    },
+    options.onGetMoreDrafts,
+  );
   const photoUI = () => (window as any).AutoListerPhotoUI;
   client.onModelPhotosChange(() => {
     void (async () => {
@@ -1659,6 +1670,7 @@ export function mountDraftWorkspace(
           ? "preparation"
           : "library";
     if (!draft) {
+      draftFiveOffer.setResult(false);
       find("[data-draft-editor]").classList.remove("is-preparing");
       if (composing) {
         find("#draft-editor-title").textContent = uiText("Add item");
@@ -1767,6 +1779,7 @@ export function mountDraftWorkspace(
     hide("[data-draft-regenerate-notice]", !hasText);
     hide("[data-draft-copy-fields]", !hasText && writingDraftId !== draft.id);
     hide("[data-draft-editor-footer]", !hasText && draft.state !== "done");
+    draftFiveOffer.setResult(hasText && draft.operation_state === "succeeded");
     action("write").hidden =
       hasText || hasPhotos || writingDraftId === draft.id;
     hide(".draft-item-menu", false);
@@ -3883,6 +3896,7 @@ export function mountDraftWorkspace(
         .forEach((details) => closePopover(details, false));
     },
     updateUsage(usage: MobileUsage) {
+      draftFiveOffer.updateUsage(usage);
       const tier = usage.plan?.tier || "free";
       const active =
         !usage.plan?.status ||
@@ -3912,6 +3926,7 @@ export function mountDraftWorkspace(
       if (selected) client.flushDraftEdits(selected.value.id);
     },
     dispose(clearRecovery = false) {
+      draftFiveOffer.dispose();
       remember();
       photoEditor?.close();
       const dialog = find<HTMLDialogElement>("[data-draft-delete-dialog]");

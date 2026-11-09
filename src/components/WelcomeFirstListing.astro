@@ -11,8 +11,7 @@ const copy:Record<string,string[]>={
     "Phone or computer",
     "Create your listing",
     "Click Generate, then review your title and description.",
-    "Generate",
-    "A brief, optional tour is available on your first listing."
+    "Generate"
   ],
   "nl": [
     "Je eerste advertentie",
@@ -23,8 +22,7 @@ const copy:Record<string,string[]>={
     "Telefoon of computer",
     "Maak je advertentie",
     "Klik op Genereren en controleer je titel en beschrijving.",
-    "Genereren",
-    "Bij je eerste advertentie is een korte, optionele rondleiding beschikbaar."
+    "Genereren"
   ],
   "fr": [
     "Votre première annonce",
@@ -35,8 +33,7 @@ const copy:Record<string,string[]>={
     "Téléphone ou ordinateur",
     "Créez votre annonce",
     "Cliquez sur Générer, puis vérifiez le titre et la description.",
-    "Générer",
-    "Une courte visite facultative est disponible pour votre première annonce."
+    "Générer"
   ],
   "de": [
     "Dein erstes Inserat",
@@ -47,8 +44,7 @@ const copy:Record<string,string[]>={
     "Handy oder Computer",
     "Erstelle dein Inserat",
     "Klicke auf Generieren und prüfe Titel und Beschreibung.",
-    "Generieren",
-    "Beim ersten Inserat steht eine kurze, freiwillige Einführung bereit."
+    "Generieren"
   ],
   "es": [
     "Tu primer anuncio",
@@ -59,8 +55,7 @@ const copy:Record<string,string[]>={
     "Móvil u ordenador",
     "Crea tu anuncio",
     "Haz clic en Generar y revisa el título y la descripción.",
-    "Generar",
-    "Tendrás una guía breve y opcional en tu primer anuncio."
+    "Generar"
   ],
   "it": [
     "Il tuo primo annuncio",
@@ -71,8 +66,7 @@ const copy:Record<string,string[]>={
     "Telefono o computer",
     "Crea il tuo annuncio",
     "Fai clic su Genera, poi controlla titolo e descrizione.",
-    "Genera",
-    "Al primo annuncio è disponibile una breve guida facoltativa."
+    "Genera"
   ],
   "pl": [
     "Twoje pierwsze ogłoszenie",
@@ -83,8 +77,7 @@ const copy:Record<string,string[]>={
     "Telefon lub komputer",
     "Utwórz ogłoszenie",
     "Kliknij Generuj, a następnie sprawdź tytuł i opis.",
-    "Generuj",
-    "Przy pierwszym ogłoszeniu dostępny jest krótki, opcjonalny przewodnik."
+    "Generuj"
   ],
   "pt": [
     "O teu primeiro anúncio",
@@ -95,11 +88,21 @@ const copy:Record<string,string[]>={
     "Telemóvel ou computador",
     "Cria o teu anúncio",
     "Clica em Gerar e revê o título e a descrição.",
-    "Gerar",
-    "No primeiro anúncio tens um guia breve e opcional."
+    "Gerar"
   ]
 };
 const c=copy[locale]||copy.en;
+const samples: Record<string, [string, string, string, string]> = {
+  en: ["Try a sample photo", "Example draft", "Black wrap-style dress with puff sleeves", "Textured black dress with a V-neck, short puff sleeves and gold-tone buttons at the waist."],
+  nl: ["Probeer een voorbeeldfoto", "Voorbeeldconcept", "Zwarte jurk in wikkelstijl met pofmouwen", "Zwarte jurk met structuur, een V-hals, korte pofmouwen en goudkleurige knopen in de taille."],
+  fr: ["Essayez avec une photo d’exemple", "Exemple de brouillon", "Robe noire style portefeuille à manches bouffantes", "Robe noire texturée à col V, manches courtes bouffantes et boutons dorés à la taille."],
+  de: ["Mit einem Beispielfoto ausprobieren", "Beispielentwurf", "Schwarzes Kleid in Wickeloptik mit Puffärmeln", "Schwarzes Kleid mit Struktur, V-Ausschnitt, kurzen Puffärmeln und goldfarbenen Knöpfen an der Taille."],
+  es: ["Prueba con una foto de ejemplo", "Borrador de ejemplo", "Vestido negro de estilo cruzado con mangas abullonadas", "Vestido negro con textura, escote en V, mangas cortas abullonadas y botones dorados en la cintura."],
+  it: ["Prova con una foto di esempio", "Bozza di esempio", "Vestito nero stile portafoglio con maniche a sbuffo", "Vestito nero con tessuto lavorato, scollo a V, maniche corte a sbuffo e bottoni dorati in vita."],
+  pl: ["Wypróbuj na przykładowym zdjęciu", "Przykładowy szkic", "Czarna sukienka o kroju kopertowym z bufiastymi rękawami", "Czarna sukienka z fakturą, dekoltem w serek, krótkimi bufiastymi rękawami i złotymi guzikami w talii."],
+  pt: ["Experimenta com uma foto de exemplo", "Exemplo de rascunho", "Vestido preto de estilo cruzado com mangas bufantes", "Vestido preto com textura, decote em V, mangas curtas bufantes e botões dourados na cintura."],
+};
+const [sampleAction, sampleLabel, sampleTitle, sampleDescription] = samples[locale] || samples.en;
 ---
 <section class="first-listing" aria-labelledby="first-listing-title">
  <h2 id="first-listing-title">{c[0]}</h2>
@@ -112,7 +115,13 @@ const c=copy[locale]||copy.en;
    <span class="example generate" aria-hidden="true"><WandSparkles size={18}/>{c[8]}</span>
   </div>
  </div>
- <p class="tour-note">{c[9]}</p>
+ <details class="sample" data-welcome-sample>
+  <summary>{sampleAction}</summary>
+  <div class="sample-result">
+   <img src="/app/welcome-sample-dress.webp" alt="" width="360" height="480" loading="lazy" decoding="async" />
+   <div><p>{sampleLabel}</p><h3>{sampleTitle}</h3><p>{sampleDescription}</p></div>
+  </div>
+ </details>
 </section>
 <style>
 .first-listing{width:100%;max-width:896px;background:white;border:1px solid #dce0e8;border-radius:14px;padding:28px;margin:0 auto 28px;color:#283044;text-align:left}
@@ -127,6 +136,10 @@ h3{font-size:16px;font-weight:600;margin:0 0 8px}
 .example>span{display:flex;flex-direction:column}
 .example strong{font-size:13px;font-weight:550}.example small{font-size:12px;color:#647084;font-weight:400}
 .generate{background:#5143df;border-color:#5143df;color:white;padding:0 22px;font-weight:600}
-.tour-note{font-size:13px;border-top:1px solid #e8eaf0;padding-top:18px;margin:22px 0 0}
-@media(max-width:640px){.first-listing{padding:22px;margin-bottom:24px}.steps{grid-template-columns:1fr;gap:24px}.steps>div+div{border-left:0;padding-left:0;border-top:1px solid #e8eaf0;padding-top:22px}}
+.sample{margin-top:22px;border-top:1px solid #e8eaf0;padding-top:12px}
+.sample summary{color:#4334c2;font-size:14px;font-weight:600;min-height:44px;line-height:44px;cursor:pointer}
+.sample-result{display:grid;grid-template-columns:168px minmax(0,1fr);gap:18px;align-items:start;padding:8px 0 0}
+.sample-result img{border-radius:8px;width:auto;max-width:100%;height:224px}
+.sample-result p{font-size:13px;line-height:1.5;color:#647084;margin-bottom:6px}
+@media(max-width:640px){.first-listing{padding:22px;margin-bottom:24px}.steps{grid-template-columns:1fr;gap:24px}.steps>div+div{border-left:0;padding-left:0;border-top:1px solid #e8eaf0;padding-top:22px}.sample-result{grid-template-columns:1fr}}
 </style>

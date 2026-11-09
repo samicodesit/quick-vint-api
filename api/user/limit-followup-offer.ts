@@ -11,6 +11,7 @@ import {
   normalizeEmailForCampaign,
 } from "../../utils/limitFollowupEligibility";
 import { FREE_LIFETIME_LIMIT } from "../../utils/tierConfig";
+import { getDraftFiveOffer } from "../../utils/draftFiveOffer";
 
 const vintedOriginPattern =
   /^https:\/\/(?:[\w-]+\.)?vinted\.(?:[a-z]{2,}|(?:co|com)\.[a-z]{2})$/;
@@ -87,6 +88,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (userError || !user) {
     return res.status(401).json({ error: "Invalid or expired token" });
+  }
+
+  if (req.query?.surface === "web") {
+    res.setHeader("Cache-Control", "private, no-store");
+    try {
+      const offer = await getDraftFiveOffer(user);
+      return res
+        .status(200)
+        .json(offer ? { eligible: true, ...offer } : { eligible: false });
+    } catch (error) {
+      console.error("Unable to load draft-five offer", error);
+      return res.status(503).json({ error: "Offer temporarily unavailable." });
+    }
   }
 
   const normalizedUserEmail = normalizeEmailForCampaign(user.email);

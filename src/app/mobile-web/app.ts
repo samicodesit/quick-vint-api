@@ -998,9 +998,10 @@ export function mountMobileWebApp(
   });
   let latestUsage: MobileUsage | null = null;
   let paywall: ReturnType<typeof mountMobilePaywall> | undefined;
-  const extensionSuggestion = mountExtensionSuggestion(
-    root,
-    () => session?.user.id,
+  const extensionSuggestion = mountExtensionSuggestion(root, () =>
+    latestUsage?.blockedReason === "free_lifetime_limit"
+      ? undefined
+      : session?.user.id,
   );
   const suggestExtension = () => {
     void extensionSuggestion.suggest();
@@ -1106,6 +1107,9 @@ export function mountMobileWebApp(
       onUsageChange: () => refreshUsage(),
       onGenerationBlocked: (usage, code) =>
         usage ? showPaywall(usage, code, "generation_limit") : false,
+      onGetMoreDrafts: () => {
+        if (latestUsage) showPaywall(latestUsage, "plans", "plans_link");
+      },
       onViewPlans: () => {
         if (latestUsage) showPaywall(latestUsage, "feature", "feature_lock");
       },
@@ -1217,6 +1221,8 @@ export function mountMobileWebApp(
       if (disposed) return null;
       canGenerate = usage.canGenerate !== false;
       latestUsage = usage;
+      if (usage.blockedReason === "free_lifetime_limit")
+        extensionSuggestion.close();
       draftWorkspace?.updateUsage(usage);
       renderMobileUsage(root, usage);
       setBillingControls(root, usage);

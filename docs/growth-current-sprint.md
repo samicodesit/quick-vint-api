@@ -1,5 +1,13 @@
 # AutoLister AI Growth Current Sprint
 
+## Five-draft offer and first-listing sample, November 9, 2026
+
+- The signed-in web editor shows the remaining free drafts with five small ticks. Get more opens the existing plans and credit packs. After the account commits its fifth free draft, the workspace can show 20% off the first month of Pro under the finished draft. Copy and Mark as listed remain usable. The server fixes the deadline at 72 hours after draft five. Shared-IP exhaustion by itself does not qualify. Existing paid customers and previous observed buyers do not qualify. Clicking the offer opens Stripe directly with the signed offer.
+- The existing installation welcome page includes a tap-to-open example using the retained black-dress photo and copy describing only visible details. It uses no model call or trial credit. A real first draft still uses the seller's own photos and the existing Vinted listing path. Do not count opening the sample as activation.
+- The production profile schema defaults `email_subscribed` to true. The public privacy notice says promotional mail requires explicit signup for updates. No separately verifiable consent source was found in the schema or signup path, so the historical discount blast, automatic draft-five follow-up and day-one promotional reminder are held. Existing manual admin mail and transactional billing mail are separate paths. Do not use the default profile flag as proof of consent.
+- Read-only July 23 to October 31 baseline, excluding known internal accounts: 511 mature signups, 212 reached three free drafts, 165 reached five and 36 made a first purchase after five within seven days of signup. These are all-surface account counts. After release, compare equally aged web-first cohorts, with confirmed first purchases and first-purchase revenue as outcomes. Report actual offer views separately from reaching five; repeat-account enforcement and the new checkout rollout can affect a before/after comparison.
+- The offer flag defaults off. Verify the existing Stripe promotion's current discount and terms before enabling it. This release covers the web app and the installation welcome page.
+
 ## Signed-in web app checkout, November 9, 2026
 
 - Choosing a monthly plan or one-time pack in the web app opens the existing Stripe checkout for that choice. The Monthly and One-time tabs still switch the options displayed.

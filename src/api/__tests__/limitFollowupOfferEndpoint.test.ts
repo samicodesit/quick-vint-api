@@ -5,6 +5,11 @@ const fromMock = vi.fn();
 const findLimitFollowupRecipientsMock = vi.fn();
 const getAllLimitFollowupExclusionsMock = vi.fn();
 const createPricingOfferUrlMock = vi.fn();
+const getDraftFiveOfferMock = vi.fn();
+
+vi.mock("../../../utils/draftFiveOffer", () => ({
+  getDraftFiveOffer: getDraftFiveOfferMock,
+}));
 
 vi.mock("cors", () => ({
   default: vi.fn(
@@ -112,6 +117,44 @@ describe("limit follow-up on-page offer endpoint", () => {
       couponCode: "LISTFASTER20",
       pricingUrl: "https://autolister.app/pricing?offer=test-token",
     });
+  });
+
+  it("returns the authenticated web offer without requiring an extension limit event", async () => {
+    const handlerModule =
+      await import("../../../api/user/limit-followup-offer.js");
+    const handler = handlerModule.default as unknown as (
+      req: unknown,
+      res: unknown,
+    ) => Promise<unknown>;
+    const res = createResponse();
+    getDraftFiveOfferMock.mockResolvedValue({
+      offerToken: "offer",
+      expiresAt: "2026-11-12T08:04:00Z",
+    });
+
+    await handler(
+      {
+        method: "GET",
+        headers: { authorization: "Bearer access-token" },
+        query: { surface: "web" },
+      } as any,
+      res as any,
+    );
+
+    expect(res.body).toEqual({
+      eligible: true,
+      offerToken: "offer",
+      expiresAt: "2026-11-12T08:04:00Z",
+    });
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Cache-Control",
+      "private, no-store",
+    );
+    expect(getDraftFiveOfferMock).toHaveBeenCalledWith({
+      id: "user-1",
+      email: "seller@example.com",
+    });
+    expect(findLimitFollowupRecipientsMock).not.toHaveBeenCalled();
   });
 
   it("allows the extension origin used by content-script authenticated requests", async () => {

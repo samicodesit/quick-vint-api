@@ -2,6 +2,7 @@
 import { Camera, Images, Copy, Pencil, Settings2, ArrowLeft, ArrowRight, ChevronLeft, Ellipsis, Pause, Play, RotateCcw, RotateCw, Crop, Paintbrush, Undo2, Check, Plus, Trash2, Download, X, LoaderCircle, Clock, TriangleAlert, Package, Layers, ChevronDown } from "@lucide/astro";
 import ListingSettingsFields from "./ListingSettingsFields.astro";
 import PhotoEntry from "./PhotoEntry.astro";
+import { FREE_LIFETIME_LIMIT } from "../../../utils/tierConfig";
 ---
 <section class="draft-workspace" data-draft-workspace hidden aria-label="Listing drafts">
   <template data-draft-icon="images"><Images size={24} aria-hidden="true" /></template>
@@ -68,6 +69,11 @@ import PhotoEntry from "./PhotoEntry.astro";
       <div class="draft-editor-progress" data-draft-editor-progress hidden></div>
       <div class="draft-editor-navigation"><button type="button" class="draft-text-button" data-draft-action="back"><ArrowLeft size={18} aria-hidden="true" /><span data-draft-label>Back to drafts</span></button><div class="draft-actions"><button type="button" class="draft-text-button" data-draft-action="previous" aria-label="Previous item"><ChevronLeft size={20} aria-hidden="true" /></button><span data-draft-position></span><button type="button" class="draft-text-button" data-draft-action="next"><span>Next</span><ArrowRight size={18} aria-hidden="true" /></button><details class="draft-item-menu" data-draft-popover><summary aria-label="Item options"><Ellipsis size={20} aria-hidden="true" /></summary><div class="draft-popover-panel"><h3>Item options</h3><button type="button" class="draft-close" data-draft-close aria-label="Close item options"><X size={20} aria-hidden="true" /></button><button type="button" data-draft-action="choose-item"><Images size={18} aria-hidden="true" />Add photos</button><button type="button" class="draft-camera" data-draft-action="choose-camera"><Camera size={18} aria-hidden="true" />Camera</button><button type="button" class="draft-danger" data-draft-action="delete"><Trash2 size={18} aria-hidden="true" />Delete item</button></div></details></div></div>
       <div class="draft-section-heading"><div class="draft-title-group"><h2 id="draft-editor-title">Add item</h2><div class="draft-save-controls"><span class="draft-save-status" data-draft-save-status role="status"></span><button type="button" class="draft-text-button" data-draft-action="save" aria-label="Retry save" title="Retry save" hidden><RotateCcw size={18} aria-hidden="true" /></button></div></div><div class="draft-upload-actions" data-draft-upload-actions hidden><details class="draft-add-menu draft-photo-source" data-draft-popover><summary role="button" aria-label="Add photos"><Images size={18} aria-hidden="true" />Add photos<ChevronDown size={16} aria-hidden="true" /></summary><div class="draft-popover-panel" aria-label="Add photos"><button type="button" data-draft-action="choose-item"><Images size={18} aria-hidden="true" />Photo library</button><button type="button" data-draft-action="choose-camera"><Camera size={18} aria-hidden="true" />Camera</button></div></details></div></div>
+      <div class="draft-free-meter" data-draft-free-meter hidden>
+        <span class="draft-free-ticks" aria-hidden="true">{Array.from({ length: FREE_LIFETIME_LIMIT }, () => <i></i>)}</span>
+        <span data-draft-free-label role="status"></span>
+        <button type="button" class="draft-text-button" data-draft-get-more>Get more</button>
+      </div>
       <nav class="draft-mode draft-entry-mode" aria-label="Processing mode"><button type="button" aria-current="page" data-draft-action="new">One item</button><button type="button" data-draft-action="bulk"><span class="draft-new-badge" aria-hidden="true">New</span>Several items</button></nav>
       <p class="draft-entry-help" data-draft-entry-help hidden>Add photos of one item to prepare its listing.</p>
       <p class="draft-help" data-draft-operation-status role="status" hidden></p><button type="button" data-draft-action="check" hidden><RotateCcw size={18} aria-hidden="true" />Check saved result</button>
@@ -94,6 +100,11 @@ import PhotoEntry from "./PhotoEntry.astro";
           <p class="draft-help" data-draft-generate-help hidden></p>
           <button type="button" class="draft-text-button draft-write" data-draft-action="write">Or write it myself</button>
           <div class="draft-editor-footer" data-draft-editor-footer hidden><button type="button" class="draft-primary" data-draft-action="done"><Check size={18} aria-hidden="true" /><span data-draft-label>Mark as listed</span></button></div>
+          <aside class="draft-five-offer" data-draft-five-offer hidden aria-label="Pro offer">
+            <div><strong>20% off your first month of Pro</strong><p data-draft-five-terms></p></div>
+            <button type="button" class="draft-text-button">Get offer</button>
+            <p data-draft-five-checkout-status role="status" hidden></p>
+          </aside>
         </div>
       </div>
     </section>

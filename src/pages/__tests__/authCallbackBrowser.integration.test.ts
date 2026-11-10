@@ -1,4 +1,7 @@
 import { createServer, type Server } from "node:http";
+import { randomUUID } from "node:crypto";
+import { PGlite } from "@electric-sql/pglite";
+import { normalizeIncidentEvent } from "../../../utils/incidents/contract";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -135,4 +138,71 @@ it.skipIf(!enabled)(
     }
   },
   30000,
+);
+
+it.skipIf(!enabled)(
+  "keeps an immediately failed sign-in out of the watchdog when the terminal report arrives first",
+  async () => {
+    const context = await browser.newContext();
+    const db = new PGlite();
+    try {
+      await context.route("**/*", (route: any) =>
+        route.request().url().startsWith(base)
+          ? route.continue()
+          : route.abort(),
+      );
+      await context.addInitScript(() => {
+        const events: string[] = [];
+        const fixture = globalThis as any;
+        fixture.callbackEvents = events;
+        fixture.AutoListerWebsiteTelemetry = {
+          track: (event: string) => events.push(event),
+        };
+      });
+      const page = await context.newPage();
+      await page.goto(
+        `${base}/auth/callback#error=access_denied&error_code=otp_expired`,
+      );
+      expect(await page.locator("#authCallbackStatus").textContent()).toBe(
+        "Sign-in link failed.",
+      );
+      const events: string[] = await page.evaluate(
+        () => (globalThis as any).callbackEvents,
+      );
+      expect(events).toContain("auth_link_error");
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; " +
+          "CREATE TABLE api_logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, user_email text, endpoint text, request_method text, response_status integer, user_agent text, origin text, ip_address text, full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      const operationId = randomUUID();
+      const occurredAt = new Date(Date.now() - 6 * 60 * 1000).toISOString();
+      // Recreate the production ordering: a terminal event overtakes a routine
+      // checkpoint from the same callback with the same millisecond timestamp.
+      for (const event of events.reverse()) {
+        const input = normalizeIncidentEvent({
+          event,
+          source: "web_auth_callback",
+          id: randomUUID(),
+          occurredAt,
+          context: { operationId, hasError: true },
+        });
+        expect(input.value).toBeDefined();
+        await db.query("SELECT incident_ingest($1::jsonb, NULL, false)", [
+          JSON.stringify(input.value),
+        ]);
+      }
+      await db.query("SELECT incident_sweep(100)");
+      expect(
+        (await db.query("SELECT event FROM incident_groups ORDER BY event"))
+          .rows,
+      ).toEqual([{ event: "auth_link_error" }]);
+    } finally {
+      await context.close();
+      await db.close();
+    }
+  },
+  20000,
 );

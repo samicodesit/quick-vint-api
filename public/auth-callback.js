@@ -268,8 +268,6 @@
   }
 
   async function run() {
-    track("auth_link_landed");
-
     const context = getUrlContext();
     if (context.hasError) {
       track("auth_link_error");
@@ -291,6 +289,8 @@
       );
       return;
     }
+    // Terminal link errors never start a handoff or a watchdog timer.
+    track("auth_link_landed");
     // This claim only partitions the local queue. The collector verifies the
     // bearer with Supabase before accepting identity. Credentials stay in memory.
     try {

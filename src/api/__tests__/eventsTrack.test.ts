@@ -18,6 +18,8 @@ const maybeSingleMock = vi.fn();
 const profileQuery = {
   select: vi.fn(() => profileQuery),
   eq: vi.fn(() => profileQuery),
+  gt: vi.fn(() => profileQuery),
+  limit: vi.fn(() => profileQuery),
   maybeSingle: maybeSingleMock,
 };
 
@@ -207,6 +209,79 @@ describe("events tracking endpoint", () => {
     expect(JSON.stringify(payload)).not.toMatch(
       /preferences|hair|imageUrl|private.invalid/,
     );
+  });
+
+  it("retains only bounded photo counts for the verified phone upload session", async () => {
+    const phoneSessionKey = "a".repeat(64);
+    const id = "87cf727d-c184-4b7f-9b83-9bf2823f0213";
+    const occurredAt = new Date().toISOString();
+    const summary = {
+      id,
+      occurredAt,
+      event: "phone_upload_send_summary",
+      source: "phone_upload_page",
+      phoneSessionKey,
+      context: {
+        mode: "batch",
+        expectedPhotoCount: 125,
+        confirmedPhotoCount: 123,
+        failedPhotoCount: 2,
+        error: "private photo description",
+      },
+    };
+    const send = (event: typeof summary) =>
+      postEvent({ schemaVersion: 2, events: [event] }, false);
+    const ingest = () =>
+      rpcMock.mock.calls.find((call) => call[0] === "incident_ingest")?.[1];
+
+    maybeSingleMock.mockResolvedValue({
+      data: { user_id: USER_ID, identity_verified: true },
+      error: null,
+    });
+    const accepted = await send(summary);
+    expect(accepted.statusCode).toBe(200);
+    expect(accepted.body).toMatchObject({ acknowledgedIds: [id] });
+    expect(ingest()).toMatchObject({
+      p_user_id: USER_ID,
+      p_verified: true,
+      p_event: {
+        businessLog: {
+          endpoint: "/event/phone_upload_send_summary",
+          request_method: "SYSTEM",
+          response_status: 204,
+          full_request_body: {
+            event: "phone_upload_send_summary",
+            source: "phone_upload_page",
+            transportEventId: id,
+            occurredAt,
+            context: {
+              phoneSessionKey,
+              mode: "batch",
+              expectedPhotoCount: 125,
+              confirmedPhotoCount: 123,
+              failedPhotoCount: 2,
+            },
+          },
+        },
+      },
+    });
+    expect(
+      ingest().p_event.businessLog.full_request_body.context,
+    ).not.toHaveProperty("error");
+
+    rpcMock.mockClear();
+    const malformed = await send({
+      ...summary,
+      context: { ...summary.context, confirmedPhotoCount: 126 },
+    });
+    expect(malformed.body).toMatchObject({ acknowledgedIds: [id] });
+    expect(ingest().p_event.businessLog).toBeNull();
+
+    rpcMock.mockClear();
+    maybeSingleMock.mockResolvedValue({ data: null, error: null });
+    const anonymous = await send(summary);
+    expect(anonymous.body).toMatchObject({ acknowledgedIds: [id] });
+    expect(ingest().p_event.businessLog).toBeNull();
   });
 
   it("keeps seller edit text through ingestion without leaking it into diagnostics", async () => {

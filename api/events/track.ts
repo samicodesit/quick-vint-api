@@ -400,11 +400,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       events: loggableEventItems,
     },
     authenticatedUserId,
-    (raw, context) => {
+    (raw, context, verifiedPhoneSessionKey) => {
+      const {
+        mode,
+        expectedPhotoCount,
+        confirmedPhotoCount,
+        failedPhotoCount,
+      } = context;
+      const phoneUploadSummary =
+        raw.event === "phone_upload_send_summary" &&
+        raw.source === "phone_upload_page" &&
+        verifiedPhoneSessionKey &&
+        (mode === "single" || mode === "batch") &&
+        [expectedPhotoCount, confirmedPhotoCount, failedPhotoCount].every(
+          (count) => Number.isSafeInteger(count) && count >= 0 && count <= 500,
+        ) &&
+        expectedPhotoCount > 0 &&
+        confirmedPhotoCount + failedPhotoCount <= expectedPhotoCount;
       const backgroundRefreshFailure =
         raw.event === "token_refresh_failed" &&
         raw.source === "extension_background";
       const retained =
+        phoneUploadSummary ||
         backgroundRefreshFailure ||
         retainsBatchEvidence(raw) ||
         isRegisteredBusiness(raw.event) ||
@@ -445,6 +462,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   key.startsWith("queueDropped"),
               ),
             ),
+          },
+        };
+      }
+      if (phoneUploadSummary) {
+        // One bounded result per send. Session ownership was verified at ingest.
+        return {
+          endpoint: "/event/phone_upload_send_summary",
+          request_method: "SYSTEM",
+          response_status: 204,
+          full_request_body: {
+            event: raw.event,
+            source: raw.source,
+            transportEventId: raw.id,
+            occurredAt: raw.occurredAt,
+            context: {
+              phoneSessionKey: verifiedPhoneSessionKey,
+              mode,
+              expectedPhotoCount,
+              confirmedPhotoCount,
+              failedPhotoCount,
+            },
           },
         };
       }

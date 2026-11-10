@@ -4,7 +4,11 @@ import { LIMITS, normalizeIncidentEvent, sanitizeContext } from "./contract";
 export async function ingestEnvelope(
   body: any,
   userId?: string,
-  businessLog?: (raw: any, context: any) => Record<string, unknown> | null,
+  businessLog?: (
+    raw: any,
+    context: any,
+    verifiedPhoneSessionKey?: string,
+  ) => Record<string, unknown> | null,
   legacyIdentity?: (raw: any) => Promise<string | undefined>,
 ) {
   const result = {
@@ -79,6 +83,7 @@ export async function ingestEnvelope(
     try {
       let ownerId = userId;
       let verified = Boolean(userId);
+      let verifiedPhoneSessionKey: string | undefined;
       if (/^[a-f0-9]{64}$/.test(raw.phoneSessionKey || "")) {
         const { data: owner, error: ownerError } = await supabase
           .from("incident_flows")
@@ -94,6 +99,8 @@ export async function ingestEnvelope(
         }
         ownerId ||= owner?.user_id;
         verified ||= Boolean(ownerId && owner?.identity_verified);
+        if (ownerId && owner?.identity_verified && owner.user_id === ownerId)
+          verifiedPhoneSessionKey = raw.phoneSessionKey;
         // Correlation is evidence, not identity. Legacy sessions and a missed
         // background registration must not prevent an error from being saved.
         if (
@@ -116,7 +123,11 @@ export async function ingestEnvelope(
         p_event: {
           ...normalized.value,
           businessLog:
-            businessLog?.(raw, sanitizeContext(raw.context, false)) || null,
+            businessLog?.(
+              raw,
+              sanitizeContext(raw.context, false),
+              verifiedPhoneSessionKey,
+            ) || null,
         },
         p_user_id: ownerId || null,
         p_verified: verified,

@@ -1016,9 +1016,9 @@
                     }
 
                     trackUploadEvent('phone_upload_send_summary', {
-                        fileCount: state.files.length,
-                        sentCount: state.files.filter((item) => item.done).length,
-                        failedCount,
+                        expectedPhotoCount: state.files.length,
+                        confirmedPhotoCount: state.files.filter((item) => item.done).length,
+                        failedPhotoCount: state.files.filter((item) => item.failed && !item.done).length,
                         completeSent: state.completeSent,
                         retryCount,
                         durationMs: Date.now() - startedAt,
@@ -1073,9 +1073,9 @@
                     }
 
                     trackUploadEvent('phone_upload_send_summary', {
-                        fileCount: state.files.length,
-                        sentCount: state.files.filter((item) => item.done).length,
-                        failedCount,
+                        expectedPhotoCount: state.files.length,
+                        confirmedPhotoCount: state.files.filter((item) => item.done).length,
+                        failedPhotoCount: state.files.filter((item) => item.failed && !item.done).length,
                         completeSent: state.completeSent,
                         retryCount: 0,
                         durationMs: Date.now() - startedAt,

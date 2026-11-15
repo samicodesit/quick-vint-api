@@ -7,6 +7,7 @@ import {
   photoView,
   rearPosePrompt,
   photoCost,
+  photoPlanValidationReason,
   LISTING_PHOTO_CHECK_MODEL,
   LISTING_PHOTO_CLASSIFY_MODEL,
   REAR_PHOTO_CHECK_MODEL,
@@ -97,13 +98,17 @@ export async function runPhotoJob(
     try {
       result = await work();
     } catch (error) {
+      const planValidationReason = photoPlanValidationReason(error);
       await deps.mutate(user, "metrics", {
         ...input,
         attemptId: attempt.id,
         // Keep cost unknown. The provider may have completed a timed-out call.
         cost: null,
         status: "failed",
-        metrics: { errorCode: photoFailureCode(error) },
+        metrics: {
+          errorCode: photoFailureCode(error),
+          ...(planValidationReason ? { planValidationReason } : {}),
+        },
       });
       throw error;
     }

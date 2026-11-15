@@ -39,6 +39,53 @@ beforeAll(async () => {
 afterAll(async () => {
   await db?.close();
 });
+it("retains bounded classifier failure metrics with unknown cost and owner fencing", async () => {
+  const user = randomUUID();
+  await db.query("insert into auth.users values($1)", [user]);
+  await db.query(
+    "insert into user_model_settings(user_id,enabled) values($1,true)",
+    [user],
+  );
+  await db.query(
+    "insert into user_models(user_id,preferences,seed,scene,scene_fingerprint,prompt_version,catalog_version,state,object_key) values($1,'{}','diagnostics','{}','diagnostics',1,1,'ready','front.jpg')",
+    [user],
+  );
+  const created = await rpc(
+    "create",
+    { fingerprint: "diagnostics", generationId: "admitted" },
+    user,
+  );
+  const job = await rpc("claim", { id: created.id }, user);
+  const attempt = await rpc(
+    "stage",
+    { id: job.id, lease: job.lease_token, stage: "classify" },
+    user,
+  );
+  const input = {
+    id: job.id,
+    lease: job.lease_token,
+    attemptId: attempt.id,
+    cost: null,
+    status: "failed",
+    metrics: {
+      errorCode: "invalid_photo_plan",
+      planValidationReason: "invalid_source_evidence",
+    },
+  };
+  expect(await rpc("metrics", input, owner)).toBeNull();
+  await rpc("metrics", input, user);
+  const retained = (
+    await db.query<any>(
+      "select metrics,cost_usd,status from listing_photo_attempts where id=$1",
+      [attempt.id],
+    )
+  ).rows[0];
+  expect(retained).toEqual({
+    metrics: input.metrics,
+    cost_usd: null,
+    status: "failed",
+  });
+});
 it("reuses source fingerprints and hides jobs from other users", async () => {
   const a = await rpc("create", {
     fingerprint: "a",

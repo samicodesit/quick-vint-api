@@ -187,6 +187,29 @@ export function sourceFingerprint(sources: string[]) {
     )
     .digest("hex");
 }
+const PHOTO_PLAN_VALIDATION_REASONS = [
+  "invalid_shape",
+  "invalid_view_details",
+  "invalid_source_evidence",
+  "invalid_construction",
+  "inconsistent_back_view",
+  "invalid_item_type",
+  "inconsistent_item_framing",
+] as const;
+type PhotoPlanValidationReason = (typeof PHOTO_PLAN_VALIDATION_REASONS)[number];
+class PhotoPlanValidationError extends Error {
+  constructor(readonly reason: PhotoPlanValidationReason) {
+    super("invalid_photo_plan");
+  }
+}
+export function photoPlanValidationReason(
+  error: unknown,
+): PhotoPlanValidationReason | undefined {
+  return error instanceof PhotoPlanValidationError &&
+    PHOTO_PLAN_VALIDATION_REASONS.includes(error.reason)
+    ? error.reason
+    : undefined;
+}
 export function parsePhotoPlan(
   text: string,
   count: number,
@@ -202,7 +225,7 @@ export function parsePhotoPlan(
     ) ||
     (p.eligible && (p.category === "skip" || p.frontIndex < 0))
   )
-    throw new Error("invalid_photo_plan");
+    throw new PhotoPlanValidationError("invalid_shape");
   if (
     (requireSourceEvidence && p.viewDetails === undefined) ||
     (p.viewDetails !== undefined &&
@@ -215,7 +238,7 @@ export function parsePhotoPlan(
         (p.viewDetails.rear >= 0 &&
           (p.backIndex < 0 || p.backViewEvidence === "absent"))))
   )
-    throw new Error("invalid_photo_plan");
+    throw new PhotoPlanValidationError("invalid_view_details");
   if (
     (requireSourceEvidence && p.sourceEvidence === undefined) ||
     (p.sourceEvidence !== undefined &&
@@ -229,7 +252,7 @@ export function parsePhotoPlan(
           );
         })))
   )
-    throw new Error("invalid_photo_plan");
+    throw new PhotoPlanValidationError("invalid_source_evidence");
   if (
     p.construction !== undefined &&
     (!p.construction ||
@@ -238,7 +261,7 @@ export function parsePhotoPlan(
         ([key, values]) => !values.includes(p.construction[key]),
       ))
   )
-    throw new Error("invalid_photo_plan");
+    throw new PhotoPlanValidationError("invalid_construction");
   if (
     p.backViewEvidence !== undefined &&
     (!["separate_photo", "shared_collage", "absent"].includes(
@@ -250,14 +273,14 @@ export function parsePhotoPlan(
         p.backIndex === p.frontIndex) ||
       (p.backViewEvidence === "shared_collage" && p.backIndex !== p.frontIndex))
   )
-    throw new Error("invalid_photo_plan");
+    throw new PhotoPlanValidationError("inconsistent_back_view");
   if (p.itemType !== undefined) {
     if (!Object.prototype.hasOwnProperty.call(ITEM_FRAMING, p.itemType))
-      throw new Error("invalid_photo_plan");
+      throw new PhotoPlanValidationError("invalid_item_type");
     const framing = ITEM_FRAMING[p.itemType as keyof typeof ITEM_FRAMING];
     if (framing === "skip") return { ...p, eligible: false, category: "skip" };
     if (p.eligible && p.category !== framing)
-      throw new Error("invalid_photo_plan");
+      throw new PhotoPlanValidationError("inconsistent_item_framing");
   }
   return p;
 }

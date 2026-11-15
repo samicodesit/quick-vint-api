@@ -6,7 +6,11 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchChatGPTPhoto } from "./chatgptPhotoFetch";
 import { supabase } from "./supabaseClient";
 import { getDirectUser } from "./directUser";
-import { validatePluginClaims } from "./chatgptAuth";
+import {
+  isPluginUserAllowed,
+  pluginAccessConfig,
+  validatePluginClaims,
+} from "./chatgptAuth";
 
 export const PLUGIN_RESOURCE = "https://autolister.app/api/chatgpt/mcp";
 const challenge =
@@ -27,10 +31,7 @@ export async function hostedPluginRequest(
   };
   const token = req.headers.authorization?.match(/^Bearer (\S+)$/)?.[1];
   if (!token || token.length > 16384) return unauthorized();
-  const users = (process.env.CHATGPT_PRIVATE_USER_IDS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const access = pluginAccessConfig();
   let user: string;
   try {
     if (mode === "mcp") {
@@ -44,13 +45,13 @@ export async function hostedPluginRequest(
       user = validatePluginClaims(data.claims, {
         issuer: process.env.VERCEL_APP_SUPABASE_URL + "/auth/v1",
         clientId: process.env.CHATGPT_OAUTH_CLIENT_ID || "",
-        users,
+        ...access,
       });
     } else {
       if (req.headers.origin !== "https://autolister.app")
         return res.status(403).json({ error: "Origin not allowed." });
       const { data, error } = await getDirectUser(token);
-      if (error || !data.user || !users.includes(data.user.id))
+      if (error || !data.user || !isPluginUserAllowed(data.user.id, access))
         return unauthorized();
       user = data.user.id;
     }

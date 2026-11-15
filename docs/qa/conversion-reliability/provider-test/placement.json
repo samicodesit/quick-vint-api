@@ -1,0 +1,20 @@
+{
+  "local": true,
+  "providerOutputsReal": true,
+  "applicationResponsesControlled": true,
+  "databaseWrites": false,
+  "results": [
+    {
+      "item": "wrap-dress",
+      "ordered": true,
+      "reloaded": true,
+      "photos": 4
+    },
+    {
+      "item": "mixed-panel-jacket",
+      "ordered": true,
+      "reloaded": true,
+      "photos": 4
+    }
+  ]
+}

@@ -1,0 +1,495 @@
+{
+  "priorUsd": 0,
+  "capUsd": 1.25,
+  "calls": [
+    {
+      "name": "wrap-dress-classify",
+      "kind": "check",
+      "reservedUsd": 0.15,
+      "model": "gpt-6.1-sol",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 4596,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 162,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 4758
+      },
+      "costUsd": null,
+      "providerStatus": 200,
+      "durationMs": 8793
+    },
+    {
+      "name": "wrap-dress-primary",
+      "kind": "image",
+      "reservedUsd": 0.25,
+      "model": "gpt-image-2.5-flare-2026-09-08",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 4773,
+        "input_tokens_details": {
+          "image_tokens": 4440,
+          "text_tokens": 333
+        },
+        "output_tokens": 277,
+        "output_tokens_details": {
+          "image_tokens": 277,
+          "text_tokens": 0
+        },
+        "total_tokens": 5050
+      },
+      "costUsd": 0.045495,
+      "providerStatus": 200,
+      "durationMs": 14820
+    },
+    {
+      "name": "wrap-dress-secondary",
+      "kind": "image",
+      "reservedUsd": 0.25,
+      "model": "gpt-image-2.5-flare-2026-09-08",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 4804,
+        "input_tokens_details": {
+          "image_tokens": 4440,
+          "text_tokens": 364
+        },
+        "output_tokens": 277,
+        "output_tokens_details": {
+          "image_tokens": 277,
+          "text_tokens": 0
+        },
+        "total_tokens": 5081
+      },
+      "costUsd": 0.04565,
+      "providerStatus": 200,
+      "durationMs": 12958
+    },
+    {
+      "name": "wrap-dress-secondary-check",
+      "kind": "check",
+      "reservedUsd": 0.15,
+      "model": "gpt-6.1-sol",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 7666,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 249,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 7915
+      },
+      "costUsd": null,
+      "providerStatus": 200,
+      "durationMs": 8547,
+      "verdict": {
+        "productComparison": {
+          "shape": {
+            "product": "Short dress with a fitted waist, flared overlapping skirt, curved wrap hem and short puff sleeves ending in narrow gathered cuffs.",
+            "candidate": "Short, fitted-waist dress retains the flared curved wrap skirt and gathered short puff sleeves; natural on-body drape preserves the overall cut.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Crossover V-neck bodice, waist seam and overlapping skirt with three gold-tone buttons vertically arranged at one side of the waist; no visible pockets.",
+            "candidate": "Crossover V-neck, defined waist seam, overlapping skirt and three side-waist gold-tone buttons are present; no added pockets or visible base layers.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Black textured fabric throughout, with three gold-tone waist buttons and no prominent print or graphics.",
+            "candidate": "Black textured fabric and three gold-tone buttons retain the plain original design without added graphics.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      },
+      "accepted": true
+    },
+    {
+      "name": "wrap-dress-primary-check",
+      "kind": "check",
+      "reservedUsd": 0.15,
+      "model": "gpt-6.1-sol",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 7666,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 238,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 7904
+      },
+      "costUsd": null,
+      "providerStatus": 200,
+      "durationMs": 8793,
+      "verdict": {
+        "productComparison": {
+          "shape": {
+            "product": "Short dress with a fitted waist, flared overlapping skirt, curved wrap hem and short puff sleeves ending in narrow gathered cuffs.",
+            "candidate": "Fitted short dress retains the flared wrap skirt, curved overlapping hem and short puff sleeves with narrow cuffs; proportions are consistent with natural worn drape.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Crossover V-neck bodice, waist seam and three gold-tone buttons vertically aligned at one side of the waist; no visible pockets.",
+            "candidate": "Crossover V-neck and waist seam are retained, with three gold-tone side-waist buttons and no added pockets or visible base layers.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Black textured fabric with subtle vertical raised detailing; no print or prominent graphic.",
+            "candidate": "Black textured fabric retains subtle vertical detailing without added prints or graphics.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      },
+      "accepted": true
+    },
+    {
+      "name": "mixed-panel-jacket-classify",
+      "kind": "check",
+      "reservedUsd": 0.15,
+      "model": "gpt-6.1-sol",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 3266,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 175,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 3441
+      },
+      "costUsd": null,
+      "providerStatus": 200,
+      "durationMs": 4927
+    },
+    {
+      "name": "mixed-panel-jacket-primary",
+      "kind": "image",
+      "reservedUsd": 0.25,
+      "model": "gpt-image-2.5-flare-2026-09-08",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 5133,
+        "input_tokens_details": {
+          "image_tokens": 4768,
+          "text_tokens": 365
+        },
+        "output_tokens": 277,
+        "output_tokens_details": {
+          "image_tokens": 277,
+          "text_tokens": 0
+        },
+        "total_tokens": 5410
+      },
+      "costUsd": 0.048279,
+      "providerStatus": 200,
+      "durationMs": 13620
+    },
+    {
+      "name": "mixed-panel-jacket-primary-check",
+      "kind": "check",
+      "reservedUsd": 0.15,
+      "model": "gpt-6.1-sol",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 6444,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 226,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 6670
+      },
+      "costUsd": null,
+      "providerStatus": 200,
+      "durationMs": 5777,
+      "verdict": {
+        "productComparison": {
+          "shape": {
+            "product": "Short, waist-shaped jacket with full-length sleeves and a broad asymmetric fold-over collar.",
+            "candidate": "Short fitted jacket with a clearly visible hem, wrist-length sleeves and broad asymmetric folded lapels; proportions are consistent when worn.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Asymmetric front zip, two slanted zipped lower pockets, black leather-look sleeves and diagonal shoulder inserts.",
+            "candidate": "Retains the asymmetric zip, both slanted zipped pockets, black leather-look sleeves and diagonal shoulder inserts.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Navy textured woven body with fine metallic flecks, contrasting plain black sleeves and shoulder trim.",
+            "candidate": "Navy flecked woven body and plain black contrasting sleeves and shoulder trim retain the main color and surface design.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      },
+      "accepted": true
+    },
+    {
+      "name": "mixed-panel-jacket-remaining-secondary",
+      "kind": "image",
+      "reservedUsd": 0.25,
+      "model": "gpt-image-2.5-flare-2026-09-08",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 4365,
+        "input_tokens_details": {
+          "image_tokens": 4000,
+          "text_tokens": 365
+        },
+        "output_tokens": 277,
+        "output_tokens_details": {
+          "image_tokens": 277,
+          "text_tokens": 0
+        },
+        "total_tokens": 4642
+      },
+      "serviceTier": null,
+      "costUsd": 0.042135,
+      "providerStatus": 200,
+      "durationMs": 11715
+    },
+    {
+      "name": "mixed-panel-jacket-remaining-secondary-check",
+      "kind": "check",
+      "reservedUsd": 0.15,
+      "model": "gpt-6.1-sol",
+      "quality": "medium",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 5845,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 193,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 6038
+      },
+      "serviceTier": "default",
+      "costUsd": 0.01362,
+      "providerStatus": 200,
+      "durationMs": 6125,
+      "verdict": {
+        "productComparison": {
+          "shape": {
+            "product": "Short, waist-shaped jacket with long wrist-length sleeves and a broad upper back narrowing at the waist before flaring slightly at the hem.",
+            "candidate": "Rear view shows the same short, fitted silhouette, slight hem flare and long sleeves ending at the wrists.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Rear has a woven central panel bordered by curved black leather-look side panels and leather-look sleeves; no rear pockets or fastenings.",
+            "candidate": "Woven central back and curved black side panels retain the same layout, with leather-look sleeves and no added rear pockets or closures.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Navy textured woven back contrasts with plain black leather-look sides and sleeves; no rear graphics or prints.",
+            "candidate": "Navy textured central back contrasts with black sides and sleeves, without added graphics or decoration.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      },
+      "accepted": true
+    }
+  ],
+  "cases": [
+    {
+      "name": "wrap-dress",
+      "startedAt": "2026-11-15T18:19:47.509Z",
+      "plan": {
+        "sourceEvidence": {
+          "shape": "Short dress with fitted waist, flared overlapping skirt and curved wrap hem; short puff sleeves with narrow gathered cuffs.",
+          "front": "Black textured fabric, crossover V-neck bodice and wrap-style skirt; three gold-tone buttons at one side of the waist. No visible print or pockets.",
+          "rear": "Not visible; second photo is a close-up of the front neckline and sleeve."
+        },
+        "eligible": true,
+        "category": "full_body",
+        "itemType": "dress",
+        "frontIndex": 0,
+        "backIndex": -1,
+        "detailIndex": 1,
+        "viewDetails": {
+          "front": 1,
+          "rear": -1
+        },
+        "backViewEvidence": "absent",
+        "construction": {
+          "sleeveLength": "short",
+          "legLength": "unknown",
+          "frontDecoration": "plain",
+          "backDecoration": "unknown"
+        }
+      },
+      "views": [
+        {
+          "slot": "primary",
+          "path": "/home/mests/projects/autolister/.worktrees/conversion-reliability/docs/qa/conversion-reliability/provider-test/wrap-dress-primary.jpg",
+          "accepted": true,
+          "quality": {
+            "productComparison": {
+              "shape": {
+                "product": "Short dress with a fitted waist, flared overlapping skirt, curved wrap hem and short puff sleeves ending in narrow gathered cuffs.",
+                "candidate": "Fitted short dress retains the flared wrap skirt, curved overlapping hem and short puff sleeves with narrow cuffs; proportions are consistent with natural worn drape.",
+                "verdict": "match"
+              },
+              "construction": {
+                "product": "Crossover V-neck bodice, waist seam and three gold-tone buttons vertically aligned at one side of the waist; no visible pockets.",
+                "candidate": "Crossover V-neck and waist seam are retained, with three gold-tone side-waist buttons and no added pockets or visible base layers.",
+                "verdict": "match"
+              },
+              "decoration": {
+                "product": "Black textured fabric with subtle vertical raised detailing; no print or prominent graphic.",
+                "candidate": "Black textured fabric retains subtle vertical detailing without added prints or graphics.",
+                "verdict": "match"
+              }
+            },
+            "defects": []
+          }
+        },
+        {
+          "slot": "secondary",
+          "path": "/home/mests/projects/autolister/.worktrees/conversion-reliability/docs/qa/conversion-reliability/provider-test/wrap-dress-secondary.jpg",
+          "accepted": true,
+          "quality": {
+            "productComparison": {
+              "shape": {
+                "product": "Short dress with a fitted waist, flared overlapping skirt, curved wrap hem and short puff sleeves ending in narrow gathered cuffs.",
+                "candidate": "Short, fitted-waist dress retains the flared curved wrap skirt and gathered short puff sleeves; natural on-body drape preserves the overall cut.",
+                "verdict": "match"
+              },
+              "construction": {
+                "product": "Crossover V-neck bodice, waist seam and overlapping skirt with three gold-tone buttons vertically arranged at one side of the waist; no visible pockets.",
+                "candidate": "Crossover V-neck, defined waist seam, overlapping skirt and three side-waist gold-tone buttons are present; no added pockets or visible base layers.",
+                "verdict": "match"
+              },
+              "decoration": {
+                "product": "Black textured fabric throughout, with three gold-tone waist buttons and no prominent print or graphics.",
+                "candidate": "Black textured fabric and three gold-tone buttons retain the plain original design without added graphics.",
+                "verdict": "match"
+              }
+            },
+            "defects": []
+          }
+        }
+      ],
+      "status": "checker_accepted"
+    },
+    {
+      "name": "mixed-panel-jacket",
+      "startedAt": "2026-11-15T18:20:19.929Z",
+      "plan": {
+        "sourceEvidence": {
+          "shape": "Short, shaped adult jacket with long sleeves, waist shaping and a broad fold-over asymmetric collar. Label reads KARLA, M/L.",
+          "front": "Navy textured woven body with subtle metallic flecks, black leather-look sleeves and shoulder inserts, asymmetric zip fastening and two zipped lower pockets. Blue lining visible.",
+          "rear": "Navy textured woven central back with black leather-look side panels and long sleeves. No visible rear pockets, prints or graphics."
+        },
+        "eligible": true,
+        "category": "top",
+        "itemType": "top",
+        "frontIndex": 0,
+        "backIndex": 1,
+        "detailIndex": 3,
+        "viewDetails": {
+          "front": 2,
+          "rear": -1
+        },
+        "backViewEvidence": "separate_photo",
+        "construction": {
+          "sleeveLength": "long",
+          "legLength": "unknown",
+          "frontDecoration": "plain",
+          "backDecoration": "plain"
+        }
+      },
+      "status": "failed",
+      "error": "Budget guard"
+    },
+    {
+      "name": "mixed-panel-jacket-remaining",
+      "startedAt": "2026-11-15T18:21:15.183Z",
+      "views": [
+        {
+          "slot": "secondary",
+          "path": "/home/mests/projects/autolister/.worktrees/conversion-reliability/docs/qa/conversion-reliability/provider-test/mixed-panel-jacket-remaining-secondary.jpg",
+          "accepted": true,
+          "quality": {
+            "productComparison": {
+              "shape": {
+                "product": "Short, waist-shaped jacket with long wrist-length sleeves and a broad upper back narrowing at the waist before flaring slightly at the hem.",
+                "candidate": "Rear view shows the same short, fitted silhouette, slight hem flare and long sleeves ending at the wrists.",
+                "verdict": "match"
+              },
+              "construction": {
+                "product": "Rear has a woven central panel bordered by curved black leather-look side panels and leather-look sleeves; no rear pockets or fastenings.",
+                "candidate": "Woven central back and curved black side panels retain the same layout, with leather-look sleeves and no added rear pockets or closures.",
+                "verdict": "match"
+              },
+              "decoration": {
+                "product": "Navy textured woven back contrasts with plain black leather-look sides and sleeves; no rear graphics or prints.",
+                "candidate": "Navy textured central back contrasts with black sides and sleeves, without added graphics or decoration.",
+                "verdict": "match"
+              }
+            },
+            "defects": []
+          }
+        }
+      ],
+      "status": "checker_accepted"
+    }
+  ]
+}

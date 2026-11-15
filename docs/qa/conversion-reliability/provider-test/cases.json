@@ -1,0 +1,22 @@
+[
+  {
+    "name": "wrap-dress",
+    "front": "/home/mests/projects/autolister/reports/model-implementation-20261101/provider/female-average.jpg",
+    "rear": "/home/mests/projects/autolister/reports/model-listing-feasibility-20261101/rear-pose-v1.jpg",
+    "sources": [
+      "/home/mests/projects/autolister/.worktrees/conversion-reliability/docs/qa/browser-drafts/sample-front.png",
+      "/home/mests/projects/autolister/.worktrees/conversion-reliability/docs/qa/browser-drafts/sample-detail.png"
+    ]
+  },
+  {
+    "name": "mixed-panel-jacket",
+    "front": "/home/mests/projects/autolister/reports/model-implementation-20261101/provider/female-average.jpg",
+    "rear": "/home/mests/projects/autolister/reports/model-listing-feasibility-20261101/rear-pose-v1.jpg",
+    "sources": [
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/01.jpg",
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/02.jpg",
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/03.jpg",
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/04.jpg"
+    ]
+  }
+]

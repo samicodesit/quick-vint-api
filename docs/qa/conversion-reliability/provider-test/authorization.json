@@ -1,0 +1,8 @@
+{
+  "authorizedEur": 2,
+  "providerCapUsd": 1.25,
+  "fxUsdPerEur": 1.1052,
+  "fxDate": "2026-11-13",
+  "fxSource": "https://www.ecb.europa.eu/stats/shared/pdf/eurofxref.pdf",
+  "scope": "two items, two views each, production generation and checks, no automatic retries, no customer/database writes"
+}

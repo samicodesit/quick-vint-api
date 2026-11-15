@@ -1,0 +1,130 @@
+{
+  "authorizedEur": 2,
+  "conservativeAccountedUsd": 0.945179,
+  "conservativeAccountedEur": 0.8552108215707565,
+  "knownImageAndCheckCostUsd": 0.195179,
+  "checkCostsWithUnknownServiceTier": "Five calls retain their conservative USD 0.15 reservations rather than claiming exact invoice cost.",
+  "items": 2,
+  "freshGeneratedImages": 4,
+  "checks": [
+    {
+      "call": "wrap-dress-secondary-check",
+      "accepted": true,
+      "quality": {
+        "productComparison": {
+          "shape": {
+            "product": "Short dress with a fitted waist, flared overlapping skirt, curved wrap hem and short puff sleeves ending in narrow gathered cuffs.",
+            "candidate": "Short, fitted-waist dress retains the flared curved wrap skirt and gathered short puff sleeves; natural on-body drape preserves the overall cut.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Crossover V-neck bodice, waist seam and overlapping skirt with three gold-tone buttons vertically arranged at one side of the waist; no visible pockets.",
+            "candidate": "Crossover V-neck, defined waist seam, overlapping skirt and three side-waist gold-tone buttons are present; no added pockets or visible base layers.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Black textured fabric throughout, with three gold-tone waist buttons and no prominent print or graphics.",
+            "candidate": "Black textured fabric and three gold-tone buttons retain the plain original design without added graphics.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      }
+    },
+    {
+      "call": "wrap-dress-primary-check",
+      "accepted": true,
+      "quality": {
+        "productComparison": {
+          "shape": {
+            "product": "Short dress with a fitted waist, flared overlapping skirt, curved wrap hem and short puff sleeves ending in narrow gathered cuffs.",
+            "candidate": "Fitted short dress retains the flared wrap skirt, curved overlapping hem and short puff sleeves with narrow cuffs; proportions are consistent with natural worn drape.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Crossover V-neck bodice, waist seam and three gold-tone buttons vertically aligned at one side of the waist; no visible pockets.",
+            "candidate": "Crossover V-neck and waist seam are retained, with three gold-tone side-waist buttons and no added pockets or visible base layers.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Black textured fabric with subtle vertical raised detailing; no print or prominent graphic.",
+            "candidate": "Black textured fabric retains subtle vertical detailing without added prints or graphics.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      }
+    },
+    {
+      "call": "mixed-panel-jacket-primary-check",
+      "accepted": true,
+      "quality": {
+        "productComparison": {
+          "shape": {
+            "product": "Short, waist-shaped jacket with full-length sleeves and a broad asymmetric fold-over collar.",
+            "candidate": "Short fitted jacket with a clearly visible hem, wrist-length sleeves and broad asymmetric folded lapels; proportions are consistent when worn.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Asymmetric front zip, two slanted zipped lower pockets, black leather-look sleeves and diagonal shoulder inserts.",
+            "candidate": "Retains the asymmetric zip, both slanted zipped pockets, black leather-look sleeves and diagonal shoulder inserts.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Navy textured woven body with fine metallic flecks, contrasting plain black sleeves and shoulder trim.",
+            "candidate": "Navy flecked woven body and plain black contrasting sleeves and shoulder trim retain the main color and surface design.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      }
+    },
+    {
+      "call": "mixed-panel-jacket-remaining-secondary-check",
+      "accepted": true,
+      "quality": {
+        "productComparison": {
+          "shape": {
+            "product": "Short, waist-shaped jacket with long wrist-length sleeves and a broad upper back narrowing at the waist before flaring slightly at the hem.",
+            "candidate": "Rear view shows the same short, fitted silhouette, slight hem flare and long sleeves ending at the wrists.",
+            "verdict": "match"
+          },
+          "construction": {
+            "product": "Rear has a woven central panel bordered by curved black leather-look side panels and leather-look sleeves; no rear pockets or fastenings.",
+            "candidate": "Woven central back and curved black side panels retain the same layout, with leather-look sleeves and no added rear pockets or closures.",
+            "verdict": "match"
+          },
+          "decoration": {
+            "product": "Navy textured woven back contrasts with plain black leather-look sides and sleeves; no rear graphics or prints.",
+            "candidate": "Navy textured central back contrasts with black sides and sleeves, without added graphics or decoration.",
+            "verdict": "match"
+          }
+        },
+        "defects": []
+      }
+    }
+  ],
+  "placement": {
+    "local": true,
+    "providerOutputsReal": true,
+    "applicationResponsesControlled": true,
+    "databaseWrites": false,
+    "results": [
+      {
+        "item": "wrap-dress",
+        "ordered": true,
+        "reloaded": true,
+        "photos": 4
+      },
+      {
+        "item": "mixed-panel-jacket",
+        "ordered": true,
+        "reloaded": true,
+        "photos": 4
+      }
+    ]
+  },
+  "visualReview": "Pass for both items. Wrap dress preserves short puff sleeves, V neckline, wrap hem, black texture and three buttons. Mixed-panel jacket preserves navy textured body, black sleeves/side panels, asymmetric zip, two zipped pockets and plain back. Normal fit, drape and tiny rendering differences accepted.",
+  "scope": "Fresh production-function provider calls with local public QA fixtures; app placement uses controlled API responses and real generated images. No production account writes, deployment or Vinted save.",
+  "budgetHarnessNote": "The first concurrent jacket run conservatively reserved unpriced checker fees and blocked its secondary dispatch. Its primary completed and passed. Only the missing secondary was then generated and checked sequentially within the same ledger and cap. No provider generation was repeated."
+}

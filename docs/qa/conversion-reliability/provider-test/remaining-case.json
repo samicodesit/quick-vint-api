@@ -1,0 +1,38 @@
+[
+  {
+    "name": "mixed-panel-jacket-remaining",
+    "front": "/home/mests/projects/autolister/reports/model-implementation-20261101/provider/female-average.jpg",
+    "rear": "/home/mests/projects/autolister/reports/model-listing-feasibility-20261101/rear-pose-v1.jpg",
+    "sources": [
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/01.jpg",
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/02.jpg",
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/03.jpg",
+      "/home/mests/projects/autolister/reports/draft-model-audit-2026-10-12/public-06/04.jpg"
+    ],
+    "slots": ["secondary"],
+    "plan": {
+      "sourceEvidence": {
+        "shape": "Short, shaped adult jacket with long sleeves, waist shaping and a broad fold-over asymmetric collar. Label reads KARLA, M/L.",
+        "front": "Navy textured woven body with subtle metallic flecks, black leather-look sleeves and shoulder inserts, asymmetric zip fastening and two zipped lower pockets. Blue lining visible.",
+        "rear": "Navy textured woven central back with black leather-look side panels and long sleeves. No visible rear pockets, prints or graphics."
+      },
+      "eligible": true,
+      "category": "top",
+      "itemType": "top",
+      "frontIndex": 0,
+      "backIndex": 1,
+      "detailIndex": 3,
+      "viewDetails": {
+        "front": 2,
+        "rear": -1
+      },
+      "backViewEvidence": "separate_photo",
+      "construction": {
+        "sleeveLength": "long",
+        "legLength": "unknown",
+        "frontDecoration": "plain",
+        "backDecoration": "plain"
+      }
+    }
+  }
+]

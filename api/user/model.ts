@@ -18,6 +18,12 @@ import { parseModelPreferences } from "../../utils/userModelCatalog";
 import { isDisposableEmail } from "../../utils/disposableDomains";
 import { detectAndPauseDuplicateIpAccount } from "../../utils/duplicateIpAutoPause";
 import { ApiLogger } from "../../utils/apiLogger";
+import { RateLimiter, type UserProfile } from "../../utils/rateLimiter";
+import {
+  getFreeTrialIpKey,
+  getTrustedTrialIp,
+} from "../../utils/freeTrialIpQuota";
+import { getPricingLimitsMode } from "../../utils/tierConfig";
 import {
   isAccountPaused,
   buildAccountPausedResponse,
@@ -66,17 +72,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const stopsWork =
       (req.method === "PATCH" && req.body?.enabled === false) ||
       (req.method === "POST" && req.body?.action === "dismiss");
+    let generationProfile: UserProfile | undefined;
     if (!stopsWork) {
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select(
-          "id,account_status,abuse_reason,subscription_status,subscription_tier,free_lifetime_generations_used,pack_credits,paid_access_expires_at",
+          "id,account_status,abuse_reason,subscription_status,subscription_tier,free_lifetime_generations_used,pack_credits,paid_access_expires_at,api_calls_this_month,is_legacy_plan,custom_daily_limit,custom_monthly_limit,custom_limit_expires_at",
         )
         .eq("id", user.id)
         .maybeSingle();
       if (profileError) throw profileError;
       if (!profile)
         return res.status(403).json({ code: "account_unavailable" });
+      generationProfile = profile;
       const pause = await detectAndPauseDuplicateIpAccount({
         userId: user.id,
         email: user.email,
@@ -129,6 +137,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(403).json({
               error: "Use a permanent email address to create your model.",
             });
+          const capacity = await RateLimiter.getGenerationCapacity(
+            user.id,
+            generationProfile!,
+            getPricingLimitsMode(),
+            getFreeTrialIpKey(getTrustedTrialIp(req.headers), user.email),
+          );
+          if (!capacity.allowed)
+            return res
+              .status(capacity.reason === "service_unavailable" ? 503 : 429)
+              .json({
+                code: capacity.reason || "service_unavailable",
+                error:
+                  capacity.message ||
+                  "Your usage could not be checked. Try again before generating.",
+              });
           job =
             body.action === "create"
               ? await createUserModel(user.id, body.preferences)

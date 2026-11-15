@@ -25,6 +25,7 @@ declare global {
 export function mountUserModels(
   root: HTMLElement,
   getOwner: () => string | undefined,
+  canSetup: (interactive: boolean) => Promise<boolean> = async () => true,
 ) {
   let activeCleanup: (() => void) | undefined,
     stopped = false,
@@ -214,7 +215,7 @@ export function mountUserModels(
       void tracker(owner, "invitation")("model_invitation_shown");
     dialog.querySelector<HTMLElement>("button,input")?.focus();
   }
-  function settings(event: Event) {
+  async function settings(event: Event) {
     const button = (event.target as HTMLElement).closest<HTMLElement>(
       "[data-user-model-open]",
     );
@@ -223,6 +224,13 @@ export function mountUserModels(
     event.stopPropagation();
     const owner = getOwner();
     if (!owner) return;
+    try {
+      const state = await request(owner)();
+      if (!state.model && !(await canSetup(true))) return;
+      if (stopped || getOwner() !== owner) return;
+    } catch {
+      return;
+    }
     acknowledge(owner);
     const panel = button.closest<HTMLElement>(".draft-popover-panel");
     if (!panel) {
@@ -292,6 +300,8 @@ export function mountUserModels(
     checking = true;
     try {
       const state = await request(owner)();
+      if (stopped || getOwner() !== owner) return;
+      if (!state.model && !(await canSetup(false))) return;
       if (stopped || getOwner() !== owner) return;
       const pending = claimPendingModel(localStorage, owner);
       if (pending) {

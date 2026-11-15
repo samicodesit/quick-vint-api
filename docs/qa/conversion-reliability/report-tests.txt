@@ -1,0 +1,11 @@
+✔ counts a new credit buyer separately from subscriptions and duplicate deliveries (1.227147ms)
+✔ separates repeat buyers and ignores test, zero and unfinished checkout (0.171374ms)
+✔ does not call renewal invoices new subscription starts or credit packs (0.150574ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.275466

@@ -23,7 +23,10 @@ function dayKey(date) {
 async function fetchAll(supabase, table, columns, buildQuery) {
   const rows = [];
   for (let from = 0; ; from += 1000) {
-    let query = supabase.from(table).select(columns).range(from, from + 999);
+    let query = supabase
+      .from(table)
+      .select(columns)
+      .range(from, from + 999);
     if (buildQuery) query = buildQuery(query);
     const { data, error } = await query;
     if (error) throw new Error(`${table}: ${error.message}`);
@@ -39,7 +42,10 @@ function pct(part, total) {
 
 loadEnv();
 
-if (!process.env.VERCEL_APP_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+if (
+  !process.env.VERCEL_APP_SUPABASE_URL ||
+  !process.env.SUPABASE_SERVICE_ROLE_KEY
+) {
   throw new Error("Missing Supabase env vars.");
 }
 
@@ -71,10 +77,12 @@ const signups30 = profiles.filter(
   (profile) => new Date(profile.created_at) >= daysAgo(30),
 );
 const successfulGenerations = logs30.filter(
-  (log) => log.endpoint === "/api/generate" && Number(log.response_status) === 200,
+  (log) =>
+    log.endpoint === "/api/generate" && Number(log.response_status) === 200,
 );
 const limitHits = logs30.filter(
-  (log) => log.endpoint === "/api/generate" && Number(log.response_status) === 429,
+  (log) =>
+    log.endpoint === "/api/generate" && Number(log.response_status) === 429,
 );
 const activeUsers = new Set(
   logs30
@@ -103,16 +111,20 @@ const paidActiveUsers = [...activeUsers].filter((userId) => {
 console.log(`AutoLister Growth Scorecard (${new Date().toISOString()})`);
 console.log("=".repeat(56));
 console.log(`Profiles: ${profiles.length}`);
-console.log("Chrome public users: paste from Chrome Web Store dashboard/listing");
+console.log(
+  "Chrome public users: paste from Chrome Web Store dashboard/listing",
+);
 console.log(`Active paid profiles: ${paidProfiles.length}`);
 console.log(`30d signups: ${signups30.length}`);
 console.log(`30d active generators: ${activeUsers.size}`);
 console.log(`30d paid active generators: ${paidActiveUsers.length}`);
 console.log(`30d successful generations: ${successfulGenerations.length}`);
 console.log(`30d limit hits: ${limitHits.length}`);
-console.log(`Repeat active users: ${repeatUsers.size} (${pct(repeatUsers.size, activeUsers.size)})`);
 console.log(
-  `30d signup-to-paid: ${pct(
+  `Repeat active users: ${repeatUsers.size} (${pct(repeatUsers.size, activeUsers.size)})`,
+);
+console.log(
+  `Currently active paid profiles among 30d signups: ${pct(
     signups30.filter(
       (profile) =>
         profile.subscription_status === "active" &&
@@ -124,6 +136,12 @@ console.log(
 );
 console.log("");
 console.log("Manual weekly inputs still needed:");
-console.log("- Chrome Web Store impressions, visitors, installs, uninstall rate");
+console.log(
+  "- Chrome Web Store impressions, visitors, installs, uninstall rate",
+);
 console.log("- TrustMRR MRR, net revenue, active subscriptions, churn");
 console.log("- Paid/creator spend by source when campaigns start");
+
+console.log(
+  "For actual purchases and signup-cohort conversion: npm run ops:conversion-report",
+);

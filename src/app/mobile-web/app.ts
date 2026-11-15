@@ -948,7 +948,26 @@ export function mountMobileWebApp(
   initializeUiLocale(shell);
   let disposed = false;
   let session: Awaited<ReturnType<typeof getBrowserSession>> = null;
-  const userModels = mountUserModels(root, () => session?.user.id);
+  const userModels = mountUserModels(
+    root,
+    () => session?.user.id,
+    async (interactive) => {
+      const owner = session?.user.id;
+      const usage = await refreshUsage();
+      if (!owner || disposed || session?.user.id !== owner || !usage)
+        return false;
+      if (usage.canGenerate === false) {
+        if (interactive)
+          showPaywall(
+            usage,
+            usage.blockedReason || undefined,
+            "generation_limit",
+          );
+        return false;
+      }
+      return true;
+    },
+  );
   let photos: SelectedPhoto[] = [];
   let uploadSession: MobileUploadSession | null = null;
   let uploadedPhotos: UploadedMobilePhoto[] = [];

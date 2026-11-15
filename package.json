@@ -25,7 +25,8 @@
     "test": "vitest run",
     "test:generation:browser": "RUN_GENERATION_BROWSER_TESTS=1 vitest run src/api/__tests__/generationBrowser.integration.test.ts",
     "test:mobile-idempotency:postgres": "bash scripts/test-mobile-generation-idempotency-postgres.sh",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "ops:conversion-report": "node scripts/conversion-report.mjs"
   },
   "keywords": [],
   "author": "",

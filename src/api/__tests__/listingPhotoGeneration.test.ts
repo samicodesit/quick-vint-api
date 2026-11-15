@@ -680,7 +680,7 @@ describe("listing photo recipes", () => {
     ).toThrow();
   });
   it("uses a single rear pose and category-specific crop without forcing phone into shoe crops", () => {
-    expect(rearPosePrompt).toContain("SCREEN");
+    expect(rearPosePrompt).toContain("rear mirror selfie");
     expect(photoPrompt(plan, "secondary")).not.toContain("undecorated");
     expect(photoPrompt({ ...plan, category: "shoes" }, "primary")).toContain(
       "outside the crop",

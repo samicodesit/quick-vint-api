@@ -27,10 +27,11 @@ type ComparisonKey = keyof typeof comparisons;
 type Comparison = {
   product: string;
   candidate: string;
-  verdict: "match" | "mismatch" | "unverifiable";
+  verdict: "match" | "minor_difference" | "mismatch" | "unverifiable";
 };
 export interface PhotoQuality {
   defects: { code: string; evidence: string }[];
+  observations?: { code: string; evidence: string }[];
   productComparison?: Record<ComparisonKey, Comparison>;
 }
 export const PRODUCT_COMPARISON_SCHEMA = {
@@ -54,7 +55,9 @@ export const PRODUCT_COMPARISON_SCHEMA = {
           },
           verdict: {
             type: "string",
-            enum: ["match", "mismatch", "unverifiable"],
+            enum: ["match", "minor_difference", "mismatch", "unverifiable"],
+            description:
+              "Use minor_difference for small hardware, stitching or tiny lettering variations that retain the sale item's main design. Only material changes are mismatch.",
           },
         },
         required: ["product", "candidate", "verdict"],
@@ -82,6 +85,14 @@ export function parsePhotoQuality(
     )
   )
     throw new Error("invalid_photo_check");
+  // These presentation details do not change the sale item. Preserve them for
+  // diagnostics without withholding an otherwise useful photo.
+  const incidental = new Set(["unrelated_accessory", "wrong_phone_side"]);
+  const observations = quality.defects.filter((d: any) =>
+    incidental.has(d.code),
+  );
+  quality.defects = quality.defects.filter((d: any) => !incidental.has(d.code));
+  if (observations.length) quality.observations = observations;
   if (!requireComparison) return quality;
   const observed = quality.productComparison;
   if (!observed || typeof observed !== "object" || Array.isArray(observed))
@@ -97,10 +108,12 @@ export function parsePhotoQuality(
         (value) =>
           typeof value !== "string" || !value.trim() || value.length > 240,
       ) ||
-      !["match", "mismatch", "unverifiable"].includes(row.verdict)
+      !["match", "minor_difference", "mismatch", "unverifiable"].includes(
+        row.verdict,
+      )
     )
       throw new Error("invalid_photo_check");
-    if (row.verdict === "match") continue;
+    if (row.verdict === "match" || row.verdict === "minor_difference") continue;
     // A contradictory empty defects list cannot turn failed evidence into a pass.
     const code =
       row.verdict === "unverifiable"

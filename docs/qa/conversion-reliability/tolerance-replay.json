@@ -1,0 +1,5 @@
+{
+  "checked": 99,
+  "acceptedInsteadOfBlocked": 2,
+  "method": "Offline replay of retained checker results. No image generation or production state changes. Does not validate newly generated image quality."
+}

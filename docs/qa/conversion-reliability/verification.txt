@@ -1,0 +1,10 @@
+npm run verify:production: exit 0. Lint, type-check, build, formatting and tests passed.
+ ↓ src/pages/__tests__/preAuthStyleBrowser.integration.test.ts (10 tests | 10 skipped)
+
+ Test Files  199 passed | 4 skipped (203)
+      Tests  1763 passed | 23 skipped (1786)
+   Start at  17:32:19
+   Duration  45.65s (transform 2.54s, setup 0ms, import 9.46s, tests 62.38s, environment 18ms)
+
+node --test scripts/conversion-report.test.mjs: 3 passed.
+Local browser: exhausted allowance opens existing paid choices without model creation; available allowance opens real model preferences. All service requests intercepted, no production writes or paid provider requests.

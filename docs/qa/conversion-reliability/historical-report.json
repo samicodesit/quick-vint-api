@@ -1,0 +1,16 @@
+{
+  "from": "2026-11-12T16:00:34.920151Z",
+  "until": "2026-11-15T16:00:34.920151Z",
+  "newAccounts": 43,
+  "confirmedNewAccounts": 40,
+  "activatedNewAccounts": 30,
+  "payingCustomers": 5,
+  "signupCohortBuyers": 1,
+  "firstRecordedBuyers": 5,
+  "subscriptionStarts": 0,
+  "creditPackPurchases": 2,
+  "creditRevenueMinor": {
+    "eur": 1998
+  },
+  "measurement": "First recorded means earliest successful payment in retained billing history. It does not prove first ever. Revenue is gross credit-pack receipts in minor currency units, excluding subscription revenue and refunds."
+}

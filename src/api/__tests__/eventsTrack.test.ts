@@ -211,6 +211,262 @@ describe("events tracking endpoint", () => {
     );
   });
 
+  it.each([
+    ["manual_upload_start", { photoCount: 4 }],
+    ["manual_upload_storage_ready", { uploadedCount: 4, expectedCount: 4 }],
+    ["manual_upload_storage_error", { expectedCount: 4 }],
+  ])(
+    "retains %s correlation without requiring a phone registration",
+    async (event, counts) => {
+      const result = await postEvent({
+        schemaVersion: 2,
+        events: [
+          {
+            id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+            occurredAt: new Date().toISOString(),
+            event,
+            source: "extension_content",
+            extensionVersion: "1.4.39",
+            accountId: USER_ID,
+            phoneSessionKey: "a".repeat(64),
+            context: {
+              operationId: "gen_manual_fixture",
+              ...counts,
+              sessionId: "private-upload-bearer",
+              fileName: "private-shirt.jpg",
+              message: "private seller text",
+            },
+          },
+        ],
+      });
+      expect(result.statusCode).toBe(200);
+      const input = rpcMock.mock.calls.find(
+        (call) => call[0] === "incident_ingest",
+      )?.[1];
+      expect(input.p_user_id).toBe(USER_ID);
+      expect(input.p_event.phoneKey).toBeUndefined();
+      expect(input.p_event.businessLog).toMatchObject({
+        endpoint: `/event/${event}`,
+        request_method: "SYSTEM",
+        response_status: 204,
+        full_request_body: {
+          analyticsOnly: true,
+          event,
+          source: "extension_content",
+          extensionVersion: "1.4.39",
+          context: {
+            operationId: "gen_manual_fixture",
+            manualUploadSessionKey: "a".repeat(64),
+            ...counts,
+          },
+        },
+      });
+      expect(JSON.stringify(input.p_event.businessLog)).not.toMatch(
+        /private-upload-bearer|private-shirt|private seller|user_agent|user_email/,
+      );
+    },
+  );
+
+  it("does not retain a manual summary for an anonymous or foreign owner", async () => {
+    const event = {
+      id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+      occurredAt: new Date().toISOString(),
+      event: "manual_upload_storage_ready",
+      source: "extension_content",
+      phoneSessionKey: "a".repeat(64),
+      context: {
+        operationId: "gen_manual_fixture",
+        uploadedCount: 1,
+        expectedCount: 1,
+      },
+    };
+    await postEvent({ schemaVersion: 2, events: [event] }, false);
+    expect(
+      rpcMock.mock.calls.find((call) => call[0] === "incident_ingest")?.[1]
+        .p_event.businessLog,
+    ).toBeNull();
+    rpcMock.mockClear();
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        user_id: "223e4567-e89b-42d3-a456-426614174000",
+        identity_verified: true,
+      },
+      error: null,
+    });
+    const response = await postEvent({ schemaVersion: 2, events: [event] });
+    expect(response.body).toMatchObject({
+      rejections: [{ id: event.id, reason: "identity_mismatch" }],
+    });
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { phoneSessionKey: "not-a-hash", source: "extension_content" },
+    { phoneSessionKey: ["a".repeat(64)], source: "extension_content" },
+    { phoneSessionKey: "a".repeat(64), source: "phone_upload_page" },
+  ])("does not retain unsupported manual correlation %j", async (metadata) => {
+    await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+          occurredAt: new Date().toISOString(),
+          event: "manual_upload_start",
+          ...metadata,
+          context: { operationId: "gen_manual_fixture", photoCount: 1 },
+        },
+      ],
+    });
+    expect(
+      rpcMock.mock.calls.find((call) => call[0] === "incident_ingest")?.[1]
+        .p_event.businessLog,
+    ).toBeNull();
+  });
+
+  it("retains drop disposition when a manual phase carries queue health", async () => {
+    await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+          occurredAt: new Date().toISOString(),
+          event: "manual_upload_start",
+          source: "extension_content",
+          phoneSessionKey: "a".repeat(64),
+          context: {
+            operationId: "gen_manual_fixture",
+            photoCount: 1,
+            queueDropped: 2,
+            queueDroppedCritical: 1,
+            queueDroppedCapacity: 2,
+            queueDroppedEventTypes: '{"token_refresh_failed":2}',
+          },
+        },
+      ],
+    });
+    expect(
+      rpcMock.mock.calls.find((call) => call[0] === "incident_ingest")?.[1]
+        .p_event.businessLog.full_request_body.context,
+    ).toMatchObject({
+      manualUploadSessionKey: "a".repeat(64),
+      queueDropped: 2,
+      queueDroppedCritical: 1,
+      queueDroppedCapacity: 2,
+      queueDroppedEventTypes: '{"token_refresh_failed":2}',
+    });
+  });
+
+  it("retains bounded transport status, order and attempts for a manual upload error", async () => {
+    await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+          occurredAt: new Date().toISOString(),
+          event: "manual_upload_storage_error",
+          source: "extension_content",
+          phoneSessionKey: "a".repeat(64),
+          context: {
+            operationId: "gen_manual_fixture",
+            expectedCount: 4,
+            status: 503,
+            order: 2,
+            attempts: 3,
+            message: "private request with raw session and filename",
+          },
+        },
+      ],
+    });
+    const body = rpcMock.mock.calls.find(
+      (call) => call[0] === "incident_ingest",
+    )?.[1].p_event.businessLog.full_request_body;
+    expect(body.context).toMatchObject({
+      statusCode: 503,
+      order: 2,
+      attempts: 3,
+    });
+    expect(JSON.stringify(body)).not.toContain("private request");
+  });
+
+  it("commits a manual phase with its verified owner and deduplicates a lost acknowledgment", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(
+        "CREATE ROLE service_role; CREATE ROLE anon; CREATE ROLE authenticated; CREATE TABLE api_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),created_at timestamptz DEFAULT now(),user_id uuid,user_email text,endpoint text,request_method text,response_status integer,user_agent text,origin text,ip_address text,full_request_body jsonb);",
+      );
+      await db.exec(
+        readFileSync("migrations/2026-10-03_incident_tracking.sql", "utf8"),
+      );
+      rpcMock.mockImplementation(async (_name, args) => {
+        const result = await db.query<any>(
+          "SELECT incident_ingest($1::jsonb,$2::uuid,$3::boolean) AS result",
+          [JSON.stringify(args.p_event), args.p_user_id, args.p_verified],
+        );
+        return { data: result.rows[0].result };
+      });
+      const event = {
+        id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+        occurredAt: new Date().toISOString(),
+        event: "manual_upload_start",
+        source: "extension_content",
+        accountId: USER_ID,
+        phoneSessionKey: "a".repeat(64),
+        context: { operationId: "gen_manual_fixture", photoCount: 4 },
+      };
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [event] })).body,
+      ).toMatchObject({ acknowledgedIds: [event.id] });
+      expect(
+        (await postEvent({ schemaVersion: 2, events: [event] })).body,
+      ).toMatchObject({ duplicateIds: [event.id] });
+      const rows = (
+        await db.query<any>("SELECT user_id,full_request_body FROM api_logs")
+      ).rows;
+      expect(rows).toHaveLength(1);
+      expect(rows[0].user_id).toBe(USER_ID);
+      expect(rows[0].full_request_body.context).toEqual({
+        operationId: "gen_manual_fixture",
+        photoCount: 4,
+        manualUploadSessionKey: "a".repeat(64),
+      });
+      expect(
+        (
+          await db.query(
+            "SELECT id FROM incident_flows WHERE id LIKE 'phone:%'",
+          )
+        ).rows,
+      ).toHaveLength(0);
+    } finally {
+      rpcMock.mockReset();
+      await db.close();
+    }
+  }, 15000);
+
+  it.each([
+    { uploadedCount: 5, expectedCount: 4 },
+    { uploadedCount: -1, expectedCount: 4 },
+    { uploadedCount: 1.5, expectedCount: 4 },
+    { uploadedCount: 1, expectedCount: 501 },
+  ])("omits malformed manual summary counts %j", async (counts) => {
+    await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+          occurredAt: new Date().toISOString(),
+          event: "manual_upload_storage_ready",
+          source: "extension_content",
+          phoneSessionKey: "a".repeat(64),
+          context: { operationId: "gen_manual_fixture", ...counts },
+        },
+      ],
+    });
+    expect(
+      rpcMock.mock.calls.find((call) => call[0] === "incident_ingest")?.[1]
+        .p_event.businessLog,
+    ).toBeNull();
+  });
+
   it("retains only bounded photo counts for the verified phone upload session", async () => {
     const phoneSessionKey = "a".repeat(64);
     const id = "87cf727d-c184-4b7f-9b83-9bf2823f0213";

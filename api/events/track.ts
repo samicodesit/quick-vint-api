@@ -420,8 +420,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const backgroundRefreshFailure =
         raw.event === "token_refresh_failed" &&
         raw.source === "extension_background";
+      const manualPhase = [
+        "manual_upload_start",
+        "manual_upload_storage_ready",
+        "manual_upload_storage_error",
+      ].includes(raw.event);
+      const manualCount =
+        context[
+          raw.event === "manual_upload_start" ? "photoCount" : "expectedCount"
+        ];
+      const manualUploadSummary =
+        Boolean(authenticatedUserId) &&
+        raw.source === "extension_content" &&
+        manualPhase &&
+        typeof raw.phoneSessionKey === "string" &&
+        /^[a-f0-9]{64}$/.test(raw.phoneSessionKey || "") &&
+        typeof context.operationId === "string" &&
+        /^[a-zA-Z0-9_-]{1,160}$/.test(context.operationId) &&
+        Number.isSafeInteger(manualCount) &&
+        manualCount > 0 &&
+        manualCount <= 500 &&
+        (raw.event !== "manual_upload_storage_ready" ||
+          (Number.isSafeInteger(context.uploadedCount) &&
+            context.uploadedCount >= 0 &&
+            context.uploadedCount <= manualCount));
       const retained =
         phoneUploadSummary ||
+        manualUploadSummary ||
         backgroundRefreshFailure ||
         retainsBatchEvidence(raw) ||
         isRegisteredBusiness(raw.event) ||
@@ -482,6 +507,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               expectedPhotoCount,
               confirmedPhotoCount,
               failedPhotoCount,
+            },
+          },
+        };
+      }
+      if (manualUploadSummary) {
+        // A manual session hash is correlation only. It must not register a
+        // phone owner or establish that the server stored a client-claimed upload.
+        const counts =
+          raw.event === "manual_upload_start"
+            ? { photoCount: manualCount }
+            : {
+                expectedCount: manualCount,
+                ...(raw.event === "manual_upload_storage_ready"
+                  ? { uploadedCount: context.uploadedCount }
+                  : {}),
+              };
+        return {
+          endpoint: `/event/${raw.event}`,
+          request_method: "SYSTEM",
+          response_status: 204,
+          full_request_body: {
+            analyticsOnly: true,
+            event: raw.event,
+            source: raw.source,
+            extensionVersion: redact(raw.extensionVersion, 80),
+            transportEventId: raw.id,
+            occurredAt: raw.occurredAt,
+            context: {
+              operationId: context.operationId,
+              manualUploadSessionKey: raw.phoneSessionKey,
+              ...counts,
+              ...(raw.event === "manual_upload_storage_error"
+                ? Object.fromEntries(
+                    ["statusCode", "order", "attempts"]
+                      .filter(
+                        (key) =>
+                          Number.isSafeInteger(context[key]) &&
+                          context[key] >= 0 &&
+                          context[key] <=
+                            (key === "statusCode"
+                              ? 999
+                              : key === "order"
+                                ? 499
+                                : 100),
+                      )
+                      .map((key) => [key, context[key]]),
+                  )
+                : {}),
+              ...Object.fromEntries(
+                Object.entries(context).filter(
+                  ([key]) =>
+                    key.startsWith("queueDropped") ||
+                    key === "queueDropLastRejection",
+                ),
+              ),
+              ...(typeof context.analyticsClientId === "string" &&
+              context.analyticsClientId.length <= 160
+                ? { analyticsClientId: context.analyticsClientId }
+                : {}),
             },
           },
         };

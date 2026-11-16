@@ -169,6 +169,28 @@ proves the cause of Error La. Absence of the marker can mean older cached HTML.
 
 `/api/phone-upload` currently writes admin logs for failures, not successful uploads. A successful upload can exist in Vercel request logs without a matching admin `api_logs` row.
 
+For compatible manual uploads, `/event/manual_upload_start`,
+`/event/manual_upload_storage_ready` and `/event/manual_upload_storage_error`
+retain bounded SYSTEM summaries. Read `log-detail` for the operation ID,
+`manualUploadSessionKey`, counts, client version, occurrence time and receipt
+time. The key is a SHA-256 correlation value, not an upload credential or proof
+of phone ownership. These summaries contain no filenames, image URLs or seller
+text. They use the existing 30-day bounded analytics retention.
+
+Successful multipart storage emits `UPLOAD_STORED` in Vercel runtime logs. Its
+`sessionKey` matches `manualUploadSessionKey`; up to ten entries contain stored
+order, byte count and SHA-256 of the exact stored bytes. The server emits this
+only after storage completes. It proves storage, not that a closed tab received
+the response or that Generate completed. Phone and manual requests share this
+endpoint; distinguish their client source before attributing a product path.
+Do not use a client completion summary or an uncorrelated HTTP 200 as a
+substitute for this match. Older clients/events may lack retained summaries.
+
+An auth outcome can arrive before the original failure because the durable
+queue retries independently. Recheck late originals by exact account, operation,
+client and version. Absence at the first inspection is not proof of permanent
+loss, and a refresh outcome does not establish a blocked Generate recovery.
+
 Use Vercel for endpoint-hit proof:
 
 ```sh

@@ -879,6 +879,24 @@ async function handleUpload(req: VercelRequest, res: VercelResponse) {
       });
 
       const uploadedFiles = await Promise.all(uploadPromises);
+      try {
+        // Bounded storage proof, independent of a closing tab's final event.
+        // Never log the bearer session, filenames, object paths or image bytes.
+        console.info("UPLOAD_STORED", {
+          version: 1,
+          transport: isV2 ? "v2" : "legacy",
+          sessionKey: createHash("sha256").update(finalSessionId).digest("hex"),
+          storedCount: uploadedFiles.length,
+          photos: fileUploads.slice(0, 10).map((file, index) => ({
+            order: uploadedFiles[index].order,
+            sizeBytes: file.buffer.length,
+            sha256: createHash("sha256").update(file.buffer).digest("hex"),
+          })),
+          ...(fileUploads.length > 10 ? { truncated: true } : {}),
+        });
+      } catch {
+        /* Diagnostics must not change a successful upload response. */
+      }
       responseSent = true;
       res.status(200).json({
         success: true,

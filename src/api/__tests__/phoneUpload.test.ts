@@ -253,6 +253,114 @@ function mockV2Session(
 }
 
 describe("phone upload endpoint", () => {
+  it("records bounded storage proof after a real multipart upload completes", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    let complete!: () => void;
+    uploadMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = () => resolve({ error: null });
+        }),
+    );
+    try {
+      const handler = (await import("../../../api/phone-upload.js"))
+        .default as any;
+      const res = createResponse();
+      await handler(
+        createMultipartUploadRequest({
+          sessionId: "fixture-session",
+          uploadOrder: 3,
+          filename: "private-shirt.jpg",
+          body: "abc",
+        }),
+        res,
+      );
+      await vi.waitFor(() => expect(complete).toBeTypeOf("function"));
+      expect(
+        info.mock.calls.filter((call) => call[0] === "UPLOAD_STORED"),
+      ).toHaveLength(0);
+      complete();
+      await res.finished;
+      const proof = info.mock.calls.find(
+        (call) => call[0] === "UPLOAD_STORED",
+      )?.[1];
+      expect(proof).toEqual({
+        version: 1,
+        transport: "legacy",
+        sessionKey:
+          "d6440983c454c2e5999fdb66bbe9cf5f89a8f5847d6c9578ef14afd26eee122c",
+        storedCount: 1,
+        photos: [
+          {
+            order: 3,
+            sizeBytes: 3,
+            sha256:
+              "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          },
+        ],
+      });
+      expect(JSON.stringify(proof)).not.toMatch(
+        /fixture-session|private-shirt|photo-bytes|path|token/,
+      );
+      expect(res.statusCode).toBe(200);
+      expect(res.body.files[0].order).toBe(3);
+    } finally {
+      info.mockRestore();
+    }
+  });
+
+  it("keeps a successful upload successful if the diagnostic sink throws", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {
+      throw new Error("isolated diagnostic failure");
+    });
+    uploadMock.mockResolvedValueOnce({ error: null });
+    try {
+      const handler = (await import("../../../api/phone-upload.js"))
+        .default as any;
+      const res = createResponse();
+      await handler(
+        createMultipartUploadRequest({
+          sessionId: "fixture-session",
+          uploadOrder: 0,
+          filename: "private-shirt.jpg",
+        }),
+        res,
+      );
+      await res.finished;
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+    } finally {
+      info.mockRestore();
+    }
+  });
+
+  it("never records storage success when the storage upload fails", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    uploadMock.mockResolvedValueOnce({
+      error: new Error("controlled storage failure"),
+    });
+    try {
+      const handler = (await import("../../../api/phone-upload.js"))
+        .default as any;
+      const res = createResponse();
+      await handler(
+        createMultipartUploadRequest({
+          sessionId: "fixture-session",
+          uploadOrder: 0,
+          filename: "private-shirt.jpg",
+        }),
+        res,
+      );
+      await res.finished;
+      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+      expect(
+        info.mock.calls.filter((call) => call[0] === "UPLOAD_STORED"),
+      ).toHaveLength(0);
+    } finally {
+      info.mockRestore();
+    }
+  });
+
   it("routes URL query parameters without invoking the legacy Vercel query parser", async () => {
     const module = await import("../../../api/phone-upload.js");
     const res = createResponse();

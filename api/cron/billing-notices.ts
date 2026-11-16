@@ -35,14 +35,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { count: unhandled, error: withdrawalError } = await supabase
       .from("billing_withdrawals")
       .select("id", { count: "exact", head: true })
-      .neq("status", "resolved")
+      .eq("status", "received")
       .lt("received_at", new Date(Date.now() - 24 * 60 * 60_000).toISOString());
     if (withdrawalError) throw withdrawalError;
+    // Processing means an operator has taken the request, including requests
+    // waiting for customer identification. Keep that work visible without
+    // turning its original receipt age into a new server crash every release.
+    const { count: withdrawalsProcessing, error: processingError } =
+      await supabase
+        .from("billing_withdrawals")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "processing");
+    if (processingError) throw processingError;
     if (count || welcomeReview || unhandled || outcomes.includes("failed"))
       throw new Error(
         "Billing notices or withdrawal requests require attention",
       );
-    return res.json({ processed: outcomes.length });
+    return res.json({
+      processed: outcomes.length,
+      withdrawalsProcessing: withdrawalsProcessing || 0,
+    });
   } catch (error) {
     reportCriticalEndpointFailure({
       error,

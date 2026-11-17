@@ -1,4 +1,8 @@
 /* The item example explains the product without adding a setup step. */
+/* Announce the newly opened screen without a control-style outline on its heading. */
+#draft-editor-title[tabindex="-1"]:focus {
+  outline: none;
+}
 .mobile-auth-entry.mobile-auth-card {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);

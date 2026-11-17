@@ -365,7 +365,7 @@ it.skipIf(!enabled)(
 );
 
 it.skipIf(!enabled)(
-  "keeps sign-in above the full example on phones and fits every interface locale",
+  "keeps sign-in above the illustrative estimates on phones and fits every interface locale",
   async () => {
     for (const locale of UI_LOCALES) {
       for (const width of [320, 390, 768, 1440]) {
@@ -377,13 +377,14 @@ it.skipIf(!enabled)(
         try {
           const auth = page.locator(".auth-entry-form");
           await expect(auth).toBeVisible();
+          await expect(page.locator("[data-entry-metric]")).toHaveCount(4);
           await page.evaluate(() => document.fonts.ready);
           const bounds = await page.evaluate(() => {
             const form = document
               .querySelector(".auth-entry-form")!
               .getBoundingClientRect();
             const example = document
-              .querySelector(".auth-example")!
+              .querySelector(".auth-estimates")!
               .getBoundingClientRect();
             const google = document
               .querySelector('[data-mobile-web="google-sign-in"]')!
@@ -410,10 +411,12 @@ it.skipIf(!enabled)(
               bounds.height,
             );
           }
-          await expect(page.locator(".auth-example-item li")).toHaveCount(4);
+          await expect(
+            page.locator("[data-entry-estimate-note]"),
+          ).toBeVisible();
           if (locale !== "en")
-            await expect(page.locator(".auth-example h2")).not.toHaveText(
-              "From photos to a ready-to-copy draft.",
+            await expect(page.locator(".auth-estimates h2")).not.toHaveText(
+              "Spend less time writing.",
             );
           if (
             outputPath() &&

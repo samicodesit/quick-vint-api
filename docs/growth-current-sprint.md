@@ -1,5 +1,10 @@
 # AutoLister AI Growth Current Sprint
 
+## Sign-in estimates panel, November 17, 2026
+
+- Local draft. At the owner's revised direction, replace the item/draft example with a prominent 4-minute illustrative writing-time saving (5 minutes manually versus 1 minute assisted), plus 40–60 views and 3–5 favourites over 7 days, and 7–14 days to sell. The panel visibly labels these as illustrative estimates. They are not measured customer averages or a measured conversion/sales uplift.
+- Desktop pairs the figures with sign-in. Mobile keeps sign-in first. Existing explicit Verify code and Enter submission, recovery and optional model behavior remain covered. [Research, assumptions and actual desktop/mobile QA](qa/entry-estimates-20261117/README.md).
+
 ## Explicit verification action, November 17, 2026
 
 - Local draft. Owner requested Verify code, functioning Enter submission and a properly styled numeric code field. The code step now uses explicit submission, a compact field with larger spaced digits, associated inline validation and guarded pending/retry states. The email-link option remains available.

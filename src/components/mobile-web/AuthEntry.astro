@@ -1,3 +1,9 @@
+---
+// An illustrative scenario, not observed customer averages.
+const manualWritingMinutes = 5;
+const assistedWritingMinutes = 1;
+const savedWritingMinutes = manualWritingMinutes - assistedWritingMinutes;
+---
 <section class="mobile-auth-card mobile-auth-entry" data-mobile-web="auth-card" aria-labelledby="mobile-auth-title" hidden>
   <div class="auth-entry-form">
     <h1 id="mobile-auth-title">Sign in</h1>
@@ -26,22 +32,21 @@
     <p id="mobile-auth-status" class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
     <nav class="auth-entry-legal" data-mobile-web="auth-legal" aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
   </div>
-  <div class="auth-example">
-    <h2>From photos to a ready-to-copy draft.</h2>
-    <figure class="auth-example-item">
-      <img src="/app/welcome-sample-dress.webp" alt="Black wrap dress with short sleeves and button detail" width="360" height="480" loading="lazy" decoding="async" />
-      <figcaption>
-        <span class="auth-example-label">Example draft</span>
-        <h3>Black wrap dress</h3>
-        <p>Black textured dress with a wrap front and a flared skirt.</p>
-        <ul>
-          <li>V-neckline</li>
-          <li>Short puff sleeves</li>
-          <li>Button detail at the waist</li>
-          <li>Mini length</li>
-        </ul>
-        <p class="auth-example-tags" data-ui-content>#BlackDress #WrapDress #MiniDress</p>
-      </figcaption>
-    </figure>
+  <div class="auth-estimates" aria-labelledby="auth-benefit-title">
+    <h2 id="auth-benefit-title">Spend less time writing.</h2>
+    <div class="auth-time-estimate" data-entry-metric="time">
+      <p class="auth-time-value"><strong>{savedWritingMinutes}</strong><span>min</span></p>
+      <p class="auth-time-label">Estimated writing time saved per listing</p>
+    </div>
+    <dl class="auth-time-comparison">
+      <div><dt>By hand</dt><dd>{manualWritingMinutes} <span>min</span></dd></div>
+      <div><dt>With AutoLister</dt><dd>{assistedWritingMinutes} <span>min</span></dd></div>
+    </dl>
+    <dl class="auth-selling-estimates">
+      <div data-entry-metric="views"><dt>Views in 7 days</dt><dd>40–60</dd></div>
+      <div data-entry-metric="favourites"><dt>Favourites in 7 days</dt><dd>3–5</dd></div>
+      <div data-entry-metric="sale-time"><dt>Days to sell</dt><dd>7–14</dd></div>
+    </dl>
+    <p class="auth-estimate-note" data-entry-estimate-note>Illustrative estimates per listing.</p>
   </div>
 </section>

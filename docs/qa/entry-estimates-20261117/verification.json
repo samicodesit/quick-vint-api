@@ -1,0 +1,28 @@
+{
+  "status": "local draft, not deployed",
+  "production_gate": {
+    "tests_passed": 1804,
+    "tests_skipped": 5,
+    "lint": "pass",
+    "types": "pass",
+    "build": "pass",
+    "format": "pass"
+  },
+  "browser": {
+    "locales": 18,
+    "widths": [320, 390, 768, 1440],
+    "signin_layouts": 72,
+    "code_layouts": 72,
+    "direct_entry_and_verification": "pass",
+    "real_production_requests": 0
+  },
+  "estimates": {
+    "manual_writing_minutes": 5,
+    "assisted_writing_minutes": 1,
+    "saved_minutes": 4,
+    "first_week_views": [40, 60],
+    "first_week_favourites": [3, 5],
+    "days_to_sell": [7, 14],
+    "basis": "Illustrative scenario, not measured customer averages"
+  }
+}

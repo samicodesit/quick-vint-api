@@ -1,5 +1,10 @@
 # AutoLister AI Growth Current Sprint
 
+## Explicit verification action, November 17, 2026
+
+- Local draft. Owner requested Verify code, functioning Enter submission and a properly styled numeric code field. The code step now uses explicit submission, a compact field with larger spaced digits, associated inline validation and guarded pending/retry states. The email-link option remains available.
+- The built-app regression covers real formatted-code clipboard paste, leading zeroes, simulated autofill, button/Enter, invalid and service failures, duplicate submissions and onward draft creation. Locale layout coverage extends to the code screen. [QA evidence](qa/code-verification-20261117/README.md). No provider spend, real email, purchase or production deployment.
+
 ## Direct first-item entry, November 17, 2026
 
 - Local draft only. Normal and direct app entry show sign-in, with a full item-photo/draft example beside it on desktop and below it on mobile. The code step uses one instruction for the link/code alternatives and removes redundant initial success text. Public landing pages and SEO configuration are unchanged.

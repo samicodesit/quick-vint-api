@@ -1666,6 +1666,39 @@ export function mountMobileWebApp(
     root,
     '[data-mobile-web="resend-code"]',
   );
+  const codeInput = asElement<HTMLInputElement>(root, "#mobile-otp");
+  const codeForm = asElement<HTMLFormElement>(
+    root,
+    '[data-mobile-web="otp-form"]',
+  );
+  const verifyCode = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="verify-code"]',
+  );
+  const changeEmail = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="change-email"]',
+  );
+  let emailPending = false;
+  let verificationPending = false;
+  const codeStatus = (message: string, error = false, invalid = error) => {
+    const status = asElement<HTMLElement>(
+      root,
+      '[data-mobile-web="otp-status"]',
+    );
+    if (status) {
+      status.textContent = message;
+      status.dataset.tone = error ? "error" : "neutral";
+    }
+    if (codeInput) codeInput.setAttribute("aria-invalid", String(invalid));
+  };
+  const setCodeBusy = (busy: boolean) => {
+    if (codeInput) codeInput.readOnly = busy;
+    for (const button of [verifyCode, resendCode, changeEmail]) {
+      if (button) button.disabled = busy;
+    }
+    verifyCode?.setAttribute("aria-busy", String(busy));
+  };
   bind(resendCode, "click", () => {
     asElement<HTMLFormElement>(
       root,
@@ -1677,6 +1710,8 @@ export function mountMobileWebApp(
     "submit",
     (event) => {
       event.preventDefault();
+      if (emailPending || verificationPending) return;
+      emailPending = true;
       const form = event.currentTarget as HTMLFormElement;
       const email =
         (new FormData(form).get("email") as string | null)?.trim() ?? "";
@@ -1684,7 +1719,7 @@ export function mountMobileWebApp(
         'button[type="submit"]',
       );
       if (submit) submit.disabled = true;
-      if (resendCode) resendCode.disabled = true;
+      setCodeBusy(true);
       authStatus("");
       void requestMagicLink(email)
         .then(() => {
@@ -1692,42 +1727,56 @@ export function mountMobileWebApp(
           renderMobileAuthStep(root, email);
           const input = asElement<HTMLInputElement>(root, "#mobile-otp");
           if (input) input.value = "";
+          codeStatus("");
           authStatus("");
           asElement<HTMLInputElement>(root, "#mobile-otp")?.focus();
         })
         .catch(() => {
           if (disposed) return;
-          authStatus(uiText("Could not send a code. Try again."), true);
+          if (codeForm && !codeForm.hidden)
+            codeStatus(
+              uiText("Could not send a code. Try again."),
+              true,
+              false,
+            );
+          else authStatus(uiText("Could not send a code. Try again."), true);
         })
         .finally(() => {
           if (submit && !disposed) submit.disabled = false;
-          if (resendCode && !disposed) resendCode.disabled = false;
+          emailPending = false;
+          if (!disposed) setCodeBusy(false);
         });
     },
   );
   bind(asElement(root, '[data-mobile-web="change-email"]'), "click", () => {
+    if (emailPending || verificationPending) return;
     renderMobileAuthStep(root, null);
     authStatus("");
+    codeStatus("");
     const input = asElement<HTMLInputElement>(root, "#mobile-otp");
     if (input) input.value = "";
     asElement<HTMLInputElement>(root, "#mobile-email")?.focus();
   });
-  bind(asElement(root, '[data-mobile-web="otp-form"]'), "submit", (event) => {
-    // Code verification runs on complete input. Never submit a code in the URL.
-    event.preventDefault();
+  bind(codeInput, "input", () => {
+    if (!codeInput || verificationPending || emailPending) return;
+    codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
+    codeStatus("");
   });
-  bind(asElement<HTMLInputElement>(root, "#mobile-otp"), "input", (event) => {
-    const input = event.currentTarget as HTMLInputElement;
-    input.value = input.value.replace(/\D/g, "").slice(0, 6);
-    authStatus("");
-    if (input.value.length !== 6) return;
-    if (input.disabled) return;
-    input.disabled = true;
-    if (resendCode) resendCode.disabled = true;
-    authStatus(uiText("Checking code…"));
+  bind(codeForm, "submit", (event) => {
+    event.preventDefault();
+    if (!codeInput || emailPending || verificationPending) return;
+    codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
+    if (!/^[0-9]{6}$/.test(codeInput.value)) {
+      codeStatus(uiText("Enter the 6-digit code."), true);
+      codeInput.focus();
+      return;
+    }
+    verificationPending = true;
+    setCodeBusy(true);
+    codeStatus(uiText("Checking code…"));
     const email =
       asElement<HTMLInputElement>(root, "#mobile-email")?.value ?? "";
-    void verifyEmailOtp(email, input.value)
+    void verifyEmailOtp(email, codeInput.value)
       .then((nextSession) => {
         if (disposed) return;
         if (session?.user.id !== nextSession?.user.id)
@@ -1739,18 +1788,25 @@ export function mountMobileWebApp(
         openDraftWorkspace();
         void refreshUsage();
       })
-      .catch(() => {
+      .catch((error) => {
         if (disposed) return;
-        authStatus(
+        const status = errorDetails(error).status;
+        const unavailable =
+          status === 0 || (status !== undefined && status >= 500);
+        codeStatus(
           uiText(
-            "That code could not be verified. Try again or request a new code.",
+            unavailable
+              ? "Could not verify the code. Try again."
+              : "That code could not be verified. Try again or request a new code.",
           ),
           true,
+          !unavailable,
         );
+        codeInput.focus();
       })
       .finally(() => {
-        if (!disposed) input.disabled = false;
-        if (resendCode && !disposed) resendCode.disabled = false;
+        verificationPending = false;
+        if (!disposed) setCodeBusy(false);
       });
   });
   bind(asElement(root, '[data-mobile-web="sign-out"]'), "click", () => {

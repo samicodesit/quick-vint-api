@@ -292,6 +292,7 @@ it.skipIf(!enabled).each([false, true])(
       await page.fill("#mobile-email", "fixture@example.test");
       await page.locator('[data-mobile-web="email-form"] button').click();
       await page.fill("#mobile-otp", "123456");
+      await page.locator('[data-mobile-web="verify-code"]').click();
       const entry = page.locator("[data-model-compact]");
       await expect(entry).toBeVisible();
       await expect(page.locator("dialog.um-modal")).toHaveCount(0);
@@ -376,6 +377,7 @@ it.skipIf(!enabled).each([390, 1365])(
         await page.fill("#mobile-email", "fixture@example.test");
         await page.locator('[data-mobile-web="email-form"] button').click();
         await page.fill("#mobile-otp", "123456");
+        await page.locator('[data-mobile-web="verify-code"]').click();
         await expect(entry).toBeVisible();
         await entry.click();
         await expect(

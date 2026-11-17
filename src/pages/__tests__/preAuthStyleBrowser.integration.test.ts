@@ -251,8 +251,10 @@ it.skipIf(!enabled).each(["google", "email-code", "email-link"])(
         expect(emails).toEqual([
           { email: "fixture@example.test", client: "mobile_web" },
         ]);
-        if (method === "email-code") await page.fill("#mobile-otp", "123456");
-        else {
+        if (method === "email-code") {
+          await page.fill("#mobile-otp", "123456");
+          await page.locator('[data-mobile-web="verify-code"]').click();
+        } else {
           returned = await context.newPage();
           await returned.goto(
             base +
@@ -424,6 +426,35 @@ it.skipIf(!enabled)(
               fullPage: true,
             });
           }
+          await page.fill("#mobile-email", "fixture@example.test");
+          await page.locator('[data-mobile-web="email-form"] button').click();
+          await expect(page.locator("#mobile-otp")).toBeVisible();
+          await page.fill("#mobile-otp", "012345");
+          const codeBounds = await page.evaluate(() => {
+            const input =
+              document.querySelector<HTMLInputElement>("#mobile-otp")!;
+            const button = document
+              .querySelector('[data-mobile-web="verify-code"]')!
+              .getBoundingClientRect();
+            return {
+              overflow: document.documentElement.scrollWidth > innerWidth,
+              inputWidth: input.getBoundingClientRect().width,
+              fontSize: parseFloat(getComputedStyle(input).fontSize),
+              buttonBottom: button.bottom,
+              height: innerHeight,
+            };
+          });
+          expect(codeBounds.overflow, `${locale} code ${width}`).toBe(false);
+          expect(codeBounds.fontSize).toBeGreaterThanOrEqual(24);
+          if (width < 960)
+            expect(
+              codeBounds.buttonBottom,
+              `${locale} code ${width}`,
+            ).toBeLessThan(codeBounds.height);
+          if (locale !== "en")
+            await expect(
+              page.locator('[data-mobile-web="verify-code"]'),
+            ).not.toHaveText("Verify code");
           expect(errors).toEqual([]);
         } finally {
           await context.close();

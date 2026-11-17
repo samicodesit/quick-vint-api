@@ -126,6 +126,26 @@
 .mobile-otp-form #mobile-otp-help {
   margin: 0 0 12px;
 }
+.mobile-auth-entry #mobile-otp {
+  justify-self: center;
+  width: min(100%, 224px);
+  min-height: 58px;
+  padding: 10px 12px 10px 20px;
+  font-size: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.28em;
+  text-align: center;
+}
+.mobile-otp-form label {
+  justify-self: center;
+}
+.mobile-auth-entry #mobile-otp[aria-invalid="true"] {
+  border-color: var(--mobile-danger);
+}
+.mobile-otp-form [data-mobile-web="verify-code"] {
+  margin-top: 8px;
+}
 .auth-entry-legal a {
   display: inline-flex;
   align-items: center;

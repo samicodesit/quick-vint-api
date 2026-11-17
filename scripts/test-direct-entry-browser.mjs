@@ -19,6 +19,10 @@ let modelWrites = 0;
 let emailCalls = 0;
 let failEmail = true;
 let failCode = true;
+let networkFailure = false;
+let holdVerification = false;
+let releaseVerification;
+const verificationInputs = [];
 const generationInputs = [];
 await context.route(`${base}/api/generate`, async (route) => {
   generationInputs.push(route.request().postDataJSON());
@@ -51,13 +55,15 @@ await context.route(`${base}/api/auth/magic-link`, (route) => {
       : { json: { success: true } },
   );
 });
-await context.route("https://drafts-test.supabase.co/auth/v1/verify", (route) =>
-  route.fulfill(
-    failCode
+await context.route("https://drafts-test.supabase.co/auth/v1/verify", async (route) => {
+  verificationInputs.push(route.request().postDataJSON());
+  if (holdVerification) await new Promise(resolve => { releaseVerification = resolve; });
+  return route.fulfill(
+    networkFailure ? { status: 503, json: { msg: "Fixture temporarily unavailable" } } : failCode
       ? { status: 403, json: { msg: "Invalid code" } }
       : { json: fixtureSession },
-  ),
-);
+  );
+});
 await context.route(`${base}/api/user/model`, (route) => {
   if (route.request().method() !== "GET") modelWrites++;
   return route.fulfill({
@@ -131,6 +137,10 @@ try {
     await page.evaluate(() => document.activeElement?.id),
     "mobile-otp",
   );
+  assert.equal(await page.locator('[data-mobile-web="verify-code"]').count(), 1, "Code entry has an explicit Verify code action");
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("data-mobile-web")), "verify-code", "Keyboard users can reach Verify code directly from the input");
+  await page.keyboard.press("Shift+Tab");
   for (const [name, width, height] of [
     ["desktop", 1440, 1000],
     ["mobile", 390, 844],
@@ -153,16 +163,50 @@ try {
   );
   assert.equal(emailCalls, 4);
   const codeUrl = page.url();
+  await page.locator('[data-mobile-web="verify-code"]').click();
+  await page.getByText("Enter the 6-digit code.", { exact: true }).waitFor();
   await page.locator("#mobile-otp").fill("123");
   await page.locator("#mobile-otp").press("Enter");
   assert.equal(page.url(), codeUrl, "Enter never sends an incomplete code in a URL");
+  assert.equal(verificationInputs.length, 0, "Empty and partial codes never reach verification");
   await page.locator("#mobile-otp").fill("123456");
+  assert.equal(verificationInputs.length, 0, "Typing six digits does not sign in automatically");
+  await page.evaluate(() => navigator.clipboard.writeText("012 345"));
+  await page.locator("#mobile-otp").focus();
+  await page.locator("#mobile-otp").press("Control+a");
+  await page.locator("#mobile-otp").press("Control+v");
+  assert.equal(await page.locator("#mobile-otp").inputValue(), "012345", "Whole-code paste normalizes spaces and keeps the leading zero");
+  for (const [name, width, height] of [["desktop", 1440, 1000], ["mobile", 390, 844]]) {
+    await page.setViewportSize({ width, height });
+    await page.screenshot({ path: `${output}/code-filled-${name}.png`, fullPage: true });
+  }
+  await page.locator('[data-mobile-web="verify-code"]').click();
   await page
     .getByText(
       "That code could not be verified. Try again or request a new code.",
       { exact: true },
     )
     .waitFor();
+  assert.equal(verificationInputs[0].token, "012345");
+  assert.equal(await page.locator("#mobile-otp").getAttribute("aria-invalid"), "true");
+  await page.screenshot({ path: `${output}/code-error-mobile.png`, fullPage: true });
+  networkFailure = true;
+  holdVerification = true;
+  await page.locator("#mobile-otp").press("Enter");
+  await page.getByText("Checking code…", { exact: true }).waitFor();
+  assert.equal(await page.locator('[data-mobile-web="verify-code"]').isDisabled(), true);
+  assert.equal(await page.locator('[data-mobile-web="resend-code"]').isDisabled(), true);
+  assert.equal(await page.locator('[data-mobile-web="change-email"]').isDisabled(), true);
+  await page.locator('[data-mobile-web="otp-form"]').evaluate(form => { form.requestSubmit(); form.requestSubmit(); });
+  await page.screenshot({ path: `${output}/code-checking-mobile.png`, fullPage: true });
+  assert.equal(verificationInputs.length, 2, "In-flight verification cannot be submitted twice");
+  holdVerification = false;
+  releaseVerification();
+  await page.getByText("Could not verify the code. Try again.", { exact: true }).waitFor();
+  assert.equal(await page.locator("#mobile-otp").getAttribute("aria-invalid"), "false", "A service failure does not label the code itself invalid");
+  assert.equal(await page.locator("#mobile-otp").inputValue(), "012345", "A network failure preserves the code for retry");
+  assert.equal(await page.locator('[data-mobile-web="verify-code"]').isDisabled(), false);
+  networkFailure = false;
   failCode = false;
   // Old unfinished model choices must not reopen setup after the new release.
   await page.evaluate(() =>
@@ -179,7 +223,12 @@ try {
       }),
     ),
   );
-  await page.locator("#mobile-otp").fill("654321");
+  await page.locator("#mobile-otp").evaluate(input => {
+    input.value = "654321";
+    input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertReplacementText" }));
+  });
+  assert.equal(verificationInputs.length, 2, "Autofill waits for explicit submission too");
+  await page.locator("#mobile-otp").press("Enter");
   await page.getByRole("heading", { name: "Add item", exact: true }).waitFor();
   assert.equal(
     await page
@@ -327,9 +376,9 @@ try {
     `${base}/app/auth/callback`,
   );
   console.log(
-    "PASS: responsive sign-in, keyboard order, email failure/retry/code/resend, fresh-account upload/generation, restored draft/defaults/batch preferences, optional model setup, Google OAuth handoff",
+    "PASS: explicit Verify code and Enter, no automatic submission, spaced clipboard paste and leading zero, autofill input, empty/partial/invalid/service-error recovery, duplicate-submit guard, responsive sign-in, email/resend/change, upload/generation and restored defaults",
   );
 } finally {
-  await writeFile(`${output}/result.json`, JSON.stringify(h.stats(), null, 2) + "\n");
+  await writeFile(`${output}/result.json`, JSON.stringify({ ...h.stats(), emailCalls, verificationCalls: verificationInputs.length }, null, 2) + "\n");
   await browser.close();
 }

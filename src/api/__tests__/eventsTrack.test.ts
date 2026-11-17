@@ -766,6 +766,39 @@ describe("events tracking endpoint", () => {
     expect(args.p_event.businessLog).not.toHaveProperty("ip_address");
   });
 
+  it("does not grant anonymous refresh reports the authenticated summary retention policy", async () => {
+    await postEvent(
+      {
+        schemaVersion: 2,
+        events: [
+          {
+            id: "b423926a-35a6-4bf5-8027-8ab335c72220",
+            occurredAt: new Date().toISOString(),
+            event: "token_refresh_failed",
+            source: "extension_background",
+            context: {
+              operationId: "anonymous-refresh",
+              queueAgeMs: 1000,
+              queueSendAttempts: 2,
+              queueLastStatus: 0,
+              queueLastFailure: "network",
+              message: "private",
+            },
+          },
+        ],
+      },
+      false,
+    );
+    const args = rpcMock.mock.calls.find(
+      (call) => call[0] === "incident_ingest",
+    )?.[1];
+    expect(args.p_verified).toBe(false);
+    expect(args.p_event.businessLog.full_request_body).not.toHaveProperty(
+      "analyticsOnly",
+    );
+    expect(JSON.stringify(args.p_event.businessLog)).not.toContain("private");
+  });
+
   it("retains the real background failure cohort beyond three examples and suppresses it after same-client renewal", async () => {
     const db = new PGlite();
     try {
@@ -812,6 +845,18 @@ describe("events tracking endpoint", () => {
             message: "Failed to fetch",
             stack: "unnecessary-stack",
             access_token: "private",
+            queueAgeMs: 51553000,
+            queueSendAttempts: 6,
+            queueLastStatus: 0,
+            queueLastAttemptAgeMs: 3600000,
+            queueLastFailure: "network",
+            ...(index === 0
+              ? {
+                  queueDropped: 2,
+                  queueDroppedCapacity: 2,
+                  queueDroppedEventTypes: '{"token_refresh_failed":2}',
+                }
+              : {}),
           },
         };
         expect(
@@ -826,6 +871,27 @@ describe("events tracking endpoint", () => {
       expect(retained).toHaveLength(7);
       expect(JSON.stringify(retained)).not.toContain("private");
       expect(JSON.stringify(retained)).not.toContain("unnecessary-stack");
+      expect(retained[0].full_request_body).toMatchObject({
+        analyticsOnly: true,
+        context: {
+          queueAgeMs: 51553000,
+          queueSendAttempts: 6,
+          queueLastStatus: 0,
+          queueLastAttemptAgeMs: 3600000,
+          queueLastFailure: "network",
+        },
+      });
+      expect(
+        retained.find((row) => row.full_request_body.context.queueDropped)
+          ?.full_request_body,
+      ).toMatchObject({
+        analyticsOnly: true,
+        context: {
+          queueDropped: 2,
+          queueDroppedCapacity: 2,
+          queueDroppedEventTypes: '{"token_refresh_failed":2}',
+        },
+      });
       const success = {
         id: "c423926a-35a6-4bf5-8027-8ab335c72229",
         event: "auth_session_result",

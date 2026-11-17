@@ -747,6 +747,7 @@ globalThis.AutoListerContextPolicy = {
     "opaque",
   ],
   strings: [
+    "queueLastFailure",
     "errorCode",
     "message",
     "error",
@@ -819,6 +820,10 @@ globalThis.AutoListerContextPolicy = {
     "resumeTrigger",
   ],
   numbers: [
+    "queueAgeMs",
+    "queueSendAttempts",
+    "queueLastStatus",
+    "queueLastAttemptAgeMs",
     "firstFailureStatusCode",
     "expectedTitleLength",
     "actualTitleLength",

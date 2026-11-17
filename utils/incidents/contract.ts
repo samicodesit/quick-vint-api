@@ -115,6 +115,42 @@ export function sanitizeContext(
       (typeof source.status === "number" ? source.status : undefined),
   };
   for (const [key, value] of Object.entries(canonical)) {
+    if (key === "queueLastFailure") {
+      if (
+        typeof value === "string" &&
+        [
+          "network",
+          "credentials",
+          "server",
+          "capacity",
+          "unacknowledged",
+        ].includes(value)
+      )
+        output[key] = value;
+      continue;
+    }
+    if (
+      [
+        "queueAgeMs",
+        "queueSendAttempts",
+        "queueLastStatus",
+        "queueLastAttemptAgeMs",
+      ].includes(key)
+    ) {
+      const limit =
+        key === "queueLastStatus"
+          ? 599
+          : key === "queueSendAttempts"
+            ? 10000
+            : LIMITS.queueAgeMs;
+      if (
+        Number.isSafeInteger(value) &&
+        Number(value) >= 0 &&
+        Number(value) <= limit
+      )
+        output[key] = value;
+      continue;
+    }
     if (key === "queueDroppedEventTypes") {
       try {
         if (typeof value !== "string" || value.length > 500) continue;

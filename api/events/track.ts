@@ -618,12 +618,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
         };
       }
-      if (backgroundRefreshFailure && !dropCarrier) {
+      if (backgroundRefreshFailure) {
         return {
           endpoint: "/event/token_refresh_failed",
           request_method: metadata.requestMethod,
           response_status: 204,
           full_request_body: {
+            // Bounded transport facts follow the existing 30-day summary policy.
+            // No stack, message, credential or photos enter this minimal record.
+            ...(authenticatedUserId ? { analyticsOnly: true } : {}),
             event: raw.event,
             source: raw.source,
             extensionVersion: redact(raw.extensionVersion, 80),
@@ -635,11 +638,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 "analyticsClientId",
                 "entryPoint",
                 "parentOperationId",
+                "queueAgeMs",
+                "queueSendAttempts",
+                "queueLastStatus",
+                "queueLastAttemptAgeMs",
+                "queueLastFailure",
+                "queueDropped",
+                "queueDroppedExpired",
+                "queueDroppedCapacity",
+                "queueDroppedRejected",
+                "queueDroppedUnclassified",
+                "queueDroppedCritical",
+                "queueDroppedCustomerReports",
+                "queueDroppedEventTypes",
+                "queueDropLastRejection",
               ]
                 .filter(
                   (key) =>
-                    typeof context[key] === "string" &&
-                    context[key].length <= 160,
+                    (typeof context[key] === "string" &&
+                      context[key].length <=
+                        (key === "queueDroppedEventTypes" ? 500 : 160)) ||
+                    (key.startsWith("queue") &&
+                      Number.isSafeInteger(context[key])),
                 )
                 .map((key) => [key, context[key]]),
             ),

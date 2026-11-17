@@ -191,6 +191,24 @@ queue retries independently. Recheck late originals by exact account, operation,
 client and version. Absence at the first inspection is not proof of permanent
 loss, and a refresh outcome does not establish a blocked Generate recovery.
 
+For compatible 1.4.41+ extension refresh failures, the minimal retained log also
+contains bounded queue transport facts: `queueAgeMs`, `queueSendAttempts`,
+`queueLastStatus`, `queueLastAttemptAgeMs` and `queueLastFailure`. Status zero
+means no usable HTTP response. The finite failure categories are `network`,
+`credentials`, `server`, `capacity` and `unacknowledged`. Compare occurrence and
+receipt times with these facts. Queue age and attempt counts describe the current
+queue entry; recreation from the bounded original journal or legacy state can
+omit earlier attempts. Neither a client field nor an unrelated HTTP success
+proves a historical provider or browser cause.
+
+These summaries contain correlation and transport facts only, with no message,
+stack, credentials, image URLs or listing text. They use the existing 30-day
+bounded summary retention, including when the failure carries drop counters.
+Older client versions lack the new transport fields. The server release alone
+does not establish client compatibility. On an attributable same-owner renewal,
+the extension permits one retry of the original after network/credential failure.
+Explicit server Retry-After and server/capacity cooldowns remain in force.
+
 Use Vercel for endpoint-hit proof:
 
 ```sh

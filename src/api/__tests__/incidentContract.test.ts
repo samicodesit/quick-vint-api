@@ -16,6 +16,59 @@ const event = {
 };
 
 describe("incident ingestion contract", () => {
+  it("retains only bounded queue transport numbers and finite failure categories", () => {
+    expect(
+      sanitizeContext(
+        {
+          queueAgeMs: 86400000,
+          queueSendAttempts: 10000,
+          queueLastStatus: 0,
+          queueLastAttemptAgeMs: 1000,
+          queueLastFailure: "network",
+        },
+        false,
+      ),
+    ).toEqual({
+      queueAgeMs: 86400000,
+      queueSendAttempts: 10000,
+      queueLastStatus: 0,
+      queueLastAttemptAgeMs: 1000,
+      queueLastFailure: "network",
+    });
+    for (const value of [
+      -1,
+      Infinity,
+      NaN,
+      0.5,
+      "10",
+      { toString: "private" },
+    ]) {
+      expect(
+        sanitizeContext(
+          {
+            queueAgeMs: value,
+            queueSendAttempts: value,
+            queueLastStatus: value,
+            queueLastAttemptAgeMs: value,
+            queueLastFailure: value,
+          },
+          false,
+        ),
+      ).toEqual({});
+    }
+    expect(
+      sanitizeContext(
+        {
+          queueAgeMs: 86400001,
+          queueSendAttempts: 10001,
+          queueLastStatus: 600,
+          queueLastAttemptAgeMs: 86400001,
+          queueLastFailure: "https://private.invalid/token",
+        },
+        false,
+      ),
+    ).toEqual({});
+  });
   it("bounds the phone runtime marker without accepting arbitrary versions", () => {
     for (const pageRuntime of [1, 2, "1", "private", null]) {
       expect(

@@ -13,6 +13,7 @@
     "opaque"
   ],
   "strings": [
+    "queueLastFailure",
     "errorCode",
     "message",
     "error",
@@ -85,6 +86,10 @@
     "resumeTrigger"
   ],
   "numbers": [
+    "queueAgeMs",
+    "queueSendAttempts",
+    "queueLastStatus",
+    "queueLastAttemptAgeMs",
     "firstFailureStatusCode",
     "expectedTitleLength",
     "actualTitleLength",

@@ -123,7 +123,6 @@ it.skipIf(!enabled).each([390, 1365])(
     );
     try {
       await page.goto(base + "/app");
-      await page.locator("[data-style-finish]").click();
       await page.locator("[data-model-compact]").click();
       const hint = page.locator(".um-preview-hint");
       await expect(hint).toHaveText(
@@ -237,7 +236,7 @@ it.skipIf(!enabled)(
 );
 
 it.skipIf(!enabled)(
-  "lets a first-time user skip the model invitation and choose item photos",
+  "opens item photos directly without an automatic model invitation",
   async () => {
     const { context, page, creates } = await fixture(390, "unseen");
     try {
@@ -245,13 +244,6 @@ it.skipIf(!enabled)(
       await page.addStyleTag({
         content: "astro-dev-toolbar{display:none!important}",
       });
-      await page.locator("[data-style-finish]").click();
-      await expect(page.locator("dialog.um-modal")).toBeVisible();
-      if (output)
-        await page.screenshot({
-          path: `${output}/first-invitation-mobile.png`,
-        });
-      await page.locator("dialog.um-modal .um-secondary").click();
       await expect(page.locator("dialog.um-modal")).toHaveCount(0);
       await expect(
         page.getByRole("heading", { name: "Add item", exact: true }),
@@ -269,54 +261,43 @@ it.skipIf(!enabled)(
   30000,
 );
 
-it.skipIf(!enabled).each(["skip", "preferences"])(
-  "keeps guest onboarding optional and preserves %s through sign-in",
-  async (choice) => {
+it.skipIf(!enabled).each([false, true])(
+  "opens sign-in directly and ignores automatic pending model setup (%s)",
+  async (pending) => {
     const { context, page, creates } = await fixture(390, "unseen", false);
     try {
       await page.goto(base + "/app");
       await page.addStyleTag({
         content: "astro-dev-toolbar{display:none!important}",
       });
-      await page.locator("[data-style-finish]").click();
-      if (choice === "preferences") {
-        for (const [group, value] of Object.entries({
-          gender: "male",
-          hair: "brown",
-          build: "slim",
-          skinTone: "tone_2",
-        }))
-          await page
-            .locator(`.um-view input[name="model-${group}"][value="${value}"]`)
-            .check();
-        await page.locator('.um-view input[type="number"]').fill("183");
-        await page.locator(".um-view .um-primary").click();
-      } else await page.locator(".um-view .um-secondary").click();
+      await expect(page.locator('[data-mobile-web="auth-card"]')).toBeVisible();
+      await expect(page.locator("[data-style-setup],.um-preauth")).toHaveCount(
+        0,
+      );
+      if (pending)
+        await page.evaluate(() =>
+          localStorage.setItem(
+            "autolister:pending-model:v1",
+            JSON.stringify({
+              preferences: {
+                gender: "male",
+                hair: "brown",
+                build: "slim",
+                skinTone: "tone_2",
+                heightCm: 183,
+              },
+            }),
+          ),
+        );
       await page.fill("#mobile-email", "fixture@example.test");
       await page.locator('[data-mobile-web="email-form"] button').click();
       await page.fill("#mobile-otp", "123456");
       const entry = page.locator("[data-model-compact]");
       await expect(entry).toBeVisible();
-      if (choice === "preferences") {
-        await expect(page.locator('.um-view input[type="number"]')).toHaveValue(
-          "183",
-        );
-        await page.getByRole("button", { name: "Close", exact: true }).click();
-        await entry.click();
-        await expect(
-          page.locator('.um-view input[name="model-gender"][value="male"]'),
-        ).toBeChecked();
-        await expect(page.locator('.um-view input[type="number"]')).toHaveValue(
-          "183",
-        );
-      } else {
-        await expect(page.locator("dialog.um-modal")).toHaveCount(0);
-        await expect(
-          page
-            .getByText("Choose photos", { exact: true })
-            .filter({ visible: true }),
-        ).toBeVisible();
-      }
+      await expect(page.locator("dialog.um-modal")).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { name: "Add item", exact: true }),
+      ).toBeVisible();
       expect(creates).toEqual([]);
     } finally {
       await context.close();
@@ -335,7 +316,6 @@ it.skipIf(!enabled).each([390, 1365])(
       await page.addStyleTag({
         content: "astro-dev-toolbar{display:none!important}",
       });
-      await page.locator("[data-style-finish]").click();
       const entry = page.locator("[data-model-compact]");
       await expect(entry).toBeVisible();
       await expect(

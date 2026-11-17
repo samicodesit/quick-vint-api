@@ -1,0 +1,183 @@
+/* The item example explains the product without adding a setup step. */
+.mobile-auth-entry.mobile-auth-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(32px, 4vw, 56px);
+  max-width: 1080px;
+  margin: 48px auto 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.auth-example {
+  grid-column: 1;
+  grid-row: 1;
+}
+.auth-example h2 {
+  max-width: 15ch;
+  margin: 0 0 32px;
+  font-family: var(--app-display-font);
+  font-size: clamp(38px, 4vw, 52px);
+  font-weight: 450;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.auth-example-item {
+  display: grid;
+  grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  margin: 0;
+}
+.auth-example-item > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+.auth-example-label {
+  color: var(--mobile-muted);
+  font-size: 12px;
+}
+.auth-example-item h3 {
+  margin: 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+.auth-example-item p {
+  margin: 0;
+  color: var(--mobile-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.auth-entry-form {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 32px;
+  border: 1px solid var(--mobile-border);
+  border-radius: var(--app-radius-panel);
+  background: var(--mobile-surface);
+}
+.auth-example-item ul {
+  margin: 16px 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.auth-example-item li + li {
+  margin-top: 5px;
+}
+.auth-example-item .auth-example-tags {
+  color: var(--mobile-brand-strong);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.mobile-auth-entry h1 {
+  max-width: none;
+  margin: 0 0 24px;
+  font-family: var(--autolister-font-ui, system-ui, sans-serif);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.04em;
+}
+.mobile-auth-entry .mobile-google-button,
+.mobile-auth-entry .mobile-primary-button,
+.mobile-auth-entry input {
+  min-height: 48px;
+}
+.mobile-auth-entry .mobile-google-button:disabled,
+.mobile-auth-entry .mobile-primary-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.mobile-auth-entry input {
+  border-color: #81857c;
+}
+.mobile-auth-entry .mobile-form-status:empty {
+  display: none;
+}
+.auth-entry-offer {
+  margin: -12px 0 24px;
+  color: var(--mobile-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.auth-entry-legal {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+.auth-code-destination {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 500;
+}
+.mobile-otp-form #mobile-otp-help {
+  margin: 0 0 12px;
+}
+.auth-entry-legal a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--mobile-muted);
+  font-size: 12px;
+  text-underline-offset: 3px;
+}
+.auth-entry-legal a:hover {
+  color: var(--mobile-brand-strong);
+}
+@media (max-width: 959px) {
+  .mobile-auth-entry.mobile-auth-card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+    max-width: 440px;
+    margin: 16px auto 0;
+  }
+  .auth-entry-form {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .auth-example {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .mobile-auth-entry:has(.mobile-otp-form:not([hidden])) .auth-example {
+    display: none;
+  }
+  .auth-example h2 {
+    max-width: 19ch;
+    margin-bottom: 16px;
+    font-size: 30px;
+  }
+  .auth-example-item {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .auth-example-item h3 {
+    margin: 4px 0;
+    font-size: 17px;
+  }
+  .auth-example-item p {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .auth-entry-form {
+    padding: 24px;
+  }
+  .mobile-auth-entry h1 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+  .mobile-auth-entry .mobile-auth-divider {
+    margin: 16px 0;
+  }
+  .auth-entry-offer {
+    margin: -8px 0 20px;
+  }
+}

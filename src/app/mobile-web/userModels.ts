@@ -2,12 +2,7 @@ import { uiText } from "./ui";
 import { fetchMobileJson } from "./api";
 import { getBrowserSession } from "./auth";
 import { trackMobileEvent, trackModelButtonViewed } from "./analytics";
-import {
-  MODEL_PENDING_KEY,
-  claimPendingModel,
-  savePendingModel,
-  type ModelChoice,
-} from "./userModelState";
+import { type ModelChoice } from "./userModelState";
 declare global {
   interface Window {
     AutoListerModelUI?: {
@@ -29,9 +24,8 @@ export function mountUserModels(
 ) {
   let activeCleanup: (() => void) | undefined,
     stopped = false,
-    offerTimer: ReturnType<typeof setTimeout> | undefined,
     checking = false,
-    offeredOwner: string | undefined;
+    loadedOwner: string | undefined;
   const interacted = new Set<string>();
   const exposed = new Set<string>();
   // Unsubmitted choices live only in this workspace session, never on the model.
@@ -146,11 +140,7 @@ export function mountUserModels(
     activeCleanup?.();
     activeCleanup = undefined;
   }
-  function open(
-    owner: string,
-    initialPreferences?: ModelChoice,
-    invite = false,
-  ) {
+  function open(owner: string) {
     if (!enabled() || getOwner() !== owner) return;
     close();
     const dialog = document.createElement("dialog");
@@ -163,7 +153,6 @@ export function mountUserModels(
     dialog.append(view);
     document.body.append(dialog);
     let dispose = () => {};
-    let invitationOpen = invite && !initialPreferences;
     const end = () => {
       dispose();
       dialog.close();
@@ -172,47 +161,26 @@ export function mountUserModels(
     };
     activeCleanup = end;
     const leave = () => {
-      if (invitationOpen) {
-        invitationOpen = false;
-        void tracker(owner, "invitation")("model_invitation_dismissed");
-      }
-      void request(owner)("POST", { action: "dismiss" }).catch(() => {});
-      localStorage.removeItem(MODEL_PENDING_KEY);
       end();
     };
     const form = () => {
-      if (invitationOpen) {
-        invitationOpen = false;
-        void tracker(owner, "invitation")("model_invitation_opened");
-      }
       acknowledge(owner);
       dispose();
       dispose = window.AutoListerModelUI!.mount(view, {
-        track: tracker(
-          owner,
-          invite ? "invitation" : initialPreferences ? "onboarding" : "toolbar",
-        ),
+        track: tracker(owner, "toolbar"),
         request: request(owner),
-        ...draftOptions(owner, initialPreferences),
+        ...draftOptions(owner),
         onClose: leave,
         onSkip: leave,
         backLabel: uiText("Close"),
       });
     };
-    if (invite && !initialPreferences) {
-      view.className = "um-view";
-      view.lang = window.AutoListerModelUI!.locale();
-      view.innerHTML = window.AutoListerModelUI!.invitation();
-      view.querySelector(".um-primary")!.addEventListener("click", form);
-      view.querySelector(".um-secondary")!.addEventListener("click", leave);
-    } else form();
+    form();
     dialog.addEventListener("cancel", (e) => {
       e.preventDefault();
       leave();
     });
     dialog.showModal();
-    if (invitationOpen)
-      void tracker(owner, "invitation")("model_invitation_shown");
     dialog.querySelector<HTMLElement>("button,input")?.focus();
   }
   async function settings(event: Event) {
@@ -272,120 +240,39 @@ export function mountUserModels(
         if (session?.user.id !== getOwner()) {
           close();
           setupDrafts.clear();
-          clearTimeout(offerTimer);
-          offeredOwner = undefined;
+          loadedOwner = undefined;
         }
       })
       .catch(() => close());
   };
   window.addEventListener("storage", accountChanged);
-  function isBusy() {
-    return Array.from(
-      document.querySelectorAll(
-        'dialog[open], [aria-modal="true"], .draft-settings[open], [data-draft-queue]:not([hidden]), [aria-busy="true"]',
-      ),
-    ).some((element) => element.getClientRects().length > 0);
-  }
-  async function offer(owner: string) {
+  async function refresh(owner: string) {
     if (
       stopped ||
       !enabled() ||
       checking ||
-      offeredOwner === owner ||
+      loadedOwner === owner ||
       getOwner() !== owner
     )
       return;
-    // Load the settings entry even while settings are open. Only the automatic
-    // invitation below is deferred by other work or an open dialog.
+    // Entry is read-only. Model setup is opened only by an explicit button click.
     checking = true;
     try {
-      const state = await request(owner)();
+      await request(owner)();
       if (stopped || getOwner() !== owner) return;
-      if (!state.model && !(await canSetup(false))) return;
-      if (stopped || getOwner() !== owner) return;
-      const pending = claimPendingModel(localStorage, owner);
-      if (pending) {
-        if (pending.preferences === null) {
-          await request(owner)("POST", { action: "dismiss" });
-          localStorage.removeItem(MODEL_PENDING_KEY);
-          offeredOwner = owner;
-          return;
-        }
-        if (!window.AutoListerModelUI!.validPreferences(pending.preferences)) {
-          localStorage.removeItem(MODEL_PENDING_KEY);
-          return;
-        }
-        if (!state.model) {
-          if (isBusy()) {
-            offerTimer = setTimeout(() => void offer(owner), 3000);
-            return;
-          }
-          offeredOwner = owner;
-          open(owner, pending.preferences);
-          return;
-        }
-        localStorage.removeItem(MODEL_PENDING_KEY);
-      }
-      if (state.invitationState !== "unseen" || state.model) {
-        offeredOwner = owner;
-        return;
-      }
-      if (isBusy()) {
-        offerTimer = setTimeout(() => void offer(owner), 3000);
-        return;
-      }
-      const invitation = await request(owner)("POST", { action: "invite" });
-      if (!stopped && getOwner() === owner && invitation.claimed) {
-        offeredOwner = owner;
-        open(owner, undefined, true);
-      }
+      loadedOwner = owner;
     } catch {
-      /* Optional invitation must never block listing work. Settings allow another attempt. */
+      /* Optional model settings must never block listing work. The button retries. */
     } finally {
       checking = false;
     }
   }
   return {
-    offer,
-    preferences(done: () => void) {
-      if (!enabled()) {
-        done();
-        return;
-      }
-      close();
-      const host = document.createElement("section");
-      host.className = "um-preauth";
-      root.querySelector(".mobile-workspace-main")?.prepend(host);
-      root
-        .querySelector<HTMLElement>('[data-mobile-web="auth-card"]')
-        ?.setAttribute("hidden", "");
-      const dispose = window.AutoListerModelUI!.mount(host, {
-        track: tracker(getOwner(), "onboarding"),
-        mode: "preferences",
-        onContinue: (preferences: ModelChoice | null) => {
-          try {
-            savePendingModel(localStorage, preferences);
-          } catch (e) {
-            const p = document.createElement("p");
-            p.setAttribute("role", "alert");
-            p.textContent = (e as Error).message;
-            host.append(p);
-            return;
-          }
-          close();
-          done();
-        },
-      });
-      activeCleanup = () => {
-        dispose();
-        host.remove();
-      };
-    },
+    refresh,
     reset() {
       close();
       setupDrafts.clear();
-      clearTimeout(offerTimer);
-      offeredOwner = undefined;
+      loadedOwner = undefined;
       root
         .querySelectorAll<HTMLElement>("[data-user-model-open]")
         .forEach((button) => {
@@ -396,7 +283,6 @@ export function mountUserModels(
       stopped = true;
       close();
       setupDrafts.clear();
-      clearTimeout(offerTimer);
       root.removeEventListener("click", settings);
       window.removeEventListener("storage", accountChanged);
     },

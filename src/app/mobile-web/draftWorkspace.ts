@@ -57,6 +57,7 @@ export function mountDraftWorkspace(
     onGetMoreDrafts?: () => void;
     onViewPlans?: () => void;
     defaultSettings?: DraftSettings;
+    resetBatchSettings?: boolean;
     startWithNewItem?: boolean;
   },
 ) {
@@ -146,8 +147,7 @@ export function mountDraftWorkspace(
   let defaultSettings = normalizeDraftSettings(freshDefaults);
   try {
     const saved = localStorage.getItem(defaultsKey);
-    if (saved && !options.startWithNewItem)
-      defaultSettings = normalizeDraftSettings(JSON.parse(saved));
+    if (saved) defaultSettings = normalizeDraftSettings(JSON.parse(saved));
   } catch {}
   const batchSettingsKey = `autolister:batch-settings:${options.userId}`;
   const loadDefaults = () => {
@@ -163,7 +163,7 @@ export function mountDraftWorkspace(
   let globalSettings = loadDefaults();
   try {
     const saved = sessionStorage.getItem(batchSettingsKey);
-    if (saved && !options.startWithNewItem)
+    if (saved && !options.resetBatchSettings)
       defaultSettings = normalizeDraftSettings(JSON.parse(saved));
     else
       sessionStorage.setItem(batchSettingsKey, JSON.stringify(defaultSettings));

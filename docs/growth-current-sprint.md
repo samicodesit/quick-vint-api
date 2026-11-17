@@ -1,5 +1,12 @@
 # AutoLister AI Growth Current Sprint
 
+## Direct first-item entry, November 17, 2026
+
+- Local draft only. Normal and direct app entry show sign-in, with a full item-photo/draft example beside it on desktop and below it on mobile. The code step uses one instruction for the link/code alternatives and removes redundant initial success text. Public landing pages and SEO configuration are unchanged.
+- Empty authenticated workspaces open Add item. Automatic style setup and model invitations are removed. Saved drafts, account and batch preferences, legacy style handoffs, explicit model setup and existing enabled models remain covered.
+- QA: production verification gate, 15 explicit first-use/legacy browser cases, 72 locale/viewport layouts, the complete 26-check local draft browser journey, and model-photo/allowance journeys pass. All network responses in the browser journeys are local fixtures. No real emails, payments, marketplace actions or provider generations. Evidence and rendered desktop/mobile screens: [direct-first-item QA](qa/direct-first-item/README.md).
+- Conversion improvement remains a hypothesis pending production release approval and subsequent cohort outcomes. This change does not resolve the separate rear-pose availability or photo-tolerance investigations.
+
 ## Five-draft offer and first-listing sample, November 9, 2026
 
 - The signed-in web editor shows the remaining free drafts with five small ticks. Get more opens the existing plans and credit packs. After the account commits its fifth free draft, the workspace can show 20% off the first month of Pro under the finished draft. Copy and Mark as listed remain usable. The server fixes the deadline at 72 hours after draft five. Shared-IP exhaustion by itself does not qualify. Existing paid customers and previous observed buyers do not qualify. Clicking the offer opens Stripe directly with the signed offer.

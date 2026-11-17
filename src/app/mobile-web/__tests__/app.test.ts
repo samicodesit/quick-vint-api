@@ -6,15 +6,26 @@ const stylesheet = readFileSync("src/styles/mobile-web-app.css", "utf8");
 
 it("code entry shows its destination and hides the sign-in choices until Change email", () => {
   const elements = new Map<string, FakeElement>();
-  for (const key of ["auth-choices", "otp-form", "auth-email", "auth-status"])
+  for (const key of [
+    "auth-choices",
+    "otp-form",
+    "auth-email",
+    "auth-status",
+    "auth-legal",
+  ])
     elements.set(`[data-mobile-web="${key}"]`, new FakeElement());
   elements.set("#mobile-auth-title", new FakeElement());
+  elements.set("#mobile-otp-help", new FakeElement());
   const root = {
     querySelector: (key: string) => elements.get(key) || null,
   } as unknown as ParentNode;
   mobileWebApp.renderMobileAuthStep(root, "seller@example.test");
   expect(elements.get('[data-mobile-web="auth-choices"]')!.hidden).toBe(true);
   expect(elements.get('[data-mobile-web="otp-form"]')!.hidden).toBe(false);
+  expect(elements.get('[data-mobile-web="auth-legal"]')!.hidden).toBe(true);
+  expect(elements.get("#mobile-otp-help")!.textContent).toBe(
+    "Open the link or enter the code.",
+  );
   expect(elements.get('[data-mobile-web="auth-email"]')!.textContent).toBe(
     "seller@example.test",
   );
@@ -24,6 +35,7 @@ it("code entry shows its destination and hides the sign-in choices until Change 
   mobileWebApp.renderMobileAuthStep(root, null);
   expect(elements.get('[data-mobile-web="auth-choices"]')!.hidden).toBe(false);
   expect(elements.get('[data-mobile-web="otp-form"]')!.hidden).toBe(true);
+  expect(elements.get('[data-mobile-web="auth-legal"]')!.hidden).toBe(false);
   expect(elements.get('[data-mobile-web="auth-email"]')!.textContent).toBe("");
 });
 

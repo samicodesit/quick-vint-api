@@ -1,0 +1,27 @@
+{
+  "status": "local draft, not deployed",
+  "base_commit": "fec9872",
+  "production_gate": {
+    "passed": 1804,
+    "skipped": 5,
+    "lint": "pass",
+    "types": "pass",
+    "build": "pass",
+    "format": "pass"
+  },
+  "browser": {
+    "locale_viewports": 72,
+    "first_use_and_legacy_cases": 15,
+    "draft_journey_checks": 26,
+    "direct_entry": "pass",
+    "model_photo_lifecycle": "pass",
+    "model_allowance": "pass",
+    "production_network_requests": 0
+  },
+  "seo": {
+    "public_files_changed": false,
+    "app_noindex": true,
+    "app_excluded_from_sitemap": true,
+    "public_sitemap_urls": 119
+  }
+}

@@ -25,8 +25,14 @@ const context = await browser.newContext({
   locale: process.env.DRAFT_BROWSER_LOCALE || "en",
   permissions: ["clipboard-read", "clipboard-write"],
 });
+await context.addInitScript(() => document.addEventListener("DOMContentLoaded", () => {
+  const style = document.createElement("style");
+  style.textContent = "astro-dev-toolbar{display:none!important}";
+  document.head.append(style);
+}));
 await context.addInitScript(
-  ({ userId, createdAt }) => {
+  ({ userId, createdAt, signedOut }) => {
+    if (signedOut) return;
     const encode = (v) =>
       btoa(JSON.stringify(v))
         .replace(/=/g, "")
@@ -54,9 +60,8 @@ await context.addInitScript(
     );
   },
   { userId,
-    // The established suite exercises an existing account. Interactive review
-    // also covers the first-use style setup offered to newly created accounts.
-    createdAt: process.env.DRAFT_BROWSER_INTERACTIVE === "1" ? new Date().toISOString() : "2026-10-01T00:00:00Z",
+    createdAt: process.env.DRAFT_BROWSER_NEW_USER === "1" || process.env.DRAFT_BROWSER_INTERACTIVE === "1" ? new Date().toISOString() : "2026-10-01T00:00:00Z",
+    signedOut: process.env.DRAFT_BROWSER_SIGNED_OUT === "1",
   },
 );
 // Fixture runs must never send synthetic activity to production services.
@@ -602,6 +607,8 @@ if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
 } else {
 try {
   await page.goto(`${base}/app`);
+  await page.locator('[data-draft-items][aria-busy="false"]').waitFor({ state: "attached" });
+  if (await action("back").isVisible()) await click("back");
   await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
   assert.equal(
     await page.locator(".mobile-workspace-brand").getAttribute("href"),

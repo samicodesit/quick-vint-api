@@ -119,7 +119,7 @@ async function screens(name) {
 }
 try {
   await page.goto(base + "/app");
-  await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  await page.getByRole("heading", { name: "Add item", exact: true }).waitFor();
   await click("new");
   if (process.env.MODEL_PHOTO_ORIGINAL) {
     const original = await readFile(process.env.MODEL_PHOTO_ORIGINAL);

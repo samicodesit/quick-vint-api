@@ -1,5 +1,11 @@
 # AutoLister AI Growth Current Sprint
 
+## Sign-in and verification refinement, November 18, 2026
+
+- Local draft, not deployed. Replace the single code box with six visible digit slots backed by one native autofill/paste input. Keep explicit Verify code and Enter. Bold Open the link. Test mouse and touch editing, retries, duplicate prevention and onward draft generation.
+- Replace time bars with a direct 5-minute versus 1-minute comparison. Use clock, eye, heart and timer icons for their respective metrics. Supporting example estimates are 50–100 views, 3–8 favourites and 24–48 hours to sell, explicitly scoped to an in-demand item priced to sell. These are illustrative assumptions, not measured AutoLister outcomes or uplift. Research does not substantiate the selected numbers as a combined observed result.
+- Actual desktop/mobile screens and all 18 locales at four widths checked. Browser/OS autofill is enabled; a physical iPhone email suggestion remains untested. [Research, evidence and verification](qa/auth-polish-20261118/README.md). No real email, purchase, provider call, release or marketplace action.
+
 ## Sign-in estimates panel, November 17, 2026
 
 - Local draft. At the owner's revised direction, replace the item/draft example with a prominent 4-minute illustrative writing-time saving (5 minutes manually versus 1 minute assisted), plus 40–60 views and 3–5 favourites over 7 days, and 7–14 days to sell. The panel visibly labels these as illustrative estimates. They are not measured customer averages or a measured conversion/sales uplift.

@@ -378,6 +378,7 @@ it.skipIf(!enabled)(
           const auth = page.locator(".auth-entry-form");
           await expect(auth).toBeVisible();
           await expect(page.locator("[data-entry-metric]")).toHaveCount(4);
+          await expect(page.locator("[data-entry-metric] svg")).toHaveCount(4);
           await page.evaluate(() => document.fonts.ready);
           const bounds = await page.evaluate(() => {
             const form = document
@@ -433,6 +434,14 @@ it.skipIf(!enabled)(
           await page.locator('[data-mobile-web="email-form"] button').click();
           await expect(page.locator("#mobile-otp")).toBeVisible();
           await page.fill("#mobile-otp", "012345");
+          await expect(page.locator("[data-otp-slot]")).toHaveCount(6);
+          await expect(
+            page.locator('[data-mobile-web="otp-form"] input'),
+          ).toHaveCount(1);
+          if (locale !== "en")
+            await expect(
+              page.locator("#mobile-otp-help strong"),
+            ).not.toHaveText("Open the link");
           const codeBounds = await page.evaluate(() => {
             const input =
               document.querySelector<HTMLInputElement>("#mobile-otp")!;

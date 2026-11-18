@@ -146,7 +146,6 @@ export function renderMobileAuthStep(
     email === null ? uiText("Sign in") : uiText("Check your email"),
   );
   text(root, '[data-mobile-web="auth-email"]', email || "");
-  text(root, "#mobile-otp-help", uiText("Open the link or enter the code."));
 }
 
 export type MobileLanguageKind = "title" | "description";
@@ -1681,6 +1680,21 @@ export function mountMobileWebApp(
   );
   let emailPending = false;
   let verificationPending = false;
+  const codeSlots = Array.from(
+    root.querySelectorAll<HTMLElement>("[data-otp-slot]"),
+  );
+  const syncCodeSlots = () => {
+    if (!codeInput || !codeSlots.length) return;
+    const focused = codeInput.ownerDocument.activeElement === codeInput;
+    const start = codeInput.selectionStart ?? codeInput.value.length;
+    const end = codeInput.selectionEnd ?? start;
+    codeSlots.forEach((slot, index) => {
+      const digit = codeInput.value[index] || "";
+      if (slot.textContent !== digit) slot.textContent = digit;
+      slot.dataset.active = String(focused && index === Math.min(start, 5));
+      slot.dataset.selected = String(focused && index >= start && index < end);
+    });
+  };
   const codeStatus = (message: string, error = false, invalid = error) => {
     const status = asElement<HTMLElement>(
       root,
@@ -1729,7 +1743,10 @@ export function mountMobileWebApp(
           if (input) input.value = "";
           codeStatus("");
           authStatus("");
+          emailPending = false;
+          setCodeBusy(false);
           asElement<HTMLInputElement>(root, "#mobile-otp")?.focus();
+          syncCodeSlots();
         })
         .catch(() => {
           if (disposed) return;
@@ -1755,17 +1772,44 @@ export function mountMobileWebApp(
     codeStatus("");
     const input = asElement<HTMLInputElement>(root, "#mobile-otp");
     if (input) input.value = "";
+    syncCodeSlots();
     asElement<HTMLInputElement>(root, "#mobile-email")?.focus();
   });
-  bind(codeInput, "input", () => {
+  const updateCodeInput = () => {
     if (!codeInput || verificationPending || emailPending) return;
     codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
     codeStatus("");
+    syncCodeSlots();
+  };
+  bind(codeInput, "input", updateCodeInput);
+  bind(codeInput, "change", updateCodeInput);
+  for (const event of ["focus", "blur", "keyup", "select"])
+    bind(codeInput, event, syncCodeSlots);
+  bind(codeInput, "click", (event) => {
+    if (!codeInput || !codeSlots.length || codeInput.readOnly) return;
+    // Preserve native drag selections; a click on a slot selects its digit for replacement.
+    if (codeInput.selectionStart === codeInput.selectionEnd) {
+      const x = (event as MouseEvent).clientX;
+      let index = codeSlots.findIndex(
+        (slot) => x <= slot.getBoundingClientRect().right,
+      );
+      if (index < 0) index = 5;
+      const start = Math.min(index, codeInput.value.length);
+      codeInput.setSelectionRange(
+        start,
+        Math.min(start + 1, codeInput.value.length),
+      );
+    }
+    syncCodeSlots();
+  });
+  bind(document, "selectionchange", () => {
+    if (document.activeElement === codeInput) syncCodeSlots();
   });
   bind(codeForm, "submit", (event) => {
     event.preventDefault();
     if (!codeInput || emailPending || verificationPending) return;
     codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
+    syncCodeSlots();
     if (!/^[0-9]{6}$/.test(codeInput.value)) {
       codeStatus(uiText("Enter the 6-digit code."), true);
       codeInput.focus();
@@ -1802,6 +1846,7 @@ export function mountMobileWebApp(
           true,
           !unavailable,
         );
+        setCodeBusy(false);
         codeInput.focus();
       })
       .finally(() => {

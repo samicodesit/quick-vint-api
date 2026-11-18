@@ -21,7 +21,7 @@
 }
 .auth-estimates h2 {
   max-width: 15ch;
-  margin: 0 0 32px;
+  margin: 0 0 24px;
   font-family: var(--app-display-font);
   font-size: clamp(38px, 4vw, 52px);
   font-weight: 450;
@@ -39,8 +39,16 @@
 }
 .auth-time-estimate {
   display: flex;
-  align-items: center;
-  gap: 24px;
+  align-items: baseline;
+  gap: 12px;
+  margin: 12px 0 20px;
+}
+.auth-time-card {
+  margin-bottom: 16px;
+  padding: 24px;
+  border: 1px solid #cdd8fd;
+  border-radius: 16px;
+  background: var(--mobile-brand-soft);
 }
 .auth-time-value {
   display: inline-flex;
@@ -53,7 +61,7 @@
   font-variant-numeric: tabular-nums;
 }
 .auth-time-value strong {
-  font-size: 88px;
+  font-size: 72px;
   font-weight: 500;
   letter-spacing: -0.065em;
 }
@@ -62,18 +70,33 @@
   font-weight: 500;
 }
 .auth-time-label {
-  max-width: 20ch;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  font-size: 16px;
+  color: var(--mobile-brand-strong);
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.5;
+}
+.auth-time-label svg {
+  flex-shrink: 0;
+}
+.auth-time-context {
+  color: var(--mobile-muted);
+  font-size: 14px;
 }
 .auth-time-comparison {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  margin: 24px 0 28px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--mobile-border);
+  gap: 16px;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid #cdd8fd;
+}
+.auth-time-comparison > div + div {
+  padding-left: 16px;
+  border-left: 1px solid #cdd8fd;
 }
 .auth-time-comparison dt,
 .auth-selling-estimates dt {
@@ -82,9 +105,13 @@
   line-height: 1.4;
 }
 .auth-time-comparison dd {
-  margin: 6px 0 0;
-  font-size: 18px;
-  font-weight: 600;
+  margin: 4px 0 0;
+  font-size: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.auth-time-comparison dd span {
+  font-size: 16px;
 }
 .auth-time-comparison > div:last-child dd {
   color: var(--mobile-brand-strong);
@@ -92,23 +119,38 @@
 .auth-selling-estimates {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin: 0 0 20px;
+  gap: 12px;
+  margin: 0 0 16px;
 }
 .auth-selling-estimates > div {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  padding: 48px 16px 16px;
+  border: 1px solid var(--mobile-border);
+  border-radius: 12px;
+  background: white;
+}
+.auth-selling-estimates dt svg {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  color: var(--mobile-brand-strong);
 }
 .auth-selling-estimates dd {
   order: -1;
   margin: 0;
-  font-size: clamp(28px, 3vw, 36px);
+  font-size: 32px;
   font-weight: 500;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.045em;
+}
+.auth-selling-estimates dd span {
+  font-size: 18px;
+  letter-spacing: 0;
 }
 .auth-estimate-note {
   margin: 0;
@@ -161,22 +203,70 @@
 .mobile-otp-form #mobile-otp-help {
   margin: 0 0 12px;
 }
-.mobile-auth-entry #mobile-otp {
+.auth-otp-field {
+  position: relative;
   justify-self: center;
-  width: min(100%, 224px);
+  width: min(100%, 304px);
+  height: 58px;
+}
+.mobile-auth-entry #mobile-otp {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
   min-height: 58px;
-  padding: 10px 12px 10px 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  -webkit-text-fill-color: transparent;
   font-size: 28px;
-  font-weight: 500;
+  outline: none;
+  box-shadow: none;
+}
+.auth-otp-slots {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  pointer-events: none;
+}
+.auth-otp-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  border: 1px solid #81857c;
+  border-radius: 8px;
+  background: white;
+  color: var(--mobile-ink);
+  font-size: 28px;
+  font-weight: 550;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.28em;
-  text-align: center;
+}
+.auth-otp-slot[data-active="true"] {
+  border: 2px solid var(--mobile-brand);
+  box-shadow: 0 0 0 2px #3458df20;
+}
+.auth-otp-slot[data-selected="true"] {
+  background: var(--mobile-brand-soft);
+}
+.auth-otp-slot[data-active="true"]:empty::after {
+  width: 2px;
+  height: 24px;
+  background: var(--mobile-brand);
+  content: "";
+}
+.auth-otp-field:has([aria-invalid="true"]) .auth-otp-slot {
+  border-color: var(--mobile-danger);
 }
 .mobile-otp-form label {
   justify-self: center;
-}
-.mobile-auth-entry #mobile-otp[aria-invalid="true"] {
-  border-color: var(--mobile-danger);
 }
 .mobile-otp-form [data-mobile-web="verify-code"] {
   margin-top: 8px;
@@ -215,7 +305,7 @@
     font-size: 30px;
   }
   .auth-time-estimate {
-    gap: 20px;
+    gap: 12px;
   }
   .auth-time-value strong {
     font-size: 72px;
@@ -225,6 +315,9 @@
   }
   .auth-time-label {
     font-size: 14px;
+  }
+  .auth-time-card {
+    padding: 20px;
   }
   .auth-entry-form {
     padding: 24px;
@@ -238,5 +331,52 @@
   }
   .auth-entry-offer {
     margin: -8px 0 20px;
+  }
+}
+@media (max-width: 600px) {
+  .auth-selling-estimates {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .auth-selling-estimates > div {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 72px;
+    padding: 16px;
+  }
+  .auth-selling-estimates dt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .auth-selling-estimates dt svg {
+    position: static;
+    flex-shrink: 0;
+  }
+  .auth-selling-estimates dd {
+    order: 0;
+    flex-shrink: 0;
+    font-size: 28px;
+  }
+}
+@media (max-width: 360px) {
+  .auth-otp-slots {
+    gap: 6px;
+  }
+}
+@media (forced-colors: active) {
+  .mobile-auth-entry #mobile-otp {
+    forced-color-adjust: none;
+  }
+  .auth-otp-slot[data-active="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+  .auth-otp-slot[data-selected="true"] {
+    background: Highlight;
+    color: HighlightText;
   }
 }

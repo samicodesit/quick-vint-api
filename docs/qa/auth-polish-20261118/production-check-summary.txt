@@ -1,0 +1,5 @@
+ ✓ src/pages/__tests__/preAuthStyleBrowser.integration.test.ts (7 tests) 43506ms
+ ✓ src/pages/__tests__/firstUseBrowser.integration.test.ts (8 tests) 11264ms
+ Test Files  202 passed | 2 skipped (204)
+      Tests  1804 passed | 5 skipped (1809)
+   Duration  110.86s (transform 4.57s, setup 0ms, import 17.55s, tests 167.68s, environment 34ms)

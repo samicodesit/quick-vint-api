@@ -10,6 +10,8 @@ The time-saving figure leads; three supporting estimated ranges use short labels
 
 ## Implementation and acceptance
 
+November 18 refinement: six visual digit slots over one native autofill input; bold Open the link; numeric time comparison without bars; metric-specific icons. The scoped illustrative sale example is now 24–48 hours, with 50–100 views and 3–8 favourites before sale, replacing the earlier first-week ranges. Preserve sign-in priority, explicit submission and compact copy. See `docs/qa/auth-polish-20261118/README.md` for research limits and final verification.
+
 1. Capture current desktop/mobile entry and sign-in. Add a failing browser check for empty-workspace entry and an unseen model invitation.
 2. Remove automatic pre-auth and post-auth style setup. Preserve legacy pending style choices and account defaults. Open Add item only when no saved drafts, imports or restorable view exist.
 3. Load model settings silently. No invitation writes, automatic setup or pending-model popup. The manual model button and existing enabled models continue working.

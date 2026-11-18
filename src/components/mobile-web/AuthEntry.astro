@@ -1,4 +1,5 @@
 ---
+import { Clock, Eye, Heart, Timer } from "@lucide/astro";
 // An illustrative scenario, not observed customer averages.
 const manualWritingMinutes = 5;
 const assistedWritingMinutes = 1;
@@ -19,9 +20,12 @@ const savedWritingMinutes = manualWritingMinutes - assistedWritingMinutes;
     </div>
     <form data-mobile-web="otp-form" class="mobile-otp-form" method="post" novalidate hidden>
       <p class="auth-code-destination" data-mobile-web="auth-email"></p>
-      <p id="mobile-otp-help" class="mobile-field-help">Open the link or enter the code.</p>
+      <p id="mobile-otp-help" class="mobile-field-help"><strong>Open the link</strong> <span>or enter the code.</span></p>
       <label for="mobile-otp">6-digit code</label>
-      <input id="mobile-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required spellcheck="false" autocapitalize="off" aria-describedby="mobile-otp-help mobile-otp-status" />
+      <div class="auth-otp-field">
+        <input id="mobile-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" enterkeyhint="go" pattern="[0-9]{6}" required spellcheck="false" autocapitalize="off" aria-describedby="mobile-otp-help mobile-otp-status" />
+        <div class="auth-otp-slots" aria-hidden="true">{Array.from({ length: 6 }, (_, index) => <span class="auth-otp-slot" data-otp-slot={index}></span>)}</div>
+      </div>
       <p id="mobile-otp-status" class="mobile-form-status" data-mobile-web="otp-status" role="status" aria-live="polite"></p>
       <button type="submit" class="mobile-primary-button" data-mobile-web="verify-code">Verify code</button>
       <div class="mobile-auth-actions">
@@ -34,19 +38,19 @@ const savedWritingMinutes = manualWritingMinutes - assistedWritingMinutes;
   </div>
   <div class="auth-estimates" aria-labelledby="auth-benefit-title">
     <h2 id="auth-benefit-title">Spend less time writing.</h2>
-    <div class="auth-time-estimate" data-entry-metric="time">
-      <p class="auth-time-value"><strong>{savedWritingMinutes}</strong><span>min</span></p>
-      <p class="auth-time-label">Estimated writing time saved per listing</p>
+    <div class="auth-time-card" data-entry-metric="time">
+      <p class="auth-time-label"><Clock size={20} aria-hidden="true" /><span>Writing time saved</span></p>
+      <div class="auth-time-estimate"><p class="auth-time-value"><strong>{savedWritingMinutes}</strong><span>min</span></p><span class="auth-time-context">per listing</span></div>
+      <dl class="auth-time-comparison">
+        <div><dt>By hand</dt><dd>{manualWritingMinutes} <span>min</span></dd></div>
+        <div><dt>With AutoLister</dt><dd>{assistedWritingMinutes} <span>min</span></dd></div>
+      </dl>
     </div>
-    <dl class="auth-time-comparison">
-      <div><dt>By hand</dt><dd>{manualWritingMinutes} <span>min</span></dd></div>
-      <div><dt>With AutoLister</dt><dd>{assistedWritingMinutes} <span>min</span></dd></div>
-    </dl>
     <dl class="auth-selling-estimates">
-      <div data-entry-metric="views"><dt>Views in 7 days</dt><dd>40–60</dd></div>
-      <div data-entry-metric="favourites"><dt>Favourites in 7 days</dt><dd>3–5</dd></div>
-      <div data-entry-metric="sale-time"><dt>Days to sell</dt><dd>7–14</dd></div>
+      <div data-entry-metric="views"><dt><Eye size={20} aria-hidden="true" /><span>Views</span></dt><dd>50–100</dd></div>
+      <div data-entry-metric="favourites"><dt><Heart size={20} aria-hidden="true" /><span>Favourites</span></dt><dd>3–8</dd></div>
+      <div data-entry-metric="sale-time"><dt><Timer size={20} aria-hidden="true" /><span>Time to sell</span></dt><dd>24–48 <span>h</span></dd></div>
     </dl>
-    <p class="auth-estimate-note" data-entry-estimate-note>Illustrative estimates per listing.</p>
+    <p class="auth-estimate-note" data-entry-estimate-note>Example estimates for an in-demand item priced to sell.</p>
   </div>
 </section>

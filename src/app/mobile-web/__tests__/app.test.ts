@@ -15,7 +15,6 @@ it("code entry shows its destination and hides the sign-in choices until Change 
   ])
     elements.set(`[data-mobile-web="${key}"]`, new FakeElement());
   elements.set("#mobile-auth-title", new FakeElement());
-  elements.set("#mobile-otp-help", new FakeElement());
   const root = {
     querySelector: (key: string) => elements.get(key) || null,
   } as unknown as ParentNode;
@@ -23,9 +22,6 @@ it("code entry shows its destination and hides the sign-in choices until Change 
   expect(elements.get('[data-mobile-web="auth-choices"]')!.hidden).toBe(true);
   expect(elements.get('[data-mobile-web="otp-form"]')!.hidden).toBe(false);
   expect(elements.get('[data-mobile-web="auth-legal"]')!.hidden).toBe(true);
-  expect(elements.get("#mobile-otp-help")!.textContent).toBe(
-    "Open the link or enter the code.",
-  );
   expect(elements.get('[data-mobile-web="auth-email"]')!.textContent).toBe(
     "seller@example.test",
   );

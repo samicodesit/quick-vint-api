@@ -21,6 +21,7 @@ const detailPhoto = await readFile(
   new URL("../docs/qa/browser-drafts/sample-detail.png", import.meta.url),
 );
 const context = await browser.newContext({
+  hasTouch: process.env.DRAFT_BROWSER_TOUCH === "1",
   viewport: { width: 390, height: 844 },
   locale: process.env.DRAFT_BROWSER_LOCALE || "en",
   permissions: ["clipboard-read", "clipboard-write"],

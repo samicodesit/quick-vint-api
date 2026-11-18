@@ -138,6 +138,11 @@ try {
     "mobile-otp",
   );
   assert.equal(await page.locator('[data-mobile-web="verify-code"]').count(), 1, "Code entry has an explicit Verify code action");
+  assert.equal(await page.locator('[data-otp-slot]').count(), 6, "The one native input has six visual digit slots");
+  assert.equal(await page.locator('[data-mobile-web="otp-form"] input').count(), 1);
+  assert.equal(await page.locator('#mobile-otp').getAttribute('autocomplete'), 'one-time-code');
+  assert.equal(await page.locator('#mobile-otp-help strong').innerText(), 'Open the link');
+  assert.equal(await page.locator('#mobile-otp').evaluate(input => input.readOnly), false, 'The focused code input is writable for keyboard/autofill');
   await page.keyboard.press("Tab");
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("data-mobile-web")), "verify-code", "Keyboard users can reach Verify code directly from the input");
   await page.keyboard.press("Shift+Tab");
@@ -176,6 +181,21 @@ try {
   await page.locator("#mobile-otp").press("Control+a");
   await page.locator("#mobile-otp").press("Control+v");
   assert.equal(await page.locator("#mobile-otp").inputValue(), "012345", "Whole-code paste normalizes spaces and keeps the leading zero");
+  const digits = () => page.locator('[data-otp-slot]').allTextContents();
+  assert.equal((await digits()).join(''), '012345', 'Paste fills all six visual slots');
+  await page.locator('#mobile-otp').press('Backspace');
+  assert.equal((await digits()).join(''), '01234');
+  await page.locator('#mobile-otp').press('5');
+  assert.equal((await digits()).join(''), '012345');
+  const field = await page.locator('#mobile-otp').boundingBox();
+  const slotPoint = [field.x + field.width * 2.5 / 6, field.y + field.height / 2];
+  if (process.env.DRAFT_BROWSER_TOUCH === "1") await page.touchscreen.tap(...slotPoint);
+  else await page.mouse.click(...slotPoint);
+  await page.locator('#mobile-otp').press('9');
+  assert.equal(await page.locator('#mobile-otp').inputValue(), '019345', 'Clicking a filled slot replaces that digit');
+  await page.locator('#mobile-otp').press('Control+a');
+  await page.locator('#mobile-otp').press('Control+v');
+  assert.equal((await digits()).join(''), '012345');
   for (const [name, width, height] of [["desktop", 1440, 1000], ["mobile", 390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.screenshot({ path: `${output}/code-filled-${name}.png`, fullPage: true });
@@ -225,8 +245,9 @@ try {
   );
   await page.locator("#mobile-otp").evaluate(input => {
     input.value = "654321";
-    input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertReplacementText" }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
   });
+  assert.equal((await digits()).join(''), '654321', 'Autofill is reflected in the visual slots');
   assert.equal(verificationInputs.length, 2, "Autofill waits for explicit submission too");
   await page.locator("#mobile-otp").press("Enter");
   await page.getByRole("heading", { name: "Add item", exact: true }).waitFor();
@@ -248,7 +269,7 @@ try {
   ]) {
     await page.setViewportSize({ width, height });
     await page.evaluate(() => document.fonts.ready);
-    if (width >= 768) await page.locator('[data-phone-upload="single"] [data-phone-qr] img').waitFor();
+    if (width >= 768 && process.env.DRAFT_BROWSER_TOUCH !== "1") await page.locator('[data-phone-upload="single"] [data-phone-qr] img').waitFor();
     await page.screenshot({
       path: `${output}/first-item-${name}.png`,
       fullPage: true,

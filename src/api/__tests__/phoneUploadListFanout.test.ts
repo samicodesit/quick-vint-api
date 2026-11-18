@@ -5,6 +5,7 @@ const storage = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
   createSignedUrls: vi.fn(),
 }));
+const alerts = vi.hoisted(() => ({ report: vi.fn() }));
 vi.mock("../../../utils/supabaseClient", () => ({
   supabase: { storage: { from: () => storage } },
 }));
@@ -12,11 +13,49 @@ vi.mock("../../../utils/incidents/service", () => ({
   continueIncidentWork: vi.fn(),
 }));
 vi.mock("../../../utils/criticalEndpointAlert", () => ({
-  reportCriticalEndpointFailure: vi.fn(),
+  reportCriticalEndpointFailure: alerts.report,
 }));
 import handler from "../../../api/phone-upload";
 
 describe("legacy upload listing signing pressure", () => {
+  it("preserves a per-photo provider rejection for incident tracing", async () => {
+    storage.list.mockResolvedValue({
+      data: [{ name: "000000-upload.jpg" }],
+      error: null,
+    });
+    storage.createSignedUrls.mockResolvedValue({
+      data: [
+        {
+          path: "fixture/000000-upload.jpg",
+          signedUrl: null,
+          error: "Too many connections issued to the database",
+        },
+      ],
+      error: null,
+    });
+    const res: any = {
+      statusCode: 200,
+      setHeader() {},
+      getHeader() {},
+      end() {},
+      status(n: number) {
+        this.statusCode = n;
+        return this;
+      },
+      json(body: unknown) {
+        this.body = body;
+        return this;
+      },
+    };
+    await handler(
+      { method: "GET", headers: {}, query: { sessionId: "fixture" } } as any,
+      res,
+    );
+    expect(res.statusCode).toBe(500);
+    expect(alerts.report.mock.calls.at(-1)?.[0].error.message).toContain(
+      "Too many connections issued to the database",
+    );
+  });
   it("lists a large computer upload without one concurrent storage request per photo", async () => {
     const sessionId = "550e8400-e29b-41d4-a716-446655440099";
     const photos = Array.from({ length: 307 }, (_, order) => ({

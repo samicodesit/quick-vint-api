@@ -455,7 +455,9 @@ async function createStoredFileResponses(
   return storedFiles.map((file) => {
     const signed = signedByPath.get(file.path);
     if (signed?.error || !signed?.signedUrl) {
-      throw new Error(`Failed to create signed URL for ${file.path}`);
+      throw new Error(
+        `Failed to create signed URL for ${file.path}: ${signed?.error || "No signed URL returned"}`,
+      );
     }
     return { ...file, url: signed.signedUrl };
   });

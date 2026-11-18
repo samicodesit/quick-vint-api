@@ -1704,9 +1704,13 @@ describe("phone upload endpoint", () => {
       ],
       error: null,
     });
-    createSignedUrlMock.mockImplementation((path: string) =>
+    createSignedUrlsMock.mockImplementation((paths: string[]) =>
       Promise.resolve({
-        data: { signedUrl: `https://signed.test/${path}` },
+        data: paths.map((path) => ({
+          path,
+          signedUrl: `https://signed.test/${path}`,
+          error: null,
+        })),
         error: null,
       }),
     );

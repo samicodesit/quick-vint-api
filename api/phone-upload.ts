@@ -434,28 +434,6 @@ function createStoredFileMetadata(
   };
 }
 
-async function createStoredFileResponse(
-  sessionId: string,
-  file: { name: string; metadata?: Record<string, unknown> | null },
-  ttlSeconds = 3600,
-): Promise<StoredFile> {
-  const storedFile = createStoredFileMetadata(sessionId, file);
-  const { data, error } = await supabase.storage
-    .from(UPLOAD_BUCKET)
-    .createSignedUrl(storedFile.path, ttlSeconds);
-
-  if (error || !data?.signedUrl) {
-    throw new Error(
-      `Failed to create signed URL for ${storedFile.path}: ${error?.message || "No signed URL returned"}`,
-    );
-  }
-
-  return {
-    ...storedFile,
-    url: data.signedUrl,
-  };
-}
-
 async function createStoredFileResponses(
   sessionId: string,
   files: { name: string; metadata?: Record<string, unknown> | null }[],
@@ -705,11 +683,7 @@ async function handleList(req: VercelRequest, res: VercelResponse) {
         : responsePhotoFiles.map((file) =>
             createStoredFileMetadata(sessionId, file),
           )
-      : await Promise.all(
-          photoFiles.map((file) =>
-            createStoredFileResponse(sessionId, file, 3600),
-          ),
-        );
+      : await createStoredFileResponses(sessionId, photoFiles, 3600);
     signedFiles.sort(
       (a, b) => a.order - b.order || a.name.localeCompare(b.name),
     );

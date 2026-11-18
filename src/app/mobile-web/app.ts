@@ -2,13 +2,7 @@ import { initializeUiLocale, uiFormat, uiText } from "./ui";
 import { trackResultEdits, sendResultEdit } from "./resultEditTracking";
 import { mountDraftWorkspace } from "./draftWorkspace";
 import { mountUserModels } from "./userModels";
-import {
-  shouldOfferStyleOnboarding,
-  saveOnboardingStyle,
-  readPreAuthStyle,
-  savePreAuthStyle,
-  applyPreAuthStyle,
-} from "./styleOnboardingState";
+import { applyPreAuthStyle } from "./styleOnboardingState";
 import type { DraftSettings } from "./draftContracts";
 import { mountMobilePaywall, type MobilePaywallEntryPoint } from "./paywall";
 import { getBillingCopy } from "../../utils/billingDisplay";
@@ -145,21 +139,13 @@ export function renderMobileAuthStep(
 ): void {
   setHidden(root, '[data-mobile-web="auth-choices"]', email !== null);
   setHidden(root, '[data-mobile-web="otp-form"]', email === null);
+  setHidden(root, '[data-mobile-web="auth-legal"]', email !== null);
   text(
     root,
     "#mobile-auth-title",
     email === null ? uiText("Sign in") : uiText("Check your email"),
   );
   text(root, '[data-mobile-web="auth-email"]', email || "");
-  text(
-    root,
-    "#mobile-otp-help",
-    readPreAuthStyle(getStorage())?.settings
-      ? uiText(
-          "Open the email link in this browser to keep your selected style.",
-        )
-      : uiText("The same email also includes a secure sign-in link."),
-  );
 }
 
 export type MobileLanguageKind = "title" | "description";
@@ -884,7 +870,7 @@ function showAuth(root: ParentNode): void {
   closeMobileProfileMenu(root, false);
   renderMobileAuthStep(root, null);
   setHidden(root, '[data-mobile-web="auth-card"]', false);
-  setHidden(root, '[data-mobile-web="direct-sign-in"]', false);
+  setHidden(root, '[data-mobile-web="direct-sign-in"]', true);
   setHidden(root, '[data-mobile-web="app-view"]', true);
   setHidden(root, '[data-mobile-web="state-card"]', true);
   setHidden(root, '[data-mobile-web="profile-menu-root"]', true);
@@ -892,11 +878,6 @@ function showAuth(root: ParentNode): void {
   setHidden(root, '[data-mobile-web="usage"]', true);
   setHidden(root, '[data-mobile-web="upgrade"]', true);
   setHidden(root, '[data-mobile-web="manage-billing"]', true);
-  setHidden(
-    root,
-    '[data-mobile-web="change-style"]',
-    !readPreAuthStyle(getStorage()),
-  );
 }
 
 function showApp(root: ParentNode): void {
@@ -1009,12 +990,6 @@ export function mountMobileWebApp(
   let appOpenedTracked = false;
   let checkoutReturnHandled = false;
   let draftWorkspace: ReturnType<typeof mountDraftWorkspace> | undefined;
-  let styleSetupCleanup: (() => void) | undefined;
-  let styleSetupLoading = false;
-  listeners.push(() => {
-    styleSetupCleanup?.();
-    delete shell.dataset.styleSetup;
-  });
   let latestUsage: MobileUsage | null = null;
   let paywall: ReturnType<typeof mountMobilePaywall> | undefined;
   const extensionSuggestion = mountExtensionSuggestion(root, () =>
@@ -1048,10 +1023,7 @@ export function mountMobileWebApp(
     draftWorkspace?.closeOverlays();
     return paywall.show(usage, requested, entryPoint);
   };
-  const openDraftWorkspace = (
-    bypassStyleSetup = false,
-    chosenStyle?: DraftSettings,
-  ) => {
+  const openDraftWorkspace = () => {
     if (
       draftWorkspace ||
       !session ||
@@ -1061,8 +1033,9 @@ export function mountMobileWebApp(
     const workspace = asElement<HTMLElement>(root, "[data-draft-workspace]");
     if (!workspace) return;
     const storage = getStorage();
+    let chosenStyle: DraftSettings | undefined;
     try {
-      chosenStyle ??= storage
+      chosenStyle = storage
         ? (applyPreAuthStyle(storage, session.user.id) ?? undefined)
         : undefined;
     } catch {
@@ -1082,44 +1055,6 @@ export function mountMobileWebApp(
       useEmojis: true,
       ...chosenStyle,
     };
-    const setup = asElement<HTMLElement>(root, "[data-style-setup]");
-    if (
-      !bypassStyleSetup &&
-      setup &&
-      storage &&
-      shouldOfferStyleOnboarding(
-        storage,
-        session.user.id,
-        session.user.created_at,
-      )
-    ) {
-      if (styleSetupLoading || styleSetupCleanup) return;
-      styleSetupLoading = true;
-      shell.dataset.styleSetup = "true";
-      const owner = session.user.id;
-      void import("./styleOnboarding.js")
-        .then(({ mountStyleOnboarding }) => {
-          styleSetupLoading = false;
-          if (disposed || session?.user.id !== owner) return;
-          styleSetupCleanup = mountStyleOnboarding(
-            setup,
-            initialSettings,
-            (settings) => {
-              saveOnboardingStyle(storage, owner, settings);
-              styleSetupCleanup?.();
-              styleSetupCleanup = undefined;
-              delete shell.dataset.styleSetup;
-              openDraftWorkspace(true, settings);
-            },
-          );
-        })
-        .catch(() => {
-          styleSetupLoading = false;
-          delete shell.dataset.styleSetup;
-          if (!disposed && session?.user.id === owner) openDraftWorkspace(true);
-        });
-      return;
-    }
     shell.dataset.draftsEnabled = "true";
     draftWorkspace = mountDraftWorkspace(workspace, {
       userId: session.user.id,
@@ -1133,81 +1068,11 @@ export function mountMobileWebApp(
         if (latestUsage) showPaywall(latestUsage, "feature", "feature_lock");
       },
       defaultSettings: initialSettings,
-      startWithNewItem: Boolean(chosenStyle),
+      resetBatchSettings: Boolean(chosenStyle),
+      startWithNewItem: true,
     });
     if (latestUsage) draftWorkspace.updateUsage(latestUsage);
-    void userModels.offer(session.user.id);
-  };
-  const setSignInRoute = (signIn: boolean) => {
-    const url = new URL(window.location.href);
-    if (signIn) url.searchParams.set("signin", "1");
-    else url.searchParams.delete("signin");
-    window.history.replaceState(window.history.state, "", url);
-  };
-  const showEntry = (editStyle = false) => {
-    if (editStyle) setSignInRoute(false);
-    const storage = getStorage();
-    const setup = asElement<HTMLElement>(root, "[data-style-setup]");
-    const pending = readPreAuthStyle(storage);
-    if (
-      !editStyle &&
-      new URL(window.location.href).searchParams.get("signin") === "1"
-    ) {
-      // Direct sign-in skips setup, but keeps a style already chosen on this browser.
-      if (storage && !pending) {
-        try {
-          savePreAuthStyle(storage, null);
-        } catch {
-          /* Sign-in remains accessible. */
-        }
-      }
-      showAuth(root);
-      return;
-    }
-    if (!setup || !window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.draftsEnabled) {
-      showAuth(root);
-      return;
-    }
-    if (styleSetupLoading || styleSetupCleanup) return;
-    showAuth(root);
-    setHidden(root, '[data-mobile-web="auth-card"]', true);
-    shell.dataset.styleSetup = "true";
-    styleSetupLoading = true;
-    void import("./styleOnboarding.js")
-      .then(({ mountStyleOnboarding }) => {
-        styleSetupLoading = false;
-        if (disposed || session) return;
-        styleSetupCleanup = mountStyleOnboarding(
-          setup,
-          pending?.settings ?? {
-            titleLanguageCode: language.titleLanguageCode,
-            descriptionLanguageCode: language.descriptionLanguageCode,
-            ...formatting,
-            useHashtags: true,
-            useEmojis: true,
-          },
-          (settings, action) => {
-            if (!storage) throw new Error("style_storage_unavailable");
-            savePreAuthStyle(storage, action === "skip" ? null : settings);
-            setSignInRoute(true);
-            styleSetupCleanup?.();
-            styleSetupCleanup = undefined;
-            delete shell.dataset.styleSetup;
-            userModels.preferences(() => {
-              showAuth(root);
-              asElement<HTMLElement>(
-                root,
-                '[data-mobile-web="google-sign-in"]',
-              )?.focus({ preventScroll: true });
-            });
-          },
-        );
-      })
-      .catch(() => {
-        styleSetupLoading = false;
-        delete shell.dataset.styleSetup;
-        if (!disposed && !session) showAuth(root);
-      });
+    void userModels.refresh(session.user.id);
   };
   const checkoutReturnStatus = readCheckoutReturnStatus();
   const vintedDestination = getMobileVintedDestination();
@@ -1260,9 +1125,6 @@ export function mountMobileWebApp(
       if (errorDetails(error).status === 401) {
         userModels.reset();
         session = null;
-        styleSetupCleanup?.();
-        styleSetupCleanup = undefined;
-        delete shell.dataset.styleSetup;
         activeController?.abort();
         await cleanupServerSession("cancelled");
         clearPreviews();
@@ -1803,6 +1665,54 @@ export function mountMobileWebApp(
     root,
     '[data-mobile-web="resend-code"]',
   );
+  const codeInput = asElement<HTMLInputElement>(root, "#mobile-otp");
+  const codeForm = asElement<HTMLFormElement>(
+    root,
+    '[data-mobile-web="otp-form"]',
+  );
+  const verifyCode = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="verify-code"]',
+  );
+  const changeEmail = asElement<HTMLButtonElement>(
+    root,
+    '[data-mobile-web="change-email"]',
+  );
+  let emailPending = false;
+  let verificationPending = false;
+  const codeSlots = Array.from(
+    root.querySelectorAll<HTMLElement>("[data-otp-slot]"),
+  );
+  const syncCodeSlots = () => {
+    if (!codeInput || !codeSlots.length) return;
+    const focused = codeInput.ownerDocument.activeElement === codeInput;
+    const start = codeInput.selectionStart ?? codeInput.value.length;
+    const end = codeInput.selectionEnd ?? start;
+    codeSlots.forEach((slot, index) => {
+      const digit = codeInput.value[index] || "";
+      if (slot.textContent !== digit) slot.textContent = digit;
+      slot.dataset.active = String(focused && index === Math.min(start, 5));
+      slot.dataset.selected = String(focused && index >= start && index < end);
+    });
+  };
+  const codeStatus = (message: string, error = false, invalid = error) => {
+    const status = asElement<HTMLElement>(
+      root,
+      '[data-mobile-web="otp-status"]',
+    );
+    if (status) {
+      status.textContent = message;
+      status.dataset.tone = error ? "error" : "neutral";
+    }
+    if (codeInput) codeInput.setAttribute("aria-invalid", String(invalid));
+  };
+  const setCodeBusy = (busy: boolean) => {
+    if (codeInput) codeInput.readOnly = busy;
+    for (const button of [verifyCode, resendCode, changeEmail]) {
+      if (button) button.disabled = busy;
+    }
+    verifyCode?.setAttribute("aria-busy", String(busy));
+  };
   bind(resendCode, "click", () => {
     asElement<HTMLFormElement>(
       root,
@@ -1814,6 +1724,8 @@ export function mountMobileWebApp(
     "submit",
     (event) => {
       event.preventDefault();
+      if (emailPending || verificationPending) return;
+      emailPending = true;
       const form = event.currentTarget as HTMLFormElement;
       const email =
         (new FormData(form).get("email") as string | null)?.trim() ?? "";
@@ -1821,7 +1733,7 @@ export function mountMobileWebApp(
         'button[type="submit"]',
       );
       if (submit) submit.disabled = true;
-      if (resendCode) resendCode.disabled = true;
+      setCodeBusy(true);
       authStatus("");
       void requestMagicLink(email)
         .then(() => {
@@ -1829,37 +1741,86 @@ export function mountMobileWebApp(
           renderMobileAuthStep(root, email);
           const input = asElement<HTMLInputElement>(root, "#mobile-otp");
           if (input) input.value = "";
-          authStatus(uiText("Email sent."));
+          codeStatus("");
+          authStatus("");
+          emailPending = false;
+          setCodeBusy(false);
           asElement<HTMLInputElement>(root, "#mobile-otp")?.focus();
+          syncCodeSlots();
         })
         .catch(() => {
           if (disposed) return;
-          authStatus(uiText("Could not send a code. Try again."), true);
+          if (codeForm && !codeForm.hidden)
+            codeStatus(
+              uiText("Could not send a code. Try again."),
+              true,
+              false,
+            );
+          else authStatus(uiText("Could not send a code. Try again."), true);
         })
         .finally(() => {
           if (submit && !disposed) submit.disabled = false;
-          if (resendCode && !disposed) resendCode.disabled = false;
+          emailPending = false;
+          if (!disposed) setCodeBusy(false);
         });
     },
   );
   bind(asElement(root, '[data-mobile-web="change-email"]'), "click", () => {
+    if (emailPending || verificationPending) return;
     renderMobileAuthStep(root, null);
     authStatus("");
+    codeStatus("");
     const input = asElement<HTMLInputElement>(root, "#mobile-otp");
     if (input) input.value = "";
+    syncCodeSlots();
     asElement<HTMLInputElement>(root, "#mobile-email")?.focus();
   });
-  bind(asElement<HTMLInputElement>(root, "#mobile-otp"), "input", (event) => {
-    const input = event.currentTarget as HTMLInputElement;
-    input.value = input.value.replace(/\D/g, "").slice(0, 6);
-    if (input.value.length !== 6) return;
-    if (input.disabled) return;
-    input.disabled = true;
-    if (resendCode) resendCode.disabled = true;
-    authStatus(uiText("Checking code…"));
+  const updateCodeInput = () => {
+    if (!codeInput || verificationPending || emailPending) return;
+    codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
+    codeStatus("");
+    syncCodeSlots();
+  };
+  bind(codeInput, "input", updateCodeInput);
+  bind(codeInput, "change", updateCodeInput);
+  for (const event of ["focus", "blur", "keyup", "select"])
+    bind(codeInput, event, syncCodeSlots);
+  bind(codeInput, "click", (event) => {
+    if (!codeInput || !codeSlots.length || codeInput.readOnly) return;
+    // Preserve native drag selections; a click on a slot selects its digit for replacement.
+    if (codeInput.selectionStart === codeInput.selectionEnd) {
+      const x = (event as MouseEvent).clientX;
+      let index = codeSlots.findIndex(
+        (slot) => x <= slot.getBoundingClientRect().right,
+      );
+      if (index < 0) index = 5;
+      const start = Math.min(index, codeInput.value.length);
+      codeInput.setSelectionRange(
+        start,
+        Math.min(start + 1, codeInput.value.length),
+      );
+    }
+    syncCodeSlots();
+  });
+  bind(document, "selectionchange", () => {
+    if (document.activeElement === codeInput) syncCodeSlots();
+  });
+  bind(codeForm, "submit", (event) => {
+    event.preventDefault();
+    if (!codeInput || emailPending || verificationPending) return;
+    codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 6);
+    syncCodeSlots();
+    if (!/^[0-9]{6}$/.test(codeInput.value)) {
+      codeStatus(uiText("Enter the 6-digit code."), true);
+      codeInput.focus();
+      return;
+    }
+    verificationPending = true;
+    setCodeBusy(true);
+    codeStatus(uiText("Checking code…"));
     const email =
       asElement<HTMLInputElement>(root, "#mobile-email")?.value ?? "";
-    void verifyEmailOtp(email, input.value)
+    void verifyEmailOtp(email, codeInput.value)
       .then((nextSession) => {
         if (disposed) return;
         if (session?.user.id !== nextSession?.user.id)
@@ -1871,18 +1832,26 @@ export function mountMobileWebApp(
         openDraftWorkspace();
         void refreshUsage();
       })
-      .catch(() => {
+      .catch((error) => {
         if (disposed) return;
-        authStatus(
+        const status = errorDetails(error).status;
+        const unavailable =
+          status === 0 || (status !== undefined && status >= 500);
+        codeStatus(
           uiText(
-            "That code could not be verified. Try again or request a new code.",
+            unavailable
+              ? "Could not verify the code. Try again."
+              : "That code could not be verified. Try again or request a new code.",
           ),
           true,
+          !unavailable,
         );
+        setCodeBusy(false);
+        codeInput.focus();
       })
       .finally(() => {
-        if (!disposed) input.disabled = false;
-        if (resendCode && !disposed) resendCode.disabled = false;
+        verificationPending = false;
+        if (!disposed) setCodeBusy(false);
       });
   });
   bind(asElement(root, '[data-mobile-web="sign-out"]'), "click", () => {
@@ -1925,9 +1894,6 @@ export function mountMobileWebApp(
         if (!disposed) button.disabled = false;
       });
   });
-  bind(asElement(root, '[data-mobile-web="change-style"]'), "click", () =>
-    showEntry(true),
-  );
   bind(asElement(root, '[data-mobile-web="state-action"]'), "click", () => {
     if (session) {
       showApp(root);
@@ -2026,7 +1992,7 @@ export function mountMobileWebApp(
       session = await getBrowserSession();
       if (disposed) return;
       if (!session) {
-        showEntry();
+        showAuth(root);
         return;
       }
       void claimFirstTouchAfterAuth(session);

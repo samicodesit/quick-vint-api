@@ -1,0 +1,155 @@
+{
+  "generations": 2,
+  "uploadCount": 3,
+  "errors": [],
+  "requests": [
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "GET"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "GET"
+    },
+    {
+      "path": "/api/generate",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "GET"
+    },
+    {
+      "path": "/api/generate",
+      "method": "POST"
+    },
+    {
+      "path": "/api/phone-upload",
+      "method": "POST"
+    },
+    {
+      "path": "/api/user/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    },
+    {
+      "path": "/api/events/track",
+      "method": "POST"
+    }
+  ]
+}

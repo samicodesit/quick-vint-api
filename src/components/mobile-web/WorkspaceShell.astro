@@ -4,7 +4,7 @@ import PhotoRail from "./PhotoRail.astro";
 import ListingControls from "./ListingControls.astro";
 import ListingResult from "./ListingResult.astro";
 import DraftWorkspace from "./DraftWorkspace.astro";
-import StyleOnboarding from "./StyleOnboarding.astro";
+import AuthEntry from "./AuthEntry.astro";
 
 interface Props {
   titleLanguageCode?: string;
@@ -86,31 +86,7 @@ const {
   </header>
 
   <main class="mobile-workspace-main">
-    <section class="mobile-auth-card" data-mobile-web="auth-card" aria-labelledby="mobile-auth-title" hidden>
-      <h1 id="mobile-auth-title">Sign in</h1>
-      <div data-mobile-web="auth-choices">
-        <button type="button" class="mobile-google-button" data-mobile-web="google-sign-in"><img class="mobile-google-mark" src="/app/google-g.png" width="20" height="20" alt="" />Continue with Google</button>
-        <div class="mobile-auth-divider" aria-hidden="true"><span>or use email</span></div>
-        <form data-mobile-web="email-form" class="mobile-email-form">
-          <label for="mobile-email">Email address</label>
-          <input id="mobile-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com" />
-          <button type="submit" class="mobile-primary-button">Continue</button>
-        </form>
-      </div>
-      <form data-mobile-web="otp-form" class="mobile-otp-form" hidden>
-        <p class="mobile-field-help">Code sent to <strong data-mobile-web="auth-email"></strong></p><label for="mobile-otp">6-digit code</label>
-        <input id="mobile-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="mobile-otp-help" />
-        <p id="mobile-otp-help" class="mobile-field-help">The same email also includes a secure sign-in link.</p>
-        <div class="mobile-auth-actions">
-          <button type="button" class="mobile-text-button" data-mobile-web="resend-code">Resend code</button>
-          <button type="button" class="mobile-text-button" data-mobile-web="change-email">Change email</button>
-        </div>
-      </form>
-      <p class="mobile-form-status" data-mobile-web="auth-status" role="status" aria-live="polite"></p>
-      <button type="button" class="mobile-text-button" data-mobile-web="change-style" hidden>Change listing style</button>
-    </section>
-
-    <StyleOnboarding />
+    <AuthEntry />
     <section class="mobile-app-view" data-mobile-web="app-view" hidden aria-labelledby="mobile-app-title">
       <div class="mobile-app-heading">
         <div>

@@ -46,7 +46,7 @@ await context.route(base + "/api/user/model", (r) => {
 });
 try {
   await page.goto(base + "/app");
-  await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
+  await page.getByRole("heading", { name: "Add item", exact: true }).waitFor();
   // Exercise the shipped settings placement, rather than an isolated widget.
   await page.locator("[data-user-model-open]:visible").first().waitFor();
   await page.locator("[data-user-model-open]:visible").first().click();

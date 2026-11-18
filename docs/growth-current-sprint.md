@@ -1,5 +1,28 @@
 # AutoLister AI Growth Current Sprint
 
+## Sign-in and verification refinement, November 18, 2026
+
+- Local draft, not deployed. Replace the single code box with six visible digit slots backed by one native autofill/paste input. Keep explicit Verify code and Enter. Bold Open the link. Test mouse and touch editing, retries, duplicate prevention and onward draft generation.
+- Replace time bars with a direct 5-minute versus 1-minute comparison. Use clock, eye, heart and timer icons for their respective metrics. Supporting example estimates are 50–100 views, 3–8 favourites and 24–48 hours to sell, explicitly scoped to an in-demand item priced to sell. These are illustrative assumptions, not measured AutoLister outcomes or uplift. Research does not substantiate the selected numbers as a combined observed result.
+- Actual desktop/mobile screens and all 18 locales at four widths checked. Browser/OS autofill is enabled; a physical iPhone email suggestion remains untested. [Research, evidence and verification](qa/auth-polish-20261118/README.md). No real email, purchase, provider call, release or marketplace action.
+
+## Sign-in estimates panel, November 17, 2026
+
+- Local draft. At the owner's revised direction, replace the item/draft example with a prominent 4-minute illustrative writing-time saving (5 minutes manually versus 1 minute assisted), plus 40–60 views and 3–5 favourites over 7 days, and 7–14 days to sell. The panel visibly labels these as illustrative estimates. They are not measured customer averages or a measured conversion/sales uplift.
+- Desktop pairs the figures with sign-in. Mobile keeps sign-in first. Existing explicit Verify code and Enter submission, recovery and optional model behavior remain covered. [Research, assumptions and actual desktop/mobile QA](qa/entry-estimates-20261117/README.md).
+
+## Explicit verification action, November 17, 2026
+
+- Local draft. Owner requested Verify code, functioning Enter submission and a properly styled numeric code field. The code step now uses explicit submission, a compact field with larger spaced digits, associated inline validation and guarded pending/retry states. The email-link option remains available.
+- The built-app regression covers real formatted-code clipboard paste, leading zeroes, simulated autofill, button/Enter, invalid and service failures, duplicate submissions and onward draft creation. Locale layout coverage extends to the code screen. [QA evidence](qa/code-verification-20261117/README.md). No provider spend, real email, purchase or production deployment.
+
+## Direct first-item entry, November 17, 2026
+
+- Local draft only. Normal and direct app entry show sign-in, with a full item-photo/draft example beside it on desktop and below it on mobile. The code step uses one instruction for the link/code alternatives and removes redundant initial success text. Public landing pages and SEO configuration are unchanged.
+- Empty authenticated workspaces open Add item. Automatic style setup and model invitations are removed. Saved drafts, account and batch preferences, legacy style handoffs, explicit model setup and existing enabled models remain covered.
+- QA: production verification gate, 15 explicit first-use/legacy browser cases, 72 locale/viewport layouts, the complete 26-check local draft browser journey, and model-photo/allowance journeys pass. All network responses in the browser journeys are local fixtures. No real emails, payments, marketplace actions or provider generations. Evidence and rendered desktop/mobile screens: [direct-first-item QA](qa/direct-first-item/README.md).
+- Conversion improvement remains a hypothesis pending production release approval and subsequent cohort outcomes. This change does not resolve the separate rear-pose availability or photo-tolerance investigations.
+
 ## Five-draft offer and first-listing sample, November 9, 2026
 
 - The signed-in web editor shows the remaining free drafts with five small ticks. Get more opens the existing plans and credit packs. After the account commits its fifth free draft, the workspace can show 20% off the first month of Pro under the finished draft. Copy and Mark as listed remain usable. The server fixes the deadline at 72 hours after draft five. Shared-IP exhaustion by itself does not qualify. Existing paid customers and previous observed buyers do not qualify. Clicking the offer opens Stripe directly with the signed offer.

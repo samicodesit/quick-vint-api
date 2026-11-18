@@ -1,0 +1,39 @@
+{
+  "status": "local draft, not deployed",
+  "date": "2026-11-18",
+  "command": "npm run verify:production",
+  "exitCode": 0,
+  "enabledBrowserSuites": [
+    "firstUseBrowser.integration.test.ts",
+    "preAuthStyleBrowser.integration.test.ts"
+  ],
+  "checks": ["lint", "type-check", "build", "format-check", "tests"],
+  "tests": {
+    "passed": 1804,
+    "skipped": 5,
+    "filesPassed": 202,
+    "filesSkipped": 2
+  },
+  "browserJourneys": {
+    "mouse": "passed",
+    "touch": "passed",
+    "responses": "local fixtures only"
+  },
+  "layout": {
+    "locales": 18,
+    "widths": [320, 390, 768, 1440],
+    "states": ["sign-in", "email code"],
+    "passed": true
+  },
+  "sourceSha256": {
+    "src/components/mobile-web/AuthEntry.astro": "39a85a8c0d64c59801f2adc88a2c2d7739aeaa34280adc3cb6b6aaddf411b876",
+    "src/styles/auth-entry.css": "162c3305144d2afb7e26aabc1779181301ed96ed5383ed60100bf28ceb4b6036",
+    "src/app/mobile-web/app.ts": "971501cabb9cae00212ea9cb3d75c095bdaa528143992feb8f261586f5458308",
+    "src/app/mobile-web/uiCopy.ts": "7f99f8b6e99712625263249b8f51e36f9d10a81c4d5aa0e4fe2a26f66dfb031a"
+  },
+  "limitations": [
+    "Physical iPhone email-code suggestions not tested.",
+    "Illustrative estimates are not measured customer outcomes.",
+    "No production deployment, real email, purchase, provider call or marketplace action."
+  ]
+}

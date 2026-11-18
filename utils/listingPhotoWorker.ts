@@ -23,7 +23,7 @@ export function photoFailureCode(error: unknown): string {
   if (error instanceof Error && error.name === "TimeoutError")
     return "photo_provider_timeout";
   const message = error instanceof Error ? error.message : "";
-  return /^(?:photo_provider_[45]\d{2}|photo_(?:quality_failed|cancelled|source_unavailable|source_too_large|source_snapshot_failed)|invalid_photo_(?:source|image|plan|check)|incomplete_photo_check|photo_provider_unavailable)$/.test(
+  return /^(?:rear_model_failed|photo_provider_[45]\d{2}|photo_(?:quality_failed|cancelled|source_unavailable|source_too_large|source_snapshot_failed)|invalid_photo_(?:source|image|plan|check)|incomplete_photo_check|photo_provider_unavailable)$/.test(
     message,
   )
     ? message

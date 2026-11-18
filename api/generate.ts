@@ -1161,31 +1161,28 @@ Reply only in JSON: {"title":"...","description":"..."}
     >["response"];
     const modelStartTime = Date.now();
     if (draftModelPilot.arm === "pilot") {
-      // SDK 4's convenience types predate Fast and explicit cache controls.
-      // Its typed POST transport preserves the exact audited Responses body.
+      // The typed POST transport preserves the exact audited Responses body,
+      // including the explicit cache controls used by this bounded pilot.
       const { data: result, response } = await openai
-        .post<
-          Record<string, unknown>,
-          {
-            id?: string;
-            model?: string;
-            status: string;
-            service_tier?: string;
-            output?: Array<{
-              type: string;
-              content?: Array<{ type: string; text?: string }>;
-            }>;
-            usage?: {
-              total_tokens: number;
-              input_tokens: number;
-              output_tokens: number;
-              input_tokens_details?: {
-                cached_tokens?: number;
-                cache_write_tokens?: number;
-              };
+        .post<{
+          id?: string;
+          model?: string;
+          status: string;
+          service_tier?: string;
+          output?: Array<{
+            type: string;
+            content?: Array<{ type: string; text?: string }>;
+          }>;
+          usage?: {
+            total_tokens: number;
+            input_tokens: number;
+            output_tokens: number;
+            input_tokens_details?: {
+              cached_tokens?: number;
+              cache_write_tokens?: number;
             };
-          }
-        >("/responses", {
+          };
+        }>("/responses", {
           body: {
             model: selectedModel,
             input: [

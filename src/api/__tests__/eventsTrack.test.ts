@@ -213,6 +213,7 @@ describe("events tracking endpoint", () => {
 
   it.each([
     ["manual_upload_start", { photoCount: 4 }],
+    ["batch_computer_upload_error", { photoCount: 4 }],
     ["manual_upload_storage_ready", { uploadedCount: 4, expectedCount: 4 }],
     ["manual_upload_storage_error", { expectedCount: 4 }],
   ])(
@@ -267,38 +268,42 @@ describe("events tracking endpoint", () => {
     },
   );
 
-  it("does not retain a manual summary for an anonymous or foreign owner", async () => {
-    const event = {
-      id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
-      occurredAt: new Date().toISOString(),
-      event: "manual_upload_storage_ready",
-      source: "extension_content",
-      phoneSessionKey: "a".repeat(64),
-      context: {
-        operationId: "gen_manual_fixture",
-        uploadedCount: 1,
-        expectedCount: 1,
-      },
-    };
-    await postEvent({ schemaVersion: 2, events: [event] }, false);
-    expect(
-      rpcMock.mock.calls.find((call) => call[0] === "incident_ingest")?.[1]
-        .p_event.businessLog,
-    ).toBeNull();
-    rpcMock.mockClear();
-    maybeSingleMock.mockResolvedValue({
-      data: {
-        user_id: "223e4567-e89b-42d3-a456-426614174000",
-        identity_verified: true,
-      },
-      error: null,
-    });
-    const response = await postEvent({ schemaVersion: 2, events: [event] });
-    expect(response.body).toMatchObject({
-      rejections: [{ id: event.id, reason: "identity_mismatch" }],
-    });
-    expect(rpcMock).not.toHaveBeenCalled();
-  });
+  it.each(["manual_upload_storage_ready", "batch_computer_upload_error"])(
+    "does not retain a %s summary for an anonymous or foreign owner",
+    async (eventName) => {
+      const event = {
+        id: "87cf727d-c184-4b7f-9b83-9bf2823f0213",
+        occurredAt: new Date().toISOString(),
+        event: eventName,
+        source: "extension_content",
+        phoneSessionKey: "a".repeat(64),
+        context: {
+          operationId: "gen_manual_fixture",
+          uploadedCount: 1,
+          expectedCount: 1,
+          photoCount: 1,
+        },
+      };
+      await postEvent({ schemaVersion: 2, events: [event] }, false);
+      expect(
+        rpcMock.mock.calls.find((call) => call[0] === "incident_ingest")?.[1]
+          .p_event.businessLog,
+      ).toBeNull();
+      rpcMock.mockClear();
+      maybeSingleMock.mockResolvedValue({
+        data: {
+          user_id: "223e4567-e89b-42d3-a456-426614174000",
+          identity_verified: true,
+        },
+        error: null,
+      });
+      const response = await postEvent({ schemaVersion: 2, events: [event] });
+      expect(response.body).toMatchObject({
+        rejections: [{ id: event.id, reason: "identity_mismatch" }],
+      });
+      expect(rpcMock).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     { phoneSessionKey: "not-a-hash", source: "extension_content" },

@@ -424,11 +424,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "manual_upload_start",
         "manual_upload_storage_ready",
         "manual_upload_storage_error",
+        "batch_computer_upload_error",
+      ].includes(raw.event);
+      const selectedPhotoCount = [
+        "manual_upload_start",
+        "batch_computer_upload_error",
       ].includes(raw.event);
       const manualCount =
-        context[
-          raw.event === "manual_upload_start" ? "photoCount" : "expectedCount"
-        ];
+        context[selectedPhotoCount ? "photoCount" : "expectedCount"];
       const manualUploadSummary =
         Boolean(authenticatedUserId) &&
         raw.source === "extension_content" &&
@@ -514,15 +517,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (manualUploadSummary) {
         // A manual session hash is correlation only. It must not register a
         // phone owner or establish that the server stored a client-claimed upload.
-        const counts =
-          raw.event === "manual_upload_start"
-            ? { photoCount: manualCount }
-            : {
-                expectedCount: manualCount,
-                ...(raw.event === "manual_upload_storage_ready"
-                  ? { uploadedCount: context.uploadedCount }
-                  : {}),
-              };
+        const counts = selectedPhotoCount
+          ? { photoCount: manualCount }
+          : {
+              expectedCount: manualCount,
+              ...(raw.event === "manual_upload_storage_ready"
+                ? { uploadedCount: context.uploadedCount }
+                : {}),
+            };
         return {
           endpoint: `/event/${raw.event}`,
           request_method: "SYSTEM",

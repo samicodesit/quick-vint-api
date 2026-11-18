@@ -214,6 +214,7 @@ describe("events tracking endpoint", () => {
   it.each([
     ["manual_upload_start", { photoCount: 4 }],
     ["batch_computer_upload_error", { photoCount: 4 }],
+    ["batch_computer_upload_error", { photoCount: 501 }],
     ["manual_upload_storage_ready", { uploadedCount: 4, expectedCount: 4 }],
     ["manual_upload_storage_error", { expectedCount: 4 }],
   ])(

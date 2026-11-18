@@ -442,7 +442,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         /^[a-zA-Z0-9_-]{1,160}$/.test(context.operationId) &&
         Number.isSafeInteger(manualCount) &&
         manualCount > 0 &&
-        manualCount <= 500 &&
+        manualCount <=
+          (raw.event === "batch_computer_upload_error" ? 1e9 : 500) &&
         (raw.event !== "manual_upload_storage_ready" ||
           (Number.isSafeInteger(context.uploadedCount) &&
             context.uploadedCount >= 0 &&

@@ -23,6 +23,9 @@ beforeAll(async () => {
     readFileSync("migrations/2026-11-08_free_trial_ip_quota.sql", "utf8"),
   );
   if (existsSync(migration)) await db.exec(readFileSync(migration, "utf8"));
+  await db.exec(
+    readFileSync("migrations/2026-11-18_photo_metrics_ack.sql", "utf8"),
+  );
 }, 30000);
 afterAll(async () => {
   await db?.close();
@@ -334,4 +337,68 @@ it("does not expose allowance repair to public authenticated clients", async () 
   } finally {
     await db.exec("reset role");
   }
+});
+
+it("acknowledges a source status write without returning photo bytes and fences stale workers", async () => {
+  const { user, job } = await setup();
+  const { lease_token: lease } = await rpc(user, "claim", { id: job.id });
+  const attempt = await rpc(user, "stage", {
+    id: job.id,
+    lease,
+    stage: "source",
+  });
+  const input = {
+    id: job.id,
+    lease,
+    attemptId: attempt.id,
+    cost: 0,
+    metrics: {},
+    ackOnly: true,
+  };
+  const bigSources = Array.from(
+    { length: 16 },
+    () => "data:image/jpeg;base64," + "A".repeat(210000),
+  );
+  await rpc(user, "save", {
+    id: job.id,
+    lease,
+    payload: { sources: bigSources },
+  });
+  await db.query(
+    "update listing_photo_jobs set lease_until=now()+interval '5 seconds' where id=$1",
+    [job.id],
+  );
+  expect(await rpc(user, "metrics", input)).toBe(true);
+  expect(
+    (
+      await db.query(
+        "select lease_until > now()+interval '90 seconds' as renewed from listing_photo_jobs where id=$1",
+        [job.id],
+      )
+    ).rows,
+  ).toEqual([{ renewed: true }]);
+  const legacy = await rpc(user, "metrics", { ...input, ackOnly: false });
+  expect(legacy.payload.sources).toEqual(bigSources);
+  expect(
+    await rpc(user, "metrics", { ...input, attemptId: randomUUID() }),
+  ).toBeNull();
+  expect(
+    await rpc(user, "metrics", { ...input, lease: randomUUID() }),
+  ).toBeNull();
+  expect(
+    (
+      await db.query(
+        "select status,cost_usd::float8 as cost from listing_photo_attempts where id=$1",
+        [attempt.id],
+      )
+    ).rows,
+  ).toEqual([{ status: "complete", cost: 0 }]);
+  await db.query(
+    "update listing_photo_jobs set lease_until=now()-interval '1 second' where id=$1",
+    [job.id],
+  );
+  expect(await rpc(user, "metrics", input)).toBeNull();
+  expect((await rpc(user, "get", { id: job.id })).error_code).toBe(
+    "worker_interrupted",
+  );
 });

@@ -125,6 +125,33 @@ async function signed(bucket: string, key: string) {
   if (error) throw error;
   return data.signedUrl;
 }
+async function sourceWrite(
+  job: PhotoJob,
+  action: "stage" | "metrics" | "save",
+  input: Record<string, unknown>,
+) {
+  const args = { id: job.id, lease: job.lease_token, ...input };
+  // PostgreSQL rolls back a cancelled statement. Repeat only this unbilled write.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const result = await photoMutate(job.user_id, action, args);
+      if (!result) throw new Error("photo_cancelled");
+      return result;
+    } catch (error) {
+      if (error instanceof Error && error.message === "photo_cancelled")
+        throw error;
+      if (
+        attempt === 0 &&
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "57014"
+      )
+        continue;
+      throw new Error("photo_source_snapshot_failed");
+    }
+  }
+}
 async function sources(job: PhotoJob) {
   if (job.payload.sourceKeys)
     return Promise.all(
@@ -143,54 +170,45 @@ async function sources(job: PhotoJob) {
     );
     images.push(...batch);
   }
-  const snapshots = await Promise.allSettled(
-    images.map(async (image, i) => {
-      const match = images[i].match(
-        /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/,
-      )!;
-      const key = `${job.user_id}/${job.id}/source-${i}.${match[1].split("/")[1]}`;
-      const attempt = await photoMutate(job.user_id, "stage", {
-        id: job.id,
-        lease: job.lease_token,
-        stage: "source",
-        objectKey: key,
+  async function snapshot(image: string, i: number) {
+    const match = image.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/)!;
+    const key = `${job.user_id}/${job.id}/source-${i}.${match[1].split("/")[1]}`;
+    const attempt = await sourceWrite(job, "stage", {
+      stage: "source",
+      objectKey: key,
+    });
+    const status = { attemptId: attempt.id, cost: 0, ackOnly: true };
+    try {
+      const upload = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(key, Buffer.from(match[2], "base64"), {
+          contentType: match[1],
+          upsert: true,
+        });
+      if (upload.error) throw upload.error;
+    } catch {
+      await sourceWrite(job, "metrics", {
+        ...status,
+        status: "failed",
+        metrics: { errorCode: "photo_source_snapshot_failed" },
       });
-      if (!attempt) throw new Error("photo_cancelled");
-      try {
-        const upload = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .upload(key, Buffer.from(match[2], "base64"), {
-            contentType: match[1],
-            upsert: true,
-          });
-        if (upload.error) throw upload.error;
-        await photoMutate(job.user_id, "metrics", {
-          id: job.id,
-          lease: job.lease_token,
-          attemptId: attempt.id,
-          cost: 0,
-          metrics: {},
-        });
-        keys[i] = key;
-      } catch {
-        await photoMutate(job.user_id, "metrics", {
-          id: job.id,
-          lease: job.lease_token,
-          attemptId: attempt.id,
-          cost: 0,
-          status: "failed",
-          metrics: { errorCode: "photo_source_snapshot_failed" },
-        });
-        throw new Error("photo_source_snapshot_failed");
-      }
-    }),
-  );
-  for (const snapshot of snapshots) {
-    if (snapshot.status === "rejected") throw snapshot.reason;
+      throw new Error("photo_source_snapshot_failed");
+    }
+    await sourceWrite(job, "metrics", { ...status, metrics: {} });
+    keys[i] = key;
   }
-  await photoMutate(job.user_id, "save", {
-    id: job.id,
-    lease: job.lease_token,
+  // These writes share a per-user database lock. Drain each pair before starting more.
+  for (let i = 0; i < images.length; i += 2) {
+    const results = await Promise.allSettled(
+      images
+        .slice(i, i + 2)
+        .map((image, offset) => snapshot(image, i + offset)),
+    );
+    for (const result of results) {
+      if (result.status === "rejected") throw result.reason;
+    }
+  }
+  await sourceWrite(job, "save", {
     payload: { sourceKeys: keys, sources: [] },
   });
   return images;

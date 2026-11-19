@@ -3890,6 +3890,7 @@ export function mountDraftWorkspace(
     }
   });
   return {
+    getProOffer: draftFiveOffer.getOffer,
     closeOverlays() {
       root
         .querySelectorAll<HTMLDetailsElement>("[data-draft-popover][open]")

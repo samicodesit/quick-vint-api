@@ -7,7 +7,12 @@ import {
 } from "../../utils/stripeCheckoutBranding";
 import { getSubscriptionCheckoutDisclosure } from "../../utils/subscriptionDisclosure";
 import { supabase } from "../../utils/supabaseClient";
-import { CREDIT_PACK_CONFIG, TIER_CONFIGS } from "../../utils/tierConfig";
+import {
+  CREDIT_PACK_CONFIG,
+  PRO_INTRO_PERCENT_OFF,
+  proIntroPriceCents,
+  TIER_CONFIGS,
+} from "../../utils/tierConfig";
 import { handleCheckoutCors } from "../../utils/checkoutCors";
 import {
   createBillingPortalSessionForProfile,
@@ -17,6 +22,7 @@ import {
   repairProfileStripeCustomerId,
 } from "../../utils/stripeBillingPortal";
 import { reportCriticalEndpointFailure } from "../../utils/criticalEndpointAlert";
+import { LIMIT_FOLLOWUP_COUPON_CODE } from "../../utils/limitFollowupEligibility";
 import { verifyPricingOfferToken } from "../../utils/pricingOfferToken";
 import { hasPaidEntitlementStatus } from "../../src/utils/subscriptionStatus";
 import {
@@ -78,10 +84,11 @@ function getRequestOrigin(req: VercelRequest) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-async function getOfferPromotionCodeId(
+async function getOfferPromotion(
   email: string,
   tier: string,
   offerToken?: string,
+  mobileWeb = false,
 ) {
   if (!offerToken) return null;
 
@@ -109,7 +116,25 @@ async function getOfferPromotionCodeId(
     throw pricingOfferError("Offer is no longer available.");
   }
 
-  return promotionCode.id;
+  const proIntro =
+    mobileWeb &&
+    tier === "pro" &&
+    offer.couponCode === LIMIT_FOLLOWUP_COUPON_CODE;
+  if (proIntro) {
+    const coupon = promotionCode.coupon;
+    if (
+      coupon.percent_off !== PRO_INTRO_PERCENT_OFF ||
+      !(
+        coupon.duration === "once" ||
+        (coupon.duration === "repeating" && coupon.duration_in_months === 1)
+      )
+    ) {
+      throw pricingOfferError(
+        "The advertised Pro discount is unavailable. Please try again later.",
+      );
+    }
+  }
+  return { id: promotionCode.id, proIntro };
 }
 
 async function getUninstallPromotionCodeId(
@@ -207,12 +232,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ? (body.utm as Record<string, unknown>)
           : {};
 
-      let promotionCodeId: string | null = null;
+      let promotion;
       try {
-        promotionCodeId = await getOfferPromotionCodeId(
+        promotion = await getOfferPromotion(
           profile.email,
           tier,
           offerToken,
+          true,
         );
       } catch (offerErr: any) {
         if (offerErr?.name === "PricingOfferError") {
@@ -360,8 +386,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           origin: getRequestOrigin(req),
           status: "cancel",
         }),
-        ...(promotionCodeId
-          ? { discounts: [{ promotion_code: promotionCodeId }] }
+        ...(promotion
+          ? { discounts: [{ promotion_code: promotion.id }] }
           : { allow_promotion_codes: true }),
         metadata: {
           ...(creditPack ? {} : getSubscriptionCheckoutDisclosure().metadata),
@@ -386,6 +412,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       });
 
+      if (promotion?.proIntro) {
+        const monthly = TIER_CONFIGS.pro.monthlyPrice;
+        const subtotal = Math.round(monthly * 100);
+        const firstMonth = proIntroPriceCents(monthly);
+        if (
+          session.currency !== "eur" ||
+          session.amount_subtotal !== subtotal ||
+          session.amount_total !== firstMonth ||
+          session.total_details?.amount_discount !== subtotal - firstMonth
+        ) {
+          throw new Error(
+            "Stripe checkout did not match the advertised Pro price.",
+          );
+        }
+      }
       return res.status(200).json({ url: session.url });
     }
 
@@ -428,7 +469,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let promotionCodeId: string | null = null;
     try {
       promotionCodeId =
-        (await getOfferPromotionCodeId(email, tier, offerToken)) ||
+        (await getOfferPromotion(email, tier, offerToken))?.id ||
         (await getUninstallPromotionCodeId(source, couponCode));
     } catch (offerErr: any) {
       if (offerErr?.name === "PricingOfferError") {

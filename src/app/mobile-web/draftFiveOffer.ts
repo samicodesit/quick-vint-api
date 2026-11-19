@@ -6,7 +6,11 @@ import { getUiLocale, uiFormat, uiText } from "./ui";
 import { formatPrice } from "../../utils/billingDisplay";
 import { TIER_CONFIGS } from "../../../utils/tierConfig";
 
-type Offer = { eligible: true; expiresAt: string; offerToken: string };
+export type DraftFiveOffer = {
+  eligible: true;
+  expiresAt: string;
+  offerToken: string;
+};
 const context = {
   entryPoint: "draft_five_offer",
   reason: "free_lifetime_limit",
@@ -28,11 +32,11 @@ export function mountDraftFiveOffer(
   const status = region?.querySelector<HTMLElement>(
     "[data-draft-five-checkout-status]",
   );
-  let offer: Offer | null = null;
+  let offer: DraftFiveOffer | null = null;
   let isResult = false;
   let eligible = false;
   let request = 0;
-  let checked = false;
+  let lookup: Promise<DraftFiveOffer | null> | undefined;
   let shown = false;
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -94,7 +98,37 @@ export function mountDraftFiveOffer(
   button?.addEventListener("click", checkout);
   if (getMore) more?.addEventListener("click", getMore);
 
+  function getOffer(): Promise<DraftFiveOffer | null> {
+    if (!lookup) {
+      const attempt = request;
+      lookup = fetchMobileJson<DraftFiveOffer | { eligible: false }>(
+        "/api/user/limit-followup-offer?surface=web",
+        {},
+        { expectedUserId: userId, retryOn401: true },
+      )
+        .then((result) => {
+          if (attempt !== request || !result.eligible) return null;
+          const delay = Date.parse(result.expiresAt) - Date.now();
+          if (!Number.isFinite(delay) || !result.offerToken)
+            throw new Error("Invalid offer");
+          if (delay <= 0) return null;
+          offer = result;
+          expiryTimer = setTimeout(render, delay);
+          render();
+          return result;
+        })
+        .catch((error) => {
+          if (attempt === request) lookup = undefined;
+          throw error;
+        });
+    }
+    return lookup.then((result) =>
+      result && Date.parse(result.expiresAt) > Date.now() ? result : null,
+    );
+  }
+
   return {
+    getOffer,
     setResult(visible: boolean) {
       isResult = visible;
       render();
@@ -129,32 +163,13 @@ export function mountDraftFiveOffer(
         usage.blockedReason === "free_lifetime_limit";
       if (canSeeOffer !== eligible) {
         request++;
-        checked = false;
+        lookup = undefined;
         offer = null;
         eligible = canSeeOffer;
         clearTimeout(expiryTimer);
       }
       render();
-      if (!eligible || checked) return;
-      checked = true;
-      const attempt = request;
-      void fetchMobileJson<Offer | { eligible: false }>(
-        "/api/user/limit-followup-offer?surface=web",
-        {},
-        { expectedUserId: userId, retryOn401: true },
-      )
-        .then((result) => {
-          if (request !== attempt || !result.eligible) return;
-          const delay = Date.parse(result.expiresAt) - Date.now();
-          if (!Number.isFinite(delay) || delay <= 0 || !result.offerToken)
-            return;
-          offer = result;
-          expiryTimer = setTimeout(render, delay);
-          render();
-        })
-        .catch(() => {
-          if (request === attempt) checked = false;
-        });
+      if (eligible) void getOffer().catch(() => {});
     },
     dispose() {
       request++;

@@ -723,6 +723,32 @@ describe("events tracking endpoint", () => {
     ).not.toHaveProperty("generatedTitle");
   });
 
+  it("keeps optional upgrade feedback as a bounded analytics record", async () => {
+    await postEvent({
+      schemaVersion: 2,
+      events: [
+        {
+          id: "d623926a-35a6-4bf5-8027-8ab335c71110",
+          occurredAt: new Date().toISOString(),
+          event: "upgrade_feedback_submitted",
+          source: "extension_content",
+          context: {
+            reason: "other",
+            message: "Seasonal seller",
+            analyticsClientId: "browser",
+          },
+        },
+      ],
+    });
+    const record = rpcMock.mock.calls[0][1].p_event.businessLog;
+    expect(record.full_request_body.analyticsOnly).toBe(true);
+    expect(record.full_request_body.context).toEqual({
+      reason: "other",
+      message: "Seasonal seller",
+    });
+    expect(record).not.toHaveProperty("user_email");
+  });
+
   it("retains bounded batch outcome facts with original receipt correlation and no heavy customer payload", async () => {
     const occurredAt = new Date().toISOString();
     const res = await postEvent({

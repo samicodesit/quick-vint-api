@@ -14,6 +14,7 @@ let exhaustAt = 1;
 let allowOffer;
 let offerRequests = 0;
 let checkoutBody;
+let holdCheckoutHere = false;
 const expiry = new Date(Date.now() + 71 * 60 * 60 * 1000).toISOString();
 await page.route("**/api/user/usage", (route) => {
   const exhausted = stats().generations >= exhaustAt;
@@ -48,7 +49,9 @@ await page.route("**/api/stripe/create-checkout", (route) => {
   return route.fulfill({ json: { url: checkoutUrl } });
 });
 await page.route(checkoutUrl, (route) =>
-  route.fulfill({ body: "Stripe fixture" }),
+  route.fulfill(
+    holdCheckoutHere ? { status: 204 } : { body: "Stripe fixture" },
+  ),
 );
 
 try {
@@ -112,6 +115,16 @@ try {
     for (let attempt = 0; !allowOffer && attempt < 40; attempt++)
       await page.waitForTimeout(50);
     assert.equal(offerRequests, previousRequests + 1);
+    await meter.getByRole("button", { name: "Get more" }).click();
+    const pendingPro = paidOptions.locator('button[value="pro"]');
+    assert.equal(await pendingPro.isDisabled(), true);
+    assert.equal(
+      await paidOptions.locator('button[value="starter"]').isEnabled(),
+      true,
+    );
+    await paidOptions
+      .getByRole("button", { name: "Close paid options" })
+      .click();
     allowOffer();
     await offerButton.waitFor();
     assert.match(await offer.innerText(), /20% off your first month of Pro/);
@@ -124,6 +137,24 @@ try {
       .screenshot({ path: `${output}/offer-${device}-after.png` });
     await copyTitle.click();
     await copyDescription.click();
+    await meter.getByRole("button", { name: "Get more" }).click();
+    const pro = paidOptions.locator('button[value="pro"]');
+    await pro
+      .getByText("€7.99 first month", { exact: true })
+      .waitFor({ timeout: 3000 });
+    assert.match(await pro.innerText(), /Then €9\.99\/month/);
+    await page.screenshot({ path: `${output}/pro-${device}.png` });
+    holdCheckoutHere = true;
+    const firstNavigation = page.waitForResponse(checkoutUrl);
+    await pro.click();
+    await firstNavigation;
+    assert.equal(checkoutBody.tier, "pro");
+    assert.equal(checkoutBody.offerToken, "fixture-token");
+    holdCheckoutHere = false;
+    checkoutBody = undefined;
+    await paidOptions
+      .getByRole("button", { name: "Close paid options" })
+      .click();
     await offerButton.click();
     await page.waitForURL(checkoutUrl);
     assert.equal(checkoutBody.tier, "pro");

@@ -329,6 +329,96 @@ describe("bearer-owned mobile Stripe billing", () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    [799, 200, true],
+    [999, 0, false],
+    [899, 100, false],
+  ])(
+    "checks Stripe's Pro offer total %i before returning checkout",
+    async (total, discount, valid) => {
+      const { createPricingOfferToken } =
+        await import("../../../utils/pricingOfferToken.js");
+      const { TIER_CONFIGS } = await import("../../../utils/tierConfig.js");
+      const token = createPricingOfferToken({
+        email: "owner@example.com",
+        targetTier: "pro",
+        couponCode: "LISTFASTER20",
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+      });
+      promotionCodeListMock.mockResolvedValue({
+        data: [
+          {
+            id: "promo_verified",
+            coupon: { percent_off: 20, duration: "once" },
+          },
+        ],
+      });
+      checkoutCreateMock.mockResolvedValue({
+        url: "https://checkout.stripe.com/session/offer",
+        currency: "eur",
+        amount_subtotal: 999,
+        amount_total: total,
+        total_details: { amount_discount: discount },
+      });
+      const { default: handler } =
+        await import("../../../api/stripe/create-checkout.js");
+      const res = createResponse();
+      await (handler as any)(
+        mobileRequest({ tier: "pro", offerToken: token }) as any,
+        res as any,
+      );
+      expect(checkoutCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: "subscription",
+          line_items: [{ price: TIER_CONFIGS.pro.stripe.priceId, quantity: 1 }],
+          discounts: [{ promotion_code: "promo_verified" }],
+        }),
+      );
+      if (valid)
+        expect(res.body).toHaveProperty(
+          "url",
+          "https://checkout.stripe.com/session/offer",
+        );
+      else expect(res.body).not.toHaveProperty("url");
+    },
+  );
+
+  it.each([
+    { data: [] },
+    {
+      data: [
+        { id: "promo_wrong", coupon: { percent_off: 20, duration: "forever" } },
+      ],
+    },
+    {
+      data: [
+        { id: "promo_wrong", coupon: { percent_off: 10, duration: "once" } },
+      ],
+    },
+  ])(
+    "refuses unavailable or mismatched first-month discounts",
+    async (promotion) => {
+      const { createPricingOfferToken } =
+        await import("../../../utils/pricingOfferToken.js");
+      const offerToken = createPricingOfferToken({
+        email: "owner@example.com",
+        targetTier: "pro",
+        couponCode: "LISTFASTER20",
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+      });
+      promotionCodeListMock.mockResolvedValue(promotion);
+      const { default: handler } =
+        await import("../../../api/stripe/create-checkout.js");
+      const response = createResponse();
+      await (handler as any)(
+        mobileRequest({ tier: "pro", offerToken }),
+        response,
+      );
+      expect(response.statusCode).toBe(400);
+      expect(checkoutCreateMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("returns the disabled response before mobile billing ownership lookup", async () => {
     process.env.MOBILE_WEB_APP_ENABLED = "false";
 

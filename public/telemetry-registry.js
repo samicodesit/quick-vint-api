@@ -571,6 +571,9 @@ globalThis.AutoListerEventRegistry = {
   hashtags_toggle_changed: {
     kind: "business",
   },
+  upgrade_feedback_submitted: {
+    kind: "business",
+  },
   limit_followup_coupon_copied: {
     kind: "business",
   },

@@ -1,4 +1,5 @@
-import { getUiLocale, localizeUiFragment, uiText } from "./ui";
+import type { DraftFiveOffer } from "./draftFiveOffer";
+import { getUiLocale, localizeUiFragment, uiFormat, uiText } from "./ui";
 import { getMobilePaywall } from "./paywallPolicy";
 import {
   openMobilePortal,
@@ -10,6 +11,7 @@ import {
 import { trackMobileEvent } from "./analytics";
 import type { MobileUsage } from "./generationClient";
 import {
+  proIntroPriceCents,
   CREDIT_PACK_CONFIGS,
   getCreditPackConfig,
   TIER_CONFIGS,
@@ -40,6 +42,7 @@ export type MobilePaywallEntryPoint =
 export function mountMobilePaywall(
   root: HTMLElement,
   options: {
+    getProOffer?: () => Promise<DraftFiveOffer | null>;
     userId: () => string | undefined;
     flush: () => Promise<void>;
   },
@@ -74,6 +77,7 @@ export function mountMobilePaywall(
   let previous: HTMLElement | null = null;
   let overflow = "";
   let busy = false;
+  let repaintWhenIdle: (() => void) | undefined;
   let disposed = false;
   let revision = 0;
   let paywallContext: { reason: string; entryPoint: MobilePaywallEntryPoint } =
@@ -94,6 +98,7 @@ export function mountMobilePaywall(
   const checkout = async (
     tier: MobileBillingTier | CreditPackId | "manage",
     option: HTMLButtonElement,
+    proOffer?: DraftFiveOffer | null,
   ) => {
     if (busy || disposed || !dialog.open) return;
     const userId = options.userId();
@@ -125,6 +130,7 @@ export function mountMobilePaywall(
                 tier as MobileBillingTier,
                 userId,
                 paywallContext,
+                proOffer?.offerToken,
               );
       if (active()) {
         rememberMobileBillingReturn(userId);
@@ -140,8 +146,21 @@ export function mountMobilePaywall(
       busy = false;
       if (!disposed) {
         option.removeAttribute("aria-busy");
-        controls.forEach((control) => (control.disabled = false));
-        if (active() && !status.hidden) option.focus({ preventScroll: true });
+        controls.forEach(
+          (control) =>
+            (control.disabled = control.dataset.pricePending === "true"),
+        );
+        if (repaintWhenIdle && active()) {
+          const message = status.hidden ? "" : status.textContent;
+          repaintWhenIdle();
+          if (message) {
+            status.textContent = message;
+            status.hidden = false;
+          }
+        }
+        repaintWhenIdle = undefined;
+        if (active() && !status.hidden)
+          find(`button[value="${tier}"]`)?.focus({ preventScroll: true });
       }
     }
   };
@@ -180,7 +199,16 @@ export function mountMobilePaywall(
         paywallContext.reason === "account_paused"
           ? "/account-paused-paywall.webp"
           : "/favicon-96x96.png";
-      revision++;
+      const showing = ++revision;
+      const owner = options.userId();
+      let proOffer: DraftFiveOffer | null = null;
+      let failed = false;
+      let checking = Boolean(
+        options.getProOffer &&
+        usage.plan?.tier === "free" &&
+        usage.remaining?.freeLifetime === 0 &&
+        usage.blockedReason === "free_lifetime_limit",
+      );
       find("h2").textContent = policy.title;
       find("[data-paywall-copy]").textContent = policy.message;
       find("[data-paywall-trust]").textContent = policy.trust;
@@ -234,7 +262,20 @@ export function mountMobilePaywall(
           button.type = "button";
           button.value = tier;
           button.className = "mobile-paywall-option";
-          button.addEventListener("click", () => void checkout(tier, button));
+          const discount = tier === "pro" ? proOffer : null;
+          button.disabled = tier === "pro" && checking;
+          if (button.disabled) button.dataset.pricePending = "true";
+          button.addEventListener("click", () => {
+            if (
+              tier === "pro" &&
+              (failed ||
+                (discount && Date.parse(discount.expiresAt) <= Date.now()))
+            ) {
+              refreshProPrice();
+              return;
+            }
+            void checkout(tier, button, discount);
+          });
           const pack = getCreditPackConfig(tier);
           const fallbackPlan = ["starter", "pro", "business"].includes(tier)
             ? TIER_CONFIGS[tier as "starter" | "pro" | "business"]
@@ -281,22 +322,36 @@ export function mountMobilePaywall(
                   .replace("{daily}", String(plan.dailyLimit))
                   .replace("{monthly}", String(plan.monthlyLimit))
               : "";
+          let amountText = "";
+          let detailText = "";
+          if (typeof price === "number" && Number.isFinite(price)) {
+            const regular = formatPrice(price, locale);
+            if (button.disabled) amountText = "…";
+            else if (tier === "pro" && failed) amountText = uiText("Try again");
+            else if (discount) {
+              amountText = uiFormat("{0} first month", [
+                formatPrice(proIntroPriceCents(price) / 100, locale),
+              ]);
+              detailText = uiFormat("Then {0}/month", [regular]);
+            } else {
+              amountText = `${regular} ${pack ? billingCopy.oneTime : billingCopy.perMonth}`;
+              const quantity = pack?.credits ?? plan?.monthlyLimit;
+              if (quantity)
+                detailText = `≈${formatUnitPrice(price, quantity, locale)} ${billingCopy.perListing}`;
+            }
+          }
           button.setAttribute(
             "aria-label",
-            [
-              label,
-              typeof price === "number"
-                ? `${formatPrice(price, locale)} ${pack ? billingCopy.oneTime : billingCopy.perMonth}`
-                : "",
-              limits,
-            ]
+            [label, amountText, discount && detailText, limits]
               .filter(Boolean)
               .join(", "),
           );
           if (tier === "pro") {
             const badge = document.createElement("small");
             badge.className = "mobile-paywall-badge";
-            badge.textContent = billingCopy.popular;
+            badge.textContent = discount
+              ? uiText("20% off")
+              : billingCopy.popular;
             copy.append(badge);
           }
           if (limits) {
@@ -307,15 +362,14 @@ export function mountMobilePaywall(
           button.append(copy);
           const side = document.createElement("span");
           side.className = "mobile-paywall-option-side";
-          if (typeof price === "number" && Number.isFinite(price)) {
+          if (amountText) {
             const amount = document.createElement("span");
-            amount.textContent = `${formatPrice(price, locale)} ${pack ? billingCopy.oneTime : billingCopy.perMonth}`;
+            amount.textContent = amountText;
             side.append(amount);
-            const quantity = pack?.credits ?? plan?.monthlyLimit;
-            if (quantity) {
-              const unit = document.createElement("small");
-              unit.textContent = `≈${formatUnitPrice(price, quantity, locale)} ${billingCopy.perListing}`;
-              side.append(unit);
+            if (detailText) {
+              const detail = document.createElement("small");
+              detail.textContent = detailText;
+              side.append(detail);
             }
           }
           const arrow = document.createElement("span");
@@ -356,7 +410,31 @@ export function mountMobilePaywall(
             ?.focus();
         };
       });
-      render();
+      function refreshProPrice() {
+        if (!options.getProOffer) return;
+        checking = true;
+        failed = false;
+        proOffer = null;
+        render();
+        const stillOpen = () =>
+          !disposed && revision === showing && options.userId() === owner;
+        void options
+          .getProOffer()
+          .then((offer) => {
+            if (stillOpen()) proOffer = offer;
+          })
+          .catch(() => {
+            if (stillOpen()) failed = true;
+          })
+          .finally(() => {
+            if (!stillOpen()) return;
+            checking = false;
+            if (busy) repaintWhenIdle = render;
+            else render();
+          });
+      }
+      if (checking) refreshProPrice();
+      else render();
       if (!dialog.open) {
         previous =
           document.activeElement instanceof HTMLElement

@@ -1,5 +1,11 @@
 # AutoLister AI Growth Current Sprint
 
+## Pro checkout and extension feedback, November 19, 2026
+
+- Local implementation. Both Get offer and Get more → Pro use the signed five-draft offer. Desktop and mobile browser clicks reached the checkout handler and produced four Stripe test sessions. Each had a €9.99 subtotal, a €2.00 first-month discount and a €7.99 total. The sandbox run used a fixture account and EUR test catalog. Every session was expired without payment.
+- The web handler checks the promotion duration and the amount Stripe returned before releasing the checkout URL. The English, Dutch and French layouts were checked. The one-time tab retained all three packs.
+- Closing the extension’s free-limit pricing panel shows an optional inline question. Desktop and narrow-width browser tests covered a one-tap reason, optional text, keyboard dismissal, focus return and repeat suppression. Authenticated answers use the existing 30-day analytics retention window under `upgrade_feedback_submitted`. No funnel uplift has been measured.
+
 ## Sign-in and verification refinement, November 18, 2026
 
 - Local draft, not deployed. Replace the single code box with six visible digit slots backed by one native autofill/paste input. Keep explicit Verify code and Enter. Bold Open the link. Test mouse and touch editing, retries, duplicate prevention and onward draft generation.

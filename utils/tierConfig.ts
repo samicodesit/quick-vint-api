@@ -23,6 +23,12 @@ export interface TierConfig {
 }
 
 export const FREE_LIFETIME_LIMIT = 5;
+export const PRO_INTRO_PERCENT_OFF = 20;
+
+export function proIntroPriceCents(monthlyEur: number) {
+  const cents = Math.round(monthlyEur * 100);
+  return cents - Math.round((cents * PRO_INTRO_PERCENT_OFF) / 100);
+}
 
 export const CREDIT_PACK_CONFIG = {
   id: "credits_20",

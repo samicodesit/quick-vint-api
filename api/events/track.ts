@@ -593,10 +593,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
         };
       }
+      const upgradeFeedback = raw.event === "upgrade_feedback_submitted";
+      if (
+        upgradeFeedback &&
+        (!authenticatedUserId ||
+          raw.source !== "extension_content" ||
+          !["few_listings", "price", "editing", "later", "other"].includes(
+            context.reason,
+          ))
+      )
+        return null;
       // Existing analytics retention keeps bounded outcome facts without photos,
       // credentials, personal metadata or a separate tracking table.
       if (
-        (retainsBatchEvidence(raw) ||
+        (upgradeFeedback ||
+          retainsBatchEvidence(raw) ||
           ((/^(model_|listing_tour_)/.test(raw.event) ||
             [
               "generation_blocked",
@@ -617,7 +628,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             extensionVersion: redact(raw.extensionVersion, 80),
             transportEventId: raw.id,
             occurredAt: raw.occurredAt,
-            context,
+            context: upgradeFeedback
+              ? {
+                  reason: context.reason,
+                  ...(context.reason === "other" && context.message
+                    ? { message: redact(context.message, 300) }
+                    : {}),
+                }
+              : context,
           },
         };
       }

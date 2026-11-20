@@ -16,14 +16,12 @@ function storage(initial: Record<string, string> = {}) {
   };
 }
 describe("first web listing style", () => {
-  it("uses Short for fresh web preferences and preserves an explicit Long choice", () => {
-    expect(readFormattingPreferences(storage()).descriptionLength).toBe(
-      "short",
-    );
+  it("uses Long for fresh web preferences and preserves an explicit Short choice", () => {
+    expect(readFormattingPreferences(storage()).descriptionLength).toBe("long");
     expect(
-      readFormattingPreferences(storage({ descriptionLength: "long" }))
+      readFormattingPreferences(storage({ descriptionLength: "short" }))
         .descriptionLength,
-    ).toBe("long");
+    ).toBe("short");
   });
   it("offers the setup to new accounts once, without interrupting older accounts or replacing defaults", () => {
     expect(

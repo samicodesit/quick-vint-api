@@ -1,6 +1,7 @@
 import { uiError, uiText } from "./ui";
 import { SUPPORTED_OUTPUT_LANGUAGES } from "../../utils/mobileOutputLanguages";
 import { validateDescriptionFooterText } from "../../../utils/descriptionFooter";
+import { DEFAULT_DESCRIPTION_LENGTH } from "../../../utils/generationDefaults";
 
 export const DRAFT_LIMITS = {
   photos: 10,
@@ -81,7 +82,7 @@ export interface DraftLibrary {
 export const DEFAULT_DRAFT_SETTINGS: ResolvedDraftSettings = {
   titleLanguageCode: "en",
   descriptionLanguageCode: "en",
-  descriptionLength: "long",
+  descriptionLength: DEFAULT_DESCRIPTION_LENGTH,
   useBulletPoints: true,
   tone: "standard",
   useHashtags: false,

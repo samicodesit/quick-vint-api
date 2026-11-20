@@ -11,6 +11,7 @@ import { buildInputPhotoReview } from "../utils/inputPhotoReview";
 import { isFirefoxExtensionOrigin } from "../utils/allowedOrigins";
 import { startListingPhotos } from "../utils/listingPhotoJobs";
 import { getDirectUser } from "../utils/directUser";
+import { normalizeDescriptionLength } from "../utils/generationDefaults";
 import { supabase } from "../utils/supabaseClient";
 import {
   getGenerationReservationParams,
@@ -639,7 +640,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
   const normalizedDescriptionLength =
-    descriptionLength === "short" ? "short" : "long";
+    normalizeDescriptionLength(descriptionLength);
 
   const titleLanguageCodeStr = String(
     titleLanguageCode || languageCode || "en",

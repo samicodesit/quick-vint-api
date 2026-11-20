@@ -1,6 +1,10 @@
+import {
+  normalizeDescriptionLength,
+  type DescriptionLength,
+} from "../../../utils/generationDefaults";
 import type { BrowserStorageAdapter } from "./language";
 
-export type DescriptionLength = "short" | "long";
+export type { DescriptionLength };
 
 export interface FormattingPreferences {
   descriptionLength: DescriptionLength;
@@ -14,10 +18,9 @@ export function readFormattingPreferences(
   storage: BrowserStorageAdapter,
 ): FormattingPreferences {
   return {
-    descriptionLength:
-      storage.getItem(DESCRIPTION_LENGTH_STORAGE_KEY) === "long"
-        ? "long"
-        : "short",
+    descriptionLength: normalizeDescriptionLength(
+      storage.getItem(DESCRIPTION_LENGTH_STORAGE_KEY),
+    ),
     useBulletPoints: storage.getItem(OUTPUT_SHAPE_STORAGE_KEY) !== "false",
   };
 }
@@ -26,8 +29,9 @@ export function serializeFormattingPreferences(
   preferences: FormattingPreferences,
 ): FormattingPreferences {
   return {
-    descriptionLength:
-      preferences.descriptionLength === "short" ? "short" : "long",
+    descriptionLength: normalizeDescriptionLength(
+      preferences.descriptionLength,
+    ),
     useBulletPoints: Boolean(preferences.useBulletPoints),
   };
 }

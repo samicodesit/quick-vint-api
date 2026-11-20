@@ -20,7 +20,16 @@
     "comparePlans": "Compare all plans",
     "popular": "Most popular",
     "subscriptionTrust": "Secure checkout by Stripe. Cancel anytime.",
-    "oneTimeTrust": "Secure checkout by Stripe. One-time purchase."
+    "oneTimeTrust": "Secure checkout by Stripe. One-time purchase.",
+    "monthlyPlans": "Monthly plans",
+    "oneTimeListingCredits": "One-time listing credits",
+    "monthlyTerms": "Renews monthly. Cancel anytime.",
+    "creditValidity": "Credits never expire.",
+    "compareFeatures": "Compare plan features",
+    "firstMonthPrice": "{price} first month",
+    "renewalPrice": "Then {price}/month",
+    "retryPrice": "Retry price",
+    "creditCount": "{credits} credits"
   },
   "fr": {
     "monthly": "Mensuel",
@@ -43,7 +52,16 @@
     "comparePlans": "Comparer les forfaits",
     "popular": "Le plus populaire",
     "subscriptionTrust": "Paiement sécurisé par Stripe. Résiliable à tout moment.",
-    "oneTimeTrust": "Paiement sécurisé par Stripe. Achat unique."
+    "oneTimeTrust": "Paiement sécurisé par Stripe. Achat unique.",
+    "monthlyPlans": "Abonnements mensuels",
+    "oneTimeListingCredits": "Crédits d’annonce sans abonnement",
+    "monthlyTerms": "Renouvellement mensuel. Résiliable à tout moment.",
+    "creditValidity": "Les crédits n’expirent pas.",
+    "compareFeatures": "Comparer les fonctionnalités",
+    "firstMonthPrice": "{price} le premier mois",
+    "renewalPrice": "Puis {price}/mois",
+    "retryPrice": "Réessayer",
+    "creditCount": "{credits} crédits"
   },
   "de": {
     "monthly": "Monatlich",
@@ -66,7 +84,16 @@
     "comparePlans": "Alle Tarife vergleichen",
     "popular": "Am beliebtesten",
     "subscriptionTrust": "Sichere Zahlung über Stripe. Jederzeit kündbar.",
-    "oneTimeTrust": "Sichere Zahlung über Stripe. Einmalkauf."
+    "oneTimeTrust": "Sichere Zahlung über Stripe. Einmalkauf.",
+    "monthlyPlans": "Monatsabos",
+    "oneTimeListingCredits": "Anzeigen-Credits ohne Abo",
+    "monthlyTerms": "Monatliche Verlängerung. Jederzeit kündbar.",
+    "creditValidity": "Credits verfallen nicht.",
+    "compareFeatures": "Tarifleistungen vergleichen",
+    "firstMonthPrice": "{price} im ersten Monat",
+    "renewalPrice": "Danach {price}/Monat",
+    "retryPrice": "Preis erneut laden",
+    "creditCount": "{credits} Credits"
   },
   "nl": {
     "monthly": "Maandelijks",
@@ -89,7 +116,16 @@
     "comparePlans": "Alle abonnementen vergelijken",
     "popular": "Populairst",
     "subscriptionTrust": "Veilig betalen via Stripe. Altijd opzegbaar.",
-    "oneTimeTrust": "Veilig betalen via Stripe. Eenmalige aankoop."
+    "oneTimeTrust": "Veilig betalen via Stripe. Eenmalige aankoop.",
+    "monthlyPlans": "Maandabonnementen",
+    "oneTimeListingCredits": "Losse advertentiecredits",
+    "monthlyTerms": "Maandelijks verlengd. Altijd opzegbaar.",
+    "creditValidity": "Credits verlopen niet.",
+    "compareFeatures": "Abonnementen vergelijken",
+    "firstMonthPrice": "{price} in de eerste maand",
+    "renewalPrice": "Daarna {price}/maand",
+    "retryPrice": "Prijs opnieuw laden",
+    "creditCount": "{credits} credits"
   },
   "es": {
     "monthly": "Mensual",
@@ -112,7 +148,16 @@
     "comparePlans": "Comparar todos los planes",
     "popular": "Más popular",
     "subscriptionTrust": "Pago seguro con Stripe. Cancela cuando quieras.",
-    "oneTimeTrust": "Pago seguro con Stripe. Compra única."
+    "oneTimeTrust": "Pago seguro con Stripe. Compra única.",
+    "monthlyPlans": "Planes mensuales",
+    "oneTimeListingCredits": "Créditos de anuncios de pago único",
+    "monthlyTerms": "Renovación mensual. Cancela cuando quieras.",
+    "creditValidity": "Los créditos no caducan.",
+    "compareFeatures": "Comparar funciones",
+    "firstMonthPrice": "{price} el primer mes",
+    "renewalPrice": "Después, {price}/mes",
+    "retryPrice": "Volver a consultar",
+    "creditCount": "{credits} créditos"
   },
   "it": {
     "monthly": "Mensile",
@@ -135,7 +180,16 @@
     "comparePlans": "Confronta tutti i piani",
     "popular": "Il più popolare",
     "subscriptionTrust": "Pagamento sicuro con Stripe. Disdici quando vuoi.",
-    "oneTimeTrust": "Pagamento sicuro con Stripe. Acquisto singolo."
+    "oneTimeTrust": "Pagamento sicuro con Stripe. Acquisto singolo.",
+    "monthlyPlans": "Piani mensili",
+    "oneTimeListingCredits": "Crediti per annunci senza abbonamento",
+    "monthlyTerms": "Rinnovo mensile. Annulla quando vuoi.",
+    "creditValidity": "I crediti non scadono.",
+    "compareFeatures": "Confronta le funzionalità",
+    "firstMonthPrice": "{price} il primo mese",
+    "renewalPrice": "Poi {price}/mese",
+    "retryPrice": "Riprova",
+    "creditCount": "{credits} crediti"
   },
   "pt": {
     "monthly": "Mensal",
@@ -158,7 +212,16 @@
     "comparePlans": "Comparar todos os planos",
     "popular": "Mais popular",
     "subscriptionTrust": "Pagamento seguro com Stripe. Cancela quando quiseres.",
-    "oneTimeTrust": "Pagamento seguro com Stripe. Compra única."
+    "oneTimeTrust": "Pagamento seguro com Stripe. Compra única.",
+    "monthlyPlans": "Planos mensais",
+    "oneTimeListingCredits": "Créditos para anúncios sem subscrição",
+    "monthlyTerms": "Renovação mensal. Cancela quando quiseres.",
+    "creditValidity": "Os créditos não expiram.",
+    "compareFeatures": "Comparar funcionalidades",
+    "firstMonthPrice": "{price} no primeiro mês",
+    "renewalPrice": "Depois, {price}/mês",
+    "retryPrice": "Tentar novamente",
+    "creditCount": "{credits} créditos"
   },
   "pl": {
     "monthly": "Miesięcznie",
@@ -181,7 +244,16 @@
     "comparePlans": "Porównaj wszystkie plany",
     "popular": "Najpopularniejszy",
     "subscriptionTrust": "Bezpieczna płatność przez Stripe. Anuluj w dowolnej chwili.",
-    "oneTimeTrust": "Bezpieczna płatność przez Stripe. Zakup jednorazowy."
+    "oneTimeTrust": "Bezpieczna płatność przez Stripe. Zakup jednorazowy.",
+    "monthlyPlans": "Plany miesięczne",
+    "oneTimeListingCredits": "Jednorazowe pakiety ogłoszeń",
+    "monthlyTerms": "Odnawiane co miesiąc. Anuluj w dowolnej chwili.",
+    "creditValidity": "Kredyty nie wygasają.",
+    "compareFeatures": "Porównaj funkcje planów",
+    "firstMonthPrice": "{price} za pierwszy miesiąc",
+    "renewalPrice": "Następnie {price}/mies.",
+    "retryPrice": "Sprawdź ponownie",
+    "creditCount": "{credits} kredytów"
   },
   "cz": {
     "monthly": "Měsíčně",
@@ -204,7 +276,16 @@
     "comparePlans": "Porovnat všechny tarify",
     "popular": "Nejoblíbenější",
     "subscriptionTrust": "Bezpečná platba přes Stripe. Zrušení kdykoliv.",
-    "oneTimeTrust": "Bezpečná platba přes Stripe. Jednorázový nákup."
+    "oneTimeTrust": "Bezpečná platba přes Stripe. Jednorázový nákup.",
+    "monthlyPlans": "Měsíční tarify",
+    "oneTimeListingCredits": "Jednorázové kredity na inzeráty",
+    "monthlyTerms": "Měsíční obnovení. Lze kdykoli zrušit.",
+    "creditValidity": "Kredity nevyprší.",
+    "compareFeatures": "Porovnat funkce tarifů",
+    "firstMonthPrice": "{price} za první měsíc",
+    "renewalPrice": "Poté {price}/měsíc",
+    "retryPrice": "Načíst cenu znovu",
+    "creditCount": "{credits} kreditů"
   },
   "da": {
     "monthly": "Månedligt",
@@ -227,7 +308,16 @@
     "comparePlans": "Sammenlign alle abonnementer",
     "popular": "Mest populær",
     "subscriptionTrust": "Sikker betaling via Stripe. Opsig når som helst.",
-    "oneTimeTrust": "Sikker betaling via Stripe. Engangskøb."
+    "oneTimeTrust": "Sikker betaling via Stripe. Engangskøb.",
+    "monthlyPlans": "Månedsabonnementer",
+    "oneTimeListingCredits": "Annoncekreditter uden abonnement",
+    "monthlyTerms": "Fornyes hver måned. Opsig når som helst.",
+    "creditValidity": "Kreditter udløber ikke.",
+    "compareFeatures": "Sammenlign abonnementer",
+    "firstMonthPrice": "{price} første måned",
+    "renewalPrice": "Derefter {price}/måned",
+    "retryPrice": "Hent pris igen",
+    "creditCount": "{credits} kreditter"
   },
   "el": {
     "monthly": "Μηνιαία",
@@ -250,7 +340,16 @@
     "comparePlans": "Σύγκριση όλων των προγραμμάτων",
     "popular": "Δημοφιλέστερο",
     "subscriptionTrust": "Ασφαλής πληρωμή μέσω Stripe. Ακύρωση ανά πάσα στιγμή.",
-    "oneTimeTrust": "Ασφαλής πληρωμή μέσω Stripe. Εφάπαξ αγορά."
+    "oneTimeTrust": "Ασφαλής πληρωμή μέσω Stripe. Εφάπαξ αγορά.",
+    "monthlyPlans": "Μηνιαία πακέτα",
+    "oneTimeListingCredits": "Μονάδες καταχωρίσεων με εφάπαξ πληρωμή",
+    "monthlyTerms": "Μηνιαία ανανέωση. Ακύρωση οποτεδήποτε.",
+    "creditValidity": "Οι μονάδες δεν λήγουν.",
+    "compareFeatures": "Σύγκριση παροχών",
+    "firstMonthPrice": "{price} τον πρώτο μήνα",
+    "renewalPrice": "Μετά {price}/μήνα",
+    "retryPrice": "Νέα δοκιμή",
+    "creditCount": "{credits} μονάδες"
   },
   "hr": {
     "monthly": "Mjesečno",
@@ -273,7 +372,16 @@
     "comparePlans": "Usporedi sve pakete",
     "popular": "Najpopularniji",
     "subscriptionTrust": "Sigurno plaćanje putem Stripea. Otkažite bilo kada.",
-    "oneTimeTrust": "Sigurno plaćanje putem Stripea. Jednokratna kupnja."
+    "oneTimeTrust": "Sigurno plaćanje putem Stripea. Jednokratna kupnja.",
+    "monthlyPlans": "Mjesečne pretplate",
+    "oneTimeListingCredits": "Jednokratni krediti za oglase",
+    "monthlyTerms": "Obnavlja se mjesečno. Otkaži bilo kada.",
+    "creditValidity": "Krediti ne istječu.",
+    "compareFeatures": "Usporedi značajke paketa",
+    "firstMonthPrice": "{price} prvi mjesec",
+    "renewalPrice": "Zatim {price}/mj.",
+    "retryPrice": "Ponovno učitaj cijenu",
+    "creditCount": "{credits} kredita"
   },
   "fi": {
     "monthly": "Kuukausittain",
@@ -296,7 +404,16 @@
     "comparePlans": "Vertaa kaikkia tilauksia",
     "popular": "Suosituin",
     "subscriptionTrust": "Turvallinen maksu Stripen kautta. Peru milloin vain.",
-    "oneTimeTrust": "Turvallinen maksu Stripen kautta. Kertaosto."
+    "oneTimeTrust": "Turvallinen maksu Stripen kautta. Kertaosto.",
+    "monthlyPlans": "Kuukausitilaukset",
+    "oneTimeListingCredits": "Ilmoituskrediitit kertamaksulla",
+    "monthlyTerms": "Uusiutuu kuukausittain. Peru milloin tahansa.",
+    "creditValidity": "Krediitit eivät vanhene.",
+    "compareFeatures": "Vertaa tilausten ominaisuuksia",
+    "firstMonthPrice": "Ensimmäinen kuukausi {price}",
+    "renewalPrice": "Sen jälkeen {price}/kk",
+    "retryPrice": "Hae hinta uudelleen",
+    "creditCount": "{credits} krediittiä"
   },
   "hu": {
     "monthly": "Havi",
@@ -319,7 +436,16 @@
     "comparePlans": "Összes csomag összehasonlítása",
     "popular": "Legnépszerűbb",
     "subscriptionTrust": "Biztonságos fizetés a Stripe-on keresztül. Bármikor lemondható.",
-    "oneTimeTrust": "Biztonságos fizetés a Stripe-on keresztül. Egyszeri vásárlás."
+    "oneTimeTrust": "Biztonságos fizetés a Stripe-on keresztül. Egyszeri vásárlás.",
+    "monthlyPlans": "Havi csomagok",
+    "oneTimeListingCredits": "Egyszeri hirdetési kreditek",
+    "monthlyTerms": "Havonta megújul. Bármikor lemondható.",
+    "creditValidity": "A kreditek nem járnak le.",
+    "compareFeatures": "Csomagfunkciók összehasonlítása",
+    "firstMonthPrice": "Első hónap: {price}",
+    "renewalPrice": "Utána {price}/hó",
+    "retryPrice": "Ár újratöltése",
+    "creditCount": "{credits} kredit"
   },
   "lt": {
     "monthly": "Kas mėnesį",
@@ -342,7 +468,16 @@
     "comparePlans": "Palyginti visus planus",
     "popular": "Populiariausias",
     "subscriptionTrust": "Saugus mokėjimas per Stripe. Atšaukite bet kada.",
-    "oneTimeTrust": "Saugus mokėjimas per Stripe. Vienkartinis pirkimas."
+    "oneTimeTrust": "Saugus mokėjimas per Stripe. Vienkartinis pirkimas.",
+    "monthlyPlans": "Mėnesiniai planai",
+    "oneTimeListingCredits": "Vienkartiniai skelbimų kreditai",
+    "monthlyTerms": "Atnaujinama kas mėnesį. Galima bet kada atšaukti.",
+    "creditValidity": "Kreditai neturi galiojimo termino.",
+    "compareFeatures": "Palyginti planų funkcijas",
+    "firstMonthPrice": "Pirmą mėnesį {price}",
+    "renewalPrice": "Vėliau {price}/mėn.",
+    "retryPrice": "Bandyti dar kartą",
+    "creditCount": "{credits} kreditų"
   },
   "ro": {
     "monthly": "Lunar",
@@ -365,7 +500,16 @@
     "comparePlans": "Compară toate planurile",
     "popular": "Cel mai popular",
     "subscriptionTrust": "Plată securizată prin Stripe. Anulezi oricând.",
-    "oneTimeTrust": "Plată securizată prin Stripe. Achiziție unică."
+    "oneTimeTrust": "Plată securizată prin Stripe. Achiziție unică.",
+    "monthlyPlans": "Abonamente lunare",
+    "oneTimeListingCredits": "Credite pentru anunțuri cu plată unică",
+    "monthlyTerms": "Reînnoire lunară. Poți anula oricând.",
+    "creditValidity": "Creditele nu expiră.",
+    "compareFeatures": "Compară beneficiile",
+    "firstMonthPrice": "{price} în prima lună",
+    "renewalPrice": "Apoi {price}/lună",
+    "retryPrice": "Reîncearcă",
+    "creditCount": "{credits} de credite"
   },
   "sk": {
     "monthly": "Mesačne",
@@ -388,7 +532,16 @@
     "comparePlans": "Porovnať všetky programy",
     "popular": "Najobľúbenejší",
     "subscriptionTrust": "Bezpečná platba cez Stripe. Zrušenie kedykoľvek.",
-    "oneTimeTrust": "Bezpečná platba cez Stripe. Jednorazový nákup."
+    "oneTimeTrust": "Bezpečná platba cez Stripe. Jednorazový nákup.",
+    "monthlyPlans": "Mesačné programy",
+    "oneTimeListingCredits": "Jednorazové kredity na inzeráty",
+    "monthlyTerms": "Mesačná obnova. Možno kedykoľvek zrušiť.",
+    "creditValidity": "Kredity neprepadnú.",
+    "compareFeatures": "Porovnať funkcie programov",
+    "firstMonthPrice": "{price} za prvý mesiac",
+    "renewalPrice": "Potom {price}/mesiac",
+    "retryPrice": "Znova načítať cenu",
+    "creditCount": "{credits} kreditov"
   },
   "sv": {
     "monthly": "Månadsvis",
@@ -411,6 +564,15 @@
     "comparePlans": "Jämför alla abonnemang",
     "popular": "Populärast",
     "subscriptionTrust": "Säker betalning via Stripe. Avsluta när som helst.",
-    "oneTimeTrust": "Säker betalning via Stripe. Engångsköp."
+    "oneTimeTrust": "Säker betalning via Stripe. Engångsköp.",
+    "monthlyPlans": "Månadsabonnemang",
+    "oneTimeListingCredits": "Annonskrediter utan abonnemang",
+    "monthlyTerms": "Förnyas varje månad. Avsluta när du vill.",
+    "creditValidity": "Krediterna förfaller inte.",
+    "compareFeatures": "Jämför abonnemangens funktioner",
+    "firstMonthPrice": "{price} första månaden",
+    "renewalPrice": "Därefter {price}/månad",
+    "retryPrice": "Hämta pris igen",
+    "creditCount": "{credits} krediter"
   }
 }

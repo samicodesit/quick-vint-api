@@ -723,6 +723,38 @@ describe("events tracking endpoint", () => {
     ).not.toHaveProperty("generatedTitle");
   });
 
+  it.each([
+    ["free_limit_view_tabs_v1", "mobile_web", true, true],
+    ["free_limit_view_tabs_v1", "extension_content", true, true],
+    ["free_limit_view_combined_v1", "extension_content", true, false],
+    ["free_limit_view_tabs_v1", "extension_content", false, false],
+    ["free_limit_view_tabs_v1", "website", true, false],
+  ] as const)(
+    "records only a verified pricing exposure: %s / %s / authenticated %s",
+    async (event, source, authenticated, retained) => {
+      await postEvent(
+        {
+          schemaVersion: 2,
+          events: [
+            {
+              id: "d623926a-35a6-4bf5-8027-8ab335c71110",
+              occurredAt: new Date().toISOString(),
+              event,
+              source,
+            },
+          ],
+        },
+        authenticated,
+      );
+      const record = rpcMock.mock.calls[0][1];
+      if (retained) {
+        expect(record.p_user_id).toBe(USER_ID);
+        expect(record.p_event.businessLog.endpoint).toBe(
+          "/event/" + event + "/" + source,
+        );
+      } else expect(record.p_event.businessLog).toBeNull();
+    },
+  );
   it("keeps optional upgrade feedback as a bounded analytics record", async () => {
     await postEvent({
       schemaVersion: 2,

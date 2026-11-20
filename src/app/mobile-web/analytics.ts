@@ -39,6 +39,8 @@ export const MOBILE_ANALYTICS_EVENTS = [
   "generation_recovery_pending",
   "web_generation_run",
   "web_paywall_view",
+  "free_limit_view_tabs_v1",
+  "free_limit_view_combined_v1",
   "copy",
   "vinted_click",
   "checkout_start",

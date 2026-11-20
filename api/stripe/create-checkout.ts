@@ -88,7 +88,7 @@ async function getOfferPromotion(
   email: string,
   tier: string,
   offerToken?: string,
-  mobileWeb = false,
+  verifyIntro = false,
 ) {
   if (!offerToken) return null;
 
@@ -117,7 +117,7 @@ async function getOfferPromotion(
   }
 
   const proIntro =
-    mobileWeb &&
+    verifyIntro &&
     tier === "pro" &&
     offer.couponCode === LIMIT_FOLLOWUP_COUPON_CODE;
   if (proIntro) {
@@ -135,6 +135,20 @@ async function getOfferPromotion(
     }
   }
   return { id: promotionCode.id, proIntro };
+}
+
+function verifyProIntroTotal(session: Stripe.Checkout.Session) {
+  const monthly = TIER_CONFIGS.pro.monthlyPrice;
+  const subtotal = Math.round(monthly * 100);
+  const firstMonth = proIntroPriceCents(monthly);
+  if (
+    session.currency !== "eur" ||
+    session.amount_subtotal !== subtotal ||
+    session.amount_total !== firstMonth ||
+    session.total_details?.amount_discount !== subtotal - firstMonth
+  ) {
+    throw new Error("Stripe checkout did not match the advertised Pro price.");
+  }
 }
 
 async function getUninstallPromotionCodeId(
@@ -412,21 +426,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       });
 
-      if (promotion?.proIntro) {
-        const monthly = TIER_CONFIGS.pro.monthlyPrice;
-        const subtotal = Math.round(monthly * 100);
-        const firstMonth = proIntroPriceCents(monthly);
-        if (
-          session.currency !== "eur" ||
-          session.amount_subtotal !== subtotal ||
-          session.amount_total !== firstMonth ||
-          session.total_details?.amount_discount !== subtotal - firstMonth
-        ) {
-          throw new Error(
-            "Stripe checkout did not match the advertised Pro price.",
-          );
-        }
-      }
+      if (promotion?.proIntro) verifyProIntroTotal(session);
       return res.status(200).json({ url: session.url });
     }
 
@@ -466,11 +466,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tierConfig = TIER_CONFIGS[tier];
     const priceId = tierConfig.stripe.priceId;
+    let verifyExtensionIntro = false;
     let promotionCodeId: string | null = null;
     try {
+      const offer = await getOfferPromotion(
+        email,
+        tier,
+        offerToken,
+        source === "extension_paywall",
+      );
+      verifyExtensionIntro = !!offer?.proIntro;
       promotionCodeId =
-        (await getOfferPromotion(email, tier, offerToken))?.id ||
-        (await getUninstallPromotionCodeId(source, couponCode));
+        offer?.id || (await getUninstallPromotionCodeId(source, couponCode));
     } catch (offerErr: any) {
       if (offerErr?.name === "PricingOfferError") {
         return res.status(400).json({
@@ -613,6 +620,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
+    if (verifyExtensionIntro) verifyProIntroTotal(session);
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
     if (err instanceof MobileBillingRequestError) {

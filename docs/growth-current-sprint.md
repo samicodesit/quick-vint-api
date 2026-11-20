@@ -1,5 +1,12 @@
 # AutoLister AI Growth Current Sprint
 
+## 2026-11-20. Free-limit pricing experiment (local)
+
+- On a blocked draft generation, eligible accounts see either the tabbed chooser or three monthly plans and three one-time packs together. The same account receives the same layout in both clients. The combined layout is capped at 640px on desktop.
+- Local browser checks exercised 18 UI languages, narrow phones, landscape, tablets and desktop. The English and Dutch previews include both price groups. Two Stripe test-mode sessions confirmed €7.99 due for eligible Pro and a €9.99 monthly base through the web and extension checkout handlers. Both sessions were expired without payment.
+- The backend production checks passed (1,833 tests, 20 optional skips). The extension passed 196 unit tests and its production build. Twelve phone-upload browser checks initially used an unrelated backend fixture and passed when repeated with the paired checkout. The extension screenshots show the real extension on a local listing-form fixture.
+- The [experiment report](../ops/analytics/free-limit-pricing-v1.sql) counts each account once and compares first buyers and gross EUR per exposed account after seven complete days. Interpret a conversion difference only after customers have received the experiment.
+
 ## Pro checkout and extension feedback, November 19, 2026
 
 - Local implementation. Both Get offer and Get more → Pro use the signed five-draft offer. Desktop and mobile browser clicks reached the checkout handler and produced four Stripe test sessions. Each had a €9.99 subtotal, a €2.00 first-month discount and a €7.99 total. The sandbox run used a fixture account and EUR test catalog. Every session was expired without payment.

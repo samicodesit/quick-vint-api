@@ -4,7 +4,11 @@ import {
 } from "./limitFollowupEligibility";
 import { createPricingOfferToken } from "./pricingOfferToken";
 import { supabase } from "./supabaseClient";
-import { FREE_LIFETIME_LIMIT } from "./tierConfig";
+import {
+  FREE_LIFETIME_LIMIT,
+  TIER_CONFIGS,
+  proIntroPriceCents,
+} from "./tierConfig";
 import { hasPaidEntitlementStatus } from "../src/utils/subscriptionStatus";
 
 const OFFER_WINDOW_MS = 72 * 60 * 60 * 1000;
@@ -79,6 +83,8 @@ export async function getDraftFiveOffer(user: { id: string; email?: string }) {
   const expiresAt = new Date(fifth + OFFER_WINDOW_MS).toISOString();
   return {
     expiresAt,
+    firstMonthCents: proIntroPriceCents(TIER_CONFIGS.pro.monthlyPrice),
+    monthlyCents: Math.round(TIER_CONFIGS.pro.monthlyPrice * 100),
     offerToken: createPricingOfferToken({
       email,
       targetTier: "pro",

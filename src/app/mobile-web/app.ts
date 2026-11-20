@@ -939,11 +939,7 @@ export function mountMobileWebApp(
         return false;
       if (usage.canGenerate === false) {
         if (interactive)
-          showPaywall(
-            usage,
-            usage.blockedReason || undefined,
-            "generation_limit",
-          );
+          showPaywall(usage, usage.blockedReason || undefined, "feature_lock");
         return false;
       }
       return true;

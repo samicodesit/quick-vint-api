@@ -229,6 +229,47 @@ describe("create checkout", () => {
     );
   });
 
+  it.each([799, 999])(
+    "checks the extension Pro total %i before returning a payment link",
+    async (total) => {
+      const email = "customer@example.com";
+      const offerToken = createPricingOfferToken({
+        email,
+        targetTier: "pro",
+        couponCode: "LISTFASTER20",
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+      });
+      promotionCodeListMock.mockResolvedValue({
+        data: [
+          { id: "promo_test", coupon: { duration: "once", percent_off: 20 } },
+        ],
+      });
+      checkoutCreateMock.mockResolvedValue({
+        url: "https://checkout.stripe.com/session/test",
+        currency: "eur",
+        amount_subtotal: 999,
+        amount_total: total,
+        total_details: { amount_discount: 999 - total },
+      });
+      const { default: handler } =
+        await import("../../../api/stripe/create-checkout.js");
+      const res = createResponse();
+      await (handler as unknown as CheckoutHandler)(
+        {
+          method: "POST",
+          body: { email, tier: "pro", source: "extension_paywall", offerToken },
+        } as any,
+        res as any,
+      );
+      expect(checkoutCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          discounts: [{ promotion_code: "promo_test" }],
+        }),
+      );
+      if (total === 799) expect(res.body).toHaveProperty("url");
+      else expect(res.body).not.toHaveProperty("url");
+    },
+  );
   it("opens checkout from an uninstall user id and applies the winback coupon", async () => {
     selectResponse.data = {
       id: "123e4567-e89b-42d3-a456-426614174000",

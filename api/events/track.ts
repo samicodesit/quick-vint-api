@@ -593,6 +593,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
         };
       }
+      const pricingView =
+        raw.event === "free_limit_view_combined_v1" ||
+        raw.event === "free_limit_view_tabs_v1";
+      if (
+        pricingView &&
+        (!isUuid(authenticatedUserId) ||
+          !["mobile_web", "extension_content"].includes(raw.source) ||
+          /[89a-f]$/i.test(authenticatedUserId || "") !==
+            (raw.event === "free_limit_view_combined_v1"))
+      )
+        return null;
+      if (pricingView) {
+        // Keep the arm and surface measurable after request bodies are compacted.
+        return {
+          endpoint: `/event/${raw.event}/${raw.source}`,
+          request_method: "SYSTEM",
+          response_status: 204,
+          full_request_body: {
+            analyticsOnly: true,
+            transportEventId: raw.id,
+            occurredAt: raw.occurredAt,
+          },
+        };
+      }
       const upgradeFeedback = raw.event === "upgrade_feedback_submitted";
       if (
         upgradeFeedback &&

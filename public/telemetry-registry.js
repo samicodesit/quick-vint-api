@@ -111,6 +111,12 @@ globalThis.AutoListerEventRegistry = {
   web_generation_run: {
     kind: "business",
   },
+  free_limit_view_tabs_v1: {
+    kind: "business",
+  },
+  free_limit_view_combined_v1: {
+    kind: "business",
+  },
   web_paywall_view: {
     kind: "business",
   },

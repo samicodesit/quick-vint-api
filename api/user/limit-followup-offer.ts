@@ -90,7 +90,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 
-  if (req.query?.surface === "web") {
+  if (
+    req.query?.surface === "web" ||
+    req.query?.surface === "extension_paywall"
+  ) {
     res.setHeader("Cache-Control", "private, no-store");
     try {
       const offer = await getDraftFiveOffer(user);

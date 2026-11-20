@@ -1,3 +1,4 @@
+import { signInFixture } from "./billing-browser-fixture.mjs";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -64,37 +65,7 @@ try {
       viewport: { width: 390, height: 844 },
       locale,
     });
-    await context.addInitScript(() => {
-      const encode = (value) =>
-        btoa(JSON.stringify(value))
-          .replace(/=/g, "")
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_");
-      const user = {
-        id: "123e4567-e89b-42d3-a456-426614174000",
-        email: "fixture@example.test",
-        aud: "authenticated",
-        role: "authenticated",
-        app_metadata: {},
-        user_metadata: {},
-      };
-      const expires = Math.floor(Date.now() / 1000) + 36000;
-      localStorage.setItem(
-        "sb-drafts-test-auth-token",
-        JSON.stringify({
-          access_token:
-            encode({ alg: "HS256", typ: "JWT" }) +
-            "." +
-            encode({ sub: user.id, exp: expires, role: "authenticated" }) +
-            ".fixture",
-          refresh_token: "fixture",
-          expires_at: expires,
-          expires_in: 36000,
-          token_type: "bearer",
-          user,
-        }),
-      );
-    });
+    await signInFixture(context);
     await context.route("https://drafts-test.supabase.co/**", (route) =>
       route.fulfill({ json: {} }),
     );

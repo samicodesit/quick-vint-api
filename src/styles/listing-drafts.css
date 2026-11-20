@@ -432,10 +432,14 @@
 }
 .draft-editor-navigation {
   justify-content: space-between;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 .draft-editor-navigation > .draft-actions {
   gap: 4px;
+}
+.draft-editor-navigation > .draft-actions:not(:has(> :not([hidden]))) {
+  display: none;
 }
 [data-draft-position] {
   font-size: 13px;
@@ -1401,15 +1405,30 @@ html:has([data-drafts-enabled="true"]) {
 .draft-free-meter:not([hidden]) {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0 10px;
-  width: fit-content;
-  margin-bottom: 8px;
-  color: var(--mobile-muted);
+  gap: 10px;
+  max-width: 100%;
+  margin-inline-start: auto;
   font-size: 13px;
+}
+.draft-editor.is-empty .draft-free-meter:not([hidden]) {
+  flex: 1 1 0;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.draft-free-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline-end: 12px;
+  border-inline-end: 1px solid var(--mobile-border-strong);
+  color: var(--mobile-muted);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 .draft-free-ticks {
   display: flex;
+  flex-shrink: 0;
   gap: 3px;
 }
 .draft-free-ticks i {
@@ -1422,11 +1441,32 @@ html:has([data-drafts-enabled="true"]) {
   background: var(--mobile-link, #234be8);
 }
 .draft-free-meter .draft-text-button {
-  padding: 4px 6px;
-  min-height: 28px;
+  flex-shrink: 0;
+  padding-block: 4px;
+  padding-inline: 0;
   color: var(--mobile-link, #234be8);
   font-size: inherit;
   font-weight: 600;
+}
+@media (max-width: 640px) {
+  .draft-free-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .draft-editor.is-empty
+    .draft-editor-navigation:has(> .draft-free-meter:not([hidden]))
+    > button {
+    max-inline-size: 40%;
+    justify-content: flex-start;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  .draft-editor.is-empty .draft-free-meter .draft-text-button {
+    min-inline-size: 44px;
+    max-inline-size: 48%;
+    overflow-wrap: anywhere;
+  }
 }
 .draft-workspace .draft-dropzone {
   display: flex;
@@ -1912,7 +1952,6 @@ html:has([data-drafts-enabled="true"]) {
   .draft-editor-navigation {
     margin-bottom: 8px;
     gap: 8px;
-    flex-wrap: wrap;
   }
   .draft-editor-navigation > button {
     padding-left: 12px;

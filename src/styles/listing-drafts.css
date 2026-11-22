@@ -1315,6 +1315,12 @@ html:has([data-drafts-enabled="true"]) {
 .draft-workspace .draft-field-heading [data-draft-action^="copy-"] {
   grid-column: 3;
   justify-self: end;
+  max-width: 100%;
+}
+@media (max-width: 480px) {
+  .draft-workspace .draft-field-heading [data-draft-action^="copy-"] {
+    padding-inline: 8px;
+  }
 }
 .draft-workspace .draft-field-heading .draft-text-variant {
   grid-column: 2;
@@ -1583,7 +1589,6 @@ html:has([data-drafts-enabled="true"]) {
     font-size: 12px;
   }
   .draft-workspace .draft-field-heading [data-draft-action^="copy-"] {
-    max-width: 100%;
     gap: 3px;
     padding-inline: 2px;
     font-size: 13px;

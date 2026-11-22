@@ -1,5 +1,5 @@
 ---
-import { UserRound, ChevronDown, Camera, Images, Play, X, Settings2, Coins } from "@lucide/astro";
+import { UserRound, ChevronDown, Camera, Images, Play, X, Settings, Coins } from "@lucide/astro";
 import PhotoRail from "./PhotoRail.astro";
 import ListingControls from "./ListingControls.astro";
 import ListingResult from "./ListingResult.astro";
@@ -29,7 +29,7 @@ const {
     ><span class="mobile-profile-avatar" aria-hidden="true"><UserRound size={20} /></span></a>
     <div class="mobile-workspace-header-actions" data-mobile-web="profile-menu-root" hidden>
       {import.meta.env.PUBLIC_USER_MODELS_ENABLED === "true" && <button type="button" class="mobile-header-settings um-toolbar-entry" data-user-model-open data-model-compact aria-label="Your model" hidden>Your model</button>}
-      <button type="button" class="mobile-header-settings" data-draft-global-trigger aria-label="Listing settings" aria-haspopup="dialog" aria-controls="draft-global-dialog" aria-expanded="false" hidden><Settings2 size={18} aria-hidden="true" /><span>Settings</span></button>
+      <button type="button" class="mobile-header-settings" data-draft-global-trigger aria-label="Listing settings" aria-haspopup="dialog" aria-controls="draft-global-dialog" aria-expanded="false" hidden><Settings size={21} aria-hidden="true" /><span>Settings</span></button>
       <button
         type="button"
         class="mobile-profile-menu-trigger"

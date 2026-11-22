@@ -712,12 +712,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     " Put one empty line before the first bullet and one empty line after the final bullet before any hashtags.";
   const bulletOpeningInstruction =
     "Use one natural opening sentence before the bullets. It can be fuller when useful and should mention a realistic wearing occasion when the item clearly suggests one, without guessing.";
-  const bulletpointInstruction =
+  const descriptionFormat = (length: "short" | "long") =>
     useBulletPoints === true || useBulletPoints === "true"
-      ? normalizedDescriptionLength === "short"
+      ? length === "short"
         ? `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 2-4 bullets; fewer is fine. Keep each bullet very short, around 4-6 words and one visible or readable fact. Each bullet starts with '- '.${bulletSpacingInstruction}${bulletEmojiInstruction}`
         : `${bulletOpeningInstruction} Then only add the useful bullet points the photos support. Usually 3-5 bullets; fewer is fine for simple items. Each bullet starts with '- ' and should be fuller seller-style detail, usually around 8-14 words when real evidence exists. Combine closely related visible or readable facts, without adding assumptions or padding.${bulletSpacingInstruction}${bulletEmojiInstruction}`
-      : normalizedDescriptionLength === "short"
+      : length === "short"
         ? `Use 1 short paragraph, or 2 only when the photos support enough facts. Keep sentences short and direct.${paragraphEmojiInstruction}`
         : `Use 1-2 paragraphs. Write fuller natural seller-style sentences only when supported by visible or readable details.${paragraphEmojiInstruction}`;
   const aiInstructionsValidation = validateAiInstructions(
@@ -1033,6 +1033,27 @@ Account-specific behavior:
 ${customAiInstructions}
 Follow this behavior while respecting the safeguards and concrete request-setting precedence above.`
     : "";
+  const listingFields = isMobileWebRequest
+    ? ["title", "shortTitle", "shortDescription", "longDescription"]
+    : ["title", "description"];
+  const listingSchema = {
+    type: "object",
+    additionalProperties: false,
+    properties: Object.fromEntries(
+      listingFields.map((field) => [field, { type: "string", minLength: 1 }]),
+    ),
+    required: listingFields,
+  };
+  const maxOutputTokens =
+    OPEN_AI_MAX_OUTPUT_TOKENS + (isMobileWebRequest ? 600 : 0);
+  const lengthInstructions = isMobileWebRequest
+    ? `- Generate both descriptions in ${descriptionLanguage}, with the same factual safeguards, tone, emoji and hashtag settings.
+- shortDescription: Keep the most useful verified facts in the fewest natural words. ${descriptionFormat("short")}
+- longDescription: Add useful supported detail or fuller phrasing. ${descriptionFormat("long")}
+- Keep the short version meaningfully shorter when possible. Never stretch the long version with filler or unsupported facts.`
+    : `- ${descriptionFormat(normalizedDescriptionLength)}
+- Description length: ${normalizedDescriptionLength}.
+- This controls how much useful detail each sentence or bullet contains, not just the number of bullets.`;
   const userPrompt = `
 Analyze the image(s) and generate a Vinted title and description.
 
@@ -1060,7 +1081,12 @@ Title:
 - Use a natural searchable format: brand if known, model/product name if known, color/pattern, item type, size if known.
 - Prefer a fuller searchable title when real evidence exists: include one extra concrete visible detail such as model, cut, closure, neckline, pattern, set count, or clearly supported product subtype. Aim for about 35-70 characters, but keep simple items shorter and never pad.
 - When a clearly readable anniversary, edition, or product mark distinguishes the item, make room for its specific identifying words and numbers in the title before generic color, cut, or closure details. Prefer the specific name and adjacent number over generic legal wording. Preserve a readable year range together. Never turn a printed year into a season or production-year claim.
-- Do not use emojis, hashtags, hype, or condition claims in the title.
+- Do not use emojis, hashtags, hype, or condition claims in the title.${
+    isMobileWebRequest
+      ? `
+- Also write shortTitle in ${titleLanguage}. Make it materially shorter when possible by dropping secondary details. Keep the item type and its strongest searchable identifier. Keep it factual and natural. If the title is already minimal, use the same text.`
+      : ""
+  }
 
 Description:
 - Write only the description in ${descriptionLanguage}.
@@ -1073,10 +1099,8 @@ Request settings:
 - Description language: write only the description in ${descriptionLanguage}.
 - Tone: ${toneInstruction}.
 - ${emojiInstruction}
-- ${bulletpointInstruction}
-- Description length: ${normalizedDescriptionLength}.
-- This controls how much useful detail each sentence or bullet contains, not just the number of bullets.${customAiInstructionsPrompt}
-Reply only in JSON: {"title":"...","description":"..."}
+${lengthInstructions}${customAiInstructionsPrompt}
+Reply only in JSON: ${JSON.stringify(Object.fromEntries(listingFields.map((field) => [field, "..."])))}
         `.trim();
 
   // Log the full prompt being sent to OpenAI
@@ -1138,19 +1162,11 @@ Reply only in JSON: {"title":"...","description":"..."}
           json_schema: {
             name: "listing",
             strict: true,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                title: { type: "string", minLength: 1 },
-                description: { type: "string", minLength: 1 },
-              },
-              required: ["title", "description"],
-            },
+            schema: listingSchema,
           },
         },
         ...getOpenAIChatTemperatureParam(model, 0.3),
-        ...getOpenAIChatTokenLimitParam(model, OPEN_AI_MAX_OUTPUT_TOKENS),
+        ...getOpenAIChatTokenLimitParam(model, maxOutputTokens),
       };
 
       return openai.chat.completions.create(completionParams).withResponse();
@@ -1202,7 +1218,7 @@ Reply only in JSON: {"title":"...","description":"..."}
             ],
             service_tier: "default",
             reasoning: { effort: "low" },
-            max_output_tokens: OPEN_AI_MAX_OUTPUT_TOKENS,
+            max_output_tokens: maxOutputTokens,
             store: false,
             prompt_cache_options: { mode: "explicit" },
             text: {
@@ -1210,15 +1226,7 @@ Reply only in JSON: {"title":"...","description":"..."}
                 type: "json_schema",
                 name: "listing",
                 strict: true,
-                schema: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    title: { type: "string", minLength: 1 },
-                    description: { type: "string", minLength: 1 },
-                  },
-                  required: ["title", "description"],
-                },
+                schema: listingSchema,
               },
             },
           },
@@ -1270,11 +1278,40 @@ Reply only in JSON: {"title":"...","description":"..."}
     logData.openaiRateLimitInfo = rateLimitInfo;
     console.log("🔄 OpenAI Rate Limit Status:", rateLimitInfo);
 
-    const { title, description } = parseOpenAIListingOutput(content);
+    const {
+      title,
+      description,
+      shortTitle,
+      shortDescription,
+      longDescription,
+    } = parseOpenAIListingOutput(
+      content,
+      isMobileWebRequest ? normalizedDescriptionLength : undefined,
+    );
     const finalDescription = appendDescriptionFooter(
       description,
       effectiveDescriptionFooterText,
     );
+
+    const variants = {
+      ...(shortTitle ? { shortTitle } : {}),
+      ...(shortDescription
+        ? {
+            shortDescription: appendDescriptionFooter(
+              shortDescription,
+              effectiveDescriptionFooterText,
+            ),
+          }
+        : {}),
+      ...(longDescription
+        ? {
+            longDescription: appendDescriptionFooter(
+              longDescription,
+              effectiveDescriptionFooterText,
+            ),
+          }
+        : {}),
+    };
 
     // Generate localized measurement advice if item is clothing
     const messagesMap: Record<string, any> = {
@@ -1292,6 +1329,7 @@ Reply only in JSON: {"title":"...","description":"..."}
     const mobileResponse = {
       title,
       description: finalDescription,
+      ...variants,
       ...(modelPhotos ? { modelPhotos } : {}),
       measurementAdvice,
       offers: undefined as unknown,
@@ -1430,6 +1468,7 @@ Reply only in JSON: {"title":"...","description":"..."}
       const responseBody = {
         title,
         description: finalDescription,
+        ...variants,
         ...(modelPhotos ? { modelPhotos } : {}),
         measurementAdvice,
         offers,

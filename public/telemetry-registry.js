@@ -120,6 +120,9 @@ globalThis.AutoListerEventRegistry = {
   web_paywall_view: {
     kind: "business",
   },
+  web_draft_text_variant: {
+    kind: "business",
+  },
   copy: {
     kind: "business",
   },

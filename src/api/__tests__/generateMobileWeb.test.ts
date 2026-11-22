@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createCompletion = vi.fn();
+const createResponseApi = vi.fn();
 const photoAdmission = vi.hoisted(() => vi.fn());
 vi.mock("../../../utils/listingPhotoJobs", () => ({
   startListingPhotos: photoAdmission,
@@ -46,6 +47,7 @@ vi.mock("../../../utils/draftGeneration", () => ({
 vi.mock("openai", () => ({
   OpenAI: vi.fn(function OpenAI() {
     return {
+      post: createResponseApi,
       chat: { completions: { create: createCompletion } },
     };
   }),
@@ -352,7 +354,7 @@ describe("mobile web generation idempotency", () => {
 
   async function invoke(
     headers: Record<string, string> = mobileHeaders,
-    requestBody = body,
+    requestBody: Record<string, unknown> = body,
   ) {
     const module = await import("../../../api/generate.js");
     const handler = (module as any).default;
@@ -385,6 +387,84 @@ describe("mobile web generation idempotency", () => {
       logRequest.mock.calls.at(-1)![0].fullRequestBody.analyticsClientId,
     ).toBeUndefined();
   });
+
+  it.each([
+    [0, "short"],
+    [100, "long"],
+  ] as const)(
+    "returns both web description variants with provider arm at %i percent",
+    async (pilot, length) => {
+      vi.stubEnv("OPENAI_DRAFT_PILOT_PERCENT", String(pilot));
+      const variants = {
+        shortTitle: "Black dress",
+        shortDescription: "Black A-line dress.",
+        longDescription: "Black A-line dress with a square neckline.",
+      };
+      const content = JSON.stringify({
+        title: "Black square-neck dress",
+        ...variants,
+      });
+      const mockTransport = (data: unknown) => ({
+        withResponse: vi.fn(async () => ({ data, response: { headers: {} } })),
+      });
+      createCompletion.mockReturnValue(
+        mockTransport({
+          choices: [{ message: { content } }],
+        }),
+      );
+      createResponseApi.mockReturnValue(
+        mockTransport({
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              content: [{ type: "output_text", text: content }],
+            },
+          ],
+        }),
+      );
+      try {
+        const response = await invoke(mobileHeaders, {
+          ...body,
+          descriptionLength: length,
+          descriptionFooterText: "Happy to bundle.",
+        });
+        const expected = {
+          title: "Black square-neck dress",
+          shortTitle: variants.shortTitle,
+          shortDescription: variants.shortDescription + "\n\nHappy to bundle.",
+          longDescription: variants.longDescription + "\n\nHappy to bundle.",
+          description:
+            variants[
+              length === "short" ? "shortDescription" : "longDescription"
+            ] + "\n\nHappy to bundle.",
+        };
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toMatchObject(expected);
+        const schema = pilot
+          ? createResponseApi.mock.calls[0][1].body.text.format.schema
+          : createCompletion.mock.calls[0][0].response_format.json_schema
+              .schema;
+        expect(schema.required).toEqual([
+          "title",
+          "shortTitle",
+          "shortDescription",
+          "longDescription",
+        ]);
+        expect(
+          reserveAndBindMobileGenerationReservation,
+        ).toHaveBeenCalledOnce();
+        expect(completeMobileGenerationIdempotency).toHaveBeenCalledWith(
+          expect.objectContaining({
+            response: expect.objectContaining(expected),
+          }),
+        );
+      } finally {
+        await Promise.all(backgroundWork.splice(0));
+        vi.unstubAllEnvs();
+      }
+    },
+  );
 
   async function invokeWithoutBody(
     headers: Record<string, string> = mobileHeaders,

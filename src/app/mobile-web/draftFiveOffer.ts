@@ -2,7 +2,7 @@ import { trackMobileEvent } from "./analytics";
 import { fetchMobileJson } from "./api";
 import { rememberMobileBillingReturn, startMobileCheckout } from "./billing";
 import type { MobileUsage } from "./generationClient";
-import { getUiLocale, uiFormat, uiText } from "./ui";
+import { getUiLocale, uiFormat, uiLanguageTag, uiText } from "./ui";
 import { formatPrice } from "../../utils/billingDisplay";
 import { TIER_CONFIGS } from "../../../utils/tierConfig";
 
@@ -23,8 +23,98 @@ export function mountDraftFiveOffer(
   getMore?: () => void,
 ) {
   const meter = root.querySelector<HTMLElement>("[data-draft-free-meter]");
-  const label = meter?.querySelector<HTMLElement>("[data-draft-free-label]");
-  const ticks = meter?.querySelectorAll(".draft-free-ticks i");
+  const free = meter?.querySelector<HTMLElement>("[data-draft-free-status]");
+  const label = free?.querySelector<HTMLElement>("[data-draft-free-label]");
+  const ticks = free?.querySelectorAll(".draft-free-ticks i");
+  const credits = meter?.querySelector<HTMLElement>(
+    "[data-draft-usage-credits]",
+  );
+  const creditsValue = credits?.querySelector<HTMLElement>(
+    "[data-draft-credits-value]",
+  );
+  const number = new Intl.NumberFormat(uiLanguageTag());
+  const count = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.max(0, value)
+      : null;
+
+  function renderMeter(usage: MobileUsage) {
+    if (!meter || !free || !label || !ticks || !credits || !creditsValue)
+      return;
+    const plan = usage.plan;
+    const subscribed =
+      (plan?.isPaid === true || Boolean(plan?.tier && plan.tier !== "free")) &&
+      (!plan?.status || ["active", "trialing"].includes(plan.status));
+    const creditCount = count(usage.remaining?.packCredits);
+    const freeLimit = count(usage.limits?.freeLifetime);
+    const freeRemaining = count(usage.remaining?.freeLifetime);
+    const showFree =
+      !subscribed &&
+      !creditCount &&
+      freeLimit !== null &&
+      freeRemaining !== null;
+
+    free.hidden = !showFree;
+    if (showFree) {
+      const remaining = Math.min(freeLimit, freeRemaining);
+      const text = remaining
+        ? uiFormat("{0} of {1} free drafts left", [
+            number.format(remaining),
+            number.format(freeLimit),
+          ])
+        : uiText("No free drafts left");
+      if (label.textContent !== text) label.textContent = text;
+      const showTicks = freeLimit === ticks.length;
+      const tickGroup = free.querySelector<HTMLElement>(".draft-free-ticks");
+      if (tickGroup) tickGroup.hidden = !showTicks;
+      ticks.forEach((tick, index) =>
+        tick.toggleAttribute("data-available", showTicks && index < remaining),
+      );
+    }
+
+    for (const [period, alias] of [
+      ["daily", "day"],
+      ["monthly", "month"],
+    ] as const) {
+      const cell = meter.querySelector<HTMLElement>(
+        `[data-draft-quota="${period}"]`,
+      )!;
+      cell.hidden = !subscribed;
+      if (!subscribed) continue;
+      const limit = count(usage.limits?.[period]);
+      const remaining = count(
+        usage.remaining?.[period] ?? usage.remaining?.[alias],
+      );
+      const used =
+        limit !== null && remaining !== null
+          ? Math.max(0, limit - remaining)
+          : null;
+      const value = cell.querySelector<HTMLElement>(
+        "[data-draft-quota-value]",
+      )!;
+      const track = cell.querySelector<HTMLElement>(".draft-usage-track")!;
+      const text =
+        usage.limits?.[period] === null
+          ? uiText("Unlimited")
+          : limit !== null && used !== null
+            ? `${number.format(used)} / ${number.format(limit)}`
+            : "–";
+      if (value.textContent !== text) value.textContent = text;
+      track.hidden = used === null || !limit;
+      track.style.setProperty(
+        "--draft-usage-percent",
+        `${used !== null && limit ? (100 * used) / limit : 0}%`,
+      );
+    }
+
+    credits.hidden = !(
+      creditCount ||
+      (!subscribed && !showFree && creditCount !== null)
+    );
+    const text = number.format(creditCount ?? 0);
+    if (creditsValue.textContent !== text) creditsValue.textContent = text;
+    meter.hidden = !subscribed && !showFree && credits.hidden;
+  }
   const more = meter?.querySelector<HTMLButtonElement>("[data-draft-get-more]");
   const region = root.querySelector<HTMLElement>("[data-draft-five-offer]");
   const button = region?.querySelector<HTMLButtonElement>("button");
@@ -134,28 +224,7 @@ export function mountDraftFiveOffer(
       render();
     },
     updateUsage(usage: MobileUsage) {
-      if (meter && label && ticks) {
-        const freeRemaining = usage.remaining?.freeLifetime;
-        const limit = usage.limits?.freeLifetime;
-        if (
-          usage.plan?.tier === "free" &&
-          limit === ticks.length &&
-          typeof freeRemaining === "number" &&
-          Number.isFinite(freeRemaining)
-        ) {
-          const remaining = Math.max(0, Math.min(limit, freeRemaining));
-          ticks.forEach((tick, index) =>
-            tick.toggleAttribute("data-available", index < remaining),
-          );
-          const text = remaining
-            ? uiFormat("{0} of {1} free drafts left", [remaining, limit])
-            : uiText("No free drafts left");
-          if (label.textContent !== text) label.textContent = text;
-          meter.hidden = false;
-        } else {
-          meter.hidden = true;
-        }
-      }
+      renderMeter(usage);
       if (!region) return;
       const canSeeOffer =
         usage.plan?.tier === "free" &&

@@ -1,3 +1,4 @@
+import { readListingTextVariants } from "./listingTextVariants";
 import { createHash } from "node:crypto";
 import { supabase } from "./supabaseClient";
 import { withFreeTrialIpKey } from "./freeTrialIpQuota";
@@ -131,6 +132,7 @@ export function validateStoredResponse(
   const boundedResponse: MobileGenerationResponse = {
     title: response.title,
     description: response.description,
+    ...readListingTextVariants(response),
   };
   if (Object.prototype.hasOwnProperty.call(response, "measurementAdvice")) {
     boundedResponse.measurementAdvice = response.measurementAdvice;

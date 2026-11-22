@@ -1,3 +1,7 @@
+import {
+  readListingTextVariants,
+  type ListingTextVariants,
+} from "../../../utils/listingTextVariants";
 import { fetchMobileJson } from "./api.js";
 import type { DescriptionLength } from "./formatting.js";
 import { getWebAnalyticsContext } from "../../scripts/webAnalyticsContext";
@@ -20,7 +24,7 @@ export interface MobileGenerationInput {
   signal?: AbortSignal;
 }
 
-export interface MobileGenerationResult {
+export interface MobileGenerationResult extends ListingTextVariants {
   modelPhotos?: { jobId: string; status: string };
   title: string;
   description: string;
@@ -75,6 +79,7 @@ function parseGenerationResponse(value: unknown): MobileGenerationResult {
   return {
     title: value.title,
     description: value.description,
+    ...readListingTextVariants(value),
     ...(isRecord(value.modelPhotos) &&
     typeof value.modelPhotos.jobId === "string" &&
     /^[0-9a-f-]{36}$/i.test(value.modelPhotos.jobId) &&

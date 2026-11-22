@@ -1,3 +1,4 @@
+import type { ListingTextVariants } from "./listingTextVariants";
 import type { TierKey } from "./tierConfig";
 
 export type MobileGenerationMode = "manual" | "phone_upload" | "batch";
@@ -19,7 +20,7 @@ export type MobileGenerationRequestBody = {
   generationMode?: MobileGenerationMode;
 };
 
-export type MobileGenerationResponse = {
+export type MobileGenerationResponse = ListingTextVariants & {
   modelPhotos?: { jobId: string; status: string };
   title: string;
   description: string;

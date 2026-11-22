@@ -5,6 +5,7 @@ import {
   DEFAULT_DRAFT_SETTINGS,
   DRAFT_LIMITS,
   type Draft,
+  type DraftTextField,
   type DraftLibrary,
   type DraftPhoto,
   type DraftSettings,
@@ -137,6 +138,7 @@ export function mountDraftWorkspace(
   let observedEditor: { id: string; operationId: string | null } | undefined;
   let startingGenerationId: string | null = null;
   let allowance: number | null = null;
+  let generationAvailable = false;
   const defaultsKey = `autolister:listing-defaults:${options.userId}`;
   const freshDefaults = {
     ...DEFAULT_DRAFT_SETTINGS,
@@ -678,6 +680,7 @@ export function mountDraftWorkspace(
             baseVersion: selected.savedVersion,
             title: d.title,
             description: d.description,
+            textVariants: d.textVariants,
             settings: d.settings,
             state: d.state,
           }),
@@ -1831,9 +1834,11 @@ export function mountDraftWorkspace(
     else cover.removeAttribute("src");
     find("[data-draft-position]").textContent =
       index >= 0 ? `${index + 1} / ${order.length}` : "";
-    hide("[data-draft-position]", order.length < 2);
-    action("previous").hidden = order.length < 2;
-    action("next").hidden = order.length < 2;
+    const showPagination =
+      order.length > 1 && (hasText || draft.state === "done");
+    hide("[data-draft-position]", !showPagination);
+    action("previous").hidden = !showPagination;
+    action("next").hidden = !showPagination;
     const batchReview = generationCount > 1 && reviewIds.includes(draft.id);
     action("next").setAttribute(
       "aria-label",
@@ -1861,6 +1866,33 @@ export function mountDraftWorkspace(
       readable.textContent = draft[name];
       readable.hidden = editing;
       el.disabled = locked;
+      const variant = draft.textVariants?.[name];
+      const toggle = action(`variant-${name}`);
+      toggle.hidden = !variant || outputPreparing;
+      toggle.disabled = locked || conflict;
+      if (variant) {
+        const variantLabel = variant.switched
+          ? uiText("Undo")
+          : name === "title"
+            ? uiText("Make it shorter?")
+            : variant.longer
+              ? uiText("Make it longer")
+              : uiText("Make it shorter!");
+        label(`variant-${name}`, variantLabel);
+        toggle.setAttribute(
+          "aria-label",
+          `${variantLabel} ${name === "title" ? uiText("Title") : uiText("Description")}`,
+        );
+        toggle
+          .querySelector("[data-draft-variant-undo]")
+          ?.toggleAttribute("hidden", !variant.switched);
+        toggle
+          .querySelector("[data-draft-variant-emoji]")
+          ?.toggleAttribute(
+            "hidden",
+            variant.switched || Boolean(variant.longer),
+          );
+      }
       action(`copy-${name}`).disabled = outputPreparing || !draft[name];
       action(`copy-${name}`).setAttribute(
         "aria-label",
@@ -1914,6 +1946,7 @@ export function mountDraftWorkspace(
       draft.photos.some((p) => p.status !== "ready") ||
       !find<HTMLTextAreaElement>('[data-draft-field="descriptionFooterText"]')
         .validity.valid;
+    action("generate").toggleAttribute("data-ready-glow", generationAvailable);
     action("regenerate").disabled = action("generate").disabled;
     action("regenerate").hidden = !hasText || draft.state === "done";
     action("done").disabled = failedOutput
@@ -2946,6 +2979,7 @@ export function mountDraftWorkspace(
       selected.edit({
         title: edits.title,
         description: edits.description,
+        textVariants: edits.textVariants,
         settings: edits.settings,
         state: edits.state,
       });
@@ -3154,6 +3188,7 @@ export function mountDraftWorkspace(
         {
           title: saved.title,
           description: saved.description,
+          ...(saved.textVariants ? { textVariants: saved.textVariants } : {}),
           settings: saved.settings,
           state: saved.state,
         },
@@ -3403,9 +3438,42 @@ export function mountDraftWorkspace(
       renderEditor();
       rememberView();
     },
+    "variant-title": () => switchTextVariant("title"),
+    "variant-description": () => switchTextVariant("description"),
     "copy-title": () => copy("title"),
     "copy-description": () => copy("description"),
   };
+  function switchTextVariant(field: DraftTextField) {
+    if (!selected || conflict) return;
+    const draft = selected.value;
+    const variant = draft.textVariants?.[field];
+    if (!variant || busy(draft)) return;
+    selected.edit({
+      [field]: variant.text,
+      textVariants: {
+        ...draft.textVariants,
+        [field]: {
+          ...variant,
+          text: draft[field],
+          switched: !variant.switched,
+        },
+      },
+    });
+    renderEditor();
+    scheduleSave();
+    void trackMobileEvent(
+      "web_draft_text_variant",
+      {
+        field,
+        method: variant.switched
+          ? "undo"
+          : variant.longer
+            ? "longer"
+            : "shorter",
+      },
+      options.userId,
+    );
+  }
   function reviewOrder() {
     const ids = library.drafts.map((d) => d.id);
     return selected && reviewIds.includes(selected.value.id) ? reviewIds : ids;
@@ -3916,6 +3984,7 @@ export function mountDraftWorkspace(
               allowance,
               allowance === 1 ? "" : "s",
             ]);
+      generationAvailable = usage.canGenerate !== false && (allowance ?? 0) > 0;
       renderSelection();
       renderEditor();
       renderDefaults();

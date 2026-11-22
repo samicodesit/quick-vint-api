@@ -41,7 +41,10 @@ export function draftGenerationAllowance(usage: MobileUsage | null): number {
   return available;
 }
 
-type Edits = Pick<Draft, "title" | "description" | "settings" | "state">;
+type Edits = Pick<
+  Draft,
+  "title" | "description" | "textVariants" | "settings" | "state"
+>;
 export class DraftAutosave {
   value: Draft;
   dirty = false;
@@ -91,6 +94,7 @@ export class DraftAutosave {
           expectedVersion: this.saved.version,
           title: value.title,
           description: value.description,
+          textVariants: value.textVariants,
           settings: value.settings,
           state: value.state,
         });
@@ -102,6 +106,7 @@ export class DraftAutosave {
                 ...saved,
                 title: this.value.title,
                 description: this.value.description,
+                textVariants: this.value.textVariants,
                 settings: this.value.settings,
                 state: this.value.state,
               };

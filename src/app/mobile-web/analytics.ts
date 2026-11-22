@@ -42,6 +42,7 @@ export const MOBILE_ANALYTICS_EVENTS = [
   "free_limit_view_tabs_v1",
   "free_limit_view_combined_v1",
   "copy",
+  "web_draft_text_variant",
   "vinted_click",
   "checkout_start",
   "checkout_opened",

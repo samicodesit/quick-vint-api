@@ -5,6 +5,7 @@ import {
   normalizeDraftSettings,
   validateDraftAction,
   type Draft,
+  type DraftTextVariants,
   type DraftLibrary,
   type DraftPhoto,
   validDraftId,
@@ -30,6 +31,28 @@ type Row = Omit<Draft, "photos"> & {
   created_at: string;
   editEvidence?: EditEvidence;
 };
+function validateLocalTextVariants(
+  action: string,
+  value: unknown,
+): asserts value is DraftTextVariants {
+  if (
+    action !== "save" ||
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.entries(value).some(
+      ([field, variant]) =>
+        !["title", "description"].includes(field) ||
+        !variant ||
+        typeof variant.text !== "string" ||
+        variant.text.length > (field === "title" ? 200 : 10000) ||
+        typeof variant.switched !== "boolean" ||
+        (variant.longer !== undefined && typeof variant.longer !== "boolean"),
+    )
+  )
+    throw new Error("Invalid draft text variants.");
+}
+
 export interface LocalDraftAttempt {
   draftId: string;
   operationId: string;
@@ -439,7 +462,10 @@ export class LocalDraftStore {
     action: string,
     raw: Record<string, unknown> = {},
   ): Promise<Draft> {
-    const input = validateDraftAction(action, raw);
+    const { textVariants, ...draftFields } = raw;
+    const input = validateDraftAction(action, draftFields);
+    if (textVariants !== undefined)
+      validateLocalTextVariants(action, textVariants);
     const removed: string[] = [];
     const result = await this.transact(
       action === "detail" ? "readonly" : "readwrite",
@@ -527,6 +553,7 @@ export class LocalDraftStore {
               JSON.stringify(normalizeDraftSettings(row.settings));
           for (const key of ["title", "description", "state"] as const)
             if (input[key] !== undefined) row[key] = input[key];
+          if (textVariants !== undefined) row.textVariants = textVariants;
           if (input.settings !== undefined)
             row.settings = normalizeDraftSettings(input.settings);
           this.saveRow(data, row, changed);
@@ -859,6 +886,35 @@ export class LocalDraftStore {
             );
           row.title = result.title;
           row.description = result.description;
+          const variants: DraftTextVariants = {};
+          if (
+            result.shortTitle &&
+            result.shortTitle.length < result.title.length
+          )
+            variants.title = { text: result.shortTitle, switched: false };
+          const longer = Boolean(
+            result.shortDescription &&
+            result.description === result.shortDescription,
+          );
+          const alternative = longer
+            ? result.longDescription
+            : result.shortDescription;
+          if (
+            alternative &&
+            (longer
+              ? alternative.length > result.description.length
+              : alternative.length < result.description.length)
+          ) {
+            variants.description = {
+              text: alternative,
+              switched: false,
+              longer,
+            };
+          }
+          row.textVariants = Object.keys(variants).length
+            ? variants
+            : undefined;
+
           if (result.modelPhotos) {
             const signature = sourcePhotoSignature(
               [...data.photos.values()].filter((p) => p.draft_id === draftId),
@@ -951,11 +1007,20 @@ export class LocalDraftStore {
           if (evidence.exposed) return null;
           evidence.exposed = true;
         } else {
+          // Variant switches have their own event. Compare edits in the original text slots.
+          const current = {
+            title: row.textVariants?.title?.switched
+              ? row.textVariants.title.text
+              : row.title,
+            description: row.textVariants?.description?.switched
+              ? row.textVariants.description.text
+              : row.description,
+          };
           if (
             !evidence.exposed ||
             evidence.sequence >= (kind === "leave" ? 3 : 2) ||
-            (row.title === evidence.previous.title &&
-              row.description === evidence.previous.description)
+            (current.title === evidence.previous.title &&
+              current.description === evidence.previous.description)
           )
             return null;
           Object.assign(context, {
@@ -966,24 +1031,21 @@ export class LocalDraftStore {
           });
           for (const field of ["title", "description"] as const) {
             const original = evidence.original[field];
-            const changed = row[field] !== original;
+            const changed = current[field] !== original;
             context[field + "Changed"] = changed;
             context[field + "LengthDelta"] =
-              row[field].length - original.length;
+              current[field].length - original.length;
             if (
               changed &&
               original.length <= 6000 &&
-              row[field].length <= 6000
+              current[field].length <= 6000
             ) {
               const name = field === "title" ? "Title" : "Description";
               context["generated" + name] = original;
-              context["final" + name] = row[field];
+              context["final" + name] = current[field];
             }
           }
-          evidence.previous = {
-            title: row.title,
-            description: row.description,
-          };
+          evidence.previous = current;
         }
         data.tx.objectStore("drafts").put(row);
         return context;

@@ -42,11 +42,17 @@ export interface DraftPhoto {
   url?: string;
   created_at: string;
 }
+export type DraftTextField = "title" | "description";
+export type DraftTextVariants = Partial<
+  Record<DraftTextField, { text: string; switched: boolean; longer?: boolean }>
+>;
+
 export interface Draft {
   modelPhotos?: DraftModelPhotos;
   id: string;
   title: string;
   description: string;
+  textVariants?: DraftTextVariants;
   settings: DraftSettings;
   state: "draft" | "done";
   version: number;

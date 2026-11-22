@@ -1,5 +1,5 @@
 ---
-import { Camera, Images, Copy, Pencil, Settings2, ArrowLeft, ArrowRight, ChevronLeft, Ellipsis, Pause, Play, RotateCcw, RotateCw, Crop, Paintbrush, Undo2, Check, Plus, Trash2, Download, X, LoaderCircle, Clock, TriangleAlert, Package, Layers, ChevronDown } from "@lucide/astro";
+import { Camera, Images, Copy, Pencil, Settings2, ArrowLeft, ArrowRight, ChevronLeft, Ellipsis, Pause, Play, RotateCcw, RotateCw, Crop, Paintbrush, Undo2, Check, Plus, Trash2, Download, X, LoaderCircle, Clock, TriangleAlert, Package, Layers, ChevronDown, Coins } from "@lucide/astro";
 import ListingSettingsFields from "./ListingSettingsFields.astro";
 import PhotoEntry from "./PhotoEntry.astro";
 import { FREE_LIFETIME_LIMIT } from "../../../utils/tierConfig";
@@ -70,13 +70,26 @@ import { FREE_LIFETIME_LIMIT } from "../../../utils/tierConfig";
       <div class="draft-editor-navigation">
         <button type="button" class="draft-text-button" data-draft-action="back"><ArrowLeft size={18} aria-hidden="true" /><span data-draft-label>Back to drafts</span></button>
         <div class="draft-actions"><button type="button" class="draft-text-button" data-draft-action="previous" aria-label="Previous item"><ChevronLeft size={20} aria-hidden="true" /></button><span data-draft-position></span><button type="button" class="draft-text-button" data-draft-action="next"><span>Next</span><ArrowRight size={18} aria-hidden="true" /></button><details class="draft-item-menu" data-draft-popover><summary aria-label="Item options"><Ellipsis size={20} aria-hidden="true" /></summary><div class="draft-popover-panel"><h3>Item options</h3><button type="button" class="draft-close" data-draft-close aria-label="Close item options"><X size={20} aria-hidden="true" /></button><button type="button" data-draft-action="choose-item"><Images size={18} aria-hidden="true" />Add photos</button><button type="button" class="draft-camera" data-draft-action="choose-camera"><Camera size={18} aria-hidden="true" />Camera</button><button type="button" class="draft-danger" data-draft-action="delete"><Trash2 size={18} aria-hidden="true" />Delete item</button></div></details></div>
-        <div class="draft-free-meter" data-draft-free-meter hidden>
-          <div class="draft-free-status">
+      </div>
+      <div class="draft-free-meter" data-draft-free-meter hidden>
+        <div class="draft-usage-status" role="status">
+          <div class="draft-free-status" data-draft-free-status hidden>
             <span class="draft-free-ticks" aria-hidden="true">{Array.from({ length: FREE_LIFETIME_LIMIT }, () => <i></i>)}</span>
-            <span data-draft-free-label role="status"></span>
+            <span data-draft-free-label></span>
           </div>
-          <button type="button" class="draft-text-button" data-draft-get-more>Get more</button>
+          <div class="draft-usage-stat" data-draft-quota="daily" hidden>
+            <span>Today</span><strong data-draft-quota-value></strong>
+            <span class="draft-usage-track" aria-hidden="true"><i></i></span>
+          </div>
+          <div class="draft-usage-stat" data-draft-quota="monthly" hidden>
+            <span>This month</span><strong data-draft-quota-value></strong>
+            <span class="draft-usage-track" aria-hidden="true"><i></i></span>
+          </div>
+          <div class="draft-usage-stat draft-usage-credits" data-draft-usage-credits hidden>
+            <span>Credits</span><strong><Coins size={14} aria-hidden="true" /><span data-draft-credits-value></span></strong>
+          </div>
         </div>
+        <button type="button" class="draft-text-button" data-draft-get-more>Get more</button>
       </div>
       <div class="draft-section-heading"><div class="draft-title-group"><h2 id="draft-editor-title">Add item</h2><div class="draft-save-controls"><span class="draft-save-status" data-draft-save-status role="status"></span><button type="button" class="draft-text-button" data-draft-action="save" aria-label="Retry save" title="Retry save" hidden><RotateCcw size={18} aria-hidden="true" /></button></div></div><div class="draft-upload-actions" data-draft-upload-actions hidden><details class="draft-add-menu draft-photo-source" data-draft-popover><summary role="button" aria-label="Add photos"><Images size={18} aria-hidden="true" />Add photos<ChevronDown size={16} aria-hidden="true" /></summary><div class="draft-popover-panel" aria-label="Add photos"><button type="button" data-draft-action="choose-item"><Images size={18} aria-hidden="true" />Photo library</button><button type="button" data-draft-action="choose-camera"><Camera size={18} aria-hidden="true" />Camera</button></div></details></div></div>
       <nav class="draft-mode draft-entry-mode" aria-label="Processing mode"><button type="button" aria-current="page" data-draft-action="new">One item</button><button type="button" data-draft-action="bulk"><span class="draft-new-badge" aria-hidden="true">New</span>Several items</button></nav>
@@ -96,9 +109,9 @@ import { FREE_LIFETIME_LIMIT } from "../../../utils/tierConfig";
 
         <div class="draft-text-panel">
           <div class="draft-copy-fields" data-draft-copy-fields hidden>
-            <div class="draft-field-heading"><label for="draft-title">Title</label><button type="button" class="draft-text-button" data-draft-action="copy-title" aria-label="Copy title"><Copy size={18} aria-hidden="true" /><span data-draft-label>Copy</span></button></div>
+            <div class="draft-field-heading"><label for="draft-title">Title</label><button type="button" class="draft-text-button draft-text-variant" data-draft-action="variant-title" aria-controls="draft-title" hidden><Undo2 size={14} data-draft-variant-undo aria-hidden="true" hidden /><span data-draft-label>Make it shorter?</span></button><button type="button" class="draft-text-button" data-draft-action="copy-title" aria-label="Copy title"><Copy size={18} aria-hidden="true" /><span data-draft-label>Copy</span></button></div>
             <p class="draft-readable-title" data-draft-read="title"></p><input id="draft-title" data-draft-field="title" type="text" maxlength="200" placeholder="Add a title" autocomplete="off" hidden />
-            <div class="draft-field-heading"><label for="draft-description">Description</label><button type="button" class="draft-text-button" data-draft-action="copy-description" aria-label="Copy description"><Copy size={18} aria-hidden="true" /><span data-draft-label>Copy</span></button></div>
+            <div class="draft-field-heading"><label for="draft-description">Description</label><button type="button" class="draft-text-button draft-text-variant" data-draft-action="variant-description" aria-controls="draft-description" hidden><Undo2 size={14} data-draft-variant-undo aria-hidden="true" hidden /><span data-draft-label>Make it shorter!</span><span data-draft-variant-emoji aria-hidden="true">😡</span></button><button type="button" class="draft-text-button" data-draft-action="copy-description" aria-label="Copy description"><Copy size={18} aria-hidden="true" /><span data-draft-label>Copy</span></button></div>
             <p class="draft-readable-description" data-draft-read="description"></p><textarea id="draft-description" data-draft-field="description" maxlength="10000" rows="4" placeholder="Add a description" hidden></textarea>
           </div>
           <div class="draft-generation-actions" data-draft-generation-actions hidden><button type="button" class="draft-primary draft-generate" data-draft-action="generate" aria-description="Uses 1 generation" title="Uses 1 generation" disabled><Play size={18} data-draft-generate-play aria-hidden="true" /><LoaderCircle size={18} data-draft-generate-loader aria-hidden="true" hidden /><span data-draft-label>Generate</span></button></div>

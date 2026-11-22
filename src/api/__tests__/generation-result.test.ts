@@ -82,6 +82,20 @@ it("reads only the authenticated account's operation and never dispatches genera
     "private, no-store",
   );
 });
+it("returns all saved text variants after the initial response is lost", async () => {
+  const result = {
+    title: "Black square-neck dress",
+    description: "Black A-line dress with a square neckline.",
+    shortTitle: "Black dress",
+    shortDescription: "Black A-line dress.",
+    longDescription: "Black A-line dress with a square neckline.",
+  };
+  row = { ...row, response_json: result };
+  expect((await call()).json).toHaveBeenCalledWith({
+    state: "succeeded",
+    result,
+  });
+});
 it("recovers a committed pending response without reserving or charging", async () => {
   row = {
     ...row,

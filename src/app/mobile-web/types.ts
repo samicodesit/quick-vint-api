@@ -19,6 +19,7 @@ export interface MobileWebRuntimeConfig {
   supabaseAnonKey: string;
   draftsEnabled?: boolean;
   userModelsEnabled?: boolean;
+  photoFirstExperimentStartAt?: string;
 }
 
 declare global {

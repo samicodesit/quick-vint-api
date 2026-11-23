@@ -1,6 +1,7 @@
 import { completeWebCallback } from "./auth";
 import { initializeMobileTelemetry } from "./telemetry";
 import { trackMobileAuthComplete } from "./analytics";
+import { photoFirstPendingHint } from "./photoFirstFlags";
 
 /** Queue a verified sign-in before leaving the callback page. */
 export async function completeMobileAuthCallback(url: URL) {
@@ -13,6 +14,15 @@ export async function completeMobileAuthCallback(url: URL) {
   // URL detection must not race the explicit PKCE exchange above.
   initializeMobileTelemetry();
   if (hasCredentials) {
+    if (photoFirstPendingHint()) {
+      try {
+        const { claimPhotoFirstSignIn } =
+          await import("./photoFirstStorage.js");
+        await claimPhotoFirstSignIn(session.user, "callback");
+      } catch {
+        // A blocked browser store must not invalidate verified sign-in.
+      }
+    }
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       await Promise.race([

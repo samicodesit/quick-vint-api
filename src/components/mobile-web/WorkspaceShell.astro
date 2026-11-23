@@ -20,13 +20,15 @@ const {
 <div class="mobile-workspace-shell" data-mobile-web="workspace" data-state="loading">
   <header class="mobile-workspace-header">
     <a class="mobile-workspace-brand" href="/app" aria-label="AutoLister drafts">AutoLister</a>
-    <a
-      href="/app?signin=1"
-      class="mobile-profile-menu-trigger"
+    <button
+      type="button"
+      class="mobile-text-button photo-first-header-signin"
       data-mobile-web="direct-sign-in"
-      aria-label="Sign in or create an account"
       hidden
-    ><span class="mobile-profile-avatar" aria-hidden="true"><UserRound size={20} /></span></a>
+    >
+      <UserRound size={18} aria-hidden="true" />
+      <span>Sign in</span>
+    </button>
     <div class="mobile-workspace-header-actions" data-mobile-web="profile-menu-root" hidden>
       {import.meta.env.PUBLIC_USER_MODELS_ENABLED === "true" && <button type="button" class="mobile-header-settings um-toolbar-entry" data-user-model-open data-model-compact aria-label="Your model" hidden>Your model</button>}
       <button type="button" class="mobile-header-settings" data-draft-global-trigger aria-label="Listing settings" aria-haspopup="dialog" aria-controls="draft-global-dialog" aria-expanded="false" hidden><Settings size={21} aria-hidden="true" /><span>Settings</span></button>

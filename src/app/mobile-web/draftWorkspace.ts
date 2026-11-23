@@ -60,6 +60,10 @@ export function mountDraftWorkspace(
     defaultSettings?: DraftSettings;
     resetBatchSettings?: boolean;
     startWithNewItem?: boolean;
+    importFirstItem?: (settings: DraftSettings) => Promise<{
+      draftId: string;
+      autoGenerate: boolean;
+    } | null>;
   },
 ) {
   const client = createDraftClient(options.userId);
@@ -3909,7 +3913,33 @@ export function mountDraftWorkspace(
   root.hidden = initialView?.owner === options.userId;
   run(async () => {
     try {
-      if (initialView?.owner === options.userId) await restoreView(initialView);
+      const firstItem = options.importFirstItem
+        ? await options
+            .importFirstItem(loadDefaults())
+            .catch((error: unknown) => {
+              tell(
+                error instanceof Error
+                  ? error.message
+                  : uiText("Could not open this item."),
+                true,
+              );
+              return null;
+            })
+        : null;
+      if (disposed) return;
+      if (firstItem) {
+        await reload();
+        await openDraft(firstItem.draftId);
+        if (
+          firstItem.autoGenerate &&
+          selected?.value.id === firstItem.draftId &&
+          !disposed
+        ) {
+          root.hidden = false;
+          await handlers.generate();
+        }
+      } else if (initialView?.owner === options.userId)
+        await restoreView(initialView);
       else {
         await reload();
         if (

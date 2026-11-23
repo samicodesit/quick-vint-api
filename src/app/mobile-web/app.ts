@@ -1,3 +1,12 @@
+import { getWebAnalyticsContext } from "../../scripts/webAnalyticsContext";
+import {
+  assignPhotoFirst,
+  isPhotoFirstEntryEligible,
+  markPhotoFirstAccountSeen,
+  photoFirstIntentInTab,
+  photoFirstPendingHint,
+  photoFirstWindowOpen,
+} from "./photoFirstFlags";
 import { initializeUiLocale, uiFormat, uiText } from "./ui";
 import { trackResultEdits, sendResultEdit } from "./resultEditTracking";
 import { mountDraftWorkspace } from "./draftWorkspace";
@@ -983,7 +992,25 @@ export function mountMobileWebApp(
   listeners.push(() => closeMobileProfileMenu(root, false));
   let copiedTitle = false;
   let copiedDescription = false;
-  let appOpenedTracked = false;
+  const photoFirstStartAt =
+    window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.photoFirstExperimentStartAt;
+  let disposePhotoFirst: (() => void) | undefined;
+  const showPhotoFirstSignIn = () => {
+    disposePhotoFirst?.();
+    disposePhotoFirst = undefined;
+    showAuth(root);
+    const title = asElement<HTMLElement>(root, "#mobile-auth-title");
+    title?.setAttribute("tabindex", "-1");
+    title?.focus();
+  };
+  listeners.push(() => disposePhotoFirst?.());
+  const preparePhotoFirstAuth = async (
+    kind: "email" | "google",
+    email?: string,
+  ) => {
+    const { setPhotoFirstAuth } = await import("./photoFirstStorage.js");
+    await setPhotoFirstAuth(kind, email);
+  };
   let checkoutReturnHandled = false;
   let draftWorkspace: ReturnType<typeof mountDraftWorkspace> | undefined;
   let latestUsage: MobileUsage | null = null;
@@ -1053,7 +1080,18 @@ export function mountMobileWebApp(
       ...chosenStyle,
     };
     shell.dataset.draftsEnabled = "true";
+    const owner = session.user.id;
     draftWorkspace = mountDraftWorkspace(workspace, {
+      ...(photoFirstPendingHint()
+        ? {
+            importFirstItem: async (settings: DraftSettings) => {
+              const { importPhotoFirstDraft } =
+                await import("./photoFirstStorage.js");
+              if (disposed || session?.user.id !== owner) return null;
+              return importPhotoFirstDraft(owner, settings);
+            },
+          }
+        : {}),
       userId: session.user.id,
       onUsageChange: () => refreshUsage(),
       onGenerationBlocked: (usage, code) =>
@@ -1641,7 +1679,11 @@ export function mountMobileWebApp(
     asElement(root, '[data-mobile-web="google-sign-in"]'),
     "click",
     () =>
-      void signInWithGoogle().catch(() =>
+      void (
+        photoFirstIntentInTab()
+          ? preparePhotoFirstAuth("google").then(() => signInWithGoogle())
+          : signInWithGoogle()
+      ).catch(() =>
         disposed
           ? undefined
           : authStatus(
@@ -1732,7 +1774,13 @@ export function mountMobileWebApp(
       if (submit) submit.disabled = true;
       setCodeBusy(true);
       authStatus("");
-      void requestMagicLink(email)
+      void (
+        photoFirstIntentInTab()
+          ? preparePhotoFirstAuth("email", email).then(() =>
+              requestMagicLink(email),
+            )
+          : requestMagicLink(email)
+      )
         .then(() => {
           if (disposed) return;
           renderMobileAuthStep(root, email);
@@ -1818,8 +1866,17 @@ export function mountMobileWebApp(
     const email =
       asElement<HTMLInputElement>(root, "#mobile-email")?.value ?? "";
     void verifyEmailOtp(email, codeInput.value)
-      .then((nextSession) => {
+      .then(async (nextSession) => {
         if (disposed) return;
+        if (photoFirstIntentInTab()) {
+          try {
+            const { claimPhotoFirstSignIn } =
+              await import("./photoFirstStorage.js");
+            await claimPhotoFirstSignIn(nextSession.user, "email");
+          } catch {}
+        }
+        if (disposed) return;
+        if (photoFirstStartAt) markPhotoFirstAccountSeen();
         if (session?.user.id !== nextSession?.user.id)
           resultEdits?.close("account_changed");
         session = nextSession;
@@ -1980,18 +2037,61 @@ export function mountMobileWebApp(
   initializeMobileTelemetry();
   const start = async (): Promise<void> => {
     try {
-      if (!appOpenedTracked) {
-        appOpenedTracked = true;
-        captureMobileFirstTouch();
+      captureMobileFirstTouch();
+      const eligible =
+        !checkoutReturnStatus &&
+        window.__AUTOLISTER_MOBILE_WEB_CONFIG__?.draftsEnabled &&
+        photoFirstWindowOpen(photoFirstStartAt) &&
+        isPhotoFirstEntryEligible(new URL(window.location.href));
+      if (!eligible)
         void trackMobileEvent("web_app_view", { target: "app_open" });
-      }
       if (checkoutReturnStatus) clearCheckoutReturnParams();
       session = await getBrowserSession();
       if (disposed) return;
+      const arm =
+        eligible && !session
+          ? assignPhotoFirst(getWebAnalyticsContext().analyticsClientId)
+          : null;
+      if (eligible)
+        void trackMobileEvent("web_app_view", {
+          target: "app_open",
+          ...(arm ? { method: `photo_first_v1_${arm}` } : {}),
+        });
       if (!session) {
+        const authCard = asElement<HTMLElement>(
+          root,
+          '[data-mobile-web="auth-card"]',
+        );
+        const headerSignIn = asElement<HTMLButtonElement>(
+          root,
+          '[data-mobile-web="direct-sign-in"]',
+        );
+        if (
+          arm === "photo_first" &&
+          authCard &&
+          headerSignIn &&
+          !photoFirstIntentInTab()
+        ) {
+          try {
+            const { mountPhotoFirstEntry } =
+              await import("./photoFirstEntry.js");
+            if (disposed) return;
+            const cleanup = await mountPhotoFirstEntry(
+              authCard,
+              headerSignIn,
+              showPhotoFirstSignIn,
+            );
+            if (disposed) cleanup();
+            else disposePhotoFirst = cleanup;
+            return;
+          } catch {
+            if (disposed) return;
+          }
+        }
         showAuth(root);
         return;
       }
+      if (photoFirstStartAt) markPhotoFirstAccountSeen();
       void claimFirstTouchAfterAuth(session);
       void trackMobileSessionRestored(session.user.id);
       showApp(root);

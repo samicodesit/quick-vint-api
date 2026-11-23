@@ -90,6 +90,7 @@ const contentSecurityPolicy = [
               supabaseUrl: buildConfig.supabaseUrl,
               supabaseAnonKey: buildConfig.supabaseAnonKey,
               draftsEnabled: import.meta.env.PUBLIC_LISTING_DRAFTS_ENABLED === "true",
+              photoFirstExperimentStartAt: import.meta.env.PUBLIC_WEB_PHOTO_FIRST_START_AT || undefined,
               userModelsEnabled: import.meta.env.PUBLIC_USER_MODELS_ENABLED === "true",
             },
           }}

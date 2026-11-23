@@ -109,16 +109,17 @@ try {
     await page.locator('[data-mobile-web="upgrade"]').click();
     const dialog = page.getByRole("dialog");
     await dialog.waitFor();
-    assert.equal(
-      await dialog.getByRole("tab").first().textContent(),
-      copy[language].monthly,
-    );
-    assert.equal(await dialog.locator(".mobile-paywall-option").count(), 3);
+    assert.deepEqual(await dialog.locator("h3").allTextContents(), [
+      copy[language].monthlyPlans,
+      copy[language].oneTimeListingCredits,
+    ]);
+    assert.equal(await dialog.getByRole("tab").count(), 0);
+    assert.equal(await dialog.locator(".mobile-paywall-option").count(), 6);
     assert.equal(await dialog.getByRole("radio").count(), 0);
     assert.equal(purchases.length, 0);
     if (language === "en")
       await page.screenshot({
-        path: output + "/webapp-monthly-en-390.jpg",
+        path: output + "/webapp-chooser-en-390.jpg",
         fullPage: true,
       });
     for (const tier of ["starter", "pro", "business"]) {
@@ -133,7 +134,6 @@ try {
       assert.equal(purchases.at(-1).body.tier, tier);
       assert.equal(purchases.length, before + 1);
     }
-    await dialog.getByRole("tab").nth(1).click();
     for (const pack of ["credits_20", "credits_50", "credits_100"]) {
       const before = purchases.length;
       await dialog.locator('button[value="' + pack + '"]').click();
@@ -148,8 +148,6 @@ try {
       assert.equal(purchase.headers["x-autolister-client"], "mobile_web");
       assert.ok(purchase.headers.authorization.startsWith("Bearer "));
     }
-    await dialog.getByRole("tab").first().click();
-    await dialog.getByRole("tab").nth(1).click();
     for (const width of [320, 390]) {
       await page.setViewportSize({ width, height: 844 });
       assert.equal(
@@ -160,7 +158,8 @@ try {
     }
     if (["en", "de", "el"].includes(language))
       await page.screenshot({
-        path: output + "/webapp-once-" + language + "-390.jpg",
+        path:
+          output + "/webapp-chooser-after-checkout-" + language + "-390.jpg",
         fullPage: true,
       });
     await dialog.press("Escape");
@@ -168,16 +167,41 @@ try {
     await page.locator('[data-mobile-web="profile-menu-trigger"]').click();
     await page.locator('[data-mobile-web="buy-credits"]').click();
     assert.equal(
-      await page
-        .getByRole("dialog")
-        .getByRole("tab")
-        .nth(1)
-        .getAttribute("aria-selected"),
-      "true",
+      await dialog
+        .locator(".credit-packs button")
+        .first()
+        .evaluate((button) => button === document.activeElement),
+      true,
     );
+    assert.equal(await dialog.locator(".mobile-paywall-option").count(), 6);
+    await dialog.press("Escape");
+    await page.locator("[data-draft-get-more]:visible").click();
+    await dialog.waitFor();
+    assert.deepEqual(await dialog.locator("h3").allTextContents(), [
+      copy[language].monthlyPlans,
+      copy[language].oneTimeListingCredits,
+    ]);
+    assert.equal(await page.locator("dialog.mobile-paywall").count(), 1);
+    await dialog.press("Escape");
+    await page.locator("[data-draft-global-trigger]").click();
+    const tone = page.locator(
+      '[data-draft-global-settings] [data-draft-select="tone"]',
+    );
+    await tone.locator("[data-draft-select-trigger]").click();
+    await tone.locator('[data-draft-select-option="professional"]').click();
+    await dialog.waitFor();
+    assert.deepEqual(
+      await dialog
+        .locator("button[value]")
+        .evaluateAll((buttons) => buttons.map((button) => button.value)),
+      ["pro", "business"],
+    );
+    assert.equal(await page.locator("dialog.mobile-paywall").count(), 1);
     assert.deepEqual(errors, []);
     results.push(
-      "webapp:" + language + ":all-six-checkouts/320-390px/escape/credit-entry",
+      "webapp:" +
+        language +
+        ":all-six-checkouts/320-390px/escape/credit-entry/feature-lock",
     );
     await context.close();
   }

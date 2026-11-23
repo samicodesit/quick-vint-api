@@ -61,6 +61,7 @@ export function mountDraftWorkspace(
     onUsageChange: () => Promise<MobileUsage | null>;
     onGenerationBlocked?: (usage: MobileUsage | null, code?: string) => boolean;
     onGetMoreDrafts?: () => void;
+    onProOffer?: () => void;
     onViewPlans?: () => void;
     defaultSettings?: DraftSettings;
     resetBatchSettings?: boolean;
@@ -75,11 +76,8 @@ export function mountDraftWorkspace(
   const draftFiveOffer = mountDraftFiveOffer(
     root,
     options.userId,
-    async () => {
-      await flush();
-      if (selected) client.flushDraftEdits(selected.value.id);
-    },
     options.onGetMoreDrafts,
+    options.onProOffer,
   );
   const photoUI = () => (window as any).AutoListerPhotoUI;
   client.onModelPhotosChange(() => {

@@ -86,6 +86,8 @@ let loseResponse = false;
 let quota = false;
 let quotaTier = "free";
 let quotaCode = "free_lifetime_limit";
+let offerEligible = false;
+let proCheckoutCalls = 0;
 let checkoutCalls = 0;
 let portalCalls = 0;
 let portalObserved;
@@ -119,6 +121,24 @@ await context.route(`${base}/api/**`, async (route) => {
   }
   if (["/api/drafts", "/api/draft-photo"].includes(url.pathname))
     return route.abort("failed");
+  if (url.pathname === "/api/user/limit-followup-offer") {
+    return route.fulfill({
+      json: offerEligible
+        ? {
+            eligible: true,
+            offerToken: "fixture-pro-offer",
+            expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          }
+        : { eligible: false },
+    });
+  }
+  if (url.pathname === "/api/stripe/create-checkout") {
+    proCheckoutCalls++;
+    const body = req.postDataJSON();
+    assert.equal(body.tier, "pro");
+    assert.equal(body.offerToken, "fixture-pro-offer");
+    return route.fulfill({ status: 503, json: { error: "Fixture unavailable" } });
+  }
   if (url.pathname === "/api/stripe/create-credit-checkout") {
     checkoutCalls++;
     const body = req.postDataJSON();
@@ -161,8 +181,9 @@ await context.route(`${base}/api/**`, async (route) => {
           creditPack: { credits: 20, price: 5.99 },
         },
         canGenerate: !quota,
-        limits: { daily: 50, monthly: 500 },
+        limits: { daily: 50, monthly: 500, freeLifetime: 5 },
         remaining: {
+          freeLifetime: quota ? 0 : 5,
           generations: quota ? 0 : 50 - generations,
           daily: 50 - generations,
           monthly: 500 - generations,
@@ -482,6 +503,7 @@ async function checkActiveDeletionConflict() {
 if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
   try {
     await page.goto(`${base}/app`);
+    await click("back");
     await page.locator('[data-draft-items][aria-busy="false"]').waitFor();
     for (let item = 0; item < 2; item++) {
       await click("new");
@@ -531,10 +553,7 @@ if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
       assert.equal(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
       await page.screenshot({ path: `${output}/resume-free-limit-${width}.png` });
     }
-    await dialog.getByRole("tab").nth(1).click();
     assert.equal(await dialog.locator('button[value="credits_20"]').isVisible(), true);
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: `${output}/resume-free-limit-once-390.png` });
     await dialog.locator(".mobile-paywall-heading button").click();
 
     quotaCode = "burst_limit";
@@ -567,6 +586,18 @@ if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
       (await snapshot()).drafts.filter((draft) => draft.description).length,
       2,
     );
+    quota = true;
+    quotaCode = "free_lifetime_limit";
+    offerEligible = true;
+    await page.reload();
+    await page.locator(".draft-item-open").first().click();
+    await page.locator("[data-draft-five-offer] button:visible").click();
+    await dialog.waitFor();
+    assert.equal(await dialog.locator("button[value]").count(), 6);
+    assert.equal(proCheckoutCalls, 0, "The inline offer opens the same paywall");
+    await dialog.locator('button[value="pro"]').click();
+    await dialog.locator("[data-paywall-status]").waitFor();
+    assert.equal(proCheckoutCalls, 1, "The chooser passes through the signed Pro offer");
     assert.equal(errors.length, 0, errors.join("\n"));
     console.log(
       JSON.stringify({
@@ -574,6 +605,7 @@ if (process.env.DRAFT_BROWSER_PAYWALL_ONLY === "1") {
           "Blocked Resume opens paid options and preserves drafts and queue",
           "Temporary limits do not sell access",
           "Restored allowance resumes saved items",
+          "The inline Pro offer opens the shared chooser and keeps the discount",
         ],
         generations,
         errors,
@@ -1501,7 +1533,7 @@ try {
     const dialog = page.getByRole("dialog", { name: title });
     await dialog.waitFor();
     const options = dialog.locator(".mobile-paywall-option");
-    assert.equal(await options.count(), targets.length || 3);
+    assert.equal(await options.count(), targets.length + 3);
     for (const target of targets)
       assert.equal(
         await dialog
@@ -1510,7 +1542,7 @@ try {
         true,
       );
     assert.equal(
-      await dialog.getByRole("tab").nth(1).isVisible(),
+      await dialog.locator('button[value="credits_20"]').isVisible(),
       true,
     );
     assert.equal(generations, callsBeforeQuota);
@@ -1544,16 +1576,14 @@ try {
       ),
       true,
     );
-    const badge = await dialog.locator(".mobile-paywall-badge").boundingBox();
-    const side = await dialog
-      .locator(".mobile-paywall-option")
-      .filter({ has: page.locator(".mobile-paywall-badge") })
-      .locator(".mobile-paywall-option-side")
-      .boundingBox();
     await page.screenshot({ path: `${output}/paused-paywall-${width}.png` });
-    assert(
-      badge.x + badge.width + 5 <= side.x,
-      `Plan badges do not collide with prices or limits on narrow phones: ${JSON.stringify({ width, badge, side })}`,
+    assert.ok(
+      await dialog.evaluate((wall) =>
+        [wall, ...wall.querySelectorAll(".mobile-paywall-option")].every(
+          (element) => element.scrollWidth <= element.clientWidth + 1,
+        ),
+      ),
+      "Account review and payment choices fit narrow phones",
     );
   }
   await page.getByRole("button", { name: "Close paid options" }).click();
@@ -1565,6 +1595,7 @@ try {
   });
   await paymentDialog.waitFor();
   assert.equal(await paymentDialog.locator(".mobile-paywall-option").count(), 1);
+  assert.equal(await paymentDialog.locator(".paywall-compare").isVisible(), false);
   await paymentDialog
     .getByRole("button", { name: "Update payment", exact: true })
     .click();
@@ -1586,7 +1617,6 @@ try {
   assert.equal(generations, callsBeforeQuota);
   quotaCode = "free_lifetime_limit";
   await click("generate");
-  await page.getByRole("dialog").getByRole("tab").nth(1).click();
   assert.equal(checkoutCalls, 0);
   const firstPack = page.locator('button[value="credits_20"]');
   await firstPack.dblclick();
@@ -1617,7 +1647,6 @@ try {
   assert.equal((await snapshot()).drafts.length, 5);
   assert.equal(generations, callsBeforeQuota);
   await click("generate");
-  await page.getByRole("dialog").getByRole("tab").nth(1).click();
   await context.route(
     "https://checkout.stripe.com/c/web-paywall-fixture",
     (route) =>

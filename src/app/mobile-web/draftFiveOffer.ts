@@ -1,6 +1,4 @@
-import { trackMobileEvent } from "./analytics";
 import { fetchMobileJson } from "./api";
-import { rememberMobileBillingReturn, startMobileCheckout } from "./billing";
 import type { MobileUsage } from "./generationClient";
 import { getUiLocale, uiFormat, uiLanguageTag, uiText } from "./ui";
 import { formatPrice } from "../../utils/billingDisplay";
@@ -11,16 +9,11 @@ export type DraftFiveOffer = {
   expiresAt: string;
   offerToken: string;
 };
-const context = {
-  entryPoint: "draft_five_offer",
-  reason: "free_lifetime_limit",
-};
-
 export function mountDraftFiveOffer(
   root: HTMLElement,
   userId: string,
-  flush: () => Promise<void>,
   getMore?: () => void,
+  openOffer?: () => void,
 ) {
   const meter = root.querySelector<HTMLElement>("[data-draft-free-meter]");
   const free = meter?.querySelector<HTMLElement>("[data-draft-free-status]");
@@ -119,15 +112,11 @@ export function mountDraftFiveOffer(
   const region = root.querySelector<HTMLElement>("[data-draft-five-offer]");
   const button = region?.querySelector<HTMLButtonElement>("button");
   const terms = region?.querySelector<HTMLElement>("[data-draft-five-terms]");
-  const status = region?.querySelector<HTMLElement>(
-    "[data-draft-five-checkout-status]",
-  );
   let offer: DraftFiveOffer | null = null;
   let isResult = false;
   let eligible = false;
   let request = 0;
   let lookup: Promise<DraftFiveOffer | null> | undefined;
-  let shown = false;
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;
 
   const render = () => {
@@ -145,47 +134,8 @@ export function mountDraftFiveOffer(
       formatPrice(TIER_CONFIGS.pro.monthlyPrice, locale),
       expiry,
     ]);
-    if (!shown) {
-      shown = true;
-      void trackMobileEvent(
-        "web_paywall_view",
-        { ...context, tier: "pro" },
-        userId,
-      );
-    }
   };
-
-  const checkout = async () => {
-    if (!button || !status || !offer || !eligible || button.disabled) return;
-    const selected = offer;
-    const attempt = request;
-    if (Date.parse(selected.expiresAt) <= Date.now()) {
-      render();
-      return;
-    }
-    button.disabled = true;
-    status.hidden = true;
-    try {
-      await flush();
-      if (request !== attempt) return;
-      const session = await startMobileCheckout(
-        "pro",
-        userId,
-        context,
-        selected.offerToken,
-      );
-      if (request !== attempt) return;
-      rememberMobileBillingReturn(userId);
-      window.location.assign(session.url);
-    } catch {
-      if (request !== attempt) return;
-      status.textContent = uiText("Could not open checkout. Try again.");
-      status.hidden = false;
-    } finally {
-      button.disabled = false;
-    }
-  };
-  button?.addEventListener("click", checkout);
+  if (openOffer) button?.addEventListener("click", openOffer);
   if (getMore) more?.addEventListener("click", getMore);
 
   function getOffer(): Promise<DraftFiveOffer | null> {
@@ -243,7 +193,7 @@ export function mountDraftFiveOffer(
     dispose() {
       request++;
       clearTimeout(expiryTimer);
-      button?.removeEventListener("click", checkout);
+      if (openOffer) button?.removeEventListener("click", openOffer);
       if (getMore) more?.removeEventListener("click", getMore);
       if (meter) meter.hidden = true;
       if (region) region.hidden = true;

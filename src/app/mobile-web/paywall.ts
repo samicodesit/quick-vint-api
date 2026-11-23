@@ -18,11 +18,7 @@ import {
   TIER_CONFIGS,
   type CreditPackId,
 } from "../../../utils/tierConfig";
-import {
-  getBillingCopy,
-  formatPrice,
-  formatUnitPrice,
-} from "../../utils/billingDisplay";
+import { getBillingCopy, formatPrice } from "../../utils/billingDisplay";
 
 const support =
   "mailto:support@autolister.app?subject=AutoLister%20AI%20account%20review";
@@ -30,11 +26,11 @@ const names = {
   starter: "Starter",
   pro: "Pro",
   business: "Business",
-  credit_pack: uiText("One-time credits"),
 };
 
 export type MobilePaywallEntryPoint =
   | "profile_menu"
+  | "draft_five_offer"
   | "feature_lock"
   | "plans_link"
   | "generation_limit"
@@ -51,7 +47,7 @@ export function mountMobilePaywall(
   const locale = getUiLocale();
   const billingCopy = getBillingCopy(locale);
   const dialog = document.createElement("dialog");
-  dialog.className = "mobile-paywall";
+  dialog.className = "mobile-paywall combined-pricing";
   dialog.setAttribute("aria-labelledby", "mobile-paywall-title");
   dialog.innerHTML = `<div class="mobile-paywall-heading"><img src="/favicon-96x96.png" width="40" height="40" alt="" /><div><span class="mobile-paywall-brand">AutoLister AI</span><h2 id="mobile-paywall-title" tabindex="-1"></h2></div><button type="button" aria-label="Close paid options">×</button></div><div class="mobile-paywall-body"><p data-paywall-copy></p><div data-paywall-options role="group" aria-label="Paid options"></div><p role="status" data-paywall-status hidden></p><a data-paywall-support href="${support}" hidden>Contact support</a></div><div class="mobile-paywall-footer"><p class="mobile-paywall-trust" data-paywall-trust></p></div>`;
   const compare = document.createElement("a");
@@ -65,23 +61,6 @@ export function mountMobilePaywall(
   dialog.querySelector(".mobile-paywall-footer")!.append(compare);
   localizeUiFragment(dialog);
   root.append(dialog);
-  const tabs = document.createElement("div");
-  tabs.className = "mobile-paywall-tabs";
-  tabs.setAttribute("role", "tablist");
-  tabs.setAttribute("aria-label", billingCopy.title);
-  for (const mode of ["monthly", "once"] as const) {
-    const tab = document.createElement("button");
-    tab.type = "button";
-    tab.setAttribute("role", "tab");
-    tab.dataset.billingMode = mode;
-    tab.textContent =
-      mode === "monthly" ? billingCopy.monthly : billingCopy.oneTime;
-    tabs.append(tab);
-  }
-  dialog.querySelector("[data-paywall-options]")!.before(tabs);
-  const billingNote = document.createElement("p");
-  billingNote.className = "mobile-paywall-unit-note";
-  dialog.querySelector("[data-paywall-options]")!.after(billingNote);
   const find = (selector: string) =>
     dialog.querySelector<HTMLElement>(selector)!;
   let previous: HTMLElement | null = null;
@@ -90,11 +69,15 @@ export function mountMobilePaywall(
   let repaintWhenIdle: (() => void) | undefined;
   let disposed = false;
   let revision = 0;
-  let paywallContext: { reason: string; entryPoint: MobilePaywallEntryPoint } =
-    {
-      reason: "paid_options",
-      entryPoint: "unknown",
-    };
+  let paywallContext: {
+    reason: string;
+    entryPoint: MobilePaywallEntryPoint;
+    method: "combined_pricing";
+  } = {
+    reason: "paid_options",
+    entryPoint: "unknown",
+    method: "combined_pricing",
+  };
   const restore = () => {
     if (dialog.open) return;
     document.body.style.overflow = overflow;
@@ -120,7 +103,7 @@ export function mountMobilePaywall(
       revision === attempt &&
       options.userId() === userId;
     const controls = dialog.querySelectorAll<HTMLButtonElement>(
-      "[data-paywall-options] button, [data-billing-mode]",
+      "[data-paywall-options] button",
     );
     busy = true;
     controls.forEach((control) => (control.disabled = true));
@@ -202,6 +185,7 @@ export function mountMobilePaywall(
       paywallContext = {
         reason: requested || usage.blockedReason || "paid_options",
         entryPoint,
+        method: "combined_pricing",
       };
       dialog.querySelector<HTMLImageElement>(
         ".mobile-paywall-heading img",
@@ -211,42 +195,37 @@ export function mountMobilePaywall(
           : "/favicon-96x96.png";
       const showing = ++revision;
       const owner = options.userId();
-      // Supabase account UUIDs are random. Use the same immutable bit on both clients.
-      const enrolled =
-        entryPoint === "generation_limit" &&
-        paywallContext.reason === "free_lifetime_limit" &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          owner || "",
-        );
-      const combined = enrolled && /[89a-f]$/i.test(owner!);
-      dialog.classList.toggle("combined-pricing", combined);
-      compare.hidden = !combined;
-      find("[data-paywall-copy]").hidden = combined;
-      find("[data-paywall-trust]").hidden = combined;
+      const reason = paywallContext.reason;
+      const hasPlans = policy.options.some(
+        (tier) => tier === "starter" || tier === "pro" || tier === "business",
+      );
+      const allowsPacks = policy.options.includes("credit_pack");
+      compare.hidden = !hasPlans;
+      find("[data-paywall-copy]").hidden = [
+        "plans",
+        "credits",
+        "feature",
+        "free_lifetime_limit",
+      ].includes(reason);
+      find("[data-paywall-trust]").hidden = !policy.support && hasPlans;
       let proOffer: DraftFiveOffer | null = null;
       let failed = false;
       let checking = Boolean(
+        policy.options.includes("pro") &&
         options.getProOffer &&
         usage.plan?.tier === "free" &&
         usage.remaining?.freeLifetime === 0 &&
         usage.blockedReason === "free_lifetime_limit",
       );
-      find("h2").textContent = policy.title;
+      find("h2").textContent =
+        reason === "plans" || reason === "credits"
+          ? billingCopy.title
+          : policy.title;
       find("[data-paywall-copy]").textContent = policy.message;
       find("[data-paywall-trust]").textContent = policy.trust;
       find("[data-paywall-support]").hidden = !policy.support;
       find("[data-paywall-status]").hidden = true;
       const list = find("[data-paywall-options]");
-      const allowsPacks = policy.options.includes("credit_pack");
-      let mode: "monthly" | "once" =
-        requested === "credits" ||
-        (allowsPacks &&
-          !policy.options.some((tier) =>
-            ["starter", "pro", "business"].includes(tier),
-          ))
-          ? "once"
-          : "monthly";
-      tabs.hidden = combined || !allowsPacks;
       const render = () => {
         const focusedTier =
           document.activeElement instanceof HTMLButtonElement &&
@@ -254,22 +233,7 @@ export function mountMobilePaywall(
             ? document.activeElement.value
             : null;
         list.replaceChildren();
-        billingNote.hidden =
-          combined ||
-          (!allowsPacks &&
-            !policy.options.some((tier) =>
-              ["starter", "pro", "business"].includes(tier),
-            ));
-        billingNote.textContent =
-          mode === "once" ? billingCopy.terms : billingCopy.qualifier;
-        find("[data-paywall-trust]").textContent =
-          mode === "once" ? billingCopy.oneTimeTrust : policy.trust;
         find("[data-paywall-status]").hidden = true;
-        tabs.querySelectorAll<HTMLButtonElement>("button").forEach((tab) => {
-          const selected = tab.dataset.billingMode === mode;
-          tab.setAttribute("aria-selected", String(selected));
-          tab.tabIndex = selected ? 0 : -1;
-        });
         const group = (heading: string, terms: string, kind: string) => {
           const section = document.createElement("section");
           section.className = "price-group " + kind;
@@ -283,31 +247,25 @@ export function mountMobilePaywall(
           list.append(section);
           return items;
         };
-        const monthly = combined
+        const monthly = hasPlans
           ? group(
               billingCopy.monthlyPlans,
               billingCopy.monthlyTerms,
               "subscriptions",
             )
           : list;
-        const packs = combined
+        const packs = allowsPacks
           ? group(
               billingCopy.oneTimeListingCredits,
               billingCopy.creditValidity,
               "credit-packs",
             )
           : list;
-        const choices = combined
-          ? [
-              ...policy.options.filter((tier) => tier !== "credit_pack"),
-              ...CREDIT_PACK_CONFIGS.map((pack) => pack.id),
-            ]
-          : mode === "once"
-            ? [
-                ...CREDIT_PACK_CONFIGS.map((pack) => pack.id),
-                ...policy.options.filter((tier) => tier === "support"),
-              ]
-            : policy.options.filter((tier) => tier !== "credit_pack");
+        const choices = policy.options.flatMap((tier) =>
+          tier === "credit_pack"
+            ? CREDIT_PACK_CONFIGS.map((pack) => pack.id)
+            : [tier],
+        );
         choices.forEach((tier) => {
           if (tier === "support") {
             const link = document.createElement("a");
@@ -343,11 +301,11 @@ export function mountMobilePaywall(
             tier === "manage"
               ? uiText("Update payment")
               : pack
-                ? (combined
-                    ? billingCopy.creditCount
-                    : billingCopy.pack
-                  ).replace("{credits}", String(pack.credits))
-                : names[tier as MobileBillingTier];
+                ? billingCopy.creditCount.replace(
+                    "{credits}",
+                    String(pack.credits),
+                  )
+                : names[tier as keyof typeof names];
           const price =
             tier === "manage"
               ? null
@@ -397,14 +355,7 @@ export function mountMobilePaywall(
               );
               detailText = billingCopy.renewalPrice.replace("{price}", regular);
             } else {
-              amountText = combined
-                ? pack
-                  ? regular
-                  : regular + billingCopy.perMonth
-                : `${regular} ${pack ? billingCopy.oneTime : billingCopy.perMonth}`;
-              const quantity = pack?.credits ?? plan?.monthlyLimit;
-              if (quantity && !combined)
-                detailText = `≈${formatUnitPrice(price, quantity, locale)} ${billingCopy.perListing}`;
+              amountText = pack ? regular : regular + billingCopy.perMonth;
             }
           }
           button.setAttribute(
@@ -413,14 +364,6 @@ export function mountMobilePaywall(
               .filter(Boolean)
               .join(", "),
           );
-          if (tier === "pro" && !combined) {
-            const badge = document.createElement("small");
-            badge.className = "mobile-paywall-badge";
-            badge.textContent = discount
-              ? uiText("20% off")
-              : billingCopy.popular;
-            copy.append(badge);
-          }
           if (limits) {
             const detail = document.createElement("small");
             detail.textContent = limits;
@@ -451,36 +394,6 @@ export function mountMobilePaywall(
             .find((button) => button.value === focusedTier && !button.disabled)
             ?.focus({ preventScroll: true });
       };
-      tabs.querySelectorAll<HTMLButtonElement>("button").forEach((tab) => {
-        const select = (next: "monthly" | "once") => {
-          if (!busy) {
-            mode = next;
-            render();
-          }
-        };
-        tab.onclick = () =>
-          select(tab.dataset.billingMode as "monthly" | "once");
-        tab.onkeydown = (event) => {
-          if (
-            !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) ||
-            busy
-          )
-            return;
-          event.preventDefault();
-          select(
-            event.key === "Home"
-              ? "monthly"
-              : event.key === "End"
-                ? "once"
-                : mode === "monthly"
-                  ? "once"
-                  : "monthly",
-          );
-          tabs
-            .querySelector<HTMLButtonElement>('[aria-selected="true"]')
-            ?.focus();
-        };
-      });
       function refreshProPrice() {
         if (!options.getProOffer) return;
         checking = true;
@@ -514,15 +427,11 @@ export function mountMobilePaywall(
         overflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
         dialog.showModal();
-        find("h2").focus({ preventScroll: true });
-        if (enrolled)
-          void trackMobileEvent(
-            combined
-              ? "free_limit_view_combined_v1"
-              : "free_limit_view_tabs_v1",
-            paywallContext,
-            owner,
-          );
+        const focusTarget =
+          (requested === "credits" &&
+            list.querySelector<HTMLElement>(".credit-packs button")) ||
+          find("h2");
+        focusTarget.focus();
         void trackMobileEvent("web_paywall_view", {
           ...paywallContext,
           tier: usage.plan?.tier,

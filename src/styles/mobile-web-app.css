@@ -1743,62 +1743,11 @@ textarea:focus-visible {
   color: #667085;
   line-height: 1.2;
 }
-.mobile-paywall-option-copy .mobile-paywall-badge {
-  justify-self: start;
-  width: fit-content;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 3px 4px;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #4f46e5;
-  background: #f4f2ff;
-}
 .mobile-paywall-option-arrow {
   color: var(--mobile-brand);
   font-size: 24px;
   line-height: 1;
   text-align: right;
-}
-.mobile-paywall-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  margin: 10px 0;
-  border-radius: 8px;
-  background: #f1f3f7;
-}
-.mobile-paywall-tabs[hidden] {
-  display: none;
-}
-.mobile-paywall-tabs button {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 8px;
-  border: 0;
-  border-radius: 6px;
-  color: #374151;
-  background: transparent;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.mobile-paywall-tabs button[aria-selected="true"] {
-  background: white;
-  color: #4338ca;
-  box-shadow: 0 1px 3px #0001;
-}
-.mobile-paywall-tabs button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-.mobile-paywall .mobile-paywall-unit-note {
-  margin: 10px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
 }
 .mobile-paywall-option-side {
   min-width: 0;
@@ -1868,6 +1817,14 @@ html[data-mobile-web-focus="pointer"] .draft-choice input:focus-visible + span {
   grid-template-columns: 1.15fr 1fr;
   gap: 20px;
   margin-top: 16px;
+}
+.combined-pricing [data-paywall-options] > :only-child,
+.combined-pricing [data-paywall-options] > a,
+.combined-pricing .price-group:only-of-type {
+  grid-column: 1 / -1;
+}
+.combined-pricing .paywall-compare[hidden] {
+  display: none;
 }
 .combined-pricing .credit-packs .mobile-paywall-option {
   background: #f8f9fc;

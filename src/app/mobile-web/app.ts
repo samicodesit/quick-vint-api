@@ -1095,7 +1095,12 @@ export function mountMobileWebApp(
       onGenerationBlocked: (usage, code) =>
         usage ? showPaywall(usage, code, "generation_limit") : false,
       onGetMoreDrafts: () => {
-        if (latestUsage) showPaywall(latestUsage, "plans", "plans_link");
+        if (latestUsage && !showPaywall(latestUsage, undefined, "plans_link"))
+          showPaywall(latestUsage, "plans", "plans_link");
+      },
+      onProOffer: () => {
+        if (latestUsage)
+          showPaywall(latestUsage, "free_lifetime_limit", "draft_five_offer");
       },
       onViewPlans: () => {
         if (latestUsage) showPaywall(latestUsage, "feature", "feature_lock");

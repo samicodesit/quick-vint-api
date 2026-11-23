@@ -1469,9 +1469,6 @@ html:has([data-drafts-enabled="true"]) {
   color: var(--mobile-link, #234be8);
   font-weight: 600;
 }
-.draft-five-offer [role="status"] {
-  grid-column: 1 / -1;
-}
 .draft-free-meter:not([hidden]) {
   display: flex;
   align-items: stretch;

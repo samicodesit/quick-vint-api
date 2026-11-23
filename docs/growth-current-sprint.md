@@ -1,5 +1,11 @@
 # AutoLister AI Growth Current Sprint
 
+## 2026-11-23. One web app paywall (local)
+
+- The web app uses the compact chooser from the free-limit experiment for Get more, account actions, blocked generation, feature locks, and the inline Pro offer. It shows both ways to pay when available, preserves the signed Pro first-month price, and sends payment recovery to the existing billing portal. The web app now marks chooser impressions and checkout handoffs with `method: combined_pricing` in the existing event context.
+- Production exposure logs and settled billing records were checked through 03:31 UTC. The web app recorded five unique accounts in the tabbed free-limit group and zero in the compact group. The extension recorded three accounts in the compact group and no matching settled payments after exposure. The sample has fewer than seven days of follow-up and supports no conversion comparison.
+- Local browser fixtures exercised all six checkout choices across 18 languages, pricing at narrow phone and desktop sizes, billing recovery, checkout return, queue recovery, and the Pro offer handoff. No actual checkout or payment was created for QA.
+
 ## 2026-11-20. Free-limit pricing experiment (local)
 
 - On a blocked draft generation, eligible accounts see either the tabbed chooser or three monthly plans and three one-time packs together. The same account receives the same layout in both clients. The combined layout is capped at 640px on desktop.

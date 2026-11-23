@@ -25,18 +25,15 @@ const usage = {
 const browser = await chromium.launch();
 try {
   for (const [lang, copy] of Object.entries(copies)) {
-    for (const combined of lang === "en" || lang === "nl"
-      ? [false, true]
-      : [true]) {
+    for (const suffix of lang === "en" || lang === "nl" ? ["0", "8"] : ["8"]) {
       const context = await browser.newContext({
         locale: lang === "cz" ? "cs" : lang,
         viewport: { width: 320, height: 844 },
       });
-      const accountId =
-        "123e4567-e89b-42d3-a456-42661417400" + (combined ? "8" : "0");
+      const accountId = "123e4567-e89b-42d3-a456-42661417400" + suffix;
       await signInFixture(context, accountId);
-      let priceUnavailable = combined && lang === "en";
-      const regularPrice = !combined && lang === "nl";
+      let priceUnavailable = suffix === "8" && lang === "en";
+      const regularPrice = suffix === "0" && lang === "nl";
       const purchases = [],
         events = [];
       await context.route("**/*", (route) => {
@@ -127,17 +124,12 @@ try {
             lang + " renewal price",
           );
         }
-        if (combined) {
-          assert.deepEqual(await dialog.locator("h3").allTextContents(), [
-            copy.monthlyPlans,
-            copy.oneTimeListingCredits,
-          ]);
-          assert.equal(await dialog.getByRole("tab").count(), 0);
-          assert.equal(
-            await dialog.locator("button[value]:visible").count(),
-            6,
-          );
-        } else assert.equal(await dialog.getByRole("tab").count(), 2);
+        assert.deepEqual(await dialog.locator("h3").allTextContents(), [
+          copy.monthlyPlans,
+          copy.oneTimeListingCredits,
+        ]);
+        assert.equal(await dialog.getByRole("tab").count(), 0);
+        assert.equal(await dialog.locator("button[value]:visible").count(), 6);
         assert.ok(
           await dialog.evaluate((el) =>
             [el, ...el.querySelectorAll("button[value]")].every(
@@ -191,14 +183,7 @@ try {
             });
             await page.screenshot({
               path:
-                output +
-                "/web-" +
-                (combined ? "combined" : "tabs") +
-                "-" +
-                lang +
-                "-" +
-                width +
-                ".png",
+                output + "/web-" + suffix + "-" + lang + "-" + width + ".png",
               animations: "disabled",
             });
           }
@@ -211,8 +196,6 @@ try {
           "credits_50",
           "credits_100",
         ]) {
-          if (!combined && choice === "credits_20")
-            await dialog.getByRole("tab").nth(1).click();
           const before = purchases.length;
           await dialog.locator('button[value="' + choice + '"]').press("Enter");
           await dialog
@@ -231,17 +214,19 @@ try {
         }
         assert.ok(
           events.some(
-            (e) =>
-              e.event ===
-              "free_limit_view_" + (combined ? "combined" : "tabs") + "_v1",
+            (event) =>
+              event.event === "web_paywall_view" &&
+              event.context.method === "combined_pricing" &&
+              event.context.entryPoint === "generation_limit",
           ),
-          "exposure event",
+          "shared paywall exposure and entry point",
         );
-        console.log(
-          lang,
-          combined ? "combined" : "tabs",
-          "checkout and width passed",
+        assert.equal(
+          events.some((event) => event.event.startsWith("free_limit_view_")),
+          false,
+          "web exposures must leave the legacy experiment",
         );
+        console.log(lang, suffix, "checkout and width passed");
       } catch (e) {
         console.error((await page.locator("body").innerText()).slice(0, 1500));
         throw e;

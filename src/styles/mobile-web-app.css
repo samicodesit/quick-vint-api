@@ -1923,3 +1923,107 @@ html[data-mobile-web-focus="pointer"] .draft-choice input:focus-visible + span {
     text-align: center;
   }
 }
+
+.starter-coffee-price {
+  grid-template-columns: minmax(0, max-content) auto;
+  column-gap: 6px;
+  row-gap: 3px;
+}
+.starter-coffee-price img {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  width: 24px;
+  height: auto;
+}
+.starter-coffee-price small {
+  grid-column: 1;
+  grid-row: 2;
+}
+.mobile-paywall-footer:has(.paywall-worth-help:not([hidden])) {
+  position: relative;
+}
+.paywall-worth-help:not([hidden]) {
+  display: inline-block;
+  max-width: 100%;
+}
+.paywall-worth-help:has([data-placement="inline"]:not([hidden])) {
+  display: block;
+}
+.combined-pricing .paywall-worth-question {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+.paywall-worth-tooltip {
+  position: absolute;
+  z-index: 1;
+  inset-inline-end: 0;
+  width: min(18rem, 100%);
+  box-sizing: border-box;
+  top: calc(100% + 6px);
+  padding: 12px 14px;
+  border: 1px solid #dedfd9;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 28px #252b2324;
+  color: var(--mobile-text, #242924);
+  text-align: start;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.paywall-worth-tooltip[data-placement="above"] {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+.paywall-worth-tooltip[data-placement="inline"] {
+  position: static;
+  width: min(18rem, 100%);
+  margin: 6px 0 0 auto;
+}
+@media (max-width: 680px) {
+  .paywall-worth-tooltip {
+    inset-inline: 0;
+    margin-inline: auto;
+  }
+}
+.paywall-worth-tooltip::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  inset-inline: 0;
+  height: 12px;
+}
+.paywall-worth-tooltip[data-placement="above"]::before {
+  top: auto;
+  bottom: -12px;
+}
+.paywall-worth-tooltip::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  inset-inline-end: 54px;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  background: inherit;
+  border: solid #dedfd9;
+  border-width: 1px 0 0 1px;
+}
+.paywall-worth-tooltip[data-placement="above"]::after {
+  top: auto;
+  bottom: -5px;
+  transform: rotate(225deg);
+}
+.paywall-worth-tooltip[data-placement="inline"]::before,
+.paywall-worth-tooltip[data-placement="inline"]::after {
+  display: none;
+}
+@media (max-width: 680px) {
+  .paywall-worth-tooltip::after {
+    inset-inline-end: calc(50% - 4px);
+  }
+}

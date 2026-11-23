@@ -44,6 +44,7 @@ export interface MobileUsage {
   remaining?: Record<string, unknown>;
   resetsAt?: Record<string, unknown>;
   canGenerate?: boolean;
+  paywallCoffeeExperimentEligible?: true;
   pricing?: Record<string, unknown>;
   [key: string]: unknown;
 }

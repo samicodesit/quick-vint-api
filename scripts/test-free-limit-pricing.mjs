@@ -15,22 +15,56 @@ const item = fileURLToPath(
   new URL("../docs/qa/browser-drafts/sample-front.png", import.meta.url),
 );
 const output = process.env.PAYWALL_QA_OUTPUT;
+const testLocale = process.env.PAYWALL_QA_LOCALE;
+const coffeeScenario = process.env.PAYWALL_COFFEE_SCENARIO || "";
+const coffeeMarket = ["control", "treatment", "changed-price"].includes(
+  coffeeScenario,
+);
+const coffeeTreatment = coffeeScenario === "treatment";
+const coffeeTarget = coffeeTreatment
+  ? "starter_coffee_comparison_v1"
+  : coffeeScenario === "control"
+    ? "starter_coffee_control_v1"
+    : undefined;
 const usage = {
   plan: { tier: "free", isPaid: false, status: "free" },
   canGenerate: false,
   blockedReason: "free_lifetime_limit",
   limits: { freeLifetime: 5 },
   remaining: { freeLifetime: 0, packCredits: 0, generations: 0 },
+  ...(coffeeMarket ? { paywallCoffeeExperimentEligible: true } : {}),
+  ...(coffeeScenario === "changed-price"
+    ? {
+        pricing: {
+          tiers: {
+            starter: { monthly: 4.49, dailyLimit: 10, monthlyLimit: 75 },
+          },
+        },
+      }
+    : {}),
 };
 const browser = await chromium.launch();
 try {
   for (const [lang, copy] of Object.entries(copies)) {
+    if (testLocale && lang !== testLocale) continue;
+    if (
+      ["changed-price", "unknown-market"].includes(coffeeScenario) &&
+      lang !== "en"
+    )
+      continue;
     for (const suffix of lang === "en" || lang === "nl" ? ["0", "8"] : ["8"]) {
       const context = await browser.newContext({
         locale: lang === "cz" ? "cs" : lang,
+        hasTouch: coffeeTreatment,
         viewport: { width: 320, height: 844 },
       });
-      const accountId = "123e4567-e89b-42d3-a456-42661417400" + suffix;
+      const treatmentAccount =
+        coffeeTreatment ||
+        ["changed-price", "unknown-market"].includes(coffeeScenario);
+      const accountId =
+        (treatmentAccount ? "8" : "1") +
+        "23e4567-e89b-42d3-a456-42661417400" +
+        suffix;
       await signInFixture(context, accountId);
       let priceUnavailable = suffix === "8" && lang === "en";
       const regularPrice = suffix === "0" && lang === "nl";
@@ -129,6 +163,59 @@ try {
           copy.oneTimeListingCredits,
         ]);
         assert.equal(await dialog.getByRole("tab").count(), 0);
+        const question = dialog.locator(".paywall-worth-question");
+        const tooltip = dialog.getByRole("tooltip", { includeHidden: true });
+        const cup = dialog.locator(
+          'button[value="starter"] .starter-coffee-price img',
+        );
+        assert.equal(await cup.count(), coffeeTreatment ? 1 : 0);
+        assert.equal(await question.isVisible(), coffeeTreatment);
+        assert.equal(
+          await dialog.locator("a.paywall-compare").isVisible(),
+          !coffeeTreatment,
+        );
+        const starter = dialog.locator('button[value="starter"]');
+        assert.ok(
+          (await starter.textContent()).includes(
+            format(coffeeScenario === "changed-price" ? 4.49 : 3.99),
+          ),
+        );
+        if (coffeeTreatment) {
+          assert.equal(
+            await cup.evaluate(async (img) => {
+              await img.decode();
+              return img.naturalWidth > 0;
+            }),
+            true,
+          );
+          assert.equal(
+            await starter.locator(".starter-coffee-price small").textContent(),
+            copy.coffeeComparison,
+          );
+          assert.equal(
+            await dialog.locator(".subscriptions > p").textContent(),
+            copy.coffeeMonthlyTerms,
+          );
+          assert.equal(
+            await dialog.locator(".credit-packs > p").textContent(),
+            copy.coffeeCreditTerms,
+          );
+          assert.equal(
+            await question.innerText(),
+            copy.coffeeWorthQuestion.replace("{price}", format(3.99)),
+          );
+          const sale = new Intl.NumberFormat(lang === "cz" ? "cs" : lang, {
+            style: "currency",
+            currency: "EUR",
+            maximumFractionDigits: 0,
+            minimumFractionDigits: 0,
+          }).format(4);
+          assert.equal(
+            await tooltip.textContent(),
+            copy.coffeeWorthAnswer.replace("{sale}", sale),
+          );
+        }
+
         assert.equal(await dialog.locator("button[value]:visible").count(), 6);
         assert.ok(
           await dialog.evaluate((el) =>
@@ -174,6 +261,23 @@ try {
             }),
             lang + " label or price overlaps at " + width + "x" + height,
           );
+          if (coffeeTreatment) {
+            await question.tap();
+            await tooltip.waitFor();
+            assert.equal(await question.getAttribute("aria-expanded"), "true");
+            const box = await tooltip.boundingBox();
+            const wall = await dialog.boundingBox();
+            assert.ok(
+              box.x >= wall.x - 1 &&
+                box.x + box.width <= wall.x + wall.width + 1 &&
+                box.y >= wall.y - 1 &&
+                box.y + box.height <= wall.y + wall.height + 1,
+              lang + " tooltip stays visible at " + width + "x" + height,
+            );
+            await page.keyboard.press("Escape");
+            await tooltip.waitFor({ state: "hidden" });
+            assert.equal(await dialog.isVisible(), true);
+          }
         }
         if (output && ["en", "nl"].includes(lang)) {
           for (const width of [390, 1280]) {
@@ -181,11 +285,37 @@ try {
               width,
               height: width === 390 ? 844 : 860,
             });
+            await dialog.locator("h2").click();
             await page.screenshot({
               path:
                 output + "/web-" + suffix + "-" + lang + "-" + width + ".png",
               animations: "disabled",
             });
+            if (coffeeTreatment) {
+              await question.hover();
+              await tooltip.waitFor();
+              await page.screenshot({
+                path:
+                  output +
+                  "/tooltip-" +
+                  suffix +
+                  "-" +
+                  lang +
+                  "-" +
+                  width +
+                  ".png",
+                animations: "disabled",
+              });
+              await tooltip.hover();
+              assert.equal(await tooltip.isVisible(), true);
+              await page.mouse.move(4, 4);
+              await tooltip.waitFor({ state: "hidden" });
+              await dialog.locator('button[value="credits_100"]').focus();
+              await page.keyboard.press("Tab");
+              await tooltip.waitFor();
+              await page.keyboard.press("Escape");
+              await tooltip.waitFor({ state: "hidden" });
+            }
           }
         }
         for (const choice of [
@@ -212,6 +342,21 @@ try {
             choice === "pro" && !regularPrice ? "fixture-offer" : undefined,
           );
         }
+        await page.evaluate(() => window.AutoListerWebsiteTelemetry.flush());
+        assert.ok(
+          events.some(
+            (event) =>
+              event.event === "web_paywall_view" &&
+              event.context.target === coffeeTarget,
+          ),
+        );
+        assert.ok(
+          events.some(
+            (event) =>
+              event.event === "checkout_start" &&
+              event.context.target === coffeeTarget,
+          ),
+        );
         assert.ok(
           events.some(
             (event) =>

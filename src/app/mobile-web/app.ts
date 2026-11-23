@@ -1036,6 +1036,8 @@ export function mountMobileWebApp(
     extensionSuggestion.close();
     paywall ??= mountMobilePaywall(root, {
       getProOffer: () => draftWorkspace?.getProOffer() ?? Promise.resolve(null),
+      coffeeExperimentEligible: () =>
+        latestUsage?.paywallCoffeeExperimentEligible === true,
       userId: () => session?.user.id,
       flush: async () => {
         await draftWorkspace?.flush();

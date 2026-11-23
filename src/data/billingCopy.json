@@ -29,7 +29,12 @@
     "firstMonthPrice": "{price} first month",
     "renewalPrice": "Then {price}/month",
     "retryPrice": "Retry price",
-    "creditCount": "{credits} credits"
+    "creditCount": "{credits} credits",
+    "coffeeMonthlyTerms": "For regular selling. Cancel anytime.",
+    "coffeeCreditTerms": "Pay once. Credits never expire.",
+    "coffeeComparison": "About one coffee",
+    "coffeeWorthQuestion": "Is it worth {price}?",
+    "coffeeWorthAnswer": "If you make {sale} on one item, that covers a month of Starter."
   },
   "fr": {
     "monthly": "Mensuel",
@@ -61,7 +66,12 @@
     "firstMonthPrice": "{price} le premier mois",
     "renewalPrice": "Puis {price}/mois",
     "retryPrice": "Réessayer",
-    "creditCount": "{credits} crédits"
+    "creditCount": "{credits} crédits",
+    "coffeeMonthlyTerms": "Pour vendre régulièrement. Résiliable à tout moment.",
+    "coffeeCreditTerms": "Payez une fois. Les crédits n’expirent pas.",
+    "coffeeComparison": "Environ le prix d’un café",
+    "coffeeWorthQuestion": "Ça vaut {price} ?",
+    "coffeeWorthAnswer": "Si la vente d’un article vous rapporte {sale}, cela couvre un mois de Starter."
   },
   "de": {
     "monthly": "Monatlich",
@@ -93,7 +103,12 @@
     "firstMonthPrice": "{price} im ersten Monat",
     "renewalPrice": "Danach {price}/Monat",
     "retryPrice": "Preis erneut laden",
-    "creditCount": "{credits} Credits"
+    "creditCount": "{credits} Credits",
+    "coffeeMonthlyTerms": "Für regelmäßiges Verkaufen. Jederzeit kündbar.",
+    "coffeeCreditTerms": "Einmal zahlen. Guthaben verfällt nicht.",
+    "coffeeComparison": "Etwa ein Kaffee",
+    "coffeeWorthQuestion": "Ist es {price} wert?",
+    "coffeeWorthAnswer": "Wenn du mit einem Artikel {sale} einnimmst, deckt das einen Monat Starter."
   },
   "nl": {
     "monthly": "Maandelijks",
@@ -125,7 +140,12 @@
     "firstMonthPrice": "{price} in de eerste maand",
     "renewalPrice": "Daarna {price}/maand",
     "retryPrice": "Prijs opnieuw laden",
-    "creditCount": "{credits} credits"
+    "creditCount": "{credits} credits",
+    "coffeeMonthlyTerms": "Voor wie regelmatig verkoopt. Altijd opzegbaar.",
+    "coffeeCreditTerms": "Betaal één keer. Credits verlopen nooit.",
+    "coffeeComparison": "Ongeveer één koffie",
+    "coffeeWorthQuestion": "Is het {price} waard?",
+    "coffeeWorthAnswer": "Als je {sale} verdient met één verkoop, heb je een maand Starter betaald."
   },
   "es": {
     "monthly": "Mensual",
@@ -157,7 +177,12 @@
     "firstMonthPrice": "{price} el primer mes",
     "renewalPrice": "Después, {price}/mes",
     "retryPrice": "Volver a consultar",
-    "creditCount": "{credits} créditos"
+    "creditCount": "{credits} créditos",
+    "coffeeMonthlyTerms": "Para vender con regularidad. Cancela cuando quieras.",
+    "coffeeCreditTerms": "Paga una vez. Los créditos no caducan.",
+    "coffeeComparison": "Como un café",
+    "coffeeWorthQuestion": "¿Vale la pena por {price}?",
+    "coffeeWorthAnswer": "Si ganas {sale} al vender un artículo, cubres un mes de Starter."
   },
   "it": {
     "monthly": "Mensile",
@@ -189,7 +214,12 @@
     "firstMonthPrice": "{price} il primo mese",
     "renewalPrice": "Poi {price}/mese",
     "retryPrice": "Riprova",
-    "creditCount": "{credits} crediti"
+    "creditCount": "{credits} crediti",
+    "coffeeMonthlyTerms": "Per chi vende spesso. Annulla quando vuoi.",
+    "coffeeCreditTerms": "Paghi una volta. I crediti non scadono.",
+    "coffeeComparison": "Circa un caffè",
+    "coffeeWorthQuestion": "Vale {price}?",
+    "coffeeWorthAnswer": "Se ricavi {sale} vendendo un articolo, copri un mese di Starter."
   },
   "pt": {
     "monthly": "Mensal",
@@ -221,7 +251,12 @@
     "firstMonthPrice": "{price} no primeiro mês",
     "renewalPrice": "Depois, {price}/mês",
     "retryPrice": "Tentar novamente",
-    "creditCount": "{credits} créditos"
+    "creditCount": "{credits} créditos",
+    "coffeeMonthlyTerms": "Para venderes regularmente. Cancela quando quiseres.",
+    "coffeeCreditTerms": "Paga uma vez. Os créditos não expiram.",
+    "coffeeComparison": "Cerca de um café",
+    "coffeeWorthQuestion": "Vale a pena por {price}?",
+    "coffeeWorthAnswer": "Se ganhares {sale} a vender um artigo, cobres um mês de Starter."
   },
   "pl": {
     "monthly": "Miesięcznie",
@@ -253,7 +288,12 @@
     "firstMonthPrice": "{price} za pierwszy miesiąc",
     "renewalPrice": "Następnie {price}/mies.",
     "retryPrice": "Sprawdź ponownie",
-    "creditCount": "{credits} kredytów"
+    "creditCount": "{credits} kredytów",
+    "coffeeMonthlyTerms": "Dla osób, które regularnie sprzedają. Anuluj w każdej chwili.",
+    "coffeeCreditTerms": "Zapłać raz. Kredyty nie tracą ważności.",
+    "coffeeComparison": "Mniej więcej tyle co kawa",
+    "coffeeWorthQuestion": "Czy warto zapłacić {price}?",
+    "coffeeWorthAnswer": "Jeśli ze sprzedaży jednej rzeczy zarobisz {sale}, wystarczy to na miesiąc Startera."
   },
   "cz": {
     "monthly": "Měsíčně",
@@ -285,7 +325,12 @@
     "firstMonthPrice": "{price} za první měsíc",
     "renewalPrice": "Poté {price}/měsíc",
     "retryPrice": "Načíst cenu znovu",
-    "creditCount": "{credits} kreditů"
+    "creditCount": "{credits} kreditů",
+    "coffeeMonthlyTerms": "Pro pravidelný prodej. Zruš kdykoli.",
+    "coffeeCreditTerms": "Zaplať jednou. Kredity nepropadají.",
+    "coffeeComparison": "Zhruba jako jedna káva",
+    "coffeeWorthQuestion": "Stojí to za {price}?",
+    "coffeeWorthAnswer": "Pokud prodejem jedné věci získáš {sale}, pokryje to měsíc plánu Starter."
   },
   "da": {
     "monthly": "Månedligt",
@@ -317,7 +362,12 @@
     "firstMonthPrice": "{price} første måned",
     "renewalPrice": "Derefter {price}/måned",
     "retryPrice": "Hent pris igen",
-    "creditCount": "{credits} kreditter"
+    "creditCount": "{credits} kreditter",
+    "coffeeMonthlyTerms": "Til dig, der sælger regelmæssigt. Opsig når som helst.",
+    "coffeeCreditTerms": "Betal én gang. Kreditter udløber aldrig.",
+    "coffeeComparison": "Cirka en kop kaffe",
+    "coffeeWorthQuestion": "Er det {price} værd?",
+    "coffeeWorthAnswer": "Hvis du tjener {sale} på én vare, dækker det en måned med Starter."
   },
   "el": {
     "monthly": "Μηνιαία",
@@ -349,7 +399,12 @@
     "firstMonthPrice": "{price} τον πρώτο μήνα",
     "renewalPrice": "Μετά {price}/μήνα",
     "retryPrice": "Νέα δοκιμή",
-    "creditCount": "{credits} μονάδες"
+    "creditCount": "{credits} μονάδες",
+    "coffeeMonthlyTerms": "Για τακτικές πωλήσεις. Ακύρωση ανά πάσα στιγμή.",
+    "coffeeCreditTerms": "Πληρώνεις μία φορά. Οι πιστώσεις δεν λήγουν.",
+    "coffeeComparison": "Περίπου όσο ένας καφές",
+    "coffeeWorthQuestion": "Αξίζει τα {price};",
+    "coffeeWorthAnswer": "Αν βγάλεις {sale} από την πώληση ενός είδους, καλύπτεις έναν μήνα Starter."
   },
   "hr": {
     "monthly": "Mjesečno",
@@ -381,7 +436,12 @@
     "firstMonthPrice": "{price} prvi mjesec",
     "renewalPrice": "Zatim {price}/mj.",
     "retryPrice": "Ponovno učitaj cijenu",
-    "creditCount": "{credits} kredita"
+    "creditCount": "{credits} kredita",
+    "coffeeMonthlyTerms": "Za redovitu prodaju. Otkaži kad god želiš.",
+    "coffeeCreditTerms": "Plati jednom. Krediti ne istječu.",
+    "coffeeComparison": "Otprilike kao jedna kava",
+    "coffeeWorthQuestion": "Isplati li se za {price}?",
+    "coffeeWorthAnswer": "Ako od prodaje jednog artikla zaradiš {sale}, to pokriva mjesec dana paketa Starter."
   },
   "fi": {
     "monthly": "Kuukausittain",
@@ -413,7 +473,12 @@
     "firstMonthPrice": "Ensimmäinen kuukausi {price}",
     "renewalPrice": "Sen jälkeen {price}/kk",
     "retryPrice": "Hae hinta uudelleen",
-    "creditCount": "{credits} krediittiä"
+    "creditCount": "{credits} krediittiä",
+    "coffeeMonthlyTerms": "Säännölliseen myyntiin. Peru milloin tahansa.",
+    "coffeeCreditTerms": "Maksa kerran. Krediitit eivät vanhene.",
+    "coffeeComparison": "Noin yhden kahvin hinta",
+    "coffeeWorthQuestion": "Kannattaako maksaa {price}?",
+    "coffeeWorthAnswer": "Jos saat yhdestä myynnistä {sale}, sillä katat kuukauden Starter-tilauksen."
   },
   "hu": {
     "monthly": "Havi",
@@ -445,7 +510,12 @@
     "firstMonthPrice": "Első hónap: {price}",
     "renewalPrice": "Utána {price}/hó",
     "retryPrice": "Ár újratöltése",
-    "creditCount": "{credits} kredit"
+    "creditCount": "{credits} kredit",
+    "coffeeMonthlyTerms": "Rendszeres eladáshoz. Bármikor lemondhatod.",
+    "coffeeCreditTerms": "Fizess egyszer. A kreditek nem járnak le.",
+    "coffeeComparison": "Nagyjából egy kávé ára",
+    "coffeeWorthQuestion": "Megér {price}-t?",
+    "coffeeWorthAnswer": "Ha egy termék eladásából {sale} bevételed lesz, az fedez egy hónap Starter-előfizetést."
   },
   "lt": {
     "monthly": "Kas mėnesį",
@@ -477,7 +547,12 @@
     "firstMonthPrice": "Pirmą mėnesį {price}",
     "renewalPrice": "Vėliau {price}/mėn.",
     "retryPrice": "Bandyti dar kartą",
-    "creditCount": "{credits} kreditų"
+    "creditCount": "{credits} kreditų",
+    "coffeeMonthlyTerms": "Reguliariai prekybai. Atšauk bet kada.",
+    "coffeeCreditTerms": "Mokėk vieną kartą. Kreditai neturi galiojimo termino.",
+    "coffeeComparison": "Maždaug tiek, kiek kava",
+    "coffeeWorthQuestion": "Ar verta mokėti {price}?",
+    "coffeeWorthAnswer": "Jei pardavęs vieną daiktą uždirbi {sale}, to užtenka mėnesiui su „Starter“."
   },
   "ro": {
     "monthly": "Lunar",
@@ -509,7 +584,12 @@
     "firstMonthPrice": "{price} în prima lună",
     "renewalPrice": "Apoi {price}/lună",
     "retryPrice": "Reîncearcă",
-    "creditCount": "{credits} de credite"
+    "creditCount": "{credits} de credite",
+    "coffeeMonthlyTerms": "Pentru vânzări regulate. Anulezi oricând.",
+    "coffeeCreditTerms": "Plătești o singură dată. Creditele nu expiră.",
+    "coffeeComparison": "Cam cât o cafea",
+    "coffeeWorthQuestion": "Merită {price}?",
+    "coffeeWorthAnswer": "Dacă câștigi {sale} din vânzarea unui articol, acoperi o lună de Starter."
   },
   "sk": {
     "monthly": "Mesačne",
@@ -541,7 +621,12 @@
     "firstMonthPrice": "{price} za prvý mesiac",
     "renewalPrice": "Potom {price}/mesiac",
     "retryPrice": "Znova načítať cenu",
-    "creditCount": "{credits} kreditov"
+    "creditCount": "{credits} kreditov",
+    "coffeeMonthlyTerms": "Na pravidelný predaj. Zruš kedykoľvek.",
+    "coffeeCreditTerms": "Zaplať raz. Kredity neprepadnú.",
+    "coffeeComparison": "Približne ako jedna káva",
+    "coffeeWorthQuestion": "Stojí to za {price}?",
+    "coffeeWorthAnswer": "Ak predajom jednej veci získaš {sale}, pokryje to mesiac programu Starter."
   },
   "sv": {
     "monthly": "Månadsvis",
@@ -573,6 +658,11 @@
     "firstMonthPrice": "{price} första månaden",
     "renewalPrice": "Därefter {price}/månad",
     "retryPrice": "Hämta pris igen",
-    "creditCount": "{credits} krediter"
+    "creditCount": "{credits} krediter",
+    "coffeeMonthlyTerms": "För dig som säljer regelbundet. Avsluta när du vill.",
+    "coffeeCreditTerms": "Betala en gång. Krediterna upphör aldrig att gälla.",
+    "coffeeComparison": "Ungefär som en kaffe",
+    "coffeeWorthQuestion": "Är det värt {price}?",
+    "coffeeWorthAnswer": "Om du tjänar {sale} på en vara täcker det en månad med Starter."
   }
 }

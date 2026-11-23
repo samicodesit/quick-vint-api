@@ -1,5 +1,6 @@
 import { normalizeSiteLocale } from "../../i18n/site";
 import type { DraftFiveOffer } from "./draftFiveOffer";
+import { mountContextTooltip } from "./contextTooltip";
 import { getUiLocale, localizeUiFragment, uiText } from "./ui";
 import { getMobilePaywall } from "./paywallPolicy";
 import {
@@ -22,6 +23,7 @@ import { getBillingCopy, formatPrice } from "../../utils/billingDisplay";
 
 const support =
   "mailto:support@autolister.app?subject=AutoLister%20AI%20account%20review";
+const coffeeComparisonPrice = 3.99;
 const names = {
   starter: "Starter",
   pro: "Pro",
@@ -41,6 +43,7 @@ export function mountMobilePaywall(
   options: {
     getProOffer?: () => Promise<DraftFiveOffer | null>;
     userId: () => string | undefined;
+    coffeeExperimentEligible: () => boolean;
     flush: () => Promise<void>;
   },
 ) {
@@ -58,7 +61,35 @@ export function mountMobilePaywall(
   compare.target = "_blank";
   compare.rel = "noopener noreferrer";
   compare.hidden = true;
-  dialog.querySelector(".mobile-paywall-footer")!.append(compare);
+  const coffeeHelp = document.createElement("div");
+  coffeeHelp.className = "paywall-worth-help";
+  coffeeHelp.hidden = true;
+  const worthQuestion = document.createElement("button");
+  worthQuestion.type = "button";
+  worthQuestion.className = "paywall-compare paywall-worth-question";
+  worthQuestion.textContent = billingCopy.coffeeWorthQuestion.replace(
+    "{price}",
+    formatPrice(coffeeComparisonPrice, locale),
+  );
+  worthQuestion.setAttribute("aria-expanded", "false");
+  worthQuestion.setAttribute("aria-controls", "paywall-worth-tooltip");
+  worthQuestion.setAttribute("aria-describedby", "paywall-worth-tooltip");
+  const worthTooltip = document.createElement("div");
+  worthTooltip.className = "paywall-worth-tooltip";
+  worthTooltip.id = "paywall-worth-tooltip";
+  worthTooltip.role = "tooltip";
+  worthTooltip.hidden = true;
+  worthTooltip.textContent = billingCopy.coffeeWorthAnswer.replace(
+    "{sale}",
+    formatPrice(4, locale, 0),
+  );
+  coffeeHelp.append(worthQuestion, worthTooltip);
+  dialog.querySelector(".mobile-paywall-footer")!.append(compare, coffeeHelp);
+  const coffeeTooltip = mountContextTooltip(
+    coffeeHelp,
+    worthQuestion,
+    worthTooltip,
+  );
   localizeUiFragment(dialog);
   root.append(dialog);
   const find = (selector: string) =>
@@ -73,6 +104,7 @@ export function mountMobilePaywall(
     reason: string;
     entryPoint: MobilePaywallEntryPoint;
     method: "combined_pricing";
+    target?: "starter_coffee_control_v1" | "starter_coffee_comparison_v1";
   } = {
     reason: "paid_options",
     entryPoint: "unknown",
@@ -85,6 +117,7 @@ export function mountMobilePaywall(
   };
   const close = () => {
     revision++;
+    coffeeTooltip.close();
     dialog.close();
     restore();
   };
@@ -182,10 +215,39 @@ export function mountMobilePaywall(
     ): boolean {
       const policy = getMobilePaywall(usage, requested, locale);
       if (!policy || disposed || busy) return false;
+      const owner = options.userId();
+      const reason = requested || usage.blockedReason || "paid_options";
+      const prices = usage.pricing?.tiers as
+        | Record<
+            string,
+            { monthly?: number; dailyLimit?: number; monthlyLimit?: number }
+          >
+        | undefined;
+      const starterPrice =
+        prices?.starter?.monthly ?? TIER_CONFIGS.starter.monthlyPrice;
+      const enrolled =
+        options.coffeeExperimentEligible() &&
+        (reason === "plans" || reason === "free_lifetime_limit") &&
+        usage.plan?.tier === "free" &&
+        usage.plan?.isPaid !== true &&
+        (!usage.plan.status || usage.plan.status === "free") &&
+        policy.options.includes("starter") &&
+        starterPrice === coffeeComparisonPrice &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          owner || "",
+        );
+      const showCoffee = enrolled && /^[89a-f]/i.test(owner || "");
       paywallContext = {
-        reason: requested || usage.blockedReason || "paid_options",
+        reason,
         entryPoint,
         method: "combined_pricing",
+        ...(enrolled
+          ? {
+              target: showCoffee
+                ? "starter_coffee_comparison_v1"
+                : "starter_coffee_control_v1",
+            }
+          : {}),
       };
       dialog.querySelector<HTMLImageElement>(
         ".mobile-paywall-heading img",
@@ -194,13 +256,13 @@ export function mountMobilePaywall(
           ? "/account-paused-paywall.webp"
           : "/favicon-96x96.png";
       const showing = ++revision;
-      const owner = options.userId();
-      const reason = paywallContext.reason;
       const hasPlans = policy.options.some(
         (tier) => tier === "starter" || tier === "pro" || tier === "business",
       );
       const allowsPacks = policy.options.includes("credit_pack");
-      compare.hidden = !hasPlans;
+      compare.hidden = !hasPlans || showCoffee;
+      coffeeTooltip.close();
+      coffeeHelp.hidden = !showCoffee;
       find("[data-paywall-copy]").hidden = [
         "plans",
         "credits",
@@ -250,14 +312,18 @@ export function mountMobilePaywall(
         const monthly = hasPlans
           ? group(
               billingCopy.monthlyPlans,
-              billingCopy.monthlyTerms,
+              showCoffee
+                ? billingCopy.coffeeMonthlyTerms
+                : billingCopy.monthlyTerms,
               "subscriptions",
             )
           : list;
         const packs = allowsPacks
           ? group(
               billingCopy.oneTimeListingCredits,
-              billingCopy.creditValidity,
+              showCoffee
+                ? billingCopy.coffeeCreditTerms
+                : billingCopy.creditValidity,
               "credit-packs",
             )
           : list;
@@ -311,22 +377,14 @@ export function mountMobilePaywall(
               ? null
               : pack
                 ? pack.priceEur
-                : ((
-                    usage.pricing?.tiers as
-                      | Record<string, { monthly?: number }>
-                      | undefined
-                  )?.[tier]?.monthly ?? fallbackPlan?.monthlyPrice);
+                : (prices?.[tier]?.monthly ?? fallbackPlan?.monthlyPrice);
           const title = document.createElement("strong");
           title.textContent = label;
           const copy = document.createElement("span");
           copy.className = "mobile-paywall-option-copy";
           copy.append(title);
           const plan =
-            (
-              usage.pricing?.tiers as
-                | Record<string, { dailyLimit?: number; monthlyLimit?: number }>
-                | undefined
-            )?.[tier] ??
+            prices?.[tier] ??
             (fallbackPlan
               ? {
                   dailyLimit: fallbackPlan.limits.daily,
@@ -342,6 +400,7 @@ export function mountMobilePaywall(
                   .replace("{daily}", String(plan.dailyLimit))
                   .replace("{monthly}", String(plan.monthlyLimit))
               : "";
+          const coffeeStarter = tier === "starter" && showCoffee;
           let amountText = "";
           let detailText = "";
           if (typeof price === "number" && Number.isFinite(price)) {
@@ -356,13 +415,12 @@ export function mountMobilePaywall(
               detailText = billingCopy.renewalPrice.replace("{price}", regular);
             } else {
               amountText = pack ? regular : regular + billingCopy.perMonth;
+              if (coffeeStarter) detailText = billingCopy.coffeeComparison;
             }
           }
           button.setAttribute(
             "aria-label",
-            [label, amountText, discount && detailText, limits]
-              .filter(Boolean)
-              .join(", "),
+            [label, amountText, detailText, limits].filter(Boolean).join(", "),
           );
           if (limits) {
             const detail = document.createElement("small");
@@ -381,6 +439,16 @@ export function mountMobilePaywall(
               detail.textContent = detailText;
               side.append(detail);
             }
+          }
+          if (coffeeStarter) {
+            side.classList.add("starter-coffee-price");
+            const cup = document.createElement("img");
+            cup.src = "/app/starter-coffee-cup.webp";
+            cup.width = 25;
+            cup.height = 40;
+            cup.decoding = "async";
+            cup.alt = "";
+            side.append(cup);
           }
           const arrow = document.createElement("span");
           arrow.className = "mobile-paywall-option-arrow";
@@ -442,6 +510,7 @@ export function mountMobilePaywall(
     dispose() {
       disposed = true;
       if (dialog.open) close();
+      coffeeTooltip.dispose();
       dialog.remove();
     },
   };

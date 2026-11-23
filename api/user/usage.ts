@@ -49,7 +49,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ApiLogger.extractRequestMetadata(req).ipAddress,
       getTrustedTrialIp(req.headers),
     );
-    return res.status(200).json(response);
+    const country = req.headers["x-vercel-ip-country"];
+    const coffeeExperimentEligible =
+      process.env.PAYWALL_COFFEE_EXPERIMENT_ENABLED === "true" &&
+      process.env.VERCEL === "1" &&
+      (country === "FR" || country === "NL" || country === "BE");
+    return res
+      .status(200)
+      .json(
+        coffeeExperimentEligible
+          ? { ...response, paywallCoffeeExperimentEligible: true }
+          : response,
+      );
   } catch (error: any) {
     if (error instanceof UsageRequestError || error?.statusCode) {
       const body = { error: error.message || "Could not retrieve usage." } as {

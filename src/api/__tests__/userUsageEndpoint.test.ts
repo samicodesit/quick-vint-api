@@ -111,6 +111,7 @@ async function loadProjection() {
 async function invokeHandler(
   profile: Record<string, unknown> | null,
   profileError: { code?: string; message?: string } | null = null,
+  headers: Record<string, string> = {},
 ) {
   setupProfileQuery(profile, profileError);
   const handler = (await import("../../../api/user/usage.js")).default as any;
@@ -118,7 +119,7 @@ async function invokeHandler(
   await handler(
     {
       method: "GET",
-      headers: { authorization: "Bearer access-token" },
+      headers: { authorization: "Bearer access-token", ...headers },
     } as any,
     response as any,
   );
@@ -151,6 +152,40 @@ describe("authenticated mobile usage endpoint", () => {
     });
     expect(getUserMock).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["1", "true", "FR", true],
+    ["1", "true", "NL", true],
+    ["1", "true", "BE", true],
+    ["1", "true", "IT", undefined],
+    ["1", "true", "", undefined],
+    ["", "true", "FR", undefined],
+    ["1", "false", "FR", undefined],
+  ])(
+    "returns only the eligibility bit for Vercel=%s enabled=%s market=%s",
+    async (vercel, enabled, country, eligible) => {
+      vi.stubEnv("VERCEL", vercel);
+      vi.stubEnv("PAYWALL_COFFEE_EXPERIMENT_ENABLED", enabled);
+      try {
+        const response = await invokeHandler(freeProfile, null, {
+          "x-vercel-ip-country": country,
+        });
+        expect(response.statusCode).toBe(200);
+        expect(response.body).not.toHaveProperty("country");
+        expect(response.body).not.toHaveProperty("countryCode");
+        if (eligible)
+          expect(response.body).toMatchObject({
+            paywallCoffeeExperimentEligible: true,
+          });
+        else
+          expect(response.body).not.toHaveProperty(
+            "paywallCoffeeExperimentEligible",
+          );
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
 
   it("returns a newly detected pause on the first usage response", async () => {
     pauseMock.mockResolvedValue({

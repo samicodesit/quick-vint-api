@@ -1234,15 +1234,33 @@ try {
   const panelBefore = await page
     .locator("[data-draft-generation-actions]")
     .boundingBox();
+  const generationCopy = await page.evaluateHandle(() => {
+    const button = document.querySelector('[data-draft-action="generate"]');
+    const label = button.querySelector("[data-draft-label]");
+    const messages = [];
+    const observer = new MutationObserver(() => {
+      const text = label.textContent;
+      if (
+        button.getAttribute("aria-busy") === "true" &&
+        button.getClientRects().length &&
+        messages.at(-1) !== text
+      )
+        messages.push(text);
+    });
+    observer.observe(button, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return { messages, observer };
+  });
   hold = true;
   await click("generate");
-  await page.waitForFunction(
-    () =>
-      document.querySelector('[data-draft-action="generate"]')?.disabled &&
-      document
-        .querySelector('[data-draft-action="generate"]')
-        ?.textContent.includes("Generating"),
-  );
+  await page.waitForFunction(() => {
+    const button = document.querySelector('[data-draft-action="generate"]');
+    return button?.disabled && button.getAttribute("aria-busy") === "true";
+  });
   const working = await action("generate").boundingBox();
   assert.deepEqual(
     working,
@@ -1260,6 +1278,17 @@ try {
   );
   release();
   await action("done").waitFor();
+  const messages = await generationCopy.evaluate(({ messages, observer }) => {
+    observer.disconnect();
+    return messages;
+  });
+  await generationCopy.dispose();
+  assert.equal(messages[0], "Preparing your photos…");
+  assert.ok(messages.includes("Inspecting your item carefully…"));
+  assert.ok(
+    !messages.some((message) => /^Generating…?$/.test(message)),
+    "The old loading label never flashes during generation",
+  );
   const after = await action("done").boundingBox();
   assert.equal(
     after.y,

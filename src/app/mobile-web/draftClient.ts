@@ -1,4 +1,5 @@
 import { uiText } from "./ui";
+import type { DraftGenerationPhase } from "./draftGenerationProgress";
 import { fetchMobileJson } from "./api";
 import { trackSavedDrafts } from "./savedDraftTracking";
 import { getBrowserSession } from "./auth";
@@ -354,7 +355,15 @@ export function createDraftClient(userId: string) {
     attempt: DraftAttempt,
     batch: boolean,
     access: DraftSettingsAccess,
+    onPhase?: (phase: DraftGenerationPhase) => void,
   ) {
+    const reportPhase = (phase: DraftGenerationPhase) => {
+      try {
+        onPhase?.(phase);
+      } catch {
+        // An optional status update must not interfere with saving the draft.
+      }
+    };
     const current = await store.action("detail", { draftId: draft.id });
     if (
       current.operation_id === attempt.operationId ||
@@ -398,6 +407,7 @@ export function createDraftClient(userId: string) {
         uploaderId: upload.uploaderId,
       };
       await store.updateAttempt(saved);
+      reportPhase("preparing");
       const blobs = await store.photoFiles(
         sourcePhotos(current.photos).map((photo) => photo.id),
       );
@@ -433,12 +443,13 @@ export function createDraftClient(userId: string) {
       };
       saved.sentAt = Date.now();
       await store.updateAttempt(saved);
+      reportPhase("generating");
       const result = await generateListing({
         ...saved.input,
         requestId: attempt.operationId,
         expectedUserId: userId,
         signal: controller.signal,
-      });
+      }).finally(() => reportPhase("settled"));
       if (!disposed && result.modelPhotos?.jobId)
         void trackMobileEvent(
           "model_photos_requested",
@@ -527,11 +538,12 @@ export function createDraftClient(userId: string) {
       attempt: DraftAttempt,
       batch: boolean,
       access: DraftSettingsAccess = { tone: true, extras: true },
+      onPhase?: (phase: DraftGenerationPhase) => void,
     ) => {
       const existing = active.get(draft.id);
       if (existing) return existing;
-      const operation = run(draft, attempt, batch, access).finally(() =>
-        active.delete(draft.id),
+      const operation = run(draft, attempt, batch, access, onPhase).finally(
+        () => active.delete(draft.id),
       );
       active.set(draft.id, operation);
       return operation;

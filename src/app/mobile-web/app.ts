@@ -637,10 +637,7 @@ function progressCopy(state: MobileGenerationState): [string, string] {
       ]),
     ];
   if (state.status === "generating")
-    return [
-      uiText("Writing your listing"),
-      uiText("Our AI is finding the useful details in your photos"),
-    ];
+    return [uiText("Writing item description…"), ""];
   return [
     uiText("Preparing your listing"),
     uiText("Your photos are being securely prepared."),
@@ -690,6 +687,7 @@ function setGenerationState(
   const [title, copy] = progressCopy(state);
   text(root, '[data-mobile-web="generation-progress-title"]', title);
   text(root, '[data-mobile-web="generation-progress-copy"]', copy);
+  setHidden(root, '[data-mobile-web="generation-progress-copy"]', !copy);
   if (state.status === "uploading" || state.status === "generating") {
     text(root, '[data-mobile-web="generation-status"]', "");
   } else if (state.status === "error" || state.status === "quota") {

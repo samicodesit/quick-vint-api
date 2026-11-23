@@ -2215,7 +2215,10 @@ html:has([data-drafts-enabled="true"]) {
     padding: 0;
   }
   .draft-workspace.has-editor:has(.draft-generation-actions:not([hidden])) {
-    padding-bottom: 144px;
+    padding-bottom: max(
+      144px,
+      calc(var(--draft-generation-footer-height, 0px) + var(--app-space-4))
+    );
   }
   .draft-editor .draft-generation-actions,
   .draft-workspace.has-import:not(
@@ -2239,6 +2242,11 @@ html:has([data-drafts-enabled="true"]) {
     border-radius: 12px 12px 0 0;
     background: var(--mobile-surface);
     box-shadow: 0 -6px 24px #25292314;
+  }
+  .draft-editor .draft-generation-actions:has(
+    > .draft-generate[aria-busy="true"]
+  ) {
+    max-height: 100dvh;
   }
   .draft-group-generation > .draft-help {
     margin-top: 4px;
@@ -2789,6 +2797,19 @@ html:has([data-drafts-enabled="true"]) {
   padding: 10px 12px;
   font-size: 14px;
   gap: 8px;
+}
+.draft-workspace .draft-generate[aria-busy="true"] {
+  width: 100%;
+  background: var(--mobile-brand-soft);
+  color: var(--mobile-brand-strong);
+  font-size: 1rem;
+  line-height: 1.35;
+  opacity: 1;
+}
+.draft-generate[aria-busy="true"] > [data-draft-label],
+.draft-queue [data-draft-queue-copy] {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 [data-draft-generate-loader]:not([hidden]) {
   animation: draft-loading 1s linear infinite;

@@ -33,6 +33,11 @@ import { copyListingField } from "./billing";
 import type { MobileUsage } from "./generationClient";
 import { trackMobileEvent } from "./analytics";
 import { generationOutcome } from "./generationOutcome";
+import {
+  createDraftGenerationProgress,
+  DRAFT_GENERATION_PREPARING,
+  DRAFT_GENERATION_WAITING,
+} from "./draftGenerationProgress";
 import { activateMobileSheet } from "./sheet";
 import { mountDraftSelects } from "./draftSelect";
 import { animateSurface } from "./surfaceMotion";
@@ -141,6 +146,7 @@ export function mountDraftWorkspace(
   let editExposureFrame = 0;
   let observedEditor: { id: string; operationId: string | null } | undefined;
   let startingGenerationId: string | null = null;
+  let generationMessage = "";
   let allowance: number | null = null;
   let generationAvailable = false;
   const defaultsKey = `autolister:listing-defaults:${options.userId}`;
@@ -197,6 +203,7 @@ export function mountDraftWorkspace(
   const workspaceHeader = root
     .closest(".mobile-workspace-shell")
     ?.querySelector<HTMLElement>(".mobile-workspace-header");
+  const generationFooter = find("[data-draft-generation-actions]");
   const schedulePhotoViewport = () => {
     cancelAnimationFrame(photoViewportFrame);
     photoViewportFrame = requestAnimationFrame(() => {
@@ -209,19 +216,30 @@ export function mountDraftWorkspace(
       }
       resizeDescription();
       const rail = find("[data-draft-item-photos]");
+      const preparingOnMobile =
+        find("[data-draft-editor]").classList.contains("is-preparing") &&
+        window.matchMedia("(max-width: 767px)").matches;
+      const footerHeight = preparingOnMobile
+        ? Math.ceil(generationFooter.getBoundingClientRect().height)
+        : 0;
+      const footerSize = footerHeight ? `${footerHeight}px` : "";
       if (
-        !find("[data-draft-editor]").classList.contains("is-preparing") ||
-        !window.matchMedia("(max-width: 767px) and (min-height: 540px)").matches
+        root.style.getPropertyValue("--draft-generation-footer-height") !==
+        footerSize
+      )
+        root.style.setProperty("--draft-generation-footer-height", footerSize);
+      if (
+        !preparingOnMobile ||
+        !window.matchMedia("(min-height: 540px)").matches
       ) {
         rail.style.removeProperty("--draft-photo-viewport-height");
         return;
       }
-      const footer = find("[data-draft-generation-actions]");
       const height = Math.max(
         96,
         (window.visualViewport?.height || window.innerHeight) -
           rail.getBoundingClientRect().top -
-          footer.getBoundingClientRect().height -
+          footerHeight -
           8,
       );
       const value = `${Math.floor(height)}px`;
@@ -233,11 +251,13 @@ export function mountDraftWorkspace(
   };
   const photoViewportObserver = new ResizeObserver(schedulePhotoViewport);
   photoViewportObserver.observe(root);
+  photoViewportObserver.observe(generationFooter);
   if (workspaceHeader) photoViewportObserver.observe(workspaceHeader);
   window.addEventListener("resize", schedulePhotoViewport);
   window.visualViewport?.addEventListener("resize", schedulePhotoViewport);
   listeners.push(() => {
     root.style.removeProperty("--draft-header-height");
+    root.style.removeProperty("--draft-generation-footer-height");
     cancelAnimationFrame(photoViewportFrame);
     photoViewportObserver.disconnect();
     window.removeEventListener("resize", schedulePhotoViewport);
@@ -332,6 +352,7 @@ export function mountDraftWorkspace(
       if (queuePanel.parentElement !== root) queueAnchor.after(queuePanel);
     } else if (queuePanel.parentElement !== target) target.append(queuePanel);
     reviewSlot.hidden = target !== reviewSlot || queuePanel.hidden;
+    renderGenerationMessage();
   }
   listeners.push(() => {
     queueAnchor.after(queuePanel);
@@ -940,7 +961,7 @@ export function mountDraftWorkspace(
         draft.state === "done"
           ? uiText("Listed")
           : queue.active === draft.id
-            ? uiText("Generating…")
+            ? uiText("Preparing item")
             : queue.remaining.includes(draft.id)
               ? queue.paused || !queue.running
                 ? uiText("Paused")
@@ -1746,6 +1767,8 @@ export function mountDraftWorkspace(
     const hasText = Boolean(draft.title || draft.description);
     const failedOutput = outputFailed(draft);
     const hasPhotos = Boolean(photoCount(draft));
+    const preparingGeneration =
+      queue.active === draft.id || startingGenerationId === draft.id;
     find("[data-draft-editor]").classList.toggle(
       "is-preparing",
       hasPhotos &&
@@ -1773,7 +1796,7 @@ export function mountDraftWorkspace(
     );
     hide(
       "[data-draft-upload-actions]",
-      !hasPhotos || hasText || draft.state === "done",
+      !hasPhotos || hasText || draft.state === "done" || preparingGeneration,
     );
     hide("[data-draft-editor-settings]", false);
     hide(
@@ -1807,7 +1830,9 @@ export function mountDraftWorkspace(
     );
     const locked = busy(draft);
     const outputPreparing =
-      generating(draft) || queue.remaining.includes(draft.id);
+      preparingGeneration ||
+      generating(draft) ||
+      queue.remaining.includes(draft.id);
     const order = reviewOrder();
     const index = order.indexOf(draft.id);
     const editorTitle = outputPreparing
@@ -1821,13 +1846,7 @@ export function mountDraftWorkspace(
             : draft.state === "done"
               ? uiText("Listed item")
               : uiText("Prepare item");
-    statusLabel(
-      find("#draft-editor-title"),
-      editorTitle,
-      outputPreparing && !queue.remaining.includes(draft.id)
-        ? "working"
-        : "idle",
-    );
+    statusLabel(find("#draft-editor-title"), editorTitle);
     find("#draft-editor-title").classList.remove("draft-sr-only");
     const cover = find<HTMLImageElement>("[data-draft-editor-cover]");
     const coverUrl =
@@ -1923,12 +1942,13 @@ export function mountDraftWorkspace(
     photoSource.title = cannotAddPhotos
       ? uiText("Remove a photo to add another")
       : uiText("Add photos");
-    const singleGenerating =
-      startingGenerationId === draft.id || generating(draft);
+    const singleGenerating = preparingGeneration || generating(draft);
     label(
       "generate",
       singleGenerating
-        ? uiText("Generating…")
+        ? preparingGeneration
+          ? activeGenerationMessage()
+          : uiText(DRAFT_GENERATION_WAITING)
         : failedOutput
           ? uiText("Retry generation")
           : uiText("Generate draft"),
@@ -2563,6 +2583,38 @@ export function mountDraftWorkspace(
       if (uploads.some((p) => p.state === "waiting")) void processUploads();
     }
   }
+  function activeGenerationMessage() {
+    return generationMessage || uiText(DRAFT_GENERATION_PREPARING);
+  }
+  function renderGenerationMessage() {
+    if (disposed) return;
+    const draft = selected?.value;
+    const message = activeGenerationMessage();
+    const editorIsPreparing =
+      draft &&
+      !draft.title &&
+      !draft.description &&
+      (queue.active === draft.id || startingGenerationId === draft.id);
+    if (editorIsPreparing) label("generate", message);
+    const copy = find("[data-draft-queue-copy]");
+    const queueMessage = queue.active ? message : "";
+    if (copy.textContent !== queueMessage) copy.textContent = queueMessage;
+    copy.hidden = !queueMessage;
+    const status = find("[data-draft-generation-status]");
+    const announcement = queuePanel.hidden
+      ? editorIsPreparing
+        ? message
+        : ""
+      : queueMessage;
+    if (status.textContent !== announcement) status.textContent = announcement;
+  }
+  const generationProgress = createDraftGenerationProgress((message) => {
+    if (disposed) return;
+    const localized = message ? uiText(message) : "";
+    if (generationMessage === localized) return;
+    generationMessage = localized;
+    renderGenerationMessage();
+  });
   const queue = new DraftQueue(async (id) => {
     if (disposed) return;
     const current = await draftAction("detail", { draftId: id });
@@ -2598,6 +2650,7 @@ export function mountDraftWorkspace(
           attempt,
           generationCount > 1,
           settingsAccess,
+          generationProgress.setPhase,
         );
         void trackMobileEvent("generation_success", {
           target: "draft_workspace",
@@ -2680,16 +2733,19 @@ export function mountDraftWorkspace(
       queue.completed.length > 0 &&
       ((Boolean(selected) && reviewIds.includes(selected!.value.id)) ||
         (bulk && groupIds.some((id) => queue.completed.includes(id))));
+    const draft = selected?.value;
+    const editorOwnsSingle =
+      generationCount === 1 &&
+      draft &&
+      (draft.id === queue.active || draft.id === startingGenerationId);
+    const resultIsSaved =
+      draft?.operation_state === "succeeded" &&
+      draft.operation_id === attempts.get(draft.id)?.operationId;
     hide(
       "[data-draft-queue]",
-      (generationCount === 1 &&
-        !selected?.value.title &&
-        !selected?.value.description &&
-        queue.running &&
-        Boolean(selected) &&
-        (selected?.value.id === queue.active ||
-          startingGenerationId === selected?.value.id)) ||
-        (!queue.running &&
+      (editorOwnsSingle &&
+        ((!draft.title && !draft.description) || resultIsSaved)) ||
+        (!queue.active &&
           !queue.remaining.length &&
           !queue.failed.size &&
           !keepCompletedProgress),
@@ -2697,6 +2753,8 @@ export function mountDraftWorkspace(
   }
   function renderQueue() {
     if (disposed) return;
+    if (!queue.active) generationProgress.clear();
+    else if (startingGenerationId === queue.active) startingGenerationId = null;
     queuePanel.dataset.running = String(queue.running);
     if (bulk) find("[data-draft-heading]").textContent = uiText("Your batch");
     try {
@@ -2757,13 +2815,7 @@ export function mountDraftWorkspace(
       queueTitle,
       queue.running ? "working" : "idle",
     );
-    find("[data-draft-queue-copy]").textContent = queue.running
-      ? uiText("Keep AutoLister open while preparing.")
-      : "";
-    hide(
-      "[data-draft-queue-copy]",
-      !find("[data-draft-queue-copy]").textContent,
-    );
+    renderGenerationMessage();
     action("pause").hidden = !queue.running || queue.paused;
     action("resume").hidden = queue.running || !queue.remaining.length;
     const rows = find("[data-draft-queue-items]");
@@ -2791,25 +2843,32 @@ export function mountDraftWorkspace(
         draft?.title || uiFormat("Item {0}", [ids.indexOf(id) + 1]);
       const status = document.createElement("span");
       status.className = "draft-queue-item-status";
-      status.textContent = queue.failed.has(id)
-        ? uiText("Needs attention")
+      const state = queue.failed.has(id)
+        ? "needs-attention"
         : queue.completed.includes(id)
-          ? uiText("Ready")
+          ? "ready"
           : queue.active === id
-            ? uiText("Generating")
-            : uiText("Waiting");
+            ? "generating"
+            : "waiting";
+      status.textContent = uiText(
+        {
+          "needs-attention": "Needs attention",
+          ready: "Ready",
+          generating: "Preparing item",
+          waiting: "Waiting",
+        }[state],
+      );
       status.prepend(
         icon(
-          queue.failed.has(id)
-            ? "warning"
-            : queue.completed.includes(id)
-              ? "check"
-              : queue.active === id
-                ? "loading"
-                : "waiting",
+          {
+            "needs-attention": "warning",
+            ready: "check",
+            generating: "loading",
+            waiting: "waiting",
+          }[state],
         ),
       );
-      row.dataset.status = status.textContent.toLowerCase().replace(/ /g, "-");
+      row.dataset.status = state;
       row.append(cover, name, status);
       if (queue.completed.includes(id) || queue.failed.has(id)) {
         const review = button(
@@ -3275,13 +3334,14 @@ export function mountDraftWorkspace(
       }
     },
     generate: async () => {
-      if (!selected || startingGenerationId) return;
-      startingGenerationId = selected.value.id;
+      if (!selected || startingGenerationId || queue.running) return;
+      const draftId = selected.value.id;
+      startingGenerationId = draftId;
       renderEditor();
       try {
-        await startGeneration([startingGenerationId]);
+        await startGeneration([draftId]);
       } finally {
-        startingGenerationId = null;
+        if (startingGenerationId === draftId) startingGenerationId = null;
         renderEditor();
       }
     },
@@ -4032,6 +4092,8 @@ export function mountDraftWorkspace(
       const dialog = find<HTMLDialogElement>("[data-draft-delete-dialog]");
       if (dialog.open) dialog.close("cancel");
       disposed = true;
+      generationProgress.clear();
+      find("[data-draft-generation-status]").textContent = "";
       cancelAnimationFrame(editExposureFrame);
       client.dispose();
       queue.pause();

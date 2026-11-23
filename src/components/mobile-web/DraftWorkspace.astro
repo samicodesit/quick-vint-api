@@ -22,6 +22,7 @@ import { FREE_LIFETIME_LIMIT } from "../../../utils/tierConfig";
     <form method="dialog"><img data-draft-delete-cover hidden alt="Item to delete" /><h2 id="draft-delete-title">Delete?</h2><p id="draft-delete-copy"></p><div class="draft-actions"><button type="submit" value="cancel" autofocus>Keep it</button><button type="submit" value="confirm" class="draft-danger"><Trash2 size={18} aria-hidden="true" />Delete</button></div></form>
   </dialog>
   <span class="draft-sr-only" data-draft-copy-status role="status" aria-live="polite"></span>
+  <span class="draft-sr-only" data-draft-generation-status role="status"></span>
     <details class="draft-settings draft-global-settings" data-draft-global-settings data-draft-popover>
       <summary hidden>Listing settings</summary>
       <div class="draft-popover-panel" id="draft-global-dialog">

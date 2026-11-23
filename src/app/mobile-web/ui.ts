@@ -59,11 +59,6 @@ alias("Your drafts", ["Saved items", "Listing drafts", "AutoLister drafts"]);
 alias("Listed", ["Listed item", "Listed items"]);
 alias("Generate draft", ["Generate", "Generate listing"]);
 alias("Generate drafts", ["Generate ready drafts"]);
-alias("Generating…", [
-  "Generating",
-  "Writing your listing",
-  "Our AI is finding the useful details in your photos",
-]);
 alias("Settings", ["Listing style", "Description style"]);
 alias("This item", ["For this new item", "this item"]);
 alias("Item photo", [
@@ -268,10 +263,7 @@ alias("Signing you in", [
   "Signing in to AutoLister",
   "Just a moment while we finish securely.",
 ]);
-alias("Preparing…", [
-  "Keep AutoLister open while preparing.",
-  "The next item is still preparing.",
-]);
+alias("Preparing…", ["The next item is still preparing."]);
 alias("This draft changed on another device. Your edits are still here.", [
   "This item changed.",
   "This item's photos changed.",

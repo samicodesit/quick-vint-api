@@ -49,11 +49,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ApiLogger.extractRequestMetadata(req).ipAddress,
       getTrustedTrialIp(req.headers),
     );
-    const country = req.headers["x-vercel-ip-country"];
     const coffeeExperimentEligible =
-      process.env.PAYWALL_COFFEE_EXPERIMENT_ENABLED === "true" &&
-      process.env.VERCEL === "1" &&
-      (country === "FR" || country === "NL" || country === "BE");
+      process.env.PAYWALL_COFFEE_EXPERIMENT_ENABLED === "true";
     return res
       .status(200)
       .json(

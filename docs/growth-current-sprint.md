@@ -2,7 +2,7 @@
 
 ## 2026-11-23. Coffee comparison experiment (local)
 
-- Split eligible free web accounts 50/50 by stable account UUID. Enrollment requires a full chooser with the €3.99 Starter price and a Vercel country signal for France, the Netherlands, or Belgium. `PAYWALL_COFFEE_EXPERIMENT_ENABLED` defaults to false.
+- Split eligible free web accounts 50/50 by stable account UUID. Enrollment requires a full chooser with the €3.99 Starter price. The assignment applies worldwide. `PAYWALL_COFFEE_EXPERIMENT_ENABLED` defaults to false.
 - The comparison group sees the Starter coffee illustration, the approved monthly and one-time guidance, and “Is it worth €3.99?” with the optional €4 sale example. The numeric prices, limits, and Stripe checkout remain identical. The control retains the current chooser. The approximate price comparison is grounded in menu examples from [Café d’Ami](https://www.cafe-damis.fr/wp-content/uploads/2026/02/carte-BRUNCH.pdf), [Coffee Culture](https://coffeeculturebussum.foodticket.nl/foodticket/cgi/bestel.cgi), and [Frénésie](https://www.frenesie.be/en/menu).
 - [The experiment report](../ops/analytics/starter-coffee-v1.sql) compares settled purchases and gross EUR across subscriptions and credit packs after seven complete days per account. It also counts checkout handoffs so the two rates can be compared. The SQL was exercised with sample billing and checkout records in local PostgreSQL.
 - Local fixtures verified control and treatment layouts, localized copy, tooltip controls, and the six purchase choices. All payments were simulated.

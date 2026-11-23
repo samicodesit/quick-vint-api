@@ -154,22 +154,22 @@ describe("authenticated mobile usage endpoint", () => {
   });
 
   it.each([
-    ["1", "true", "FR", true],
-    ["1", "true", "NL", true],
-    ["1", "true", "BE", true],
-    ["1", "true", "IT", undefined],
-    ["1", "true", "", undefined],
-    ["", "true", "FR", undefined],
-    ["1", "false", "FR", undefined],
+    ["true", "FR", true],
+    ["true", "GB", true],
+    ["true", "US", true],
+    ["true", "", true],
+    ["false", "FR", undefined],
+    ["", "US", undefined],
   ])(
-    "returns only the eligibility bit for Vercel=%s enabled=%s market=%s",
-    async (vercel, enabled, country, eligible) => {
-      vi.stubEnv("VERCEL", vercel);
+    "sets coffee experiment eligibility from the flag alone when enabled=%s and country=%s",
+    async (enabled, country, eligible) => {
       vi.stubEnv("PAYWALL_COFFEE_EXPERIMENT_ENABLED", enabled);
       try {
-        const response = await invokeHandler(freeProfile, null, {
-          "x-vercel-ip-country": country,
-        });
+        const response = await invokeHandler(
+          freeProfile,
+          null,
+          country ? { "x-vercel-ip-country": country } : {},
+        );
         expect(response.statusCode).toBe(200);
         expect(response.body).not.toHaveProperty("country");
         expect(response.body).not.toHaveProperty("countryCode");

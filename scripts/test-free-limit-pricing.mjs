@@ -17,7 +17,7 @@ const item = fileURLToPath(
 const output = process.env.PAYWALL_QA_OUTPUT;
 const testLocale = process.env.PAYWALL_QA_LOCALE;
 const coffeeScenario = process.env.PAYWALL_COFFEE_SCENARIO || "";
-const coffeeMarket = ["control", "treatment", "changed-price"].includes(
+const coffeeEnabled = ["control", "treatment", "changed-price"].includes(
   coffeeScenario,
 );
 const coffeeTreatment = coffeeScenario === "treatment";
@@ -32,7 +32,7 @@ const usage = {
   blockedReason: "free_lifetime_limit",
   limits: { freeLifetime: 5 },
   remaining: { freeLifetime: 0, packCredits: 0, generations: 0 },
-  ...(coffeeMarket ? { paywallCoffeeExperimentEligible: true } : {}),
+  ...(coffeeEnabled ? { paywallCoffeeExperimentEligible: true } : {}),
   ...(coffeeScenario === "changed-price"
     ? {
         pricing: {
@@ -47,10 +47,7 @@ const browser = await chromium.launch();
 try {
   for (const [lang, copy] of Object.entries(copies)) {
     if (testLocale && lang !== testLocale) continue;
-    if (
-      ["changed-price", "unknown-market"].includes(coffeeScenario) &&
-      lang !== "en"
-    )
+    if (["changed-price", "flag-off"].includes(coffeeScenario) && lang !== "en")
       continue;
     for (const suffix of lang === "en" || lang === "nl" ? ["0", "8"] : ["8"]) {
       const context = await browser.newContext({
@@ -60,7 +57,7 @@ try {
       });
       const treatmentAccount =
         coffeeTreatment ||
-        ["changed-price", "unknown-market"].includes(coffeeScenario);
+        ["changed-price", "flag-off"].includes(coffeeScenario);
       const accountId =
         (treatmentAccount ? "8" : "1") +
         "23e4567-e89b-42d3-a456-42661417400" +

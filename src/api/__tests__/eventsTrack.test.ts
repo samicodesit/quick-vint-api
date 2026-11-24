@@ -1094,6 +1094,15 @@ describe("events tracking endpoint", () => {
 
   it.each([
     [
+      "generation_error",
+      {
+        target: "draft_workspace",
+        errorCode: "network_error",
+        stage: "photo_upload_send",
+        errorName: "load_failed",
+      },
+    ],
+    [
       "web_paywall_view",
       { reason: "plans", entryPoint: "profile_menu", tier: "free" },
     ],

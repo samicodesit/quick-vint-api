@@ -85,6 +85,7 @@ const ALLOWED_CONTEXT_KEYS = new Set([
   "count",
   "status",
   "errorCode",
+  "errorName",
   "retryable",
 ]);
 

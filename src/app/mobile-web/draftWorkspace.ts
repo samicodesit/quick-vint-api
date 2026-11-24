@@ -33,6 +33,7 @@ import { copyListingField } from "./billing";
 import type { MobileUsage } from "./generationClient";
 import { trackMobileEvent } from "./analytics";
 import { generationOutcome } from "./generationOutcome";
+import { MobileUploadError } from "./uploadClient";
 import {
   createDraftGenerationProgress,
   DRAFT_GENERATION_PREPARING,
@@ -2677,6 +2678,7 @@ export function mountDraftWorkspace(
             target: "draft_workspace",
             operationId: attempt.operationId,
             errorCode: blockCode || "generation_failed",
+            ...(error instanceof MobileUploadError ? error.diagnostics : {}),
             method: generationCount > 1 ? "batch" : "single",
             count: generationCount,
           },

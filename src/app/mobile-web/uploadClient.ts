@@ -33,12 +33,31 @@ export interface MobileUploadProgress {
   total: number;
 }
 
+type UploadRequestStage =
+  | "open"
+  | "prepare"
+  | "send"
+  | "complete"
+  | "list"
+  | "cleanup";
+
+interface UploadDiagnostics {
+  stage: `photo_upload_${UploadRequestStage}`;
+  errorName?: string;
+}
+
 export class MobileUploadError extends Error {
   readonly code: string;
   readonly status: number;
   readonly retryable: boolean;
 
-  constructor(code: string, message: string, status = 0, retryable = false) {
+  constructor(
+    code: string,
+    message: string,
+    status = 0,
+    retryable = false,
+    readonly diagnostics?: UploadDiagnostics,
+  ) {
     super(message);
     this.name = "MobileUploadError";
     this.code = code;
@@ -106,8 +125,31 @@ async function readBody(response: Response): Promise<Record<string, unknown>> {
   }
 }
 
+function browserFetchError(error: unknown): string {
+  if (!(error instanceof Error)) return "other";
+  switch (error.name) {
+    case "TypeError":
+      if (error.message === "Load failed") return "load_failed";
+      if (error.message === "Failed to fetch") return "failed_to_fetch";
+      return "type_error";
+    case "NotReadableError":
+      return "not_readable_error";
+    case "AbortError":
+      return "abort_error";
+    case "TimeoutError":
+      return "timeout_error";
+    case "SecurityError":
+      return "security_error";
+    case "NetworkError":
+      return "network_error";
+    default:
+      return "other";
+  }
+}
+
 async function request(
   session: MobileUploadSession,
+  stage: UploadRequestStage,
   url: string,
   init: RequestInit,
   signal: AbortSignal,
@@ -128,6 +170,7 @@ async function request(
       uiText("We could not upload this photo."),
       0,
       true,
+      { stage: `photo_upload_${stage}`, errorName: browserFetchError(error) },
     );
   }
   const body = await readBody(response);
@@ -155,7 +198,15 @@ async function request(
       ) {
         session.accessToken = refreshed.access_token;
         ensureNotAborted(signal);
-        return request(session, url, init, signal, false, rejectStatuses);
+        return request(
+          session,
+          stage,
+          url,
+          init,
+          signal,
+          false,
+          rejectStatuses,
+        );
       }
       await signOutBrowser().catch(() => undefined);
     } else if (response.status === 401) {
@@ -172,6 +223,7 @@ async function request(
       message,
       response.status,
       isRetryableStatus(response.status),
+      { stage: `photo_upload_${stage}` },
     );
   }
   return body;
@@ -237,7 +289,7 @@ async function requestWithRetry(
   let lastError: unknown;
   for (let attempt = 0; attempt < MAX_UPLOAD_ATTEMPTS; attempt += 1) {
     try {
-      return await request(session, url, init, signal);
+      return await request(session, "send", url, init, signal);
     } catch (error) {
       lastError = error;
       if (
@@ -269,6 +321,7 @@ export async function openSingleUpload(
 ): Promise<void> {
   await request(
     session,
+    "open",
     `${API_UPLOAD}?action=open&v=2&mode=single&sessionId=${encodeURIComponent(session.sessionId)}`,
     { method: "POST" },
     signal,
@@ -282,6 +335,7 @@ export async function prepareUpload(
 ): Promise<void> {
   await request(
     session,
+    "prepare",
     `${API_UPLOAD}?action=prepare&sessionId=${encodeURIComponent(session.sessionId)}&expectedCount=${expectedCount}&v=2&uploaderId=${encodeURIComponent(session.uploaderId)}`,
     { method: "POST" },
     signal,
@@ -316,6 +370,7 @@ async function completeUpload(
     try {
       await request(
         session,
+        "complete",
         `${API_UPLOAD}?action=complete&sessionId=${encodeURIComponent(session.sessionId)}&expectedCount=${expectedCount}&v=2`,
         {
           method: "POST",
@@ -357,6 +412,7 @@ async function fetchSignedPhotos(
 ): Promise<UploadedMobilePhoto[]> {
   const body = await request(
     session,
+    "list",
     `${API_UPLOAD}?v=2&includeUrls=1&sessionId=${encodeURIComponent(session.sessionId)}`,
     { method: "GET" },
     signal,
@@ -477,6 +533,7 @@ export async function cleanupUploadSession(
   const cancellation = phase === "cancelled" ? "&reason=cancelled" : "";
   await request(
     session,
+    "cleanup",
     `${API_UPLOAD}?action=cleanup&v=2${cancellation}&sessionId=${encodeURIComponent(session.sessionId)}`,
     {
       method: "POST",

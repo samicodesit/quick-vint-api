@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanupUploadSession,
   createMobileUploadSession,
+  uploadPreparedPhotos,
   uploadSelectedPhotos,
 } from "../uploadClient.js";
 import { prepareMobileImage } from "../imagePreparation.js";
@@ -370,6 +371,55 @@ describe("mobile V2 upload client", () => {
     ).rejects.toMatchObject({ code: "network_error" });
 
     expect(calls.some(({ url }) => url.includes("action=cleanup"))).toBe(true);
+  });
+
+  it.each([
+    [new TypeError("Load failed"), "load_failed"],
+    [new TypeError("private upload URL"), "type_error"],
+    [
+      new DOMException("private file path", "NotReadableError"),
+      "not_readable_error",
+    ],
+    [new DOMException("unexpected", "custom_private_name"), "other"],
+  ])(
+    "classifies a failed photo request without retaining its raw error",
+    async (error, errorName) => {
+      globalThis.fetch = vi.fn(async (_input, init) => {
+        if (init?.body instanceof FormData) throw error;
+        return response({ success: true });
+      }) as typeof fetch;
+
+      await expect(
+        uploadPreparedPhotos(
+          createMobileUploadSession("access-token"),
+          selectedFiles(1),
+          new AbortController().signal,
+        ),
+      ).rejects.toMatchObject({
+        code: "network_error",
+        diagnostics: { stage: "photo_upload_send", errorName },
+      });
+    },
+  );
+
+  it("keeps the failing HTTP step when cleanup also fails", async () => {
+    globalThis.fetch = vi.fn(async (input) => {
+      const url = String(input);
+      if (url.includes("action=complete") || url.includes("action=cleanup"))
+        return response({ status: "expired" }, 410);
+      return response({ success: true });
+    }) as typeof fetch;
+
+    await expect(
+      uploadPreparedPhotos(
+        createMobileUploadSession("access-token"),
+        selectedFiles(1),
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({
+      code: "http_410",
+      diagnostics: { stage: "photo_upload_complete" },
+    });
   });
 
   it("refreshes once when the upload session receives a 401", async () => {
